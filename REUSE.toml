@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Licence information for files that can't carry an SPDX header.
+# Checked by `reuse lint` in CI (C-REUSE).
+
+version = 1
+
+[[annotations]]
+path = [
+  "README.md",
+  "NOTICE",
+  ".gitmessage",
+  "config/claude/*.json",
+  "vendor/jieli-sdk/SHA256SUMS",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 japes98"
+SPDX-License-Identifier = "MIT"
+
+# Prompts are kept verbatim and transcripts are records; both quote SPDX
+# tags in their text, so their contents are not parsed for licence tags.
+[[annotations]]
+path = [
+  "docs/prompts/**",
+  "sessions/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 japes98"
+SPDX-License-Identifier = "MIT"
+
+# Vendored JieLi AC79 SDK files, unmodified (vendor/jieli-sdk/SOURCE.md).
+[[annotations]]
+path = [
+  "vendor/jieli-sdk/LICENSE",
+  "vendor/jieli-sdk/include_lib/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "JIELI"
+SPDX-License-Identifier = "Apache-2.0"

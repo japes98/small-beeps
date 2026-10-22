@@ -1,0 +1,24 @@
+<area>: <what changed, one line>
+
+What:
+Why:
+How:
+Result:
+Sources:
+Exposure:
+
+# Template (CONTRIBUTING.md, "Commit messages"). Lines starting with # are
+# removed. Every field is required and must not be empty:
+#   What:     what this commit does
+#   Why:      the reason (the milestone and requirement IDs it serves)
+#   How:      the approach, and anything tried and rejected
+#   Result:   what the author saw when testing (the CI record is the
+#             authoritative result)
+#   Sources:  PROVENANCE IDs used (or "none")
+#   Exposure: the author's role and exposure (e.g. "firmware side, none")
+# A field may continue on the following lines, indented.
+# Agent-written commits also end with these trailers:
+#   Model: <exact model ID>
+#   Claude-Session: <session URL>
+#   Co-Authored-By: <model> <noreply@anthropic.com>
+# Checked by tools/hooks/commit-msg and by CI (tools/check-commit-msg.py).

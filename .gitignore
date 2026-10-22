@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+
+# Live Claude Code settings: installed from config/claude/ by
+# tools/clean-setup.sh or tools/spec-setup.sh, never committed directly.
+.claude/settings.json
+.claude/settings.local.json
+.claude/small-beeps-role
+
+# Build and check outputs
+/out/
+__pycache__/
+*.pyc
+
+# The toolchain is never committed (docs/TOOLCHAIN.md)
+*.tar.xz
+jieli-linux-toolchains-*/
