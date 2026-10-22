@@ -219,7 +219,7 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   - **History**: the records workflow appends one line per main commit
     to `perf-history.csv` at the root of the `records` branch, never
     rewriting it; a re-run adds no line.
-  - **C-MERGE's three failures, and the fix** (pull request #15): every
+  - **C-MERGE's three failures, and the fix** (pull request #17): every
     other check passed in each of these records, and each FAIL record
     stays as it is.
     1. M0a's merge (`2fd28219`) failed under the merge rule of that time
@@ -234,7 +234,7 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
        workflow writes a PASS record beside it and, being a re-run, adds
        no line.
 
-    Since #15, an empty answer is asked again like an unfinished run, with
+    Since #17, an empty answer is asked again like an unfinished run, with
     backoff (10 s, doubling, at most 300 s) up to the same 30 minutes.
     Triggering the records workflow from the ci run's completion
     (`workflow_run`) was considered, so there would be nothing to search
