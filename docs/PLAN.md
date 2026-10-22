@@ -67,9 +67,15 @@ emits JUnit and JSON.
   - **Separation**: docs/HARNESS.md (the clean side's manual) and
     docs/SPEC-REQUESTS.md; checks C-SEP-TERMS, C-CLEAN-FOLDER and
     C-FWTEST-PIN; requirements R-SEP-1..3 and R-HARN-1..10.
-  - **Publishing**: `.github/workflows/fwtest-image.yml` pushes the image
-    from main; a follow-up pull request pins its digest in
-    `config/fwtest-image`, after which `tools/fwtest` runs it.
+  - **Merged**: #3 as `0ad38801`, #4 as `5d4d6fd2`. The records for both
+    merges are PASS, with every check run, none skipped. The second
+    record's `harness/` holds the suite's JSON, JUnit and output hashes.
+  - **Publishing**: `.github/workflows/fwtest-image.yml` pushed the image
+    built from `5d4d6fd2` as
+    `ghcr.io/japes98/small-beeps@sha256:fa74baf9…` (public; pulls without
+    logging in). `config/fwtest-image` pins it, and the suite run through
+    `tools/fwtest` with it gives all 47 output files with the same SHA-256
+    as that record.
   - **Before the next clean session**, in the clean folder, from a shell:
     `export GIT_NO_LAZY_FETCH=1; git fetch origin;` then
     `env -u GIT_NO_LAZY_FETCH git merge --ff-only origin/main` (only the
