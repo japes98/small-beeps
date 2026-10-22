@@ -40,6 +40,11 @@
       "sha256_16": "f897aded4c2954ad",
       "reason": "The largest raw image's length (1 MiB less 16 KiB) written in hex, from docs/HARDWARE-SPEC.md (HW-5) and docs/HARNESS.md ('The raw image'), used as the image region's length in the firmware's linker script.",
       "added_by": "session M0d (firmware side), 2026-10-22"
+    },
+    {
+      "sha256_16": "744ecd8ac4b5da96",
+      "reason": "The address of the interrupt vector table, a hardware fact from docs/HARDWARE-SPEC.md (HW-18, sourced to the JieLi SDK's hwi.h and FM-1-RE), cited in the firmware's design notes on the memory layout.",
+      "added_by": "session M0d (firmware side), 2026-10-22"
     }
   ]
 }
