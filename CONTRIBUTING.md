@@ -170,6 +170,11 @@ Exposure: the author's role and exposure (e.g. "firmware side, none")
   squash or rebase merges, and nobody bypasses the rules.
 - Records (`records/<sha>/` on the `records` branch) are written only by
   `.github/workflows/records.yml`, for pushes to main.
+- **Performance budgets** (`config/budgets.json`, R-PERF-1) are raised, or
+  moved to the next milestone's, only by a pull request of their own that
+  says why in the What/Why/How/Result sections and changes nothing else.
+  When CI's performance summary shows an improvement of more than 3%
+  (R-PERF-2), say so in the pull request's Result.
 - Milestones end with a tag `mN`, signed by the owner with their SSH key
   (below), and a GitHub release with the build outputs, the record and an
   SBOM.

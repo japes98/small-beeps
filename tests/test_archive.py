@@ -44,6 +44,15 @@ class ArchiveTest(unittest.TestCase):
         self.assertIn("noreply@anthropic.com", out)
         self.assertIn("~/Development/x", out)
 
+    def test_email_after_a_json_escape(self):
+        # `cat -n` output puts a tab right before the text: "12\tname@host"
+        for char, esc in (("\t", "t"), ("\n", "n"), ("\r", "r")):
+            line = json.dumps({"t": "12%sowner@example.org end" % char}) + "\n"
+            out = ar.redact_line(line, {})
+            json.loads(out)
+            self.assertNotIn("owner@example.org", out)
+            self.assertIn("12\\%s[REDACTED:email]" % esc, out)
+
     def test_private_key_in_json_string(self):
         line = json.dumps({"t": "x"}).replace('"x"', '"%s"' % PRIVATE) + "\n"
         counts = {}

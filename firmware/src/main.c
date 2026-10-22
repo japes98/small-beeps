@@ -46,6 +46,9 @@ int main(void)
     } else {
         sb_beacon.marker = SB_MARKER_BAD;
     }
+#if defined(SB_PROBE_BIG)
+    sb_probe_big();
+#endif
 
     /* Only differences of CNT are used: its value when started, and its
      * response to writes, don't matter. Unsigned subtraction is right
@@ -61,6 +64,9 @@ int main(void)
         while (now - done >= TICKS_PER_MS) {
             done += TICKS_PER_MS;
             sb_beacon.beats++;
+#if defined(SB_PROBE_SLOW)
+            sb_probe_slow();
+#endif
         }
         /* Storing on every pass also keeps core 0 busy, so fwtest's
          * captures land on time (docs/HARNESS.md, "Time"). */
