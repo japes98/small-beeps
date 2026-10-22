@@ -37,6 +37,14 @@ def _low_profile_cmd():
     return [PY, "-I", "tools/check-low-profile.py", "--offline"]
 
 
+def _private_cmd():
+    # CI must have the terms (the PRIVATE_TERMS secret); locally they come
+    # from tools/private-terms.local when it exists.
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        return [PY, "-I", "tools/check-private.py", "--require"]
+    return [PY, "-I", "tools/check-private.py"]
+
+
 def _commit_range():
     return os.environ.get("COMMIT_RANGE") or "..HEAD"
 
@@ -58,6 +66,8 @@ CHECKS = [
      "reqs": ["R-PUB-1"], "cmd": _low_profile_cmd},
     {"id": "C-SECRETS", "title": "No secrets in tracked files",
      "reqs": ["R-PUB-2"], "cmd": [PY, "-I", "tools/check-tracked.py", "secrets"]},
+    {"id": "C-PRIVATE", "title": "No private terms in tracked files or commit messages",
+     "reqs": ["R-PUB-3"], "cmd": _private_cmd},
     {"id": "C-NO-TOOLCHAIN", "title": "No toolchain parts or binaries tracked",
      "reqs": ["R-REPRO-1"], "cmd": [PY, "-I", "tools/check-tracked.py", "no-toolchain"]},
     {"id": "C-DENY-LISTS", "title": "Claude Code deny lists never drop an entry",

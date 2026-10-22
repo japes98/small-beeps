@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The base commit for tools/check-private.py (C-PRIVATE): the last main
+# commit before the check existed. A file under sessions/ or docs/prompts/
+# whose blob is the same as at this commit is exempt (CONTRIBUTING.md,
+# "Privacy"). Never moved forward.
+80864b9b85013abd7f3a7e5c0f796863eebd2264

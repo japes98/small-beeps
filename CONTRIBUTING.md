@@ -260,6 +260,36 @@ public key, delete the old key.
 - Nothing secret ever goes in: no keys, tokens or private notes. The
   repository is public and history is never rewritten.
 
+## Privacy
+
+The repository is public. No committed file, commit message or pull request
+text names the owner's username, real name, e-mail address, hostname or
+local folder names, or a full local path: write paths relative to the
+repository, or as `~/...` with the top folder shown as `<top>`. Anyone who
+finds such a term in the repository tells the owner instead of repeating it.
+
+- **The terms** are kept by the owner, never in the repository: in the
+  gitignored `tools/private-terms.local` (one per line, `#` comments,
+  matched ignoring case) and in the repository secret `PRIVATE_TERMS`, which
+  CI passes to the check.
+- **The check** `tools/check-private.py` (C-PRIVATE, R-PUB-3) scans every
+  tracked file and every commit message, and the pre-commit and commit-msg
+  hooks scan staged files and the message (`tools/install-hooks.sh` turns
+  them on). A hit is reported by file and line only, never the term. CI
+  fails when the secret is missing.
+- **Older records stay as they are.** A file under `sessions/` or
+  `docs/prompts/` whose blob is identical to the same path at the base
+  commit in `config/private-base` (the last main commit before the check)
+  is exempt. This is decided from git's object hashes alone, so no session
+  opens or lists the spec side's transcripts for it, and the check prints
+  only how many files it exempted per folder. Every file added or changed
+  after the base is checked in full. Files that sessions keep editing get no
+  exemption: their current text is redacted instead (`docs/EXPOSURE.md` was,
+  on 2026-10-22), and git history keeps the originals.
+- **Archived transcripts** are redacted by `tools/archive-session.py`: the
+  username anywhere it appears, the local top-level folder as `<top>`, and
+  every private term.
+
 ## Low profile (for now)
 
 The repository is public but unpromoted. In its name, description and topics,

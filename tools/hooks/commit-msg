@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
 #
-# Git commit-msg hook: the message must follow .gitmessage (R-PROC-1).
+# Git commit-msg hook: the message must follow .gitmessage (R-PROC-1) and
+# hold none of the owner's private terms (R-PUB-3).
 # Turned on by tools/install-hooks.sh (core.hooksPath = tools/hooks).
 top=$(git rev-parse --show-toplevel)
 py=$(sh "$top/tools/find-python.sh") || exit 1
-exec "$py" -I "$top/tools/check-commit-msg.py" --file "$1"
+"$py" -I "$top/tools/check-commit-msg.py" --file "$1" || exit 1
+exec "$py" -I "$top/tools/check-private.py" --message-file "$1"

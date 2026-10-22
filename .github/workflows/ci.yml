@@ -35,6 +35,9 @@ jobs:
         env:
           COMMIT_RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
           GITHUB_TOKEN: ${{ github.token }}
+          # The owner's private terms, for C-PRIVATE (tools/check-private.py
+          # prints only file and line, never a term).
+          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
         run: python tools/record.py run --out out/record
 
       - name: Upload report
