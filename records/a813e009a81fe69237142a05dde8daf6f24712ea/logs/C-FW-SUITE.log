@@ -1,0 +1,47 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/fw-suite.py --build /home/runner/work/small-beeps/small-beeps/out/a813e009a81fe69237142a05dde8daf6f24712ea/build-a --out /home/runner/work/small-beeps/small-beeps/out/a813e009a81fe69237142a05dde8daf6f24712ea/fwtest
+image size: code 280, data 4, bss 20, image 284, stack 4096
+Unable to find image 'ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc' locally
+ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc: Pulling from japes98/small-beeps
+fb02902e2fd3: Pulling fs layer
+94312d059e3c: Pulling fs layer
+e5c4369ab42b: Pulling fs layer
+0d5ab9647376: Pulling fs layer
+3af49bcb79cf: Pulling fs layer
+bbf6346f9d17: Pulling fs layer
+0d5ab9647376: Waiting
+3af49bcb79cf: Waiting
+bbf6346f9d17: Waiting
+e5c4369ab42b: Verifying Checksum
+e5c4369ab42b: Download complete
+94312d059e3c: Verifying Checksum
+94312d059e3c: Download complete
+3af49bcb79cf: Verifying Checksum
+3af49bcb79cf: Download complete
+0d5ab9647376: Verifying Checksum
+0d5ab9647376: Download complete
+fb02902e2fd3: Verifying Checksum
+fb02902e2fd3: Download complete
+bbf6346f9d17: Verifying Checksum
+bbf6346f9d17: Download complete
+fb02902e2fd3: Pull complete
+94312d059e3c: Pull complete
+e5c4369ab42b: Pull complete
+0d5ab9647376: Pull complete
+3af49bcb79cf: Pull complete
+bbf6346f9d17: Pull complete
+Digest: sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc
+Status: Downloaded newer image for ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc
+fwtest suite: PASS
+boot: completed at 5.455 ms, 4097 instructions on core 0
+  golden console.txt: match
+  golden ram-01c00000-4-end.bin: match
+  golden ram-01c7fc00-400-end.bin: match
+heartbeat: completed at 1000.647 ms, 358934 instructions on core 0
+  1ms    marker 0x44304253  beats     2  ticks     61724 (2.572 ms)
+  10ms   marker 0x44304253  beats    11  ticks    268869 (11.203 ms)
+  100ms  marker 0x44304253  beats   100  ticks   2408563 (100.357 ms)
+  500ms  marker 0x44304253  beats   500  ticks  12004022 (500.168 ms)
+  end    marker 0x44304253  beats  1000  ticks  24015527 (1000.647 ms)
+fw suite: PASS
+
+exit status 0

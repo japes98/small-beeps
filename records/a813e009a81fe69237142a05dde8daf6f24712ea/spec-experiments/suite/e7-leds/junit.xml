@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="0">
+  <testsuite name="experiments.e7-leds" tests="2" failures="0">
+    <testcase classname="experiments.e7-leds" name="run"/>
+    <testcase classname="experiments.e7-leds" name="golden leds.csv"/>
+  </testsuite>
+</testsuites>

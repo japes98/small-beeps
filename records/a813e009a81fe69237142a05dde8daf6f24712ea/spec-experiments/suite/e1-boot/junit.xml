@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="3" failures="1">
+  <testsuite name="experiments.e1-boot" tests="3" failures="1">
+    <testcase classname="experiments.e1-boot" name="run">
+      <failure message="halt: core 0 jumped to itself with interrupts disabled at pc 0x02000082"/>
+    </testcase>
+    <testcase classname="experiments.e1-boot" name="golden ram-01c00100-80-end.bin"/>
+    <testcase classname="experiments.e1-boot" name="golden ram-01c00200-40-end.bin"/>
+  </testsuite>
+</testsuites>

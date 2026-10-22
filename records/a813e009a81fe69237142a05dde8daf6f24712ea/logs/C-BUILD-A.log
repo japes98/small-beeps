@@ -1,0 +1,28 @@
+$ sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/a813e009a81fe69237142a05dde8daf6f24712ea/build-a
+clang version 4.0.1 () ()
+GNU ld (GNU Binutils) 2.26.51.20160621
+SOURCE_DATE_EPOCH=1767225600
++ clang -target pi32v2 -nostdinc -Werror -c firmware/src/crt0.S -o /tmp/small-beeps-obj/crt0.o
++ set +x
++ clang -target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -c firmware/src/main.c -o /tmp/small-beeps-obj/main.o
++ set +x
++ clang -target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -c firmware/src/probe.c -o /tmp/small-beeps-obj/probe.o
++ set +x
++ clang -target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -c firmware/src/start.c -o /tmp/small-beeps-obj/start.o
++ set +x
++ ld -nostdlib --no-undefined --orphan-handling=error -T firmware/app.ld -o /out/app.elf /tmp/small-beeps-obj/crt0.o /tmp/small-beeps-obj/main.o /tmp/small-beeps-obj/probe.o /tmp/small-beeps-obj/start.o
++ objcopy -O binary -j .text /out/app.elf /tmp/small-beeps-obj/text.bin
++ objcopy -O binary -j .data /out/app.elf /tmp/small-beeps-obj/data.bin
++ cat /tmp/small-beeps-obj/text.bin /tmp/small-beeps-obj/data.bin
++ rm /tmp/small-beeps-obj/text.bin /tmp/small-beeps-obj/data.bin
++ set +x
+code 280
+data 4
+bss 20
+image 284
+stack 4096
+c958793d9daf32c51b62f1df8acd43af308793fcb7f087317a79d90dae35df2a  app.bin
+87025145a8285171e2bd22327e53834c305f9e158033c86c75337b35adcce858  app.elf
+cf908c9caff00b71daa8a1b160552448784ed2962bada2bb295af4fa343f9fe6  app.size
+
+exit status 0

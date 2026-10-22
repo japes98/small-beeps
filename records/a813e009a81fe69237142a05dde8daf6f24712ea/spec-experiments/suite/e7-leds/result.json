@@ -1,0 +1,38 @@
+{
+  "fwtest": {
+    "version": "0.1.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "e7-leds.bin",
+    "bytes": 208,
+    "sha256": "d0be3d522e93bdc1a7b4da7013d08af1a178a76f8aea321ec721877d20749445"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "120.000",
+    "instructions": {
+      "core0": 28800000,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "leds.csv",
+        "bytes": 21626,
+        "sha256": "98582fbf2df472a95ec6cca05752adc19a11160d945915f8a129bf9894863832"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "leds.csv",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 0
+}

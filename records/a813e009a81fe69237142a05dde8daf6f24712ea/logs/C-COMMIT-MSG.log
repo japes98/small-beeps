@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range cbd6e4d608973ff35bf5475fd11580d05a8b4cb6..a813e009a81fe69237142a05dde8daf6f24712ea
+OK     162d7c8c59ea tools: transcript check clears REVIEWED/clean-only heredocs, quotes nothing
+OK     a38ac4911b42 tools: withhold record files holding a private term (C-RECORD-PRIVATE)
+EXEMPT a813e009a81f (merge) Merge pull request #25 from japes98/m1/tools-privacy
+3 commit(s) checked: PASS
+
+exit status 0
