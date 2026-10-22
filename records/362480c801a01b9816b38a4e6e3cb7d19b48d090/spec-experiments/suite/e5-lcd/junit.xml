@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="3" failures="1">
+  <testsuite name="experiments.e5-lcd" tests="3" failures="1">
+    <testcase classname="experiments.e5-lcd" name="run">
+      <failure message="halt: core 0 jumped to itself with interrupts disabled at pc 0x0200001e"/>
+    </testcase>
+    <testcase classname="experiments.e5-lcd" name="golden lcd-1ms.png"/>
+    <testcase classname="experiments.e5-lcd" name="golden lcd-end.png"/>
+  </testsuite>
+</testsuites>

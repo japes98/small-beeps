@@ -1,0 +1,48 @@
+{
+  "fwtest": {
+    "version": "0.1.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "e5-lcd.bin",
+    "bytes": 320,
+    "sha256": "05adc6a98b026dfc66f2391c8fca6e49fb2b22b9b7eb0ae178b4032c974bd0aa"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "halt",
+    "detail": "core 0 jumped to itself with interrupts disabled at pc 0x0200001e",
+    "emulated_ms": "2.517",
+    "instructions": {
+      "core0": 604229,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "lcd-1ms.png",
+        "bytes": 173118,
+        "sha256": "8d9f6199f553cf2609c919089a8e0345739177dfc3c00e035cacd383e8f4990a"
+      },
+      {
+        "name": "lcd-end.png",
+        "bytes": 173118,
+        "sha256": "45a1f6ca46f8191dc0d47c202917f88b906665e137c9d3ad1477c83d5450efe6"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "lcd-1ms.png",
+      "result": "match",
+      "detail": null
+    },
+    {
+      "name": "lcd-end.png",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 4
+}
