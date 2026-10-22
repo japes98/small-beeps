@@ -14,6 +14,8 @@
 #     off as clean sessions run (the tool tests, the transcript, term and spec
 #     checks, the emulator pin check, and `git log -p` over this branch,
 #     which must fail rather than fetch), fetch none of those contents;
+#   - tools/clean-update.sh stops when a spec-side output reaches .git
+#     through another branch (as the records branch holds them);
 #   - tools/clean-update.sh brings a clean folder made at HEAD's parent up to
 #     HEAD with the same results, and updates one across a commit (made here)
 #     that changes vendor/emulator/ and harness/ without fetching any of
@@ -160,6 +162,23 @@ env -u GIT_NO_LAZY_FETCH git -C "$work/probe-control" merge --ff-only origin/mai
 n=$(present "$work/probe-control")
 if [ "$n" -gt 0 ]; then echo "control: a merge with its summary fetched $n of their blobs, as expected"
 else bad "control: a merge with its summary fetched none of their blobs, so this test can't tell"; fi
+
+# A spec-side output reached through another branch (as a record on the
+# records branch holds them): a made-up file under records/x/spec-experiments/
+# on a local branch, with its blob present, must make clean-update.sh stop.
+d="$work/probe-update"
+oid=$(printf 'clean-update probe: a spec-side output in a record\n' | git -C "$d" hash-object -w --stdin)
+t=$(printf '100644 blob %s\tprobe.txt\n' "$oid" | git -C "$d" mktree)
+for name in spec-experiments x records; do t=$(printf '040000 tree %s\t%s\n' "$t" "$name" | git -C "$d" mktree); done
+git -C "$d" update-ref refs/heads/planted "$(git -C "$d" commit-tree "$t" -m 'clean-update probe')"
+if sh "$ROOT/tools/clean-update.sh" --dir "$d" main > "$work/planted.log" 2>&1; then
+    cat "$work/planted.log"; bad "tools/clean-update.sh missed a spec-side output reached through another branch"
+elif grep -q '^STOP: 1 spec-side' "$work/planted.log"; then
+    echo "a spec-side output reached through another branch: clean-update.sh stopped, as it should"
+else
+    cat "$work/planted.log"; bad "tools/clean-update.sh failed, but not for the planted output"
+fi
+git -C "$d" update-ref -d refs/heads/planted
 
 if [ $fail -eq 0 ]; then echo "clean folder: PASS"; else echo "clean folder: FAIL"; fi
 exit $fail
