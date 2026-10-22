@@ -266,6 +266,23 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
       (`a754ebc9`, `a2086340`, `193cb61c`, `f5740bc8`, `3c83ffed`,
       `9ebd2588`), in the order the records were written, not the order
       of the commits. The lines of #13, #15 and #16 say FAIL.
+  - **Those three merges, re-checked** (pull request #20,
+    `.github/workflows/recheck-merge.yml`): a workflow started by hand
+    re-runs only C-MERGE on a merge already on main, with the merge
+    check on main, and adds `records/<sha>/verified-<date>/` beside the
+    record. It holds the check's log, the result, the checker's commit
+    and SHA-256, the reason, the run, checksums and their OpenTimestamps
+    proof. Its push is refused unless every change is a new file in that
+    folder.
+    - Run on 2026-10-22 with the checker from `d474fd3c` (main after
+      #20), for #13 (`a2086340`), #15 (`f5740bc8`) and #16 (`3c83ffed`):
+      **PASS** for all three. Each found its pull request, merged by the
+      owner, and that pull request's head's successful ci run (#13:
+      39799063783, #15: 39801730601, #16: 39801503047).
+    - The records branch's three commits for these runs only add the five
+      files of each `verified-2026-10-22/`; the original records, their
+      re-runs and `perf-history.csv` are unchanged, so those lines still
+      say FAIL, and the verification beside each record says why.
   - **M0d's firmware, measured**: code 252, data 4, bss 20 bytes; image
     256; static RAM 24; stack high-water 0 of 4 096 bytes (no function
     uses the stack); 356 887 instructions over 1 000 heartbeat periods,
