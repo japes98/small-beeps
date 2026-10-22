@@ -1,0 +1,11 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 265f15b5b646cf7d5110d4606365d82fae93f5bc..0ad388011f3087a825a4443a1955bc0ab6bdbe8c
+OK     0b31d1b2346f docs: the M0b prompt, unedited
+OK     8084dd2e5f4d tools: archived transcripts in sessions/clean/ and sessions/spec/
+OK     3768592d8458 tools: clean folders leave out sessions/spec/ and deny reading it
+OK     c2a45d3c2b6a config: keep the owner's hand-made spec settings and guard them
+OK     3f15912fca16 sessions: archive session M0a (clean side)
+OK     5f34c690bac9 docs: M0b's exposure entry and the rules for spec-side transcripts
+EXEMPT 0ad388011f30 (merge) Merge pull request #3 from japes98/m0b/setup
+7 commit(s) checked: PASS
+
+exit status 0
