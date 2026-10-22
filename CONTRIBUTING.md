@@ -69,7 +69,9 @@ was used) and name the ID in the commit's `Sources:` field:
   it (a clone puts its firmware images and disassembly material on disk);
 - public datasheets;
 - our own experiments: test programs run in the emulator, observed only
-  through the harness.
+  through the harness: `tools/fwtest`, whose manual is docs/HARNESS.md;
+- answers to spec requests (docs/SPEC-REQUESTS.md), which arrive as facts
+  in `HARDWARE-SPEC.md`.
 
 ### Barriers
 
@@ -112,6 +114,10 @@ changed in general terms, never emulator internals: no register names,
 addresses, struct or function names, or code excerpts. Such detail goes in
 comments inside `harness/`. CI logs and records from harness runs show
 results (pass/fail, hashes, images, numbers), never emulator source.
+`tools/check-emulator-terms.py` (C-SEP-TERMS) looks for identifiers that
+occur only in `vendor/emulator/` in all of those places and reports a hit
+by place and hash, never the word; run it (with `--show`, in a spec folder)
+on your commit messages before you push. People review the two doors.
 
 ## Commit messages
 

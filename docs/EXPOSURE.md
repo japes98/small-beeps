@@ -135,6 +135,11 @@ training cutoff (see "Model cutoffs" below).
     read them to plan, and then archived M0a and wrote this entry (times in
     "Barrier log"). Nothing it read before writing this entry is outside
     what the entry lists.
+- Later exposure (added during the session): it also read the names of the
+  upstream repository's CI workflows and one of them, to learn the Rust
+  version upstream builds with; it built and ran the three crates, and
+  listed parts of their generated instruction table to find encodings for
+  its test images. Nothing else of that repository was read or fetched.
 
 ## Barrier log
 
