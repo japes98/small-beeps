@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/fm1-sid/**)",
+      "Read(**/probes/lcdtest.c)",
+      "WebFetch(domain:hugelton.github.io)",
+      "WebFetch(domain:thefirmwarehub.com)",
+      "Bash(git clone*Felucca*)",
+      "Bash(git clone*felucca*)",
+      "Bash(git clone*dinghy*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/tools/session-banner.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

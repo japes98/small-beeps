@@ -1,0 +1,24 @@
+{
+  "comment": "Every entry each config's deny list has ever had. Entries may be added here, never removed. Checked by tools/check-deny-lists.py (C-DENY-LISTS).",
+  "clean": [
+    "Read(./vendor/emulator/**)",
+    "Read(./harness/**)",
+    "Read(**/fm1-sid/**)",
+    "WebFetch(domain:hugelton.github.io)",
+    "WebFetch(domain:thefirmwarehub.com)",
+    "Bash(git clone*Felucca*)",
+    "Bash(git clone*felucca*)",
+    "Bash(git clone*dinghy*)",
+    "Bash(git clone*fm1-emu*)",
+    "Bash(git clone*f-emulator*)"
+  ],
+  "spec": [
+    "Read(**/fm1-sid/**)",
+    "Read(**/probes/lcdtest.c)",
+    "WebFetch(domain:hugelton.github.io)",
+    "WebFetch(domain:thefirmwarehub.com)",
+    "Bash(git clone*Felucca*)",
+    "Bash(git clone*felucca*)",
+    "Bash(git clone*dinghy*)"
+  ]
+}
