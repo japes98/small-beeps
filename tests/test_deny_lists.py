@@ -64,9 +64,18 @@ class DenyListTest(unittest.TestCase):
         self.assertTrue(dl.check(self.dir))
 
     def test_changed_handmade_file_fails(self):
-        with open(os.path.join(self.dir, "handmade-settings.json"), "a") as f:
-            f.write("\n")
-        self.assertTrue(dl.check(self.dir))
+        for name in ("handmade-settings.json", "handmade-spec-settings.json"):
+            self.setUp()
+            with open(os.path.join(self.dir, name), "a") as f:
+                f.write("\n")
+            self.assertTrue(dl.check(self.dir), name)
+
+    def test_spec_config_keeps_the_handmade_spec_rules(self):
+        with open(os.path.join(CONFIG, "handmade-spec-settings.json")) as f:
+            handmade = json.load(f)["permissions"]["deny"]
+        with open(os.path.join(CONFIG, "spec.json")) as f:
+            spec = json.load(f)["permissions"]["deny"]
+        self.assertEqual(spec[:len(handmade)], handmade)
 
 
 if __name__ == "__main__":
