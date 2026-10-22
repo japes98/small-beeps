@@ -202,6 +202,10 @@ def find_baseline(base_ref, records_ref, head=None):
         files = {}
         for name in ("outputs/app.bin", "outputs/app.size", "report.json"):
             files[name] = git("cat-file", "blob", "%s:records/%s/%s" % (records_ref, sha, name), binary=True)
+        if files["outputs/app.bin"] is None and (git("ls-tree", "--name-only", "%s:records/%s" % (records_ref, sha))
+                                                 or "").split() == ["audit"]:
+            # only the similarity audit's report so far (records/<sha>/audit/): not recorded yet
+            continue
         if files["outputs/app.bin"] is None or files["outputs/app.size"] is None:
             return None, None, "the record of %s has no image here (not in the record, or not " \
                                "fetched)" % sha[:12]

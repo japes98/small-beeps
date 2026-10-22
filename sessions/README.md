@@ -24,6 +24,12 @@ searches anything under `spec/`. When the previous session was spec side
 and the next is clean, the clean session leaves it for the next spec
 session to archive.
 
+An **auditor** session (CONTRIBUTING.md, "Roles") is never archived here:
+its transcript holds GPL source, so it goes to the owner's private
+repository, and docs/EXPOSURE.md records its ID, SHA-256 and that
+repository's commit. `tools/check-transcripts.py` fails on any transcript
+outside `clean/` and `spec/`.
+
 ## Files
 
 Each role folder holds:

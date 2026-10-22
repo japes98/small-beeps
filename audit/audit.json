@@ -1,0 +1,42 @@
+{
+  "comment": "Settings of the similarity audit (tools/audit.py, .github/workflows/audit.yml); docs/AUDIT.md explains each one. Change by pull request.",
+  "jplag": {
+    "version": "6.3.0",
+    "url": "https://github.com/jplag/JPlag/releases/download/v6.3.0/jplag-6.3.0-jar-with-dependencies.jar",
+    "sha256": "5f2c21e8b88ed77134effcb3a5a3ab13d188f6a3e16d401387f7479e92db9aa2"
+  },
+  "java_image": "eclipse-temurin@sha256:dbb43d81099eec91e0800226ed2296d03146ee7857165b95112372ad0d67e87f",
+  "java_image_note": "eclipse-temurin:25-jre on 2026-10-22 (JPlag 6.3.0 needs Java 25); pinned by digest.",
+  "control": {
+    "repo": "raspberrypi/pico-examples",
+    "url": "https://github.com/raspberrypi/pico-examples",
+    "tag": "sdk-2.2.0",
+    "commit": "4c3a3dc0196dd426fddd709616d0da984e027bab",
+    "tree": "548bbb043094ac47249ea5e75babcd46a4a3a0e7",
+    "licence": "BSD-3-Clause"
+  },
+  "ours": "firmware",
+  "base_code": "vendor/jieli-sdk/include_lib",
+  "suffixes": [
+    ".c",
+    ".h",
+    ".cpp",
+    ".cc",
+    ".cxx",
+    ".hpp",
+    ".hh"
+  ],
+  "min_tokens": 12,
+  "margin_tokens": 24,
+  "control_ceiling_tokens": 100,
+  "control_related_share": 0.1,
+  "leak_line_chars": 24,
+  "top_pairs": 20,
+  "fast": [
+    "hugelton/Felucca",
+    "zvenson/dinghy",
+    "joakimeriksson/fm1-emu",
+    "m-vave/fm1_open"
+  ],
+  "fetch_workers": 8
+}

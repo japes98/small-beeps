@@ -42,7 +42,7 @@ class DenyListTest(unittest.TestCase):
         self.assertEqual(clean[:len(handmade)], handmade)
 
     def test_dropping_any_entry_fails(self):
-        for role in ("clean", "spec"):
+        for role in ("clean", "spec", "auditor"):
             with open(os.path.join(CONFIG, role + ".json")) as f:
                 rules = json.load(f)["permissions"]["deny"]
             for rule in rules:
@@ -53,6 +53,10 @@ class DenyListTest(unittest.TestCase):
 
     def test_dropping_from_the_baseline_fails(self):
         self.edit("deny-baseline.json", lambda d: d["spec"].pop())
+        self.assertTrue(dl.check(self.dir))
+
+    def test_dropping_from_the_auditor_baseline_fails(self):
+        self.edit("deny-baseline.json", lambda d: d["auditor"].pop())
         self.assertTrue(dl.check(self.dir))
 
     def test_adding_an_entry_passes(self):

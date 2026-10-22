@@ -214,6 +214,19 @@ class BaselineTest(unittest.TestCase):
         sha, _, _ = perf.find_baseline(self.shas[1] + "^1", "records", head=self.shas[1])
         self.assertEqual(sha, self.shas[0])
 
+    def test_a_folder_with_only_the_audit_is_not_a_record(self):
+        # the similarity audit can write records/<sha>/audit/ before the record itself
+        self.g("checkout", "-q", "records")
+        d = os.path.join(self.dir, "records", self.shas[2], "audit", "1-1")
+        os.makedirs(d)
+        with open(os.path.join(d, "report.json"), "w") as f:
+            f.write("{}")
+        self.g("add", "records")
+        self.g("commit", "-q", "-m", "audit")
+        self.g("checkout", "-q", "main")
+        sha, files, _ = perf.find_baseline("main", "records", head="none")
+        self.assertEqual(sha, self.shas[1])
+
     def test_no_records(self):
         sha, files, note = perf.find_baseline("main", "no-such-ref", head="none")
         self.assertIsNone(sha)

@@ -111,8 +111,9 @@ jobs:
               git -C rec remote add origin "$url"
             fi
             dest="rec/records/$GITHUB_SHA"
-            if [ -e "$dest" ]; then
-              # Never overwrite a record; a re-run is kept beside it.
+            if [ -e "$dest/report.json" ]; then
+              # Never overwrite a record; a re-run is kept beside it. (The
+              # folder can exist without one: the audit writes into its audit/.)
               dest="$dest/rerun-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
             fi
             mkdir -p "$dest"

@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(./firmware/**)",
+      "Write(./firmware/**)",
+      "Edit(./docs/HARDWARE-SPEC.md)",
+      "Write(./docs/HARDWARE-SPEC.md)",
+      "Edit(./docs/HARNESS.md)",
+      "Write(./docs/HARNESS.md)",
+      "Edit(./docs/SPEC-REQUESTS.md)",
+      "Write(./docs/SPEC-REQUESTS.md)",
+      "Edit(./harness/**)",
+      "Write(./harness/**)",
+      "Edit(./vendor/**)",
+      "Write(./vendor/**)",
+      "Edit(./tools/**)",
+      "Write(./tools/**)",
+      "Edit(./tests/**)",
+      "Write(./tests/**)",
+      "Edit(./config/**)",
+      "Write(./config/**)",
+      "Edit(./.github/**)",
+      "Write(./.github/**)",
+      "Edit(./sessions/**)",
+      "Write(./sessions/**)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/tools/session-banner.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

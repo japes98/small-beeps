@@ -5,6 +5,11 @@
       "sha256_16": "f897aded4c2954ad",
       "reason": "The largest raw image's length (1 MiB less 16 KiB) written in hex, from docs/HARDWARE-SPEC.md (HW-5) and docs/HARNESS.md ('The raw image'), used as the image region's length in the firmware's linker script.",
       "added_by": "session M0d (firmware side), 2026-10-22"
+    },
+    {
+      "sha256_16": "f0728a91274a90cb",
+      "reason": "Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.",
+      "added_by": "session M0e-spec (spec side), 2026-10-22"
     }
   ]
 }

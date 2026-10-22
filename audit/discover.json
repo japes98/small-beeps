@@ -1,0 +1,77 @@
+{
+  "comment": "What tools/audit-discover.py looks for. It reads repository metadata only (names, owners, descriptions, licences, languages, fork lists, commit and tree SHAs), never a target's files, README or web pages. docs/AUDIT.md explains each field. Change by pull request.",
+  "seeds": [
+    {
+      "repo": "hugelton/Felucca",
+      "why": "Felucca (CONTRIBUTING.md, forbidden list)"
+    },
+    {
+      "repo": "zvenson/dinghy",
+      "why": "dinghy (CONTRIBUTING.md, forbidden list)"
+    },
+    {
+      "repo": "joakimeriksson/fm1-emu",
+      "paths": [
+        "fm1-sid/",
+        "probes/"
+      ],
+      "licence_class": "gpl",
+      "why": "fm1-emu's fm1-sid firmware and its probes; only those folders are scored. The repository's licence in its metadata is MIT; fm1-sid is a GPL firmware (docs/EXPOSURE.md), so it is classed GPL here."
+    },
+    {
+      "repo": "m-vave/fm1_open",
+      "why": "M-VAVE's own repository for the FM-1 (the owner's choice, 2026-10-22)"
+    },
+    {
+      "repo": "hugelton/felucca-bsp",
+      "why": "Felucca's author's other FM-1 repositories"
+    },
+    {
+      "repo": "hugelton/Felucca-Engines",
+      "why": "Felucca's author's other FM-1 repositories"
+    },
+    {
+      "repo": "hugelton/Felucca-WebApp",
+      "why": "Felucca's author's other FM-1 repositories"
+    },
+    {
+      "repo": "hugelton/felucca-mirror",
+      "why": "Felucca's author's other FM-1 repositories"
+    }
+  ],
+  "queries": [
+    "felucca",
+    "dinghy",
+    "fm-1 firmware",
+    "fm1 firmware",
+    "m-vave",
+    "mvave",
+    "m-vave fm-1",
+    "fm-1 synth",
+    "fm1 synth",
+    "fm-1 groovebox",
+    "hortator",
+    "melodee",
+    "ghoulbox",
+    "skiff fm-1",
+    "fm1"
+  ],
+  "mentions": "(?i)\\bfm-?1\\b|felucca|\\bghoulbox\\b|\\bhortator\\b",
+  "name_only_languages": [
+    "C",
+    "C++"
+  ],
+  "unresolved": [
+    {
+      "name": "Felucca Salt",
+      "built_on": "Felucca",
+      "note": "Named in CONTRIBUTING.md's forbidden list; no repository found from metadata (2026-10-22). It may be distributed only as a binary. The owner adds a URL if one turns up."
+    },
+    {
+      "name": "Felucca 8 Patterns",
+      "built_on": "Felucca",
+      "note": "Named in CONTRIBUTING.md's forbidden list; no repository found from metadata (2026-10-22). It may be distributed only as a binary. The owner adds a URL if one turns up."
+    }
+  ],
+  "mentions_note": "A description must name the FM-1 itself, Felucca or a firmware known to be built on it: M-VAVE and dinghy alone also name other products and boats. dinghy's own lineage is found through its fork tree, and through descriptions that name the FM-1."
+}

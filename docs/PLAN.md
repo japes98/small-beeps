@@ -190,7 +190,7 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   emulated instructions per audio block. A 3% regression gate on
   instructions per audio block; per-milestone budgets for size and RAM,
   raised only by a pull request that says why.
-- Requirements: R-AUDIT-1, R-PERF-1 to R-PERF-5.
+- Requirements: R-AUDIT-1 to R-AUDIT-6, R-PERF-1 to R-PERF-5.
 - Status 2026-10-22, performance part (session M0e, firmware side, on the
   owner's Mac):
   - **Start**: `tools/clean-update.sh` passed; M0d's two transcripts
@@ -296,6 +296,47 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     instructions per heartbeat period (+0.57%, within the gate).
   - The similarity audit is the spec side's part of M0e. M1 is next on
     the firmware side.
+- Status 2026-10-22, spec part (session M0e-spec, spec side, on the
+  owner's Mac):
+  - **Start** (pull request #15): M0c's transcript archived; the prompt
+    saved as `docs/prompts/M0e-spec.md`.
+  - **The two doors** (pull request #15): `check-emulator-terms.py`
+    accepts any term in `docs/HARDWARE-SPEC.md` or `docs/HARNESS.md` as on
+    main, read from main's blobs (a branch can't launder a term into a
+    door). Eight reviewed entries dropped, one kept.
+  - **Timer polling** (pull request #16): docs/HARNESS.md ("Time") now says
+    exactly what counts as waiting: the wait-for-interrupt instruction, or
+    three or more reads of the free-running timer's count within 64 cycles
+    of each other outside an interrupt handler. It says what that does to
+    capture times, and how to get exact timing. The behaviour is as
+    designed, so the harness is unchanged and there is no new image.
+    Exact captures while waiting would change capture times, and with them
+    golden files on both sides. That is an option for the owner.
+  - **The similarity audit** (docs/AUDIT.md, R-AUDIT-1 to R-AUDIT-6):
+    - **Targets:** 780 FM-1 repositories found from metadata alone (the
+      owner chose every FM-1 repository): 516 scored, 262 duplicates by
+      tree, 2 empty. All are pinned by commit and tree in
+      `audit/targets.json`. Felucca Salt and Felucca 8 Patterns are
+      unresolved: no repository found.
+    - **Rediscovery:** monthly, by `audit-discover.yml`, which opens a pull
+      request when the targets change.
+    - **The job:** `audit.yml` runs JPlag 6.3.0 (pinned by hash, in a Java
+      image pinned by digest) on our firmware and the control
+      (pico-examples at sdk-2.2.0), with the SDK as base code.
+    - **The gate:** a pair fails above the control's longest match plus
+      24 tokens. The longest match was chosen by a calibration between two
+      unrelated permissive projects: chance runs stay at 33 tokens or
+      below, while the ratio reaches 0.857.
+    - **Isolation:** the targets exist only in a job with no secrets, and
+      only scores and file names reach the record
+      (`records/<sha>/audit/`).
+    - **Checked so far:** the self-test and a dry run against permissive
+      stand-ins pass. The first real run is the push that merges this.
+  - **Auditor role**: CONTRIBUTING.md, `config/claude/auditor.json`,
+    `tools/auditor-setup.sh`. Its transcripts go to the owner's private
+    repository (created when the first auditor session runs), never here.
+    None has run.
+  - No spec requests were open.
 
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer.

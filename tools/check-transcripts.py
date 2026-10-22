@@ -242,9 +242,12 @@ def main():
     sessions = sys.argv[1] if len(sys.argv) > 1 else os.path.join(root, "sessions")
     reviewed = load_reviewed(sessions)
     failed = False
-    for stray in sorted(glob.glob(os.path.join(sessions, "*.jsonl"))):
-        print("FAIL %s: a transcript outside clean/ and spec/" % os.path.basename(stray))
-        failed = True
+    # anywhere else under sessions/ (an auditor's transcript, say: those are never archived here)
+    for stray in sorted(glob.glob(os.path.join(sessions, "**", "*.jsonl"), recursive=True)):
+        rel = os.path.relpath(stray, sessions).replace(os.sep, "/")
+        if rel.split("/")[0] not in ROLES:
+            print("FAIL %s: a transcript outside clean/ and spec/" % rel)
+            failed = True
     paths = []
     for role in ROLES:
         d = os.path.join(sessions, role)
