@@ -46,7 +46,8 @@ def _commit_range():
 # function name. "records_only" checks run only with --with-merge.
 CHECKS = [
     {"id": "C-UNIT", "title": "Unit tests of the tools",
-     "reqs": ["R-PROC-1", "R-PROC-4", "R-REC-1", "R-CLEAN-3", "R-CLEAN-4", "R-PUB-1"],
+     "reqs": ["R-PROC-1", "R-PROC-4", "R-REC-1", "R-CLEAN-3", "R-CLEAN-4", "R-PUB-1",
+              "R-SEP-2"],
      "cmd": [PY, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"]},
     {"id": "C-REUSE", "title": "reuse lint (SPDX licence and copyright on every file)",
      "reqs": ["R-LIC-1", "R-LIC-2"], "cmd": ["reuse", "lint"]},
@@ -60,9 +61,9 @@ CHECKS = [
     {"id": "C-NO-TOOLCHAIN", "title": "No toolchain parts or binaries tracked",
      "reqs": ["R-REPRO-1"], "cmd": [PY, "-I", "tools/check-tracked.py", "no-toolchain"]},
     {"id": "C-DENY-LISTS", "title": "Claude Code deny lists never drop an entry",
-     "reqs": ["R-CLEAN-4"], "cmd": [PY, "-I", "tools/check-deny-lists.py"]},
+     "reqs": ["R-CLEAN-4", "R-SEP-2"], "cmd": [PY, "-I", "tools/check-deny-lists.py"]},
     {"id": "C-TRANSCRIPTS", "title": "Archived session transcripts: banners and forbidden material",
-     "reqs": ["R-CLEAN-1", "R-CLEAN-3", "R-CLEAN-5"],
+     "reqs": ["R-CLEAN-1", "R-CLEAN-3", "R-CLEAN-5", "R-SEP-2"],
      "cmd": [PY, "-I", "tools/check-transcripts.py"]},
     {"id": "C-SDK-PIN", "title": "Vendored SDK files match the pinned commit",
      "reqs": ["R-REPRO-5", "R-LIC-2"], "cmd": ["sh", "tools/fetch-sdk.sh", "--verify"]},

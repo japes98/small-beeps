@@ -41,6 +41,8 @@ The four founding requirements (docs/prompts/M0a.md): **history**,
 | R-CLEAN-3 | Every session's transcript is archived (secrets redacted, redactions noted) in `sessions/`, and every clean-side transcript's reads, searches and fetches are listed and checked. | M0a | C-TRANSCRIPTS |
 | R-CLEAN-4 | The deny lists in `config/claude/clean.json` and `config/claude/spec.json` never drop an entry. | M0a | C-DENY-LISTS |
 | R-CLEAN-5 | Every archived session after M0a shows the SessionStart banner with matching settings, and never CONFIG MISMATCH. | M0a | C-TRANSCRIPTS |
+| R-SEP-1 | Spec-side text discipline: what the spec side learns from emulator source leaves `vendor/emulator/` and `harness/` only through `HARDWARE-SPEC.md` and `docs/HARNESS.md`. Spec-side commit messages, pull request texts and files elsewhere (docs, tools, tests, records, release notes) carry no emulator internals (CONTRIBUTING.md, "Spec-side text discipline"). | M0b | review |
+| R-SEP-2 | Spec-side session transcripts are archived only in `sessions/spec/`, which clean folders leave out and their settings deny reading; clean sessions never open it, and the transcript check still works without it. | M0b | C-UNIT, C-DENY-LISTS, C-TRANSCRIPTS |
 | R-BOOT-1 | The firmware boots in the emulator to `main` and writes a marker word. | M0d | planned (fwtest) |
 | R-BOOT-2 | The firmware keeps a heartbeat visible through the harness. | M0d | planned (fwtest) |
 | R-AUDIT-1 | A similarity audit compares our firmware with the GPL firmwares and publishes scores and file names only. | M0e | planned |

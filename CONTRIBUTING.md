@@ -46,7 +46,10 @@ EXPOSURE.md at once, and stop writing firmware.
 - M-VAVE's stock firmware and any disassembly or function database of it
   (including AL-255/FM-1-RE's `firmware-images/` and disassembly material);
 - in this repository: `vendor/emulator/` and `harness/` source (spec side's
-  work);
+  work), and spec-side session transcripts (`sessions/spec/`), which
+  contain emulator source. In a clean folder, history commands are limited
+  to paths it has: never `git log -p`, `git show` or `git diff` across
+  commits without a pathspec that leaves those three folders out;
 - the sites hugelton.github.io and thefirmwarehub.com.
 
 `tools/check-transcripts.py` checks every archived clean-side session against
@@ -72,7 +75,8 @@ was used) and name the ID in the commit's `Sources:` field:
 
 - **Clean folder.** `tools/clean-setup.sh [DIR]` creates the clean working
   folder: a blob-less clone with a sparse checkout that leaves out
-  `vendor/emulator/` and `harness/`, plus the Claude Code settings in
+  `vendor/emulator/`, `harness/` and `sessions/spec/` (and marks them
+  `-diff` for history commands), plus the Claude Code settings in
   `config/claude/clean.json`, which deny reading those paths, fetching the
   forbidden sites and cloning the forbidden repositories.
   `tools/spec-setup.sh [DIR]` does the same for spec side with
@@ -88,11 +92,26 @@ was used) and name the ID in the commit's `Sources:` field:
   of every session, before anything else:
   1. archive the previous session's transcript with
      `python3 tools/archive-session.py <transcript.jsonl> --role <role>`
-     (it redacts secrets and private paths and writes a note beside the
-     copy);
+     (it redacts secrets and private paths, writes the copy to
+     `sessions/<role>/` and a note beside it). A spec session may archive
+     the previous session of either role; a clean session archives only
+     clean sessions and never opens `sessions/spec/` (sessions/README.md);
   2. run `python3 tools/check-transcripts.py`;
   3. add this session's entry to docs/EXPOSURE.md.
   A session never archives its own live transcript; the next one does.
+
+### Spec-side text discipline
+
+What the spec side learns from emulator source leaves `vendor/emulator/`
+and `harness/` only through two doors: `HARDWARE-SPEC.md` (facts only, each
+sourced) and `docs/HARNESS.md` (the harness as a black box). Everything else
+the firmware side can read, so spec-side commit messages, pull request
+titles and descriptions, and every file outside those two folders and
+`sessions/spec/` (docs, tools, tests, records, release notes) describe what
+changed in general terms, never emulator internals: no register names,
+addresses, struct or function names, or code excerpts. Such detail goes in
+comments inside `harness/`. CI logs and records from harness runs show
+results (pass/fail, hashes, images, numbers), never emulator source.
 
 ## Commit messages
 

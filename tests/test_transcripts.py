@@ -79,6 +79,8 @@ class TranscriptTest(unittest.TestCase):
             call("Bash", command="ls harness"),
             call("Bash", command="cat vendor/emulator/README"),
             call("WebFetch", url="https://github.com/AL-255/FM-1-RE/tree/main/firmware-images"),
+            call("Read", file_path="/w/sessions/spec/2026-10-22-spec-x.jsonl"),
+            call("Bash", command="ls sessions/spec"),
         ]
         for c in cases:
             p = self.write([hook(BANNER_OK), c])
@@ -135,6 +137,70 @@ class TranscriptTest(unittest.TestCase):
         with open(os.path.join(self.dir, "notes.jsonl"), "w") as f:
             f.write("{}\n")
         self.assertTrue(self.problems(os.path.join(self.dir, "notes.jsonl")))
+
+
+class LayoutTest(unittest.TestCase):
+    """Requirements: R-CLEAN-3, R-SEP-2"""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.dir)
+
+    def put(self, folder, role, sid=SID):
+        d = os.path.join(self.dir, folder)
+        os.makedirs(d, exist_ok=True)
+        name = "2026-10-21-%s-%s" % (role, sid)
+        with open(os.path.join(d, name + ".jsonl"), "w") as f:
+            f.write(json.dumps(hook(BANNER_OK)) + "\n")
+        open(os.path.join(d, name + ".REDACTIONS.md"), "w").close()
+        return os.path.join(d, name + ".jsonl")
+
+    def run_main(self):
+        import contextlib
+        import io
+        import sys
+        out = io.StringIO()
+        argv = sys.argv
+        sys.argv = ["check-transcripts.py", self.dir]
+        try:
+            with contextlib.redirect_stdout(out):
+                code = ct.main()
+        finally:
+            sys.argv = argv
+        return code, out.getvalue()
+
+    def test_role_must_match_folder(self):
+        p = self.put("spec", "clean")
+        self.assertTrue(any("in spec/" in x for x in ct.check_session(p)[0]))
+
+    def test_clean_folder_without_spec_transcripts_skips_them(self):
+        self.put("clean", "clean")
+        code, out = self.run_main()
+        self.assertEqual(code, 0, out)
+        self.assertIn("spec/: not on disk; spec-side transcripts skipped, not read", out)
+        self.assertIn("1 archived transcript(s) checked: PASS", out)
+
+    def test_both_folders_are_checked(self):
+        self.put("clean", "clean")
+        self.put("spec", "spec", sid="99999999-2222-3333-4444-555555555555")
+        code, out = self.run_main()
+        self.assertEqual(code, 0, out)
+        self.assertIn("2 archived transcript(s) checked: PASS", out)
+
+    def test_transcript_outside_role_folders_fails(self):
+        self.put(".", "clean")
+        code, out = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertIn("outside clean/ and spec/", out)
+
+    def test_reviewed_list_is_found_from_a_role_folder(self):
+        with open(os.path.join(self.dir, "REVIEWED.json"), "w") as f:
+            json.dump({"reviewed": [{"session": SID, "tool_use_id": "t", "rule": "r",
+                                     "reason": "x"}]}, f)
+        os.makedirs(os.path.join(self.dir, "clean"))
+        self.assertIn((SID, "t", "r"), ct.load_reviewed(os.path.join(self.dir, "clean")))
 
 
 if __name__ == "__main__":

@@ -10,7 +10,8 @@
       "Bash(git clone*felucca*)",
       "Bash(git clone*dinghy*)",
       "Bash(git clone*fm1-emu*)",
-      "Bash(git clone*f-emulator*)"
+      "Bash(git clone*f-emulator*)",
+      "Read(./sessions/spec/**)"
     ]
   },
   "hooks": {

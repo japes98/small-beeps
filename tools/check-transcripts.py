@@ -6,9 +6,14 @@ check C-TRANSCRIPTS).
 
   check-transcripts.py [SESSIONS_DIR]        (default: sessions/)
 
-Each archived session is `<date>-<role>-<id>.jsonl` (role clean or spec),
-with its redaction note `<same name>.REDACTIONS.md` beside it, and any
-subagent transcripts in `<same name>.subagents/*.jsonl`.
+Each archived session is `<role>/<date>-<role>-<id>.jsonl` under
+SESSIONS_DIR (role clean or spec, and the folder must match the name), with
+its redaction note `<same name>.REDACTIONS.md` beside it, and any subagent
+transcripts in `<same name>.subagents/*.jsonl`.
+
+Spec-side transcripts (`spec/`) are left out of clean folders. When `spec/`
+isn't on disk, they are skipped, never looked for elsewhere, and the output
+says so.
 
 For every transcript:
   - the SessionStart banner (tools/session-banner.sh) must be there, with
@@ -40,7 +45,16 @@ EXEMPT_NO_BANNER = {
     "36860ab8-77fd-4fd6-aa1d-2063c15a5548":
         "M0a, the first session: it began before tools/session-banner.sh and "
         "its hook existed (docs/EXPOSURE.md, Addendum 2 step 5)",
+    "ddebd686-9190-4fa3-b217-30d0a98fda69":
+        "a one-prompt `claude -p` run started by M0a in its scratch folder to "
+        "learn how hook output is stored; its only hook printed a test marker, "
+        "and it made no tool calls (docs/EXPOSURE.md, session M0a)",
+    "e74c69f7-ff95-4dcc-bf7a-9a980e62a6f9":
+        "M0b, the first spec-side session: it began under the owner's hand-made "
+        "settings, before tools/spec-setup.sh installed the banner hook in its "
+        "folder (docs/EXPOSURE.md, session M0b)",
 }
+ROLES = ("clean", "spec")
 
 # Mirrors CONTRIBUTING.md, "Firmware side never opens, fetches, searches or
 # quotes". Each pattern is matched, case-insensitively, against the targets
@@ -58,6 +72,7 @@ FORBIDDEN = [
     ("vendor/emulator/ (spec side)", r"(^|[\s\"'=:/])vendor/emulator(/|[\s\"']|$)"),
     ("harness/ source (spec side)", r"(^|[\s\"'=:/])harness(/|[\s\"']|$)"),
     ("thefirmwarehub.com", r"thefirmwarehub\.com"),
+    ("spec-side session transcripts", r"sessions/spec(/|[\s\"']|$)"),
     ("FM-1-RE firmware images or disassembly",
      r"fm-1-re.*(firmware-images|disasm|disassembl|ghidra|\.idb\b|\.i64\b|functions)"
      r"|firmware-images/"),
@@ -146,6 +161,8 @@ def load_reviewed(sessions_dir):
     tool call's ID, the matched rule and the reason. It is added by pull
     request, so the owner's signed merge approves it."""
     path = os.path.join(sessions_dir, "REVIEWED.json")
+    if not os.path.exists(path) and os.path.basename(sessions_dir.rstrip("/")) in ROLES:
+        path = os.path.join(os.path.dirname(sessions_dir.rstrip("/")), "REVIEWED.json")
     if not os.path.exists(path):
         return {}
     with open(path, encoding="utf-8") as f:
@@ -188,6 +205,9 @@ def check_session(path, reviewed=None):
     date, role, sid = m.groups()
     problems = []
     lines = []
+    folder = os.path.basename(os.path.dirname(os.path.abspath(path)))
+    if folder in ROLES and folder != role:
+        problems.append("a %s-side transcript in %s/" % (role, folder))
     if not os.path.exists(path[:-len(".jsonl")] + ".REDACTIONS.md"):
         problems.append("redaction note %s.REDACTIONS.md is missing" % base[:-6])
     entries = load(path)
@@ -220,9 +240,19 @@ def check_session(path, reviewed=None):
 def main():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sessions = sys.argv[1] if len(sys.argv) > 1 else os.path.join(root, "sessions")
-    paths = sorted(glob.glob(os.path.join(sessions, "*.jsonl")))
     reviewed = load_reviewed(sessions)
     failed = False
+    for stray in sorted(glob.glob(os.path.join(sessions, "*.jsonl"))):
+        print("FAIL %s: a transcript outside clean/ and spec/" % os.path.basename(stray))
+        failed = True
+    paths = []
+    for role in ROLES:
+        d = os.path.join(sessions, role)
+        if not os.path.isdir(d):
+            print("%s/: not on disk; %s-side transcripts skipped, not read%s"
+                  % (role, role, " (a clean folder leaves them out)" if role == "spec" else ""))
+            continue
+        paths += sorted(glob.glob(os.path.join(d, "*.jsonl")))
     for p in paths:
         problems, lines = check_session(p, reviewed)
         for l in lines:

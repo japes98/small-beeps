@@ -8,8 +8,10 @@ Fails if config/claude/clean.json or spec.json lacks any deny rule that
     the baseline, never removed), or
   - is in ORIGINAL below (the lists as first committed; a change to this
     file would show in review), or
-  - (clean only) is in config/claude/handmade-settings.json, the owner's
-    hand-made file, whose SHA-256 must stay the one in docs/EXPOSURE.md.
+  - is in that role's hand-made file, made by the owner before a session
+    first set up a folder of that role (clean: config/claude/
+    handmade-settings.json, M0a; spec: handmade-spec-settings.json, M0b),
+    whose SHA-256 must stay the one in docs/EXPOSURE.md.
 Also checks that both configs run tools/session-banner.sh on every
 SessionStart.
 """
@@ -18,7 +20,12 @@ import json
 import os
 import sys
 
-HANDMADE_SHA256 = "a557bd84008372ff9d3e24cd648df9986d76a05928d9f50b5d3e60975bf29b32"
+HANDMADE = {
+    "clean": ("handmade-settings.json",
+              "a557bd84008372ff9d3e24cd648df9986d76a05928d9f50b5d3e60975bf29b32"),
+    "spec": ("handmade-spec-settings.json",
+             "daa6c52d7e54c363b17ebace836c3019a6c4a9551f9d8af7b9175f88459ce27d"),
+}
 BANNER = '"$CLAUDE_PROJECT_DIR"/tools/session-banner.sh'
 ORIGINAL = {
     "clean": [
@@ -67,19 +74,20 @@ def has_banner_hook(cfg):
 def check(config_dir):
     problems = []
     baseline = load(os.path.join(config_dir, "deny-baseline.json"))
-    handmade_path = os.path.join(config_dir, "handmade-settings.json")
-    with open(handmade_path, "rb") as f:
-        digest = hashlib.sha256(f.read()).hexdigest()
-    if digest != HANDMADE_SHA256:
-        problems.append("handmade-settings.json changed (sha256 %s)" % digest)
-    handmade = deny_of(load(handmade_path))
+    handmade = {}
+    for role, (name, want) in HANDMADE.items():
+        path = os.path.join(config_dir, name)
+        with open(path, "rb") as f:
+            digest = hashlib.sha256(f.read()).hexdigest()
+        if digest != want:
+            problems.append("%s changed (sha256 %s)" % (name, digest))
+        handmade[role] = deny_of(load(path))
 
     for role in ("clean", "spec"):
         cfg = load(os.path.join(config_dir, role + ".json"))
         deny = deny_of(cfg)
         required = list(ORIGINAL[role]) + list(baseline.get(role, []))
-        if role == "clean":
-            required += handmade
+        required += handmade[role]
         missing = sorted(set(r for r in required if r not in deny))
         for r in missing:
             problems.append("%s.json dropped deny rule %s" % (role, r))
