@@ -1,0 +1,48 @@
+{
+  "fwtest": {
+    "version": "0.1.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "e1-boot.bin",
+    "bytes": 280,
+    "sha256": "f526f060d878359834964048980b690c452110eab2520857c99531a502c3174b"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "halt",
+    "detail": "core 0 jumped to itself with interrupts disabled at pc 0x02000082",
+    "emulated_ms": "0.008",
+    "instructions": {
+      "core0": 2049,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "ram-01c00100-80-end.bin",
+        "bytes": 128,
+        "sha256": "82247672462fe3e4546250235fd1111599ef7d49bafe33c98ff8b500fc384526"
+      },
+      {
+        "name": "ram-01c00200-40-end.bin",
+        "bytes": 64,
+        "sha256": "72088ea225bbd9b975da2b1a05c23bbb4a50dda9f2b101f86f483acd6032387c"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "ram-01c00100-80-end.bin",
+      "result": "match",
+      "detail": null
+    },
+    {
+      "name": "ram-01c00200-40-end.bin",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 4
+}

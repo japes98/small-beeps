@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range a813e009a81fe69237142a05dde8daf6f24712ea..f60fa8431cc5724e525f5df357f7670ed9fdcd02
+OK     ddd775e0ff82 docs: spec requests SR-1 (exception source) and SR-2 (clock set-up)
+OK     a4b2b1881a49 docs: SR-1 names no address that the separation check flags
+EXEMPT f60fa8431cc5 (merge) Merge pull request #26 from japes98/m1/spec-requests
+3 commit(s) checked: PASS
+
+exit status 0
