@@ -228,6 +228,13 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     static RAM 280 and stack high-water 516 bytes (each FAIL).
   - **M0 budgets**: code 512, static RAM 64, stack high-water 256 bytes;
     speed gate 3%.
+  - **Merged**: pull request #12 as `a754ebc9`. Its record
+    (`records/a754ebc9…/`) is **PASS**, every check run, traceability
+    PASS for R-PERF-1 to R-PERF-5. C-PERF found the record of `5c6efc66`
+    (main before the merge) as its baseline, re-ran that image: +0.00%.
+    `perf-history.csv` on `records` started with the merge's line (code
+    252, static RAM 24, stack high-water 0, 356.887 instructions per
+    heartbeat period). This pull request's merge adds the second.
   - The similarity audit is the spec side's part of M0e. M1 is next on
     the firmware side.
 
