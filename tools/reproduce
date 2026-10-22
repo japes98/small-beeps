@@ -9,10 +9,10 @@
 #
 # The record comes from the `records` branch (fetched from origin, or a local
 # branch of that name, or REF). The commit's files are exported with
-# `git archive` into a temporary folder, so the build uses that commit's own
-# Dockerfile and build script, and nothing from your working tree. In a
-# blob-less clean clone, git may download the commit's other files to do
-# this; the spec-side folders are excluded.
+# export_tree (below) into a temporary folder, so the build uses that
+# commit's own Dockerfile and build script, and nothing from your working
+# tree. In a blob-less clean clone, git may download the commit's other
+# files to do this, one at a time; never the spec-side folders' files.
 set -eu
 
 [ $# -ge 1 ] || { echo "usage: $0 <commit> [--records-ref REF]" >&2; exit 2; }

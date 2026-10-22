@@ -471,9 +471,14 @@ training cutoff (see "Model cutoffs" below).
     C-CLEAN-FOLDER tests it with lazy fetching on, against a control.
     `tools/clean-update.sh` passed before and after, so no spec-side file
     reached this folder. The session printed only the missing object's ID
-    and its folder, never a file name under it. One shell command that
-    edited that made-up test named the spec-side folders; the next clean
-    session will see it flagged.
+    and its folder, never a file name under it.
+  - **Commands the next clean session will see flagged.** Several of this
+    session's shell commands name the spec-side folders as text: the
+    transcript check's review commands (grep and awk over its log and the
+    checker's own patterns), the folder test of the classifying command
+    above, and a Python edit of the made-up test script in the scratch
+    folder. None opened, listed or fetched anything under them. From then
+    on the session kept those names out of shell commands.
 
 ## Barrier log
 
