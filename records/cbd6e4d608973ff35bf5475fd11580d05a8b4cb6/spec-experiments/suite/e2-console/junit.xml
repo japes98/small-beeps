@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="1">
+  <testsuite name="experiments.e2-console" tests="2" failures="1">
+    <testcase classname="experiments.e2-console" name="run">
+      <failure message="halt: core 0 jumped to itself with interrupts disabled at pc 0x0200001e"/>
+    </testcase>
+    <testcase classname="experiments.e2-console" name="golden console.txt"/>
+  </testsuite>
+</testsuites>
