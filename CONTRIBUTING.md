@@ -47,9 +47,14 @@ EXPOSURE.md at once, and stop writing firmware.
   (including AL-255/FM-1-RE's `firmware-images/` and disassembly material);
 - in this repository: `vendor/emulator/` and `harness/` source (spec side's
   work), and spec-side session transcripts (`sessions/spec/`), which
-  contain emulator source. In a clean folder, history commands are limited
-  to paths it has: never `git log -p`, `git show` or `git diff` across
-  commits without a pathspec that leaves those three folders out;
+  contain emulator source. A clean folder never has their contents, not
+  even in `.git`: clean sessions run with git's lazy fetching off
+  (`GIT_NO_LAZY_FETCH=1`, from `config/claude/clean.json`), so a history
+  command that would need them (`git log -p`, `git show`, `git diff`
+  across commits) fails instead of downloading them. Give such commands a
+  pathspec that leaves the three folders out, and update the folder only
+  with `tools/clean-update.sh`. People working in a clean folder by hand
+  set `GIT_NO_LAZY_FETCH=1` in their shell too;
 - the sites hugelton.github.io and thefirmwarehub.com.
 
 `tools/check-transcripts.py` checks every archived clean-side session against
@@ -80,7 +85,9 @@ was used) and name the ID in the commit's `Sources:` field:
   `vendor/emulator/`, `harness/` and `sessions/spec/` (and marks them
   `-diff` for history commands), plus the Claude Code settings in
   `config/claude/clean.json`, which deny reading those paths, fetching the
-  forbidden sites and cloning the forbidden repositories.
+  forbidden sites and cloning the forbidden repositories, and turn git's
+  lazy fetching off. `tools/clean-update.sh` updates a clean folder and
+  checks nothing excluded arrived; C-CLEAN-FOLDER tests all of this in CI.
   `tools/spec-setup.sh [DIR]` does the same for spec side with
   `config/claude/spec.json`.
 - **Deny lists only grow.** Never remove or loosen an entry in

@@ -59,6 +59,10 @@ class DenyListTest(unittest.TestCase):
         self.edit("spec.json", lambda d: d["permissions"]["deny"].append("WebFetch(domain:example.org)"))
         self.assertEqual(dl.check(self.dir), [])
 
+    def test_clean_config_must_turn_lazy_fetching_off(self):
+        self.edit("clean.json", lambda d: d.pop("env"))
+        self.assertTrue(dl.check(self.dir))
+
     def test_missing_banner_hook_fails(self):
         self.edit("clean.json", lambda d: d.pop("hooks"))
         self.assertTrue(dl.check(self.dir))
