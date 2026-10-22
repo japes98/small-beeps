@@ -8,8 +8,14 @@
 #
 # ROLE is clean or spec. With a DIR that doesn't exist yet, clones this
 # repository into it first (clean: blob-less clone with a sparse checkout
-# that leaves out vendor/emulator/ and harness/, so their contents never
-# reach the disk; spec: a full clone). Without DIR, sets up this checkout.
+# that leaves out vendor/emulator/, harness/ and sessions/spec/, so their
+# contents never reach the disk; spec: a full clone). Without DIR, sets up
+# this checkout. SETUP_SOURCE (a URL, default this checkout's origin) and
+# SETUP_REF (default main) choose what a new folder is cloned from; CI uses
+# them to test a pull request's own tree.
+#
+# A clean folder also gets .git/info/attributes marking those paths -diff,
+# so history commands (git log -p, git show) don't print their contents.
 # Then it installs config/claude/ROLE.json as .claude/settings.json (a
 # byte-for-byte copy), records the role, turns on the commit-msg hook and
 # commit template, and prints the session banner.
@@ -23,17 +29,19 @@ DIR=${2:-}
 case "$ROLE" in clean|spec) ;; *) echo "usage: $0 clean|spec [DIR]" >&2; exit 2 ;; esac
 
 HERE=$(cd "$(dirname "$0")/.." && pwd)
-CLEAN_EXCLUDES="/vendor/emulator/ /harness/"
+CLEAN_EXCLUDES="/vendor/emulator/ /harness/ /sessions/spec/"
 
 if [ -n "$DIR" ] && [ ! -e "$DIR" ]; then
-    url=$(git -C "$HERE" remote get-url origin 2>/dev/null || echo "$HERE")
+    url=${SETUP_SOURCE:-$(git -C "$HERE" remote get-url origin 2>/dev/null || echo "file://$HERE")}
+    ref=${SETUP_REF:-main}
     if [ "$ROLE" = clean ]; then
         git clone --filter=blob:none --no-checkout "$url" "$DIR"
         # shellcheck disable=SC2086
         git -C "$DIR" sparse-checkout set --no-cone '/*' $(for p in $CLEAN_EXCLUDES; do printf '!%s ' "$p"; done)
-        git -C "$DIR" checkout main
+        git -C "$DIR" checkout "$ref"
     else
         git clone "$url" "$DIR"
+        git -C "$DIR" checkout "$ref"
     fi
     TARGET=$(cd "$DIR" && pwd)
 elif [ -n "$DIR" ]; then
@@ -48,6 +56,12 @@ if [ "$ROLE" = clean ] && git -C "$TARGET" rev-parse --verify -q HEAD >/dev/null
     git -C "$TARGET" sparse-checkout set --no-cone '/*' $(for p in $CLEAN_EXCLUDES; do printf '!%s ' "$p"; done)
 fi
 if [ "$ROLE" = clean ]; then
+    attrs="$(git -C "$TARGET" rev-parse --absolute-git-dir)/info/attributes"
+    mkdir -p "$(dirname "$attrs")"
+    for p in $CLEAN_EXCLUDES; do
+        line="${p}** -diff"
+        grep -qxF "$line" "$attrs" 2>/dev/null || printf '%s\n' "$line" >> "$attrs"
+    done
     for p in $CLEAN_EXCLUDES; do
         if [ -e "$TARGET$p" ]; then
             echo "STOP: $TARGET$p exists in a clean folder. Tell the owner." >&2
