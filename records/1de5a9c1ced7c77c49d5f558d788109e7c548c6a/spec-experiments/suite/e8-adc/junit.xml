@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="5" failures="0">
+  <testsuite name="experiments.e8-adc" tests="5" failures="0">
+    <testcase classname="experiments.e8-adc" name="run"/>
+    <testcase classname="experiments.e8-adc" name="golden ram-01c00100-40-1ms.bin"/>
+    <testcase classname="experiments.e8-adc" name="golden ram-01c00100-40-3ms.bin"/>
+    <testcase classname="experiments.e8-adc" name="golden ram-01c00100-40-5ms.bin"/>
+    <testcase classname="experiments.e8-adc" name="golden ram-01c00100-40-end.bin"/>
+  </testsuite>
+</testsuites>

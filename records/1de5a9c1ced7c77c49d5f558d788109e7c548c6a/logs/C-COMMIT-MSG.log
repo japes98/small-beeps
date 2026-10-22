@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 2933e10b7211080f4c5dd272fafc93e89ea09d88..1de5a9c1ced7c77c49d5f558d788109e7c548c6a
+OK     86f72d031b92 tools: perf measures startup and steady state apart, each with a budget
+EXEMPT 1de5a9c1ced7 (merge) Merge pull request #31 from japes98/m2/perf-method
+2 commit(s) checked: PASS
+
+exit status 0
