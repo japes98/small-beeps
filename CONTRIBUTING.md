@@ -173,9 +173,13 @@ Repository rulesets (Settings → Rules → Rulesets):
   before merging (allowed merge method: merge only); require status checks to
   pass (the `ci` job); bypass list: the owner only (repository admin role,
   "always").
-- **records**: restrict deletions; block force pushes. The records workflow's
-  deploy key is the only writer.
-- **tags `m*`**: restrict deletions; restrict updates.
+- **records-history** (branch `records`): restrict deletions; block force
+  pushes; no bypass.
+- **records-writer** (branch `records`): restrict creations; restrict
+  updates; bypass list: deploy keys only. Together these make the records
+  workflow's deploy key the only writer, and it can only add commits.
+- **milestone-tags** (tags `m*`): restrict deletions; restrict updates; no
+  bypass.
 
 Repository settings: allow merge commits only (squash and rebase merging
 off).

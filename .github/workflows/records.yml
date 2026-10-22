@@ -15,6 +15,9 @@ on:
 
 permissions:
   contents: read
+  # C-MERGE reads the merged pull request and its CI run.
+  pull-requests: read
+  actions: read
 
 concurrency:
   group: records
