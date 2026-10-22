@@ -683,9 +683,10 @@ requests.
   to 3); `CON` bits 4-7 select a prescaler of the 24 MHz clock. The timer
   counts up from `CNT` and, on reaching `PRD`, raises interrupt source
   4 + n and starts again from 0. `CON` bit 15 reads 1 while pending;
-  writing `CON` with bit 14 set clears it. Every write to `CON`, the
-  acknowledge included, restarts the count from `CNT`'s value (0 after an
-  interrupt) and the period from that moment. So in fwtest the time between
+  writing `CON` with bit 14 set clears it. That acknowledging write also
+  restarts the count, from the value last written to `CNT` (0 after an
+  interrupt), and the period from the moment of the write. So in fwtest the
+  time between
   two interrupts is `PRD` prescaled counts plus the time from the interrupt
   to the write that acknowledges it: with prescaler setting 2 and `PRD`
   1500, 24 000 time-base ticks (HW-13) plus about 1 tick when the handler
@@ -744,11 +745,11 @@ requests.
   one bit each: bit 0 misaligned access, bit 1 illegal instruction, bit 2
   division by zero, bit 3 stack overflow, bit 8 watchpoint 0, bits 16 to
   20 floating point invalid, infinite, tiny, huge, inexact. The SDK clears
-  it by writing all ones. `EMU_CON` bit 3 turns on the stack check: the
-  SDK sets `EMU_SSP_L` and `EMU_SSP_H` to the bottom and top of the
-  supervisor stack, and `EMU_USP_L` and `EMU_USP_H` to 0 and `0xFFFFFFFF`
-  (no user-stack check), with bit 3 clear while it changes them. The SDK
-  also sets `EMU_CON` bits 2 and 8. That `EMU_CON` bit n turns on the
+  it by writing all ones. `EMU_CON` bit 3 turns on the stack check against
+  `EMU_SSP_L` and `EMU_SSP_H` (the SDK's values: the bottom and top of the
+  supervisor stack) and `EMU_USP_L` and `EMU_USP_H` (the SDK's values: 0
+  and `0xFFFFFFFF`, no user-stack check). The SDK also sets `EMU_CON`
+  bits 2 and 8. That `EMU_CON` bit n turns on the
   condition of `EMU_MSG` bit n is suggested by these settings but not
   stated (Q-14).
 - Sources: SDK `csfr.h` lines 208-214 (one `q32DSP` block per core from
@@ -773,9 +774,9 @@ requests.
   the bus by core 1; 19, 20, 21 the same by core 0. Writing all ones to
   `DBG_MSG_CLR` (`0x01EEE248`) clears it. `DBG_EN` (`0x01EEE340`) holds
   enables; the SDK sets its bits 4, 5 and 16 to 21 (that bit n enables
-  cause n is not stated, Q-14). The debug registers are write-protected:
-  the SDK writes `0xE7` to `DBG_WR_EN` (`0x01EEE240`) before changing them
-  and again after, and reads its bit 0 as "writes enabled". So on the chip
+  cause n is not stated, Q-14). The debug registers are write-protected
+  through `DBG_WR_EN` (`0x01EEE240`): its bit 0 reads 1 while writes to
+  them are enabled, and the SDK's value for it is `0xE7`. So on the chip
   a write to `DBG_MSG` is not a console (Q-5), and a firmware that reports
   faults through `DBG_MSG` in fwtest has to report them another way there.
 - Sources: SDK `csfr.h` lines 107-108 (`corex2` at `0x01EEE000`), 136-138
@@ -792,9 +793,11 @@ requests.
 - Fact: fwtest models no CPU exception: none of these conditions raises
   source 0, 1 or 2 (handlers installed and enabled on all three never
   ran), and the registers of HW-50 and HW-51 have no effect.
-  - Misaligned word and halfword loads, from RAM and from the code window,
-    return the bytes at the address asked, lowest first; a misaligned word
-    store to RAM writes the 4 bytes at the address asked.
+  - A misaligned word load, from RAM or from the code window, returns the
+    4 bytes at the address asked, lowest first, and a misaligned word store
+    to RAM writes the 4 bytes at the address asked. A halfword load from an
+    odd address in RAM ignores the address's lowest bit: it returns the
+    halfword at the even address below.
   - A read of an address outside every memory and register fwtest models
     returns 0, and a write there is ignored; both are listed as unmodelled
     accesses.
@@ -804,7 +807,8 @@ requests.
   - `EMU_CON` and the four limit words read back what was written; with
     every `EMU_CON` bit the SDK names set and limits that exclude the
     stacks, the image ran on; `EMU_MSG` reads 0; `DBG_EN` reads 0 and is
-    listed as unmodelled.
+    listed as unmodelled. Writes to `DBG_WR_EN` and `DBG_MSG_CLR` leave
+    fwtest's console (HW-25) as it was.
   - An instruction fwtest cannot decode ends the run with fwtest's fault
     outcome (exit code 3). fwtest may report it at the start of the
     straight-line code that holds it, before any of that code has run.
@@ -817,9 +821,12 @@ requests.
   (Q-14) for fwtest to model one.
 - Sources: E-10 (loads, stores, unmapped accesses, the code window,
   divisions, the exception registers, both before and after setting
-  them), E-11 (an undecodable halfword), E-12 (a call to `0x00ABCDEE`);
+  them; the console), E-11 (an undecodable halfword in a function of its
+  own: the store before the call ran), E-14 (the same halfword right after
+  a store in the same code: the store did not run, and the fault's pc was
+  the start of that code), E-12 (a call to `0x00ABCDEE`);
   HARNESS ("Outcomes and exit codes", "unmodelled_accesses").
-- Standing: confirmed (E-10, E-11, E-12)
+- Standing: confirmed (E-10, E-11, E-12, E-14)
 - Needed by: M1
 
 ## 11. The clocks on the chip (SR-2, real hardware)

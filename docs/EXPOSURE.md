@@ -431,7 +431,9 @@ training cutoff (see "Model cutoffs" below).
 - What it archived: M0e-spec's transcript (`fbbe5c07`) into
   `sessions/spec/`; `tools/check-transcripts.py` PASS.
 - Exposure: reads the harness source (`harness/`) and the vendored emulator
-  (`vendor/emulator/`) where they model CPU exceptions and the timers, the
+  (`vendor/emulator/`): its memory map and bus access paths, its division,
+  its timers, how fwtest reports faults, and its region handling for the
+  exception and clock registers; the
   JieLi SDK (Apache-2.0) and FM-1-RE's hardware documents (WTFPL) for the
   exception and clock questions. It never opens the GPL firmwares or
   anything on the clean side's forbidden list beyond the emulator.
