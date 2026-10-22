@@ -94,9 +94,85 @@ class TranscriptTest(unittest.TestCase):
         self.assertTrue(self.problems(p))
         ok = ct.check_session(p, {(SID, "toolu_1", rule): "writes a message only"})
         self.assertEqual(ok[0], [])
-        self.assertTrue(any("REVIEWED toolu_1" in l for l in ok[1]))
+        i = next(n for n, l in enumerate(ok[1]) if "toolu_1" in l)
+        self.assertEqual(ok[1][i + 1].strip(), "REVIEWED F-VENDOR-EMU")
         self.assertTrue(ct.check_session(p, {(SID, "toolu_2", rule): "other call"})[0])
         self.assertTrue(ct.check_session(p, {("other", "toolu_1", rule): "other session"})[0])
+
+    def heredoc_call(self, body, head="python3 - <<'EOF'", tail=""):
+        c = call("Bash", command="%s\n%s\nEOF%s" % (head, body, tail))
+        c["message"]["content"][0]["id"] = "toolu_h"
+        return self.problems(self.write([hook(BANNER_OK), c]))
+
+    def test_heredoc_that_only_edits_the_reviewed_list_passes(self):
+        body = ("import json\np='sessions/REVIEWED.json'; d=json.load(open(p))\n"
+                "d['reviewed'].append({'reason': 'names harness/ and vendor/emulator/ and sessions/spec/'})\n"
+                "open(p,'w').write(json.dumps(d))")
+        self.assertEqual(self.heredoc_call(body, tail="\ngit diff --stat sessions/REVIEWED.json"), [])
+
+    def test_heredoc_that_reads_a_clean_transcript_passes(self):
+        body = ("import json\nf='sessions/clean/2026-10-22-clean-x.jsonl'\n"
+                "for l in open(f):\n    if any(k in l for k in ('harness','vendor/emulator','sessions/spec')):\n"
+                "        print(l[:200])")
+        self.assertEqual(self.heredoc_call(body, head="cd ~/w/clean && python3 - <<'EOF'"), [])
+
+    def test_heredocs_that_reach_further_still_fail(self):
+        names = "x=('harness/', 'vendor/emulator/', 'sessions/spec/')\n"
+        bodies = [
+            "open('sessions/' + 'spec/x')",                       # a built path
+            "p='sessions/clean/a'\np='harness/b'\nopen(p)",       # rebound name
+            "open('sessions/clean/../spec/x')",                   # escapes the folder
+            "open('/w/harness/x')",
+            "import os\nos.listdir('harness')",
+            "import glob\nglob.glob('harness/*')",
+            "import subprocess\nsubprocess.run(['cat', 'harness/x'])",
+            "from os import listdir\nlistdir('harness')",
+            "__import__('os').listdir('harness')",
+            "exec(\"open('harness/x')\")",
+            "open('sessions/clean/a').__class__",
+            "def f():\n    return 1",
+            "this is not python harness/",
+        ]
+        for b in bodies:
+            self.assertTrue(self.heredoc_call(names + b), b)
+        ok = names + "open('sessions/REVIEWED.json')"
+        self.assertTrue(self.heredoc_call(ok, head="python3 - <<EOF"))          # unquoted: expands
+        self.assertTrue(self.heredoc_call(ok, head="cat > x.py <<'EOF'"))        # not python
+        self.assertTrue(self.heredoc_call(ok, head="cd harness && python3 - <<'EOF'"))
+        self.assertTrue(self.heredoc_call(ok, tail="\ncat harness/x"))
+        self.assertEqual(self.heredoc_call(ok), [])
+
+    def test_other_rules_are_never_cleared(self):
+        body = "x='https://github.com/hugelton/Felucca'\nopen('sessions/REVIEWED.json')"
+        self.assertTrue(any("F-FELUCCA" in x for x in self.heredoc_call(body)))
+
+    def test_plain_commands_naming_the_folders_still_fail(self):
+        for cmd in ("cat sessions/clean/a harness/b", "cd harness && ls", "D=vendor/emulator/; ls $D",
+                    "git show HEAD:harness/x"):
+            p = self.write([hook(BANNER_OK), call("Bash", command=cmd)])
+            self.assertTrue(any("forbidden" in x for x in self.problems(p)), cmd)
+
+    def test_a_superseded_entry_clears_nothing_and_must_stay_unneeded(self):
+        c = call("Bash", command="printf 'leaves out vendor/emulator/' > msg.txt")
+        c["message"]["content"][0]["id"] = "toolu_1"
+        p = self.write([hook(BANNER_OK), c])
+        key = (SID, "toolu_1", "vendor/emulator/ (spec side)")
+        probs = ct.check_session(p, {key: {"superseded": "x"}})[0]
+        self.assertTrue(any("marked superseded" in x for x in probs))
+        with open(os.path.join(self.dir, "REVIEWED.json"), "w") as f:
+            json.dump({"reviewed": [{"session": SID, "tool_use_id": "t", "rule": "r",
+                                     "reason": "x", "superseded": "y"}]}, f)
+        self.assertEqual(ct.load_reviewed(self.dir)[(SID, "t", "r")], {"superseded": "y"})
+
+    def test_output_never_quotes_the_transcript(self):
+        secret = "private-words-here"
+        c = call("Bash", command="cat harness/x # " + secret)
+        c["message"]["content"][0]["id"] = "toolu_q"
+        problems, lines = ct.check_session(self.write([hook(BANNER_OK), c]))
+        text = "\n".join(problems + lines)
+        self.assertNotIn(secret, text)
+        self.assertNotIn("cat harness", text)
+        self.assertIn("entry 2 shell Bash toolu_q touches forbidden material (F-HARNESS)", text)
 
     def test_reviewed_file_needs_a_reason(self):
         with open(os.path.join(self.dir, "REVIEWED.json"), "w") as f:

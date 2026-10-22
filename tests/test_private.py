@@ -1,9 +1,14 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
+import json
 import os
+import shutil
+import subprocess
+import sys
+import tempfile
 import unittest
 
-from tests.helpers import load_tool
+from tests.helpers import ROOT, load_tool
 
 cp = load_tool("check-private.py")
 
@@ -54,6 +59,32 @@ class PrivateTermsTest(unittest.TestCase):
                 del os.environ["PRIVATE_TERMS"]
             else:
                 os.environ["PRIVATE_TERMS"] = saved
+
+    def test_withhold_deletes_hit_files_and_lists_their_hashes(self):
+        d = tempfile.mkdtemp()
+        try:
+            os.makedirs(os.path.join(d, "logs"))
+            with open(os.path.join(d, "logs", "a.log"), "w") as f:
+                f.write("ok\nseen ZEBRAWORD here\n")
+            with open(os.path.join(d, "b.txt"), "w") as f:
+                f.write("nothing\n")
+            env = dict(os.environ, PRIVATE_TERMS="zebraword")
+            p = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "check-private.py"),
+                                "--dir", d, "--withhold"], env=env,
+                               stdout=subprocess.PIPE, universal_newlines=True)
+            self.assertEqual(p.returncode, 1)
+            self.assertNotIn("zebraword", p.stdout.lower())
+            self.assertFalse(os.path.exists(os.path.join(d, "logs", "a.log")))
+            self.assertTrue(os.path.exists(os.path.join(d, "b.txt")))
+            with open(os.path.join(d, "WITHHELD.json")) as f:
+                listed = json.load(f)["withheld"]
+            self.assertEqual([w["file"] for w in listed], ["logs/a.log"])
+            self.assertEqual(len(listed[0]["sha256"]), 64)
+            p = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "check-private.py"),
+                                "--dir", d, "--withhold"], env=env, stdout=subprocess.DEVNULL)
+            self.assertEqual(p.returncode, 0)  # nothing left to withhold
+        finally:
+            shutil.rmtree(d)
 
 
 if __name__ == "__main__":

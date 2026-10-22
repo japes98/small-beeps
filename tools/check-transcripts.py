@@ -25,16 +25,30 @@ For every clean-side transcript, including its subagents:
     is listed, and any that touches FORBIDDEN fails, unless that exact tool
     call is in sessions/REVIEWED.json (a reviewed false positive, such as a
     shell command that only writes a document naming a forbidden folder).
-    Matching is on text, so it errs towards flagging.
+    Matching is on text, so it errs towards flagging, with one narrow
+    exception for the three spec-side folder rules (EXEMPT_PATHS): the body
+    of a quoted heredoc fed to `python3 -` is left out of their matching
+    when it is code that provably opens nothing but sessions/REVIEWED.json
+    and files under sessions/clean/ (exempt_heredoc). Every other rule, and
+    the rest of the command, is still matched as text.
+  - A REVIEWED.json entry may be marked `superseded` (the exception above
+    now clears its call). It no longer clears anything, and the check fails
+    if its call is still flagged, so the mark can't be wrong.
+
+The output never quotes a transcript: calls are listed by file, entry
+(the transcript's line number), tool and tool-call ID, and hits by rule ID
+(FORBIDDEN), so nothing a session typed reaches a log or a record.
 
 The format is Claude Code's JSONL transcript: tool calls are `tool_use`
 blocks inside `type: "assistant"` entries; hook output is an `attachment`
 entry with `hookEvent: "SessionStart"`, `stdout` and `exitCode` (PROVENANCE
 P-6). Other entries are not inspected for tool use.
 """
+import ast
 import glob
 import json
 import os
+import posixpath
 import re
 import sys
 
@@ -61,24 +75,27 @@ ROLES = ("clean", "spec")
 # of reads, searches, fetches and shell commands (not against the contents
 # a session writes).
 FORBIDDEN = [
-    ("Felucca and firmwares built on it", r"felucca|hortator|ghoulbox|melodee|\bskiff\b"),
-    ("hugelton (Felucca's author)", r"hugelton"),
-    ("dinghy", r"dinghy|zvenson"),
-    ("FM-1 SID firmware", r"fm1-sid"),
-    ("emulator probe source", r"probes/lcdtest\.c"),
-    ("F-Emulator / fm1-emu repository", r"fm1-emu|f-emulator"),
-    ("emulator crates", r"\bcrates/fm1-"),
+    ("F-FELUCCA", "Felucca and firmwares built on it", r"felucca|hortator|ghoulbox|melodee|\bskiff\b"),
+    ("F-HUGELTON", "hugelton (Felucca's author)", r"hugelton"),
+    ("F-DINGHY", "dinghy", r"dinghy|zvenson"),
+    ("F-FM1-SID", "FM-1 SID firmware", r"fm1-sid"),
+    ("F-PROBE", "emulator probe source", r"probes/lcdtest\.c"),
+    ("F-EMU-REPO", "F-Emulator / fm1-emu repository", r"fm1-emu|f-emulator"),
+    ("F-EMU-CRATES", "emulator crates", r"\bcrates/fm1-"),
     # A path into the folder, or the folder itself as a whole word.
-    ("vendor/emulator/ (spec side)", r"(^|[\s\"'=:/])vendor/emulator(/|[\s\"']|$)"),
-    ("harness/ source (spec side)", r"(^|[\s\"'=:/])harness(/|[\s\"']|$)"),
-    ("thefirmwarehub.com", r"thefirmwarehub\.com"),
-    ("spec-side session transcripts", r"sessions/spec(/|[\s\"']|$)"),
-    ("FM-1-RE firmware images or disassembly",
+    ("F-VENDOR-EMU", "vendor/emulator/ (spec side)", r"(^|[\s\"'=:/])vendor/emulator(/|[\s\"']|$)"),
+    ("F-HARNESS", "harness/ source (spec side)", r"(^|[\s\"'=:/])harness(/|[\s\"']|$)"),
+    ("F-FWHUB", "thefirmwarehub.com", r"thefirmwarehub\.com"),
+    ("F-SPEC-SESSIONS", "spec-side session transcripts", r"sessions/spec(/|[\s\"']|$)"),
+    ("F-RE-FIRMWARE", "FM-1-RE firmware images or disassembly",
      r"fm-1-re.*(firmware-images|disasm|disassembl|ghidra|\.idb\b|\.i64\b|functions)"
      r"|firmware-images/"),
-    ("M-VAVE stock firmware", r"m-?vave.*\.(fwsc|bin|ufw|hex)\b"),
+    ("F-STOCK", "M-VAVE stock firmware", r"m-?vave.*\.(fwsc|bin|ufw|hex)\b"),
 ]
-FORBIDDEN_RE = [(why, re.compile(p, re.IGNORECASE)) for why, p in FORBIDDEN]
+FORBIDDEN_RE = [(rid, why, re.compile(p, re.IGNORECASE)) for rid, why, p in FORBIDDEN]
+RULE_ID = {why: rid for rid, why, _ in FORBIDDEN}
+# The rules a heredoc's body can be cleared of (exempt_heredoc).
+FOLDER_RULES = ("F-VENDOR-EMU", "F-HARNESS", "F-SPEC-SESSIONS")
 
 
 def targets(name, inp):
@@ -110,10 +127,134 @@ def targets(name, inp):
     return []
 
 
+# What an exempt heredoc may open: the reviewed list and archived clean
+# transcripts, nothing else.
+EXEMPT_PATHS = ("sessions/REVIEWED.json", "sessions/clean/")
+HEREDOC_RE = re.compile(r"<<-?\s*(['\"])([A-Za-z_][A-Za-z0-9_]*)\1")
+PYTHON_STDIN = re.compile(r"^\s*python3?(\.\d+)?(\s+-[IEsSBu]+)*\s+-\s*$")
+# Names a cleared heredoc may call; anything else (exec, eval, getattr,
+# __import__, compile, ...) means no exemption. Only json and re may be
+# imported, so no module that reaches files or processes is in reach.
+SAFE_CALLS = {"print", "len", "any", "all", "sorted", "set", "list", "dict", "tuple",
+              "str", "int", "bool", "repr", "enumerate", "range", "isinstance",
+              "min", "max", "sum", "zip", "open"}
+SAFE_IMPORTS = {"json", "re"}
+
+
+def allowed_path(path):
+    if not isinstance(path, str) or path.startswith("/") or "\\" in path:
+        return False
+    norm = posixpath.normpath(path)
+    if norm != path.rstrip("/") or ".." in norm.split("/"):
+        return False
+    return norm == EXEMPT_PATHS[0] or (norm.startswith(EXEMPT_PATHS[1]) and norm != EXEMPT_PATHS[1])
+
+
+def exempt_heredoc(code):
+    """True when Python code provably opens only EXEMPT_PATHS: it imports
+    only SAFE_IMPORTS, calls only SAFE_CALLS and methods (no dunder names),
+    and every open() names a path that is a literal, or a variable bound
+    exactly once to a literal, under EXEMPT_PATHS. Strings it uses
+    otherwise are data (e.g. the text it writes)."""
+    try:
+        tree = ast.parse(code)
+    except (SyntaxError, ValueError):
+        return False
+    bound = {}
+    for node in ast.walk(tree):
+        targets = []
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, (ast.AugAssign, ast.AnnAssign, ast.For, ast.comprehension)):
+            targets = [node.target]
+        elif isinstance(node, ast.withitem) and node.optional_vars is not None:
+            targets = [node.optional_vars]
+        elif isinstance(node, (ast.FunctionDef, ast.Lambda, ast.Global, ast.Nonlocal)):
+            return False
+        for t in targets:
+            for n in ast.walk(t):
+                if isinstance(n, ast.Name):
+                    single = (isinstance(node, ast.Assign) and len(node.targets) == 1
+                              and t is n and isinstance(node.value, ast.Constant))
+                    bound.setdefault(n.id, []).append(node.value.value if single else None)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            if any(a.name not in SAFE_IMPORTS or a.asname for a in node.names):
+                return False
+        elif isinstance(node, ast.ImportFrom):
+            return False
+        elif isinstance(node, ast.Name) and node.id.startswith("_"):
+            return False
+        elif isinstance(node, ast.Attribute) and node.attr.startswith("_"):
+            return False
+        elif isinstance(node, ast.Call):
+            f = node.func
+            if isinstance(f, ast.Name):
+                if f.id not in SAFE_CALLS or f.id in bound:
+                    return False
+                if f.id == "open":
+                    if not node.args or any(k.arg in ("file",) for k in node.keywords):
+                        return False
+                    a = node.args[0]
+                    if isinstance(a, ast.Constant):
+                        path = a.value
+                    elif isinstance(a, ast.Name) and len(bound.get(a.id, [])) == 1:
+                        path = bound[a.id][0]
+                    else:
+                        return False
+                    if not allowed_path(path):
+                        return False
+            elif not isinstance(f, ast.Attribute):
+                return False
+    return True
+
+
+def shell_parts(command):
+    """Splits a shell command into (rest, cleared): rest is the command
+    with the bodies of exempt heredocs taken out, matched against the
+    folder rules; cleared says whether any body was taken out. A heredoc is
+    exempt only when its delimiter is quoted (so the shell expands nothing
+    in it), it is the only one on its line, the command it feeds is
+    `python3 -` alone, and its body passes exempt_heredoc."""
+    lines = command.split("\n")
+    keep, i, cleared = [], 0, False
+    while i < len(lines):
+        line = lines[i]
+        keep.append(line)
+        i += 1
+        ops = list(HEREDOC_RE.finditer(line))
+        if len(ops) != 1:
+            continue
+        delim, strip = ops[0].group(2), line[ops[0].start():].startswith("<<-")
+        body = []
+        while i < len(lines) and (lines[i].lstrip("\t") if strip else lines[i]) != delim:
+            body.append(lines[i])
+            i += 1
+        segment = re.split(r"&&|\|\||[;|(]", line[:ops[0].start()])[-1]
+        if PYTHON_STDIN.match(segment) and exempt_heredoc("\n".join(body)):
+            cleared = True
+        else:
+            keep.extend(body)
+        if i < len(lines):
+            keep.append(lines[i])
+            i += 1
+    return "\n".join(keep), cleared
+
+
 def forbidden_hits(kind, target):
+    """Rule IDs a call's target matches, and whether a heredoc exemption
+    cleared any folder rule."""
     if kind in ("write", "agent"):
-        return []  # what a session writes isn't a read; agents have own transcripts
-    return [why for why, rx in FORBIDDEN_RE if rx.search(target)]
+        return [], False  # what a session writes isn't a read; agents have own transcripts
+    hits = [rid for rid, _, rx in FORBIDDEN_RE if rx.search(target)]
+    if kind != "shell" or not any(r in FOLDER_RULES for r in hits):
+        return hits, False
+    rest, cleared = shell_parts(target)
+    if not cleared:
+        return hits, False
+    kept = [r for r in hits if r not in FOLDER_RULES
+            or any(rid == r and rx.search(rest) for rid, _, rx in FORBIDDEN_RE)]
+    return kept, kept != hits
 
 
 def load(path):
@@ -122,7 +263,10 @@ def load(path):
         for n, line in enumerate(f, 1):
             if line.strip():
                 try:
-                    entries.append(json.loads(line))
+                    e = json.loads(line)
+                    if isinstance(e, dict):
+                        e["_line"] = n  # the entry's line, for listing it
+                    entries.append(e)
                 except ValueError as e:
                     raise SystemExit("%s:%d: not JSON (%s)" % (path, n, e))
     return entries
@@ -145,13 +289,15 @@ def tool_calls(entries):
             continue
         for block in content:
             if isinstance(block, dict) and block.get("type") == "tool_use":
-                yield block.get("id", ""), block.get("name", ""), block.get("input") or {}
+                yield (e.get("_line", 0), block.get("id", ""), block.get("name", ""),
+                       block.get("input") or {})
     # Files attached to a user message (e.g. @-mentions) are reads too.
     for e in entries:
         a = e.get("attachment") if e.get("type") == "attachment" else None
         if isinstance(a, dict) and a.get("type") in ("file", "directory", "opened_file_in_ide",
                                                        "selected_lines_in_ide", "compact_file_reference"):
-            yield e.get("uuid", ""), "Read", {"file_path": a.get("filename") or a.get("path") or ""}
+            yield (e.get("_line", 0), e.get("uuid", ""), "Read",
+                   {"file_path": a.get("filename") or a.get("path") or ""})
 
 
 def load_reviewed(sessions_dir):
@@ -159,7 +305,9 @@ def load_reviewed(sessions_dir):
     a touch of forbidden material (e.g. a shell command that only *writes*
     a document naming a forbidden folder). Each entry names the session, the
     tool call's ID, the matched rule and the reason. It is added by pull
-    request, so the owner's signed merge approves it."""
+    request, so the owner's signed merge approves it. An entry with a
+    `superseded` note is kept for history but clears nothing: its value is
+    a dict {"superseded": note} instead of the reason."""
     path = os.path.join(sessions_dir, "REVIEWED.json")
     if not os.path.exists(path) and os.path.basename(sessions_dir.rstrip("/")) in ROLES:
         path = os.path.join(os.path.dirname(sessions_dir.rstrip("/")), "REVIEWED.json")
@@ -171,7 +319,8 @@ def load_reviewed(sessions_dir):
     for r in data.get("reviewed", []):
         if not (r.get("session") and r.get("tool_use_id") and r.get("rule") and r.get("reason")):
             raise SystemExit("%s: every entry needs session, tool_use_id, rule and reason" % path)
-        reviewed[(r["session"], r["tool_use_id"], r["rule"])] = r["reason"]
+        key = (r["session"], r["tool_use_id"], r["rule"])
+        reviewed[key] = {"superseded": r["superseded"]} if r.get("superseded") else r["reason"]
     return reviewed
 
 
@@ -218,21 +367,25 @@ def check_session(path, reviewed=None):
         count = 0
         for f in files:
             sub = "" if f == path else " [subagent %s]" % os.path.basename(f)
-            for tid, name, inp in tool_calls(load(f) if f != path else entries):
+            for line_no, tid, name, inp in tool_calls(load(f) if f != path else entries):
                 for kind, target in targets(name, inp):
                     count += 1
-                    hits = forbidden_hits(kind, target)
-                    shown = target.replace("\n", "\\n")
-                    if len(shown) > 240:
-                        shown = shown[:240] + "..."
-                    lines.append("  %-10s %-9s %s%s" % (kind, name[:9], shown, sub))
-                    for why in hits:
-                        reason = reviewed.get((sid, tid, why))
-                        if reason:
-                            lines.append("    REVIEWED %s (%s): %s" % (tid, why, reason))
+                    hits, cleared = forbidden_hits(kind, target)
+                    where = "entry %d %s %s %s%s" % (line_no, kind, name, tid, sub)
+                    lines.append("  " + where)
+                    if cleared:
+                        lines.append("    CLEARED folder rules: its heredoc opens only %s"
+                                     % " and ".join(EXEMPT_PATHS))
+                    for rid in hits:
+                        why = next(w for r, w, _ in FORBIDDEN_RE if r == rid)
+                        entry = reviewed.get((sid, tid, why))
+                        if isinstance(entry, str):
+                            lines.append("    REVIEWED %s" % rid)
+                        elif entry is not None:
+                            problems.append("%s: %s, but its REVIEWED.json entry is marked "
+                                            "superseded" % (where, rid))
                         else:
-                            problems.append("%s %s %s touches forbidden material (%s): %s"
-                                            % (kind, name, tid, why, shown[:120]))
+                            problems.append("%s touches forbidden material (%s)" % (where, rid))
         lines.append("  %d reads, writes, searches, fetches and commands listed" % count)
     return problems, lines
 

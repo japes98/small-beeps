@@ -6,6 +6,7 @@
   check-private.py [--range RANGE] [--require]   tracked files and commit messages
   check-private.py --staged                      staged files (pre-commit hook)
   check-private.py --message-file FILE           a commit message (commit-msg hook)
+  check-private.py --dir DIR [--withhold]        every file under DIR (a record)
 
 The owner's private terms (username, hostname, real e-mail, real name,
 local folder names) come from the environment variable PRIVATE_TERMS (CI,
@@ -25,11 +26,20 @@ the base is checked in full. The output counts the exempt files per folder,
 and names no spec-side file: hits there are counted, not listed
 (CONTRIBUTING.md, "Privacy").
 
+`--dir` checks every file under a folder about to be published (a test
+record, an audit report, a re-check). With `--withhold`, each file holding
+a term is deleted and listed, with the SHA-256 of the withheld original, in
+DIR/WITHHELD.json; the rest stays, and the exit status is 1 if anything was
+withheld. The original is not kept anywhere: the checks are deterministic,
+so it can be regenerated and matched against its hash if that is ever
+needed. tools/record.py does the same as its check C-RECORD-PRIVATE.
+
 With no terms available the check passes with a note, unless --require is
 given (CI requires them). Files not on disk (parts a clean folder leaves
 out) are skipped: the check runs where they are.
 """
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -88,6 +98,40 @@ def check_files(paths, read, terms):
             continue
         problems += ["%s:%d" % (p, n) for n in hit_lines(data, terms)]
     return problems
+
+
+WITHHELD = "WITHHELD.json"
+
+
+def withhold(top, terms):
+    """Deletes every file under top that holds a term, and writes (or adds
+    to) top/WITHHELD.json: one entry per withheld file, its path relative
+    to top and the SHA-256 of the original. Returns the new entries."""
+    listed = os.path.join(top, WITHHELD)
+    old = []
+    if os.path.exists(listed):
+        with open(listed, encoding="utf-8") as f:
+            old = json.load(f).get("withheld", [])
+    new = []
+    for dirpath, _, names in sorted(os.walk(top)):
+        for n in sorted(names):
+            full = os.path.join(dirpath, n)
+            rel = os.path.relpath(full, top).replace(os.sep, "/")
+            if rel == WITHHELD or os.path.islink(full):
+                continue
+            with open(full, "rb") as f:
+                data = f.read()
+            if hit_lines(data, terms):
+                new.append({"file": rel, "sha256": hashlib.sha256(data).hexdigest()})
+                os.remove(full)
+    if new:
+        with open(listed, "w", encoding="utf-8") as f:
+            json.dump({"comment": "Files withheld from this folder because they held one of the "
+                                  "owner's private terms (tools/check-private.py, R-PUB-3). Only "
+                                  "the name and the SHA-256 of each original are kept.",
+                       "withheld": old + new}, f, indent=2)
+            f.write("\n")
+    return new
 
 
 def blobs(*args):
@@ -151,6 +195,9 @@ def main():
                     help="commits whose messages to check (default: all of HEAD's history)")
     ap.add_argument("--staged", action="store_true", help="check the staged files only")
     ap.add_argument("--message-file", help="check one commit message file only")
+    ap.add_argument("--dir", help="check every file under this folder (a record about to be published)")
+    ap.add_argument("--withhold", action="store_true",
+                    help="with --dir: delete each file holding a term, listing it in WITHHELD.json")
     ap.add_argument("--require", action="store_true", help="fail when no terms are available")
     a = ap.parse_args()
 
@@ -159,7 +206,20 @@ def main():
         print("private-terms check: no terms (PRIVATE_TERMS or tools/private-terms.local)")
         return 1 if a.require else 0
 
-    if a.message_file:
+    if a.dir and a.withhold:
+        gone = withhold(a.dir, terms)
+        for g in gone:
+            print("withheld %s (sha256 %s)" % (g["file"], g["sha256"]))
+        print("private-terms check of %s: %d term(s); %s" % (
+            a.dir, len(terms), "%d file(s) WITHHELD" % len(gone) if gone else "PASS"))
+        return 1 if gone else 0
+    if a.dir:
+        paths = []
+        for dirpath, _, names in os.walk(a.dir):
+            paths += [os.path.join(dirpath, n) for n in names]
+        problems = check_files(sorted(os.path.relpath(p, a.dir) for p in paths),
+                               lambda p: open(os.path.join(a.dir, p), "rb").read(), terms)
+    elif a.message_file:
         with open(a.message_file, "rb") as f:
             text = b"\n".join(l for l in f.read().split(b"\n") if not l.startswith(b"#"))
         problems = ["commit message line %d" % n for n in hit_lines(text, terms)]

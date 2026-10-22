@@ -73,8 +73,12 @@ and commits the result.
   one-prompt hook test, and the first spec session (M0b), each of which
   began before its folder had the banner hook;
 - for clean-side transcripts, every file read, write, search, web fetch, web
-  search and shell command is listed in the check's log, and any that touches
-  forbidden material fails.
+  search and shell command is listed in the check's log by entry (the
+  transcript's line number), tool and tool-call ID, and any that touches
+  forbidden material fails, named by rule ID (`F-...`, the check's
+  `FORBIDDEN` table). The log never quotes a transcript: it goes into every
+  test record, and the oldest archived transcripts still hold text that the
+  archiver now redacts.
 
 Matching is on text, so it errs towards flagging: a shell command that only
 *writes* a document naming a forbidden folder is flagged too. Such a hit can
@@ -82,3 +86,13 @@ be cleared only by an entry in `REVIEWED.json` naming that exact session and
 tool call, the rule it matched and why it isn't a touch, added by pull
 request so the owner's signed merge approves it. Agents avoid the problem by
 writing prose with their file-writing tool, not with shell commands.
+
+One kind of command is cleared by the check itself (since M1, at the
+owner's request): a quoted heredoc fed to `python3 -` whose code provably
+opens nothing but `sessions/REVIEWED.json` and files under `sessions/clean/`
+(only `json` and `re` imported, no other file, process or `exec`-like call,
+every `open()` path a literal under those two places). Its body is then left
+out of the three spec-side folder rules only; every other rule, and the rest
+of the command, is still matched as text. A `REVIEWED.json` entry this made
+unnecessary is marked `superseded` rather than deleted; it clears nothing,
+and the check fails if its call is ever flagged again.

@@ -112,6 +112,18 @@ jobs:
       - name: Check the artifact holds only the report
         run: python tools/audit.py check-artifact out/audit
 
+      # R-PUB-3: a report file holding one of the owner's private terms is
+      # withheld (listed with its SHA-256 in WITHHELD.json), and the job fails
+      # after the rest is written.
+      - name: Withhold any report file holding a private term
+        id: private
+        env:
+          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
+        run: |
+          set +e
+          python tools/check-private.py --dir out/audit --withhold --require
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+
       - name: Append to the commit's record
         env:
           DEPLOY_KEY: ${{ secrets.RECORDS_DEPLOY_KEY }}
@@ -129,13 +141,19 @@ jobs:
             git clone --quiet --branch records --single-branch "$url" rec
             dest="rec/records/$GITHUB_SHA/audit/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
             mkdir -p "$dest"
-            cp out/audit/report.json out/audit/report.md "$dest/"
+            for f in report.json report.md WITHHELD.json; do
+              if [ -f "out/audit/$f" ]; then cp "out/audit/$f" "$dest/"; fi
+            done
             git -C rec add records
             git -C rec -c user.name="small-beeps records" -c user.email="records@users.noreply.github.com" \
               commit --quiet -m "records: audit of $GITHUB_SHA" \
               -m "Similarity audit of commit $GITHUB_SHA, written by run https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)."
             if git -C rec push --quiet origin records; then
               rm -f ~/.ssh/records_key
+              if [ "${{ steps.private.outputs.status }}" != "0" ]; then
+                echo "::error::a report file held a private term (or none were available) and was withheld"
+                exit 1
+              fi
               exit 0
             fi
             sleep $((attempt * 15))
