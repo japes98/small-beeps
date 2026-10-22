@@ -1,0 +1,48 @@
+{
+  "fwtest": {
+    "version": "0.1.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "e6-matrix.bin",
+    "bytes": 176,
+    "sha256": "4cc12115d43aee07344571ec202273e6dcee5bb3f75b83b1f210820a894580f9"
+  },
+  "script_sha256": "310a569fe237b97af450814d5287bdfc9dea4ec623c5832a0c8c0c9003b3e87a",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "260.000",
+    "instructions": {
+      "core0": 62400000,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "ram-01c00100-40-end.bin",
+        "bytes": 64,
+        "sha256": "8216634296ac1efe92fd04692c269c66a1bdf228dd65683ea3efaec17e1ef0b2"
+      },
+      {
+        "name": "ram-01c01000-400-end.bin",
+        "bytes": 1024,
+        "sha256": "92c43b9f342df283b2d832f7fd7286cfb6374d1f6bc8747e7222a3a8e275d2a3"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "ram-01c00100-40-end.bin",
+      "result": "match",
+      "detail": null
+    },
+    {
+      "name": "ram-01c01000-400-end.bin",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 0
+}

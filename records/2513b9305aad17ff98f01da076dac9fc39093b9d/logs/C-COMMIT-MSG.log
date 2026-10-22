@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range d43ca803c366d9cbd2b758df35253571cc0dc347..2513b9305aad17ff98f01da076dac9fc39093b9d
+OK     429c4d8749ad docs: plan records the re-checks of #13, #15 and #16's merges
+EXEMPT 2513b9305aad (merge) Merge pull request #22 from japes98/m0e/verified
+2 commit(s) checked: PASS
+
+exit status 0
