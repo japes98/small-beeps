@@ -131,4 +131,10 @@ These parts of the SDK are **not used** and never vendored:
 
 ## Preservation copy status
 
-- 2026-10-21: not yet uploaded. Waiting for the owner's approval.
+- 2026-10-22 (UTC): uploaded with the owner's approval by session M0a.
+  Private repository `japes98/small-beeps-toolchain`, release
+  `toolchain-20250324.1`, asset `jieli-linux-toolchains-20250324.1.tar.xz`.
+  Downloaded back and checked: SHA-256
+  `f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958`
+  (matches). The release notes repeat the hash and say the terms are unknown
+  and that it is not for redistribution.

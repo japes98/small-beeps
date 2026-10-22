@@ -173,12 +173,33 @@ Repository rulesets (Settings → Rules → Rulesets):
   before merging (allowed merge method: merge only); require status checks to
   pass (the `ci` job); bypass list: the owner only (repository admin role,
   "always").
-- **records**: restrict deletions; block force pushes. The records workflow's
-  deploy key is the only writer.
-- **tags `m*`**: restrict deletions; restrict updates.
+- **records-history** (branch `records`): restrict deletions; block force
+  pushes; no bypass.
+- **records-writer** (branch `records`): restrict creations; restrict
+  updates; bypass list: deploy keys only. Together these make the records
+  workflow's deploy key the only writer, and it can only add commits.
+- **milestone-tags** (tags `m*`): restrict deletions; restrict updates; no
+  bypass.
 
 Repository settings: allow merge commits only (squash and rebase merging
 off).
+
+Set up on 2026-10-22 by session M0a, with the owner's approval, through the
+GitHub API:
+
+| What | ID or fingerprint |
+|------|-------------------|
+| Ruleset `main` | 25612787 (bypass: repository admin role; required check `ci` from GitHub Actions) |
+| Ruleset `records-history` | 25612788 |
+| Ruleset `records-writer` | 25612790 (bypass: deploy keys) |
+| Ruleset `milestone-tags` | 25612791 |
+| Environment `records` | deployments from `main` only; secret `RECORDS_DEPLOY_KEY` |
+| Deploy key "records workflow (records branch writer)" | 167260041, write access, ED25519 `SHA256:Od9RfSkzLwqLYSZRf1X7jEdcLhty0n1ISgQ+ec43Dkk` |
+
+The deploy key's private half was generated in the session's scratch
+folder, piped into the environment secret without being printed, and
+deleted. To rotate it: make a new pair, replace the secret, add the new
+public key, delete the old key.
 
 ## SSH commit signing (one-time setup, owner)
 

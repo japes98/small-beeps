@@ -1,0 +1,45 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Rebuilds a commit in its own pinned container and compares the outputs'
+# SHA-256s with that commit's test record (R-REPRO-4).
+#
+#   tools/reproduce <commit> [--records-ref REF]
+#
+# The record comes from the `records` branch (fetched from origin, or a local
+# branch of that name, or REF). The commit's files are exported with
+# `git archive` into a temporary folder, so the build uses that commit's own
+# Dockerfile and build script, and nothing from your working tree. In a
+# blob-less clean clone, git may download the commit's other files to do
+# this; the spec-side folders are excluded.
+set -eu
+
+[ $# -ge 1 ] || { echo "usage: $0 <commit> [--records-ref REF]" >&2; exit 2; }
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+commit=$1
+ref=""
+[ "${2:-}" = "--records-ref" ] && ref=${3:-}
+
+full=$(git -C "$ROOT" rev-parse --verify "$commit^{commit}")
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+
+if [ -z "$ref" ]; then
+    if git -C "$ROOT" fetch -q origin records 2>/dev/null; then ref=FETCH_HEAD
+    else ref=records; fi
+fi
+if ! git -C "$ROOT" show "$ref:records/$full/report.json" > "$work/report.json" 2>/dev/null; then
+    echo "no record for $full on $ref" >&2
+    exit 1
+fi
+echo "commit:  $full"
+echo "record:  $ref:records/$full/report.json"
+
+mkdir "$work/src"
+# Spec-side folders aren't needed to build, and must not land on a clean
+# machine (CONTRIBUTING.md, "Barriers").
+git -C "$ROOT" archive "$full" -- . ':(exclude)vendor/emulator' ':(exclude)harness' \
+    | tar -x -C "$work/src"
+sh "$work/src/tools/build.sh" build --out "$work/out"
+"$(sh "$ROOT/tools/find-python.sh")" -I "$ROOT/tools/record.py" compare --record "$work/report.json" --outputs "$work/out"

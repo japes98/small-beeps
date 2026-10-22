@@ -1,0 +1,107 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The permanent test record (R-REC-1, R-REC-2). Runs only for pushes to main
+# (never for pull requests, so a fork can never write a record). It runs
+# every check, including C-MERGE, stamps the record with OpenTimestamps,
+# appends it to the orphan `records` branch with a deploy key that only this
+# workflow's `records` environment holds, and uploads the same files as an
+# artifact. A failing check still produces a record that says so.
+name: records
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  # C-MERGE reads the merged pull request and its CI run.
+  pull-requests: read
+  actions: read
+
+concurrency:
+  group: records
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: records
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install check tools
+        run: python -m pip install --disable-pip-version-check -r tools/requirements-ci.txt
+
+      - name: Run all checks and write the record
+        id: checks
+        env:
+          BEFORE: ${{ github.event.before }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = 0000000000000000000000000000000000000000 ]; then
+            export COMMIT_RANGE="..$GITHUB_SHA"
+          else
+            export COMMIT_RANGE="$BEFORE..$GITHUB_SHA"
+          fi
+          set +e
+          python tools/record.py run --out "out/$GITHUB_SHA" --with-merge
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Timestamp the record (OpenTimestamps, pending until Bitcoin confirms)
+        run: |
+          ots stamp "out/$GITHUB_SHA/SHA256SUMS"
+          ots info "out/$GITHUB_SHA/SHA256SUMS.ots" | head -20
+
+      - name: Upload record
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: record-${{ github.sha }}
+          path: out/${{ github.sha }}
+          if-no-files-found: error
+
+      - name: Append to the records branch
+        env:
+          DEPLOY_KEY: ${{ secrets.RECORDS_DEPLOY_KEY }}
+        run: |
+          set -eu
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/records_key && chmod 600 ~/.ssh/records_key
+          # GitHub's published SSH host key (docs: "GitHub's SSH key fingerprints").
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/records_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+          url="git@github.com:$GITHUB_REPOSITORY.git"
+          if git ls-remote --exit-code --heads "$url" records >/dev/null; then
+            git clone --quiet --branch records --single-branch "$url" rec
+          else
+            git init --quiet -b records rec
+            git -C rec remote add origin "$url"
+          fi
+          dest="rec/records/$GITHUB_SHA"
+          if [ -e "$dest" ]; then
+            # Never overwrite a record; a re-run is kept beside it.
+            dest="$dest/rerun-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          fi
+          mkdir -p "$dest"
+          cp -R "out/$GITHUB_SHA/." "$dest/"
+          cd rec
+          git add records
+          git -c user.name="small-beeps records" -c user.email="records@users.noreply.github.com" \
+            commit --quiet -m "records: $GITHUB_SHA" \
+            -m "Record of commit $GITHUB_SHA, written by run https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)."
+          git push --quiet origin records
+          rm -f ~/.ssh/records_key
+
+      - name: Fail if any check failed
+        if: steps.checks.outputs.status != '0'
+        run: |
+          echo "Record written, but a check failed (status ${{ steps.checks.outputs.status }})."
+          exit 1
