@@ -292,6 +292,16 @@ class HistoryTest(unittest.TestCase):
             f.write("something,else\n")
         self.assertEqual(self.history(self.record("a" * 40)), 1)
 
+    def test_records_workflow_never_cancels_a_record(self):
+        # A single concurrency group let GitHub cancel waiting records
+        # runs; the group is per commit, and a refused push is retried.
+        with open(os.path.join(ROOT, ".github", "workflows", "records.yml")) as f:
+            wf = f.read()
+        self.assertIn("group: records-${{ github.sha }}", wf)
+        self.assertNotRegex(wf, r"(?m)^\s+group: records\s*$")
+        self.assertIn("for attempt in", wf)
+        self.assertNotIn("push --force", wf)
+
     def test_header_names_every_measure(self):
         for k in ("code", "static_ram", "stack_high_water", "instructions_per_period", "image"):
             self.assertIn(k, perf.HISTORY_FIELDS)
