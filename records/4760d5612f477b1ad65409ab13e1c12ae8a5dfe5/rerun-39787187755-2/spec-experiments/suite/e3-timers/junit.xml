@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="0">
+  <testsuite name="experiments.e3-timers" tests="2" failures="0">
+    <testcase classname="experiments.e3-timers" name="run"/>
+    <testcase classname="experiments.e3-timers" name="golden ram-01c00100-20-end.bin"/>
+  </testsuite>
+</testsuites>
