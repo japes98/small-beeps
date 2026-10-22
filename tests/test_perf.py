@@ -15,12 +15,18 @@ from tests.helpers import ROOT, load_tool
 perf = load_tool("perf.py")
 
 BUDGETS = {"milestone": "M0", "speed_rise_percent": 3,
-           "limits": {"code": 512, "static_ram": 64, "stack_high_water": 256}}
+           "limits": {"code": 512, "static_ram": 64, "stack_high_water": 256,
+                      "startup_instructions": 10000, "steady_per_period": 200}}
 
 
-def measured(instructions=100000, periods=1000, code=252, static_ram=24, stack=0):
+def measured(instructions=100000, periods=1000, code=252, static_ram=24, stack=0, startup=5000):
     return {"label": "t", "instructions": instructions, "periods": periods, "code": code,
-            "static_ram": static_ram, "stack_high_water": stack}
+            "static_ram": static_ram, "stack_high_water": stack, "startup_instructions": startup}
+
+
+def gate(cur, base, budgets=BUDGETS):
+    """The gate with the baseline made under the same budgets."""
+    return perf.gate(cur, base, budgets, budgets)
 
 
 def results(verdicts):
@@ -37,16 +43,16 @@ class GateTest(unittest.TestCase):
                             (100000, "PASS"),
                             (97000, "PASS"),     # exactly -3%: an ordinary pass
                             (96999, "IMPROVED")):
-            self.assertEqual(results(perf.gate(measured(instr, 1000), base, BUDGETS))["speed"], want, instr)
+            self.assertEqual(results(gate(measured(instr, 1000), base))["speed"], want, instr)
 
     def test_speed_is_per_period(self):
         # twice the instructions over twice the periods is no change
         base = measured(100000, 1000)
-        self.assertEqual(results(perf.gate(measured(200000, 2000), base, BUDGETS))["speed"], "PASS")
-        self.assertEqual(results(perf.gate(measured(200000, 1000), base, BUDGETS))["speed"], "FAIL")
+        self.assertEqual(results(gate(measured(200000, 2000), base))["speed"], "PASS")
+        self.assertEqual(results(gate(measured(200000, 1000), base))["speed"], "FAIL")
 
     def test_improvement_is_reported_and_passes(self):
-        v = perf.gate(measured(50000, 1000), measured(100000, 1000), BUDGETS)
+        v = gate(measured(50000, 1000), measured(100000, 1000))
         self.assertFalse(perf.failed(v))
         speed = [x for x in v if x["gate"] == "speed"][0]
         self.assertIn("-50.00%", speed["detail"])
@@ -56,53 +62,116 @@ class GateTest(unittest.TestCase):
         self.assertIn("say so in the pull request", text)
 
     def test_budgets(self):
-        for key, arg in (("code", "code"), ("static_ram", "static_ram"), ("stack_high_water", "stack")):
+        for key, arg in (("code", "code"), ("static_ram", "static_ram"), ("stack_high_water", "stack"),
+                         ("startup_instructions", "startup")):
             at = measured(**{arg: BUDGETS["limits"][key]})
             over = measured(**{arg: BUDGETS["limits"][key] + 1})
-            self.assertEqual(results(perf.gate(at, None, BUDGETS))[key], "PASS", key)
-            r = results(perf.gate(over, None, BUDGETS))
+            self.assertEqual(results(gate(at, None))[key], "PASS", key)
+            r = results(gate(over, None))
             self.assertEqual(r[key], "FAIL", key)
             self.assertEqual([k for k, x in r.items() if x == "FAIL"], [key])
 
+    def test_the_steady_state_budget_is_exact(self):
+        # 200 per period is the budget: 200 000 over 1 000 passes, one more fails
+        self.assertEqual(results(gate(measured(200000), None))["steady_per_period"], "PASS")
+        r = results(gate(measured(200001), None))
+        self.assertEqual(r["steady_per_period"], "FAIL")
+        self.assertEqual([k for k, x in r.items() if x == "FAIL"], ["steady_per_period"])
+
+    def test_speed_is_compared_only_under_the_same_steady_budget(self):
+        base = measured(100000, 1000)
+        other = dict(BUDGETS, limits=dict(BUDGETS["limits"], steady_per_period=150))
+        older = {"milestone": "M1", "limits": {"code": 2048, "static_ram": 160, "stack_high_water": 256}}
+        for base_budgets in (other, older, None):
+            v = perf.gate(measured(150000), base, BUDGETS, base_budgets)
+            speed = [x for x in v if x["gate"] == "speed"][0]
+            self.assertEqual(speed["result"], "NOT COMPARED", base_budgets)
+            self.assertIn("+50.00%", speed["detail"])
+            self.assertFalse(perf.failed(v))
+        self.assertEqual(results(perf.gate(measured(150000), base, BUDGETS, BUDGETS))["speed"], "FAIL")
+        # the other budgets still hold whatever the baseline
+        self.assertEqual(results(perf.gate(measured(250000), base, BUDGETS, None))["steady_per_period"], "FAIL")
+
     def test_no_baseline_is_not_compared(self):
-        v = perf.gate(measured(), None, BUDGETS)
+        v = gate(measured(), None)
         self.assertEqual(results(v)["speed"], "NOT COMPARED")
         self.assertFalse(perf.failed(v))
-        v = perf.gate(measured(), {"label": "baseline", "error": "did not run"}, BUDGETS)
+        v = gate(measured(), {"label": "baseline", "error": "did not run"})
         self.assertEqual(results(v)["speed"], "NOT COMPARED")
 
     def test_a_failed_measurement_fails(self):
         cur = dict(measured(), error="no heartbeat")
-        v = perf.gate(cur, measured(), BUDGETS)
+        v = gate(cur, measured())
         self.assertEqual(results(v)["measurement"], "FAIL")
         self.assertNotIn("speed", results(v))
 
     def test_probe_expectations(self):
-        slow = perf.gate(measured(200000), measured(), BUDGETS)
+        slow = gate(measured(200000), measured())
         self.assertEqual(perf.check_probe("SLOW", slow, {"speed"}), [])
         # a probe the gate let through is a problem
-        self.assertTrue(perf.check_probe("SLOW", perf.gate(measured(), measured(), BUDGETS), {"speed"}))
+        self.assertTrue(perf.check_probe("SLOW", gate(measured(), measured()), {"speed"}))
         # and so is one that failed a gate it should not touch
-        both = perf.gate(measured(200000, code=9999), measured(), BUDGETS)
+        both = gate(measured(200000, code=9999), measured())
         self.assertTrue(perf.check_probe("SLOW", both, {"speed"}))
-        big = perf.gate(measured(code=9999, static_ram=999, stack=999), measured(), BUDGETS)
+        big = gate(measured(code=9999, static_ram=999, stack=999), measured())
         self.assertEqual(perf.check_probe("BIG", big, {"code", "static_ram", "stack_high_water"}), [])
 
     def test_probe_budgets_follow_the_measured_build(self):
-        # The bigger probe is gated against the unmodified build's sizes, so
-        # it fails each budget however far config/budgets.json is raised.
-        ref = measured(code=300, static_ram=40, stack=8)
-        big = measured(code=1348, static_ram=280, stack=516)
-        raised = dict(BUDGETS, limits={"code": 4096, "static_ram": 4096, "stack_high_water": 4096})
-        self.assertFalse(perf.failed(perf.gate(big, ref, raised)))
-        limits = perf.probe_budgets(ref, raised, "reference")
-        self.assertEqual(limits["limits"], {"code": 300, "static_ram": 40, "stack_high_water": 8})
-        self.assertEqual(perf.check_probe("BIG", perf.gate(big, ref, limits),
-                                          {"code", "static_ram", "stack_high_water"}), [])
-        # the slower probe, against its own sizes, can fail only its speed
-        slow = measured(400000, code=344)
-        self.assertEqual(perf.check_probe("SLOW", perf.gate(slow, ref, perf.probe_budgets(slow, raised, "own")),
-                                          {"speed"}), [])
+        # The bigger probe is gated against the unmodified build's sizes and
+        # startup, so it fails each of those budgets however far
+        # config/budgets.json is raised.
+        ref = measured(64000, code=300, static_ram=40, stack=8, startup=5193)
+        big = measured(64000, code=1348, static_ram=280, stack=516, startup=5800)
+        raised = dict(BUDGETS, limits={"code": 4096, "static_ram": 4096, "stack_high_water": 4096,
+                                       "startup_instructions": 10 ** 6, "steady_per_period": 1000})
+        self.assertFalse(perf.failed(gate(big, ref, raised)))
+        big_gates = {"code", "static_ram", "stack_high_water", "startup_instructions"}
+        limits = perf.probe_budgets(ref, big, raised, big_gates)
+        self.assertEqual(limits["limits"], {"code": 300, "static_ram": 40, "stack_high_water": 8,
+                                            "startup_instructions": 5193, "steady_per_period": 64})
+        self.assertEqual(perf.check_probe("BIG", gate(big, ref, limits), big_gates), [])
+        # the slower probe fails its speed and the unmodified build's
+        # steady-state budget, and nothing else
+        slow = measured(84321, code=344, startup=5300)
+        limits = perf.probe_budgets(ref, slow, raised, {"steady_per_period"})
+        self.assertEqual(limits["limits"]["steady_per_period"], 64)
+        self.assertEqual(perf.check_probe("SLOW", gate(slow, ref, limits), {"speed", "steady_per_period"}), [])
+        # a steady state that isn't whole: the unmodified build's limit is
+        # rounded down, a probe's own up
+        ref = measured(64500, startup=1)
+        self.assertEqual(perf.probe_budgets(ref, ref, raised, {"steady_per_period"})["limits"]["steady_per_period"], 64)
+        self.assertEqual(perf.probe_budgets(ref, ref, raised, set())["limits"]["steady_per_period"], 65)
+        self.assertEqual(results(gate(ref, ref, perf.probe_budgets(ref, ref, raised, set())))["steady_per_period"],
+                         "PASS")
+
+    def test_two_runs_give_steady_state_and_startup(self):
+        size = {"code": 1, "data": 0, "bss": 0, "image": 1, "stack": 64}
+        calls = []
+
+        def once(image, size_, out, label, ms):
+            calls.append(ms)
+            beats = {1250: 1263, 2250: 2255}[ms]
+            return {"label": label, "ms": ms, "outcome": "completed", "emulated_ms": beats + 0.5,
+                    "instructions": 5193 + 64 * beats, "periods": beats, "stack_high_water": ms // 100,
+                    "options": [str(ms)], "code": 1}
+        saved = perf.run_once
+        perf.run_once = once
+        try:
+            m = perf.run_fwtest(b"", size, "/nonexistent", "t")
+        finally:
+            perf.run_once = saved
+        self.assertEqual(calls, list(perf.RUN_MS))
+        self.assertEqual((m["instructions"], m["periods"], m["instructions_per_period"]), (64 * 992, 992, 64.0))
+        self.assertEqual(m["startup_instructions"], 5193)
+        self.assertEqual(m["stack_high_water"], 22)        # from the longer run
+        self.assertEqual([r["ms"] for r in m["runs"]], [1250, 2250])
+        self.assertNotIn("error", m)
+
+    def test_the_runs_end_away_from_whole_seconds_and_tenths(self):
+        short, long_ = perf.RUN_MS
+        self.assertEqual((long_ - short) % 1000, 0)
+        for ms in perf.RUN_MS:
+            self.assertGreaterEqual(min(ms % 100, 100 - ms % 100), 50, ms)
 
     def test_the_real_budgets_load(self):
         b = perf.load_budgets()

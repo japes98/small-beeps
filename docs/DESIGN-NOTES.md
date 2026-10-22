@@ -451,3 +451,45 @@ Format for each entry:
 - Reasoning: nothing in M1 needs a second core, so core 1 stays parked:
   it is never released, `SYS_DIV` is never written, and every case checks
   that core 1 ran no instruction (R-BOOT-4). M4's audio may want it.
+
+### 2026-10-22 M2: speed in two parts, startup and steady state
+- Facts: docs/HARNESS.md ("Time": instruction counts leave out the time a
+  waiting core 0 skips; a run's end comes late while the image idles);
+  the owner's decision in session M2 (R-PERF-2).
+- Reasoning: until M2, speed was one one-second run's instructions over its
+  beats, so one-off work at startup counted as if it were per-period work.
+  M2 draws the whole screen at startup, hundreds of thousands of
+  instructions, which against M1's 69.2 a period would fail the 3% gate
+  by design while the per-period work hardly changes. So `tools/perf.py`
+  runs each image twice, for 1 250 and 2 250 ms, and takes:
+  - steady state: the longer run's instructions less the shorter's, over
+    the beats gained between their ends;
+  - startup: the shorter run's instructions beyond its beats at that rate.
+  Both get a budget per milestone, raised only by their own pull request.
+  The 3% gate applies to steady state only, and only against a record
+  made under the same steady-state budget: raising that budget is the
+  deliberate, reviewed way to accept more work per period.
+- Why 1 250 and 2 250 ms: the window between them is one whole second
+  long, and both ends are at least 50 ms from a whole tenth of a second
+  (a test checks this). Work timed on whole seconds or tenths (M2's
+  heartbeat on screen) then falls inside the window whole, never at its
+  ends, even though an end comes up to about 30 ms late while the image
+  idles. Measured on M1's firmware: the ends came at 1 263.074 and
+  2 255.115 ms, 992 beats apart; steady state exactly 64.000 a period
+  (the probes' windows, 1 003 and 1 008 beats, gave the same), startup
+  5 193 instructions. M1's old figure, 69.2, was the two mixed.
+- M1's new budgets: startup 8 192 instructions, steady state 72 a period
+  (about 58% and 12% above what M1 measures; the 3% gate, not the budget,
+  catches small rises).
+- The probes: the slower build must fail the speed gate and the
+  unmodified build's steady state as its budget; the bigger build (whose
+  extra work runs at startup) must fail each size budget and the
+  unmodified build's startup as its budget.
+- perf-history.csv keeps its header (its writer refuses any other, and it
+  is never rewritten), so its instruction columns now hold the steady
+  state, and its `period` column says `heartbeat-steady` from M2 on.
+- Alternatives (the owner chose among them): resetting the baseline when a
+  milestone's firmware first lands (it hides the startup cost from every
+  gate); steady state alone with no startup budget (startup could then
+  grow unchecked); one absolute budget for the mixed measure (startup
+  would hide per-period regressions).
