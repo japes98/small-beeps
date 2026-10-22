@@ -227,6 +227,38 @@ training cutoff (see "Model cutoffs" below).
   page listed result titles mentioning M-VAVE's firmware downloads and
   forum; none of those pages was opened.
 
+### Session M0d (the smallest firmware)
+- Date: 2026-10-22
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.308 (`claude --version`), Remote Control from the
+  owner's phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `b7ed6c1a-fb2a-4707-b9e2-303e11f65740`. This
+  is the session M0c left alone because it then held only a `/clear`
+  (11:31Z); the M0d prompt was pasted into it after that `/clear`, so its
+  transcript is this session's own and is left for the next clean session
+  to archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`; banner
+  `status: OK` at the start and after `tools/clean-setup.sh`.
+- Start: fast-forwarded main to `80864b9` with the prompt's steps (lazy
+  fetching off, `--no-stat`), `tools/clean-update.sh` ended "no spec-side
+  files on disk or in .git", and the merged branch `clean/maintenance-1`
+  was deleted. Nothing was left to archive: the finished clean sessions
+  (M0a's two, clean maintenance session 1) are in `sessions/clean/`, and
+  `tools/check-transcripts.py` passed. M0a's original transcript has grown
+  since it was archived by an idle compaction (05:01Z: a summary and
+  context attachments, no tool calls); the archive tool refuses to
+  overwrite, so the archived copy stays as it is.
+- Reads: CONTRIBUTING.md, docs/PLAN.md, REQUIREMENTS.md, TOOLCHAIN.md,
+  HARNESS.md, the M0d to M1 sections of docs/HARDWARE-SPEC.md, the vendored
+  SDK headers (`WL82.h`, `csfr.h`), and this repository's tools. It runs the
+  toolchain on its own test files to learn the pi32v2 assembly syntax, and
+  runs its own images in fwtest through `tools/fwtest`. It does not open
+  anything on the forbidden list or anything under the three spec-side
+  folders.
+
 ## Barrier log
 
 | When (UTC) | Folder | Settings SHA-256 | Event |
@@ -244,6 +276,7 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-22T11:26:43Z | same | `aa535102…9f25ab` | The folder's `.git` replaced by a fresh blob-less clone, the old one deleted unread; `tools/clean-setup.sh` re-run, banner `status: OK`; `tools/clean-update.sh` passed |
 | 2026-10-22T11:31:22Z (session start, `/clear`) | `~/Development/F-Irmware/spec` | `eaa5f875…ed542f810` | Session M0c starts; banner `status: OK` |
 | 2026-10-22T11:38Z | same | `eaa5f875…ed542f810` | M0b's transcript archived into `sessions/spec/`, clean maintenance session 1's into `sessions/clean/` (merge summary redacted); `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-22T12:37:55Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M0d (started by the `/clear` at 11:31:15Z, banner `status: OK`) fast-forwards to `80864b9`; `tools/clean-setup.sh` banner `status: OK`; `tools/clean-update.sh` passed; `tools/check-transcripts.py` PASS |
 
 ## Model cutoffs
 
