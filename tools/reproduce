@@ -17,6 +17,34 @@ set -eu
 
 [ $# -ge 1 ] || { echo "usage: $0 <commit> [--records-ref REF]" >&2; exit 2; }
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+
+# Exports COMMIT's files, all but the spec-side folders, into DIR. Spec-side
+# folders aren't needed to build, and must not land on a clean machine
+# (CONTRIBUTING.md, "Barriers"). `git archive` can't be used: in a blob-less
+# clone with lazy fetching on, it downloads every file of the commit into
+# .git, the spec-side folders' too, even with a pathspec that leaves them out
+# (found in M2). So the file list comes from the trees (which a blob-less
+# clone has), and each file is read by its own object ID: only the files
+# kept are ever asked for, and a missing one is downloaded alone.
+export_tree() {
+    out=$2
+    GIT_NO_LAZY_FETCH=1 git -C "$ROOT" ls-tree -r "$1" | while IFS="$(printf '\t')" read -r meta path; do
+        case "$path" in vendor/emulator/*|harness/*|sessions/spec/*) continue ;; esac
+        set -- $meta   # mode, type, object ID
+        [ "$2" = blob ] || continue
+        mkdir -p "$out/$(dirname "$path")"
+        if [ "$1" = 120000 ]; then
+            ln -s "$(env -u GIT_NO_LAZY_FETCH git -C "$ROOT" cat-file blob "$3")" "$out/$path"
+        else
+            env -u GIT_NO_LAZY_FETCH git -C "$ROOT" cat-file blob "$3" > "$out/$path"
+            [ "$1" != 100755 ] || chmod +x "$out/$path"
+        fi
+    done
+}
+if [ "$1" = "--export-only" ]; then   # for tests: tools/reproduce --export-only COMMIT DIR
+    export_tree "$(git -C "$ROOT" rev-parse --verify "$2^{commit}")" "$3"
+    exit 0
+fi
 commit=$1
 ref=""
 [ "${2:-}" = "--records-ref" ] && ref=${3:-}
@@ -37,9 +65,6 @@ echo "commit:  $full"
 echo "record:  $ref:records/$full/report.json"
 
 mkdir "$work/src"
-# Spec-side folders aren't needed to build, and must not land on a clean
-# machine (CONTRIBUTING.md, "Barriers").
-git -C "$ROOT" archive "$full" -- . ':(exclude)vendor/emulator' ':(exclude)harness' ':(exclude)sessions/spec' \
-    | tar -x -C "$work/src"
+export_tree "$full" "$work/src"
 sh "$work/src/tools/build.sh" build --out "$work/out"
 "$(sh "$ROOT/tools/find-python.sh")" -I "$ROOT/tools/record.py" compare --record "$work/report.json" --outputs "$work/out"

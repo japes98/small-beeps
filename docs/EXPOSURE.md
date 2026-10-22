@@ -453,6 +453,27 @@ training cutoff (see "Model cutoffs" below).
   only, to review them), and this repository's tools and tests. It does
   not open anything on the forbidden list or anything under the three
   spec-side folders.
+- Later in the session:
+  - **The M1 release.** Made from the signed tag `m1` (`9fe07f8`). From
+    the `records` branch the session read only two named files of that
+    commit's record, `report.json` and `SHA256SUMS`, one path at a time,
+    and printed only the overall result, the checks' results and the two
+    output lines of `SHA256SUMS`. The record's tree hash came from the
+    trees alone.
+  - **A barrier gap in `tools/reproduce`, found and closed.** Its first
+    run stopped: `git archive` with pathspecs that leave the spec-side
+    folders out still asked for a file under one of them, and lazy
+    fetching was off, so nothing was fetched. A test in a made-up
+    blob-less repository in the scratch folder showed that, with lazy
+    fetching on, `git archive` downloads the excluded files into `.git`,
+    even with a pathspec that names only the kept paths.
+    `tools/reproduce` now reads each kept file by its object ID, and
+    C-CLEAN-FOLDER tests it with lazy fetching on, against a control.
+    `tools/clean-update.sh` passed before and after, so no spec-side file
+    reached this folder. The session printed only the missing object's ID
+    and its folder, never a file name under it. One shell command that
+    edited that made-up test named the spec-side folders; the next clean
+    session will see it flagged.
 
 ## Barrier log
 
