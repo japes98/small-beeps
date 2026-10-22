@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 4760d5612f477b1ad65409ab13e1c12ae8a5dfe5..5c6efc667d294a5ea4fc446412ddb38a0b16f9ce
+OK     4d524098c11d tools: the merge check waits for the head's ci run to finish
+OK     d4024e41f4c2 docs: plan records M0d's merge and its two records
+EXEMPT 5c6efc667d29 (merge) Merge pull request #11 from japes98/m0d/merge-wait
+3 commit(s) checked: PASS
+
+exit status 0

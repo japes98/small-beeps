@@ -1,0 +1,8 @@
+$ (internal) firmware_size
+bss         20 bytes
+code       252 bytes
+data         4 bytes
+image      256 bytes
+stack     4096 bytes
+
+exit status 0
