@@ -1,0 +1,13 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 5ac55b0acada6b58b5c52dc31564c7391f8a55ab..9fe07f8486a7229a753261350ff94f66a4e4428d
+EXEMPT 494913681fcd (merge) sessions: wrap-up branch takes in m1/tools-privacy (#24, #25)
+OK     498d63fd7e1c docs: plan records M1's results; M2 (screen) is next
+EXEMPT 27ba30c975e4 (merge) docs: wrap-up branch takes in m1/spec-requests (#26)
+EXEMPT 7d9d57aeb364 (merge) docs: wrap-up branch takes in the firmware fix (#28)
+EXEMPT 8ed5dae1b25b (merge) docs: wrap-up branch takes in main (#24 to #28 merged)
+OK     09de6647288e tools: clean-update.sh stops on spec-side outputs reached through any branch
+OK     2acc8078627b docs: EXPOSURE records the barrier STOP and the fresh clean .git
+OK     e442085d04d4 tools: the planted-output probe gives its commit an identity
+EXEMPT 9fe07f8486a7 (merge) Merge pull request #29 from japes98/m1/wrapup
+9 commit(s) checked: PASS
+
+exit status 0
