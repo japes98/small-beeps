@@ -1,0 +1,12 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 1de5a9c1ced7c77c49d5f558d788109e7c548c6a..8231f0129b6a5476f5c1eef9741cad49f4f9e890
+OK     a6631f2b4b0d sessions: archive M0e-spec; EXPOSURE entry and prompt for SR-1/SR-2
+OK     eae483cb2db3 tools: records keep the spec experiments' outputs as names and hashes only
+OK     47585ce366b3 harness: spec experiments E-10 to E-13 (faults, the timer acknowledge)
+OK     cc77795508f4 docs: answer SR-1 and SR-2 in part; the timer acknowledge in fwtest
+OK     75abf9b28620 harness: E-10 makes real misaligned accesses; console check; E-14
+OK     684f88b7ef55 docs: HW-48 and HW-52 say only what the experiments show
+EXEMPT 0448b5391fc8 (merge) docs: SR-1/SR-2 branch takes in main (#30, #31 merged)
+EXEMPT 8231f0129b6a (merge) Merge pull request #32 from japes98/sr/sr1-sr2
+8 commit(s) checked: PASS
+
+exit status 0
