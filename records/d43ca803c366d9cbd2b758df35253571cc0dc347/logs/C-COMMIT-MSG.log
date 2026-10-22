@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range d474fd3c7dadda77340c2f97cfcd14324a926a74..d43ca803c366d9cbd2b758df35253571cc0dc347
+OK     d5aada06c6ed audit: the monthly rediscovery opens an issue, not a pull request
+OK     4e90165e1721 audit: the first run's numbers, and files with no match say so
+OK     d4ad33a71252 docs: EXPOSURE notes that M0e-spec read the first audit reports
+EXEMPT d43ca803c366 (merge) Merge pull request #21 from japes98/m0e/discover-issue
+4 commit(s) checked: PASS
+
+exit status 0

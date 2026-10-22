@@ -1,0 +1,38 @@
+{
+  "fwtest": {
+    "version": "0.1.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "e3-timers.bin",
+    "bytes": 324,
+    "sha256": "153e79fee1c18d3e09bd3798c22987449a7525d1759db3d69ccdacd15cd9c950"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "52.300",
+    "instructions": {
+      "core0": 11273,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "ram-01c00100-20-end.bin",
+        "bytes": 32,
+        "sha256": "2fe068d9cdec8d2b1d2297dbcc7e5cbeb54bf0b3c2155141eb3bc73a117b04d4"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "ram-01c00100-20-end.bin",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 0
+}
