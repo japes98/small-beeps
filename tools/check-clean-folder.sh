@@ -11,7 +11,7 @@
 #     all three, and the session banner says OK;
 #   - its .git/info/attributes marks all three -diff.
 #   - the firmware side's own tools, run inside it with git's lazy fetching
-#     off as clean sessions run (the tool tests, the transcript and term
+#     off as clean sessions run (the tool tests, the transcript, term and spec
 #     checks, the emulator pin check, and `git log -p` over this branch,
 #     which must fail rather than fetch), fetch none of those contents;
 #   - tools/clean-update.sh brings a clean folder made at HEAD's parent up to
@@ -81,7 +81,7 @@ grep -q '^status: OK' "$work/setup.log" || bad "the banner did not say status: O
 py=$(sh "$ROOT/tools/find-python.sh")
 base=$(git -C "$ROOT" merge-base HEAD "$(git -C "$ROOT" rev-parse --verify -q origin/main || echo HEAD)")
 (cd "$clean" && GIT_NO_LAZY_FETCH=1 COMMIT_RANGE="$base..HEAD" "$py" tools/record.py run --out "$work/inside" \
-    --only C-UNIT,C-TRANSCRIPTS,C-SEP-TERMS,C-EMU-PIN,C-CLEAN-FOLDER,C-FWTEST-PIN) > "$work/inside.log" 2>&1 \
+    --only C-UNIT,C-TRANSCRIPTS,C-SEP-TERMS,C-SPEC-LINT,C-EMU-PIN,C-CLEAN-FOLDER,C-FWTEST-PIN) > "$work/inside.log" 2>&1 \
     || { cat "$work/inside.log"; bad "the firmware side's checks failed inside the clean folder"; }
 grep -E '^C-' "$work/inside.log" | sed 's/^/inside:   /'
 if GIT_NO_LAZY_FETCH=1 git -C "$clean" log -p "$base..HEAD" > /dev/null 2>&1; then
