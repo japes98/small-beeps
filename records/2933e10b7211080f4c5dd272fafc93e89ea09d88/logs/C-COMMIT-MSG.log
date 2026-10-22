@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 9fe07f8486a7229a753261350ff94f66a4e4428d..2933e10b7211080f4c5dd272fafc93e89ea09d88
+OK     5e7d8c3db25d docs: M2 prompt, and session M2's exposure entry
+OK     5d3054eb9c45 sessions: archive M1's transcript; its flagged commands listed as reviewed
+OK     bda43086015d tools: transcript check matches a folder name ended by a shell operator
+OK     3233ef43df7d tools: reproduce reads only the files it keeps, never via git archive
+OK     2ae79c180f17 docs: reproduce's header and EXPOSURE's list of flagged commands corrected
+EXEMPT 2933e10b7211 (merge) Merge pull request #30 from japes98/m2/start
+6 commit(s) checked: PASS
+
+exit status 0
