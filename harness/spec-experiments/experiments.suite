@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The spec-side experiments (README.md) as one fwtest suite: each case's
+# golden files are the results docs/HARDWARE-SPEC.md cites (E-n), so CI
+# (C-SPEC-EXPERIMENTS) notices when the harness stops agreeing with them.
+# NAME  EXPECT  IMAGE  [run options; paths relative to this file]
+e1-boot    halt      images/e1-boot.bin --ms 1 --ram 0x01c00100:0x80@end --ram 0x01c00200:0x40@end --golden golden/e1-boot
+e2-console halt      images/e2-console.bin --ms 1 --console --golden golden/e2-console
+e3-timers  completed images/e3-timers.bin --ms 50 --ram 0x01c00100:0x20@end --golden golden/e3-timers
+e4-core1   completed images/e4-core1.bin --ms 2 --ram 0x01c00100:0x30@end --golden golden/e4-core1
+e5-lcd     halt      images/e5-lcd.bin --ms 10 --lcd 1 --lcd end --golden golden/e5-lcd
+e6-matrix  completed images/e6-matrix.bin --ms 260 --script scripts/e6-matrix.txt --ram 0x01c00100:0x40@end --ram 0x01c01000:0x400@end --golden golden/e6-matrix
+e7-leds    completed images/e7-leds.bin --ms 120 --leds-every 0.5 --golden golden/e7-leds
+e8-adc     completed images/e8-adc.bin --ms 8 --script scripts/e8-adc.txt --ram 0x01c00100:0x40@1 --ram 0x01c00100:0x40@3 --ram 0x01c00100:0x40@5 --ram 0x01c00100:0x40@end --golden golden/e8-adc
+e9-audio   completed images/e9-audio.bin --ms 20 --wav --ipb --ram 0x01c00100:0x24@end --golden golden/e9-audio

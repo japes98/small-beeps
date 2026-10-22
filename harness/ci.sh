@@ -31,8 +31,10 @@ tag() {
     echo "small-beeps-fwtest:$h"
 }
 
+# (The spec-side experiments are not part of fwtest: harness/spec-experiments/
+# runs them against it.)
 context_files() {
-    git -C "$ROOT" ls-files vendor/emulator harness LICENSE NOTICE
+    git -C "$ROOT" ls-files vendor/emulator harness LICENSE NOTICE | grep -v '^harness/spec-experiments/'
 }
 
 # A tar of exactly the tracked context files (its owners and times don't
