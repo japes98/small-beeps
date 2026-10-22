@@ -3,10 +3,12 @@
 # SPDX-FileCopyrightText: 2026 japes98
 """Archives a finished session's transcript into sessions/ (R-CLEAN-3).
 
-  archive-session.py TRANSCRIPT.jsonl --role clean|spec [--out sessions]
+  archive-session.py TRANSCRIPT.jsonl --role clean|spec [--out sessions/<role>]
 
-Run it at the start of the next session (never on the live session). It
-copies the transcript to `sessions/<date>-<role>-<id>.jsonl` (the date is
+Run it at the start of the next session (never on the live session). A
+clean session archives only clean sessions; a spec session may archive
+either (sessions/README.md). It copies the transcript to
+`sessions/<role>/<date>-<role>-<id>.jsonl` (the date is
 the UTC date of its first entry), along with any subagent transcripts
 (`<id>/subagents/*.jsonl` next to it) into `<same name>.subagents/`. It
 redacts:
@@ -119,11 +121,14 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("transcript")
     ap.add_argument("--role", required=True, choices=("clean", "spec"))
-    ap.add_argument("--out", default=os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sessions"))
+    ap.add_argument("--out", default=None,
+                    help="where to put it (default: sessions/<role>/)")
     ap.add_argument("--archived-by", default="",
                     help="the session doing the archiving, for the note")
     a = ap.parse_args()
+    if a.out is None:
+        a.out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                             "sessions", a.role)
 
     src = a.transcript
     sid = os.path.basename(src)[:-len(".jsonl")]

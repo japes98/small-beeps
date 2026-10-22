@@ -66,7 +66,7 @@ class ArchiveTest(unittest.TestCase):
                 "cwd /Users/someuser/x; drwxr-xr-x 3 someuser staff; host Some-Mac.local"}}) + "\n")
         with open(os.path.join(src_dir, sid, "subagents", "agent-a.jsonl"), "w") as f:
             f.write(json.dumps({"type": "assistant", "message": {"content": []}}) + "\n")
-        out = os.path.join(self.dir, "sessions")
+        out = os.path.join(self.dir, "sessions", "clean")
         subprocess.run([sys.executable, os.path.join(ROOT, "tools", "archive-session.py"),
                         src, "--role", "clean", "--out", out], check=True,
                        stdout=subprocess.DEVNULL)
