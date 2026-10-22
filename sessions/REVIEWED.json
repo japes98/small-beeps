@@ -119,6 +119,69 @@
       "rule": "harness/ source (spec side)",
       "reason": "A shell command that only edited the PR text file out/msg/pr.md with a Python heredoc. The new sentence says CI passed \"the harness and spec checks included\". Nothing was opened, listed or searched.",
       "added_by": "session M0e clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "fbe5a7ff-8ae0-4c14-80aa-6bbda288912a",
+      "tool_use_id": "toolu_018Nv6PBrNpXAZM7NsHBp5cq",
+      "rule": "spec-side session transcripts",
+      "reason": "A shell command that only read the archived clean transcript sessions/clean/2026-10-22-clean-cd816ac2-14a7-4eb6-ba5f-1732c57ec45f.jsonl with a Python heredoc and printed the lines of three flagged commands that mention the spec-side folder names, to review them. Nothing under sessions/spec/ was opened, listed or searched; it isn't in the clean folder.",
+      "added_by": "session M1 clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "fbe5a7ff-8ae0-4c14-80aa-6bbda288912a",
+      "tool_use_id": "toolu_01Ro81JeXEDpNJkhVcUTZc2M",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "Never ran: Claude Code's permission check denied it. It was the same command as toolu_01K4DUUm5fVG5QT2cJoS67VL, which ran after the owner approved: a Python heredoc that only edits sessions/REVIEWED.json, whose entries name the spec-side folders to explain earlier reviewed false positives. Nothing under those folders was opened, listed or searched.",
+      "added_by": "session M1 clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "fbe5a7ff-8ae0-4c14-80aa-6bbda288912a",
+      "tool_use_id": "toolu_01Ro81JeXEDpNJkhVcUTZc2M",
+      "rule": "harness/ source (spec side)",
+      "reason": "Never ran: Claude Code's permission check denied it. It was the same command as toolu_01K4DUUm5fVG5QT2cJoS67VL, which ran after the owner approved: a Python heredoc that only edits sessions/REVIEWED.json, whose entries name the spec-side folders to explain earlier reviewed false positives. Nothing under those folders was opened, listed or searched.",
+      "added_by": "session M1 clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "fbe5a7ff-8ae0-4c14-80aa-6bbda288912a",
+      "tool_use_id": "toolu_01Ro81JeXEDpNJkhVcUTZc2M",
+      "rule": "spec-side session transcripts",
+      "reason": "Never ran: Claude Code's permission check denied it. It was the same command as toolu_01K4DUUm5fVG5QT2cJoS67VL, which ran after the owner approved: a Python heredoc that only edits sessions/REVIEWED.json, whose entries name the spec-side folders to explain earlier reviewed false positives. Nothing under those folders was opened, listed or searched.",
+      "added_by": "session M1 clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "fbe5a7ff-8ae0-4c14-80aa-6bbda288912a",
+      "tool_use_id": "toolu_01K4DUUm5fVG5QT2cJoS67VL",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A shell command that only edited sessions/REVIEWED.json with a Python heredoc (read the JSON, append entries, write it back). The entries' text names the spec-side folders because it explains earlier reviewed false positives. Nothing under those folders was opened, listed or searched; they aren't in the clean folder.",
+      "added_by": "session M1 clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "fbe5a7ff-8ae0-4c14-80aa-6bbda288912a",
+      "tool_use_id": "toolu_01K4DUUm5fVG5QT2cJoS67VL",
+      "rule": "harness/ source (spec side)",
+      "reason": "A shell command that only edited sessions/REVIEWED.json with a Python heredoc (read the JSON, append entries, write it back). The entries' text names the spec-side folders because it explains earlier reviewed false positives. Nothing under those folders was opened, listed or searched; they aren't in the clean folder.",
+      "added_by": "session M1 clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "fbe5a7ff-8ae0-4c14-80aa-6bbda288912a",
+      "tool_use_id": "toolu_01K4DUUm5fVG5QT2cJoS67VL",
+      "rule": "spec-side session transcripts",
+      "reason": "A shell command that only edited sessions/REVIEWED.json with a Python heredoc (read the JSON, append entries, write it back). The entries' text names the spec-side folders because it explains earlier reviewed false positives. Nothing under those folders was opened, listed or searched; they aren't in the clean folder.",
+      "added_by": "session M1 clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "fbe5a7ff-8ae0-4c14-80aa-6bbda288912a",
+      "tool_use_id": "toolu_018Nv6PBrNpXAZM7NsHBp5cq",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A shell command that only read the archived clean transcript sessions/clean/2026-10-22-clean-cd816ac2-14a7-4eb6-ba5f-1732c57ec45f.jsonl with a Python heredoc and printed the lines of three flagged commands that mention the spec-side folder names, to review them. Nothing under sessions/spec/ was opened, listed or searched; it isn't in the clean folder.",
+      "added_by": "session M1 clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "fbe5a7ff-8ae0-4c14-80aa-6bbda288912a",
+      "tool_use_id": "toolu_018Nv6PBrNpXAZM7NsHBp5cq",
+      "rule": "harness/ source (spec side)",
+      "reason": "A shell command that only read the archived clean transcript sessions/clean/2026-10-22-clean-cd816ac2-14a7-4eb6-ba5f-1732c57ec45f.jsonl with a Python heredoc and printed the lines of three flagged commands that mention the spec-side folder names, to review them. Nothing under sessions/spec/ was opened, listed or searched; it isn't in the clean folder.",
+      "added_by": "session M1 clean (claude-opus-5-5), 2026-10-22, approved by the owner"
     }
   ]
 }

@@ -70,7 +70,10 @@ RULES = [
 KEEP_EMAIL = re.compile(r"noreply@|@users\.noreply\.github\.com")
 
 
-HOST_RULE = ("host name", re.compile(r"\b[A-Za-z0-9-]+\.local\b(?!\.)"), "[REDACTED:host]")
+# Like an e-mail address, a host name may follow a JSON escape ("\\nname.local"),
+# whose letter must stay out of the match or the JSON breaks.
+HOST_RULE = ("host name", re.compile(r"(?:(?<=\\[bfnrt])|\b(?<!\\))[A-Za-z0-9-]+\.local\b(?!\.)"),
+             "[REDACTED:host]")
 HOME_USER = re.compile(r"/(?:Users|home)/([A-Za-z0-9._-]+)/")
 
 

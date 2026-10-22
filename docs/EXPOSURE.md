@@ -341,6 +341,44 @@ training cutoff (see "Model cutoffs" below).
   in fwtest through `tools/fwtest`. It does not open anything on the
   forbidden list or anything under the three spec-side folders.
 
+### Session M1 (boot: clocks, interrupts, timer)
+- Date: 2026-10-22
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.308 (banner), Remote Control from the owner's phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `7968e45c-bdf6-4029-950b-1b4d01285ed1`,
+  started by a `/clear` at 21:27Z (banner `source: clear`, `status: OK`)
+  in the same Claude Code job as M0e's performance part. Its own
+  transcript is left for the next clean session to archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: `tools/clean-update.sh` found main at `2513b93` and ended "no
+  spec-side files on disk or in .git"; `tools/private-terms.local` exists
+  (not opened). It archived M0e's performance part (`fbe5a7ff`) into
+  `sessions/clean/`. The first try failed: the archiver's host-name rule
+  took the `n` of a JSON newline escape before a file name ending in
+  `.local` in a directory listing, and broke the line's JSON; nothing was
+  kept, the rule was fixed the way the e-mail rule was (with a test), and
+  the archive redone. `tools/check-transcripts.py` then flagged three of
+  `fbe5a7ff`'s shell commands, which only edited `sessions/REVIEWED.json`
+  or printed lines of an archived clean transcript; with the owner's
+  approval they are listed in `sessions/REVIEWED.json`, and the owner
+  asked for the check to stop flagging such commands. M0d's first
+  transcript (`b7ed6c1a`) has a newer modification time than its archive,
+  but its SHA-256 still matches the archived original, so nothing changed.
+- Privacy: tool output showed the local username and top folder in paths
+  (Claude Code's project folder, the archiver's messages); they were never
+  written to the repository, and the archiver redacts them from this
+  transcript.
+- Reads: CONTRIBUTING.md, this file, sessions/README.md, docs/PLAN.md,
+  REQUIREMENTS.md, DESIGN-NOTES.md, HARNESS.md, HARDWARE-SPEC.md, the
+  vendored SDK headers, the redacted archive of `fbe5a7ff` (the three
+  flagged commands, to review them), and this repository's tools, tests,
+  workflows and firmware. It builds with the pinned toolchain and runs its
+  own images in fwtest through `tools/fwtest`. It does not open anything on
+  the forbidden list or anything under the three spec-side folders.
+
 ## Barrier log
 
 | When (UTC) | Folder | Settings SHA-256 | Event |
@@ -361,6 +399,7 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-22T12:37:55Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M0d (started by the `/clear` at 11:31:15Z, banner `status: OK`) fast-forwards to `80864b9`; `tools/clean-setup.sh` banner `status: OK`; `tools/clean-update.sh` passed; `tools/check-transcripts.py` PASS |
 | 2026-10-22T12:37:16Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session M0e-spec starts; banner `status: OK`. 13:48:09Z: `tools/spec-setup.sh`, banner `status: OK`; M0c's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-22T13:47:30Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M0e (performance part) starts; banner `status: OK`; `tools/clean-update.sh` fast-forwarded to `5c6efc6` and passed; M0d's two transcripts archived; `tools/check-transcripts.py` PASS |
+| 2026-10-22T21:27:00Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M1 starts; banner `status: OK`; `tools/clean-update.sh` found main at `2513b93` and passed; M0e's performance part archived; `tools/check-transcripts.py` PASS with the owner-approved reviewed entries |
 
 ## Model cutoffs
 
