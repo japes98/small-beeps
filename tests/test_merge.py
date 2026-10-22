@@ -125,6 +125,23 @@ class MergeCiWaitTest(unittest.TestCase):
         self.assertEqual([cm.backoff(n) for n in range(7)], [10, 20, 40, 80, 160, 300, 300])
 
 
+class MergePullRequestTest(unittest.TestCase):
+    """Requirements: R-PROC-2"""
+
+    def test_number_from_the_merge_message(self):
+        self.assertEqual(cm.pr_number("Merge pull request #13 from japes98/m0e/records\n\ntext"), 13)
+        self.assertIsNone(cm.pr_number("docs: something"))
+        self.assertIsNone(cm.pr_number("Revert \"Merge pull request #13 from x\""))
+
+    def test_the_pull_request_must_match_the_merge(self):
+        pr = {"base": {"ref": "main"}, "head": {"sha": "h"}, "merge_commit_sha": "m"}
+        self.assertTrue(cm.is_the_pull_request(pr, "m", "h"))
+        # a message naming another pull request is not taken on trust
+        self.assertFalse(cm.is_the_pull_request(pr, "other", "h"))
+        self.assertFalse(cm.is_the_pull_request(pr, "m", "other"))
+        self.assertFalse(cm.is_the_pull_request(dict(pr, base={"ref": "dev"}), "m", "h"))
+
+
 class MergeApiRetryTest(unittest.TestCase):
     """Requirements: R-PROC-2"""
 

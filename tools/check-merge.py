@@ -34,6 +34,7 @@ Needs GITHUB_REPOSITORY and GITHUB_TOKEN (or GH_TOKEN).
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -80,6 +81,23 @@ def api(path):
         with urllib.request.urlopen(req, timeout=30) as r:
             return json.load(r)
     return with_retries(call)
+
+
+MERGE_MESSAGE = re.compile(r"^Merge pull request #(\d+) from ")
+
+
+def pr_number(message):
+    """The pull request number in GitHub's merge message, or None."""
+    m = MERGE_MESSAGE.match(message or "")
+    return int(m.group(1)) if m else None
+
+
+def is_the_pull_request(pr, sha, head):
+    """True if pr (an API pull request) went into main with head as its
+    head commit and sha as its merge commit (pure, for tests)."""
+    return ((pr.get("base") or {}).get("ref") == "main"
+            and (pr.get("head") or {}).get("sha") == head
+            and pr.get("merge_commit_sha") == sha)
 
 
 def evaluate(n_parents, verified, reason, committer, merged_by, owner, pr_found, ci_success):
@@ -167,14 +185,28 @@ def main():
     merged_by, pr_found, ci_success = None, False, False
     if len(parents) == 2:
         head = parents[1]
-        prs = [p for p in api("/repos/%s/commits/%s/pulls" % (repo, head))
-               if (p.get("base") or {}).get("ref") == "main" and p["head"]["sha"] == head]
+        # The pull request is the one GitHub's merge message names, checked
+        # against this merge; failing that, a closed one into main with
+        # this head. (The "pull requests of a commit" endpoint answered
+        # 500 or nothing for some heads, and failed three records.)
+        prs = []
+        number = pr_number(c["commit"].get("message", ""))
+        if number is not None:
+            full = api("/repos/%s/pulls/%d" % (repo, number))
+            if is_the_pull_request(full, a.sha, head):
+                prs = [full]
+        if not prs:
+            prs = [p for p in api("/repos/%s/pulls?state=closed&base=main&sort=updated"
+                                  "&direction=desc&per_page=100" % repo)
+                   if is_the_pull_request(p, a.sha, head)]
         pr_found = bool(prs)
-        for p in prs:
-            full = api("/repos/%s/pulls/%d" % (repo, p["number"]))
+        for full in prs:
             merged_by = (full.get("merged_by") or {}).get("login")
+            if merged_by is None:
+                merged_by = (api("/repos/%s/pulls/%d" % (repo, full["number"])).get("merged_by")
+                             or {}).get("login")
             print("pull request #%d: %s merged_by=%s merge_commit=%s"
-                  % (p["number"], p["html_url"], merged_by, full.get("merge_commit_sha")))
+                  % (full["number"], full["html_url"], merged_by, full.get("merge_commit_sha")))
         def fetch():
             runs = api("/repos/%s/actions/runs?head_sha=%s&event=pull_request" % (repo, head))
             return [r for r in runs.get("workflow_runs", []) if r.get("name") == "ci"]
