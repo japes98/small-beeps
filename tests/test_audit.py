@@ -186,6 +186,15 @@ class SettingsTest(unittest.TestCase):
         self.assertIn("check-artifact", record_job)
         self.assertIn("path: out/audit/", audit_job)
 
+    def test_rediscovery_only_writes_issues(self):
+        with open(os.path.join(ROOT, ".github", "workflows", "audit-discover.yml")) as f:
+            text = f.read()
+        self.assertIn("      contents: read\n      issues: write\n", text)
+        for word in ("contents: write", "pull-requests", "gh pr ", "git push", "secrets."):
+            self.assertNotIn(word, text)
+        self.assertIn("tools/audit-discover.py --write", text)
+        self.assertIn("gh issue create", text)
+
 
 class AcceptedTest(unittest.TestCase):
     """Requirements: R-AUDIT-5, R-AUDIT-6"""

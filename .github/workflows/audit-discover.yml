@@ -4,10 +4,10 @@
 # Rediscovers the similarity audit's targets every month (R-AUDIT-2;
 # docs/AUDIT.md, "Rediscovery"). tools/audit-discover.py reads repository
 # metadata only, never a target's code. When a target is new, gone or has a
-# new head commit, this opens a pull request that changes
-# audit/targets.json and lists those repositories by name. GitHub does not
-# run CI for a pull request a workflow opens: the owner closes and reopens
-# it to start `ci`, then merges it as usual.
+# new head commit, this opens an issue listing those repositories by name,
+# or updates the one already open, and keeps the rewritten
+# audit/targets.json as a run artifact. It cannot push or open pull
+# requests: a spec-side session turns the issue into one.
 name: audit-discover
 
 on:
@@ -28,8 +28,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -45,41 +45,45 @@ jobs:
           set +e
           python tools/audit-discover.py --write > "$RUNNER_TEMP/discover.txt"
           status=$?
+          set -e
           cat "$RUNNER_TEMP/discover.txt"
+          # 0: no change, 1: targets changed, anything else: the tool failed.
+          [ "$status" -le 1 ] || exit "$status"
           echo "status=$status" >> "$GITHUB_OUTPUT"
 
-      - name: Open a pull request with the changes
+      - name: Keep the rewritten targets list
+        if: steps.discover.outputs.status == '1'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: targets
+          path: audit/targets.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Open or update the issue
         if: steps.discover.outputs.status == '1'
         env:
           GH_TOKEN: ${{ github.token }}
+          TITLE: "audit: the targets have changed"
         run: |
           set -eu
-          branch="audit/rediscover-$(date -u +%Y-%m-%d)-$GITHUB_RUN_ID"
-          git checkout -q -b "$branch"
-          git add audit/targets.json
+          run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           {
-            echo "audit: rediscovered targets, $(date -u +%Y-%m-%d)"
+            echo "**What:** the monthly rediscovery of the similarity audit's targets (docs/AUDIT.md, \"Rediscovery\") found new, gone or moved repositories. It read repository metadata only."
             echo
-            echo "What:    audit/targets.json updated by the monthly rediscovery."
-            echo "Why:     R-AUDIT-2: every FM-1 repository found from metadata is pinned."
-            echo "How:     tools/audit-discover.py --write, metadata only (docs/AUDIT.md)."
-            echo "Result:  see the pull request: new, gone and moved repositories by name."
-            echo "Sources: none"
-            echo "Exposure: none (a workflow; repository metadata only)"
-          } > "$RUNNER_TEMP/msg.txt"
-          git -c user.name="small-beeps audit-discover" -c user.email="audit-discover@users.noreply.github.com" \
-            commit -q -F "$RUNNER_TEMP/msg.txt"
-          git push -q origin "$branch"
-          {
-            echo "**What:** the monthly rediscovery of the similarity audit's targets (docs/AUDIT.md), from repository metadata only."
+            echo "**Run:** $run ($(date -u +%Y-%m-%d))"
             echo
             echo '```'
             cat "$RUNNER_TEMP/discover.txt"
             echo '```'
             echo
-            echo "**Run:** $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-            echo
-            echo "GitHub does not start CI for a pull request a workflow opens: close and reopen this one to run \`ci\`."
+            echo "**For a spec-side session:** download this run's \`targets\` artifact (\`gh run download $GITHUB_RUN_ID -n targets\`), review any separation or privacy hit as docs/AUDIT.md says, and open a pull request that replaces \`audit/targets.json\` with it and closes this issue."
           } > "$RUNNER_TEMP/body.md"
-          gh pr create --base main --head "$branch" \
-            --title "audit: rediscovered targets, $(date -u +%Y-%m-%d)" --body-file "$RUNNER_TEMP/body.md"
+          number=$(gh issue list --state open --author "app/github-actions" --search "in:title \"$TITLE\"" \
+            --json number,title --jq "map(select(.title == env.TITLE)) | .[0].number // empty")
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file "$RUNNER_TEMP/body.md"
+            gh issue comment "$number" --body "Updated by $run."
+          else
+            gh issue create --title "$TITLE" --body-file "$RUNNER_TEMP/body.md"
+          fi

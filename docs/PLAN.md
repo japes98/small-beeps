@@ -318,8 +318,10 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
       tree, 2 empty. All are pinned by commit and tree in
       `audit/targets.json`. Felucca Salt and Felucca 8 Patterns are
       unresolved: no repository found.
-    - **Rediscovery:** monthly, by `audit-discover.yml`, which opens a pull
-      request when the targets change.
+    - **Rediscovery:** monthly, by `audit-discover.yml`, which opens or
+      updates an issue when the targets change; a spec-side session turns
+      it into a pull request (the owner chose an issue over letting
+      workflows open pull requests).
     - **The job:** `audit.yml` runs JPlag 6.3.0 (pinned by hash, in a Java
       image pinned by digest) on our firmware and the control
       (pico-examples at sdk-2.2.0), with the SDK as base code.

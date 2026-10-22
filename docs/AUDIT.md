@@ -96,9 +96,12 @@ deleted after pinning are reported as `not fetched`.
 `.github/workflows/audit-discover.yml` runs on the first day of every month,
 and on demand. It runs `tools/audit-discover.py --write`, which uses
 metadata only, as above. If any target is new, gone or has moved to a new
-commit, it opens a pull request that changes `audit/targets.json` and lists
-those repositories by name. It never fetches a target's code: only the
-audit job does that.
+commit, it opens an issue titled "audit: the targets have changed" that
+lists those repositories by name, or updates that issue if one is still
+open. The rewritten `audit/targets.json` is kept as the run's `targets`
+artifact for 90 days. The job has read access to the code and write
+access to issues only: it cannot push a branch or open a pull request. It
+never fetches a target's code: only the audit job does that.
 
 Search results vary from run to run, so a target already in
 `targets.json` stays even when this month's searches miss it. It is
@@ -115,12 +118,14 @@ trip the privacy check (C-PRIVATE) too. A spec-side session reviews such a
 hit. A separation hit gets an entry by hash in
 `config/emulator-terms-reviewed.json`; a privacy hit goes to the owner.
 
-Three things about that pull request:
-- The repository setting "Allow GitHub Actions to create and approve pull
-  requests" must be on.
-- It needs the review just described for any separation or privacy hit.
-- GitHub does not run CI for a pull request that a workflow opens. The owner
-  closes and reopens it to start `ci`, then merges it as usual.
+A spec-side session turns the issue into a pull request:
+1. Download the newest run's artifact, as the issue says
+   (`gh run download <run> -n targets`), and replace `audit/targets.json`
+   with it. Don't rerun the discovery locally: search results vary, and the
+   artifact is what the issue lists.
+2. Do the review just described for any separation or privacy hit.
+3. Open the pull request with "Closes #<issue>". Because a person opens it,
+   `ci` runs as usual, and the owner merges it with the button.
 
 ## The method
 
