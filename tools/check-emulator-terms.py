@@ -8,8 +8,10 @@
 Looks for identifiers that occur in vendor/emulator/ and nowhere in
 vendor/jieli-sdk/, in the places the firmware side reads:
   - every tracked text file outside vendor/emulator/, harness/, sessions/
-    (transcripts), docs/prompts/ (prompts are kept verbatim), and the two
-    doors, docs/HARNESS.md and HARDWARE-SPEC.md (reviewed by people);
+    (transcripts) and docs/prompts/ (prompts are kept verbatim);
+  - the two doors, docs/HARNESS.md and docs/HARDWARE-SPEC.md, for
+    identifier-shaped words only: they carry addresses and other numbers
+    on purpose, each one sourced, and people review them too (R-SPEC-2);
   - the commit messages in COMMIT_RANGE (default ..HEAD);
   - the pull request's title and body, when GITHUB_EVENT_PATH names one.
 
@@ -125,10 +127,13 @@ def tracked():
     return [x.decode() for x in p.stdout.split(b"\0") if x]
 
 
-def hits_in(text, terms, where):
+def hits_in(text, terms, where, words_only=False):
     found = []
     for n, line in enumerate(text.splitlines(), 1):
-        for t in terms_of(line) & terms:
+        got = terms_of(line)
+        if words_only:
+            got = set(t for t in got if not t.startswith("0x"))
+        for t in got & terms:
             found.append((where, n, t))
     return found
 
@@ -143,7 +148,7 @@ def main():
     hits = []
     scanned = 0
     for p in tracked():
-        if p.startswith(EXCLUDE) or p in DOORS:
+        if p.startswith(EXCLUDE):
             continue
         try:
             with open(os.path.join(ROOT, p), encoding="utf-8") as f:
@@ -151,7 +156,7 @@ def main():
         except (UnicodeDecodeError, OSError):
             continue
         scanned += 1
-        hits += hits_in(text, terms, p)
+        hits += hits_in(text, terms, p, words_only=p in DOORS)
     rng = os.environ.get("COMMIT_RANGE") or "..HEAD"
     log = subprocess.run(["git", "-C", ROOT, "log", "--format=%x00%H%n%B", rng],
                          stdout=subprocess.PIPE, universal_newlines=True).stdout
