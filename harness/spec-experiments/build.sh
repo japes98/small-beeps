@@ -14,7 +14,7 @@ set -eu
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../.." && pwd)
-IMAGES="e2-console e3-timers e4-core1 e5-lcd e6-matrix e7-leds e8-adc e9-audio"
+IMAGES="e2-console e3-timers e4-core1 e5-lcd e6-matrix e7-leds e8-adc e9-audio e10-faults e11-undefined e12-badjump e13-timer-ack e14-undefined-inline"
 
 inside() {
     out=$1

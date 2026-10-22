@@ -480,6 +480,27 @@ training cutoff (see "Model cutoffs" below).
     folder. None opened, listed or fetched anything under them. From then
     on the session kept those names out of shell commands.
 
+### Session SR-1-SR-2 (spec requests SR-1 and SR-2, M1's observations)
+- Date: 2026-10-22
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.309 (banner), Remote Control from the owner's
+  phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `a091f4ce-8c5f-4da5-83fe-dace0af5b03e`,
+  started by `/clear` (banner `source: clear`, `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+- What it archived: M0e-spec's transcript (`fbbe5c07`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS.
+- Exposure: reads the harness source (`harness/`) and the vendored emulator
+  (`vendor/emulator/`): its memory map and bus access paths, its division,
+  its timers, how fwtest reports faults, and its region handling for the
+  exception and clock registers; the
+  JieLi SDK (Apache-2.0) and FM-1-RE's hardware documents (WTFPL) for the
+  exception and clock questions. It never opens the GPL firmwares or
+  anything on the clean side's forbidden list beyond the emulator.
+
 ## Barrier log
 
 | When (UTC) | Folder | Settings SHA-256 | Event |
@@ -504,6 +525,7 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-22, before 22:55Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M1: `tools/clean-update.sh` printed STOP (17 spec-side experiment outputs in `.git`, brought in with the records branch); the session stopped and told the owner, opening nothing |
 | 2026-10-22T22:55:06Z | same | `aa535102…9f25ab` | The folder's `.git` replaced by a fresh blob-less sparse clone, the old one and the session's scratch extractions of records deleted unread; `tools/clean-setup.sh` re-run, banner `status: OK`; `tools/clean-update.sh` passed, then gained the all-branches check |
 | 2026-10-22T23:04:37Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M2 starts; banner `status: OK`; `tools/clean-update.sh` found main at `9fe07f8` and passed; M1 archived; `tools/check-transcripts.py` PASS with the reviewed entries listed for the owner's approval |
+| 2026-10-22T23:04:40Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-1-SR-2 starts; banner `status: OK`. 23:05:19Z: `tools/spec-setup.sh`, banner `status: OK`; M0e-spec's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 
 ## Model cutoffs
 

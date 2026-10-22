@@ -50,7 +50,7 @@ an issue or a pull request against docs/HARNESS.md.
 - Asked: <YYYY-MM-DD>, <who or which session>
 - Question: <one fact, asked narrowly>
 - Why: <what the firmware needs it for; what was tried or read>
-- Status: open | answered (HARDWARE-SPEC.md, "<section>") | unknown | declined
+- Status: open | answered (HARDWARE-SPEC.md, "<section>") | answered in part (..., open: Q-n) | unknown | declined
 - Answered: <YYYY-MM-DD>, <who or which session>
 ```
 
@@ -75,7 +75,11 @@ an issue or a pull request against docs/HARNESS.md.
   exception source (HW-19 names the SDK's `hwi.h` for the rest). Until
   this is answered, M1 tests its fault path with a stack guard it checks
   itself, and the CPU-fault requirement stays open.
-- Status: open
+- Status: answered in part (HARDWARE-SPEC.md, "10. CPU exceptions (SR-1)":
+  (a) in HW-49, HW-50 and HW-51; (b) in HW-52: fwtest raises source 1 for
+  none of the conditions, and doesn't model it because the sources don't
+  establish enough). Open: Q-14.
+- Answered: 2026-10-22, session SR-1-SR-2 (spec side)
 
 ### SR-2: Setting the system clock on the chip
 - Asked: 2026-10-22, session M1 (firmware side)
@@ -90,4 +94,7 @@ an issue or a pull request against docs/HARNESS.md.
   base (TIMER4, HW-13) instead, and expects 240 MHz. Real hardware needs
   the set-up; `WL82.h` names the clock block's registers but not their
   use.
-- Status: open
+- Status: answered in part (HARDWARE-SPEC.md, "11. The clocks on the chip
+  (SR-2, real hardware)": HW-53, HW-54). Open: Q-2 (the PLL's registers,
+  the steps, the clock at app start).
+- Answered: 2026-10-22, session SR-1-SR-2 (spec side)

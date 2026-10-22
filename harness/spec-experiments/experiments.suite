@@ -14,3 +14,8 @@ e6-matrix  completed images/e6-matrix.bin --ms 260 --script scripts/e6-matrix.tx
 e7-leds    completed images/e7-leds.bin --ms 120 --leds-every 0.5 --golden golden/e7-leds
 e8-adc     completed images/e8-adc.bin --ms 8 --script scripts/e8-adc.txt --ram 0x01c00100:0x40@1 --ram 0x01c00100:0x40@3 --ram 0x01c00100:0x40@5 --ram 0x01c00100:0x40@end --golden golden/e8-adc
 e9-audio   completed images/e9-audio.bin --ms 20 --wav --ipb --ram 0x01c00100:0x24@end --golden golden/e9-audio
+e10-faults halt      images/e10-faults.bin --ms 2 --console --ram 0x01c00100:0x94@end --golden golden/e10-faults
+e11-undefined fault  images/e11-undefined.bin --ms 2 --ram 0x01c00100:0x10@end --golden golden/e11-undefined
+e12-badjump fault    images/e12-badjump.bin --ms 2 --ram 0x01c00100:0x10@end --golden golden/e12-badjump
+e13-timer-ack completed images/e13-timer-ack.bin --ms 260 --ram 0x01c00100:0x28@end --golden golden/e13-timer-ack
+e14-undefined-inline fault images/e14-undefined-inline.bin --ms 2 --ram 0x01c00100:0x10@end --golden golden/e14-undefined-inline
