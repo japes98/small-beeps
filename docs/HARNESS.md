@@ -58,22 +58,98 @@ tools/fwtest --image        # the pinned image reference
 
 - Emulated time starts at 0 when the image starts. One instruction of core 0
   takes one cycle; there are 240 000 cycles in an emulated millisecond.
-- When core 0 waits (the wait-for-interrupt instruction, or a tight loop
-  outside an interrupt handler that does nothing but read the chip's
-  free-running timer), time jumps ahead to the next timed event: the next
-  interrupt source, script event or capture. Waiting therefore costs (almost)
-  no instructions, and instruction counts measure work.
-- Everything happens at exact emulated times. Captures and checks are taken
-  at the first instruction boundary at or after the time asked; fwtest stops
-  to look at least every 1024 core-0 instructions, and exactly at each
-  capture time while core 0 is busy.
-- While core 0 waits, a capture can come late. Each wait can move time
-  ahead to the next timed event, and fwtest looks only between runs of up
-  to 1024 instructions, so a capture (an LED sample, the watchdog, the end
-  of the run) can be taken several milliseconds after the time asked when
-  the image waits often, for example between interrupts every 100 µs.
-  `result.json`'s `emulated_ms` says when the run really ended. To capture
-  at an exact time, keep core 0 busy (not waiting) around it.
+- Everything happens at exact emulated times, and the outputs are
+  deterministic (below), but **while core 0 waits, fwtest moves time ahead**,
+  so that waiting costs (almost) no instructions and instruction counts
+  measure work. The rules for that, and what they do to captures, are
+  exact; they follow.
+
+### When fwtest treats core 0 as waiting
+
+Two things, and nothing else, count as waiting:
+
+1. **The wait-for-interrupt instruction**, executed by core 0 while no
+   interrupt is pending. Time jumps to one cycle before the next scheduled
+   event (below). With nothing scheduled, time doesn't jump.
+2. **Polling the free-running timer**: reading its count (HW-13 in
+   `HARDWARE-SPEC.md`, the 24 MHz time base), outside an interrupt handler
+   of core 0, for the third time or more in a row with each read coming
+   within 64 cycles (64 instructions of core 0) of the one before. On each
+   such read, time jumps ahead by up to 20 µs, and never past one cycle
+   before the next scheduled event. The read then returns the count for
+   the new time.
+   - **Only the spacing of the reads matters.** What the loop does between
+     them doesn't: stores to RAM, arithmetic, reads of other registers, a
+     call. A loop that reads the count every few instructions *and* writes
+     a heartbeat to RAM on every pass is waiting, by this rule.
+   - A read more than 64 cycles after the previous one starts the count
+     again, so a loop whose reads are at least 64 instructions apart is
+     never treated as waiting.
+   - Reads made while core 0 is in an interrupt handler are ignored: they
+     neither count, nor jump, nor break a sequence.
+   - Reads by core 1 count in the same sequence as core 0's: the rule
+     looks at reads of the count, not at which core made them.
+   - Other timers' counters, their pending flags, and RAM flags are not
+     part of this rule. Polling them never moves time ahead.
+
+**Scheduled events** are what the emulated chip and the script have coming
+next:
+- the end of a timer period;
+- an audio half-buffer finishing;
+- a transfer completing;
+- a MIDI byte arriving;
+- an encoder contact changing;
+- a script event.
+
+They count whether or not their interrupt is enabled. **Captures, the end
+of the run and the watchdog are not scheduled events:** a jump never stops
+for them.
+
+### What that does to captures
+
+- fwtest looks at the board between runs of core 0 instructions. Each run
+  is at most 1024 instructions, and no longer than the instructions that
+  would reach the next capture (or the end of the run) at one cycle each.
+  Captures, the watchdog, halts and the end of the run are checked only
+  between runs. A capture is taken at the first such stop at or after its
+  time.
+- **While core 0 is busy (not waiting), captures are exact:** taken at the
+  first instruction boundary at or after the time asked.
+- **While core 0 waits, a capture can come late**, because every jump
+  inside a run moves time without using up the run's instructions:
+  - Polling the timer: each read can add up to 20 µs. A loop that reads the
+    count every *k* instructions can move up to about 1024 / *k* × 20 µs in
+    one run, for example 2 ms when *k* is 10. A capture asked for at *t*
+    can be taken that much after *t*.
+  - Wait-for-interrupt: each wait jumps to the next scheduled event. A run
+    that wakes on every event can cross many of them, for example several
+    milliseconds of 100 µs interrupts.
+- What is late is the moment the capture is taken, not its label. RAM and
+  screen captures show the state at the moment fwtest took them, but are
+  named for the time asked (`ram-…-10ms.bin`). `leds.csv`'s `ms` column is
+  the time asked, while each duty value covers the real time since the
+  previous sample. The end of the run, and so every `end` capture, can come
+  late in the same way. `result.json`'s `emulated_ms` says when the run
+  really ended.
+- The watchdog compares its word between runs, so a hang is noticed up to
+  one run late.
+- None of this varies between runs: the same image, script and options give
+  the same late times, byte for byte, everywhere.
+
+### Getting exact timing
+
+- **Don't wait around the times you capture.** Keep core 0 busy then, for
+  example by spacing reads of the timer's count at least 64 instructions
+  apart, or by waiting on something else: another timer's pending flag, or
+  a RAM flag that an interrupt handler sets. Captures are then exact.
+- **Or let the image record the time itself.** Store the timer's count (or
+  your own tick count) next to what you capture, and check the capture
+  against that stored time instead of the time asked. The M0d firmware's
+  beacon does this (docs/DESIGN-NOTES.md).
+- **For the end of a run**, read `emulated_ms` in `result.json`.
+- Instruction counts (`instructions` in `result.json`, `ipb.csv`) do not
+  include the time jumped over: a waiting image's counts stay small and
+  stable.
 
 ## The command line
 
