@@ -252,10 +252,11 @@ def main():
     if subs:
         os.makedirs(os.path.join(a.out, name + ".subagents"))
         files += [(s, os.path.join(a.out, name + ".subagents", os.path.basename(s))) for s in subs]
-    extra = top_rules(a.top if a.top is not None else default_top())
+    # The private terms first, longest first: a term that contains the user
+    # or folder name (a host name often does) must go whole, not in part.
+    extra = private_rules() + top_rules(a.top if a.top is not None else default_top())
     for s, _ in files:
         extra += [r for r in user_rules(s) if r[1].pattern not in [e[1].pattern for e in extra]]
-    extra += private_rules()
     spec_files = spec_names() if a.role == "clean" else None
     hashes = []
     for s, d in files:

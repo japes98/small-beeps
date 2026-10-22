@@ -22,7 +22,8 @@ at the base commit (BASE in config/private-base, the last main commit
 before the check) is exempt. This is decided from git's object hashes
 alone, so an exempt file is never opened. Every file added or changed after
 the base is checked in full. The output counts the exempt files per folder,
-and names no spec-side file (CONTRIBUTING.md, "Privacy").
+and names no spec-side file: hits there are counted, not listed
+(CONTRIBUTING.md, "Privacy").
 
 With no terms available the check passes with a note, unless --require is
 given (CI requires them). Files not on disk (parts a clean folder leaves
@@ -38,6 +39,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TERMS_FILE = os.path.join(ROOT, "tools", "private-terms.local")
 BASE_FILE = os.path.join(ROOT, "config", "private-base")
 EXEMPT_DIRS = ("sessions/", "docs/prompts/")
+# The spec side's folders: a hit there is counted, never named, because the
+# firmware side reads this check's output.
+SPEC_DIRS = ("vendor/emulator/", "harness/", "sessions/spec/")
 
 
 def load_terms():
@@ -174,8 +178,12 @@ def main():
         print("exempt, unchanged since base %s: %s" % (base[:12], ", ".join(
             "%s %d" % (k, counts[k]) for k in sorted(counts)) or "none"))
 
+    spec_hits = [p for p in problems if p.startswith(SPEC_DIRS)]
     for p in problems:
-        print("private term at " + p)
+        if p not in spec_hits:
+            print("private term at " + p)
+    if spec_hits:
+        print("private terms in spec-side files: %d line(s) (not named here)" % len(spec_hits))
     print("private-terms check: %d term(s); %s" % (len(terms), "FAIL" if problems else "PASS"))
     return 1 if problems else 0
 

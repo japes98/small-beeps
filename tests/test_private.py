@@ -25,6 +25,11 @@ class PrivateTermsTest(unittest.TestCase):
     def test_files_not_on_disk_are_skipped(self):
         self.assertEqual(cp.check_files(["gone"], lambda p: None, [b"x"]), [])
 
+    def test_spec_side_hits_are_counted_not_named(self):
+        self.assertTrue("harness/x.rs:3".startswith(cp.SPEC_DIRS))
+        self.assertTrue("sessions/spec/a.jsonl:1".startswith(cp.SPEC_DIRS))
+        self.assertFalse("docs/PLAN.md:1".startswith(cp.SPEC_DIRS))
+
     def test_exempt_labels_name_no_spec_file(self):
         self.assertEqual(cp.label("sessions/clean/x.jsonl"), "sessions/clean")
         self.assertEqual(cp.label("sessions/spec/x.jsonl"), "spec-side transcripts")
