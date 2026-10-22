@@ -303,7 +303,9 @@ training cutoff (see "Model cutoffs" below).
   the audit job in CI, which prints scores and file names alone. It
   fetched, read and ran JPlag on two unrelated permissive projects,
   `raspberrypi/pico-examples` (the control) and TinyUSB (the calibration),
-  and on our own firmware.
+  and on our own firmware. After the merge it read the first audit
+  reports in the record: target repository names, the paths of matched
+  target files, licence classes and scores, no target code.
 
 ### Session M0e, performance part (firmware side)
 - Date: 2026-10-22
