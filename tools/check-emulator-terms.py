@@ -8,8 +8,11 @@
 Looks for identifiers that occur in vendor/emulator/ and nowhere in
 vendor/jieli-sdk/, in the places the firmware side reads:
   - every tracked text file outside vendor/emulator/, harness/, sessions/
-    (transcripts), docs/prompts/ (prompts are kept verbatim), and the two
-    doors, docs/HARNESS.md and HARDWARE-SPEC.md (reviewed by people);
+    (transcripts) and docs/prompts/ (prompts are kept verbatim);
+  - the two doors, docs/HARNESS.md and docs/HARDWARE-SPEC.md, and their
+    reviews in docs/reviews/, for identifier-shaped words only: they carry
+    addresses and other numbers on purpose, each one sourced, and people
+    review them too (R-SPEC-2);
   - the commit messages in COMMIT_RANGE (default ..HEAD);
   - the pull request's title and body, when GITHUB_EVENT_PATH names one.
 
@@ -18,7 +21,8 @@ identifier-shaped words (with an underscore, inner capitals, or letters and
 digits mixed; four characters or more, not just hex digits) and hex numbers
 of four digits or more. Terms that already occur in CLEAN_BASELINE's tree
 (the repository as the clean side left it at the end of M0a, before any
-emulator source entered it) or in vendor/jieli-sdk/ are not on the list. A hit is reported as its place and a SHA-256 prefix of the word, never
+emulator source entered it) or in vendor/jieli-sdk/ (whole identifiers, or the parts of one between
+underscores) are not on the list. A hit is reported as its place and a SHA-256 prefix of the word, never
 the word or the text around it, because the log is visible to the firmware
 side; `--show` prints the word too, for a spec-side author fixing it. A
 reviewed false positive is listed by that hash in
@@ -41,6 +45,8 @@ REVIEWED = os.path.join(ROOT, "config", "emulator-terms-reviewed.json")
 CLEAN_BASELINE = "265f15b5b646cf7d5110d4606365d82fae93f5bc"
 EXCLUDE = ("vendor/emulator/", "harness/", "sessions/", "docs/prompts/")
 DOORS = ("docs/HARNESS.md", "HARDWARE-SPEC.md", "docs/HARDWARE-SPEC.md")
+# Reviews of the doors discuss their facts, numbers included: scanned the same way.
+DOOR_PREFIXES = ("docs/reviews/",)
 
 WORD = re.compile(r"(?<![0-9A-Za-z_])[A-Za-z_][A-Za-z0-9_]*")
 HEX = re.compile(r"\b0[xX][0-9A-Fa-f_]{4,}\b")
@@ -85,7 +91,11 @@ def emulator_terms():
         emu |= terms_of(text)
     known = set()
     for text in walk_text(SDK):
-        known |= terms_of(text)
+        sdk = terms_of(text)
+        known |= sdk
+        # the parts of an SDK identifier are SDK names too (JL_TIMER4 names
+        # TIMER4, IRQ_SPI1_IDX names SPI1)
+        known |= set(w for t in sdk if not t.startswith("0x") for w in t.split("_") if shaped(w))
     for text in baseline_texts():
         known |= terms_of(text)
     return emu - known
@@ -125,10 +135,13 @@ def tracked():
     return [x.decode() for x in p.stdout.split(b"\0") if x]
 
 
-def hits_in(text, terms, where):
+def hits_in(text, terms, where, words_only=False):
     found = []
     for n, line in enumerate(text.splitlines(), 1):
-        for t in terms_of(line) & terms:
+        got = terms_of(line)
+        if words_only:
+            got = set(t for t in got if not t.startswith("0x"))
+        for t in got & terms:
             found.append((where, n, t))
     return found
 
@@ -143,7 +156,7 @@ def main():
     hits = []
     scanned = 0
     for p in tracked():
-        if p.startswith(EXCLUDE) or p in DOORS:
+        if p.startswith(EXCLUDE):
             continue
         try:
             with open(os.path.join(ROOT, p), encoding="utf-8") as f:
@@ -151,7 +164,7 @@ def main():
         except (UnicodeDecodeError, OSError):
             continue
         scanned += 1
-        hits += hits_in(text, terms, p)
+        hits += hits_in(text, terms, p, words_only=p in DOORS or p.startswith(DOOR_PREFIXES))
     rng = os.environ.get("COMMIT_RANGE") or "..HEAD"
     log = subprocess.run(["git", "-C", ROOT, "log", "--format=%x00%H%n%B", rng],
                          stdout=subprocess.PIPE, universal_newlines=True).stdout

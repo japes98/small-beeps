@@ -67,6 +67,13 @@ tools/fwtest --image        # the pinned image reference
   at the first instruction boundary at or after the time asked; fwtest stops
   to look at least every 1024 core-0 instructions, and exactly at each
   capture time while core 0 is busy.
+- While core 0 waits, a capture can come late. Each wait can move time
+  ahead to the next timed event, and fwtest looks only between runs of up
+  to 1024 instructions, so a capture (an LED sample, the watchdog, the end
+  of the run) can be taken several milliseconds after the time asked when
+  the image waits often, for example between interrupts every 100 µs.
+  `result.json`'s `emulated_ms` says when the run really ended. To capture
+  at an exact time, keep core 0 busy (not waiting) around it.
 
 ## The command line
 

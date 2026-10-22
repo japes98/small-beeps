@@ -1,0 +1,25 @@
+{
+  "comment": "Reviewed false positives of tools/check-emulator-terms.py (C-SEP-TERMS): words that also occur in vendor/emulator/ but carry no emulator internals where they are used. Listed by the SHA-256 prefix the check prints, with a reason that doesn't name the word. Added only by pull request.",
+  "reviewed": [
+    {
+      "sha256_16": "76370ae20734a8d3",
+      "reason": "A column name in the header of fwtest's own ipb.csv output (docs/HARNESS.md, 'Outputs'), chosen by the harness: the instruction count of the second core. It is fwtest's interface, not a name taken from the emulator.",
+      "added_by": "session M0c (spec side), 2026-10-22"
+    },
+    {
+      "sha256_16": "eab5cb44eb7b01be",
+      "reason": "A public part-family name of the LCD controller, sourced in the hardware spec from FM-1-RE's display document and the manufacturer's datasheet, not from the emulator.",
+      "added_by": "session M0c (spec side), 2026-10-22"
+    },
+    {
+      "sha256_16": "52660849a75e5520",
+      "reason": "The common name of a public 16-bit pixel format, quoted in the hardware spec from FM-1-RE's display document.",
+      "added_by": "session M0c (spec side), 2026-10-22"
+    },
+    {
+      "sha256_16": "cec236a1fa64b323",
+      "reason": "A plain port-pin name (port A, pin number), the usual way to name a pin of the SDK's JL_PORTA; the pin's role in the spec is cited to experiment E-7.",
+      "added_by": "session M0c (spec side), 2026-10-22"
+    }
+  ]
+}

@@ -12,6 +12,7 @@ path = [
   "NOTICE",
   ".gitmessage",
   "config/claude/*.json",
+  "config/emulator-terms-reviewed.json",
   "vendor/jieli-sdk/SHA256SUMS",
 ]
 precedence = "aggregate"
@@ -68,7 +69,17 @@ path = [
   "harness/tests/images/SHA256SUMS",
   "harness/tests/golden/**",
   "harness/tests/data/**",
+  "harness/spec-experiments/images/**",
+  "harness/spec-experiments/golden/**",
 ]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 japes98"
+SPDX-License-Identifier = "MIT"
+
+# The owner's screenshot of the F-Emulator app's panel with its default
+# labels, a source for docs/HARDWARE-SPEC.md (PROVENANCE P-12).
+[[annotations]]
+path = ["docs/sources/panel-app-default-labels.png"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 japes98"
 SPDX-License-Identifier = "MIT"

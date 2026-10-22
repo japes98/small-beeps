@@ -86,7 +86,7 @@ emits JUnit and JSON.
     setting, so its banner would otherwise say CONFIG MISMATCH. From then
     on, `tools/clean-update.sh` updates it.
 
-### M0c: hardware spec (spec side, next)
+### M0c: hardware spec (spec side)
 `HARDWARE-SPEC.md`: facts only (addresses, bits, pins, timings, protocols),
 each with its source. Facts whose only source is the emulator are marked as
 such. It also maps fwtest's key, LED and encoder numbers to the panel and
@@ -94,8 +94,36 @@ the key matrix, and covers what docs/HARNESS.md defers to it (the memories,
 the second core's release, the audio output's format and rate, the debug
 message register), and answers any open spec requests.
 - Done when: reviewed for "facts, not code" before the firmware side reads it.
+- Requirements: R-SPEC-1..4.
+- Status 2026-10-22 (session M0c, spec side, on the owner's Mac):
+  - **Start** (pull request #7): the prompt; M0b's transcript archived in
+    `sessions/spec/`, clean maintenance session 1's in `sessions/clean/`
+    with its merge summary's spec-side file names redacted (the archiver
+    now does this for clean transcripts); ten of that session's commands
+    listed in `sessions/REVIEWED.json` with the owner's approval.
+  - **Clean updates** (pull request #8): `tools/clean-update.sh` and the
+    steps above merge with `--no-stat -q`; C-CLEAN-FOLDER updates a clean
+    clone across a commit that changes `vendor/emulator/` and `harness/`
+    and checks none of their blobs arrive (a control merge with a summary
+    fetches 6).
+  - **The spec** (pull request #9): `docs/HARDWARE-SPEC.md`, 47 entries
+    (HW-1 to HW-47: 38 confirmed, 9 emulator-only) for M0d to M4, flash
+    preliminary for M7, and 12 open questions. Sources: the JieLi SDK,
+    FM-1-RE's hardware documents, the ST7789V datasheet, the panel's
+    printed labels (the owner's app screenshot, `docs/sources/`, and
+    M-VAVE's product photo, cited by URL), and nine spec-side black-box
+    experiments in fwtest (E-1 to E-9, `harness/spec-experiments/`, spec
+    side), rerun in CI by C-SPEC-EXPERIMENTS. Reviewed by a fresh
+    subagent given only the spec, CONTRIBUTING.md and the rules;
+    its report and the response are in `docs/reviews/M0c-spec-review.md`.
+  - **Checks**: C-SPEC-LINT (entries, sources, standings, no code, IDs
+    kept), C-SPEC-EXPERIMENTS; C-SEP-TERMS now scans the two doors for
+    emulator-only identifiers.
+  - **Found on the way**: while an image waits, fwtest's captures can come
+    several milliseconds late; docs/HARNESS.md ("Time") now says so.
+  - No spec requests were open. M0d (firmware side) is next.
 
-### M0d: smallest firmware (firmware side)
+### M0d: smallest firmware (firmware side, next)
 Startup, linker script and `main` (a marker word, a heartbeat), written only
 from `HARDWARE-SPEC.md`, the SDK and FM-1-RE's documents; booted and checked
 with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
