@@ -1,0 +1,14 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 0ad388011f3087a825a4443a1955bc0ab6bdbe8c..5d4d6fd2382aef29073825b0580e1ef68d73a9c9
+OK     98e880ab789f vendor: the emulator's three core crates at a pinned upstream commit
+OK     0c485274788f harness: the fwtest library and CLI
+OK     4787e1ae25b7 harness: test images and the harness's own tests
+OK     b4889ae3d791 harness: the fwtest container and its CI steps
+OK     019512a6a8cd tools: fwtest wrapper and the separation checks
+OK     05385a8f512f tools: the record runs the harness and separation checks
+OK     aa612fe16b0c ci: publish the fwtest image from main; more time for the harness
+OK     058e6daa4774 docs: the harness manual, spec requests, requirements and plan
+OK     ed39ff9391ce config: clean sessions run with git's lazy fetching off
+EXEMPT 5d4d6fd2382a (merge) Merge pull request #4 from japes98/m0b/harness
+10 commit(s) checked: PASS
+
+exit status 0

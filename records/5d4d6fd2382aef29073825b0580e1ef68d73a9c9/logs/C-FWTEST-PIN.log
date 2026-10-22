@@ -1,0 +1,5 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-fwtest-pin.py
+config/fwtest-image: unpublished (no image yet; tools/fwtest refuses to run)
+fwtest pin: PASS
+
+exit status 0
