@@ -1,0 +1,11 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py check --build /home/runner/work/small-beeps/small-beeps/out/a208634d3f965d3845e71d8705608439a6b7fe1b/build-a --out /home/runner/work/small-beeps/small-beeps/out/a208634d3f965d3845e71d8705608439a6b7fe1b/perf --base-ref a208634d3f965d3845e71d8705608439a6b7fe1b^1 --require-records
+current: code 252, data 4, bss 20, image 256 bytes; static RAM 24; stack 0 of 4096 bytes used; 356887 instructions for 1000 heartbeat periods (356.887 per period) in 1000.678 ms
+baseline: the record of a754ebc9566f, the latest of a208634d3f965d3845e71d8705608439a6b7fe1b^1 on origin/records
+baseline: code 252, data 4, bss 20, image 256 bytes; static RAM 24; stack 0 of 4096 bytes used; 356887 instructions for 1000 heartbeat periods (356.887 per period) in 1000.678 ms
+  code             PASS         252 of 512 bytes (M0 budget)
+  static_ram       PASS         24 of 64 bytes (M0 budget)
+  stack_high_water PASS         0 of 256 bytes (M0 budget)
+  speed            PASS         356.887 instructions per heartbeat period, 356.887 before: +0.00%, within 3%
+perf: PASS
+
+exit status 0

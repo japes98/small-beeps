@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="4" failures="0">
+  <testsuite name="boot.boot" tests="4" failures="0">
+    <testcase classname="boot.boot" name="run"/>
+    <testcase classname="boot.boot" name="golden console.txt"/>
+    <testcase classname="boot.boot" name="golden ram-01c00000-4-end.bin"/>
+    <testcase classname="boot.boot" name="golden ram-01c7fc00-400-end.bin"/>
+  </testsuite>
+</testsuites>
