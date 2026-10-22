@@ -50,7 +50,7 @@ class MergeCiWaitTest(unittest.TestCase):
         self.assertEqual(cm.ci_verdict([done_bad, done_ok]), "success")
         self.assertEqual(cm.ci_verdict([done_bad, running]), "pending")
         self.assertEqual(cm.ci_verdict([done_bad]), "failed")
-        self.assertEqual(cm.ci_verdict([]), "failed")
+        self.assertEqual(cm.ci_verdict([]), "missing")
 
     def test_waits_until_the_run_finishes(self):
         answers = [[{"status": "in_progress", "conclusion": None}]] * 3 + \
@@ -76,6 +76,51 @@ class MergeCiWaitTest(unittest.TestCase):
                                     sleep=sleep, clock=lambda: t[0])
         self.assertEqual(verdict, "pending")
         self.assertGreaterEqual(t[0], 90)
+
+    def wait(self, answers, limit):
+        """Runs wait_for_ci over answers (the last repeats) on a fake clock;
+        returns (verdict, fetches, sleeps)."""
+        calls, sleeps, t = [], [], [0.0]
+
+        def fetch():
+            calls.append(1)
+            return answers[min(len(calls), len(answers)) - 1]
+
+        def sleep(s):
+            sleeps.append(s)
+            t[0] += s
+        verdict, _ = cm.wait_for_ci(fetch, limit, sleep=sleep, clock=lambda: t[0])
+        return verdict, len(calls), sleeps
+
+    def test_an_empty_answer_is_asked_again(self):
+        # PR #13's record: the search found no run although CI had passed
+        ok = [{"status": "completed", "conclusion": "success"}]
+        verdict, fetches, sleeps = self.wait([[], [], ok], 1800)
+        self.assertEqual(verdict, "success")
+        self.assertEqual(fetches, 3)
+        self.assertEqual(sleeps, [10, 20])
+
+    def test_a_late_run_is_waited_for(self):
+        # none found, then queued, then running, then done
+        answers = [[], [{"status": "queued", "conclusion": None}],
+                   [{"status": "in_progress", "conclusion": None}],
+                   [{"status": "completed", "conclusion": "success"}]]
+        verdict, fetches, _ = self.wait(answers, 1800)
+        self.assertEqual((verdict, fetches), ("success", 4))
+        # and a late run that fails is a failure, not a wait
+        answers[-1] = [{"status": "completed", "conclusion": "failure"}]
+        self.assertEqual(self.wait(answers, 1800)[0], "failed")
+
+    def test_no_run_at_all_gives_up_at_the_limit(self):
+        verdict, fetches, sleeps = self.wait([[]], 1800)
+        self.assertEqual(verdict, "missing")
+        self.assertEqual(sum(sleeps), 1800)          # never sleeps past the limit
+        self.assertEqual(max(sleeps), cm.POLL_MAX)
+        self.assertEqual(sleeps[:6], [10, 20, 40, 80, 160, 300])
+        self.assertLess(fetches, 15)                 # backoff: few questions
+
+    def test_backoff(self):
+        self.assertEqual([cm.backoff(n) for n in range(7)], [10, 20, 40, 80, 160, 300, 300])
 
 
 if __name__ == "__main__":

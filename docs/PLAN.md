@@ -190,7 +190,87 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   emulated instructions per audio block. A 3% regression gate on
   instructions per audio block; per-milestone budgets for size and RAM,
   raised only by a pull request that says why.
-- Requirements: R-AUDIT-1, R-PERF-1, R-PERF-2.
+- Requirements: R-AUDIT-1, R-PERF-1 to R-PERF-5.
+- Status 2026-10-22, performance part (session M0e, firmware side, on the
+  owner's Mac):
+  - **Start**: `tools/clean-update.sh` passed; M0d's two transcripts
+    archived (the archiver's e-mail rule fixed on the way: it broke a
+    line's JSON when an address followed a tab escape); three of their
+    commands, which only wrote text naming the spec-side folders, listed
+    in `sessions/REVIEWED.json` with the owner's approval.
+  - **Measured on every commit** (`tools/perf.py`, check C-PERF, in each
+    record's report and its "Performance" section): code, data, bss, the
+    raw image, static RAM (data + bss), the stack reserved and its
+    high-water mark, and emulated core-0 instructions per period. Until
+    M4 the period is the heartbeat: a one-second perf run of its own in
+    fwtest, its instructions divided by the beats. The stack's mark is
+    the lowest non-zero word of the stack captured at the end (fwtest
+    starts RAM at zero), so the firmware needs no change for it.
+  - **Gates**: the budgets in `config/budgets.json` for the current
+    milestone, and a rise of at most 3% in instructions per period
+    against the latest main record, whose own image is re-run under the
+    same fwtest. A fall of more than 3% shows as IMPROVED in the record
+    and in the CI run's summary. Raising a budget takes its own pull
+    request (CONTRIBUTING.md). C-PERF-PROBES builds the firmware once
+    deliberately slower and once deliberately bigger and checks that the
+    gates fail each for its own reason, against the unmodified build
+    measured in the same run. Requirements R-PERF-1 to
+    R-PERF-5; design: docs/DESIGN-NOTES.md (M0e).
+  - **History**: the records workflow appends one line per main commit
+    to `perf-history.csv` at the root of the `records` branch, never
+    rewriting it; a re-run adds no line.
+  - **C-MERGE's three failures, and the fix** (pull request #17): every
+    other check passed in each of these records, and each FAIL record
+    stays as it is.
+    1. M0a's merge (`2fd28219`) failed under the merge rule of that time
+       (CONTRIBUTING.md, "Merge policy and its history").
+    2. #10's merge (`4760d561`) failed because GitHub still reported the
+       head's ci run as in progress after its job had passed. Since #11,
+       the check waits for an unfinished run.
+    3. #13's merge (`a2086340`) failed because GitHub's run search briefly
+       found no ci run for the head, though its CI had passed about ten
+       minutes before; the check took no answer as a failure at once.
+       Its `perf-history.csv` line says FAIL. A re-run of the records
+       workflow writes a PASS record beside it and, being a re-run, adds
+       no line.
+
+    Since #17, an empty answer is asked again like an unfinished run, with
+    backoff (10 s, doubling, at most 300 s) up to the same 30 minutes.
+    Triggering the records workflow from the ci run's completion
+    (`workflow_run`) was considered, so there would be nothing to search
+    for. It can't serve: `ci` runs only on pull requests, and a trigger of
+    the push to main describes the merge commit's run, not the pull
+    request head's run, which is what C-MERGE must prove passed.
+  - **M0d's firmware, measured**: code 252, data 4, bss 20 bytes; image
+    256; static RAM 24; stack high-water 0 of 4 096 bytes (no function
+    uses the stack); 356 887 instructions over 1 000 heartbeat periods,
+    356.887 per period. Nothing in it looked wasteful in the
+    disassembly, so no fix was needed. The probes: the slower build
+    reads 439.450 per period (+23.13%, FAIL), the bigger one code 1 348,
+    static RAM 280 and stack high-water 516 bytes (each FAIL).
+  - **M0 budgets**: code 512, static RAM 64, stack high-water 256 bytes;
+    speed gate 3%.
+  - **Merged**: pull request #12 as `a754ebc9`. Its record
+    (`records/a754ebc9…/`) is **PASS**, every check run, traceability
+    PASS for R-PERF-1 to R-PERF-5. C-PERF found the record of `5c6efc66`
+    (main before the merge) as its baseline, re-ran that image: +0.00%.
+    `perf-history.csv` on `records` started with the merge's line (code
+    252, static RAM 24, stack high-water 0, 356.887 instructions per
+    heartbeat period). Pull request #13's merge adds the second.
+  - **The stack measurement, proved** (the owner's request after #12's
+    record read 0): a test build with a 1 KiB frame written with zeros
+    read 0 by the first method (lowest non-zero word), so that method
+    could not see stack written as zero. Now `sb_stack_fill` (`crt0.S`)
+    fills the unused stack with a pattern right after the time base
+    starts, and the mark is the lowest word no longer holding it.
+    C-PERF-PROBES' new `SB_PROBE_STACK` build must read at least 1 024
+    bytes (it reads 1 024). The firmware itself still reads 0, and its
+    disassembly says why: no push, pop or `sp`-relative access anywhere,
+    and `sb_start` and `main` never return, so neither saves `rets`
+    (docs/DESIGN-NOTES.md). Cost: code 280 bytes (+28), 358.934
+    instructions per heartbeat period (+0.57%, within the gate).
+  - The similarity audit is the spec side's part of M0e. M1 is next on
+    the firmware side.
 
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer.

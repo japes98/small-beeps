@@ -6,7 +6,9 @@
 # every check, including C-MERGE, stamps the record with OpenTimestamps,
 # appends it to the orphan `records` branch with a deploy key that only this
 # workflow's `records` environment holds, and uploads the same files as an
-# artifact. A failing check still produces a record that says so.
+# artifact. A failing check still produces a record that says so. It also
+# appends the commit's line to perf-history.csv at the branch's root
+# (R-PERF-4), never rewriting earlier lines.
 name: records
 
 on:
@@ -41,6 +43,10 @@ jobs:
       - name: Install check tools
         run: python -m pip install --disable-pip-version-check -r tools/requirements-ci.txt
 
+      # C-PERF's baseline: the latest record before this commit.
+      - name: Fetch the records branch
+        run: git fetch --no-tags origin +refs/heads/records:refs/remotes/origin/records || true
+
       - name: Run all checks and write the record
         id: checks
         env:
@@ -55,9 +61,15 @@ jobs:
           else
             export COMMIT_RANGE="$BEFORE..$GITHUB_SHA"
           fi
+          # The speed gate compares with the record of the commit main was
+          # at before this one (its first parent's history).
+          export PERF_BASE_REF="$GITHUB_SHA^1"
           set +e
           python tools/record.py run --out "out/$GITHUB_SHA" --with-merge
           echo "status=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Performance summary
+        run: python tools/perf.py summary --record "out/$GITHUB_SHA/report.json" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Timestamp the record (OpenTimestamps, pending until Bitcoin confirms)
         run: |
@@ -99,7 +111,12 @@ jobs:
             fi
             mkdir -p "$dest"
             cp -R "out/$GITHUB_SHA/." "$dest/"
+            # One line per main commit; a re-run adds none. A problem with
+            # the history must never keep the record from being pushed.
+            python tools/perf.py history --record "out/$GITHUB_SHA/report.json" --csv rec/perf-history.csv \
+              || echo "::error::perf-history.csv: no line appended for $GITHUB_SHA"
             git -C rec add records
+            if [ -e rec/perf-history.csv ]; then git -C rec add perf-history.csv; fi
             git -C rec -c user.name="small-beeps records" -c user.email="records@users.noreply.github.com" \
               commit --quiet -m "records: $GITHUB_SHA" \
               -m "Record of commit $GITHUB_SHA, written by run https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)."

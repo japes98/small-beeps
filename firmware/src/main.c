@@ -52,6 +52,15 @@ int main(void)
      * across a wrap of the 32-bit count. */
     JL_TIMER4->CON = TIMER4_RUN;
     start = JL_TIMER4->CNT;
+    /* After starting the time base, so its start tolerance is untouched;
+     * before anything that could use the stack. */
+    sb_stack_fill();
+#if defined(SB_PROBE_BIG)
+    sb_probe_big();
+#endif
+#if defined(SB_PROBE_STACK)
+    sb_probe_stack();
+#endif
     done = 0;
     for (;;) {
         u32 now = JL_TIMER4->CNT - start;
@@ -61,6 +70,9 @@ int main(void)
         while (now - done >= TICKS_PER_MS) {
             done += TICKS_PER_MS;
             sb_beacon.beats++;
+#if defined(SB_PROBE_SLOW)
+            sb_probe_slow();
+#endif
         }
         /* Storing on every pass also keeps core 0 busy, so fwtest's
          * captures land on time (docs/HARNESS.md, "Time"). */

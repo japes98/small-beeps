@@ -187,6 +187,11 @@ Exposure: the author's role and exposure (e.g. "firmware side, none")
   audit's report beside it (`records/<sha>/audit/`) only by
   `.github/workflows/audit.yml`'s record job (docs/AUDIT.md). Both use the
   `records` environment's deploy key.
+- **Performance budgets** (`config/budgets.json`, R-PERF-1) are raised, or
+  moved to the next milestone's, only by a pull request of their own that
+  says why in the What/Why/How/Result sections and changes nothing else.
+  When CI's performance summary shows an improvement of more than 3%
+  (R-PERF-2), say so in the pull request's Result.
 - Milestones end with a tag `mN`, signed by the owner with their SSH key
   (below), and a GitHub release with the build outputs, the record and an
   SBOM.

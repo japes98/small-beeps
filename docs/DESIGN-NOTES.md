@@ -162,3 +162,119 @@ Format for each entry:
     `app.bin`, `app.elf` and `app.size`.
 - Alternatives: `ld --oformat binary` (rejected, above).
 - `firmware/src/placeholder.c` is removed: nothing uses it any more.
+
+### 2026-10-22 M0e: what is measured, and where
+- Facts: docs/HARNESS.md ("Time": one instruction of core 0 is one cycle,
+  waiting costs almost no instructions; "Outputs": `result.json`'s
+  instruction counts; RAM all zero at the start), the layout in
+  `firmware/app.ld` (the beacon at `0x01C00000`, the stack's top at
+  `0x01C7FC00`).
+- Reasoning: `tools/perf.py` (check C-PERF) measures every build A:
+  - size from `app.size`: code, data, bss, the raw image, the stack
+    reserved; static RAM is data plus bss;
+  - a one-second run of its own in fwtest, with fixed, minimal options:
+    `--ms 1000`, the beacon and the whole stack captured at the end, no
+    watchdog and no other captures. Captures change when fwtest looks at
+    a waiting core 0, and with that the count, so the perf run is kept
+    apart from the boot suite, where captures are added freely;
+  - speed: core 0's instructions in that run divided by the beats the
+    beacon shows at its end: instructions per heartbeat period. This is
+    the stand-in R-PERF-2 tracks until audio. In M4 the period becomes the
+    audio block (fwtest's `--ipb`), and `PERIOD` in `tools/perf.py`
+    changes with it.
+- What the stand-in measures today: mostly the heartbeat's polling loop as
+  fwtest schedules a waiting core (M0d's entry "how the heartbeat is
+  timed"). An experiment adding 20 volatile loop passes per beat raised
+  the count from 356.9 to 439.5 per period: more work shows, but less than
+  its own cost, because fewer polling passes fit. Until M1 replaces
+  polling with interrupts and waiting, read the number as "the loop plus
+  the work per beat", not as work alone.
+- Alternatives: the heartbeat case of `tests/fw/boot.suite` (rejected:
+  its captures and watchdog would make the count move with the tests);
+  counting from the start of `main` (not possible: fwtest gives one count
+  per run).
+
+### 2026-10-22 M0e: the stack's high-water mark
+- Facts: docs/HARNESS.md (main RAM is all zero when the image starts),
+  `firmware/app.ld` (4 KiB of stack below `0x01C7FC00`), R-BOOT-3 (the
+  time base must agree with emulated time within 10 µs at the end of a
+  one-second run, so everything before `main` starts the timer counts).
+- First method (pull request #12): the lowest non-zero word of the stack
+  captured at the end of the run, relying on fwtest's zeroed RAM.
+- Experiment (our own, in fwtest through `tools/fwtest`), asked for by
+  the owner after the first record showed 0: a test build whose function
+  writes a 1 KiB local array and reads it back. Written with `0x5A5A5A5A`
+  the mark read 1 024 bytes; written with zeros it read **0**. The
+  compiler saved nothing at the frame's bottom, so the first method could
+  not see stack written as zero, which is common (cleared buffers,
+  counters at 0). It is replaced.
+- Reasoning (the fix): `sb_stack_fill` in `crt0.S` fills the unused
+  stack, from `__stack_limit` up to the current `sp`, with `0x4B415453`
+  ("STAK"); the mark is the lowest word that no longer holds it. It is
+  assembly because it needs `sp`, and a leaf, so it uses no stack itself
+  (a call keeps its return address in `rets`). `main` calls it once,
+  right after starting TIMER4: everything before the time base starts
+  counts against R-BOOT-3's 10 µs, and the fill takes about 2 050
+  cycles (8.5 µs), so it can't run in `_start`. After the time base
+  starts it costs only a later first pass of the heartbeat loop, which the
+  catch-up count absorbs (the boot suite still passes, the end within
+  10 µs). Nothing before it uses the stack (below). Cost: 28 bytes of
+  code, and 2 047 instructions once, +0.57% per heartbeat period. An image
+  without the pattern at the stack's bottom (an older record's) is still
+  read the first way, and the record says which method it used.
+- Test: C-PERF-PROBES builds `SB_PROBE_STACK`, a 1 KiB frame written
+  with zeros and read back, and fails unless the mark is at least 1 024
+  bytes by the pattern. It reads 1 024.
+- Why the firmware itself reads 0 (its disassembly, `objdump -d` of our
+  own `app.elf` in the build container): `sp` is written once (`sp = r1`
+  in `_start`) and read once (`r1 = sp + 0` in `sb_stack_fill`). There is
+  no push (`[--sp] = …`), no pop, no `sp`-relative load or store, and no
+  `sp +=` frame anywhere. `_start` calls `sb_start`, which calls `main`,
+  which calls `sb_stack_fill`. Each `call` puts the return address in
+  `rets`, and neither `sb_start` nor `main` returns (both `noreturn`), so
+  neither saves `rets`. All their variables fit in registers, and
+  `console_write` is inlined. Probe builds show the method sees the
+  first real use: with `SB_PROBE_SLOW`, `main` saves `rets` before
+  calling the probe, and the mark reads 4 bytes.
+- Alternatives: the fill in `_start` (rejected: R-BOOT-3, above); a fill
+  in C (rejected: C can't know `sp`, and would write over its own frame);
+  keeping the non-zero method (rejected: the experiment).
+
+### 2026-10-22 M0e: the gates and their tests
+- Facts: none from the hardware spec.
+- Reasoning:
+  - Budgets: `config/budgets.json` names the milestone whose budgets are
+    in force, and each budget (code, static RAM, stack high-water) must
+    hold. M0's: code 512 bytes (252 used), static RAM 64 (24), stack
+    high-water 256 (0). About twice what M0 uses, so small fixes fit, and
+    M1 sets its own in a pull request of its own.
+  - Speed: instructions per period may rise by at most 3% against the
+    latest record of a main commit. The baseline's own `app.bin`, kept in
+    every record's `outputs/`, is run again with this checkout's fwtest
+    and options in the same check, so a new fwtest image or new options
+    never pass for a change of the firmware. Integers are compared exactly
+    (a rise of exactly 3% passes). A fall of more than 3% is reported as
+    IMPROVED, in the record and in the CI run's summary on the pull
+    request. CI finds the baseline on the `records` branch, and fails if
+    it can't read the branch; a clean folder, which may not have the
+    records' files, says "no baseline" and compares nothing.
+  - Tests of the gates (C-PERF-PROBES): the firmware built with
+    `SB_PROBE_SLOW` (20 volatile loop passes per beat) must fail the speed
+    gate and nothing else; built with `SB_PROBE_BIG` (a 1 KiB table, 256
+    bytes of zeroed data, a 512-byte stack frame) it must fail each of the
+    three budgets, and nothing else. Both are measured against the
+    unmodified build in the same run, not against the records branch, so
+    they test the gates whether or not a baseline exists. The bigger
+    probe's budgets are the unmodified build's own sizes, not
+    `config/budgets.json`'s, so raising a budget (M1 will) never makes the
+    probe pass; the slower probe's budgets are its own sizes, so only its
+    speed is under test. When M1 replaces the polling heartbeat, the slow
+    probe's hook moves with the per-beat work. A third, `SB_PROBE_STACK`,
+    tests the stack measurement itself (the stack's high-water mark,
+    above). The probes' code is in `firmware/src/probe.c` and three
+    guarded calls in `main.c`; without the defines nothing of it is
+    compiled, and `tools/build.sh --define` exists for these builds only.
+- Alternatives: a golden `ipb.csv` with `rel-percent 3` (docs/HARNESS.md's
+  example; for M4, when there are audio blocks); a stored per-commit
+  number as the baseline (rejected: it would compare across fwtest
+  versions).

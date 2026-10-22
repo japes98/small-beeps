@@ -84,6 +84,41 @@
       "rule": "harness/ source (spec side)",
       "reason": "A shell command that wrote a commit message (cat > file <<EOF) into the session's scratch folder and committed docs/EXPOSURE.md. The message describes the incident in general terms and names the two folders; it repeats no file name from them. Nothing was opened or listed.",
       "added_by": "session M0c (spec side, claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "cd816ac2-14a7-4eb6-ba5f-1732c57ec45f",
+      "tool_use_id": "toolu_01J9BPZ4ModMC31YFx5UCTqn",
+      "rule": "spec-side session transcripts",
+      "reason": "A shell command that only edited tools/check-private.py and its tests with a Python heredoc. The added test asserts that the label of the made-up path \"sessions/spec/x.jsonl\" is \"spec-side transcripts\". Nothing under sessions/spec/ was opened, listed or searched; it isn't in the clean folder.",
+      "added_by": "session M0e clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "cd816ac2-14a7-4eb6-ba5f-1732c57ec45f",
+      "tool_use_id": "toolu_017sNmFCaiKUBmq4Zxh2n1ti",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A shell command that only edited tools/check-private.py and its tests with a Python heredoc (read the file, replace text, write it back). The new text holds the string constant SPEC_DIRS = (\"vendor/emulator/\", \"harness/\", \"sessions/spec/\") and test strings such as \"harness/x.rs:3\", so the check can label spec-side paths. Nothing under those folders was opened, listed or searched; they aren't in the clean folder.",
+      "added_by": "session M0e clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "cd816ac2-14a7-4eb6-ba5f-1732c57ec45f",
+      "tool_use_id": "toolu_017sNmFCaiKUBmq4Zxh2n1ti",
+      "rule": "harness/ source (spec side)",
+      "reason": "A shell command that only edited tools/check-private.py and its tests with a Python heredoc (read the file, replace text, write it back). The new text holds the string constant SPEC_DIRS = (\"vendor/emulator/\", \"harness/\", \"sessions/spec/\") and test strings such as \"harness/x.rs:3\", so the check can label spec-side paths. Nothing under those folders was opened, listed or searched; they aren't in the clean folder.",
+      "added_by": "session M0e clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "cd816ac2-14a7-4eb6-ba5f-1732c57ec45f",
+      "tool_use_id": "toolu_017sNmFCaiKUBmq4Zxh2n1ti",
+      "rule": "spec-side session transcripts",
+      "reason": "A shell command that only edited tools/check-private.py and its tests with a Python heredoc (read the file, replace text, write it back). The new text holds the string constant SPEC_DIRS = (\"vendor/emulator/\", \"harness/\", \"sessions/spec/\") and test strings such as \"sessions/spec/a.jsonl:1\", so the check can label spec-side paths. Nothing under those folders was opened, listed or searched; they aren't in the clean folder.",
+      "added_by": "session M0e clean (claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "cd816ac2-14a7-4eb6-ba5f-1732c57ec45f",
+      "tool_use_id": "toolu_017cEcHRJ6n8t4SaqNqGrcNb",
+      "rule": "harness/ source (spec side)",
+      "reason": "A shell command that only edited the PR text file out/msg/pr.md with a Python heredoc. The new sentence says CI passed \"the harness and spec checks included\". Nothing was opened, listed or searched.",
+      "added_by": "session M0e clean (claude-opus-5-5), 2026-10-22, approved by the owner"
     }
   ]
 }
