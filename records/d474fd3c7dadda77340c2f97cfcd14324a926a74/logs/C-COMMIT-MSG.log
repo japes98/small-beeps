@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 362480c801a01b9816b38a4e6e3cb7d19b48d090..d474fd3c7dadda77340c2f97cfcd14324a926a74
+OK     4f22ce5976ac ci: re-check a past merge's C-MERGE by hand, beside its record
+EXEMPT d474fd3c7dad (merge) Merge pull request #20 from japes98/m0e/recheck-merge
+2 commit(s) checked: PASS
+
+exit status 0
