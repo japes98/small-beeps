@@ -1,0 +1,12 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 5c6efc667d294a5ea4fc446412ddb38a0b16f9ce..a754ebc9566fa90a7d11ae7cf822a9bc276b7136
+OK     dbee3bb3c1a5 docs: M0e (performance part) starts: its prompt and exposure entry
+OK     4d745f7603a5 tools: the archiver keeps a JSON escape's letter out of an e-mail match
+OK     663c310b0192 sessions: archive M0d's two clean transcripts
+OK     5a85aceeb100 firmware: probe builds, deliberately slower or bigger, for the gate tests
+OK     486b67bd9158 tools: size, RAM, stack high-water and speed measured and gated
+OK     f7f906bef563 docs: M0e's measurements, gates and the M0d firmware's numbers
+OK     e6d3bf034713 tools: probe budgets come from the measured builds; history never blocks a record
+EXEMPT a754ebc9566f (merge) Merge pull request #12 from japes98/m0e/perf
+8 commit(s) checked: PASS
+
+exit status 0
