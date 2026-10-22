@@ -55,6 +55,10 @@ and never prints a description. A target is:
 - **any fork of a target, to any depth.** A fork inherits its parent's
   `paths` and licence override.
 
+**As found on 2026-10-22:** 776 repositories. Of these, 512 are scored and
+262 are duplicates by tree. The other 2 are empty. Of the 512 scored, 380
+are classed `gpl`, 45 `permissive`, 42 `other` and 45 `none`.
+
 The owner chose this wide net on 2026-10-22: every FM-1 repository, not
 only Felucca's and dinghy's lineage. A target that turns out to be
 unrelated costs only CI minutes. A target that is missed weakens the
