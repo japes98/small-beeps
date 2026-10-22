@@ -28,6 +28,12 @@ No firmware code yet; a placeholder translation unit proves the pipeline.
   byte-for-byte double build; the owner's signed merge produces the first
   record with a pending OpenTimestamps proof; `tools/reproduce` works;
   EXPOSURE.md and PROVENANCE.md are complete; nothing forbidden was opened.
+- Status 2026-10-22: pull request #1 merged as `2fd28219`. Its record
+  (`records/2fd28219…/` on `records`) has 13 checks PASS and C-MERGE FAIL
+  under the merge rule of the time (CONTRIBUTING.md, "Merge policy and its
+  history"), with a pending OpenTimestamps proof (three calendars).
+  `tools/reproduce 2fd28219` on the owner's Mac: REPRODUCED (both outputs
+  match the record).
 
 ### M0b: harness (spec side)
 Vendor the emulator crates `fm1-isa`, `fm1-core`, `fm1-soc` from the public
@@ -97,7 +103,9 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   documents only, before M9, and record the answer here. The app is
   unaffected (it can boot our raw image). *Answer: not yet investigated.*
 - **The emulator doesn't model USB**, so M11 is hardware-only.
-- **Merging needs the owner as the only ruleset bypass actor.** GitHub cannot
-  both require pull requests for everyone and accept the owner's locally
-  signed merge commit. The bypass, and the check that makes it auditable
-  (C-MERGE), are described in CONTRIBUTING.md.
+- **Merge signatures are GitHub's.** Since 2026-10-22 the owner merges with
+  GitHub's button, so merge commits are signed by GitHub (`web-flow`) and the
+  owner's identity rests on GitHub's `merged_by` record, checked by C-MERGE.
+  Milestone tags carry the owner's own SSH signature. The first merge's
+  record shows C-MERGE FAIL under the earlier rule (CONTRIBUTING.md, "Merge
+  policy and its history").
