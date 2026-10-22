@@ -13,6 +13,7 @@ path = [
   ".gitmessage",
   "config/claude/*.json",
   "config/emulator-terms-reviewed.json",
+  "audit/*.json",
   "vendor/jieli-sdk/SHA256SUMS",
 ]
 precedence = "aggregate"

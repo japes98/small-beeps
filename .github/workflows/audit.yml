@@ -1,0 +1,140 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The similarity audit (R-AUDIT-1 to R-AUDIT-5; docs/AUDIT.md). Runs for
+# pushes to main and on demand, never for pull requests (there is no such
+# trigger, and both jobs also require main).
+#
+# Job `audit` is the only place the GPL targets ever exist: it has read-only
+# permissions, no environment and no secrets. tools/audit.py fetches each
+# target at its pinned commit into a temporary folder, scores it with JPlag
+# (whose own output is never shown) and deletes it; nothing is cached. The
+# job uploads only report.json and report.md: scores and file names.
+#
+# Job `record` never sees the targets. It checks that the artifact holds
+# only that report and appends it to the commit's record on the `records`
+# branch, as records/<sha>/audit/<run>-<attempt>/, with the records
+# environment's deploy key.
+name: audit
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      set:
+        description: "full: every target; fast: Felucca, dinghy, fm1-emu's fm1-sid, fm1_open"
+        type: choice
+        options: [full, fast]
+        default: full
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Fetch JPlag (tools/audit.py checks its SHA-256)
+        run: |
+          url=$(python -c 'import json; print(json.load(open("audit/audit.json"))["jplag"]["url"])')
+          curl -fsSL -o "$RUNNER_TEMP/jplag.jar" "$url"
+          docker pull -q "$(python -c 'import json; print(json.load(open("audit/audit.json"))["java_image"])')"
+
+      - name: Self-test (a made-up target holding copies of our files)
+        run: python tools/audit.py selftest --jar "$RUNNER_TEMP/jplag.jar" --out "$RUNNER_TEMP/selftest"
+
+      - name: Audit
+        id: audit
+        env:
+          SET: ${{ inputs.set || 'full' }}
+        run: |
+          set +e
+          python tools/audit.py run --set "$SET" --jar "$RUNNER_TEMP/jplag.jar" --out out/audit
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the report (scores and file names only)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: audit-${{ github.sha }}-${{ github.run_attempt }}
+          path: out/audit/
+          if-no-files-found: error
+
+      - name: Fail if a check failed
+        if: steps.audit.outputs.status != '0'
+        run: |
+          echo "A check failed; out/audit/report.md says which. A flagged pair goes to an auditor (docs/AUDIT.md)."
+          exit 1
+
+  record:
+    needs: audit
+    if: always() && github.ref == 'refs/heads/main' && (needs.audit.result == 'success' || needs.audit.result == 'failure')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: records
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: audit-${{ github.sha }}-${{ github.run_attempt }}
+          path: out/audit
+
+      - name: Check the artifact holds only the report
+        run: python tools/audit.py check-artifact out/audit
+
+      - name: Append to the commit's record
+        env:
+          DEPLOY_KEY: ${{ secrets.RECORDS_DEPLOY_KEY }}
+        run: |
+          set -eu
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/records_key && chmod 600 ~/.ssh/records_key
+          # GitHub's published SSH host key (docs: "GitHub's SSH key fingerprints").
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/records_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+          url="git@github.com:$GITHUB_REPOSITORY.git"
+          # the records workflow may push at the same time: start again from its tip if so
+          for attempt in 1 2 3 4 5; do
+            rm -rf rec
+            git clone --quiet --branch records --single-branch "$url" rec
+            dest="rec/records/$GITHUB_SHA/audit/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+            mkdir -p "$dest"
+            cp out/audit/report.json out/audit/report.md "$dest/"
+            git -C rec add records
+            git -C rec -c user.name="small-beeps records" -c user.email="records@users.noreply.github.com" \
+              commit --quiet -m "records: audit of $GITHUB_SHA" \
+              -m "Similarity audit of commit $GITHUB_SHA, written by run https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)."
+            if git -C rec push --quiet origin records; then
+              rm -f ~/.ssh/records_key
+              exit 0
+            fi
+            sleep $((attempt * 15))
+          done
+          rm -f ~/.ssh/records_key
+          echo "could not append the audit to the records branch" >&2
+          exit 1

@@ -82,26 +82,36 @@ jobs:
           echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > ~/.ssh/known_hosts
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/records_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
           url="git@github.com:$GITHUB_REPOSITORY.git"
-          if git ls-remote --exit-code --heads "$url" records >/dev/null; then
-            git clone --quiet --branch records --single-branch "$url" rec
-          else
-            git init --quiet -b records rec
-            git -C rec remote add origin "$url"
-          fi
-          dest="rec/records/$GITHUB_SHA"
-          if [ -e "$dest" ]; then
-            # Never overwrite a record; a re-run is kept beside it.
-            dest="$dest/rerun-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          fi
-          mkdir -p "$dest"
-          cp -R "out/$GITHUB_SHA/." "$dest/"
-          cd rec
-          git add records
-          git -c user.name="small-beeps records" -c user.email="records@users.noreply.github.com" \
-            commit --quiet -m "records: $GITHUB_SHA" \
-            -m "Record of commit $GITHUB_SHA, written by run https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)."
-          git push --quiet origin records
+          # the audit workflow may push to the branch at the same time: start again from its tip if so
+          for attempt in 1 2 3 4 5; do
+            rm -rf rec
+            if git ls-remote --exit-code --heads "$url" records >/dev/null; then
+              git clone --quiet --branch records --single-branch "$url" rec
+            else
+              git init --quiet -b records rec
+              git -C rec remote add origin "$url"
+            fi
+            dest="rec/records/$GITHUB_SHA"
+            # Never overwrite a record; a re-run is kept beside it. (The folder can
+            # exist already without a record: the audit writes into its audit/.)
+            if [ -e "$dest/report.json" ]; then
+              dest="$dest/rerun-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+            fi
+            mkdir -p "$dest"
+            cp -R "out/$GITHUB_SHA/." "$dest/"
+            git -C rec add records
+            git -C rec -c user.name="small-beeps records" -c user.email="records@users.noreply.github.com" \
+              commit --quiet -m "records: $GITHUB_SHA" \
+              -m "Record of commit $GITHUB_SHA, written by run https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)."
+            if git -C rec push --quiet origin records; then
+              rm -f ~/.ssh/records_key
+              exit 0
+            fi
+            sleep $((attempt * 15))
+          done
           rm -f ~/.ssh/records_key
+          echo "could not append the record to the records branch" >&2
+          exit 1
 
       - name: Fail if any check failed
         if: steps.checks.outputs.status != '0'

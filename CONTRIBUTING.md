@@ -28,6 +28,20 @@ the people who write ours.
   experiments. Uses the harness only as a command-line tool, and never opens
   `vendor/emulator/` or `harness/` source.
 
+- **Auditor (exposed to the GPL firmwares).** A third role, only for a
+  failed similarity audit (docs/AUDIT.md, "When the audit fails"). The owner
+  starts one; it works in a folder of its own set up with
+  `tools/auditor-setup.sh` (settings `config/claude/auditor.json`), and may
+  read the flagged GPL target files and our code. It writes only a finding
+  in `audit/findings/`, in general terms (which of our files, the scores,
+  the conclusion; never target code). It never writes firmware, the spec or
+  the harness, then or in any later session. Its transcript holds GPL
+  source, so it is **never archived in this repository**: it goes to the
+  owner's private repository `small-beeps-audit` (created, with the
+  owner's approval, when the first auditor session runs), committed there
+  with an OpenTimestamps proof, and docs/EXPOSURE.md records the session's
+  ID, the transcript's SHA-256 and that repository's commit.
+
 Every person and every session is recorded in docs/EXPOSURE.md with its role
 and exposure, before it does any work. A firmware-side person or session that
 sees forbidden material becomes spec side from that moment: record it in
@@ -169,7 +183,10 @@ Exposure: the author's role and exposure (e.g. "firmware side, none")
   Verified) and records the owner as the pull request's `merged_by`. No
   squash or rebase merges, and nobody bypasses the rules.
 - Records (`records/<sha>/` on the `records` branch) are written only by
-  `.github/workflows/records.yml`, for pushes to main.
+  `.github/workflows/records.yml`, for pushes to main, and the similarity
+  audit's report beside it (`records/<sha>/audit/`) only by
+  `.github/workflows/audit.yml`'s record job (docs/AUDIT.md). Both use the
+  `records` environment's deploy key.
 - Milestones end with a tag `mN`, signed by the owner with their SSH key
   (below), and a GitHub release with the build outputs, the record and an
   SBOM.

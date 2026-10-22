@@ -17,6 +17,12 @@ what, and when. Roles are defined in CONTRIBUTING.md.
   `HARDWARE-SPEC.md`. Never writes firmware.
 - **Firmware side (clean):** has seen none of the forbidden material. Writes
   the firmware.
+- **Auditor (exposed to the GPL firmwares):** reads a flagged pair from a
+  failed similarity audit, our file and the GPL target's, and writes a
+  finding in general terms. Never writes firmware or spec. Its transcript is
+  kept in the owner's private repository, not here; its entry records the
+  session ID, the transcript's SHA-256 and that repository's commit
+  (docs/AUDIT.md, "When the audit fails"). None has run yet.
 
 Every session adds its own entry when it starts, and again whenever its
 exposure changes. Agent entries record the exact model ID and its published
@@ -287,11 +293,17 @@ training cutoff (see "Model cutoffs" below).
 - Exposure: reads the harness source (`harness/`) and the vendored emulator
   (`vendor/emulator/`) where fwtest decides that core 0 is waiting, and the
   separation check's tools. For the similarity audit it reads **metadata
-  only** about the GPL firmwares (repository names, owners, URLs, commit
-  SHAs, from GitHub's API and `git ls-remote`); it never opens their files,
-  READMEs or web pages, and their sources are fetched only inside the audit
-  job in CI, which prints scores and file names alone. It reads JPlag's
-  release metadata and the control project's metadata and licence.
+  only** about the FM-1 firmwares, from GitHub's API and `git ls-remote`:
+  repository names, owners, URLs, licences, languages, sizes, fork lists,
+  commit and tree SHAs, and the one-line descriptions shown in search
+  results and repository metadata (it printed some of them, a line each, to
+  tell FM-1 firmwares from unrelated repositories; it read none of the
+  descriptions' repositories). It never opens a target's files, README,
+  commit messages or web pages, and their sources are fetched only inside
+  the audit job in CI, which prints scores and file names alone. It
+  fetched, read and ran JPlag on two unrelated permissive projects,
+  `raspberrypi/pico-examples` (the control) and TinyUSB (the calibration),
+  and on our own firmware.
 
 ## Barrier log
 

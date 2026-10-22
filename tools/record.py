@@ -55,7 +55,8 @@ def _commit_range():
 CHECKS = [
     {"id": "C-UNIT", "title": "Unit tests of the tools",
      "reqs": ["R-PROC-1", "R-PROC-4", "R-REC-1", "R-CLEAN-3", "R-CLEAN-4", "R-PUB-1",
-              "R-SEP-2", "R-SPEC-1", "R-SPEC-3"],
+              "R-SEP-2", "R-SPEC-1", "R-SPEC-3", "R-AUDIT-1", "R-AUDIT-2", "R-AUDIT-3", "R-AUDIT-4",
+              "R-AUDIT-5"],
      "cmd": [PY, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"]},
     {"id": "C-REUSE", "title": "reuse lint (SPDX licence and copyright on every file)",
      "reqs": ["R-LIC-1", "R-LIC-2"], "cmd": ["reuse", "lint"]},

@@ -31,7 +31,8 @@ class RecordTest(unittest.TestCase):
                 self.assertIn(r, known, "%s names unknown %s" % (c["id"], r))
 
     def test_requirements_table_names_only_real_checks(self):
-        ids = {c["id"] for c in rec.CHECKS}
+        # the record's checks, and the similarity audit's (its own workflow, tools/audit.py)
+        ids = {c["id"] for c in rec.CHECKS} | set(load_tool("audit.py").REQS)
         for r in rec.requirements_table():
             for named in re.findall(r"C-[A-Z-]+[A-Z]", r["checked_by"]):
                 self.assertIn(named, ids, "%s names unknown check %s" % (r["id"], named))

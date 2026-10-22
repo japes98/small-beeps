@@ -1,0 +1,4 @@
+{
+  "comment": "Flagged pairs an auditor's finding accepted (docs/AUDIT.md, 'When the audit fails'). Each entry: ours (our file, as the report names it), repo and path (the target file), longest_tokens (the score accepted; a higher one fails again) and finding (the finding's file). Added only by pull request, with the finding.",
+  "accepted": []
+}

@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Rediscovers the similarity audit's targets every month (R-AUDIT-2;
+# docs/AUDIT.md, "Rediscovery"). tools/audit-discover.py reads repository
+# metadata only, never a target's code. When a target is new, gone or has a
+# new head commit, this opens a pull request that changes
+# audit/targets.json and lists those repositories by name. GitHub does not
+# run CI for a pull request a workflow opens: the owner closes and reopens
+# it to start `ci`, then merges it as usual.
+name: audit-discover
+
+on:
+  schedule:
+    - cron: "17 5 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-discover
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Rediscover the targets (metadata only)
+        id: discover
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          python tools/audit-discover.py --write > "$RUNNER_TEMP/discover.txt"
+          status=$?
+          cat "$RUNNER_TEMP/discover.txt"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Open a pull request with the changes
+        if: steps.discover.outputs.status == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          branch="audit/rediscover-$(date -u +%Y-%m-%d)-$GITHUB_RUN_ID"
+          git checkout -q -b "$branch"
+          git add audit/targets.json
+          {
+            echo "audit: rediscovered targets, $(date -u +%Y-%m-%d)"
+            echo
+            echo "What:    audit/targets.json updated by the monthly rediscovery."
+            echo "Why:     R-AUDIT-2: every FM-1 repository found from metadata is pinned."
+            echo "How:     tools/audit-discover.py --write, metadata only (docs/AUDIT.md)."
+            echo "Result:  see the pull request: new, gone and moved repositories by name."
+            echo "Sources: none"
+            echo "Exposure: none (a workflow; repository metadata only)"
+          } > "$RUNNER_TEMP/msg.txt"
+          git -c user.name="small-beeps audit-discover" -c user.email="audit-discover@users.noreply.github.com" \
+            commit -q -F "$RUNNER_TEMP/msg.txt"
+          git push -q origin "$branch"
+          {
+            echo "**What:** the monthly rediscovery of the similarity audit's targets (docs/AUDIT.md), from repository metadata only."
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/discover.txt"
+            echo '```'
+            echo
+            echo "**Run:** $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo
+            echo "GitHub does not start CI for a pull request a workflow opens: close and reopen this one to run \`ci\`."
+          } > "$RUNNER_TEMP/body.md"
+          gh pr create --base main --head "$branch" \
+            --title "audit: rediscovered targets, $(date -u +%Y-%m-%d)" --body-file "$RUNNER_TEMP/body.md"
