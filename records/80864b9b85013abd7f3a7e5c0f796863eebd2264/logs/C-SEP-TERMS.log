@@ -1,0 +1,12 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-emulator-terms.py
+REVIEWED docs/HARDWARE-SPEC.md:390 term eab5cb44eb7b01be: A public part-family name of the LCD controller, sourced in the hardware spec from FM-1-RE's display document and the manufacturer's datasheet, not from the emulator.
+REVIEWED docs/HARDWARE-SPEC.md:393 term 52660849a75e5520: The common name of a public 16-bit pixel format, quoted in the hardware spec from FM-1-RE's display document.
+REVIEWED docs/HARDWARE-SPEC.md:394 term eab5cb44eb7b01be: A public part-family name of the LCD controller, sourced in the hardware spec from FM-1-RE's display document and the manufacturer's datasheet, not from the emulator.
+REVIEWED docs/HARDWARE-SPEC.md:588 term cec236a1fa64b323: A plain port-pin name (port A, pin number), the usual way to name a pin of the SDK's JL_PORTA; the pin's role in the spec is cited to experiment E-7.
+REVIEWED docs/HARNESS.md:148 term 76370ae20734a8d3: A column name in the header of fwtest's own ipb.csv output (docs/HARNESS.md, 'Outputs'), chosen by the harness: the instruction count of the second core. It is fwtest's interface, not a name taken from the emulator.
+REVIEWED docs/reviews/M0c-spec-review.md:39 term cec236a1fa64b323: A plain port-pin name (port A, pin number), the usual way to name a pin of the SDK's JL_PORTA; the pin's role in the spec is cited to experiment E-7.
+REVIEWED docs/reviews/M0c-spec-review.md:58 term eab5cb44eb7b01be: A public part-family name of the LCD controller, sourced in the hardware spec from FM-1-RE's display document and the manufacturer's datasheet, not from the emulator.
+4449 emulator-only terms; 77 files, 9 commit messages, 0 pull request texts scanned
+emulator terms: PASS
+
+exit status 0

@@ -1,0 +1,13 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 4ce9800ebb9db5e49a94bb2f0bf52a64fc81b34e..80864b9b85013abd7f3a7e5c0f796863eebd2264
+OK     1669dbf48564 harness: spec-side black-box experiments for the hardware spec
+OK     45b1c3234958 docs: fwtest captures can come late while the image waits
+OK     3d92a4148491 tools: the separation check also scans the two doors
+OK     36c88d686313 docs: the hardware spec
+OK     2d3b965cb507 tools: a lint for the hardware spec, and the R-SPEC requirements
+OK     820d67c139f6 docs: the independent review of the hardware spec, and its fixes
+OK     9208af2e31a0 docs: plan records M0c, M0d is next
+OK     88491a2d68cc tools: the separation check knows the parts of SDK names
+EXEMPT 80864b9b8501 (merge) Merge pull request #9 from japes98/m0c/spec
+9 commit(s) checked: PASS
+
+exit status 0

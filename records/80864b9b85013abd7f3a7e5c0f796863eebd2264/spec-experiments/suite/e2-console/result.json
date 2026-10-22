@@ -1,0 +1,38 @@
+{
+  "fwtest": {
+    "version": "0.1.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "e2-console.bin",
+    "bytes": 76,
+    "sha256": "f276a01aec924697164883a3b762d34b40b724cf8a596647a7d55fd0e60a9706"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "halt",
+    "detail": "core 0 jumped to itself with interrupts disabled at pc 0x0200001e",
+    "emulated_ms": "0.008",
+    "instructions": {
+      "core0": 2049,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "console.txt",
+        "bytes": 20,
+        "sha256": "204bc0f4ee5b081056c0ffa0da0fbe9757c812ab3cb669702cc0428d2725d1f5"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "console.txt",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 4
+}
