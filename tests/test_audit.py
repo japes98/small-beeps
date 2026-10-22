@@ -196,6 +196,27 @@ class SettingsTest(unittest.TestCase):
         self.assertIn("gh issue create", text)
 
 
+class SelftestVerdictTest(unittest.TestCase):
+    """A file JPlag leaves out of its index (no match) fails the self-test
+    rather than being skipped. Requirements: R-AUDIT-5"""
+
+    def report(self, states):
+        files = [{"file": f, "tokens": 20 if st == "scored" else None, "state": st} for f, st in states]
+        best = [[f, "copy/" + f, 20, 1.0, 1.0] for f, st in states if st == "scored"]
+        return {"ours_files": files, "selftest": {"ours_best": best},
+                "checks": [{"id": "C-AUDIT-LEAK", "result": "PASS"}]}
+
+    def test_all_found(self):
+        ok, detail = audit.selftest_verdict(self.report([("src/a.c", "scored"), ("src/b.h", "scored")]))
+        self.assertTrue(ok, detail)
+        self.assertIn("2 of our 2 files", detail)
+
+    def test_a_file_without_a_match_fails(self):
+        ok, detail = audit.selftest_verdict(self.report([("src/a.c", "scored"), ("src/b.h", "no match")]))
+        self.assertFalse(ok)
+        self.assertIn("1 of our 2 files", detail)
+
+
 class AcceptedTest(unittest.TestCase):
     """Requirements: R-AUDIT-5, R-AUDIT-6"""
 

@@ -332,8 +332,11 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     - **Isolation:** the targets exist only in a job with no secrets, and
       only scores and file names reach the record
       (`records/<sha>/audit/`).
-    - **Checked so far:** the self-test and a dry run against permissive
-      stand-ins pass. The first real run is the push that merges this.
+    - **First run** (the merge `362480c8`, docs/AUDIT.md "The first run"):
+      PASS in under 4 minutes, so pushes run the full set. 516 targets,
+      18,498 files; the control's baseline was 35 tokens (threshold 59), no
+      target was control-related, and our best pair was a 12-token match.
+      Its report is in the record, beside the main record.
   - **Auditor role**: CONTRIBUTING.md, `config/claude/auditor.json`,
     `tools/auditor-setup.sh`. Its transcripts go to the owner's private
     repository (created when the first auditor session runs), never here.

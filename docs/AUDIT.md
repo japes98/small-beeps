@@ -252,10 +252,11 @@ its first run is the push that merges it.
 
 - **Sets.** `full` scores every target that isn't a duplicate. `fast`
   scores the four seeds Felucca, dinghy, fm1-emu's `fm1-sid/` (with
-  `probes/`) and `fm1_open`. Pushes to main run `full`. If a full run ever
-  takes more than about 30 minutes, push runs switch to `fast` and a nightly
-  schedule runs `full`. That is one change to `audit.yml`'s triggers, by
-  pull request, and this page then says so.
+  `probes/`) and `fm1_open`. Pushes to main run `full`: the first run
+  (below) took under 4 minutes. If a full run ever takes more than about 30
+  minutes, push runs switch to `fast` and a nightly schedule runs `full`.
+  That is one change to `audit.yml`'s triggers, by pull request, and this
+  page then says so.
 - **Self-test first.** Each run starts with `tools/audit.py selftest`. It
   builds a made-up local target that holds verbatim copies of our files,
   runs the whole pipeline on it, and checks that each of our files is found
@@ -306,7 +307,10 @@ its first run is the push that merges it.
   holding the matched file (the first ten of them, and how many there are),
   each with its licence class, and the longest match, max and avg;
 - the control's top five pairs, and its best pair with our own files;
-- each of our files' token counts;
+- each of our files' token counts. A file that matched nothing anywhere
+  (no run of 12 tokens) shows `no match` with no count: JPlag leaves such a
+  file out of its index. It was still parsed and compared; the self-test,
+  which fails unless every one of our files is found, shows that it parses;
 - every target: its pinned commit, licence class, files fetched (and how
   many were new to the pool), our longest and the control's longest match
   with it, and how many of its files JPlag could not parse or found too
@@ -314,6 +318,22 @@ its first run is the push that merges it.
 - the flagged pairs, every place listed; pairs accepted by an auditor's
   finding; how many targets were skipped as duplicates or empty; and the
   unresolved names.
+
+### The first run
+
+The push that merged the audit (`362480c8`, run 39814921515) ran the full
+set. Its report is in `records/362480c8…/audit/39814921515-1/`.
+- The audit job took 3 minutes 44 seconds, the self-test included. That is
+  why pushes run `full`.
+- 516 targets were fetched at their pins, none unavailable; 18,498 target
+  files were scored, one per blob.
+- The control's longest match with an unrelated target was 35 tokens, so
+  the threshold was 59. No target was control-related.
+- Our best pair: `src/probe.c`, a 12-token match (JPlag's minimum) with
+  several targets. `src/main.c`, `src/start.c` and `src/sb.h` matched
+  nothing.
+- Every check passed: C-AUDIT-JPLAG, -PIN, -CONTROL, -SCORE, -LEAK and
+  -SELFTEST.
 
 ## When the audit fails
 
