@@ -17,8 +17,14 @@ redacts:
   - account and organisation IDs;
   - private paths: home folders become `~`, and per-user temp folders are
     shortened;
-  - the local user names seen in those paths, wherever they appear, and
+  - the local user names seen in those paths and the user running this,
+    wherever they appear (ignoring case, even inside other words), and
     `*.local` host names;
+  - the local top-level folder (the folder that holds this checkout, unless
+    that is just the repository's own name; or --top NAME), anywhere, as
+    `<top>`;
+  - the owner's private terms (PRIVATE_TERMS, or the gitignored
+    tools/private-terms.local; tools/check-private.py), anywhere;
   - in clean transcripts only: the lines of a git summary (a merge's
     diffstat, `create mode` and `delete mode` lines) that name files under
     vendor/emulator/, harness/ or sessions/spec/. Each run of such lines
@@ -31,6 +37,7 @@ an existing archive.
 """
 import argparse
 import datetime
+import getpass
 import glob
 import hashlib
 import json
@@ -65,16 +72,56 @@ HOST_RULE = ("host name", re.compile(r"\b[A-Za-z0-9-]+\.local\b(?!\.)"), "[REDAC
 HOME_USER = re.compile(r"/(?:Users|home)/([A-Za-z0-9._-]+)/")
 
 
-def user_rules(path):
-    """Rules for the local user names seen in home-folder paths, so they are
-    also redacted where they appear alone (e.g. in `ls -l` output)."""
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+NOT_NAMES = {"shared", "runner", "root", "users", "home", "tmp", "private"}
+
+
+def user_rules(path, me=None):
+    """Rules for the local user names seen in home-folder paths, and the user
+    running this, so they are also redacted where they appear alone (e.g. in
+    `ls -l` output) or inside other words (a project folder's name)."""
     names = set()
     with open(path, encoding="utf-8") as f:
         for line in f:
             names.update(HOME_USER.findall(line))
-    names -= {"Shared", "runner"}
-    return [("local user name", re.compile(r"\b%s\b" % re.escape(n)), "[REDACTED:user]")
+    if me is None:
+        try:
+            me = getpass.getuser()
+        except Exception:  # no user name available: nothing to add
+            me = ""
+    if me:
+        names.add(me)
+    names = {n for n in names if len(n) >= 2 and n.lower() not in NOT_NAMES}
+    return [("local user name", re.compile(re.escape(n), re.I), "[REDACTED:user]")
             for n in sorted(names)]
+
+
+def default_top():
+    """The local top-level folder: the one holding this checkout (beside its
+    clean or spec sibling). None when it is only the repository's own name,
+    as in CI's checkout."""
+    top = os.path.basename(os.path.dirname(ROOT))
+    if not top or top == os.path.basename(ROOT) or top.lower() in NOT_NAMES or len(top) < 3:
+        return None
+    return top
+
+
+def top_rules(top):
+    if not top:
+        return []
+    return [("local top folder name", re.compile(re.escape(top), re.I), "<top>")]
+
+
+def private_rules():
+    """The owner's private terms (as tools/check-private.py reads them)."""
+    text = os.environ.get("PRIVATE_TERMS")
+    path = os.path.join(ROOT, "tools", "private-terms.local")
+    if not text and os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+    terms = sorted({l.strip() for l in (text or "").splitlines()
+                    if l.strip() and not l.strip().startswith("#")}, key=lambda t: (-len(t), t))
+    return [("private term", re.compile(re.escape(t), re.I), "[REDACTED:private]") for t in terms]
 
 
 SPEC_DIRS = ("vendor/emulator/", "harness/", "sessions/spec/")
@@ -184,10 +231,12 @@ def main():
                     help="where to put it (default: sessions/<role>/)")
     ap.add_argument("--archived-by", default="",
                     help="the session doing the archiving, for the note")
+    ap.add_argument("--top", default=None,
+                    help="the local top-level folder's name, redacted as <top> "
+                         "(default: the folder holding this checkout)")
     a = ap.parse_args()
     if a.out is None:
-        a.out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                             "sessions", a.role)
+        a.out = os.path.join(ROOT, "sessions", a.role)
 
     src = a.transcript
     sid = os.path.basename(src)[:-len(".jsonl")]
@@ -203,7 +252,9 @@ def main():
     if subs:
         os.makedirs(os.path.join(a.out, name + ".subagents"))
         files += [(s, os.path.join(a.out, name + ".subagents", os.path.basename(s))) for s in subs]
-    extra = []
+    # The private terms first, longest first: a term that contains the user
+    # or folder name (a host name often does) must go whole, not in part.
+    extra = private_rules() + top_rules(a.top if a.top is not None else default_top())
     for s, _ in files:
         extra += [r for r in user_rules(s) if r[1].pattern not in [e[1].pattern for e in extra]]
     spec_files = spec_names() if a.role == "clean" else None

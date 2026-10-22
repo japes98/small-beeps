@@ -76,6 +76,14 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 japes98"
 SPDX-License-Identifier = "MIT"
 
+# The firmware suite's golden files: outputs of fwtest, checked by hand
+# when they were made (tests/fw/boot.suite).
+[[annotations]]
+path = ["tests/fw/golden/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 japes98"
+SPDX-License-Identifier = "MIT"
+
 # The owner's screenshot of the F-Emulator app's panel with its default
 # labels, a source for docs/HARDWARE-SPEC.md (PROVENANCE P-12).
 [[annotations]]

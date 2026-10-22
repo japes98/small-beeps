@@ -7,6 +7,10 @@
 .claude/settings.local.json
 .claude/small-beeps-role
 
+# The owner's private terms, for tools/check-private.py: never committed
+# (CI reads the same list from the PRIVATE_TERMS secret).
+/tools/private-terms.local
+
 # Build and check outputs
 /out/
 __pycache__/

@@ -20,6 +20,31 @@
       "sha256_16": "cec236a1fa64b323",
       "reason": "A plain port-pin name (port A, pin number), the usual way to name a pin of the SDK's JL_PORTA; the pin's role in the spec is cited to experiment E-7.",
       "added_by": "session M0c (spec side), 2026-10-22"
+    },
+    {
+      "sha256_16": "99657bb7826921ed",
+      "reason": "The start address of main RAM, a hardware fact the firmware takes from docs/HARDWARE-SPEC.md (HW-6, sourced to the JieLi SDK and FM-1-RE) for its linker script, its beacon and its tests.",
+      "added_by": "session M0d (firmware side), 2026-10-22"
+    },
+    {
+      "sha256_16": "8d3094fa2e9da0b5",
+      "reason": "The address of the debug message register, a hardware fact from docs/HARDWARE-SPEC.md (HW-25, sourced to the JieLi SDK's csfr.h), cited in the firmware's design notes.",
+      "added_by": "session M0d (firmware side), 2026-10-22"
+    },
+    {
+      "sha256_16": "90ab76327b632b83",
+      "reason": "The load address and entry of the raw image, from docs/HARDWARE-SPEC.md (HW-1) and docs/HARNESS.md ('The raw image'), used in the firmware's linker script.",
+      "added_by": "session M0d (firmware side), 2026-10-22"
+    },
+    {
+      "sha256_16": "f897aded4c2954ad",
+      "reason": "The largest raw image's length (1 MiB less 16 KiB) written in hex, from docs/HARDWARE-SPEC.md (HW-5) and docs/HARNESS.md ('The raw image'), used as the image region's length in the firmware's linker script.",
+      "added_by": "session M0d (firmware side), 2026-10-22"
+    },
+    {
+      "sha256_16": "744ecd8ac4b5da96",
+      "reason": "The address of the interrupt vector table, a hardware fact from docs/HARDWARE-SPEC.md (HW-18, sourced to the JieLi SDK's hwi.h and FM-1-RE), cited in the firmware's design notes on the memory layout.",
+      "added_by": "session M0d (firmware side), 2026-10-22"
     }
   ]
 }

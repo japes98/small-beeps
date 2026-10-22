@@ -5,6 +5,9 @@ SPDX-FileCopyrightText: 2026 japes98
 
 # Exposure register
 
+*Local paths in older entries were redacted on 2026-10-22 for privacy; git
+history keeps the originals; nothing else changed.*
+
 This is the record a clean-room claim rests on: who, or which session, saw
 what, and when. Roles are defined in CONTRIBUTING.md.
 
@@ -58,7 +61,7 @@ training cutoff (see "Model cutoffs" below).
 - Session: Claude Code session `36860ab8-77fd-4fd6-aa1d-2063c15a5548`,
   `https://claude.ai/code/session_01CQ8PVaAx6db8cqvV9i53wj`.
 - Where it ran: the owner's Mac (macOS, Apple Silicon), in
-  `~/Development/F-Irmware/clean`. The prompt said "~/work/small-beeps/clean
+  `~/<top>/clean`. The prompt said "~/work/small-beeps/clean
   on the owner's Docker machine"; the owner was told and continued. The
   session used only paths inside this folder, its own scratch folder and its
   own transcript, and never listed or opened the parent folder or its other
@@ -100,7 +103,7 @@ training cutoff (see "Model cutoffs" below).
 - Session: Claude Code session `e74c69f7-ff95-4dcc-bf7a-9a980e62a6f9`,
   `https://claude.ai/code/session_01RWVcKRtXA4USAZaVZw4ZzA`.
 - Where it ran: the owner's Mac (macOS, Apple Silicon), in
-  `~/Development/F-Irmware/spec`. The prompt said "~/work/small-beeps/spec
+  `~/<top>/spec`. The prompt said "~/work/small-beeps/spec
   on the owner's Docker machine"; as with M0a, the session went on and told
   the owner. It never opened the parent folder's other entries or the clean
   folder; it read the clean session M0a's transcripts only to archive them.
@@ -150,10 +153,10 @@ training cutoff (see "Model cutoffs" below).
   knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
 - Session: Claude Code session `3a0a372e-7fbc-4446-b51a-1298219a7562` (a
   local session; it has no claude.ai session URL).
-- Where it ran: the owner's Mac, in `~/Development/F-Irmware/clean`. The
+- Where it ran: the owner's Mac, in `~/<top>/clean`. The
   owner's fix steps named `~/work/small-beeps/`; the session asked, and the
   owner chose this folder's paths (the fresh copy was made beside it, in
-  `~/Development/F-Irmware/.clean-new`).
+  `~/<top>/.clean-new`).
 - What it did: brought the clean folder up to main (8d55367) by the
   owner's steps. The folder had been a full clone; it was made blob-less
   (promisor remote, `blob:none` filter), fetched, given the narrowed sparse
@@ -198,7 +201,7 @@ training cutoff (see "Model cutoffs" below).
   knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
 - Session: Claude Code session `91e7ef55-b2f6-424a-981d-e85c57733aaa`,
   `https://claude.ai/code/session_01RWVcKRtXA4USAZaVZw4ZzA`.
-- Where it ran: the owner's Mac, in `~/Development/F-Irmware/spec`,
+- Where it ran: the owner's Mac, in `~/<top>/spec`,
   started by `/clear` after M0b; banner `status: OK`.
 - What it archived: M0b's transcript into `sessions/spec/`, and clean
   maintenance session 1's into `sessions/clean/` (reading that one to
@@ -227,23 +230,64 @@ training cutoff (see "Model cutoffs" below).
   page listed result titles mentioning M-VAVE's firmware downloads and
   forum; none of those pages was opened.
 
+### Session M0d (the smallest firmware)
+- Date: 2026-10-22
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.308 (`claude --version`), Remote Control from the
+  owner's phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `b7ed6c1a-fb2a-4707-b9e2-303e11f65740`. This
+  is the session M0c left alone because it then held only a `/clear`
+  (11:31Z); the M0d prompt was pasted into it after that `/clear`, so its
+  transcript is this session's own and is left for the next clean session
+  to archive. At 13:13:44Z (banner `source: fork`, `status: OK`) Claude
+  Code continued the session as `cd816ac2-14a7-4eb6-ba5f-1732c57ec45f`, a
+  second transcript holding the rest of M0d; the next clean session
+  archives both. Commits made after the fork still name `b7ed6c1a` in
+  their `Claude-Session:` trailer; they were not rewritten for it.
+- Privacy: the session saw the owner's private terms once, when the owner
+  filled in `tools/private-terms.local` and Claude Code showed the changed
+  file. It never wrote them anywhere; its transcripts hold them until the
+  archiver redacts them.
+- Where it ran: the owner's Mac, in `~/<top>/clean`; banner
+  `status: OK` at the start and after `tools/clean-setup.sh`.
+- Start: fast-forwarded main to `80864b9` with the prompt's steps (lazy
+  fetching off, `--no-stat`), `tools/clean-update.sh` ended "no spec-side
+  files on disk or in .git", and the merged branch `clean/maintenance-1`
+  was deleted. Nothing was left to archive: the finished clean sessions
+  (M0a's two, clean maintenance session 1) are in `sessions/clean/`, and
+  `tools/check-transcripts.py` passed. M0a's original transcript has grown
+  since it was archived by an idle compaction (05:01Z: a summary and
+  context attachments, no tool calls); the archive tool refuses to
+  overwrite, so the archived copy stays as it is.
+- Reads: CONTRIBUTING.md, docs/PLAN.md, REQUIREMENTS.md, TOOLCHAIN.md,
+  HARNESS.md, the M0d to M1 sections of docs/HARDWARE-SPEC.md, the vendored
+  SDK headers (`WL82.h`, `csfr.h`), and this repository's tools. It runs the
+  toolchain on its own test files to learn the pi32v2 assembly syntax, and
+  runs its own images in fwtest through `tools/fwtest`. It does not open
+  anything on the forbidden list or anything under the three spec-side
+  folders.
+
 ## Barrier log
 
 | When (UTC) | Folder | Settings SHA-256 | Event |
 |------------|--------|------------------|-------|
-| 2026-10-22T02:33:04Z (session start; 2026-10-21 local time) | `~/Development/F-Irmware/clean` | `a557bd84…bf29b32` | Hand-made settings, owner-made before `git init` |
+| 2026-10-22T02:33:04Z (session start; 2026-10-21 local time) | `~/<top>/clean` | `a557bd84…bf29b32` | Hand-made settings, owner-made before `git init` |
 | 2026-10-22T03:41:31Z | same | `6240e19a…9f639156` | `tools/clean-setup.sh` installed `config/claude/clean.json` (same ten deny rules plus the banner hook); role file `clean` |
 | 2026-10-22T03:41:42Z | same | `6240e19a…9f639156` | Banner tested by hand: `status: OK`. The live file was then changed by one appended space for about a second to test `CONFIG MISMATCH` (seen), and restored from a copy (hash re-checked: `6240e19a…`). No deny rule changed. |
-| 2026-10-22T04:10:18Z (session start) | `~/Development/F-Irmware/spec` | `daa6c52d…ce27d` | Session M0b starts under the owner's hand-made spec settings, no banner hook |
+| 2026-10-22T04:10:18Z (session start) | `~/<top>/spec` | `daa6c52d…ce27d` | Session M0b starts under the owner's hand-made spec settings, no banner hook |
 | 2026-10-22T04:10:57Z | same | `daa6c52d…ce27d` | `git init`, fetch and checkout of `main`; hand-made file hashed and copied |
 | 2026-10-22T04:11:17Z | same | `eaa5f875…ed542f810` | `tools/spec-setup.sh` installed `config/claude/spec.json` (same seven deny rules plus the banner hook); role file `spec`; banner printed `status: OK` |
 | 2026-10-22T04:11Z to 04:20Z | same (upstream copy in the session's scratch folder) | `eaa5f875…ed542f810` | Blob-less, sparse clone of the upstream emulator (three crates, licence, workspace manifest; commit `43ed5580`), read to plan the harness |
 | 2026-10-22T04:21Z | same | `eaa5f875…ed542f810` | M0a's two transcripts archived into `sessions/clean/`; `tools/check-transcripts.py` PASS; this entry written |
-| 2026-10-22T11:17:25Z (session start) | `~/Development/F-Irmware/clean` | `6240e19a…9f639156` | Clean maintenance session 1 starts; banner `status: OK` |
+| 2026-10-22T11:17:25Z (session start) | `~/<top>/clean` | `6240e19a…9f639156` | Clean maintenance session 1 starts; banner `status: OK` |
 | 2026-10-22T11:18:01Z | same | `aa535102…9f25ab` | After the fast-forward to main, `tools/clean-setup.sh` installed the updated `config/claude/clean.json` (no deny rule dropped); banner `status: OK` |
 | 2026-10-22T11:26:43Z | same | `aa535102…9f25ab` | The folder's `.git` replaced by a fresh blob-less clone, the old one deleted unread; `tools/clean-setup.sh` re-run, banner `status: OK`; `tools/clean-update.sh` passed |
-| 2026-10-22T11:31:22Z (session start, `/clear`) | `~/Development/F-Irmware/spec` | `eaa5f875…ed542f810` | Session M0c starts; banner `status: OK` |
+| 2026-10-22T11:31:22Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session M0c starts; banner `status: OK` |
 | 2026-10-22T11:38Z | same | `eaa5f875…ed542f810` | M0b's transcript archived into `sessions/spec/`, clean maintenance session 1's into `sessions/clean/` (merge summary redacted); `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-22T12:37:55Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M0d (started by the `/clear` at 11:31:15Z, banner `status: OK`) fast-forwards to `80864b9`; `tools/clean-setup.sh` banner `status: OK`; `tools/clean-update.sh` passed; `tools/check-transcripts.py` PASS |
 
 ## Model cutoffs
 

@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# M0d's fwtest suite (docs/HARNESS.md, "Suites"). tools/fw-suite.py puts the
+# image under test at out/fw/app.bin, runs this suite through tools/fwtest
+# and then checks the heartbeat's timing from the captured beacons.
+#
+# boot (R-BOOT-1, R-BOOT-4, R-BOOT-5): main runs and writes the marker and
+#   the console line; RAM from 0x01c7fc00 to its top is as fwtest started
+#   it (the r0 block, then zeros). Golden files, exact.
+# heartbeat (R-BOOT-2, R-BOOT-3, R-BOOT-4): a second of heartbeat, the
+#   beacon captured along the way; the watchdog fails the run if the beat
+#   count stops for 5 ms. tools/fw-suite.py checks the captures' timing.
+#
+# NAME      EXPECT     IMAGE                 run options
+boot        completed  ../../out/fw/app.bin  --ms 5 --console --ram 0x01c00000:4@end --ram 0x01c7fc00:0x400@end --golden golden/boot
+heartbeat   completed  ../../out/fw/app.bin  --ms 1000 --watchdog 0x01c00004:5 --ram 0x01c00000:16@1 --ram 0x01c00000:16@10 --ram 0x01c00000:16@100 --ram 0x01c00000:16@500 --ram 0x01c00000:16@end

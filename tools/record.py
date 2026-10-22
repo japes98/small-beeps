@@ -5,8 +5,8 @@
 
   record.py run --out DIR [--only C-A,C-B] [--skip C-X] [--with-merge]
       Runs the checks in CHECKS, writes DIR/report.json, DIR/report.md,
-      DIR/logs/<check>.log, DIR/outputs/ (the build outputs) and
-      DIR/SHA256SUMS (of all of those). Exit status 1 if any check failed.
+      DIR/logs/<check>.log, DIR/outputs/ (the build outputs), DIR/fwtest/
+      (the firmware suite's outputs) and DIR/SHA256SUMS (of all of those). Exit status 1 if any check failed.
   record.py compare --record REPORT.json --outputs DIR
       Compares DIR/SHA256SUMS with the outputs listed in a record
       (used by tools/reproduce). Exit status 1 on any difference.
@@ -37,6 +37,14 @@ def _low_profile_cmd():
     return [PY, "-I", "tools/check-low-profile.py", "--offline"]
 
 
+def _private_cmd():
+    # CI must have the terms (the PRIVATE_TERMS secret); locally they come
+    # from tools/private-terms.local when it exists.
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        return [PY, "-I", "tools/check-private.py", "--require"]
+    return [PY, "-I", "tools/check-private.py"]
+
+
 def _commit_range():
     return os.environ.get("COMMIT_RANGE") or "..HEAD"
 
@@ -58,6 +66,8 @@ CHECKS = [
      "reqs": ["R-PUB-1"], "cmd": _low_profile_cmd},
     {"id": "C-SECRETS", "title": "No secrets in tracked files",
      "reqs": ["R-PUB-2"], "cmd": [PY, "-I", "tools/check-tracked.py", "secrets"]},
+    {"id": "C-PRIVATE", "title": "No private terms in tracked files or commit messages",
+     "reqs": ["R-PUB-3"], "cmd": _private_cmd},
     {"id": "C-NO-TOOLCHAIN", "title": "No toolchain parts or binaries tracked",
      "reqs": ["R-REPRO-1"], "cmd": [PY, "-I", "tools/check-tracked.py", "no-toolchain"]},
     {"id": "C-DENY-LISTS", "title": "Claude Code deny lists never drop an entry",
@@ -88,6 +98,13 @@ CHECKS = [
                      "--src-mount", "/tmp/elsewhere/small-beeps-src-b"]},
     {"id": "C-DETERMINISM", "title": "Builds A and B are byte-identical",
      "reqs": ["R-REPRO-3"], "internal": "determinism"},
+    # The firmware (M0d): its size from build A, and its fwtest suite.
+    {"id": "C-FW-SIZE", "title": "Firmware image size (code, data, bss) from build A",
+     "reqs": ["R-BUILD-2"], "internal": "firmware_size"},
+    {"id": "C-FW-SUITE", "title": "Firmware in fwtest: boots, marker, heartbeat timing, no faults (tests/fw/boot.suite)",
+     "reqs": ["R-BOOT-1", "R-BOOT-2", "R-BOOT-3", "R-BOOT-4", "R-BOOT-5"],
+     "cmd": lambda: [PY, "-I", "tools/fw-suite.py", "--build", os.path.join(OUT, "build-a"),
+                     "--out", os.path.join(OUT, "fwtest")]},
     # The harness (spec side): skipped where harness/ isn't on disk.
     {"id": "C-HARNESS-SCOPE", "title": "The harness uses no update-package or stock-boot paths",
      "reqs": ["R-HARN-9"], "needs": "harness", "cmd": ["sh", "harness/ci.sh", "scope"]},
@@ -115,6 +132,7 @@ CHECKS = [
 ]
 
 OUT = ""
+FIRMWARE_SIZE = {}
 
 
 def git(*args):
@@ -172,6 +190,23 @@ def determinism():
         lines.append("no outputs")
     lines.append("determinism: %s" % ("PASS" if ok else "FAIL"))
     return (0 if ok else 1), "\n".join(lines) + "\n"
+
+
+def firmware_size():
+    """Reads build A's app.size (tools/build.sh) into the record."""
+    path = os.path.join(OUT, "build-a", "app.size")
+    try:
+        with open(path) as f:
+            pairs = [l.split() for l in f if l.strip()]
+        size = {k: int(v) for k, v in pairs}
+    except (OSError, ValueError) as e:
+        return 1, "cannot read %s: %s\n" % (path, e)
+    missing = [k for k in ("code", "data", "bss", "image", "stack") if k not in size]
+    if missing:
+        return 1, "app.size lacks %s\n" % ", ".join(missing)
+    FIRMWARE_SIZE.clear()
+    FIRMWARE_SIZE.update(size)
+    return 0, "".join("%-5s %8d bytes\n" % (k, size[k]) for k in sorted(size))
 
 
 def tree_files(top):
@@ -321,6 +356,11 @@ def write_markdown(report, path):
     L += ["", "## Outputs", "", "| File | SHA-256 |", "|------|---------|"]
     for name, digest in sorted(report["outputs"].items()):
         L.append("| `%s` | `%s` |" % (name, digest))
+    if report.get("firmware_size"):
+        L += ["", "## Firmware size", "", "| Part | Bytes |", "|------|-------|"]
+        for part in ("code", "data", "bss", "image", "stack"):
+            if part in report["firmware_size"]:
+                L.append("| %s | %d |" % (part, report["firmware_size"][part]))
     L += ["", "## Traceability", "", "| Requirement | Checks | Result |",
           "|-------------|--------|--------|"]
     for t in report["traceability"]:
@@ -388,6 +428,7 @@ def cmd_run(a):
         "environment": environment(),
         "checks": results,
         "outputs": outputs,
+        "firmware_size": dict(FIRMWARE_SIZE),
         "traceability": traceability(results),
         "overall": "PASS" if results and all(r["result"] in ("PASS", "SKIP") for r in results) else "FAIL",
     }

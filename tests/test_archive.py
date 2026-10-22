@@ -51,6 +51,56 @@ class ArchiveTest(unittest.TestCase):
         self.assertNotIn("PRIVATE KEY-----\\nabc", out)
         json.loads(out)
 
+    def test_top_folder_user_and_private_terms_anywhere(self):
+        path = os.path.join(self.dir, "t.jsonl")
+        line = json.dumps({"cwd": "/Users/someone/Dev/TopFolder/clean",
+                           "p": "-Users-someone-Dev-TopFolder-clean",
+                           "ls": "drwx someone staff; SOMEONE2; on Secret-Box here"}) + "\n"
+        with open(path, "w") as f:
+            f.write(line)
+        saved = os.environ.get("PRIVATE_TERMS")
+        os.environ["PRIVATE_TERMS"] = "# a comment\nsecret-box\n"
+        try:
+            extra = ar.top_rules("TopFolder") + ar.user_rules(path, me="") + ar.private_rules()
+        finally:
+            if saved is None:
+                del os.environ["PRIVATE_TERMS"]
+            else:
+                os.environ["PRIVATE_TERMS"] = saved
+        counts = {}
+        out = ar.redact_line(line, counts, extra)
+        json.loads(out)
+        for gone in ("someone", "SOMEONE", "TopFolder", "Secret-Box"):
+            self.assertNotIn(gone, out)
+        self.assertIn("~/Dev/<top>/clean", out)
+        self.assertIn("-HOME-Dev-<top>-clean", out)
+        self.assertIn("[REDACTED:private]", out)
+        self.assertEqual(ar.top_rules(None), [])
+
+    def test_a_term_containing_the_user_name_goes_whole(self):
+        path = os.path.join(self.dir, "t.jsonl")
+        line = json.dumps({"host": "on someones-laptop now", "u": "/Users/someone/x"}) + "\n"
+        with open(path, "w") as f:
+            f.write(line)
+        saved = os.environ.get("PRIVATE_TERMS")
+        os.environ["PRIVATE_TERMS"] = "someones-laptop\n"
+        try:
+            extra = ar.private_rules() + ar.top_rules(None) + ar.user_rules(path, me="")
+        finally:
+            if saved is None:
+                del os.environ["PRIVATE_TERMS"]
+            else:
+                os.environ["PRIVATE_TERMS"] = saved
+        out = ar.redact_line(line, {}, extra)
+        json.loads(out)
+        self.assertIn("on [REDACTED:private] now", out)
+        self.assertNotIn("laptop", out)
+
+    def test_default_top_skips_a_bare_repository_name(self):
+        top = ar.default_top()
+        if top is not None:
+            self.assertNotEqual(top, os.path.basename(ROOT))
+
     def test_archive_end_to_end_then_check(self):
         sid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
         src_dir = os.path.join(self.dir, "projects")

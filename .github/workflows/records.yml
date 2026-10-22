@@ -46,6 +46,9 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
           GITHUB_TOKEN: ${{ github.token }}
+          # The owner's private terms, for C-PRIVATE (tools/check-private.py
+          # prints only file and line, never a term).
+          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
         run: |
           if [ -z "$BEFORE" ] || [ "$BEFORE" = 0000000000000000000000000000000000000000 ]; then
             export COMMIT_RANGE="..$GITHUB_SHA"
