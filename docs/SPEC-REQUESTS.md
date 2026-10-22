@@ -68,9 +68,9 @@ an issue or a pull request against docs/HARNESS.md.
   handler run.
 - Why: M1 reports a fault over the debug channel and halts cleanly. The
   handler is installed for sources 0 to 2, but nothing in fwtest reaches
-  it: in our own runs a misaligned word load, a read of `0x30000000` and a
-  write to the code window completed (the last two listed as unmodelled
-  accesses), and an undecodable instruction ended the run with fwtest's
+  it: in our own runs a misaligned word load, a read of an address outside
+  every memory the spec lists, and a write to the code window completed
+  (the last two listed as unmodelled accesses), and an undecodable instruction ended the run with fwtest's
   own fault outcome before any handler ran. HARDWARE-SPEC.md lists no
   exception source (HW-19 names the SDK's `hwi.h` for the rest). Until
   this is answered, M1 tests its fault path with a stack guard it checks
