@@ -195,6 +195,14 @@ class LayoutTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("outside clean/ and spec/", out)
 
+    def test_an_auditor_transcript_fails_anywhere_under_sessions(self):
+        os.makedirs(os.path.join(self.dir, "auditor"))
+        self.put("auditor", "clean")
+        code, out = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertIn("auditor/", out)
+        self.assertIn("outside clean/ and spec/", out)
+
     def test_reviewed_list_is_found_from_a_role_folder(self):
         with open(os.path.join(self.dir, "REVIEWED.json"), "w") as f:
             json.dump({"reviewed": [{"session": SID, "tool_use_id": "t", "rule": "r",

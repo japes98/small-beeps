@@ -21,5 +21,29 @@
     "Bash(git clone*Felucca*)",
     "Bash(git clone*felucca*)",
     "Bash(git clone*dinghy*)"
+  ],
+  "auditor": [
+    "Edit(./firmware/**)",
+    "Write(./firmware/**)",
+    "Edit(./docs/HARDWARE-SPEC.md)",
+    "Write(./docs/HARDWARE-SPEC.md)",
+    "Edit(./docs/HARNESS.md)",
+    "Write(./docs/HARNESS.md)",
+    "Edit(./docs/SPEC-REQUESTS.md)",
+    "Write(./docs/SPEC-REQUESTS.md)",
+    "Edit(./harness/**)",
+    "Write(./harness/**)",
+    "Edit(./vendor/**)",
+    "Write(./vendor/**)",
+    "Edit(./tools/**)",
+    "Write(./tools/**)",
+    "Edit(./tests/**)",
+    "Write(./tests/**)",
+    "Edit(./config/**)",
+    "Write(./config/**)",
+    "Edit(./.github/**)",
+    "Write(./.github/**)",
+    "Edit(./sessions/**)",
+    "Write(./sessions/**)"
   ]
 }

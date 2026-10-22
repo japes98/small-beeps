@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: 2026 japes98
 """Deny lists never drop an entry (R-CLEAN-4, check C-DENY-LISTS).
 
-Fails if config/claude/clean.json or spec.json lacks any deny rule that
+Fails if config/claude/clean.json, spec.json or auditor.json lacks any deny rule that
   - config/claude/deny-baseline.json lists for it (entries may be added to
     the baseline, never removed), or
   - is in ORIGINAL below (the lists as first committed; a change to this
@@ -12,7 +12,7 @@ Fails if config/claude/clean.json or spec.json lacks any deny rule that
     first set up a folder of that role (clean: config/claude/
     handmade-settings.json, M0a; spec: handmade-spec-settings.json, M0b),
     whose SHA-256 must stay the one in docs/EXPOSURE.md.
-Also checks that both configs run tools/session-banner.sh on every
+(The auditor's config has no hand-made file.) Also checks that every config runs tools/session-banner.sh on every
 SessionStart, and that the clean config turns git's lazy fetching off
 (GIT_NO_LAZY_FETCH=1), so no command in a clean session can download a file
 the clean folder leaves out (R-SEP-2).
@@ -51,6 +51,31 @@ ORIGINAL = {
         "Bash(git clone*felucca*)",
         "Bash(git clone*dinghy*)",
     ],
+    # first committed in M0e (session M0e-spec)
+    "auditor": [
+        "Edit(./firmware/**)",
+        "Write(./firmware/**)",
+        "Edit(./docs/HARDWARE-SPEC.md)",
+        "Write(./docs/HARDWARE-SPEC.md)",
+        "Edit(./docs/HARNESS.md)",
+        "Write(./docs/HARNESS.md)",
+        "Edit(./docs/SPEC-REQUESTS.md)",
+        "Write(./docs/SPEC-REQUESTS.md)",
+        "Edit(./harness/**)",
+        "Write(./harness/**)",
+        "Edit(./vendor/**)",
+        "Write(./vendor/**)",
+        "Edit(./tools/**)",
+        "Write(./tools/**)",
+        "Edit(./tests/**)",
+        "Write(./tests/**)",
+        "Edit(./config/**)",
+        "Write(./config/**)",
+        "Edit(./.github/**)",
+        "Write(./.github/**)",
+        "Edit(./sessions/**)",
+        "Write(./sessions/**)",
+    ],
 }
 
 
@@ -85,15 +110,15 @@ def check(config_dir):
             problems.append("%s changed (sha256 %s)" % (name, digest))
         handmade[role] = deny_of(load(path))
 
-    for role in ("clean", "spec"):
+    for role in ("clean", "spec", "auditor"):
         cfg = load(os.path.join(config_dir, role + ".json"))
         deny = deny_of(cfg)
-        required = list(ORIGINAL[role]) + list(baseline.get(role, []))
-        required += handmade[role]
+        required = list(ORIGINAL.get(role, [])) + list(baseline.get(role, []))
+        required += handmade.get(role, [])
         missing = sorted(set(r for r in required if r not in deny))
         for r in missing:
             problems.append("%s.json dropped deny rule %s" % (role, r))
-        for r in ORIGINAL[role]:
+        for r in ORIGINAL.get(role, []):
             if r not in baseline.get(role, []):
                 problems.append("deny-baseline.json dropped %s rule %s" % (role, r))
         if role == "clean" and cfg.get("env", {}).get("GIT_NO_LAZY_FETCH") != "1":

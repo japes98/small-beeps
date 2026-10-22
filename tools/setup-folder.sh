@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
 #
-# Shared by tools/clean-setup.sh and tools/spec-setup.sh.
+# Shared by tools/clean-setup.sh, tools/spec-setup.sh and tools/auditor-setup.sh.
 #
 #   tools/setup-folder.sh ROLE [DIR]
 #
-# ROLE is clean or spec. With a DIR that doesn't exist yet, clones this
-# repository into it first (clean: blob-less clone with a sparse checkout
+# ROLE is clean, spec or auditor. With a DIR that doesn't exist yet, clones
+# this repository into it first (clean: blob-less clone with a sparse checkout
 # that leaves out vendor/emulator/, harness/ and sessions/spec/, so their
-# contents never reach the disk; spec: a full clone). Without DIR, sets up
+# contents never reach the disk; spec and auditor: a full clone). Without DIR, sets up
 # this checkout. SETUP_SOURCE (a URL, default this checkout's origin) and
 # SETUP_REF (default main) choose what a new folder is cloned from; CI uses
 # them to test a pull request's own tree.
@@ -26,7 +26,7 @@ set -eu
 
 ROLE=${1:-}
 DIR=${2:-}
-case "$ROLE" in clean|spec) ;; *) echo "usage: $0 clean|spec [DIR]" >&2; exit 2 ;; esac
+case "$ROLE" in clean|spec|auditor) ;; *) echo "usage: $0 clean|spec|auditor [DIR]" >&2; exit 2 ;; esac
 
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 CLEAN_EXCLUDES="/vendor/emulator/ /harness/ /sessions/spec/"

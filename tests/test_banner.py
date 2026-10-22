@@ -32,7 +32,7 @@ class BannerTest(unittest.TestCase):
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def test_matching_settings(self):
-        for role in ("clean", "spec"):
+        for role in ("clean", "spec", "auditor"):
             p = self.run_banner(role, role + ".json")
             out = p.stdout.decode()
             self.assertEqual(p.returncode, 0, out)
