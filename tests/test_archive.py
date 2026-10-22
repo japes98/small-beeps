@@ -177,6 +177,15 @@ class ArchiveTest(unittest.TestCase):
         prose = json.dumps({"t": "the sparse checkout leaves out harness/\nand more"}) + "\n"
         self.assertEqual(ar.redact_line(prose, {}, spec_files=names), prose)
 
+    def test_host_name_after_a_json_escape(self):
+        # an `ls` listing puts a newline right before a file or host name
+        for char, esc in (("\t", "t"), ("\n", "n"), ("\r", "r")):
+            line = json.dumps({"t": "hooks%sSome-Mac.local%sx" % (char, char)}) + "\n"
+            out = ar.redact_line(line, {})
+            json.loads(out)
+            self.assertNotIn("Some-Mac", out)
+            self.assertIn("hooks\\%s[REDACTED:host]\\%sx" % (esc, esc), out)
+
     def test_settings_local_json_is_not_a_host_name(self):
         out = ar.redact_line(json.dumps({"t": "see .claude/settings.local.json"}) + "\n", {})
         self.assertIn("settings.local.json", out)
