@@ -82,11 +82,15 @@ FORBIDDEN = [
     ("F-PROBE", "emulator probe source", r"probes/lcdtest\.c"),
     ("F-EMU-REPO", "F-Emulator / fm1-emu repository", r"fm1-emu|f-emulator"),
     ("F-EMU-CRATES", "emulator crates", r"\bcrates/fm1-"),
-    # A path into the folder, or the folder itself as a whole word.
-    ("F-VENDOR-EMU", "vendor/emulator/ (spec side)", r"(^|[\s\"'=:/])vendor/emulator(/|[\s\"']|$)"),
-    ("F-HARNESS", "harness/ source (spec side)", r"(^|[\s\"'=:/])harness(/|[\s\"']|$)"),
+    # A path into the folder, or the folder itself as a whole word, ended by
+    # whitespace, a quote or a shell operator or bracket (since M2, so that
+    # `D=harness; ls $D` is caught too).
+    ("F-VENDOR-EMU", "vendor/emulator/ (spec side)",
+     r"(^|[\s\"'=:/;&|<>(){}`])vendor/emulator(/|[\s\"';&|<>(){}`]|$)"),
+    ("F-HARNESS", "harness/ source (spec side)",
+     r"(^|[\s\"'=:/;&|<>(){}`])harness(/|[\s\"';&|<>(){}`]|$)"),
     ("F-FWHUB", "thefirmwarehub.com", r"thefirmwarehub\.com"),
-    ("F-SPEC-SESSIONS", "spec-side session transcripts", r"sessions/spec(/|[\s\"']|$)"),
+    ("F-SPEC-SESSIONS", "spec-side session transcripts", r"sessions/spec(/|[\s\"';&|<>(){}`]|$)"),
     ("F-RE-FIRMWARE", "FM-1-RE firmware images or disassembly",
      r"fm-1-re.*(firmware-images|disasm|disassembl|ghidra|\.idb\b|\.i64\b|functions)"
      r"|firmware-images/"),
