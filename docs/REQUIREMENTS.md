@@ -33,6 +33,7 @@ The four founding requirements (docs/prompts/M0a.md): **history**,
 | R-REPRO-5 | Vendored SDK files match the SHA-256s listed for the pinned SDK commit. | M0a | C-SDK-PIN |
 | R-REPRO-6 | Vendored emulator files (spec side, `vendor/emulator/`) match the pinned upstream commit plus the patches in `vendor/emulator/patches/`, file by file and by one tree hash; `tools/fetch-emulator.sh` reproduces them. | M0b | C-EMU-PIN |
 | R-BUILD-1 | Firmware is freestanding C11 (`-std=c11 -ffreestanding -nostdlib`). It never links the toolchain's C library or prebuilt SDK libraries. | M0a | C-BUILD-A |
+| R-BUILD-2 | Every record states the firmware image's size in bytes (code, data, bss, the raw image, the stack reserved), from build A. Budgets start in M0e (R-PERF-1). | M0d | C-FW-SIZE |
 | R-LIC-1 | Every file has SPDX licence and copyright information (`reuse lint` passes). | M0a | C-REUSE |
 | R-LIC-2 | Vendored files keep their licences and notices. NOTICE carries the SDK's Apache-2.0 notice and the emulator crates' MIT notice. Only SDK headers are vendored, never prebuilt libraries; of the emulator, only the three crates named in `vendor/emulator/UPSTREAM.md`. | M0a | C-REUSE, C-SDK-PIN, C-EMU-PIN |
 | R-PUB-1 | Low profile: the repo's name, description and topics, and the README, contain none of the quiet words (CONTRIBUTING.md). The description is exactly "Embedded audio experiments.", there are no topics, and the README opens with "Embedded audio experiments. Work in progress." | M0a | C-LOW-PROFILE |
@@ -59,8 +60,11 @@ The four founding requirements (docs/prompts/M0a.md): **history**,
 | R-SPEC-2 | `docs/HARDWARE-SPEC.md` and `docs/HARNESS.md` use no identifier that occurs only in `vendor/emulator/` (reviewed exceptions in `config/emulator-terms-reviewed.json`). | M0c | C-SEP-TERMS; review |
 | R-SPEC-3 | `docs/HARDWARE-SPEC.md` holds facts, never code, pseudo-code or procedures copied from code, and nothing derived from forbidden material. Before the firmware side reads a version, a reviewer with no other context checks every entry, and the report is kept in `docs/reviews/`; people review it again at merge. | M0c | C-SPEC-LINT (no code blocks), C-UNIT; review |
 | R-SPEC-4 | Every black-box experiment `docs/HARDWARE-SPEC.md` cites (E-n, `harness/spec-experiments/`, spec side) rebuilds identically with the pinned toolchain and still gives the cited results in this checkout's fwtest. | M0c | C-SPEC-EXPERIMENTS |
-| R-BOOT-1 | The firmware boots in the emulator to `main` and writes a marker word. | M0d | planned (fwtest) |
-| R-BOOT-2 | The firmware keeps a heartbeat visible through the harness. | M0d | planned (fwtest) |
+| R-BOOT-1 | The firmware boots in the emulator to `main` and writes a marker word. | M0d | C-FW-SUITE, C-UNIT |
+| R-BOOT-2 | The firmware keeps a heartbeat visible through the harness. | M0d | C-FW-SUITE, C-UNIT |
+| R-BOOT-3 | The heartbeat counts one beat per millisecond of the chip's 24 MHz time base, and over a one-second run that time base agrees with fwtest's emulated time within 10 µs. Each beacon captured during the run shows the right number of beats for its time base value, taken no more than 5 ms after the time asked (captures can come late while the image waits, docs/HARNESS.md "Time"). | M0d | C-FW-SUITE, C-UNIT |
+| R-BOOT-4 | The firmware runs in fwtest without a fault, halt or hang, touches nothing fwtest does not model, and leaves core 1 stopped. | M0d | C-FW-SUITE, C-UNIT |
+| R-BOOT-5 | Startup gives C its memory before `main` (initialised data copied, zeroed data cleared; the marker is written only if both are right), and the image stays within its memory layout: RAM from `0x01C7FC00` to the top of the chip's main RAM is left as it was at entry. | M0d | C-FW-SUITE |
 | R-AUDIT-1 | A similarity audit compares our firmware with the GPL firmwares and publishes scores and file names only. | M0e | planned |
 | R-PERF-1 | Code size and RAM use are recorded for every commit and kept within per-milestone budgets. | M0e | planned |
 | R-PERF-2 | Emulated instructions per audio block may not regress by more than 3%. | M0e | planned |
