@@ -18,7 +18,12 @@ redacts:
   - private paths: home folders become `~`, and per-user temp folders are
     shortened;
   - the local user names seen in those paths, wherever they appear, and
-    `*.local` host names.
+    `*.local` host names;
+  - in clean transcripts only: the lines of a git summary (a merge's
+    diffstat, `create mode` and `delete mode` lines) that name files under
+    vendor/emulator/, harness/ or sessions/spec/. Each run of such lines
+    becomes one note saying how many were removed. A name shortened to
+    `.../tail` counts when its tail matches only such files.
 It writes `<same name>.REDACTIONS.md` beside the copy, saying what was
 redacted and how many times, with the SHA-256 of the original and of the
 copy. Every redacted line must still parse as JSON. It refuses to overwrite
@@ -31,6 +36,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 
 RULES = [
@@ -71,7 +77,58 @@ def user_rules(path):
             for n in sorted(names)]
 
 
-def redact_line(line, counts, extra=()):
+SPEC_DIRS = ("vendor/emulator/", "harness/", "sessions/spec/")
+# One line of a git summary inside a JSON string: " path | 12 +-" or
+# " create mode 100644 path". Lines are split on the JSON escape \n.
+STAT_LINE = re.compile(r'^ (?:(?:create|delete) mode \d{6} (?P<m>[^\s"\\]+)'
+                       r'|(?P<s>[^\s"\\]+) +\| +(?:\d+|Bin)\b[^"\\]*)$')
+SPEC_NOTE = " [redacted: %d line(s) naming spec-side files]"
+
+
+def spec_names():
+    """Every path in this checkout's history (names only: a clean folder has
+    them without the spec-side files' contents)."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    try:
+        out = subprocess.run(["git", "-C", root, "log", "--all", "--name-only", "--format="],
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                             universal_newlines=True, env=dict(os.environ, GIT_NO_LAZY_FETCH="1")).stdout
+    except OSError:
+        out = ""
+    return set(n for n in out.splitlines() if n)
+
+
+def names_spec_file(path, names):
+    if path.startswith(SPEC_DIRS):
+        return True
+    if path.startswith(".../"):
+        tail = path[3:]
+        hits = [n for n in names if ("/" + n).endswith(tail)]
+        return bool(hits) and all(n.startswith(SPEC_DIRS) for n in hits)
+    return False
+
+
+def redact_spec_paths(line, counts, names):
+    parts = re.split(r"(?<!\\)\\n", line)
+    if len(parts) < 2:
+        return line
+    out, run = [], 0
+    for part in parts + [None]:
+        m = STAT_LINE.match(part) if part is not None else None
+        if m and names_spec_file(m.group("m") or m.group("s"), names):
+            run += 1
+            continue
+        if run:
+            out.append(SPEC_NOTE % run)
+            counts["spec-side file name in a git summary (lines)"] = \
+                counts.get("spec-side file name in a git summary (lines)", 0) + run
+            run = 0
+        if part is not None:
+            out.append(part)
+    return "\\n".join(out)
+
+
+def redact_line(line, counts, extra=(), spec_files=None):
     for name, rx, repl in list(RULES) + [HOST_RULE] + list(extra):
         if name == "e-mail address":
             def sub(m):
@@ -84,15 +141,17 @@ def redact_line(line, counts, extra=()):
         line, n = rx.subn(repl, line)
         if n:
             counts[name] = counts.get(name, 0) + n
+    if spec_files is not None:
+        line = redact_spec_paths(line, counts, spec_files)
     return line
 
 
-def redact_file(src, dst, counts, extra=()):
+def redact_file(src, dst, counts, extra=(), spec_files=None):
     h_src, h_dst = hashlib.sha256(), hashlib.sha256()
     with open(src, "rb") as f, open(dst, "wb") as out:
         for n, raw in enumerate(f, 1):
             h_src.update(raw)
-            line = redact_line(raw.decode("utf-8"), counts, extra)
+            line = redact_line(raw.decode("utf-8"), counts, extra, spec_files)
             if line.strip():
                 try:
                     json.loads(line)
@@ -147,9 +206,10 @@ def main():
     extra = []
     for s, _ in files:
         extra += [r for r in user_rules(s) if r[1].pattern not in [e[1].pattern for e in extra]]
+    spec_files = spec_names() if a.role == "clean" else None
     hashes = []
     for s, d in files:
-        hs, hd = redact_file(s, d, counts, extra)
+        hs, hd = redact_file(s, d, counts, extra, spec_files)
         hashes.append((os.path.relpath(d, a.out), hs, hd))
 
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

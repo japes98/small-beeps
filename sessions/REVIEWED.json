@@ -14,6 +14,76 @@
       "rule": "harness/ source (spec side)",
       "reason": "The same command: commit-message text mentioning harness/ (the sparse-checkout exclusion, and the checker's own pattern fix). Neither folder exists in the repository; nothing was opened or listed.",
       "added_by": "session M0a (claude-opus-5-5), 2026-10-22"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_01NT76paG71EDeN2gkehoc6H",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "`git sparse-checkout set` with patterns that leave vendor/emulator/, harness/ and sessions/spec/ out of the clean folder's checkout. It names the folders only to exclude them; nothing was opened, listed or fetched.",
+      "added_by": "session M0c (spec side, claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_01NT76paG71EDeN2gkehoc6H",
+      "rule": "harness/ source (spec side)",
+      "reason": "`git sparse-checkout set` with patterns that leave vendor/emulator/, harness/ and sessions/spec/ out of the clean folder's checkout. It names the folders only to exclude them; nothing was opened, listed or fetched.",
+      "added_by": "session M0c (spec side, claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_01NT76paG71EDeN2gkehoc6H",
+      "rule": "spec-side session transcripts",
+      "reason": "`git sparse-checkout set` with patterns that leave vendor/emulator/, harness/ and sessions/spec/ out of the clean folder's checkout. It names the folders only to exclude them; nothing was opened, listed or fetched.",
+      "added_by": "session M0c (spec side, claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_01AWh91rUahpJ9NK9p76oFX1",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A fresh blob-less clone (`--filter=blob:none --no-checkout`) beside the clean folder, given the same excluding sparse-checkout patterns before any checkout. The folders are named only to exclude them; nothing under them was opened, listed or fetched.",
+      "added_by": "session M0c (spec side, claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_01AWh91rUahpJ9NK9p76oFX1",
+      "rule": "harness/ source (spec side)",
+      "reason": "A fresh blob-less clone (`--filter=blob:none --no-checkout`) beside the clean folder, given the same excluding sparse-checkout patterns before any checkout. The folders are named only to exclude them; nothing under them was opened, listed or fetched.",
+      "added_by": "session M0c (spec side, claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_01AWh91rUahpJ9NK9p76oFX1",
+      "rule": "spec-side session transcripts",
+      "reason": "A fresh blob-less clone (`--filter=blob:none --no-checkout`) beside the clean folder, given the same excluding sparse-checkout patterns before any checkout. The folders are named only to exclude them; nothing under them was opened, listed or fetched.",
+      "added_by": "session M0c (spec side, claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_01RP94ZNg12HLrF1DUaSRcse",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "Checked out main in the fresh sparse clone (only the clean folder's own files), then counted, with lazy fetching off, how many objects under each excluded folder were present (0, 0, 0) and whether any was on disk: the same test tools/clean-update.sh makes. Object IDs were piped into the count and never printed; no file name or content was shown.",
+      "added_by": "session M0c (spec side, claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_01RP94ZNg12HLrF1DUaSRcse",
+      "rule": "harness/ source (spec side)",
+      "reason": "Checked out main in the fresh sparse clone (only the clean folder's own files), then counted, with lazy fetching off, how many objects under each excluded folder were present (0, 0, 0) and whether any was on disk: the same test tools/clean-update.sh makes. Object IDs were piped into the count and never printed; no file name or content was shown.",
+      "added_by": "session M0c (spec side, claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_01Tzk1atZQHTqNq9Bi8y8eQE",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A shell command that wrote a commit message (cat > file <<EOF) into the session's scratch folder and committed docs/EXPOSURE.md. The message describes the incident in general terms and names the two folders; it repeats no file name from them. Nothing was opened or listed.",
+      "added_by": "session M0c (spec side, claude-opus-5-5), 2026-10-22, approved by the owner"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_01Tzk1atZQHTqNq9Bi8y8eQE",
+      "rule": "harness/ source (spec side)",
+      "reason": "A shell command that wrote a commit message (cat > file <<EOF) into the session's scratch folder and committed docs/EXPOSURE.md. The message describes the incident in general terms and names the two folders; it repeats no file name from them. Nothing was opened or listed.",
+      "added_by": "session M0c (spec side, claude-opus-5-5), 2026-10-22, approved by the owner"
     }
   ]
 }

@@ -178,6 +178,42 @@ training cutoff (see "Model cutoffs" below).
 - Exposure: none. The owner decided that a summary of file names and line
   counts is not exposure to their contents, so this session stays firmware
   side.
+- Archive: archived by session M0c (spec side) as
+  `sessions/clean/2026-10-22-clean-3a0a372e-….jsonl`. The merge summary's
+  lines naming files under `vendor/emulator/` and `harness/` are redacted
+  in that copy (its REDACTIONS.md, "The merge summary"); the owner keeps
+  the original. The cause is fixed: `tools/clean-update.sh` and the steps
+  in docs/PLAN.md merge with `--no-stat -q`, and C-CLEAN-FOLDER tests an
+  update across a commit that changes both folders. Ten of its commands
+  named the excluded folders only to exclude or count them; they are
+  listed, with the owner's approval, in `sessions/REVIEWED.json`. *(Added
+  by session M0c, 2026-10-22.)*
+
+### Session M0c (the hardware spec)
+- Date: 2026-10-22
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.308 (`claude --version`), Remote Control from the
+  owner's phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `91e7ef55-b2f6-424a-981d-e85c57733aaa`,
+  `https://claude.ai/code/session_01RWVcKRtXA4USAZaVZw4ZzA`.
+- Where it ran: the owner's Mac, in `~/Development/F-Irmware/spec`,
+  started by `/clear` after M0b; banner `status: OK`.
+- What it archived: M0b's transcript into `sessions/spec/`, and clean
+  maintenance session 1's into `sessions/clean/` (reading that one to
+  redact its merge summary). It left a later clean session alone
+  (`b7ed6c1a-…`, which held only a `/clear` and might still be open).
+- Exposure: reads, to write `HARDWARE-SPEC.md`: the vendored emulator
+  crates (`vendor/emulator/`) and the harness (`harness/`), as M0b did;
+  the JieLi AC79 SDK at the pinned commit (the vendored headers, and other
+  headers and driver sources fetched one file at a time from Gitee);
+  AL-255/FM-1-RE's hardware, memory-map and boot-chain documents, fetched
+  one document at a time by URL (never cloned); public datasheets for the
+  board's parts. It writes and runs small black-box test images in fwtest
+  (`harness/spec-experiments/`). It does not open Felucca or anything built
+  on it, dinghy, fm1-emu's `fm1-sid/` or `probes/`, or the stock firmware
+  or its disassembly.
 
 ## Barrier log
 
@@ -194,6 +230,8 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-22T11:17:25Z (session start) | `~/Development/F-Irmware/clean` | `6240e19a…9f639156` | Clean maintenance session 1 starts; banner `status: OK` |
 | 2026-10-22T11:18:01Z | same | `aa535102…9f25ab` | After the fast-forward to main, `tools/clean-setup.sh` installed the updated `config/claude/clean.json` (no deny rule dropped); banner `status: OK` |
 | 2026-10-22T11:26:43Z | same | `aa535102…9f25ab` | The folder's `.git` replaced by a fresh blob-less clone, the old one deleted unread; `tools/clean-setup.sh` re-run, banner `status: OK`; `tools/clean-update.sh` passed |
+| 2026-10-22T11:31:22Z (session start, `/clear`) | `~/Development/F-Irmware/spec` | `eaa5f875…ed542f810` | Session M0c starts; banner `status: OK` |
+| 2026-10-22T11:38Z | same | `eaa5f875…ed542f810` | M0b's transcript archived into `sessions/spec/`, clean maintenance session 1's into `sessions/clean/` (merge summary redacted); `tools/check-transcripts.py` PASS; this entry written |
 
 ## Model cutoffs
 
