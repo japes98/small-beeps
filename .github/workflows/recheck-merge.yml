@@ -1,0 +1,128 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Re-checks how a past commit reached main (C-MERGE only) with the merge
+# check on main today, and writes the result beside that commit's record
+# as records/<sha>/verified-<date>/ (R-PROC-2, R-REC-1). Started by hand
+# (workflow_dispatch), from main only. It never changes or replaces a file
+# that is already on the records branch: the push is refused unless every
+# change is a new file in the new folder. For records whose C-MERGE failed
+# on GitHub's side while the merge itself was right (docs/PLAN.md, M0e).
+name: recheck-merge
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "The merge commit on main to re-check (full SHA)"
+        required: true
+      reason:
+        description: "Why it is re-checked (kept in the verification)"
+        required: true
+
+permissions:
+  contents: read
+  # C-MERGE reads the merged pull request and its CI run.
+  pull-requests: read
+  actions: read
+
+concurrency:
+  group: recheck-${{ inputs.sha }}
+  cancel-in-progress: false
+
+jobs:
+  recheck:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: records
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install check tools
+        run: python -m pip install --disable-pip-version-check -r tools/requirements-ci.txt
+
+      - name: The commit is on main and has a record
+        env:
+          SHA: ${{ inputs.sha }}
+        run: |
+          set -eu
+          case "$SHA" in
+            *[!0-9a-f]*|"") echo "::error::not a full lower-case commit SHA"; exit 1 ;;
+          esac
+          [ "${#SHA}" -eq 40 ] || { echo "::error::not a full commit SHA"; exit 1; }
+          git merge-base --is-ancestor "$SHA" "$GITHUB_SHA" || { echo "::error::$SHA is not on main"; exit 1; }
+          git fetch --no-tags origin +refs/heads/records:refs/remotes/origin/records
+          git cat-file -e "origin/records:records/$SHA/report.json" || { echo "::error::$SHA has no record"; exit 1; }
+
+      - name: Re-check C-MERGE and write the verification
+        id: check
+        env:
+          SHA: ${{ inputs.sha }}
+          REASON: ${{ inputs.reason }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          python tools/recheck-merge.py "$SHA" --out "out/verified" --reason "$REASON" \
+            --checker-commit "$GITHUB_SHA"
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+          test -f out/verified/verification.json
+
+      - name: Timestamp the verification (OpenTimestamps)
+        run: ots stamp out/verified/SHA256SUMS
+
+      - name: Add it beside the record
+        env:
+          SHA: ${{ inputs.sha }}
+          DEPLOY_KEY: ${{ secrets.RECORDS_DEPLOY_KEY }}
+        run: |
+          set -eu
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/records_key && chmod 600 ~/.ssh/records_key
+          # GitHub's published SSH host key (docs: "GitHub's SSH key fingerprints").
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/records_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+          url="git@github.com:$GITHUB_REPOSITORY.git"
+          pushed=""
+          for attempt in 1 2 3 4 5 6; do
+            rm -rf rec
+            git clone --quiet --branch records --single-branch "$url" rec
+            dest="records/$SHA/verified-$(date -u +%Y-%m-%d)"
+            if [ -e "rec/$dest" ]; then
+              dest="$dest-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+            fi
+            mkdir -p "rec/$dest"
+            cp -R out/verified/. "rec/$dest/"
+            git -C rec add "$dest"
+            # Only new files in the new folder: nothing already there changes.
+            bad=$(git -C rec diff --cached --name-status | grep -v -E "^A[[:space:]]+$dest/" || true)
+            if [ -n "$bad" ]; then
+              echo "::error::the change would touch more than $dest:"; echo "$bad"; exit 1
+            fi
+            git -C rec -c user.name="small-beeps records" -c user.email="records@users.noreply.github.com" \
+              commit --quiet -m "records: $SHA: C-MERGE re-checked" \
+              -m "Verification of commit $SHA with tools/check-merge.py from $GITHUB_SHA, written by run https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)."
+            if git -C rec push --quiet origin records; then
+              pushed=1
+              break
+            fi
+            echo "::warning::the records branch moved (push $attempt refused); trying again on a fresh clone"
+            sleep $((attempt * 15))
+          done
+          rm -f ~/.ssh/records_key
+          [ -n "$pushed" ] || { echo "::error::the verification could not be pushed"; exit 1; }
+          echo "written: $dest" >> "$GITHUB_STEP_SUMMARY"
+          cat out/verified/verification.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if the re-check failed
+        if: steps.check.outputs.status != '0'
+        run: |
+          echo "Verification written, but C-MERGE failed (status ${{ steps.check.outputs.status }})."
+          exit 1
