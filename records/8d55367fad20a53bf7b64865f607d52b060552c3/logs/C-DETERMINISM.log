@@ -1,0 +1,6 @@
+$ (internal) determinism
+IDENTICAL placeholder.elf d244f5f69b8316cba91e93349118552b4aeed38205336a67a606780f27b0e1eb
+IDENTICAL placeholder.o e979d19e666fcdc0ca0e71b5159634bf39a1d5283060ea59f98da8252cb04f9a
+determinism: PASS
+
+exit status 0
