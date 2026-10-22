@@ -214,6 +214,18 @@ training cutoff (see "Model cutoffs" below).
   (`harness/spec-experiments/`). It does not open Felucca or anything built
   on it, dinghy, fm1-emu's `fm1-sid/` or `probes/`, or the stock firmware
   or its disassembly.
+- What it actually read (added during the session): the emulator crates
+  `fm1-soc` (all of it) and `fm1-core` (the interrupt and core-mode parts),
+  the instruction table's syntax strings, and the harness source. From
+  FM-1-RE, seven documents (PROVENANCE P-9); two of them, the boot and
+  input documents, include short listings and descriptions of the stock
+  firmware's code as FM-1-RE decoded it; only hardware facts were taken
+  from them. The SDK files of P-10. The ST7789V datasheet (P-11). For the
+  panel's labels, the owner's app screenshot and M-VAVE's product page and
+  photo (P-12); the photo's screen shows the stock firmware's interface,
+  which was seen but not described or used. A web search for the product
+  page listed result titles mentioning M-VAVE's firmware downloads and
+  forum; none of those pages was opened.
 
 ## Barrier log
 

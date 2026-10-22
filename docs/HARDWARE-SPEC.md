@@ -1,0 +1,725 @@
+<!--
+SPDX-License-Identifier: MIT
+SPDX-FileCopyrightText: 2026 japes98
+-->
+
+# Hardware spec
+
+What the spec side knows about the board, and about how fwtest presents it,
+as numbered facts. It is the firmware side's only window onto that knowledge
+(CONTRIBUTING.md, "Roles"). It holds facts, never code, and never how any
+firmware or the emulator is written: each entry states a property of the
+hardware, or a requirement it imposes, and leaves the design of the code to
+the firmware side.
+
+Written by session M0c (spec side), 2026-10-22. Ask for anything missing
+through docs/SPEC-REQUESTS.md. Open spec requests at the time of writing:
+none.
+
+## How to read it
+
+Every fact is an entry:
+
+- **ID**: `HW-n`. IDs are never reused or renumbered. A corrected fact gets a
+  new ID, and the old entry stays, marked superseded.
+- **Fact**: the property or requirement. "On the chip" means the AC791N on
+  the FM-1; "in fwtest" means how fwtest presents it (docs/HARNESS.md). Where
+  an entry says neither, it holds for both as far as the sources go.
+- **Sources**: as precisely as possible (the keys are under "Sources" below).
+- **Standing**:
+  - **confirmed**: an independent source agrees: the JieLi SDK, FM-1-RE's
+    documents, a datasheet, the panel sources, or a spec-side black-box
+    experiment in fwtest (E-n). An experiment confirms how fwtest behaves,
+    not how the chip behaves; the sources say which kind of confirmation it
+    is.
+  - **emulator-only**: the only source is the emulator model, which was
+    partly written from GPL code. Rely on it in fwtest, but prefer to confirm
+    it with your own black-box test.
+  - **superseded by HW-n**: no longer true; see the newer entry.
+- **Needed by**: the milestone that first needs it.
+
+Numbers are hexadecimal with `0x`; registers are 32 bits wide and
+little-endian unless an entry says otherwise. "Bit n" counts from bit 0, the
+least significant. Register names are the JieLi SDK's.
+
+## Sources
+
+| Key | Source |
+|-----|--------|
+| SDK | JieLi AC79 SDK, `Jieli-Tech/fw-AC79_AIoT_SDK` (Gitee), commit `5fa84a9b2f723a5e9337ad79dc2ad741fc98fe2d`, Apache-2.0 (PROVENANCE P-2, P-10). `WL82.h` and `csfr.h` are vendored in `vendor/jieli-sdk/include_lib/driver/cpu/wl82/asm/`; the other files cited are at the same commit and path prefix. Line numbers refer to that commit. |
+| RE | AL-255/FM-1-RE (GitHub, WTFPL), commit `ec832f281ca165a7d5e0722985f3acb1465046d5`: its hardware and boot documents `docs/reversing/01-hardware-map.md`, `docs/io/01-boot.md`, `docs/io/03-audio-dac.md`, `docs/io/08-display.md`, `docs/io/09-storage.md` (PROVENANCE P-9). Only their hardware facts are used here. |
+| DS | Sitronix ST7789V datasheet, version 1.3 (2014-03), 316 pages, from `https://www.newhavendisplay.com/appnotes/datasheets/LCDs/ST7789V.pdf`, SHA-256 `8ecf0e43…5d04ca1` (PROVENANCE P-11). Page numbers as printed. |
+| PANEL | The FM-1's printed panel labels, from two sources that agree: the owner's screenshot of the F-Emulator app's panel with its default labels, `docs/sources/panel-app-default-labels.png` (secondary: the app's drawing of the panel); and M-VAVE's product photo of the FM-1, `https://www.m-vave.com/images/products/fm-1.webp` on `https://www.m-vave.com/product.html?id=fm-1`, accessed 2026-10-22, SHA-256 `e610a746…df14b95`, not copied into this repository (PROVENANCE P-12). Only the printed labels are taken from them. The owner chose these two sources. |
+| HARNESS | docs/HARNESS.md, fwtest's manual. It is the spec side's own description of fwtest, so it never confirms an entry on its own. |
+| E-n | A spec-side black-box experiment: a small image run in fwtest (the pinned image, `config/fwtest-image`). Its result is stated in the entry. C-SPEC-EXPERIMENTS re-runs every one in CI, so a cited result that stops holding fails CI. |
+
+---
+
+## 1. The raw image and boot (M0d)
+
+### HW-1: Load address and entry
+- Fact: In fwtest, the image is a flat binary whose first byte is at
+  `0x02000000`, the start of the code window, and core 0 starts executing
+  at that first byte. Link the image to run there.
+- Sources: HARNESS ("The raw image"); E-1: an image whose first
+  instructions record the registers ran from its first byte.
+- Standing: confirmed (E-1)
+- Needed by: M0d
+
+### HW-2: Registers at entry
+- Fact: In fwtest, at the first instruction r0 = `0x01C7FC00` and every
+  other register reads 0, including `sp`, `usp`, `ssp`, `icfg` and `psr`.
+  No stack is usable until the image sets one. `cnum` reads 0 (core 0).
+- Sources: HARNESS ("The raw image"); E-1: r0 = `0x01C7FC00`; r2 to r15,
+  `sp`, `usp`, `ssp`, `icfg`, `psr` and `cnum` read 0. r1 could not be
+  observed (the experiment needed it first): for r1 the only source is
+  HARNESS.
+- Standing: confirmed (E-1)
+- Needed by: M0d
+
+### HW-3: Core 0 starts in user mode
+- Fact: In fwtest, core 0 starts in user mode. An interrupt taken in user
+  mode continues on the supervisor stack pointer `ssp` (the user `sp` is
+  kept in `usp`), and its return goes back to user mode and `usp`. An
+  interrupt taken in supervisor mode stays on the current stack. So `ssp`
+  must point at a valid stack before interrupts are enabled.
+- Sources: HARNESS ("The raw image"); the emulator model.
+- Standing: emulator-only
+- Needed by: M0d, M1
+
+### HW-4: The block r0 points to at entry
+- Fact: In fwtest, r0 points to a 64-byte block in RAM whose first word
+  holds `0x01C7FC40` (the address just past the block) and whose other
+  bytes are 0. On the chip, the loader that starts an installed app passes
+  a boot-parameter block in r0; its contents are not described here (see
+  Q-11).
+- Sources: HARNESS ("The raw image"); E-1: the block's first word is
+  `0x01C7FC40`, the other 15 words 0; RE `docs/io/01-boot.md` §3 (a pointer
+  in r0 at the hand-over).
+- Standing: confirmed (E-1)
+- Needed by: M0d
+
+### HW-5: The code window and the flash chip
+- Fact: In fwtest, the code window shows the 1 MiB flash chip from chip
+  offset `0x4000`: window address `0x02000000 + n` reads chip offset
+  `0x4000 + n`. At the start fwtest writes the image into the chip at
+  offset `0x4000`, so the window's first bytes are the image and the bytes
+  past it are the rest of the chip. With no `--flash` file the rest is
+  erased and reads `0xFFFFFFFF`. Writes to the window are ignored; changes
+  made to the chip through SPI0 show through the window (HW-47).
+- Sources: HARNESS ("The raw image": the flash chip, past the image,
+  writes to the window); E-1: the first word past the image and the word
+  4 KiB further both read `0xFFFFFFFF`.
+- Standing: confirmed (E-1)
+- Needed by: M0d
+
+### HW-6: Main RAM on the chip
+- Fact: On the chip, main RAM is 512 KiB at `0x01C00000` to `0x01C7FFFF`.
+  Its top 512 bytes, from `0x01C7FE00`, hold the interrupt vector table
+  (HW-18), and the word at `0x01C7FFF8` inside it is also core 1's start
+  address (HW-9). Below the table the SDK's own layout reserves
+  `0x01C7FD4C` to `0x01C7FDFF` (52 bytes of boot information, then 128
+  bytes of update data), which the chip's loader and update path may use;
+  FM-1-RE finds the boot information block at `0x01C7FD50`. A raw image in
+  fwtest doesn't need that area, but keeping out of it keeps an image
+  compatible with the chip's loader. Keep code, data and stacks in this
+  512 KiB, below `0x01C7FD4C`.
+- Sources: SDK `cpu/wl82/sdk_ld_sfc.c` lines 14, 23-24, 38 (RAM0 from
+  `0x01C00000`, its size `0x01C7FE00 - 0x01C00000 - 52 - 128`, the update
+  area from `0x01C7FE00 - 128`); SDK `hwi.h` line 123 (`ISR_ENTRY`); RE
+  `docs/io/01-boot.md` §1 and RE `docs/reversing/01-hardware-map.md`
+  ("Address space").
+- Standing: confirmed (SDK, RE)
+- Needed by: M0d
+
+### HW-7: RAM in fwtest
+- Fact: In fwtest, main RAM is 1 MiB at `0x01C00000` (more than the chip
+  has; HW-6), all zero at the start except the block of HW-4. There are two
+  more RAM banks: 256 KiB at `0x01F00000` and 512 KiB at `0x04000000`. All
+  three can hold code and data and can be saved with `--ram`. Whether the
+  chip has the last two, and of what size, is open (Q-1): don't rely on
+  them.
+- Sources: HARNESS ("The raw image", "--ram"); E-1: a written word reads
+  back at `0x01C7FDFC`, `0x01CFFFFC`, `0x01F3FFFC` and `0x0407FFFC`.
+- Standing: confirmed (E-1)
+- Needed by: M0d
+
+### HW-8: Two cores, and which one is running
+- Fact: The chip has two cores. The special register `cnum` reads the
+  number of the core executing (0 or 1).
+- Sources: SDK `include_lib/driver/cpu/wl82/asm/cpu.h` line 43
+  (`CPU_CORE_NUM 2`) and line 82 (`cnum`); SDK `csfr.h` line 245 (`CNUM`);
+  E-4: `cnum` read 0 on core 0 and 1 on core 1.
+- Standing: confirmed (SDK, E-4)
+- Needed by: M0d
+
+### HW-9: Releasing core 1
+- Fact: Core 1 does not run until core 0 releases it. To release it, put
+  core 1's start address in the word at `0x01C7FFF8`, then set bit 3 of
+  `C1_CON` (`0x01EEE004`, the second word of the `corex2` block at
+  `0x01EEE000`). Core 1 then starts at the address in that word and runs
+  alongside core 0. That word is also the vector table's slot for source
+  126 (software interrupt 6, HW-18): don't use software interrupt 6 while
+  the word holds core 1's start address, and don't overwrite the word
+  before core 1 has started.
+- Sources: SDK `csfr.h` lines 41, 106-112 (`C1_CON`); SDK `hwi.h`
+  lines 114-123 (source 126 is `0x01C7FE00 + 4 × 126` = `0x01C7FFF8`); RE
+  `docs/io/01-boot.md` §1 (the word at `0x01C7FFF8` holds core 1's start
+  address) and §5.2 (bit 3 of `C1_CON`); E-4: with the entry in that word,
+  setting `C1_CON` bit 3 started core 1 there.
+- Standing: confirmed (RE, E-4)
+- Needed by: M1
+
+### HW-10: Core 1's state when it starts, in fwtest
+- Fact: In fwtest, core 1 starts in supervisor mode, and its start address
+  must be in the code window or in RAM. Its stack pointers hold values the
+  firmware must not rely on: core 1's first instructions set its own `sp`
+  (and `ssp`, `usp` if it will use them). fwtest releases core 1 once;
+  later writes do not restart it. Warning: fwtest also releases core 1 when
+  bit 3 of `JL_CLOCK->SYS_DIV` (`0x00010008`) goes from 0 to 1, so leave
+  that bit alone unless releasing core 1 is meant; use `C1_CON` (HW-9).
+  Whether a raw image on the chip can rely on the same release is part of
+  Q-11.
+- Sources: the emulator model; E-4 (core 1 ran on stacks it set itself).
+- Standing: emulator-only
+- Needed by: M1
+
+## 2. Clocks and timers (M1)
+
+### HW-11: The clocks
+- Fact: On the chip, the board's reference crystal is 24 MHz. In fwtest
+  the clock is fixed: each core executes one instruction per cycle at
+  240 MHz (240 000 cycles an emulated millisecond) from the start, writes
+  to the clock registers have no effect, and no clock set-up is needed. How
+  to set the clocks up on the chip, and which system clock rates it
+  supports, is open (Q-2).
+- Sources: RE `docs/io/01-boot.md` §5.2 (the reference clock detected is
+  24 MHz on the FM-1); HARNESS ("Time": 240 000 cycles a millisecond, one
+  instruction of core 0 a cycle); the emulator model (core 1 at the same
+  rate, the clock registers).
+- Standing: confirmed (RE)
+- Needed by: M1
+
+### HW-12: Timer registers
+- Fact: The six timers `JL_TIMER0` to `JL_TIMER5` are at `0x00010400`,
+  `0x00010500`, ..., `0x00010900` (one every `0x100`), each with `CON` at
+  +0, `CNT` at +4, `PRD` at +8 and `PWM` at +12.
+- Sources: SDK `WL82.h` lines 15-16, 384-409.
+- Standing: confirmed (SDK)
+- Needed by: M1
+
+### HW-13: TIMER4, the free-running time base
+- Fact: In fwtest, setting `JL_TIMER4->CON` bit 0 starts `JL_TIMER4->CNT`
+  counting up at 24 MHz of emulated time.
+- Sources: E-3: TIMER4 was started at the beginning of a run that ended
+  at 52.300 emulated ms (`result.json`), when it read 1 255 200 (52.3 ms ×
+  24 MHz); between two TIMER5 interrupts 100 µs apart it advanced by 2400.
+- Standing: confirmed (E-3)
+- Needed by: M1
+
+### HW-14: TIMER4 and TIMER5 details in fwtest
+- Fact: In fwtest, `JL_TIMER4->CNT` reads 0 while `CON` bit 0 is clear,
+  writing any value to `CNT` restarts the count from 0, and TIMER4 raises
+  no interrupt (source 62 never becomes pending). TIMER5 ignores its `CON`
+  bits 4-7: it always counts a 6 MHz clock (HW-15).
+- Sources: the emulator model.
+- Standing: emulator-only
+- Needed by: M1
+
+### HW-15: TIMER5, a periodic interrupt
+- Fact: In fwtest, setting `JL_TIMER5->CON` bit 0 makes TIMER5 raise
+  interrupt source 63 every `PRD` counts of a 6 MHz clock (`PRD` = 600 gives
+  100 µs). `CON` bit 15 reads 1 while the interrupt is pending; writing
+  `CON` with bit 14 set clears it (write bit 0 set as well to keep the timer
+  running).
+- Sources: SDK `hwi.h` line 109 (`IRQ_TIMER5_IDX` 63); E-3: with `PRD` =
+  600, interrupts came every 100 µs of emulated time (523 by 52.3 ms, and
+  TIMER4, HW-13, advanced 2400 between two), acknowledged as above.
+- Standing: confirmed (SDK, E-3)
+- Needed by: M1
+
+### HW-16: TIMER0 to TIMER3
+- Fact: In fwtest, `JL_TIMERn->CON` bits 0-1 non-zero run timer n (n = 0
+  to 3); `CON` bits 4-7 select a prescaler of the 24 MHz clock. The timer
+  counts up from `CNT` and, on reaching `PRD`, raises interrupt source
+  4 + n and starts again from 0. `CON` bit 15 reads 1 while pending;
+  writing `CON` with bit 14 set clears it. Prescaler setting 2 divides by
+  16; the other settings were not measured (Q-3).
+- Sources: SDK `hwi.h` lines 42-45 (`IRQ_TIMER0_IDX` 4 to
+  `IRQ_TIMER3_IDX` 7); E-3: TIMER0 with prescaler setting 2 and `PRD` 1500
+  interrupted every 1 ms (52 by 52.3 ms), and `CON` read `0x8021` in its
+  handler (pending, prescaler 2, running).
+- Standing: confirmed (SDK, E-3)
+- Needed by: M1
+
+### HW-17: The core tick timer
+- Fact: Each core has a tick timer, `TTMR_CON`, `TTMR_CNT`, `TTMR_PRD`:
+  core 0's at `0x01EEF0EC`, `0x01EEF0F0`, `0x01EEF0F4`, core 1's `0x200`
+  higher (`0x01EEF2EC` ...). Its interrupt source is 3. In fwtest (core 0's
+  only, HW-22), `TTMR_CON` bit 0 runs it, bit 7 reads 1 while its interrupt
+  is pending, and writing bit 6 acknowledges it (write bit 0 as well to
+  keep it running); it fires every 10 ms whatever `TTMR_PRD` holds. On the
+  chip the period comes from `TTMR_PRD` (Q-4).
+- Sources: SDK `csfr.h` lines 208-214 (one block per core, `0x200`
+  apart), 274-276; SDK `hwi.h` line 41 (`IRQ_TICK_TMR_IDX` 3); E-3: with
+  `TTMR_PRD` = 1234 it interrupted every 10 ms (5 by 52.3 ms),
+  acknowledged as above.
+- Standing: confirmed (SDK, E-3)
+- Needed by: M1
+
+## 3. Interrupts (M1)
+
+### HW-18: The vector table
+- Fact: The handler for interrupt source n is the 32-bit address in the
+  word at `0x01C7FE00 + 4 × n`, in RAM. The firmware writes the table. The
+  slot of source 126 (`0x01C7FFF8`) is also core 1's start address (HW-9);
+  the slot of source 127 (`0x01C7FFFC`) has no other use known here. In
+  fwtest both cores use this one table.
+- Sources: SDK `hwi.h` lines 114-123 (`ISR_ENTRY 0x1c7fe00`, sources up
+  to 127); RE `docs/io/01-boot.md` §1 and §4.1; E-3, E-9: handlers
+  installed this way ran.
+- Standing: confirmed (SDK, RE, E-3)
+- Needed by: M1
+
+### HW-19: Interrupt source numbers
+- Fact: The sources this spec uses: 3 core tick timer, 4-7 TIMER0-3,
+  11 the audio link `JL_ALNK0` (the SDK's `IRQ_ALNK_IDX`), 16 SPI1 (LCD),
+  24 SARADC, 63 TIMER5, 120-127 software interrupts 0-7. (TIMER4 is
+  source 62 on the chip; it never fires in fwtest, HW-14.) The SDK's
+  `hwi.h` lists the rest.
+- Sources: SDK `hwi.h` lines 41-121.
+- Standing: confirmed (SDK)
+- Needed by: M1
+
+### HW-20: Enabling a source, and its priority
+- Fact: Each core has its own enable and priority words, `ICFG00` to
+  `ICFG31`: core 0's at `0x01EEF100` to `0x01EEF17C`, core 1's at
+  `0x01EEF300` to `0x01EEF37C`. Source n uses 4 bits of word n / 8, at bit
+  position 4 × (n mod 8): bit 0 enables it, bits 1-3 are its priority 0-7.
+  A higher number is a higher priority. A source interrupts only the cores
+  whose words enable it.
+- Sources: SDK `csfr.h` lines 208-214, 280-312; SDK `hwi.h` line 135
+  ("0~7, larger is higher"); RE `docs/io/01-boot.md` §4.1 (the 4-bit
+  encoding and the two arrays); E-3, E-9 (sources enabled this way).
+- Standing: confirmed (SDK, RE, E-3)
+- Needed by: M1
+
+### HW-21: The global interrupt gates
+- Fact: A core takes interrupts only while both gates are open: bit 8 of
+  its special register `icfg` (the master enable; not to be confused with
+  the `ICFG00`-`ICFG31` words of HW-20) and the enable set by the
+  instruction `sti` (cleared by `cli`). At entry `icfg` reads 0, so bit 8
+  is clear: set it and execute `sti` before expecting interrupts.
+- Sources: SDK `include_lib/driver/cpu/wl82/asm/irq.h` lines 19-21 (bit 8
+  of `icfg` as the enable); RE `docs/io/01-boot.md` §4.1, §5.2; E-1
+  (`icfg` 0 at entry); E-3 (interrupts taken after setting `icfg` bit 8
+  and executing `sti`).
+- Standing: confirmed (SDK, RE, E-3)
+- Needed by: M1
+
+### HW-22: Entering and leaving a handler, in fwtest
+- Fact: In fwtest, when a core takes an interrupt the address to return to
+  is put in the special register `reti` and the core jumps to the handler;
+  the handler returns with `rti`. A handler compiled with the toolchain's
+  interrupt function attribute returns correctly. A running handler can be
+  interrupted by a pending source of higher priority only after it has
+  stored `reti` to its stack, and only until it loads `reti` back; sources
+  of the same or lower priority wait until it returns. When several enabled
+  sources are pending, the one with the highest priority is taken; between
+  equal priorities the order is not specified. fwtest models only core 0's
+  tick timer and software-interrupt words (HW-17, HW-23), and one vector
+  table for both cores. Whether the chip behaves the same way is Q-10.
+- Sources: the emulator model; E-3 and E-9 show only that handlers written
+  with the toolchain's interrupt attribute run repeatedly and return.
+- Standing: emulator-only
+- Needed by: M1
+
+### HW-23: Software interrupts
+- Fact: Writing bit b (0-7) to `ILAT_SET` makes source 120 + b pending;
+  writing bit b to `ILAT_CLR` clears it. Core 0's are at `0x01EEF1A0` and
+  `0x01EEF1A4`, core 1's `0x200` higher (fwtest has core 0's only, HW-22).
+  The handler must clear its source, or it is taken again on return.
+- Sources: SDK `csfr.h` lines 208-214, 322-323; SDK `cpu.h` line 59 (the
+  SDK raises one this way); E-3: `ILAT_SET` bit 0 ran the handler of
+  source 120 once, which cleared it.
+- Standing: confirmed (SDK, E-3)
+- Needed by: M1
+
+### HW-24: Waiting for an interrupt, in fwtest
+- Fact: In fwtest, the instruction `idle` waits until something is due:
+  time skips ahead to the next timed event, and with interrupts enabled the
+  pending one is then taken. A loop that only reads TIMER4 is skipped the
+  same way. Waiting therefore costs almost no instructions, and captures may
+  come late while core 0 waits (HARNESS, "Time"). What `idle` does on the
+  chip with interrupts masked is part of Q-10.
+- Sources: HARNESS ("Time"); E-3, E-9 (main loops of `idle` woke for each
+  interrupt).
+- Standing: confirmed (E-3)
+- Needed by: M1
+
+## 4. The debug channel (M0d)
+
+### HW-25: The debug message register in fwtest
+- Fact: `DBG_MSG` is at `0x01EEE244` (in the `corex2` block, next to
+  `DBG_WR_EN` at `0x01EEE240` and `DBG_MSG_CLR` at `0x01EEE248`). In fwtest
+  each 32-bit write to `DBG_MSG` appends the word's 4 bytes, lowest first,
+  to the console that `--console` saves. A byte or halfword write appends 4
+  bytes too: the bytes written, merged into the word last written. Write
+  whole words.
+- Sources: SDK `csfr.h` lines 106-108, 136-138; HARNESS ("--console");
+  E-2: word writes appended "abcd" and "12:\n"; a byte write of "X" then
+  appended "X2:\n" and a halfword "YZ" appended "YZ:\n".
+- Standing: confirmed (SDK, E-2)
+- Needed by: M0d
+
+### HW-26: Markers in RAM
+- Fact: A marker word or heartbeat counter at a fixed RAM address is
+  visible to fwtest through `--ram` captures and `--watchdog` (any address
+  in the RAM of HW-7). On the chip, the SDK marks `DBG_MSG` read-only, so
+  the console of HW-25 may not exist there (Q-5).
+- Sources: HARNESS ("--ram", "--watchdog"); SDK `csfr.h` line 137
+  (`___RO` `DBG_MSG`); E-1, E-3 (results read back from RAM with `--ram`;
+  `--watchdog` was not exercised).
+- Standing: confirmed (SDK, E-1)
+- Needed by: M0d
+
+## 5. The LCD (M2)
+
+### HW-27: The panel
+- Fact: The display is a 240 × 240 pixel colour TFT driven by a Sitronix
+  ST7789-family controller, on SPI1. This spec assumes the ST7789V's
+  command set and timing (DS). Pixels are 16-bit: 5 bits red, 6 green, 5
+  blue.
+- Sources: RE `docs/io/08-display.md` §1 ("240×240 RGB565 TFT on SPI1",
+  ST7789-style commands); DS; HARNESS ("lcd-WHEN.png").
+- Standing: confirmed (RE, DS)
+- Needed by: M2
+
+### HW-28: SPI1's registers
+- Fact: `JL_SPI1` is at `0x00011D00`: `CON` +0, `BAUD` +4, `BUF` +8, `ADR`
+  +12, `CNT` +16.
+- Sources: SDK `WL82.h` lines 548-560.
+- Standing: confirmed (SDK)
+- Needed by: M2
+
+### HW-29: Sending bytes to the LCD
+- Fact: Writing a byte to `JL_SPI1->BUF` sends it to the panel. Writing a
+  count to `JL_SPI1->CNT` sends that many bytes by DMA from the address in
+  `JL_SPI1->ADR`. `CON` bit 15 reads 1 when a transfer is done; setting
+  `CON` bit 13 makes a finished transfer raise interrupt source 16; writing
+  `CON` with bit 14 set clears it. In fwtest a transfer finishes at once,
+  the DMA may read RAM or the code window, and no other set-up of SPI1 is
+  needed. On the chip SPI1 also needs its clock (`BAUD`), mode and pins
+  set up (Q-6).
+- Sources: RE `docs/io/08-display.md` §1 (`CON` bit 15 pending, bit 14
+  clear, bit 13 interrupt enable; bytes and DMA bursts); SDK `hwi.h`
+  line 56 (`IRQ_SPI1_IDX` 16); E-5: a whole screen sent by DMA from RAM,
+  480 bytes a row, and squares sent byte by byte, all drawn.
+- Standing: confirmed (RE, E-5)
+- Needed by: M2
+
+### HW-30: Command or data
+- Fact: The panel's data/command line is PC8, bit 8 of `JL_PORTC->OUT`
+  (`0x00050080`): low while a command byte is sent, high for its parameters
+  and for pixel data. In fwtest the line's level when each byte (or each
+  DMA transfer) starts decides how it is taken, and the pin needs no
+  set-up. FM-1-RE also sees bit 7 (PC7) toggled with it, probably the
+  panel's chip select (Q-6).
+- Sources: SDK `WL82.h` lines 252, 269 (`JL_PORTC`, `OUT` at +0); RE
+  `docs/io/08-display.md` §1 (bits 7 and 8 of `0x50080`, which FM-1-RE
+  rates medium confidence); E-5.
+- Standing: confirmed (RE, E-5)
+- Needed by: M2
+
+### HW-31: The commands fwtest acts on
+- Fact: fwtest's panel acts on: column address set `0x2A` and row address
+  set `0x2B` (4 parameter bytes each: start and end, each high byte
+  first); memory write `0x2C` (then pixels, 2 bytes each, high byte first,
+  filling the window row by row and wrapping to its start); software reset
+  `0x01` (the picture becomes black). `0x36` and `0x3A` take one parameter
+  byte that fwtest ignores (it always takes 16-bit pixels). Display off and
+  on (`0x28`, `0x29`) and inversion off and on (`0x20`, `0x21`) are
+  accepted, but the captured picture shows the pixels as written either
+  way. Other commands are accepted and ignored.
+- Sources: DS pages 163 (`SWRESET`), 188-190 (`INVOFF`, `INVON`), 194-196
+  (`DISPOFF`, `DISPON`), 198-203 (`CASET`, `RASET`, `RAMWR`), 215
+  (`MADCTL`), 224 (`COLMOD`); E-5: the window commands and pixel order as
+  above, the picture unchanged after inversion on and display off, black
+  after a software reset.
+- Standing: confirmed (DS, E-5)
+- Needed by: M2
+
+### HW-32: The panel controller's own requirements
+- Fact: On the chip, the controller needs: 5 ms after a software reset
+  before the next command, and 120 ms after a software reset sent in sleep
+  mode before sleep out; 5 ms after sleep out (`0x11`) before the next
+  command, and 120 ms before a sleep in; the pixel format set to 16 bits
+  (`0x3A` with `0x55`) to write 16-bit pixels; sleep out and display on
+  (`0x29`) before anything shows. fwtest needs none of these delays, and
+  doesn't check them: on the chip a firmware that skips them may show
+  nothing.
+- Sources: DS pages 163 (`SWRESET`), 184 (`SLPOUT`), 196 (`DISPON`), 224
+  (`COLMOD`).
+- Standing: confirmed (DS)
+- Needed by: M2
+
+## 6. Keys, encoders, the pot and LEDs (M3)
+
+### HW-33: The key matrix's columns, in fwtest
+- Fact: In fwtest the matrix has 11 columns, selected through two cascaded
+  8-bit shift registers with output latches: serial data on PA4, shift
+  clock on PA3 (each rising edge shifts in one bit), latch clock on PA1 (a
+  rising edge copies the 16 shifted bits to the outputs). The 16 bits go
+  most significant first; output bit c drives column c (0-10; bits 11-15
+  are not used). A column is selected while its bit is 0. The pins are
+  bits of `JL_PORTA->OUT` (`0x00050000`) and need no set-up in fwtest.
+  Whether the board is wired this way is Q-7.
+- Sources: SDK `WL82.h` lines 252, 263 (`JL_PORTA`); E-6: a scan selecting
+  one column at a time this way saw every key and encoder contact.
+- Standing: confirmed (E-6)
+- Needed by: M3
+
+### HW-34: The key matrix's rows, in fwtest
+- Fact: In fwtest the matrix has 6 rows, read as inputs: row 0 on PA0,
+  rows 1-4 on PA5 to PA8, row 5 on PB7, through `JL_PORTA->IN`
+  (`0x00050004`) and `JL_PORTB->IN` (`0x00050044`). A row reads 0 while a
+  closed key or encoder contact connects it to a selected column, and 1
+  otherwise, with no pin set-up. Whether the board is wired this way, and
+  what pull-ups it needs, is Q-7.
+- Sources: SDK `WL82.h` lines 252-253, 263, 266 (`OUT`, `IN`; ports A
+  and B); E-6.
+- Standing: confirmed (E-6)
+- Needed by: M3
+
+### HW-35: Where each fwtest key is in the matrix
+- Fact: In fwtest, key N closes the contact at (column, row):
+
+  | Row | Column 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+  |-----|---|---|---|---|---|---|---|---|---|---|---|
+  | 1 | 5 | 11 | 4 | 10 | 3 | 9 | 2 | 8 | - | - | - |
+  | 2 | 34 | 35 | 36 | 37 | 38 | 40 | 39 | 13 | 7 | 6 | 12 |
+  | 3 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 |
+  | 4 | 0 | 1 | 15 | 14 | 17 | 16 | 19 | 18 | 20 | 21 | 22 |
+
+  Rows 0 and 5 hold no keys (encoder contacts only, HW-38); "-" is no key.
+- Sources: E-6: each key pressed alone closed exactly the contact above.
+- Standing: confirmed (E-6)
+- Needed by: M3
+
+### HW-36: The panel's printed labels
+- Fact: The FM-1's panel has, as printed: 14 buttons, `OCT-` and `OCT+`
+  (lower left), and two rows of six: `FX`, `SEL`, `ENV`, `LFO`, `EDIT`,
+  `GLO`, then `HOME`, `SAVE`, `ARP`, `SEQ`, `PLAY`/`STOP` (one button),
+  `REC`; eight knobs, `MASTER`, `SELECT`, `PRESETS`, `ALGORITHM` (left of
+  the screen) and `KNOB1` to `KNOB4` (right of it); and 27 keys: 16 lower
+  keys and 11 raised keys between them, in groups of 3, 2, 3, 2 and 1 like
+  a keyboard's black keys. Ten raised keys carry second labels: `OP1`,
+  `OP2`, `OP3`, `OP4`, `OP5`, `OP6`, `PIT`, `GLO`, `MONO`, `POLY`; the last
+  raised key has none.
+- Sources: PANEL (the app screenshot and M-VAVE's product photo agree on
+  every label above).
+- Standing: confirmed (PANEL)
+- Needed by: M3
+
+### HW-37: Which button and key each fwtest key number is
+- Fact: fwtest keys 0-13 are the buttons `OCT-` (0), `OCT+` (1), `FX` (2),
+  `SEL` (3), `ENV` (4), `LFO` (5), `EDIT` (6), `GLO` (7), `HOME` (8),
+  `SAVE` (9), `ARP` (10), `SEQ` (11), `PLAY`/`STOP` (12), `REC` (13).
+  Keys 14-40 are the 27 keys in order from left to right, lower and raised
+  keys interleaved as on a keyboard: 14 is the leftmost lower key, 15 the
+  first raised key (`OP1`), 16 the second lower key, and so on, to 40, the
+  rightmost lower key; the last raised key (no second label) is 39.
+- Sources: the emulator model (which panel control each fwtest key number
+  is); PANEL (the labels and layout, HW-36: 16 lower keys and 11 raised
+  keys in groups of 3, 2, 3, 2, 1, which interleave this way).
+- Standing: emulator-only
+- Needed by: M3
+
+### HW-38: The encoders, in fwtest
+- Fact: In fwtest each encoder has two contacts in the matrix, A and B,
+  both open at rest: encoder 0: A at (column 0, row 0), B at (1, 0); 1:
+  (2, 0), (3, 0); 2: (8, 1), (9, 1); 3: (8, 0), (9, 0); 4: (6, 0), (7, 0);
+  5: (4, 0), (5, 0); 6: (0, 5), (1, 5). One detent is a full quadrature
+  cycle of four changes, 2 ms apart. In the direction an input script
+  calls clockwise (`enc N +C`): B closes, A closes, B opens, A opens. In
+  the other: A closes, B closes, A opens, B opens. Which way the knob
+  physically turns for each is Q-7.
+- Sources: HARNESS ("Input scripts"); E-6: one detent each way on each
+  encoder gave these contacts in this order.
+- Standing: confirmed (E-6)
+- Needed by: M3
+
+### HW-39: Which knob each fwtest encoder number is
+- Fact: fwtest encoders 0-6 are the knobs `SELECT` (0), `ALGORITHM` (1),
+  `KNOB1` (2), `KNOB2` (3), `KNOB3` (4), `KNOB4` (5), `PRESETS` (6).
+  `MASTER` is not an encoder: it is the pot (HW-41).
+- Sources: the emulator model; PANEL (the labels, HW-36).
+- Standing: emulator-only
+- Needed by: M3
+
+### HW-40: The pot and the SARADC
+- Fact: The SARADC, `JL_ADC`, is at `0x00013100`: `CON` +0, `RES` +4. In
+  fwtest: `CON` bits 8-11 select the channel, bit 4 enables, and writing
+  bit 6 with bit 4 starts a conversion, which finishes at once; bit 7 then
+  reads 1, and `RES` holds the 10-bit result (0-1023). Each conversion is
+  started by a write with bits 4 and 6 (and the channel) set. The pot is
+  channel 4: 900 until a script sets it. Channel 3 reads 640 and the others
+  512, fixed in fwtest. Which channel carries the pot on the chip, and what
+  the others carry, is Q-8.
+- Sources: SDK `WL82.h` lines 723-729 (`JL_ADC`); HARNESS ("pot V");
+  E-8: channel 4 read 900, then the script's 300, 0 and 1023, with the
+  bits above; channel 3 read 640, the others 512.
+- Standing: confirmed (SDK, E-8)
+- Needed by: M3
+
+### HW-41: The SARADC's interrupt, and which knob the pot is
+- Fact: In fwtest, with `JL_ADC->CON` bit 5 set a finished conversion
+  raises interrupt source 24. Writing `CON` with bit 6 set and bit 4 clear
+  acknowledges it; that write also clears the enable bit 4, which the next
+  start write sets again. The pot is the `MASTER` knob (HW-36).
+- Sources: SDK `hwi.h` line 65 (`IRQ_SARADC_IDX` 24); the emulator model
+  (the interrupt condition, the acknowledge, `MASTER`).
+- Standing: emulator-only
+- Needed by: M3
+
+### HW-42: The LEDs, in fwtest
+- Fact: In fwtest each of the 41 LEDs belongs to the key or button with
+  the same number. LED N is lit while key N's column is selected (HW-33)
+  and the LED line of key N's row is high: row 1 PA9, row 2 PA10 (bits of
+  `JL_PORTA->OUT`), row 3 PH6, row 4 PH9 (bits of `JL_PORTH->OUT`,
+  `0x000501C0`). LEDs and keys share the column selection, so the firmware
+  multiplexes them; `leds.csv` reports each LED's share of time lit.
+  Whether the board has an LED for every key, wired this way, is Q-7.
+- Sources: SDK `WL82.h` lines 252, 263, 284 (`JL_PORTA`, `JL_PORTH`);
+  HARNESS ("leds.csv"); E-7: each line high with one column selected lit
+  exactly the LED of the key at that row and column (HW-35).
+- Standing: confirmed (E-7)
+- Needed by: M3
+
+## 7. Audio output (M4)
+
+### HW-43: The audio link's registers
+- Fact: `JL_ALNK0` is at `0x00012E00`: `CON0` +0, `CON1` +4, `CON2` +8,
+  `CON3` +12, `ADR0` to `ADR3` at +16 to +28, `LEN` +32. Its interrupt
+  source is 11.
+- Sources: SDK `WL82.h` lines 664-677; SDK `hwi.h` line 50
+  (`IRQ_ALNK_IDX` 11).
+- Standing: confirmed (SDK)
+- Needed by: M4
+
+### HW-44: The output buffer and sample format, in fwtest
+- Fact: In fwtest the output plays from a buffer in RAM at the address in
+  `JL_ALNK0->ADR3`: two halves, one after the other, each of `LEN` 32-bit
+  words. Words alternate left, right, left, right (`LEN` / 2 stereo frames
+  a half). Write each sample as a 24-bit signed value in the word's low
+  bits, sign-extended: fwtest's WAV takes the whole word shifted right
+  arithmetically by 8 bits, clamped to -32768..32767. Which bits the chip
+  uses is Q-9.
+- Sources: E-9: with `LEN` 128 each half played 64 frames; the words
+  `0x007FFFFF`, `0xFF800000`, `0x01000000` and `0x00000080` came out as
+  32767, -32768, 32767 and 0, and a left ramp written as value × 256 came
+  out as the values; HARNESS ("audio.wav").
+- Standing: confirmed (E-9)
+- Needed by: M4
+
+### HW-45: The output's rate and halves
+- Fact: In fwtest, writing `JL_ALNK0->CON0` with bit 11 set starts the
+  output with half 0; a half lasts `LEN` / 2 frames of 544 / 24 MHz each:
+  44 117.6 frames a second (fwtest's WAV header says 44 100). Writing
+  `CON0` without bit 11 stops it. `CON0` bit 15 reads the half now
+  playing, so the half that has just finished, and is free to refill, is
+  that bit inverted. Each finished half sets `CON2` bit 7 and raises
+  interrupt source 11 (while `CON0` bit 11 is set and the source is
+  enabled); writing `CON2` with bit 3 set clears it.
+- Sources: E-9: with `LEN` 128, halves finished 1.451 ms apart (the first
+  at 1.459 ms), the first to finish was half 0, and `CON0` bit 15 inverted
+  named it each time; RE `docs/io/03-audio-dac.md` §5.3 (the meaning of
+  `CON2` bit 7 and of `CON0` bit 15 in this block); HARNESS ("audio.wav").
+- Standing: confirmed (RE, E-9)
+- Needed by: M4
+
+### HW-46: When fwtest takes the samples, and what it measures
+- Fact: In fwtest, a half's words are read from RAM at the moment that half
+  finishes playing, so they must be complete by then: refill a half while
+  the other plays. `ipb.csv` has one row per finished half, with the
+  instructions each core ran since the previous one (HARNESS, "Outputs").
+- Sources: HARNESS ("ipb.csv"); the emulator model (when the words are
+  read); E-9.
+- Standing: emulator-only
+- Needed by: M4
+
+## 8. Flash storage (M7, preliminary)
+
+Later: only what fwtest presents. M7 should ask for more through spec
+requests.
+
+### HW-47: The flash chip, in fwtest
+- Fact: In fwtest the flash chip is a 1 MiB SPI NOR chip on SPI0
+  (`JL_SPI0`, `0x00011C00`: `CON` +0, `BUF` +8). Its chip select is PD0,
+  bit 0 of `JL_PORTD->OUT` (`0x000500C0`), low to select; each command is
+  sent while selected and ends when PD0 goes high. A write to `BUF` sends
+  one byte; with `CON` bit 12 set the byte received lands in `BUF`. `CON`
+  bit 15 reads 1 when a byte is done; writing bit 14 clears it. The chip
+  answers JEDEC ID `0x85 0x60 0x14` and understands the common SPI NOR
+  commands read `0x03`, fast read `0x0B`, status `0x05`/`0x35`, write
+  enable/disable `0x06`/`0x04`, 4 KiB erase `0x20`, 64 KiB erase `0xD8`,
+  page program `0x02` (committed when PD0 goes high). Erase and program
+  finish at once and the status never reports busy. Changes show through
+  the code window (HW-5). Preliminary: M7 should confirm the chip and its
+  timing through a spec request (a datasheet for the part).
+- Sources: SDK `WL82.h` lines 548-557, 272 (`JL_SPI0`, `JL_PORTD`); RE
+  `docs/io/09-storage.md` §1 (the flash is on SPI0; `CON` bits 15 and 14);
+  HARNESS ("The flash chip", "Past the image"); the emulator model (JEDEC
+  ID, chip select, commands, timing).
+- Standing: emulator-only
+- Needed by: M7
+
+---
+
+## Open questions
+
+What isn't known, or is known only from material the spec may not use. A
+spec request can turn one into a fact.
+
+- **Q-1. Other RAM on the chip.** Whether the chip has RAM at `0x01F00000`
+  and `0x04000000` (HW-7), how much, and whether it can be used. The SDK's
+  layout names a cache RAM at `0x01F20000` and an external SDRAM window at
+  `0x04000000`.
+- **Q-2. Clock set-up on the chip.** Which registers and steps set the PLL
+  and system clock on real hardware, and which rates the chip supports
+  (fwtest needs none). Settled by a spec request answered from permitted
+  sources, or by an experiment on hardware.
+- **Q-3. TIMER0-3 prescaler settings other than 0 and 2.** Measure with a
+  black-box test, or ask.
+- **Q-4. The core tick timer's period on the chip.** Which clock `TTMR_PRD`
+  counts on real hardware (fwtest always uses 10 ms).
+- **Q-5. A debug console on the chip.** Whether `DBG_MSG` writes go
+  anywhere on real hardware (the SDK marks it read-only), or which UART
+  pins could carry debug output.
+- **Q-6. LCD wiring.** Which pins carry SPI1's clock, data and chip select
+  (and the `JL_IOMAP` selection for them), whether the panel has a reset
+  pin and a backlight pin, and which ones; the panel's orientation and its
+  offset within the controller's 240 × 320 memory. fwtest needs none of
+  them.
+- **Q-7. The panel's wiring on the chip.** Whether the board's key matrix,
+  encoders and LEDs are wired as fwtest presents them (HW-33, HW-34,
+  HW-38, HW-42: the pins, the shift registers, an LED for every key, which
+  physical turn is "clockwise"); pull-ups, directions and drive for the
+  pins, LED polarity and current. fwtest needs no pin set-up.
+- **Q-8. The other ADC channels.** What channel 3 and the other channels
+  carry on the board (fwtest gives them fixed values).
+- **Q-9. Audio on the chip.** How `JL_ALNK0`'s output reaches the DAC or
+  codec on real hardware, which bits of each word it uses, its clock set-up
+  and true rate, and the analog set-up (FM-1-RE's audio document names DAC
+  registers at `0x00012F00`; not used here).
+- **Q-10. Interrupt details on the chip.** Whether the chip switches
+  stacks on an interrupt from user mode exactly as HW-3 says; its nesting
+  rules and choice among pending sources (HW-22); whether the two cores
+  share one vector table; what `idle` does with interrupts masked (HW-24).
+  The toolchain's interrupt attribute works in fwtest.
+- **Q-11. Booting on the chip.** The contents of the boot-parameter block
+  the loader passes in r0, and whether a raw image can be started on real
+  hardware without M-VAVE's loader (PLAN.md, M9 risk), and whether such an
+  image can release core 1 as HW-9 says.
+- **Q-12. MIDI input.** UART1 and the MIDI jack are not covered here (M6
+  will ask).
