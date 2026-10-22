@@ -22,6 +22,9 @@ SECRETS = [
 TOOLCHAIN_NAMES = re.compile(
     r"(\.tar\.xz|\.a|\.so(\.\d+)*|\.elf|\.o)$|LLVMgold|libcompiler-rt|jieli-linux-toolchains")
 MAX_BYTES = 2 * 1024 * 1024          # outside sessions/
+# Vendored emulator files may be larger (one generated table is 5.4 MB):
+# each is pinned by its hash in vendor/emulator/SHA256SUMS (C-EMU-PIN).
+MAX_BYTES_EMULATOR = 8 * 1024 * 1024
 ELF_MAGIC = b"\x7fELF"
 
 
@@ -53,7 +56,8 @@ def no_toolchain(paths):
         if not os.path.isfile(p):
             continue
         size = os.path.getsize(p)
-        if size > MAX_BYTES and not p.startswith("sessions/"):
+        limit = MAX_BYTES_EMULATOR if p.startswith("vendor/emulator/") else MAX_BYTES
+        if size > limit and not p.startswith("sessions/"):
             problems.append("%s: %d bytes, larger than %d" % (p, size, MAX_BYTES))
         with open(p, "rb") as f:
             if f.read(4) == ELF_MAGIC:

@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The harness (spec side): a library and the `fwtest` CLI around the vendored
+# emulator crates in ../vendor/emulator/. No third-party crates: Cargo.lock
+# lists only these path packages, so the build needs no registry.
+
+[package]
+name = "fwtest"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[dependencies]
+fm1-core = { path = "../vendor/emulator/crates/fm1-core" }
+fm1-isa = { path = "../vendor/emulator/crates/fm1-isa" }
+fm1-soc = { path = "../vendor/emulator/crates/fm1-soc" }
+
+[workspace]
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+debug = false
+incremental = false
+strip = "symbols"

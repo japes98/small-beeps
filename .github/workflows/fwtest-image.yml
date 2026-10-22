@@ -1,0 +1,67 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Publishes the fwtest container image (spec side's harness, R-SEP-3) to
+# GHCR, for every push to main that changes what goes into it. It builds
+# with harness/ci.sh exactly as CI does, pushes it under this repository's
+# name with the tag fwtest-<commit>, and prints the digest. A pull request
+# then puts that digest in config/fwtest-image; tools/fwtest runs only the
+# pinned digest, never a tag.
+name: fwtest-image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "harness/**"
+      - "vendor/emulator/**"
+      - "LICENSE"
+      - "NOTICE"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: fwtest-image
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build the image
+        run: sh harness/ci.sh image
+
+      - name: Push it and print its digest
+        env:
+          TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -eu
+          repo=$(printf '%s' "ghcr.io/$GITHUB_REPOSITORY" | tr 'A-Z' 'a-z')
+          local_tag=$(sh harness/ci.sh tag)
+          remote="$repo:fwtest-$GITHUB_SHA"
+          printf '%s' "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          docker tag "$local_tag" "$remote"
+          docker push "$remote"
+          digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$remote")
+          docker logout ghcr.io
+          docker run --rm --platform linux/amd64 --network none "$digest" version
+          {
+            echo "### fwtest image"
+            echo
+            echo "Pin this in \`config/fwtest-image\`:"
+            echo
+            echo '```'
+            echo "$digest"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "digest: $digest"

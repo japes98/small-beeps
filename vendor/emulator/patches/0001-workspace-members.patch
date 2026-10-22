@@ -1,0 +1,18 @@
+Vendor only three crates: the upstream workspace manifest lists seven
+members, and the crates inherit version, edition and licence from it.
+Keep the manifest, list just the three crates that are vendored.
+
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -3,10 +3,6 @@
+ members = [
+     "crates/fm1-isa",
+     "crates/fm1-core",
+     "crates/fm1-soc",
+-    "crates/fm1-gdbstub",
+-    "crates/fm1-emu",
+-    "crates/fm1-live",
+-    "crates/fm1-web",
+ ]
+ # the plugin is a workspace of its own (its GUI and plugin dependencies)
+ exclude = ["crates/fm1-plugin"]

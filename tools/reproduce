@@ -39,7 +39,7 @@ echo "record:  $ref:records/$full/report.json"
 mkdir "$work/src"
 # Spec-side folders aren't needed to build, and must not land on a clean
 # machine (CONTRIBUTING.md, "Barriers").
-git -C "$ROOT" archive "$full" -- . ':(exclude)vendor/emulator' ':(exclude)harness' \
+git -C "$ROOT" archive "$full" -- . ':(exclude)vendor/emulator' ':(exclude)harness' ':(exclude)sessions/spec' \
     | tar -x -C "$work/src"
 sh "$work/src/tools/build.sh" build --out "$work/out"
 "$(sh "$ROOT/tools/find-python.sh")" -I "$ROOT/tools/record.py" compare --record "$work/report.json" --outputs "$work/out"

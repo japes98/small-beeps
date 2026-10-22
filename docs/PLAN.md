@@ -47,11 +47,44 @@ emits JUnit and JSON.
 - Done when: `fwtest` runs in CI from a pinned container, its outputs are
   deterministic, and `tools/clean-setup.sh` excludes `vendor/emulator/` and
   `harness/` from clean clones.
+- Status 2026-10-22 (session M0b, spec side, on the owner's Mac):
+  - **Setup** (pull request #3): the spec folder, its hand-made settings kept
+    and guarded, M0a's transcripts archived in `sessions/clean/`; spec-side
+    transcripts go to `sessions/spec/`, which clean folders leave out and
+    deny (R-SEP-2).
+  - **Emulator** (pull request #4): three crates vendored at upstream commit
+    `43ed5580`, reproducible by `tools/fetch-emulator.sh` with a tree hash
+    (C-EMU-PIN). One patch, to the workspace manifest only.
+  - **Harness** (pull request #4): `fwtest`, a Rust library and CLI with no
+    third-party crates, built offline in a container on digest-pinned bases
+    (Rust 1.99.0). It boots raw images, takes timed inputs, captures RAM,
+    the LCD (PNG), LEDs, flash, audio (WAV), instructions per audio block
+    and the debug console, tells faults, halts and hangs apart, compares
+    golden files, and writes JSON and JUnit. Its own tests: 23 cargo tests
+    and a 13-case suite on 12 small test images built with the pinned
+    toolchain. The suite's outputs were byte-identical in two amd64
+    containers at different paths and on Apple Silicon natively.
+  - **Separation**: docs/HARNESS.md (the clean side's manual) and
+    docs/SPEC-REQUESTS.md; checks C-SEP-TERMS, C-CLEAN-FOLDER and
+    C-FWTEST-PIN; requirements R-SEP-1..3 and R-HARN-1..10.
+  - **Publishing**: `.github/workflows/fwtest-image.yml` pushes the image
+    from main; a follow-up pull request pins its digest in
+    `config/fwtest-image`, after which `tools/fwtest` runs it.
+  - **Before the next clean session**, in the clean folder, from a shell:
+    `export GIT_NO_LAZY_FETCH=1; git fetch origin;` then
+    `env -u GIT_NO_LAZY_FETCH git merge --ff-only origin/main` (only the
+    folder's own files are fetched), then `tools/clean-setup.sh`. Its live
+    settings predate the new deny rule and the lazy-fetch setting, so its
+    banner would otherwise say CONFIG MISMATCH. From then on,
+    `tools/clean-update.sh` updates it.
 
-### M0c: hardware spec (spec side)
+### M0c: hardware spec (spec side, next)
 `HARDWARE-SPEC.md`: facts only (addresses, bits, pins, timings, protocols),
 each with its source. Facts whose only source is the emulator are marked as
-such.
+such. It also maps fwtest's key, LED and encoder numbers to the panel and
+the key matrix, and covers what docs/HARNESS.md defers to it (the memories,
+the second core's release, the audio output's format and rate, the debug
+message register), and answers any open spec requests.
 - Done when: reviewed for "facts, not code" before the firmware side reads it.
 
 ### M0d: smallest firmware (firmware side)

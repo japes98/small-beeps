@@ -13,7 +13,9 @@ Fails if config/claude/clean.json or spec.json lacks any deny rule that
     handmade-settings.json, M0a; spec: handmade-spec-settings.json, M0b),
     whose SHA-256 must stay the one in docs/EXPOSURE.md.
 Also checks that both configs run tools/session-banner.sh on every
-SessionStart.
+SessionStart, and that the clean config turns git's lazy fetching off
+(GIT_NO_LAZY_FETCH=1), so no command in a clean session can download a file
+the clean folder leaves out (R-SEP-2).
 """
 import hashlib
 import json
@@ -94,6 +96,8 @@ def check(config_dir):
         for r in ORIGINAL[role]:
             if r not in baseline.get(role, []):
                 problems.append("deny-baseline.json dropped %s rule %s" % (role, r))
+        if role == "clean" and cfg.get("env", {}).get("GIT_NO_LAZY_FETCH") != "1":
+            problems.append("clean.json does not set GIT_NO_LAZY_FETCH to 1")
         if not has_banner_hook(cfg):
             problems.append("%s.json has no SessionStart hook running %s" % (role, BANNER))
         print("%s.json: %d deny rules, %d required, banner hook %s"

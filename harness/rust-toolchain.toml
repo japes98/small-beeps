@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The vendored crates need Rust 1.95 or later. The container (Dockerfile)
+# uses the same version, from an image pinned by digest (PROVENANCE P-8).
+[toolchain]
+channel = "1.99.0"
+profile = "minimal"

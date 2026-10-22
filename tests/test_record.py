@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
+import contextlib
 import glob
+import io
 import json
 import os
 import re
@@ -57,6 +59,32 @@ class RecordTest(unittest.TestCase):
         self.assertEqual(table["R-PUB-2"]["result"], "not run in this record (C-Z)")
         self.assertEqual(table["R-LIC-1"]["result"], "PASS (C-Z not run)")
         self.assertTrue(table["R-BOOT-1"]["result"].startswith("not machine-checked"))
+
+    def test_skipped_checks_count_as_not_run(self):
+        defined = [{"id": "C-X", "reqs": ["R-PROC-1"]}]
+        table = {t["requirement"]: t for t in rec.traceability([{"id": "C-X", "result": "SKIP"}], defined)}
+        self.assertEqual(table["R-PROC-1"]["result"], "not run in this record (C-X)")
+
+    def test_spec_side_checks_skip_without_their_folder(self):
+        out = tempfile.mkdtemp()
+        saved = list(rec.CHECKS)
+        try:
+            rec.CHECKS[:] = [{"id": "C-T", "title": "t", "reqs": ["R-SEP-2"],
+                              "needs": "no-such-folder", "cmd": ["false"]}]
+            class A:
+                pass
+            a = A()
+            a.out, a.only, a.skip, a.with_merge = out, None, None, False
+            with contextlib.redirect_stdout(io.StringIO()):
+                code = rec.cmd_run(a)
+            with open(os.path.join(out, "report.json")) as f:
+                report = json.load(f)
+            self.assertEqual(code, 0)
+            self.assertEqual(report["checks"][0]["result"], "SKIP")
+            self.assertEqual(report["overall"], "PASS")
+        finally:
+            rec.CHECKS[:] = saved
+            shutil.rmtree(out)
 
     def test_run_writes_a_complete_record(self):
         out = tempfile.mkdtemp()

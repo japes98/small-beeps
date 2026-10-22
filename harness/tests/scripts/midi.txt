@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+1 midi 90 3c 64
+3 midi 80 3c 00
