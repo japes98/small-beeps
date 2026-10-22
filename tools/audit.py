@@ -392,7 +392,9 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
         s = score(pairs, cfg, pool.where)
         names = dict(ours)
         names.update(control)
-        report["ours_files"] = [{"file": p, "tokens": tokens.get(n), "state": failed.get(n, "scored" if n in tokens else "not scored")}
+        # JPlag leaves a file that matched nothing (no run of min_tokens) out
+        # of its index, so its token count is unknown; it was still compared.
+        report["ours_files"] = [{"file": p, "tokens": tokens.get(n), "state": failed.get(n, "scored" if n in tokens else "no match")}
                                 for n, p in sorted(ours.items())]
         report["control_max_tokens"] = s["control_max"]
         report["threshold_tokens"] = s["threshold"]
@@ -569,17 +571,18 @@ def selftest_target(work_parent, cfg):
 
 
 def selftest_verdict(report):
-    """Every one of our scored files must be found in the made-up target with
-    a match covering at least 90% of its tokens, and the report written."""
-    tokens = {f["file"]: f["tokens"] for f in report.get("ours_files", []) if f["state"] == "scored"}
+    """Every one of our files must be scored and found in the made-up target
+    with a match covering at least 90% of its tokens, and the report written."""
+    files = report.get("ours_files", [])
+    tokens = {f["file"]: f["tokens"] for f in files if f["state"] == "scored"}
     best = {}
     for o, p, l, m, v in report.get("selftest", {}).get("ours_best", []):
         best[o] = max(best.get(o, 0), l)
     found = [f for f, t in tokens.items() if best.get(f, 0) >= 0.9 * t]
     leak_ok = any(c["id"] == "C-AUDIT-LEAK" and c["result"] == "PASS" for c in report.get("checks", []))
-    ok = bool(tokens) and len(found) == len(tokens) and leak_ok
-    return ok, "%d of our %d scored files found in a target holding copies of them; leak check %s" % (
-        len(found), len(tokens), "PASS" if leak_ok else "not passed")
+    ok = bool(files) and len(found) == len(files) and leak_ok
+    return ok, "%d of our %d files found in a target holding copies of them; leak check %s" % (
+        len(found), len(files), "PASS" if leak_ok else "not passed")
 
 
 def check_artifact(folder):

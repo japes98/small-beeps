@@ -96,9 +96,12 @@ deleted after pinning are reported as `not fetched`.
 `.github/workflows/audit-discover.yml` runs on the first day of every month,
 and on demand. It runs `tools/audit-discover.py --write`, which uses
 metadata only, as above. If any target is new, gone or has moved to a new
-commit, it opens a pull request that changes `audit/targets.json` and lists
-those repositories by name. It never fetches a target's code: only the
-audit job does that.
+commit, it opens an issue titled "audit: the targets have changed" that
+lists those repositories by name, or updates that issue if one is still
+open. The rewritten `audit/targets.json` is kept as the run's `targets`
+artifact for 90 days. The job has read access to the code and write
+access to issues only: it cannot push a branch or open a pull request. It
+never fetches a target's code: only the audit job does that.
 
 Search results vary from run to run, so a target already in
 `targets.json` stays even when this month's searches miss it. It is
@@ -115,12 +118,14 @@ trip the privacy check (C-PRIVATE) too. A spec-side session reviews such a
 hit. A separation hit gets an entry by hash in
 `config/emulator-terms-reviewed.json`; a privacy hit goes to the owner.
 
-Three things about that pull request:
-- The repository setting "Allow GitHub Actions to create and approve pull
-  requests" must be on.
-- It needs the review just described for any separation or privacy hit.
-- GitHub does not run CI for a pull request that a workflow opens. The owner
-  closes and reopens it to start `ci`, then merges it as usual.
+A spec-side session turns the issue into a pull request:
+1. Download the newest run's artifact, as the issue says
+   (`gh run download <run> -n targets`), and replace `audit/targets.json`
+   with it. Don't rerun the discovery locally: search results vary, and the
+   artifact is what the issue lists.
+2. Do the review just described for any separation or privacy hit.
+3. Open the pull request with "Closes #<issue>". Because a person opens it,
+   `ci` runs as usual, and the owner merges it with the button.
 
 ## The method
 
@@ -247,10 +252,11 @@ its first run is the push that merges it.
 
 - **Sets.** `full` scores every target that isn't a duplicate. `fast`
   scores the four seeds Felucca, dinghy, fm1-emu's `fm1-sid/` (with
-  `probes/`) and `fm1_open`. Pushes to main run `full`. If a full run ever
-  takes more than about 30 minutes, push runs switch to `fast` and a nightly
-  schedule runs `full`. That is one change to `audit.yml`'s triggers, by
-  pull request, and this page then says so.
+  `probes/`) and `fm1_open`. Pushes to main run `full`: the first run
+  (below) took under 4 minutes. If a full run ever takes more than about 30
+  minutes, push runs switch to `fast` and a nightly schedule runs `full`.
+  That is one change to `audit.yml`'s triggers, by pull request, and this
+  page then says so.
 - **Self-test first.** Each run starts with `tools/audit.py selftest`. It
   builds a made-up local target that holds verbatim copies of our files,
   runs the whole pipeline on it, and checks that each of our files is found
@@ -301,7 +307,10 @@ its first run is the push that merges it.
   holding the matched file (the first ten of them, and how many there are),
   each with its licence class, and the longest match, max and avg;
 - the control's top five pairs, and its best pair with our own files;
-- each of our files' token counts;
+- each of our files' token counts. A file that matched nothing anywhere
+  (no run of 12 tokens) shows `no match` with no count: JPlag leaves such a
+  file out of its index. It was still parsed and compared; the self-test,
+  which fails unless every one of our files is found, shows that it parses;
 - every target: its pinned commit, licence class, files fetched (and how
   many were new to the pool), our longest and the control's longest match
   with it, and how many of its files JPlag could not parse or found too
@@ -309,6 +318,22 @@ its first run is the push that merges it.
 - the flagged pairs, every place listed; pairs accepted by an auditor's
   finding; how many targets were skipped as duplicates or empty; and the
   unresolved names.
+
+### The first run
+
+The push that merged the audit (`362480c8`, run 39814921515) ran the full
+set. Its report is in `records/362480c8…/audit/39814921515-1/`.
+- The audit job took 3 minutes 44 seconds, the self-test included. That is
+  why pushes run `full`.
+- 516 targets were fetched at their pins, none unavailable; 18,498 target
+  files were scored, one per blob.
+- The control's longest match with an unrelated target was 35 tokens, so
+  the threshold was 59. No target was control-related.
+- Our best pair: `src/probe.c`, a 12-token match (JPlag's minimum) with
+  several targets. `src/main.c`, `src/start.c` and `src/sb.h` matched
+  nothing.
+- Every check passed: C-AUDIT-JPLAG, -PIN, -CONTROL, -SCORE, -LEAK and
+  -SELFTEST.
 
 ## When the audit fails
 
