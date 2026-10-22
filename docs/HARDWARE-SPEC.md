@@ -14,7 +14,9 @@ the firmware side.
 
 Written by session M0c (spec side), 2026-10-22. Ask for anything missing
 through docs/SPEC-REQUESTS.md. Open spec requests at the time of writing:
-none.
+none. Session SR-1-SR-2 (spec side, 2026-10-22) added sections 9 to 11 for
+SR-1 and SR-2, which are answered in part; what stays open is Q-2, Q-13
+and Q-14.
 
 ## How to read it
 
@@ -249,7 +251,7 @@ least significant. Register names are the JieLi SDK's.
   `IRQ_TIMER3_IDX` 7); E-3: TIMER0 with prescaler setting 2 and `PRD` 1500
   interrupted every 1 ms (52 by 52.3 ms), and `CON` read `0x8021` in its
   handler (pending, prescaler 2, running).
-- Standing: confirmed (SDK, E-3)
+- Standing: superseded by HW-48
 - Needed by: M1
 
 ### HW-17: The core tick timer
@@ -674,6 +676,195 @@ requests.
 - Standing: emulator-only
 - Needed by: M7
 
+## 9. TIMER0 to TIMER3, corrected (M1)
+
+### HW-48: TIMER0 to TIMER3, and what the acknowledge does in fwtest
+- Fact: In fwtest, `JL_TIMERn->CON` bits 0-1 non-zero run timer n (n = 0
+  to 3); `CON` bits 4-7 select a prescaler of the 24 MHz clock. The timer
+  counts up from `CNT` and, on reaching `PRD`, raises interrupt source
+  4 + n and starts again from 0. `CON` bit 15 reads 1 while pending;
+  writing `CON` with bit 14 set clears it. Every write to `CON`, the
+  acknowledge included, restarts the count from `CNT`'s value (0 after an
+  interrupt) and the period from that moment. So in fwtest the time between
+  two interrupts is `PRD` prescaled counts plus the time from the interrupt
+  to the write that acknowledges it: with prescaler setting 2 and `PRD`
+  1500, 24 000 time-base ticks (HW-13) plus about 1 tick when the handler
+  acknowledges first, and more when it acknowledges later. This is fwtest,
+  not a firmware setting: the period does not depend on anything but `PRD`,
+  the prescaler and where the acknowledge sits. Whether the chip restarts
+  the count on the acknowledge is Q-13. On the chip, the SDK names the
+  prescaler settings 0 to 15 as dividing by 1, 4, 16, 64, 2, 8, 32, 128,
+  256, 1024, 4096, 16384, 512, 2048, 8192, 32768; in fwtest only setting 2
+  (16) was measured (Q-3). Supersedes HW-16, which said the count starts
+  again from 0 on reaching `PRD` without saying what the acknowledge does.
+- Sources: SDK `hwi.h` lines 42-45 (`IRQ_TIMER0_IDX` 4 to `IRQ_TIMER3_IDX`
+  7); SDK `apps/common/example/peripheral/timer/test2.c` lines 58-75 (the
+  prescaler table); E-3 (the 1 ms period, `CON` read `0x8021` in the
+  handler); E-13: over 100 periods, 2 400 100 ticks (24 001.0 a period)
+  with the acknowledge first in the handler (1 tick after entry), and
+  2 408 160 ticks (24 081.6) with it 82 ticks after entry; `CNT` read 5
+  just before the acknowledge and 0 just after.
+- Standing: confirmed (SDK, E-13)
+- Needed by: M1
+
+## 10. CPU exceptions (SR-1)
+
+### HW-49: The exception interrupt, source 1, on the chip
+- Fact: On the chip, faults raise interrupt source 1, the exception
+  interrupt. The SDK installs one handler on it, at priority 7, and reads
+  the cause from two words: the core's `EMU_MSG` (HW-50) and the shared
+  `DBG_MSG` (HW-51). Its exception demonstration lists the conditions that
+  end there, each with the cause it reports: a misaligned halfword or word
+  access (`EMU_MSG` bit 0); a read of an address beyond the chip's limits
+  (`DBG_MSG` bit 4); a write there (bit 5); a call to such an address, an
+  instruction fetch (bit 16 or 19, core 1 or 0); a stack that outgrows its
+  limits (`EMU_MSG` bit 3); a division by zero (`EMU_MSG` bit 2); code
+  running outside a set code range (`DBG_MSG` bit 10 or 12); a write inside
+  a protected range (bit 11 or 13); a watchdog time-out (bit 0). FM-1's own
+  firmware also installs a handler on source 1 at priority 7, and programs
+  the per-core registers from `0x01EEF0D0` (HW-50's) and per-core exception
+  stack bounds (FM-1-RE rates the last medium). Which of these are on
+  when an installed app starts, and how the exception is entered, is Q-14.
+- Sources: SDK `hwi.h` line 39 (`IRQ_EXCEPTION_IDX` 1); SDK
+  `cpu/wl82/debug.c` lines 1137-1145 (the handler on source 1, priority 7),
+  555-760 (the causes read from both words);
+  SDK `apps/common/example/system/exception/main.c` lines 1-38 (a sample
+  report: `DEBUG_MSG = 0x10`, cause "axi_rd_inv") and 51-140 (each
+  condition and the cause it reports); RE `docs/io/01-boot.md` §4.1 (source
+  1, priority 7) and §5.2 (the per-core registers from `0x01EEF0D0` and the
+  per-core exception stack bounds).
+- Standing: confirmed (SDK, RE)
+- Needed by: M1
+
+### HW-50: EMU_CON and EMU_MSG, per core
+- Fact: Each core has `EMU_CON`, `EMU_MSG`, `EMU_SSP_H`, `EMU_SSP_L`,
+  `EMU_USP_H` and `EMU_USP_L`: core 0's at `0x01EEF0D0`, `0x01EEF0D4`,
+  `0x01EEF0D8`, `0x01EEF0DC`, `0x01EEF0E0`, `0x01EEF0E4`, core 1's `0x200`
+  higher. `EMU_MSG` says which core-level condition raised the exception,
+  one bit each: bit 0 misaligned access, bit 1 illegal instruction, bit 2
+  division by zero, bit 3 stack overflow, bit 8 watchpoint 0, bits 16 to
+  20 floating point invalid, infinite, tiny, huge, inexact. The SDK clears
+  it by writing all ones. `EMU_CON` bit 3 turns on the stack check: the
+  SDK sets `EMU_SSP_L` and `EMU_SSP_H` to the bottom and top of the
+  supervisor stack, and `EMU_USP_L` and `EMU_USP_H` to 0 and `0xFFFFFFFF`
+  (no user-stack check), with bit 3 clear while it changes them. The SDK
+  also sets `EMU_CON` bits 2 and 8. That `EMU_CON` bit n turns on the
+  condition of `EMU_MSG` bit n is suggested by these settings but not
+  stated (Q-14).
+- Sources: SDK `csfr.h` lines 208-214 (one `q32DSP` block per core from
+  `0x01EEF000`, `0x200` apart) and 267-272 (the six words, 0x34 to 0x39);
+  SDK `cpu/wl82/debug.c` lines 70-110 (the bit names), 1098-1099 (the
+  clear), 1113-1117 and 1164-1169 (bit 3 and the limits), 1193 (bits 2 and
+  8); RE `docs/io/01-boot.md` §5.2 (FM-1's own firmware programs these
+  registers).
+- Standing: confirmed (SDK, RE)
+- Needed by: M1
+
+### HW-51: DBG_MSG on the chip reports exception causes
+- Fact: On the chip, `DBG_MSG` (`0x01EEE244`, HW-25) is read-only and
+  holds the system-level causes of the exception, one bit each: 0 watchdog
+  time-out; 1 peripheral MMU read error; 2 peripheral write outside its
+  limit; 3 peripheral MMU write error; 4 bus read of an invalid address;
+  5 bus write to an invalid address; 6 and 7 MMU read exception of core 1
+  and core 0; 8 and 9 MMU write exception of core 1 and core 0; 10 and 12
+  code outside its set range on core 1 and core 0; 11 and 13 write inside
+  a protected range by core 1 and core 0; 14 the SDRAM controller; 15 the
+  debug unit; 16, 17, 18 an invalid instruction fetch, read and write on
+  the bus by core 1; 19, 20, 21 the same by core 0. Writing all ones to
+  `DBG_MSG_CLR` (`0x01EEE248`) clears it. `DBG_EN` (`0x01EEE340`) holds
+  enables; the SDK sets its bits 4, 5 and 16 to 21 (that bit n enables
+  cause n is not stated, Q-14). The debug registers are write-protected:
+  the SDK writes `0xE7` to `DBG_WR_EN` (`0x01EEE240`) before changing them
+  and again after, and reads its bit 0 as "writes enabled". So on the chip
+  a write to `DBG_MSG` is not a console (Q-5), and a firmware that reports
+  faults through `DBG_MSG` in fwtest has to report them another way there.
+- Sources: SDK `csfr.h` lines 107-108 (`corex2` at `0x01EEE000`), 136-138
+  (`DBG_WR_EN`, `DBG_MSG` read-only, `DBG_MSG_CLR`, words 0x90 to 0x92),
+  171 (`DBG_EN`, word 0xD0); SDK `cpu/wl82/debug.c` lines 31-68 (the bit
+  names), 773-786 (the write enable), 1096 (the clear), 1160-1161 (the
+  `DBG_EN` bits); SDK `apps/common/example/system/exception/main.c` lines
+  6 and 32 (`DEBUG_MSG = 0x10` reported as a bus read of an invalid
+  address).
+- Standing: confirmed (SDK)
+- Needed by: M1
+
+### HW-52: The conditions of SR-1 in fwtest
+- Fact: fwtest models no CPU exception: none of these conditions raises
+  source 0, 1 or 2 (handlers installed and enabled on all three never
+  ran), and the registers of HW-50 and HW-51 have no effect.
+  - Misaligned word and halfword loads, from RAM and from the code window,
+    return the bytes at the address asked, lowest first; a misaligned word
+    store to RAM writes the 4 bytes at the address asked.
+  - A read of an address outside every memory and register fwtest models
+    returns 0, and a write there is ignored; both are listed as unmodelled
+    accesses.
+  - A write to the code window is ignored and listed (HW-5).
+  - A division by zero gives 0, signed or unsigned; C's remainder by zero,
+    as the pinned toolchain compiles it, gives the dividend.
+  - `EMU_CON` and the four limit words read back what was written; with
+    every `EMU_CON` bit the SDK names set and limits that exclude the
+    stacks, the image ran on; `EMU_MSG` reads 0; `DBG_EN` reads 0 and is
+    listed as unmodelled.
+  - An instruction fwtest cannot decode ends the run with fwtest's fault
+    outcome (exit code 3). fwtest may report it at the start of the
+    straight-line code that holds it, before any of that code has run.
+  - A call to an address outside every memory runs what fwtest reads there
+    (zeros) until fwtest's next check, up to 1024 instructions later, then
+    ends the run as a fault ("the pc left every memory that can hold
+    code").
+  So in fwtest a firmware's exception handler is never entered by a
+  fault. The sources don't establish enough of the chip's behaviour
+  (Q-14) for fwtest to model one.
+- Sources: E-10 (loads, stores, unmapped accesses, the code window,
+  divisions, the exception registers, both before and after setting
+  them), E-11 (an undecodable halfword), E-12 (a call to `0x00ABCDEE`);
+  HARNESS ("Outcomes and exit codes", "unmodelled_accesses").
+- Standing: confirmed (E-10, E-11, E-12)
+- Needed by: M1
+
+## 11. The clocks on the chip (SR-2, real hardware)
+
+### HW-53: The clock registers
+- Fact: `JL_CLOCK` is at `0x00010000`: `PWR_CON` +0, `SYS_DIV` +8,
+  `CLK_CON0` +12, `CLK_CON1` +16, `CLK_CON2` +20, `CLK_CON3` +24. In
+  `CLK_CON0`: bit 0 turns the RC oscillator on and bit 1 picks its rate
+  (0: 250 kHz, 1: 16 MHz); bits 4-5 pick the oscillator input (0: the
+  crystal oscillator, the SDK's "BT OSC"; 2: the RTC's low-frequency
+  oscillator; 3: a pad); bits 6-8 pick the main (system) clock source:
+  0 the RC oscillator, 4 the crystal oscillator, 6 the RTC's low-frequency
+  oscillator, 7 the PLL. In `CLK_CON1`: bits 2-3 the DAC clock (0: PLL
+  24 MHz, 1: oscillator, 2: low-speed bus clock, 3: off); bits 10-11 the
+  UART clock (0: oscillator, 1: PLL 48 MHz, 2: low-speed bus clock, 3:
+  off). The SDK's definitions of the PLL's control fields and of `SYS_DIV`'s
+  fields are switched off in its header (they may belong to another chip),
+  so they are not given here (Q-2). In fwtest none of these registers has
+  an effect (HW-11), and `SYS_DIV` bit 3 releases core 1 (HW-10).
+- Sources: SDK `WL82.h` lines 15-16, 347-358 (`JL_CLOCK`); SDK
+  `include_lib/driver/cpu/wl82/clock_hw.h` lines 235-341 (the fields in
+  use) and 344 (the PLL and `SYS_DIV` fields under `#if 0`).
+- Standing: confirmed (SDK)
+- Needed by: real hardware (Level 2)
+
+### HW-54: System clock rates, and FM-1's own setting
+- Fact: On the chip, the SDK sets the system clock anywhere from 24 MHz to
+  396 MHz, and names the rates 320, 240, 192, 160, 120, 96, 48, 40, 24, 12
+  and 8 MHz. The high-speed bus clock is the system PLL clock divided by 1
+  to 4, and the low-speed bus clock that divided again by 1 to 8; the SDRAM
+  clock runs from 96 MHz to 244 MHz. FM-1's own firmware runs the PLL from
+  the 24 MHz reference (HW-11) to 240 MHz. It tells a 24 MHz reference
+  from a 40 MHz one by bits 26-27 of the word at `0x000119A0`
+  (`JL_ANA->PLL_CON0`): the value 2 means 40 MHz, any other 24 MHz; the
+  FM-1 takes the 24 MHz path. fwtest runs at 240 MHz from the start
+  (HW-11), the rate FM-1's own firmware sets.
+- Sources: SDK `include_lib/driver/cpu/wl82/asm/clock.h` lines 44-55 (the
+  named rates), 94 and 97 (24 MHz to 396 MHz; SDRAM 96 MHz to 244 MHz),
+  109 (the bus clock dividers); SDK `WL82.h` lines 488-546 (`JL_ANA` at
+  `0x00011900`, `PLL_CON0` its word 0x28); RE `docs/io/01-boot.md` §5.1
+  (the PLL from 24 MHz to 240 MHz, high confidence) and §5.2 (the
+  reference detect, the 24 MHz path on the FM-1).
+- Standing: confirmed (SDK, RE)
+- Needed by: real hardware (Level 2)
+
 ---
 
 ## Open questions
@@ -686,16 +877,25 @@ spec request can turn one into a fact.
   layout names a cache RAM at `0x01F20000` and an external SDRAM window at
   `0x04000000`.
 - **Q-2. Clock set-up on the chip.** Which registers and steps set the PLL
-  and system clock on real hardware, and which rates the chip supports
-  (fwtest needs none). Settled by a spec request answered from permitted
-  sources, or by an experiment on hardware.
-- **Q-3. TIMER0-3 prescaler settings other than 0 and 2.** Measure with a
-  black-box test, or ask.
+  and system clock on real hardware (fwtest needs none). Since SR-2, the
+  clock registers' addresses, the main clock select and the supported rates
+  are known (HW-53, HW-54); still open: the PLL's control registers and
+  fields (FM-1-RE places the PLL block at `0x00016A00`, which the SDK's
+  header names as part of another block; the SDK's own PLL and `SYS_DIV`
+  field definitions are switched off), the order of the steps that change
+  the system clock safely (the flash and bus clocks with it), and the
+  clock when an installed app starts: FM-1-RE says only that the loader
+  brings up "clocking sufficient for XIP". Settled by a datasheet or a
+  probe on real hardware.
+- **Q-3. TIMER0-3 prescaler settings in fwtest.** The SDK gives the chip's
+  table (HW-48); fwtest's settings other than 0 and 2 were not measured.
+  Measure with a black-box test, or ask.
 - **Q-4. The core tick timer's period on the chip.** Which clock `TTMR_PRD`
   counts on real hardware (fwtest always uses 10 ms).
 - **Q-5. A debug console on the chip.** Whether `DBG_MSG` writes go
-  anywhere on real hardware (the SDK marks it read-only), or which UART
-  pins could carry debug output.
+  anywhere on real hardware (the SDK marks it read-only, and reads it as
+  the exception's cause word, HW-51), or which UART pins could carry debug
+  output.
 - **Q-6. LCD wiring.** Which pins carry SPI1's clock, data and chip select
   (and the `JL_IOMAP` selection for them), whether the panel has a reset
   pin and a backlight pin, and which ones; the panel's orientation and its
@@ -723,3 +923,20 @@ spec request can turn one into a fact.
   image can release core 1 as HW-9 says.
 - **Q-12. MIDI input.** UART1 and the MIDI jack are not covered here (M6
   will ask).
+- **Q-13. The timer acknowledge on the chip.** Whether writing a TIMER0-3
+  `CON` to acknowledge its interrupt restarts the count, as it does in
+  fwtest (HW-48), or the count runs on and the period stays `PRD` counts.
+  The SDK's examples acknowledge every interrupt with such a write but
+  don't say. Settled by a probe on real hardware.
+- **Q-14. CPU exceptions on the chip.** What the sources don't establish
+  about source 1 (HW-49 to HW-51): which causes are on when an installed
+  app starts, and which `EMU_CON` and `DBG_EN` bits turn each on (the SDK's
+  settings suggest bit n for cause n, but its demonstration reports a
+  misaligned access although the SDK never sets `EMU_CON` bit 0); whether
+  the exception obeys the source's `ICFG` enable, `icfg` bit 8 and `sti`
+  like other sources; what `reti` holds (the faulting instruction or the
+  next) and whether the faulting access or division completes; how the
+  stack limits are compared; whether an undecodable instruction raises it
+  (`EMU_MSG` bit 1 is named "illegal instruction"); whether a write to the
+  code window does. fwtest models none of it (HW-52). Settled by a probe on
+  real hardware.
