@@ -412,10 +412,14 @@ def perf_markdown(perf):
     L = ["Overall: **%s**. Period: %s." % (perf.get("result"), perf.get("period")), ""]
     if not cur.get("error"):
         L += ["| Measure | Value |", "|---------|-------|"]
+        # tools/perf.py's MEASURES, and since M2 each perf run's numbers
         for k in ("code", "data", "bss", "image", "static_ram", "stack_reserved", "stack_high_water",
-                  "stack_method", "instructions", "periods", "instructions_per_period"):
+                  "stack_method", "startup_instructions", "instructions", "periods", "instructions_per_period"):
             if k in cur:
                 L.append("| %s | %s |" % (k, cur[k]))
+        for r in cur.get("runs", []):
+            L.append("| run of %s ms | %s instructions, %s periods, ended at %s ms |"
+                     % (r.get("ms"), r.get("instructions"), r.get("periods"), r.get("emulated_ms")))
         L.append("")
     L += ["Baseline: %s." % perf.get("baseline_note"), "",
           "| Gate | Result | Detail |", "|------|--------|--------|"]

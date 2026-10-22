@@ -15,10 +15,11 @@ C-PERF and C-PERF-PROBES; R-PERF-1 to R-PERF-5).
       Builds the firmware with SB_PROBE_SLOW and with SB_PROBE_BIG
       (firmware/src/probe.c), measures each, and checks that the gates
       fail each one for its own reason, measured against DIR/app.bin: the
-      slower build its speed, the bigger build each budget, with the
-      unmodified build's sizes as the budgets. Builds it also with
-      SB_PROBE_STACK and checks the stack's high-water mark shows at least
-      the 1 KiB that build is known to use.
+      slower build its speed and its steady-state budget, the bigger build
+      each size budget and its startup budget, with the unmodified build's
+      measurements as those budgets. Builds it also with SB_PROBE_STACK
+      and checks the stack's high-water mark shows at least the 1 KiB that
+      build is known to use.
       Exit status 1 if any gate did not fail as it should.
   perf.py history --record REPORT.json --csv FILE
       Appends the record's line to perf-history.csv (records workflow).
@@ -35,17 +36,37 @@ What is measured (docs/DESIGN-NOTES.md, M0e):
   captured at the end of the run. An image without the fill (an older
   record's) is read by the lowest non-zero word, as fwtest starts RAM at
   zero; that method can't see words written as zero;
-- speed: emulated core-0 instructions per period. Until audio (M4) the
-  period is the heartbeat (one beat per millisecond): the instructions of
-  a one-second run divided by the beats the beacon shows at its end.
+- speed (since M2, the owner's decision): emulated core-0 instructions,
+  in two parts, from two runs that differ only in length (RUN_MS):
+  - steady state, per period: the longer run's instructions less the
+    shorter's, divided by the beats the beacon gained between their ends.
+    Until audio (M4) the period is the heartbeat (one beat per
+    millisecond). Both runs end a quarter of a second past a whole
+    second, so the window between them holds whole seconds and none of
+    the firmware's work timed on whole seconds or tenths of a second
+    falls near its ends (an end can come up to about 30 ms late while the
+    image idles, docs/HARNESS.md "Time");
+  - startup: the instructions of the shorter run beyond its beats at the
+    steady-state rate, the one-off work before the firmware settles.
+  The stack's high-water mark is read at the end of the longer run.
+  Until M2 speed was the instructions of one one-second run divided by
+  its beats, startup included.
 
 The gates: each budget in config/budgets.json for the current milestone
-(code, static RAM, stack high-water) must hold, and instructions per
-period may rise by at most `speed_rise_percent` against the baseline. A
-fall of more than that is reported as an improvement. The count is
-deterministic, so there is no noise allowance. The baseline is re-measured
-with this checkout's fwtest and options, so a change of fwtest or of the
-options never shows up as a change of the firmware.
+must hold: code, static RAM, stack high-water, startup instructions and
+steady-state instructions per period. Steady-state instructions per period
+may also rise by at most `speed_rise_percent` against the baseline, when
+the baseline's record was made under the same steady-state budget;
+otherwise that comparison is not made, and the record says why. A fall of
+more than that is reported as an improvement. Startup has its budget but
+no such comparison. The count is deterministic, so there is no noise
+allowance. The baseline is re-measured with this checkout's fwtest, runs
+and options, so a change of fwtest or of the method never shows up as a
+change of the firmware.
+
+perf-history.csv keeps its columns: since M2 its `instructions`,
+`periods` and `instructions_per_period` are the steady state's window,
+and its `period` says `heartbeat-steady`. Startup is in each record.
 """
 import argparse
 import csv
@@ -62,14 +83,19 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUDGETS = os.path.join(ROOT, "config", "budgets.json")
 REPO = ROOT                  # where find_baseline looks (tests change it)
 
-PERIOD = "heartbeat"
-RUN_MS = 1000
+PERIOD = "heartbeat-steady"
+RUN_MS = (1250, 2250)        # the two runs, shorter first (see the docstring)
 BEACON = 0x01C00000          # firmware/app.ld, firmware/src/sb.h
 BEACON_LEN = 16
 MARKER = 0x44304253          # "SB0D"
 STACK_FILL = 0x4B415453      # "STAK", firmware/src/crt0.S
 STACK_TOP = 0x01C7FC00       # firmware/app.ld asserts it
-BUDGETED = ("code", "static_ram", "stack_high_water")
+BUDGETED = ("code", "static_ram", "stack_high_water", "startup_instructions", "steady_per_period")
+# What the record shows, in order (here and tools/record.py).
+MEASURES = ("code", "data", "bss", "image", "static_ram", "stack_reserved", "stack_high_water",
+            "stack_method", "startup_instructions", "instructions", "periods", "instructions_per_period")
+UNIT = {"code": "bytes", "static_ram": "bytes", "stack_high_water": "bytes",
+        "startup_instructions": "instructions", "steady_per_period": "instructions per period"}
 SIZES = ("code", "data", "bss", "image", "stack")
 
 HISTORY_FIELDS = ["commit", "record_utc", "overall", "milestone", "period",
@@ -78,11 +104,11 @@ HISTORY_FIELDS = ["commit", "record_utc", "overall", "milestone", "period",
                   "static_ram", "stack_reserved", "stack_high_water", "fwtest_image"]
 
 
-def options(stack):
-    """The perf run's fwtest options: the instrument. Kept fixed and
-    minimal (no watchdog, no captures but these two), because captures
-    change when a waiting core 0 is looked at, and with it the count."""
-    return ["--ms", str(RUN_MS),
+def options(stack, ms=RUN_MS[-1]):
+    """A perf run's fwtest options: the instrument. Kept fixed and minimal
+    (no watchdog, no captures but these two), because captures change when
+    a waiting core 0 is looked at, and with it the count."""
+    return ["--ms", str(ms),
             "--ram", "0x%08x:0x%x@end" % (BEACON, BEACON_LEN),
             "--ram", "0x%08x:0x%x@end" % (STACK_TOP - stack, stack)]
 
@@ -129,18 +155,45 @@ def stack_high_water(data, irq_stack=0):
 
 
 def run_fwtest(image_bytes, size, out, label):
-    """Runs the perf case on an image and returns its measurement."""
+    """Runs the perf runs on an image and returns its measurement: sizes,
+    the stack and the last run's outcome from the longer run, speed from
+    the two together (steady), the shorter run's instructions beyond its
+    beats at that rate (startup), and each run's own numbers in `runs`."""
+    runs = [run_once(image_bytes, size, os.path.join(out, "%dms" % ms), label, ms) for ms in RUN_MS]
+    m = dict(runs[-1])
+    m["runs"] = [{k: r.get(k) for k in ("ms", "outcome", "emulated_ms", "instructions", "periods", "error")
+                  if r.get(k) is not None} for r in runs]
+    m["options"] = [r["options"] for r in runs]
+    bad = [r for r in runs if r.get("error")]
+    if bad:
+        m["error"] = "the %d ms run: %s" % (bad[0]["ms"], bad[0]["error"])
+        m.pop("instructions_per_period", None)
+        return m
+    short, long_ = runs[0], runs[-1]
+    di, dp = long_["instructions"] - short["instructions"], long_["periods"] - short["periods"]
+    if dp <= 0 or di < 0:
+        m["error"] = "the longer run gained %d beats and %d instructions over the shorter" % (dp, di)
+        m.pop("instructions_per_period", None)
+        return m
+    steady = Fraction(di, dp)
+    m.update({"instructions": di, "periods": dp, "instructions_per_period": round(float(steady), 3),
+              "startup_instructions": int(round(short["instructions"] - steady * short["periods"]))})
+    return m
+
+
+def run_once(image_bytes, size, out, label, ms):
+    """One perf run of ms emulated milliseconds."""
     # tools/fwtest takes inputs from inside the working folder only.
     work = os.path.join(ROOT, "out", "perf-run")
     os.makedirs(work, exist_ok=True)
     img = os.path.join(work, label + ".bin")
     with open(img, "wb") as f:
         f.write(image_bytes)
-    opts = options(size["stack"])
+    opts = options(size["stack"], ms)
     p = subprocess.run(["sh", "tools/fwtest", "run", os.path.relpath(img, ROOT), "--out", out] + opts,
                        cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     log = p.stdout.decode("utf-8", "replace")
-    m = {"label": label, "fwtest_exit": p.returncode, "options": opts}
+    m = {"label": label, "ms": ms, "fwtest_exit": p.returncode, "options": opts}
     for k in SIZES:
         m[k] = size[k]
     m["stack_reserved"] = size["stack"]
@@ -237,32 +290,59 @@ def per_period(m):
     return Fraction(m["instructions"], m["periods"])
 
 
-def gate(cur, base, budgets):
+def budget_value(m, k):
+    """The measured value a budget limits (steady state exactly, as a
+    fraction), or None."""
+    if k == "steady_per_period":
+        return per_period(m) if m.get("instructions") is not None and m.get("periods") else None
+    return m.get(k)
+
+
+def comparable(budgets, base_budgets):
+    """Whether the baseline's record was made under the same steady-state
+    budget: the only case the 3% comparison is made (since M2)."""
+    if not base_budgets:
+        return False
+    return (base_budgets.get("limits") or {}).get("steady_per_period") == budgets["limits"]["steady_per_period"]
+
+
+def gate(cur, base, budgets, base_budgets=None):
     """The gates' verdicts: a list of {gate, result, detail}, result one of
-    PASS, FAIL, IMPROVED (passes) and NOT COMPARED (passes)."""
+    PASS, FAIL, IMPROVED (passes) and NOT COMPARED (passes). base_budgets
+    are the budgets the baseline's record was made under."""
     out = []
     if cur.get("error"):
         out.append({"gate": "measurement", "result": "FAIL", "detail": cur["error"]})
     for k in BUDGETED:
-        limit, value = budgets["limits"][k], cur.get(k)
+        limit, value = budgets["limits"][k], budget_value(cur, k)
         if value is None:
             continue
+        shown = "%.3f" % float(value) if isinstance(value, Fraction) else "%d" % value
         if value > limit:
-            out.append({"gate": k, "result": "FAIL",
-                        "detail": "%d bytes, over the %s budget of %d" % (value, budgets["milestone"], limit)})
+            out.append({"gate": k, "result": "FAIL", "detail": "%s %s, over the %s budget of %d"
+                        % (shown, UNIT[k], budgets["milestone"], limit)})
         else:
-            out.append({"gate": k, "result": "PASS",
-                        "detail": "%d of %d bytes (%s budget)" % (value, limit, budgets["milestone"])})
+            out.append({"gate": k, "result": "PASS", "detail": "%s of %d %s (%s budget)"
+                        % (shown, limit, UNIT[k], budgets["milestone"])})
     pct = budgets["speed_rise_percent"]
     if cur.get("error"):
         pass
     elif base is None or base.get("error"):
         why = "no baseline" if base is None else "the baseline: " + base["error"]
         out.append({"gate": "speed", "result": "NOT COMPARED", "detail": why})
+    elif not comparable(budgets, base_budgets):
+        c, b = per_period(cur), per_period(base)
+        was = ((base_budgets or {}).get("limits") or {}).get("steady_per_period")
+        out.append({"gate": "speed", "result": "NOT COMPARED", "detail":
+                    "%.3f steady-state instructions per period, %.3f before (%+.2f%%), but the baseline's "
+                    "record was made under %s, not this %s budget of %d"
+                    % (float(c), float(b), float((c - b) * 100 / b),
+                       "no steady-state budget" if was is None else "a steady-state budget of %s" % was,
+                       budgets["milestone"], budgets["limits"]["steady_per_period"])})
     else:
         c, b = per_period(cur), per_period(base)
         change = float((c - b) * 100 / b)
-        text = "%.3f instructions per %s period, %.3f before: %+.2f%%" % (float(c), PERIOD, float(b), change)
+        text = "%.3f steady-state instructions per period, %.3f before: %+.2f%%" % (float(c), float(b), change)
         if c * 100 > b * (100 + pct):
             out.append({"gate": "speed", "result": "FAIL", "detail": text + ", a rise of more than %s%%" % pct})
         elif c * 100 < b * (100 - pct):
@@ -285,17 +365,19 @@ def speed_change(cur, base):
 
 def print_verdicts(verdicts):
     for v in verdicts:
-        print("  %-16s %-12s %s" % (v["gate"], v["result"], v["detail"]))
+        print("  %-20s %-12s %s" % (v["gate"], v["result"], v["detail"]))
 
 
 def describe(m):
     if m.get("error"):
         return "%s: %s" % (m["label"], m["error"])
     return ("%s: code %d, data %d, bss %d, image %d bytes; static RAM %d; stack %d of %d bytes used; "
-            "%d instructions for %d %s periods (%.3f per period) in %s ms"
+            "startup %d instructions; steady state %d instructions for %d heartbeat periods (%.3f per "
+            "period) between the %s ms runs"
             % (m["label"], m["code"], m["data"], m["bss"], m["image"], m["static_ram"],
-               m["stack_high_water"], m["stack_reserved"], m["instructions"], m["periods"], PERIOD,
-               m["instructions_per_period"], m["emulated_ms"]))
+               m["stack_high_water"], m["stack_reserved"], m["startup_instructions"], m["instructions"],
+               m["periods"], m["instructions_per_period"],
+               " and ".join("%s" % r.get("emulated_ms") for r in m.get("runs", []))))
 
 
 def cmd_check(a):
@@ -325,11 +407,12 @@ def cmd_check(a):
                 base_recorded = json.loads(files["report.json"].decode()).get("perf")
             except ValueError:
                 pass
-    verdicts = gate(cur, base, budgets)
+    verdicts = gate(cur, base, budgets, (base_recorded or {}).get("budgets"))
     print_verdicts(verdicts)
     result = "FAIL" if failed(verdicts) else "PASS"
-    perf = {"period": PERIOD, "budgets": budgets, "current": cur, "baseline": base,
+    perf = {"period": PERIOD, "runs_ms": list(RUN_MS), "budgets": budgets, "current": cur, "baseline": base,
             "baseline_note": note, "baseline_recorded": (base_recorded or {}).get("current"),
+            "baseline_budgets": (base_recorded or {}).get("budgets"),
             "speed_change_percent": speed_change(cur, base), "gates": verdicts, "result": result}
     with open(os.path.join(out, "perf.json"), "w") as f:
         json.dump(perf, f, indent=2, sort_keys=True)
@@ -339,23 +422,33 @@ def cmd_check(a):
     return 1 if result == "FAIL" else 0
 
 
-# Each probe build, the gates it must fail, and whose sizes are its
-# budgets: the unmodified build's for the bigger probe, so it fails each
-# budget whatever config/budgets.json allows (budgets only rise); its own
-# for the others, so only what they test is under test.
+# Each probe build, the gates it must fail, and the budgets whose limits
+# are the unmodified build's measurements, so that it fails them whatever
+# config/budgets.json allows (budgets only rise). Every other budget is
+# the probe's own measurement, so only what it tests is under test.
+SIZE_BUDGETS = {"code", "static_ram", "stack_high_water"}
 PROBES = [
-    ("SB_PROBE_SLOW", {"speed"}, "probe"),
-    ("SB_PROBE_BIG", set(BUDGETED), "reference"),
-    ("SB_PROBE_STACK", set(), "probe"),
+    ("SB_PROBE_SLOW", {"speed", "steady_per_period"}, {"steady_per_period"}),
+    ("SB_PROBE_BIG", SIZE_BUDGETS | {"startup_instructions"}, SIZE_BUDGETS | {"startup_instructions"}),
+    ("SB_PROBE_STACK", set(), set()),
 ]
 # The stack the STACK probe is known to use (a 1 KiB frame written with
 # zeros, firmware/src/probe.c): the measured mark must be at least this.
 PROBE_STACK_BYTES = 1024
 
 
-def probe_budgets(sizes, budgets, whose):
-    """budgets with each limit set to the sizes measured in `sizes`."""
-    return {"milestone": whose, "limits": {k: sizes[k] for k in BUDGETED},
+def probe_budgets(ref, probe, budgets, from_ref):
+    """budgets with each limit set to a measurement: the unmodified
+    build's (ref) for the budgets in from_ref, the probe's own otherwise.
+    Budgets are whole numbers, so a steady-state limit is the unmodified
+    build's rounded down (a slower probe goes over it) or the probe's own
+    rounded up (it stays within)."""
+    def limit(k):
+        v = budget_value(ref if k in from_ref else probe, k)
+        if k == "steady_per_period":
+            return v.numerator // v.denominator if k in from_ref else -(-v.numerator // v.denominator)
+        return v
+    return {"milestone": "probe", "limits": {k: limit(k) for k in BUDGETED},
             "speed_rise_percent": budgets["speed_rise_percent"]}
 
 
@@ -391,12 +484,12 @@ def cmd_probes(a):
     ref = measure_build(a.build, os.path.join(out, "reference"), "reference")
     print(describe(ref))
     problems = []
-    control = gate(ref, ref, budgets)
+    control = gate(ref, ref, budgets, budgets)
     print("control (the build against itself):")
     print_verdicts(control)
     if failed(control) or ref.get("error"):
         problems.append("the unmodified build does not pass against itself")
-    for define, must_fail, whose in PROBES:
+    for define, must_fail, from_ref in PROBES:
         build = os.path.join(out, define.lower(), "build")
         p = subprocess.run(["sh", "tools/build.sh", "build", "--out", build, "--define", define], cwd=ROOT,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -409,9 +502,8 @@ def cmd_probes(a):
         if m.get("error"):
             problems.append("%s: %s" % (define, m["error"]))
             continue
-        limits = probe_budgets(ref if whose == "reference" else m, budgets,
-                               "unmodified build's" if whose == "reference" else "probe's own")
-        verdicts = gate(m, ref, limits)
+        limits = probe_budgets(ref, m, budgets, from_ref)
+        verdicts = gate(m, ref, limits, limits)
         print_verdicts(verdicts)
         problems += check_probe(define, verdicts, must_fail)
         if define == "SB_PROBE_STACK":
@@ -477,8 +569,10 @@ def summary(perf):
     if not cur.get("error"):
         L += ["| Measure | Value |", "|---|---|"]
         L += ["| %s | %s |" % (k, cur[k]) for k in
-              ("code", "data", "bss", "image", "static_ram", "stack_reserved", "stack_high_water",
-               "stack_method", "instructions", "periods", "instructions_per_period") if k in cur]
+              MEASURES if k in cur]
+        L += ["| run of %s ms | %s instructions, %s periods, ended at %s ms |"
+              % (r.get("ms"), r.get("instructions"), r.get("periods"), r.get("emulated_ms"))
+              for r in cur.get("runs", [])]
         L.append("")
     L.append("Baseline: %s." % perf["baseline_note"])
     L += ["", "| Gate | Result | Detail |", "|---|---|---|"]

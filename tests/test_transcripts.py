@@ -152,6 +152,20 @@ class TranscriptTest(unittest.TestCase):
             p = self.write([hook(BANNER_OK), call("Bash", command=cmd)])
             self.assertTrue(any("forbidden" in x for x in self.problems(p)), cmd)
 
+    def test_folder_names_ended_by_a_shell_operator_fail(self):
+        for cmd in ("D=vendor/emulator; ls $D", "D=harness; ls $D", "ls sessions/spec;",
+                    "ls harness&& true", "ls harness|head", "cat <harness/x", "(cd harness)",
+                    "x=`ls harness`", "{ ls vendor/emulator; }", "ls sessions/spec>out",
+                    "for p in vendor/emulator harness sessions/spec; do ls $p; done"):
+            p = self.write([hook(BANNER_OK), call("Bash", command=cmd)])
+            self.assertTrue(any("forbidden" in x for x in self.problems(p)), cmd)
+
+    def test_names_that_only_contain_a_folder_name_pass(self):
+        p = self.write([hook(BANNER_OK),
+                        call("Bash", command="ls tests/harness_free; ls sessions/specimen; "
+                                             "grep -n harnessing docs/x.md; ls emulator/; ls myvendor/emulatorx")])
+        self.assertEqual(self.problems(p), [])
+
     def test_a_superseded_entry_clears_nothing_and_must_stay_unneeded(self):
         c = call("Bash", command="printf 'leaves out vendor/emulator/' > msg.txt")
         c["message"]["content"][0]["id"] = "toolu_1"
