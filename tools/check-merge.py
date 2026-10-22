@@ -16,10 +16,14 @@ The owner merges pull requests with GitHub's merge button (decided
     committer is the owner;
   - its second parent is the head commit of a pull request into main whose
     CI workflow ("ci") concluded successfully on that commit.
-A ci run on that head that hasn't finished yet is waited for (polling every
-POLL seconds, up to --wait-minutes, default 30): GitHub can report a run as
-in progress for minutes after its last job has finished, and the record of
-PR #10's merge failed this check that way while CI had passed.
+A ci run on that head that hasn't finished yet, or no ci run found at all,
+is waited for (asking again after POLL_FIRST seconds, then twice as long
+each time up to POLL_MAX, until --wait-minutes, default 30). GitHub can
+report a run as in progress for minutes after its last job has finished
+(the record of PR #10's merge failed this check that way), and its run
+search can briefly find no run for a head whose CI passed (PR #13's). The
+search stays, because the records workflow runs for the push to main and
+no event of it carries the pull request head's ci run.
 The first commit (the bootstrap, no parents) is reported as such and passes:
 it was pushed before the rulesets existed (docs/prompts/M0a.md, section 4).
 Needs GITHUB_REPOSITORY and GITHUB_TOKEN (or GH_TOKEN).
@@ -34,7 +38,8 @@ import urllib.request
 
 API = "https://api.github.com"
 WEB_FLOW = "web-flow"
-POLL = 30
+POLL_FIRST = 10
+POLL_MAX = 300
 
 
 def api(path):
@@ -68,8 +73,11 @@ def evaluate(n_parents, verified, reason, committer, merged_by, owner, pr_found,
 
 
 def ci_verdict(runs):
-    """"success" if any ci run concluded successfully, "pending" if none did
-    and one hasn't finished, else "failed" (pure, for tests)."""
+    """"success" if any ci run concluded successfully, "missing" if there
+    is none, "pending" if none succeeded and one hasn't finished, else
+    "failed" (pure, for tests)."""
+    if not runs:
+        return "missing"
     if any(r.get("conclusion") == "success" for r in runs):
         return "success"
     if any(r.get("status") != "completed" for r in runs):
@@ -77,17 +85,29 @@ def ci_verdict(runs):
     return "failed"
 
 
+def backoff(n):
+    """Seconds to wait before asking for the n-th time again (n from 0)."""
+    return min(POLL_MAX, POLL_FIRST * 2 ** n)
+
+
 def wait_for_ci(fetch, wait_s, sleep=time.sleep, clock=time.monotonic):
-    """Fetches the ci runs until one succeeded, none is pending, or wait_s
-    seconds have passed. Returns (verdict, runs)."""
+    """Fetches the ci runs until one succeeded or one failed with none
+    pending, or until wait_s seconds have passed, asking again with
+    backoff while there is no run or one is unfinished. Returns
+    (verdict, runs)."""
     deadline = clock() + wait_s
+    n = 0
     while True:
         runs = fetch()
         verdict = ci_verdict(runs)
-        if verdict != "pending" or clock() >= deadline:
+        left = deadline - clock()
+        if verdict not in ("pending", "missing") or left <= 0:
             return verdict, runs
-        print("ci run still in progress; checking again in %d s" % POLL, flush=True)
-        sleep(POLL)
+        delay = min(backoff(n), left)
+        print("%s; checking again in %d s" % ("no ci run found yet" if verdict == "missing"
+                                              else "ci run still in progress", delay), flush=True)
+        sleep(delay)
+        n += 1
 
 
 def main():
@@ -133,6 +153,8 @@ def main():
             print("ci run %s: %s/%s %s" % (r["id"], r["status"], r["conclusion"], r["html_url"]))
         if verdict == "pending":
             print("ci run still unfinished after %g minutes" % a.wait_minutes)
+        elif verdict == "missing":
+            print("no ci run found on the head after %g minutes" % a.wait_minutes)
         ci_success = verdict == "success"
 
     problems = evaluate(len(parents), v.get("verified"), v.get("reason"), committer,
