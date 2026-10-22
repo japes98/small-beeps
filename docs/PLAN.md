@@ -123,13 +123,40 @@ message register), and answers any open spec requests.
     several milliseconds late; docs/HARNESS.md ("Time") now says so.
   - No spec requests were open. M0d (firmware side) is next.
 
-### M0d: smallest firmware (firmware side, next)
+### M0d: smallest firmware (firmware side)
 Startup, linker script and `main` (a marker word, a heartbeat), written only
 from `HARDWARE-SPEC.md`, the SDK and FM-1-RE's documents; booted and checked
 with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
-- Requirements: R-BOOT-1, R-BOOT-2, R-BUILD-1.
+- Requirements: R-BOOT-1 to R-BOOT-5, R-BUILD-1, R-BUILD-2.
 - Done when: CI boots the image in the harness and the record shows the
   marker word and heartbeat.
+- Status 2026-10-22 (session M0d, firmware side, on the owner's Mac):
+  - **Start**: the clean folder fast-forwarded with lazy fetching off;
+    `tools/clean-update.sh` passed. Nothing was left to archive (the
+    session the prompt named is this one); `tools/check-transcripts.py`
+    PASS.
+  - **The firmware** (`firmware/`): `crt0.S` sets the stack and calls
+    `sb_start`, which copies initialised data, clears zeroed data and runs
+    `main`. `main` writes the marker `SB0D` to a four-word beacon at
+    `0x01C00000` and a line to the debug console, then keeps a heartbeat
+    of one beat per millisecond of TIMER4, without interrupts. Freestanding
+    C11 with `-nostdinc`, no library code of any kind, one assembly file.
+    Sources: HW-1 to HW-7, HW-12, HW-13, HW-25, HW-26 (all confirmed; no
+    emulator-only fact relied on), the SDK's `WL82.h`, and our own
+    toolchain experiments (PROVENANCE P-13 to P-15).
+  - **Size**: code 252, data 4, bss 20 bytes; raw image 256 bytes; stack
+    4 KiB reserved. Recorded by C-FW-SIZE (R-BUILD-2).
+  - **Tests**: `tests/fw/boot.suite` through `tools/fwtest`, checked by
+    `tools/fw-suite.py` (C-FW-SUITE): golden marker, console line and top
+    of RAM; a one-second heartbeat whose time base agrees with fwtest's
+    emulated time within 10 µs. Requirements R-BOOT-3 to R-BOOT-5 and
+    R-BUILD-2 added.
+  - **Found on the way**: fwtest counts the heartbeat's polling loop as
+    waiting even though it stores to RAM each pass, so captures came up to
+    1.6 ms late; the beacon's stored tick count keeps the timing checks
+    exact (docs/DESIGN-NOTES.md). `ld --oformat binary` resolved a data
+    address wrongly, so the raw image is made with `objcopy`.
+  - `firmware/src/placeholder.c` removed. M0e is next.
 
 ### M0e: audit and performance
 - **Similarity audit** (spec side): an isolated CI job fetches the GPL
