@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 3c83ffedbe0f5037dfb85b0872bda36532d07643..9ebd25887800c1362f70e8d2af4e0626bcba791d
+OK     ad0f15978c26 firmware: fill the unused stack so its high-water mark sees every write
+EXEMPT 30a6657c3ddc (merge) docs: merge main (pull request #13) into the stack-fill branch
+EXEMPT 9ebd25887800 (merge) Merge pull request #14 from japes98/m0e/stack-fill
+3 commit(s) checked: PASS
+
+exit status 0
