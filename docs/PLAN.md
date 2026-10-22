@@ -156,6 +156,19 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     1.6 ms late; the beacon's stored tick count keeps the timing checks
     exact (docs/DESIGN-NOTES.md). `ld --oformat binary` resolved a data
     address wrongly, so the raw image is made with `objcopy`.
+  - **Privacy** (the owner's addendum, `docs/prompts/M0d-addendum.md`):
+    no private term (username, real name, e-mail, hostname, local folder
+    names) in the repository. `tools/check-private.py` (C-PRIVATE,
+    R-PUB-3) scans tracked files and commit messages against terms the
+    owner keeps in the gitignored `tools/private-terms.local` and the
+    `PRIVATE_TERMS` secret, reporting file and line only; the pre-commit
+    and commit-msg hooks run it too. Records unchanged since the base
+    commit `80864b9` are exempt by blob hash (CONTRIBUTING.md, "Privacy").
+    `tools/archive-session.py` now redacts the username, the top folder
+    (as `<top>`) and the terms. The pull request's branch was rewritten
+    once, before merge and with the owner's approval, so the local path
+    in the saved M0d prompt never reached main; `docs/EXPOSURE.md`'s
+    older paths are redacted in its current text.
   - `firmware/src/placeholder.c` removed. M0e is next.
 
 ### M0e: audit and performance
