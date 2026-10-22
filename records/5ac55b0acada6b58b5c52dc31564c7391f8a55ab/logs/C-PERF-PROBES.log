@@ -1,0 +1,25 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py probes --build /home/runner/work/small-beeps/small-beeps/out/5ac55b0acada6b58b5c52dc31564c7391f8a55ab/build-a --out /home/runner/work/small-beeps/small-beeps/out/5ac55b0acada6b58b5c52dc31564c7391f8a55ab/perf-probes
+reference: code 1168, data 4, bss 76, image 1172 bytes; static RAM 80; stack 64 of 4096 bytes used; 69641 instructions for 1007 heartbeat periods (69.157 per period) in 1007.063 ms
+control (the build against itself):
+  code             PASS         1168 of 2048 bytes (M1 budget)
+  static_ram       PASS         80 of 160 bytes (M1 budget)
+  stack_high_water PASS         64 of 256 bytes (M1 budget)
+  speed            PASS         69.157 instructions per heartbeat period, 69.157 before: +0.00%, within 3%
+SB_PROBE_SLOW: code 1184, data 4, bss 76, image 1188 bytes; static RAM 80; stack 68 of 4096 bytes used; 129441 instructions for 1002 heartbeat periods (129.183 per period) in 1002.063 ms
+  code             PASS         1184 of 1184 bytes (probe's own budget)
+  static_ram       PASS         80 of 80 bytes (probe's own budget)
+  stack_high_water PASS         68 of 68 bytes (probe's own budget)
+  speed            FAIL         129.183 instructions per heartbeat period, 69.157 before: +86.80%, a rise of more than 3%
+SB_PROBE_BIG: code 2264, data 4, bss 332, image 2268 bytes; static RAM 336; stack 564 of 4096 bytes used; 70658 instructions for 1012 heartbeat periods (69.820 per period) in 1013.066 ms
+  code             FAIL         2264 bytes, over the unmodified build's budget of 1168
+  static_ram       FAIL         336 bytes, over the unmodified build's budget of 80
+  stack_high_water FAIL         564 bytes, over the unmodified build's budget of 64
+  speed            PASS         69.820 instructions per heartbeat period, 69.157 before: +0.96%, within 3%
+SB_PROBE_STACK: code 1220, data 4, bss 80, image 1224 bytes; static RAM 84; stack 1072 of 4096 bytes used; 71702 instructions for 1011 heartbeat periods (70.922 per period) in 1011.071 ms
+  code             PASS         1220 of 1220 bytes (probe's own budget)
+  static_ram       PASS         84 of 84 bytes (probe's own budget)
+  stack_high_water PASS         1072 of 1072 bytes (probe's own budget)
+  speed            PASS         70.922 instructions per heartbeat period, 69.157 before: +2.55%, within 3%
+perf probes: PASS
+
+exit status 0

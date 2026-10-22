@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 5b6f9d186a61a5c4ff81907bad9b05a24fd1b580..5ac55b0acada6b58b5c52dc31564c7391f8a55ab
+OK     39fe8dd71827 tools: perf measures two stacks; app.size names the interrupt stack
+OK     d9f559595c60 firmware: M1 boot: vector table, 1 ms tick, idle, fault and stray reports
+OK     f799f72e557b tests: M1 suite: boot to the tick, timing, vector table, fault, stray
+OK     3ffd431be5b4 docs: M1 requirements, design notes and provenance
+OK     acf68d1134de firmware: the clock measurement takes TIMER4's address from C
+EXEMPT 5ac55b0acada (merge) Merge pull request #28 from japes98/m1/firmware
+6 commit(s) checked: PASS
+
+exit status 0
