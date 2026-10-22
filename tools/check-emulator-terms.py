@@ -24,8 +24,16 @@ of four digits or more. Terms that already occur in CLEAN_BASELINE's tree
 emulator source entered it) or in vendor/jieli-sdk/ (whole identifiers, or the parts of one between
 underscores) are not on the list. A hit is reported as its place and a SHA-256 prefix of the word, never
 the word or the text around it, because the log is visible to the firmware
-side; `--show` prints the word too, for a spec-side author fixing it. A
-reviewed false positive is listed by that hash in
+side; `--show` prints the word too, for a spec-side author fixing it.
+
+A hit is accepted without an entry of its own when the term occurs in one of
+the two doors as they are on main (DOOR_FILES at origin/main, or at the
+commit DOORS_REF names): what is there passed people's review. The doors are
+read from that commit's blobs, never from the working tree, so a branch
+cannot get a term accepted by adding it to a door; a term new to a door is
+still a hit until the change that adds it has merged. When that commit
+can't be found, nothing is accepted this way (and the output says so).
+Any other reviewed false positive is listed by its hash in
 config/emulator-terms-reviewed.json, with a reason that doesn't name it.
 
 Where vendor/emulator/ isn't on disk (a clean folder), it says SKIP.
@@ -45,6 +53,9 @@ REVIEWED = os.path.join(ROOT, "config", "emulator-terms-reviewed.json")
 CLEAN_BASELINE = "265f15b5b646cf7d5110d4606365d82fae93f5bc"
 EXCLUDE = ("vendor/emulator/", "harness/", "sessions/", "docs/prompts/")
 DOORS = ("docs/HARNESS.md", "HARDWARE-SPEC.md", "docs/HARDWARE-SPEC.md")
+# The doors whose merged text is accepted everywhere, and the commit read for them.
+DOOR_FILES = ("docs/HARDWARE-SPEC.md", "docs/HARNESS.md")
+DOORS_REF = "origin/main"
 # Reviews of the doors discuss their facts, numbers included: scanned the same way.
 DOOR_PREFIXES = ("docs/reviews/",)
 
@@ -111,6 +122,26 @@ def baseline_texts():
             yield blob.decode("utf-8")
         except UnicodeDecodeError:
             continue
+
+
+def doors_ref():
+    """The commit whose doors are accepted: DOORS_REF from the environment,
+    or origin/main. None if it isn't there (fail closed)."""
+    ref = os.environ.get("DOORS_REF") or DOORS_REF
+    p = subprocess.run(["git", "-C", ROOT, "rev-parse", "--verify", "-q", ref + "^{commit}"],
+                       stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True)
+    return p.stdout.strip() if p.returncode == 0 else None
+
+
+def door_terms(commit):
+    """Every term in DOOR_FILES at that commit (from its blobs), numbers too."""
+    out = set()
+    for path in DOOR_FILES:
+        p = subprocess.run(["git", "-C", ROOT, "show", "%s:%s" % (commit, path)],
+                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        if p.returncode == 0:
+            out |= terms_of(p.stdout.decode("utf-8", "replace"))
+    return out
 
 
 def h(term):
@@ -182,9 +213,20 @@ def main():
             pr = 1
             hits += hits_in(pull.get("title") or "", terms, "pull request title")
             hits += hits_in(pull.get("body") or "", terms, "pull request body")
+    commit = doors_ref()
+    in_doors = door_terms(commit) if commit else set()
+    if commit:
+        print("doors accepted as on %s (%s): %d terms" % (os.environ.get("DOORS_REF") or DOORS_REF,
+                                                      commit[:12], len(in_doors & terms)))
+    else:
+        print("doors: %s not found, so no term is accepted for being in them"
+              % (os.environ.get("DOORS_REF") or DOORS_REF))
     bad = 0
     for where, n, t in sorted(hits):
         key = h(t)
+        if t in in_doors:
+            print("DOOR %s:%d term %s: in the reviewed doors on main" % (where, n, key))
+            continue
         if key in ok_hashes:
             print("REVIEWED %s:%d term %s: %s" % (where, n, key, ok_hashes[key]))
             continue

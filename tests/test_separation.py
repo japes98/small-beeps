@@ -4,6 +4,7 @@ import contextlib
 import io
 import os
 import shutil
+import subprocess
 import tempfile
 import unittest
 
@@ -50,6 +51,78 @@ class EmulatorTermsTest(unittest.TestCase):
         word = sorted(w for w in found if "_" in w)[0]
         self.assertEqual(len(terms.hits_in("see %s" % word, found, "x")), 1)
         self.assertNotIn("sha256", found, "words the clean side already used are not terms")
+
+
+class DoorsOnMainTest(unittest.TestCase):
+    """Terms in the doors as merged on main are accepted; a door's text on a
+    branch is not. Requirements: R-SEP-1, R-SPEC-2"""
+
+    def git(self, *args):
+        subprocess.run(["git", "-C", self.dir, "-c", "user.name=t", "-c", "user.email=t@example.com"] + list(args),
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def write(self, path, text):
+        os.makedirs(os.path.dirname(os.path.join(self.dir, path)), exist_ok=True)
+        with open(os.path.join(self.dir, path), "w") as f:
+            f.write(text)
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        # made-up words, built at run time
+        self.merged, self.new = "merged" + "_door_term", "branch" + "_door_term"
+        self.git("init", "-q", "-b", "main")
+        self.write("vendor/emulator/model.rs", "%s %s 0x1c7f0\n" % (self.merged, self.new))
+        self.write("docs/HARDWARE-SPEC.md", "HW-1: %s at 0x01C7F0\n" % self.merged)
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "main")
+        self.main_sha = subprocess.run(["git", "-C", self.dir, "rev-parse", "HEAD"], check=True,
+                                       stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
+        # a branch: the new word is added to a door and used elsewhere
+        self.write("docs/HARNESS.md", "uses %s\n" % self.new)
+        self.write("docs/NOTES.md", "%s and %s, at 0x1c7f0\n" % (self.merged, self.new))
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "branch")
+        self.saved = (terms.ROOT, terms.EMU, terms.SDK, terms.REVIEWED, terms.baseline_texts)
+        terms.ROOT, terms.EMU = self.dir, os.path.join(self.dir, "vendor", "emulator")
+        terms.SDK = terms.REVIEWED = os.path.join(self.dir, "none")
+        terms.baseline_texts = lambda: iter(())
+        self.env = dict(os.environ)
+
+    def tearDown(self):
+        terms.ROOT, terms.EMU, terms.SDK, terms.REVIEWED, terms.baseline_texts = self.saved
+        os.environ.clear()
+        os.environ.update(self.env)
+        shutil.rmtree(self.dir)
+
+    def run_check(self, ref):
+        os.environ["DOORS_REF"] = ref
+        os.environ["COMMIT_RANGE"] = "HEAD..HEAD"
+        os.environ.pop("GITHUB_EVENT_PATH", None)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = terms.main()
+        return code, out.getvalue()
+
+    def test_door_terms_come_from_the_commit_not_the_tree(self):
+        got = terms.door_terms(self.main_sha)
+        self.assertIn(self.merged, got)
+        self.assertIn("0x1c7f0", got, "numbers in the doors count too")
+        self.assertNotIn(self.new, got, "a door's text on a branch is not accepted")
+
+    def test_merged_door_terms_pass_and_branch_ones_are_hits(self):
+        code, out = self.run_check(self.main_sha)
+        self.assertEqual(code, 1)
+        self.assertIn("DOOR docs/NOTES.md:1 term %s" % terms.h(self.merged), out)
+        self.assertIn("DOOR docs/NOTES.md:1 term %s" % terms.h("0x1c7f0"), out)
+        self.assertIn("HIT docs/NOTES.md:1 term %s" % terms.h(self.new), out)
+        self.assertIn("HIT docs/HARNESS.md:1 term %s" % terms.h(self.new), out)
+        self.assertNotIn(self.new, out)
+
+    def test_without_the_ref_nothing_is_accepted(self):
+        code, out = self.run_check("no-such-ref")
+        self.assertEqual(code, 1)
+        self.assertIn("not found", out)
+        self.assertIn("HIT docs/NOTES.md:1 term %s" % terms.h(self.merged), out)
 
 
 class FwtestPinTest(unittest.TestCase):
