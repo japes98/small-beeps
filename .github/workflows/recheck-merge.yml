@@ -75,6 +75,17 @@ jobs:
           echo "status=$?" >> "$GITHUB_OUTPUT"
           test -f out/verified/verification.json
 
+      # R-PUB-3: a file holding one of the owner's private terms is withheld
+      # (listed with its SHA-256 in WITHHELD.json) before it is stamped.
+      - name: Withhold any file holding a private term
+        id: private
+        env:
+          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
+        run: |
+          set +e
+          python tools/check-private.py --dir out/verified --withhold --require
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+
       - name: Timestamp the verification (OpenTimestamps)
         run: ots stamp out/verified/SHA256SUMS
 
@@ -125,4 +136,10 @@ jobs:
         if: steps.check.outputs.status != '0'
         run: |
           echo "Verification written, but C-MERGE failed (status ${{ steps.check.outputs.status }})."
+          exit 1
+
+      - name: Fail if a file was withheld
+        if: always() && steps.private.outputs.status != '' && steps.private.outputs.status != '0'
+        run: |
+          echo "::error::a file held a private term (or none were available) and was withheld"
           exit 1

@@ -58,3 +58,4 @@ jobs:
           name: ci-report-${{ github.event.pull_request.head.sha }}
           path: out/record
           if-no-files-found: error
+          retention-days: 14

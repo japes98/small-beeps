@@ -7,6 +7,8 @@
       Runs the checks in CHECKS, writes DIR/report.json, DIR/report.md,
       DIR/logs/<check>.log, DIR/outputs/ (the build outputs), DIR/fwtest/
       (the firmware suite's outputs) and DIR/SHA256SUMS (of all of those). Exit status 1 if any check failed.
+      Before hashing, C-RECORD-PRIVATE withholds any file holding a private
+      term, listing it in DIR/WITHHELD.json with the original's SHA-256.
   record.py compare --record REPORT.json --outputs DIR
       Compares DIR/SHA256SUMS with the outputs listed in a record
       (used by tools/reproduce). Exit status 1 on any difference.
@@ -147,6 +149,10 @@ CHECKS = [
     {"id": "C-SPEC-EXPERIMENTS", "title": "Spec-side experiments rebuild identically and give the results the spec cites",
      "reqs": ["R-SPEC-4"], "needs": "harness",
      "cmd": lambda: ["sh", "harness/spec-experiments/run.sh", os.path.join(OUT, "spec-experiments")]},
+    # Last, over the record's own files before they are hashed and stamped:
+    # cmd_run runs it after every other check (record_private).
+    {"id": "C-RECORD-PRIVATE", "title": "No private terms in the record's own files (any that hold one are withheld, named with their SHA-256)",
+     "reqs": ["R-PUB-3"], "internal": "record_private", "last": True},
     {"id": "C-MERGE", "title": "Signed owner merge of a pull request that passed CI",
      "reqs": ["R-PROC-2"], "records_only": True,
      "cmd": lambda: [PY, "-I", "tools/check-merge.py", git("rev-parse", "HEAD")]},
@@ -284,6 +290,32 @@ def dockerfile_pins():
     return pins
 
 
+def _private_tool():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("check_private",
+                                                  os.path.join(ROOT, "tools", "check-private.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def record_private():
+    """C-RECORD-PRIVATE (R-PUB-3): every file of the record so far is
+    checked for the owner's private terms. A file holding one is deleted
+    and listed, with the SHA-256 of the original, in WITHHELD.json; the
+    rest of the record is still written. Output names files only."""
+    cp = _private_tool()
+    terms = cp.load_terms()
+    if not terms:
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            return 1, "no private terms available (the PRIVATE_TERMS secret)"
+        return 0, "no private terms available here: nothing checked"
+    gone = cp.withhold(OUT, terms)
+    log = ["withheld %s (sha256 %s)" % (g["file"], g["sha256"]) for g in gone]
+    log.append("%d term(s); %s" % (len(terms), "%d file(s) withheld" % len(gone) if gone else "no file holds one"))
+    return (1 if gone else 0), "\n".join(log)
+
+
 def tool_version(argv):
     code, out = run_cmd(argv)
     return out.strip().splitlines()[0] if code == 0 and out.strip() else "unavailable"
@@ -391,6 +423,12 @@ def write_markdown(report, path):
     for c in report["checks"]:
         L.append("| %s | %s | %s | %s | %.1f |" % (c["id"], c["title"], ", ".join(c["reqs"]),
                                                    c["result"], c["seconds"]))
+    if report.get("withheld"):
+        L += ["", "## Withheld", "",
+              "These files held one of the owner's private terms and are not in this record "
+              "(C-RECORD-PRIVATE, R-PUB-3). Only each original's SHA-256 is kept.", "",
+              "| File | SHA-256 |", "|------|---------|"]
+        L += ["| `%s` | `%s` |" % (w["file"], w["sha256"]) for w in report["withheld"]]
     L += ["", "## Outputs", "", "| File | SHA-256 |", "|------|---------|"]
     for name, digest in sorted(report["outputs"].items()):
         L.append("| `%s` | `%s` |" % (name, digest))
@@ -422,7 +460,7 @@ def cmd_run(a):
     for c in CHECKS:
         if only is not None and c["id"] not in only:
             continue
-        if c["id"] in skip or (c.get("records_only") and not a.with_merge):
+        if c["id"] in skip or (c.get("records_only") and not a.with_merge) or c.get("last"):
             continue
         start = time.time()
         if c.get("needs") and not os.path.isdir(os.path.join(ROOT, c["needs"])):
@@ -457,6 +495,23 @@ def cmd_run(a):
             shutil.copyfile(os.path.join(build_a, name), os.path.join(OUT, "outputs", name))
     for d in ("build-a", "build-b", "harness-a", "harness-b"):
         shutil.rmtree(os.path.join(OUT, d), ignore_errors=True)
+    for c in CHECKS:
+        if not c.get("last") or c["id"] in skip or (only is not None and c["id"] not in only):
+            continue
+        start = time.time()
+        code, log = globals()[c["internal"]]()
+        result = "PASS" if code == 0 else "FAIL"
+        with open(os.path.join(OUT, "logs", c["id"] + ".log"), "w", encoding="utf-8") as f:
+            f.write("$ (internal) %s\n%s\nexit status %d\n" % (c["internal"], log, code))
+        print("%-14s %-4s %6.1fs  %s" % (c["id"], result, time.time() - start, c["title"]), flush=True)
+        results.append({"id": c["id"], "title": c["title"], "reqs": c["reqs"],
+                        "command": "(internal) " + c["internal"], "result": result,
+                        "exit_status": code, "seconds": round(time.time() - start, 1),
+                        "log": "logs/%s.log" % c["id"]})
+    withheld = []
+    if os.path.exists(os.path.join(OUT, "WITHHELD.json")):
+        with open(os.path.join(OUT, "WITHHELD.json")) as f:
+            withheld = json.load(f)["withheld"]
     perf = {}
     try:
         with open(os.path.join(OUT, "perf", "perf.json")) as f:
@@ -476,6 +531,7 @@ def cmd_run(a):
         "outputs": outputs,
         "firmware_size": dict(FIRMWARE_SIZE),
         "perf": perf,
+        "withheld": withheld,
         "traceability": traceability(results),
         "overall": "PASS" if results and all(r["result"] in ("PASS", "SKIP") for r in results) else "FAIL",
     }
@@ -483,6 +539,12 @@ def cmd_run(a):
         json.dump(report, f, indent=2, sort_keys=True)
         f.write("\n")
     write_markdown(report, os.path.join(OUT, "report.md"))
+    if any(c["id"] == "C-RECORD-PRIVATE" for c in results):
+        cp = _private_tool()
+        terms = cp.load_terms()
+        if terms and cp.withhold(OUT, terms):
+            print("report files held a private term and were withheld (WITHHELD.json)")
+            report["overall"] = "FAIL"
 
     files = []
     for dirpath, _, names in os.walk(OUT):
