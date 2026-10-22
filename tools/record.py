@@ -67,6 +67,8 @@ CHECKS = [
      "cmd": [PY, "-I", "tools/check-transcripts.py"]},
     {"id": "C-SDK-PIN", "title": "Vendored SDK files match the pinned commit",
      "reqs": ["R-REPRO-5", "R-LIC-2"], "cmd": ["sh", "tools/fetch-sdk.sh", "--verify"]},
+    {"id": "C-EMU-PIN", "title": "Vendored emulator crates match the pinned upstream commit",
+     "reqs": ["R-REPRO-6", "R-LIC-2"], "cmd": ["sh", "tools/fetch-emulator.sh", "--verify"]},
     {"id": "C-IMAGE", "title": "Build container (pinned base, toolchain SHA-256 checked)",
      "reqs": ["R-REPRO-1", "R-REPRO-2"], "cmd": ["sh", "tools/build.sh", "image"]},
     {"id": "C-BUILD-A", "title": "Build A in a fresh container (source at /mnt/small-beeps-src)",

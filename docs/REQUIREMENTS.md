@@ -31,9 +31,10 @@ The four founding requirements (docs/prompts/M0a.md): **history**,
 | R-REPRO-3 | Builds are deterministic: two builds in fresh containers, with the source mounted at different paths, are byte-identical. | M0a | C-BUILD-A, C-BUILD-B, C-DETERMINISM |
 | R-REPRO-4 | `tools/reproduce <commit>` rebuilds that commit in the pinned container and compares its output hashes with the commit's record. | M0a | review (run by hand; result in the PR) |
 | R-REPRO-5 | Vendored SDK files match the SHA-256s listed for the pinned SDK commit. | M0a | C-SDK-PIN |
+| R-REPRO-6 | Vendored emulator files (spec side, `vendor/emulator/`) match the pinned upstream commit plus the patches in `vendor/emulator/patches/`, file by file and by one tree hash; `tools/fetch-emulator.sh` reproduces them. | M0b | C-EMU-PIN |
 | R-BUILD-1 | Firmware is freestanding C11 (`-std=c11 -ffreestanding -nostdlib`). It never links the toolchain's C library or prebuilt SDK libraries. | M0a | C-BUILD-A |
 | R-LIC-1 | Every file has SPDX licence and copyright information (`reuse lint` passes). | M0a | C-REUSE |
-| R-LIC-2 | Vendored files keep their licences and notices. NOTICE carries the SDK's Apache-2.0 notice. Only SDK headers are vendored, never prebuilt libraries. | M0a | C-REUSE, C-SDK-PIN |
+| R-LIC-2 | Vendored files keep their licences and notices. NOTICE carries the SDK's Apache-2.0 notice and the emulator crates' MIT notice. Only SDK headers are vendored, never prebuilt libraries; of the emulator, only the three crates named in `vendor/emulator/UPSTREAM.md`. | M0a | C-REUSE, C-SDK-PIN, C-EMU-PIN |
 | R-PUB-1 | Low profile: the repo's name, description and topics, and the README, contain none of the quiet words (CONTRIBUTING.md). The description is exactly "Embedded audio experiments.", there are no topics, and the README opens with "Embedded audio experiments. Work in progress." | M0a | C-LOW-PROFILE |
 | R-PUB-2 | No secrets (tokens, private keys) in tracked files. | M0a | C-SECRETS |
 | R-CLEAN-1 | Firmware side never opens, fetches, searches or quotes forbidden material (CONTRIBUTING.md, "Clean-room rules"). | M0a | C-TRANSCRIPTS |

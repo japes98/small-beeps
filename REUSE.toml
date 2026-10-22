@@ -38,3 +38,23 @@ path = [
 precedence = "override"
 SPDX-FileCopyrightText = "JIELI"
 SPDX-License-Identifier = "Apache-2.0"
+
+# Vendored emulator crates and their workspace manifest, from the public
+# upstream at a pinned commit (vendor/emulator/UPSTREAM.md). The patch files
+# quote upstream's manifest.
+[[annotations]]
+path = [
+  "vendor/emulator/LICENSE",
+  "vendor/emulator/Cargo.toml",
+  "vendor/emulator/crates/**",
+  "vendor/emulator/patches/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Joakim Eriksson"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["vendor/emulator/SHA256SUMS"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 japes98"
+SPDX-License-Identifier = "MIT"

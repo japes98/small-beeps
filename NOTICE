@@ -15,3 +15,10 @@ You may obtain a copy of the Apache License, Version 2.0 at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+This repository also includes three crates of the emulator at
+https://github.com/joakimeriksson/fm1-emu, copyright 2026 Joakim Eriksson,
+licensed under the MIT License. Copies are under vendor/emulator/, with that
+project's LICENSE at vendor/emulator/LICENSE; the pinned commit, the patch
+applied and the tree hash are in vendor/emulator/UPSTREAM.md. Container
+images of the test runner built from them carry the same LICENSE.
