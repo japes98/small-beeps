@@ -242,7 +242,15 @@ training cutoff (see "Model cutoffs" below).
   is the session M0c left alone because it then held only a `/clear`
   (11:31Z); the M0d prompt was pasted into it after that `/clear`, so its
   transcript is this session's own and is left for the next clean session
-  to archive.
+  to archive. At 13:13:44Z (banner `source: fork`, `status: OK`) Claude
+  Code continued the session as `cd816ac2-14a7-4eb6-ba5f-1732c57ec45f`, a
+  second transcript holding the rest of M0d; the next clean session
+  archives both. Commits made after the fork still name `b7ed6c1a` in
+  their `Claude-Session:` trailer; they were not rewritten for it.
+- Privacy: the session saw the owner's private terms once, when the owner
+  filled in `tools/private-terms.local` and Claude Code showed the changed
+  file. It never wrote them anywhere; its transcripts hold them until the
+  archiver redacts them.
 - Where it ran: the owner's Mac, in `~/<top>/clean`; banner
   `status: OK` at the start and after `tools/clean-setup.sh`.
 - Start: fast-forwarded main to `80864b9` with the prompt's steps (lazy
