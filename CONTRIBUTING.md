@@ -102,6 +102,16 @@ was used) and name the ID in the commit's `Sources:` field:
   forbidden sites and cloning the forbidden repositories, and turn git's
   lazy fetching off. `tools/clean-update.sh` updates a clean folder and
   checks nothing excluded arrived; C-CLEAN-FOLDER tests all of this in CI.
+- **Records in a clean folder.** Each record on the `records` branch also
+  keeps the harness's and the spec experiments' outputs. Clean sessions
+  never fetch the records branch wholesale (no `git archive`, checkout or
+  lazy fetch of a whole record or of the branch): they fetch only named
+  files of the firmware's own records, `report.json`, `report.md` and
+  named logs under `logs/`, one path at a time. `tools/clean-update.sh`
+  also stops if a file under a `harness/` or `spec-experiments/` folder,
+  or under the excluded folders, is in `.git` through any branch, the
+  records branch included (since M1, after a wholesale fetch brought 17
+  such outputs into a clean folder; docs/EXPOSURE.md).
   `tools/spec-setup.sh [DIR]` does the same for spec side with
   `config/claude/spec.json`.
 - **Deny lists only grow.** Never remove or loosen an entry in

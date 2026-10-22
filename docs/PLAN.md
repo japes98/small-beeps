@@ -360,8 +360,63 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     None has run.
   - No spec requests were open.
 
+### M1: boot (firmware side)
+- Clocks, interrupts and a timer: from reset to a known, timed,
+  interrupt-driven state (docs/prompts/M1.md).
+- Requirements: R-CLK-1, R-IRQ-1 to R-IRQ-5; R-BOOT-3, R-BOOT-5 and
+  R-PERF-3 amended.
+- Status 2026-10-22 (session M1, firmware side, on the owner's Mac):
+  - **Start**: `tools/clean-update.sh` passed. M0e's clean transcript was
+    archived; the archiver's host-name rule was fixed on the way (it broke
+    a line's JSON after a newline escape). Three of its commands were
+    listed in `sessions/REVIEWED.json` with the owner's approval (#24).
+    The M0 release was made from the signed tag `m0`: the image and ELF,
+    rebuilt bit for bit, an SPDX SBOM, and the record linked by its tree
+    hash. The record itself is not attached: its C-TRANSCRIPTS log holds a
+    private term.
+  - **Checks, at the owner's request** (#25):
+    - The transcript check clears a quoted `python3` heredoc that provably
+      opens only `sessions/REVIEWED.json` or `sessions/clean/` files, and
+      its log never quotes a transcript (19 of 21 earlier records carry
+      such lines; they stay as they are).
+    - Records, audit reports and re-checks withhold any file holding a
+      private term, keeping its name and SHA-256 (C-RECORD-PRIVATE).
+    - Artifacts are kept 14 days.
+  - **Spec requests** (#26): SR-1, what raises the exception source, on
+    the chip and in fwtest; SR-2, clock set-up on the chip (Q-2). Both
+    open.
+  - **Budgets** (#27): M1's are code 2048, static RAM 160 and stack 256
+    bytes.
+  - **Firmware** (#28; docs/DESIGN-NOTES.md, M1):
+    - **Clock:** no clock register is written. The core clock is measured
+      at startup: 240 time-base ticks for 2 402 cycles, i.e. 240 MHz.
+    - **Vector table:** all 128 slots are written. TIMER0's is the tick;
+      every other source has its own 2-byte stub that reports it by number
+      and halts.
+    - **Tick:** TIMER0 at 1 ms keeps the heartbeat in whole milliseconds of
+      the 24 MHz time base. In fwtest TIMER0's 1 ms is 24 000.7 to 24 001
+      time-base ticks, so the heartbeat doesn't count ticks.
+    - **Idle:** core 0 idles between ticks.
+    - **Faults:** a stack guard is checked every tick. A stray interrupt,
+      a stack overrun or a CPU fault is reported on the debug channel and
+      halts cleanly. Core 1 stays parked.
+  - **Results** (local runs; the records of the merges are authoritative):
+    - First tick by 1.013 ms; every tick interval is 24 001 time-base
+      ticks (jitter 0, tolerance ±24).
+    - The suite run twice gives identical outputs, all 27 files.
+    - **69.2 instructions per period against M0's 358.9: −80.7%.**
+    - Code 1168, static RAM 80, stack 64 bytes.
+    - The fault and stray test builds halt with `HALT stack 001` and
+      `HALT stray 07f`.
+  - **Open:**
+    - R-IRQ-5, a real CPU fault: no deliberate fault reaches the exception
+      source in fwtest, and an undecodable instruction is fwtest's own
+      fault (a suite case shows that limit). It waits for SR-1.
+    - The clock set-up on the chip waits for SR-2.
+  - **Next: M2, the screen.**
+
 ### M1 to M9 (firmware side)
-- **M1** boot: clocks, interrupts, timer.
+- **M1** boot: clocks, interrupts, timer (done; above).
 - **M2** screen.
 - **M3** keys, encoders, pot, LEDs.
 - **M4** audio.
