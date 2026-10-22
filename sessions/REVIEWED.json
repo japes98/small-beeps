@@ -193,6 +193,34 @@
       "superseded": "2026-10-22, session M1: tools/check-transcripts.py now clears this call itself (its quoted heredoc fed to python3 opens only sessions/REVIEWED.json or files under sessions/clean/); kept for history, and the check fails if the call is ever flagged again."
     },
     {
+      "session": "36860ab8-77fd-4fd6-aa1d-2063c15a5548",
+      "tool_use_id": "toolu_01PgDX9wNDWeHT7f3DLDDFR8",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python heredoc that only edited the folder pattern in tools/check-transcripts.py (the pattern's text names the folder), then a `grep` of that file and the tests. Flagged only since M2 widened the folder rules' boundaries; nothing under the folder was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_01RP94ZNg12HLrF1DUaSRcse",
+      "rule": "spec-side session transcripts",
+      "reason": "The object count already reviewed for its other two rules: with lazy fetching off it counted the objects present under each excluded folder (0, 0, 0) in a fresh sparse clone. Flagged for this rule only since M2 widened the folder rules' boundaries (`sessions/spec;`). No file name or content was shown.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_014tSbzpnVorng9jxozeQEPW",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "Pushed a branch, wrote a pull request body (`cat > .../pr.md <<'EOF'`) and opened the pull request. The text names the two folders in backticks to describe an incident; flagged only since M2 widened the folder rules' boundaries. Nothing was opened or listed.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "3a0a372e-7fbc-4446-b51a-1298219a7562",
+      "tool_use_id": "toolu_014tSbzpnVorng9jxozeQEPW",
+      "rule": "harness/ source (spec side)",
+      "reason": "Pushed a branch, wrote a pull request body (`cat > .../pr.md <<'EOF'`) and opened the pull request. The text names the two folders in backticks to describe an incident; flagged only since M2 widened the folder rules' boundaries. Nothing was opened or listed.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
       "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
       "tool_use_id": "toolu_013M6BfKJPSJLyJRPLKAHuyb",
       "rule": "spec-side session transcripts",
