@@ -21,7 +21,10 @@ is waited for (asking again after POLL_FIRST seconds, then twice as long
 each time up to POLL_MAX, until --wait-minutes, default 30). GitHub can
 report a run as in progress for minutes after its last job has finished
 (the record of PR #10's merge failed this check that way), and its run
-search can briefly find no run for a head whose CI passed (PR #13's). The
+search can briefly find no run for a head whose CI passed (PR #13's).
+A GitHub API error that may pass (5xx, 429, no answer) is asked again
+with the same backoff, up to API_TRIES times (a re-run of #13's record
+failed on one 500). The
 search stays, because the records workflow runs for the push to main and
 no event of it carries the pull request head's ci run.
 The first commit (the bootstrap, no parents) is reported as such and passes:
@@ -31,9 +34,11 @@ Needs GITHUB_REPOSITORY and GITHUB_TOKEN (or GH_TOKEN).
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 
 API = "https://api.github.com"
@@ -42,14 +47,57 @@ POLL_FIRST = 10
 POLL_MAX = 300
 
 
+API_TRIES = 6
+
+
+def transient(e):
+    """True for an error worth asking again: GitHub's own (5xx), its rate
+    limit (429), or no answer at all."""
+    if isinstance(e, urllib.error.HTTPError):
+        return e.code >= 500 or e.code == 429
+    return isinstance(e, (urllib.error.URLError, TimeoutError, ConnectionError))
+
+
+def with_retries(call, tries=API_TRIES, sleep=time.sleep):
+    """call(), asked again with backoff (10 s, doubling) on a transient
+    error, up to `tries` times; other errors are raised at once."""
+    for n in range(tries):
+        try:
+            return call()
+        except Exception as e:  # sorted by transient(); anything else is raised
+            if not transient(e) or n == tries - 1:
+                raise
+            print("GitHub API: %s; asking again in %d s" % (e, backoff(n)), flush=True)
+            sleep(backoff(n))
+
+
 def api(path):
-    req = urllib.request.Request(API + path, headers={
-        "Accept": "application/vnd.github+json", "User-Agent": "small-beeps-checks"})
-    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
-    if token:
-        req.add_header("Authorization", "Bearer " + token)
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.load(r)
+    def call():
+        req = urllib.request.Request(API + path, headers={
+            "Accept": "application/vnd.github+json", "User-Agent": "small-beeps-checks"})
+        token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+        if token:
+            req.add_header("Authorization", "Bearer " + token)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)
+    return with_retries(call)
+
+
+MERGE_MESSAGE = re.compile(r"^Merge pull request #(\d+) from ")
+
+
+def pr_number(message):
+    """The pull request number in GitHub's merge message, or None."""
+    m = MERGE_MESSAGE.match(message or "")
+    return int(m.group(1)) if m else None
+
+
+def is_the_pull_request(pr, sha, head):
+    """True if pr (an API pull request) went into main with head as its
+    head commit and sha as its merge commit (pure, for tests)."""
+    return ((pr.get("base") or {}).get("ref") == "main"
+            and (pr.get("head") or {}).get("sha") == head
+            and pr.get("merge_commit_sha") == sha)
 
 
 def evaluate(n_parents, verified, reason, committer, merged_by, owner, pr_found, ci_success):
@@ -137,14 +185,28 @@ def main():
     merged_by, pr_found, ci_success = None, False, False
     if len(parents) == 2:
         head = parents[1]
-        prs = [p for p in api("/repos/%s/commits/%s/pulls" % (repo, head))
-               if (p.get("base") or {}).get("ref") == "main" and p["head"]["sha"] == head]
+        # The pull request is the one GitHub's merge message names, checked
+        # against this merge; failing that, a closed one into main with
+        # this head. (The "pull requests of a commit" endpoint answered
+        # 500 or nothing for some heads, and failed three records.)
+        prs = []
+        number = pr_number(c["commit"].get("message", ""))
+        if number is not None:
+            full = api("/repos/%s/pulls/%d" % (repo, number))
+            if is_the_pull_request(full, a.sha, head):
+                prs = [full]
+        if not prs:
+            prs = [p for p in api("/repos/%s/pulls?state=closed&base=main&sort=updated"
+                                  "&direction=desc&per_page=100" % repo)
+                   if is_the_pull_request(p, a.sha, head)]
         pr_found = bool(prs)
-        for p in prs:
-            full = api("/repos/%s/pulls/%d" % (repo, p["number"]))
+        for full in prs:
             merged_by = (full.get("merged_by") or {}).get("login")
+            if merged_by is None:
+                merged_by = (api("/repos/%s/pulls/%d" % (repo, full["number"])).get("merged_by")
+                             or {}).get("login")
             print("pull request #%d: %s merged_by=%s merge_commit=%s"
-                  % (p["number"], p["html_url"], merged_by, full.get("merge_commit_sha")))
+                  % (full["number"], full["html_url"], merged_by, full.get("merge_commit_sha")))
         def fetch():
             runs = api("/repos/%s/actions/runs?head_sha=%s&event=pull_request" % (repo, head))
             return [r for r in runs.get("workflow_runs", []) if r.get("name") == "ci"]

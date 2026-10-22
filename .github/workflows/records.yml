@@ -21,8 +21,12 @@ permissions:
   pull-requests: read
   actions: read
 
+# One group per commit, so no record is ever cancelled. A single group for
+# all of them let GitHub keep only one waiting run: when four pull requests
+# merged within two minutes (2026-10-22), it cancelled the records of three
+# of them. Runs may now overlap; the push below takes care of that.
 concurrency:
-  group: records
+  group: records-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -94,31 +98,46 @@ jobs:
           echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > ~/.ssh/known_hosts
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/records_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
           url="git@github.com:$GITHUB_REPOSITORY.git"
-          if git ls-remote --exit-code --heads "$url" records >/dev/null; then
-            git clone --quiet --branch records --single-branch "$url" rec
-          else
-            git init --quiet -b records rec
-            git -C rec remote add origin "$url"
-          fi
-          dest="rec/records/$GITHUB_SHA"
-          if [ -e "$dest" ]; then
-            # Never overwrite a record; a re-run is kept beside it.
-            dest="$dest/rerun-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          fi
-          mkdir -p "$dest"
-          cp -R "out/$GITHUB_SHA/." "$dest/"
-          # One line per main commit; a re-run adds none. A problem with
-          # the history must never keep the record from being pushed.
-          python tools/perf.py history --record "out/$GITHUB_SHA/report.json" --csv rec/perf-history.csv \
-            || echo "::error::perf-history.csv: no line appended for $GITHUB_SHA"
-          cd rec
-          git add records
-          if [ -e perf-history.csv ]; then git add perf-history.csv; fi
-          git -c user.name="small-beeps records" -c user.email="records@users.noreply.github.com" \
-            commit --quiet -m "records: $GITHUB_SHA" \
-            -m "Record of commit $GITHUB_SHA, written by run https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)."
-          git push --quiet origin records
+          # Another commit's run may push between our clone and our push:
+          # then the push is refused (never forced), and everything is done
+          # again on a fresh clone.
+          pushed=""
+          for attempt in 1 2 3 4 5 6; do
+            rm -rf rec
+            if git ls-remote --exit-code --heads "$url" records >/dev/null; then
+              git clone --quiet --branch records --single-branch "$url" rec
+            else
+              git init --quiet -b records rec
+              git -C rec remote add origin "$url"
+            fi
+            dest="rec/records/$GITHUB_SHA"
+            if [ -e "$dest" ]; then
+              # Never overwrite a record; a re-run is kept beside it.
+              dest="$dest/rerun-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+            fi
+            mkdir -p "$dest"
+            cp -R "out/$GITHUB_SHA/." "$dest/"
+            # One line per main commit; a re-run adds none. A problem with
+            # the history must never keep the record from being pushed.
+            python tools/perf.py history --record "out/$GITHUB_SHA/report.json" --csv rec/perf-history.csv \
+              || echo "::error::perf-history.csv: no line appended for $GITHUB_SHA"
+            git -C rec add records
+            if [ -e rec/perf-history.csv ]; then git -C rec add perf-history.csv; fi
+            git -C rec -c user.name="small-beeps records" -c user.email="records@users.noreply.github.com" \
+              commit --quiet -m "records: $GITHUB_SHA" \
+              -m "Record of commit $GITHUB_SHA, written by run https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)."
+            if git -C rec push --quiet origin records; then
+              pushed=1
+              break
+            fi
+            echo "::warning::the records branch moved (push $attempt refused); trying again on a fresh clone"
+            sleep $((attempt * 15))
+          done
           rm -f ~/.ssh/records_key
+          if [ -z "$pushed" ]; then
+            echo "::error::the record of $GITHUB_SHA could not be pushed"
+            exit 1
+          fi
 
       - name: Fail if any check failed
         if: steps.checks.outputs.status != '0'

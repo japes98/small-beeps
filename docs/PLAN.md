@@ -230,9 +230,7 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     3. #13's merge (`a2086340`) failed because GitHub's run search briefly
        found no ci run for the head, though its CI had passed about ten
        minutes before; the check took no answer as a failure at once.
-       Its `perf-history.csv` line says FAIL. A re-run of the records
-       workflow writes a PASS record beside it and, being a re-run, adds
-       no line.
+       Its `perf-history.csv` line says FAIL.
 
     Since #17, an empty answer is asked again like an unfinished run, with
     backoff (10 s, doubling, at most 300 s) up to the same 30 minutes.
@@ -241,6 +239,33 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     for. It can't serve: `ci` runs only on pull requests, and a trigger of
     the push to main describes the merge commit's run, not the pull
     request head's run, which is what C-MERGE must prove passed.
+  - **Four merges in two minutes, and what followed** (pull request #18):
+    - #15, #16, #14 and #17 merged between 15:12:43Z and 15:14:02Z. The
+      records workflow had one concurrency group, and GitHub keeps only
+      one waiting run per group, so it cancelled the records of #15
+      (`f5740bc8`), #16 (`3c83ffed`) and #14 (`9ebd2588`). Since #18 each
+      commit has its own group, and a push to `records` that another run
+      beat is redone on a fresh clone (never forced).
+    - The cancelled runs were re-run one at a time. #14's record is PASS.
+      #15's and #16's, and two re-runs of #13's (`rerun-39801409823-2`
+      and `-3`), are FAIL on C-MERGE alone: GitHub's "pull requests of a
+      commit" endpoint answered HTTP 500 in CI, and an empty answer from
+      here, for those heads.
+    - Since #18 the check finds the pull request that GitHub's merge
+      message names, and accepts it only if its head is the merge's
+      second parent and its merge commit is the merge. Failing that, it
+      looks among closed pull requests into main. It also asks again
+      after a GitHub API error that may pass (5xx, 429, no answer). Run
+      from here against the merges of #13, #14, #15 and #16, it passes
+      all four (for #16's, the run search found nothing at first and the
+      retry found it 10 s later).
+    - A re-run uses the check of its own commit, so those FAIL records
+      can't be re-run to PASS; they stay, and every later record uses the
+      fixed check.
+    - `perf-history.csv` has one line for each main commit since #12
+      (`a754ebc9`, `a2086340`, `193cb61c`, `f5740bc8`, `3c83ffed`,
+      `9ebd2588`), in the order the records were written, not the order
+      of the commits. The lines of #13, #15 and #16 say FAIL.
   - **M0d's firmware, measured**: code 252, data 4, bss 20 bytes; image
     256; static RAM 24; stack high-water 0 of 4 096 bytes (no function
     uses the stack); 356 887 instructions over 1 000 heartbeat periods,
