@@ -31,4 +31,12 @@ extern volatile struct sb_beacon sb_beacon;
 
 int main(void) __attribute__((noreturn));
 
+/* Test builds only (firmware/src/probe.c). */
+#if defined(SB_PROBE_SLOW)
+void sb_probe_slow(void);
+#endif
+#if defined(SB_PROBE_BIG)
+void sb_probe_big(void);
+#endif
+
 #endif

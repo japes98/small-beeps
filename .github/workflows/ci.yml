@@ -31,14 +31,25 @@ jobs:
       - name: Install check tools
         run: python -m pip install --disable-pip-version-check -r tools/requirements-ci.txt
 
+      # C-PERF's baseline: the latest record of a main commit.
+      - name: Fetch the records branch
+        run: git fetch --no-tags origin +refs/heads/records:refs/remotes/origin/records
+
       - name: Run all checks
         env:
           COMMIT_RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+          PERF_BASE_REF: origin/main
           GITHUB_TOKEN: ${{ github.token }}
           # The owner's private terms, for C-PRIVATE (tools/check-private.py
           # prints only file and line, never a term).
           PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
         run: python tools/record.py run --out out/record
+
+      # The performance verdict, improvements included, on the pull
+      # request's checks page (R-PERF-2).
+      - name: Performance summary
+        if: always()
+        run: python tools/perf.py summary --record out/record/report.json >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload report
         if: always()

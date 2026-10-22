@@ -58,7 +58,9 @@ RULES = [
      re.compile(r'("(?:owner)?(?:[Aa]ccount|[Oo]rganization)(?:Uuid|Id|UUID|_uuid|_id)"\s*:\s*")[^"]+(")'),
      r"\1[REDACTED:account-id]\2"),
     ("e-mail address",
-     re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
+     # An address may follow a JSON escape (a tab in `cat -n` output, "\\tname@"),
+     # whose letter must stay out of the match or the JSON breaks.
+     re.compile(r"(?:(?<=\\[bfnrt])|\b(?<!\\))[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
      "[REDACTED:email]"),
     ("home folder path", re.compile(r"/(?:Users|home)/[A-Za-z0-9._-]+(?=/|\b)"), "~"),
     ("per-user temp path", re.compile(r"/private/tmp/claude-\d+/|/tmp/claude-\d+/"), "/tmp/claude-UID/"),
