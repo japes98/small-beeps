@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="4" failures="0">
+  <testsuite name="experiments.e9-audio" tests="4" failures="0">
+    <testcase classname="experiments.e9-audio" name="run"/>
+    <testcase classname="experiments.e9-audio" name="golden audio.wav"/>
+    <testcase classname="experiments.e9-audio" name="golden ipb.csv"/>
+    <testcase classname="experiments.e9-audio" name="golden ram-01c00100-24-end.bin"/>
+  </testsuite>
+</testsuites>

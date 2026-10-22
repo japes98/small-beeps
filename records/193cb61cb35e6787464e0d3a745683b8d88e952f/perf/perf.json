@@ -1,0 +1,121 @@
+{
+  "baseline": {
+    "bss": 20,
+    "code": 252,
+    "commit": "a208634d3f965d3845e71d8705608439a6b7fe1b",
+    "data": 4,
+    "emulated_ms": "1000.678",
+    "fwtest_exit": 0,
+    "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc",
+    "image": 256,
+    "instructions": 356887,
+    "instructions_per_period": 356.887,
+    "label": "baseline",
+    "marker": "0x44304253",
+    "options": [
+      "--ms",
+      "1000",
+      "--ram",
+      "0x01c00000:0x10@end",
+      "--ram",
+      "0x01c7ec00:0x1000@end"
+    ],
+    "outcome": "completed",
+    "periods": 1000,
+    "stack": 4096,
+    "stack_high_water": 0,
+    "stack_method": "non-zero",
+    "stack_reserved": 4096,
+    "static_ram": 24
+  },
+  "baseline_note": "the record of a208634d3f96, the latest of 193cb61cb35e6787464e0d3a745683b8d88e952f^1 on origin/records",
+  "baseline_recorded": {
+    "bss": 20,
+    "code": 252,
+    "data": 4,
+    "emulated_ms": "1000.678",
+    "fwtest_exit": 0,
+    "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc",
+    "image": 256,
+    "instructions": 356887,
+    "instructions_per_period": 356.887,
+    "label": "current",
+    "marker": "0x44304253",
+    "options": [
+      "--ms",
+      "1000",
+      "--ram",
+      "0x01c00000:0x10@end",
+      "--ram",
+      "0x01c7ec00:0x1000@end"
+    ],
+    "outcome": "completed",
+    "periods": 1000,
+    "stack": 4096,
+    "stack_high_water": 0,
+    "stack_reserved": 4096,
+    "static_ram": 24
+  },
+  "budgets": {
+    "limits": {
+      "code": 512,
+      "stack_high_water": 256,
+      "static_ram": 64
+    },
+    "milestone": "M0",
+    "speed_rise_percent": 3
+  },
+  "current": {
+    "bss": 20,
+    "code": 280,
+    "data": 4,
+    "emulated_ms": "1000.647",
+    "fwtest_exit": 0,
+    "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc",
+    "image": 284,
+    "instructions": 358934,
+    "instructions_per_period": 358.934,
+    "label": "current",
+    "marker": "0x44304253",
+    "options": [
+      "--ms",
+      "1000",
+      "--ram",
+      "0x01c00000:0x10@end",
+      "--ram",
+      "0x01c7ec00:0x1000@end"
+    ],
+    "outcome": "completed",
+    "periods": 1000,
+    "stack": 4096,
+    "stack_high_water": 0,
+    "stack_method": "pattern",
+    "stack_reserved": 4096,
+    "static_ram": 24
+  },
+  "gates": [
+    {
+      "detail": "280 of 512 bytes (M0 budget)",
+      "gate": "code",
+      "result": "PASS"
+    },
+    {
+      "detail": "24 of 64 bytes (M0 budget)",
+      "gate": "static_ram",
+      "result": "PASS"
+    },
+    {
+      "detail": "0 of 256 bytes (M0 budget)",
+      "gate": "stack_high_water",
+      "result": "PASS"
+    },
+    {
+      "detail": "358.934 instructions per heartbeat period, 356.887 before: +0.57%, within 3%",
+      "gate": "speed",
+      "result": "PASS"
+    }
+  ],
+  "period": "heartbeat",
+  "result": "PASS",
+  "speed_change_percent": 0.574
+}

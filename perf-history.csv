@@ -1,3 +1,4 @@
 commit,record_utc,overall,milestone,period,instructions,periods,instructions_per_period,speed_change_percent,code,data,bss,image,static_ram,stack_reserved,stack_high_water,fwtest_image
 a754ebc9566fa90a7d11ae7cf822a9bc276b7136,2026-10-22T14:41:14Z,PASS,M0,heartbeat,356887,1000,356.887,0.000,252,4,20,256,24,4096,0,ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc
 a208634d3f965d3845e71d8705608439a6b7fe1b,2026-10-22T15:06:04Z,FAIL,M0,heartbeat,356887,1000,356.887,0.000,252,4,20,256,24,4096,0,ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc
+193cb61cb35e6787464e0d3a745683b8d88e952f,2026-10-22T15:15:49Z,PASS,M0,heartbeat,358934,1000,358.934,0.574,280,4,20,284,24,4096,0,ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc
