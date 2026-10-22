@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range e7f39ee5da60bfc9765fe111d4b108ec0dec8f68..4edddd20ee5c659eabb032b40fefed7955bb2675
+OK     31bfb669c012 docs: M0c prompt and this session's exposure entry
+OK     3780226003e3 tools: the archiver redacts spec-side file names in git summaries
+OK     6d72bf04c422 sessions: archive M0b and clean maintenance session 1
+EXEMPT 4edddd20ee5c (merge) Merge pull request #7 from japes98/m0c/start
+4 commit(s) checked: PASS
+
+exit status 0
