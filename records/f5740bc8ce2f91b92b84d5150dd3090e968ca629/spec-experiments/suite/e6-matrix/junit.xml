@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="3" failures="0">
+  <testsuite name="experiments.e6-matrix" tests="3" failures="0">
+    <testcase classname="experiments.e6-matrix" name="run"/>
+    <testcase classname="experiments.e6-matrix" name="golden ram-01c00100-40-end.bin"/>
+    <testcase classname="experiments.e6-matrix" name="golden ram-01c01000-400-end.bin"/>
+  </testsuite>
+</testsuites>

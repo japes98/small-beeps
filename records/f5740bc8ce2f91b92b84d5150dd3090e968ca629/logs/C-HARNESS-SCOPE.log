@@ -1,0 +1,4 @@
+$ sh harness/ci.sh scope
+scope: PASS (harness/src uses none of them)
+
+exit status 0
