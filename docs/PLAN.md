@@ -190,7 +190,45 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   emulated instructions per audio block. A 3% regression gate on
   instructions per audio block; per-milestone budgets for size and RAM,
   raised only by a pull request that says why.
-- Requirements: R-AUDIT-1, R-PERF-1, R-PERF-2.
+- Requirements: R-AUDIT-1, R-PERF-1 to R-PERF-5.
+- Status 2026-10-22, performance part (session M0e, firmware side, on the
+  owner's Mac):
+  - **Start**: `tools/clean-update.sh` passed; M0d's two transcripts
+    archived (the archiver's e-mail rule fixed on the way: it broke a
+    line's JSON when an address followed a tab escape); three of their
+    commands, which only wrote text naming the spec-side folders, listed
+    in `sessions/REVIEWED.json` with the owner's approval.
+  - **Measured on every commit** (`tools/perf.py`, check C-PERF, in each
+    record's report and its "Performance" section): code, data, bss, the
+    raw image, static RAM (data + bss), the stack reserved and its
+    high-water mark, and emulated core-0 instructions per period. Until
+    M4 the period is the heartbeat: a one-second perf run of its own in
+    fwtest, its instructions divided by the beats. The stack's mark is
+    the lowest non-zero word of the stack captured at the end (fwtest
+    starts RAM at zero), so the firmware needs no change for it.
+  - **Gates**: the budgets in `config/budgets.json` for the current
+    milestone, and a rise of at most 3% in instructions per period
+    against the latest main record, whose own image is re-run under the
+    same fwtest. A fall of more than 3% shows as IMPROVED in the record
+    and in the CI run's summary. Raising a budget takes its own pull
+    request (CONTRIBUTING.md). C-PERF-PROBES builds the firmware once
+    deliberately slower and once deliberately bigger and checks that the
+    gates fail each for its own reason. Requirements R-PERF-1 to
+    R-PERF-5; design: docs/DESIGN-NOTES.md (M0e).
+  - **History**: the records workflow appends one line per main commit
+    to `perf-history.csv` at the root of the `records` branch, never
+    rewriting it; a re-run adds no line.
+  - **M0d's firmware, measured**: code 252, data 4, bss 20 bytes; image
+    256; static RAM 24; stack high-water 0 of 4 096 bytes (no function
+    uses the stack); 356 887 instructions over 1 000 heartbeat periods,
+    356.887 per period. Nothing in it looked wasteful in the
+    disassembly, so no fix was needed. The probes: the slower build
+    reads 439.450 per period (+23.13%, FAIL), the bigger one code 1 348,
+    static RAM 280 and stack high-water 516 bytes (each FAIL).
+  - **M0 budgets**: code 512, static RAM 64, stack high-water 256 bytes;
+    speed gate 3%.
+  - The similarity audit is the spec side's part of M0e. M1 is next on
+    the firmware side.
 
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer.

@@ -162,3 +162,87 @@ Format for each entry:
     `app.bin`, `app.elf` and `app.size`.
 - Alternatives: `ld --oformat binary` (rejected, above).
 - `firmware/src/placeholder.c` is removed: nothing uses it any more.
+
+### 2026-10-22 M0e: what is measured, and where
+- Facts: docs/HARNESS.md ("Time": one instruction of core 0 is one cycle,
+  waiting costs almost no instructions; "Outputs": `result.json`'s
+  instruction counts; RAM all zero at the start), the layout in
+  `firmware/app.ld` (the beacon at `0x01C00000`, the stack's top at
+  `0x01C7FC00`).
+- Reasoning: `tools/perf.py` (check C-PERF) measures every build A:
+  - size from `app.size`: code, data, bss, the raw image, the stack
+    reserved; static RAM is data plus bss;
+  - a one-second run of its own in fwtest, with fixed, minimal options:
+    `--ms 1000`, the beacon and the whole stack captured at the end, no
+    watchdog and no other captures. Captures change when fwtest looks at
+    a waiting core 0, and with that the count, so the perf run is kept
+    apart from the boot suite, where captures are added freely;
+  - speed: core 0's instructions in that run divided by the beats the
+    beacon shows at its end: instructions per heartbeat period. This is
+    the stand-in R-PERF-2 tracks until audio. In M4 the period becomes the
+    audio block (fwtest's `--ipb`), and `PERIOD` in `tools/perf.py`
+    changes with it.
+- What the stand-in measures today: mostly the heartbeat's polling loop as
+  fwtest schedules a waiting core (M0d's entry "how the heartbeat is
+  timed"). An experiment adding 20 volatile loop passes per beat raised
+  the count from 356.9 to 439.5 per period: more work shows, but less than
+  its own cost, because fewer polling passes fit. Until M1 replaces
+  polling with interrupts and waiting, read the number as "the loop plus
+  the work per beat", not as work alone.
+- Alternatives: the heartbeat case of `tests/fw/boot.suite` (rejected:
+  its captures and watchdog would make the count move with the tests);
+  counting from the start of `main` (not possible: fwtest gives one count
+  per run).
+
+### 2026-10-22 M0e: the stack's high-water mark
+- Facts: docs/HARNESS.md (main RAM is all zero when the image starts),
+  `firmware/app.ld` (4 KiB of stack below `0x01C7FC00`), R-BOOT-3 (the
+  time base must agree with emulated time within 10 µs at the end of a
+  one-second run, so everything before `main` starts the timer counts).
+- Reasoning: the whole stack is captured at the end of the perf run, and
+  the lowest non-zero word marks the deepest the stack ever went. No
+  firmware change is needed. It can read too low only if the deepest
+  words ever written were all zero; a frame that saves a return address or
+  a register usually leaves something non-zero at its bottom.
+- M0d's firmware uses no stack at all: `crt0.S` sets `sp`, and the
+  compiler keeps `sb_start` and `main` in registers (a call keeps its
+  return address in a register, not on the stack; seen in the
+  disassembly). The mark is 0 bytes.
+- Alternatives: filling the stack with a pattern in `crt0.S` before
+  `sb_start` (rejected for now: at two instructions a word, 4 KiB takes
+  about 2 050 cycles, 8.5 µs, most of R-BOOT-3's 10 µs before the timer
+  starts, and it would grow with the stack); a fill in C (rejected: it
+  would write over its own frame).
+
+### 2026-10-22 M0e: the gates and their tests
+- Facts: none from the hardware spec.
+- Reasoning:
+  - Budgets: `config/budgets.json` names the milestone whose budgets are
+    in force, and each budget (code, static RAM, stack high-water) must
+    hold. M0's: code 512 bytes (252 used), static RAM 64 (24), stack
+    high-water 256 (0). About twice what M0 uses, so small fixes fit, and
+    M1 sets its own in a pull request of its own.
+  - Speed: instructions per period may rise by at most 3% against the
+    latest record of a main commit. The baseline's own `app.bin`, kept in
+    every record's `outputs/`, is run again with this checkout's fwtest
+    and options in the same check, so a new fwtest image or new options
+    never pass for a change of the firmware. Integers are compared exactly
+    (a rise of exactly 3% passes). A fall of more than 3% is reported as
+    IMPROVED, in the record and in the CI run's summary on the pull
+    request. CI finds the baseline on the `records` branch, and fails if
+    it can't read the branch; a clean folder, which may not have the
+    records' files, says "no baseline" and compares nothing.
+  - Tests of the gates (C-PERF-PROBES): the firmware built with
+    `SB_PROBE_SLOW` (20 volatile loop passes per beat) must fail the speed
+    gate and no budget; built with `SB_PROBE_BIG` (a 1 KiB table, 256
+    bytes of zeroed data, a 512-byte stack frame) it must fail each of the
+    three budgets. Both are measured against the unmodified build in the
+    same run, not against the records branch, so they test the gates
+    whether or not a baseline exists. The probes' code is in
+    `firmware/src/probe.c` and two guarded calls in `main.c`; without the
+    defines nothing of it is compiled (the image is byte for byte M0d's),
+    and `tools/build.sh --define` exists for these builds only.
+- Alternatives: a golden `ipb.csv` with `rel-percent 3` (docs/HARNESS.md's
+  example; for M4, when there are audio blocks); a stored per-commit
+  number as the baseline (rejected: it would compare across fwtest
+  versions).
