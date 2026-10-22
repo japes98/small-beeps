@@ -58,7 +58,11 @@ jobs:
           docker pull -q "$(python -c 'import json; print(json.load(open("audit/audit.json"))["java_image"])')"
 
       - name: Self-test (a made-up target holding copies of our files)
-        run: python tools/audit.py selftest --jar "$RUNNER_TEMP/jplag.jar" --out "$RUNNER_TEMP/selftest"
+        id: selftest
+        run: |
+          set +e
+          python tools/audit.py selftest --jar "$RUNNER_TEMP/jplag.jar" --out "$RUNNER_TEMP/selftest"
+          echo "status=$?" >> "$GITHUB_OUTPUT"
 
       - name: Audit
         id: audit
@@ -77,9 +81,10 @@ jobs:
           if-no-files-found: error
 
       - name: Fail if a check failed
-        if: steps.audit.outputs.status != '0'
+        if: steps.audit.outputs.status != '0' || steps.selftest.outputs.status != '0'
         run: |
-          echo "A check failed; out/audit/report.md says which. A flagged pair goes to an auditor (docs/AUDIT.md)."
+          echo "self-test status ${{ steps.selftest.outputs.status }}, audit status ${{ steps.audit.outputs.status }}."
+          echo "out/audit/report.md says which check failed. A flagged pair goes to an auditor (docs/AUDIT.md)."
           exit 1
 
   record:

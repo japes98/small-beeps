@@ -208,3 +208,44 @@ class AcceptedTest(unittest.TestCase):
         for r in audit.load_json(os.path.join(ROOT, "audit", "accepted.json"))["accepted"]:
             self.assertEqual(set(r), {"ours", "repo", "path", "longest_tokens", "finding"})
             self.assertTrue(os.path.exists(os.path.join(ROOT, r["finding"])), r["finding"])
+
+
+class CarryOverTest(unittest.TestCase):
+    """A target the searches miss this time stays, unless its repository is
+    gone; an unmoved head reuses its tree. Requirements: R-AUDIT-2"""
+
+    class FakeGitHub:
+        def __init__(self):
+            self.requests = 0
+
+        def get(self, path, params=None):
+            self.requests += 1
+            if path == "/repos/s/seed":
+                return {"full_name": "s/seed", "html_url": "https://x/s/seed", "forks_count": 0, "license": None}
+            if "/git/commits/" in path:
+                return {"tree": {"sha": "t" * 40}}
+            return None
+
+        def pages(self, path, params=None, limit=10):
+            return []
+
+        def search(self, q):
+            return []
+
+    def test_carry_over(self):
+        heads = {"https://x/s/seed.git": "a" * 40, "https://x/kept/repo.git": "b" * 40, "https://x/gone/repo.git": None}
+        saved = disc.head
+        disc.head = lambda url: heads[url]
+        try:
+            gh = self.FakeGitHub()
+            prev = [{"repo": "kept/repo", "url": "https://x/kept/repo", "found_by": "search: x", "licence_class": "gpl",
+                     "commit": "b" * 40, "tree": "c" * 40},
+                    {"repo": "gone/repo", "url": "https://x/gone/repo", "found_by": "fork", "licence_class": "none"}]
+            got = disc.discover({"seeds": [{"repo": "s/seed"}], "queries": [], "mentions": "x"}, gh,
+                                pinned={"kept/repo": ("b" * 40, "c" * 40)}, previous=prev)
+        finally:
+            disc.head = saved
+        by = {t["repo"]: t for t in got}
+        self.assertEqual(sorted(by), ["kept/repo", "s/seed"])
+        self.assertEqual(by["kept/repo"]["tree"], "c" * 40, "an unmoved head keeps its tree")
+        self.assertEqual(gh.requests, 2, "one seed lookup and one tree, none for the kept target")

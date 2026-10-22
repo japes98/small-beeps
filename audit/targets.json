@@ -3,7 +3,7 @@
  "comment": "Written by tools/audit-discover.py from repository metadata only; docs/AUDIT.md. Pinned by commit and tree.",
  "discovered": "2026-10-22",
  "counts": {
-  "scored": 512,
+  "scored": 516,
   "duplicate": 262,
   "empty": 2,
   "unreachable": 0
@@ -110,7 +110,7 @@
   {
    "repo": "aceyprime/zen-1",
    "url": "https://github.com/aceyprime/zen-1",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "ec9295233ea64ddac224b58b4d07216706c1b8ee",
@@ -140,7 +140,7 @@
   {
    "repo": "adamcharleswilsonmusic-code/RAMBEAVER",
    "url": "https://github.com/adamcharleswilsonmusic-code/RAMBEAVER",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "a13eb60137ac7b6f43c79fc8f20c7d74b97a1436",
@@ -356,7 +356,7 @@
   {
    "repo": "anonymousacademe/FM-1-GrooveDeck",
    "url": "https://github.com/anonymousacademe/FM-1-GrooveDeck",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "20bf2de4a687ebb3b20efdb4ff1ceb11099989e5",
@@ -366,7 +366,7 @@
   {
    "repo": "anonymousacademe/FM-1-TripDeck",
    "url": "https://github.com/anonymousacademe/FM-1-TripDeck",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "a977f53558b7106d594f03654d4beba9d2ff7477",
@@ -903,7 +903,7 @@
   {
    "repo": "ChanceTheMaker/doom-fm1-smk",
    "url": "https://github.com/ChanceTheMaker/doom-fm1-smk",
-   "found_by": "search: fm1 firmware",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "b705a7b06e01e74363d6ad556af1570349bc79a4",
@@ -934,7 +934,7 @@
   {
    "repo": "ChanceTheMaker/gamedude-fm1-smk",
    "url": "https://github.com/ChanceTheMaker/gamedude-fm1-smk",
-   "found_by": "search: fm1 firmware",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "47d83306d7b61068415eb727a1479e71f7446b15",
@@ -944,7 +944,7 @@
   {
    "repo": "ChanceTheMaker/NESynth-FM1-SMK",
    "url": "https://github.com/ChanceTheMaker/NESynth-FM1-SMK",
-   "found_by": "search: fm-1 synth",
+   "found_by": "search: fm1 synth",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "3fdbe3e6bab8cd4277627c8e9b879f7ab3c81a5c",
@@ -1066,7 +1066,7 @@
   {
    "repo": "charlesvestal/fm1-reader",
    "url": "https://github.com/charlesvestal/fm1-reader",
-   "found_by": "search: fm1 firmware",
+   "found_by": "search: fm-1 firmware",
    "licence": "MIT",
    "licence_class": "permissive",
    "commit": "2f49d91c142b1304fc5654496b35d40607d8511e",
@@ -1212,9 +1212,19 @@
    "status": "scored"
   },
   {
+   "repo": "colofonbrigade/hortator",
+   "url": "https://github.com/colofonbrigade/hortator",
+   "found_by": "search: hortator",
+   "licence": "Apache-2.0",
+   "licence_class": "permissive",
+   "commit": "ea643d42fc2f08d3005e3aa8bdff59ce21f945c0",
+   "tree": "137390a0a810916d35282ee8033c8990616564aa",
+   "status": "scored"
+  },
+  {
    "repo": "cotrino/fm1-betis-mode",
    "url": "https://github.com/cotrino/fm1-betis-mode",
-   "found_by": "search: fm1 firmware",
+   "found_by": "search: fm-1 firmware",
    "licence": "NOASSERTION",
    "licence_class": "other",
    "commit": "84d6ad4e8b6acf88117ec865b1f22725562413ee",
@@ -1301,7 +1311,7 @@
   {
    "repo": "d0pe1/md-one",
    "url": "https://github.com/d0pe1/md-one",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "70528bfb9887d242a495c780cde18223e4e8a5ef",
@@ -1382,7 +1392,7 @@
   {
    "repo": "davidpryan/witchbox",
    "url": "https://github.com/davidpryan/witchbox",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "4c58958716c882389c5a0374175df33c88dd7775",
@@ -1459,7 +1469,7 @@
   {
    "repo": "DeadActive/FMDj",
    "url": "https://github.com/DeadActive/FMDj",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "10f98c0cc24677f3bdf0f89570bffdb033d3a68b",
@@ -1582,11 +1592,11 @@
   {
    "repo": "Discodave-Glitch/eight-bells",
    "url": "https://github.com/Discodave-Glitch/eight-bells",
-   "found_by": "search: m-vave",
-   "licence": null,
-   "licence_class": "none",
-   "commit": "84c8d20ee8f64d69226d3eeb82423f68598e53bb",
-   "tree": "a0120ca2c78ba903597441a8fde6e7aaafe2c744",
+   "found_by": "search: fm-1 firmware",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "commit": "5a67521c2b6de9dd53102b3574c9ac52d6aa67f2",
+   "tree": "2d77d30f8136d4c076fe075a8a85f4f84ec83d9a",
    "status": "scored"
   },
   {
@@ -1736,7 +1746,7 @@
   {
    "repo": "doofywilsons-rgb/Tall-Horse-Firmware-Hub-Website",
    "url": "https://github.com/doofywilsons-rgb/Tall-Horse-Firmware-Hub-Website",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": null,
    "licence_class": "none",
    "commit": "c4ef43a7f2ce1e1670e28cd981eeabc03f3ee290",
@@ -1790,7 +1800,7 @@
   {
    "repo": "drok123/FM-Tracker",
    "url": "https://github.com/drok123/FM-Tracker",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": null,
    "licence_class": "none",
    "commit": "51922dc71328b8a1470e7251306af09c0fd36fb9",
@@ -1800,11 +1810,11 @@
   {
    "repo": "dsablic/sidou",
    "url": "https://github.com/dsablic/sidou",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "7004d0d637655726111f2a5937f45704afa8ee7d",
-   "tree": "a2ae488ee4c10fcbb78093d1f1c33fb53e9df44c",
+   "commit": "540b4f6088fc053e5f683c0874e2db779fa5d832",
+   "tree": "61dec2ed87ca700e5046d5fa0cbea09d6dc8fc6a",
    "status": "scored"
   },
   {
@@ -1911,7 +1921,7 @@
   {
    "repo": "dzwerg/analogBEAST",
    "url": "https://github.com/dzwerg/analogBEAST",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "1b578d927aac1c9fd54c3c4ff001f54d28c63451",
@@ -1943,7 +1953,7 @@
   {
    "repo": "ehn96/Falua",
    "url": "https://github.com/ehn96/Falua",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "73fc26cf0a6c3116decd5c337d83650782db3d7a",
@@ -2186,7 +2196,7 @@
   {
    "repo": "evanyerburgh/niagara-drift",
    "url": "https://github.com/evanyerburgh/niagara-drift",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "fe6d5e612c0db4c8c563ba097c1f0d46fc392a0e",
@@ -3192,7 +3202,7 @@
   {
    "repo": "HyruleanHero1988/FM-1-Swap",
    "url": "https://github.com/HyruleanHero1988/FM-1-Swap",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "NOASSERTION",
    "licence_class": "other",
    "commit": "05250738fd9072d1d1aaaea9b351db852809fbaa",
@@ -3836,7 +3846,7 @@
   {
    "repo": "jamesusmusic/fm1-studio-tess",
    "url": "https://github.com/jamesusmusic/fm1-studio-tess",
-   "found_by": "search: fm1 firmware",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "3a764d619c5f7bd51ff76cc40f7ab7f5b843a44e",
@@ -3945,7 +3955,7 @@
   {
    "repo": "jeymadcat-ops/SLICE64-FM-web",
    "url": "https://github.com/jeymadcat-ops/SLICE64-FM-web",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": null,
    "licence_class": "none",
    "commit": "c53210933fda0fa684cc1278711c35cab5f09224",
@@ -4013,7 +4023,7 @@
   {
    "repo": "johnskiller/fm1-ctrl",
    "url": "https://github.com/johnskiller/fm1-ctrl",
-   "found_by": "search: fm1 firmware",
+   "found_by": "search: fm-1 firmware",
    "licence": "MIT",
    "licence_class": "permissive",
    "commit": "b429dd0e617a09dae782431ec90217f11359f45d",
@@ -4407,7 +4417,7 @@
   {
    "repo": "Kenneth-Rakentine/Ravel-FM1",
    "url": "https://github.com/Kenneth-Rakentine/Ravel-FM1",
-   "found_by": "search: fm1 firmware",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "cc816dc9c97e2265a741e6d5b4c90f828d98a6aa",
@@ -4450,7 +4460,7 @@
   {
    "repo": "kidbee85-beep/AMB-1-Evolved",
    "url": "https://github.com/kidbee85-beep/AMB-1-Evolved",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "b8f0eb7f209843a5d8fc0341d1514472c85ecd84",
@@ -4470,7 +4480,7 @@
   {
    "repo": "kidbee85-beep/cut-a-dor-release",
    "url": "https://github.com/kidbee85-beep/cut-a-dor-release",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "d9799abb84fef0cc59deb05e2f6a4c41032c32f1",
@@ -4606,7 +4616,7 @@
   {
    "repo": "kmplngj/m-flasher-legacy",
    "url": "https://github.com/kmplngj/m-flasher-legacy",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "NOASSERTION",
    "licence_class": "other",
    "commit": "aeb061a03b7b25a4ed042b08a6360248acd426db",
@@ -4882,7 +4892,7 @@
   {
    "repo": "LexLongcoding/ghoulbox-vst3",
    "url": "https://github.com/LexLongcoding/ghoulbox-vst3",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "31a1d736dcb1de5397f982324ee81deb35f1aa9b",
@@ -5241,7 +5251,7 @@
   {
    "repo": "megagott/launchparty-fm1",
    "url": "https://github.com/megagott/launchparty-fm1",
-   "found_by": "search: fm1 firmware",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "efa6e4e24687042bf4cc053f70601313788c3a61",
@@ -5346,7 +5356,7 @@
   {
    "repo": "michaeljsmalley/synthesthetic",
    "url": "https://github.com/michaeljsmalley/synthesthetic",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "aa186aa866f57ac5273eb561fd499237b654a171",
@@ -5788,7 +5798,7 @@
   {
    "repo": "ocean/fm1-site",
    "url": "https://github.com/ocean/fm1-site",
-   "found_by": "search: fm-1 synth",
+   "found_by": "search: fm1 synth",
    "licence": "NOASSERTION",
    "licence_class": "other",
    "commit": "f876bad3ae8d51fbb9a6eec7e453326e83e8462e",
@@ -6131,6 +6141,16 @@
    "status": "scored"
   },
   {
+   "repo": "pianomansam/fm1-vnl",
+   "url": "https://github.com/pianomansam/fm1-vnl",
+   "found_by": "search: fm-1 firmware",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "commit": "be0653869d04394d0d4b9386f056cc092f398259",
+   "tree": "3076cc19f37d8f41ec5dccf9dcdae03fc8d00527",
+   "status": "scored"
+  },
+  {
    "repo": "PierreArnaudGUYOT/FM1-Oktowave-Firmware",
    "url": "https://github.com/PierreArnaudGUYOT/FM1-Oktowave-Firmware",
    "found_by": "search: felucca",
@@ -6255,7 +6275,7 @@
   {
    "repo": "Qubestar/Saibertin-S-FM",
    "url": "https://github.com/Qubestar/Saibertin-S-FM",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": null,
    "licence_class": "none",
    "commit": "9c3f5a89f3d8c2bb4ff96fcee575a6e6e11c689e",
@@ -6421,11 +6441,11 @@
   {
    "repo": "Reytian/fm1-luogu",
    "url": "https://github.com/Reytian/fm1-luogu",
-   "found_by": "search: fm1 firmware",
+   "found_by": "search: fm-1 firmware",
    "licence": "MPL-2.0",
    "licence_class": "other",
-   "commit": "decc3f99af30bfae4adcf974db5b0e645d852a8a",
-   "tree": "c17e5cb9f284de1298765595f0e9dd1849418852",
+   "commit": "94a2eea78d0925ac889eda849e64f6be95c496a4",
+   "tree": "0d9d831fa2f1579f17a361a6129b446c074bbb1b",
    "status": "scored"
   },
   {
@@ -6574,8 +6594,8 @@
    "found_by": "search: fm1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "9dbb4234e2d186865190d0abdb6700bf70cf797f",
-   "tree": "90432b2cb37531964293832aca34e4e3b635f98d",
+   "commit": "2432096ca97277b022feeda74095927756a2b73c",
+   "tree": "899226847ebb25f8095fe0a0b51088f3e636ce2f",
    "status": "scored"
   },
   {
@@ -6640,7 +6660,7 @@
   {
    "repo": "s0fx2/YamahaDX7_to_FM-1",
    "url": "https://github.com/s0fx2/YamahaDX7_to_FM-1",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "21e3e26c0add9b3eeb8432600138c7d6e86bac91",
@@ -6661,7 +6681,7 @@
   {
    "repo": "sabliran/sloop-web-emu",
    "url": "https://github.com/sabliran/sloop-web-emu",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "bbfd8e5b3bfc452520f61afb0d94e2fdfe93fd9d",
@@ -7024,6 +7044,16 @@
    "status": "scored"
   },
   {
+   "repo": "sirpearson/fm-1-monomachine",
+   "url": "https://github.com/sirpearson/fm-1-monomachine",
+   "found_by": "search: fm-1 firmware",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "527da33beb3dde611836cff376aee1b9a324949b",
+   "tree": "ca36067b0d4e2fde9ef3bf65138607c99ef87283",
+   "status": "scored"
+  },
+  {
    "repo": "smememe/fm1-macropad-patch",
    "url": "https://github.com/smememe/fm1-macropad-patch",
    "found_by": "search: fm-1 firmware",
@@ -7209,7 +7239,7 @@
   {
    "repo": "styvesgoupil/frasil",
    "url": "https://github.com/styvesgoupil/frasil",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "MPL-2.0",
    "licence_class": "other",
    "commit": "a7313f27221f02d0d9b46b39c532118ca0223544",
@@ -7316,7 +7346,7 @@
   {
    "repo": "synthi/fm1-1971",
    "url": "https://github.com/synthi/fm1-1971",
-   "found_by": "search: fm1 firmware",
+   "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "d422a998f2d9d30562b8af1830fa3d2aa8cba8fa",
@@ -7521,6 +7551,16 @@
    "licence_class": "none",
    "commit": "3e5f912dc007896ecdff02a89efdf75e55332915",
    "tree": "65d8df161009352754b1ed31f2e50cb4e85fc08f",
+   "status": "scored"
+  },
+  {
+   "repo": "teekesti/harbour-hortator",
+   "url": "https://github.com/teekesti/harbour-hortator",
+   "found_by": "search: hortator",
+   "licence": null,
+   "licence_class": "none",
+   "commit": "57bb903c54aea39a0bad2a87b99a32ff91961202",
+   "tree": "916b3a6e099ce4b023668ffb5c822c135d834035",
    "status": "scored"
   },
   {
@@ -8649,7 +8689,7 @@
   {
    "repo": "ZzpsS/M1n1Le55",
    "url": "https://github.com/ZzpsS/M1n1Le55",
-   "found_by": "search: m-vave",
+   "found_by": "search: fm-1 firmware",
    "licence": "MIT",
    "licence_class": "permissive",
    "commit": "36ef0a3600ff32378a92952e32dae1dd45ce2c2c",

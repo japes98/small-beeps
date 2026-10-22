@@ -15,7 +15,10 @@ README or web pages, and never prints a description. A target is:
     the FM-1 or a known firmware ("mentions"); one that matches by name
     alone must also be in a language of "name_only_languages";
   - any fork of a target, to any depth (forks inherit "paths" and
-    "licence_class").
+    "licence_class");
+  - any target already in targets.json whose repository still exists
+    (search results vary from run to run, so a target is dropped only when
+    `git ls-remote` can't reach it any more).
 Each target is pinned at its default branch's head commit, with that
 commit's tree. Targets whose tree is already in the list (seeds first, then
 by name) are marked `duplicate` and not scored. Licences are classed from
@@ -88,21 +91,27 @@ class GitHub:
     def __init__(self, token):
         self.token = token
         self.last_search = 0.0
+        self.requests = 0
 
     def get(self, path, params=None):
         url = API + path + ("?" + urllib.parse.urlencode(params) if params else "")
         req = urllib.request.Request(url, headers={
             "Accept": "application/vnd.github+json", "User-Agent": "audit-discover",
             "Authorization": "Bearer " + self.token, "X-GitHub-Api-Version": "2022-11-28"})
-        for attempt in range(5):
+        for attempt in range(6):
+            self.requests += 1
             try:
                 with urllib.request.urlopen(req, timeout=60) as r:
                     return json.loads(r.read().decode("utf-8"))
             except urllib.error.HTTPError as e:
                 if e.code == 404:
                     return None
-                if e.code in (403, 429, 502, 503) and attempt < 4:
-                    time.sleep(30 * (attempt + 1))
+                if e.code in (403, 429, 502, 503) and attempt < 5:
+                    # a rate limit says when it resets; wait for that (an hourly window outlasts any short backoff)
+                    reset = e.headers.get("X-RateLimit-Reset") if e.headers.get("X-RateLimit-Remaining") == "0" else None
+                    wait = max(5, int(reset) - int(time.time()) + 5) if reset else 30 * (attempt + 1)
+                    print("waiting %d s (HTTP %d)" % (wait, e.code), file=sys.stderr)
+                    time.sleep(min(wait, 3700))
                     continue
                 raise
 
@@ -142,7 +151,8 @@ def token():
 
 
 def head(url):
-    """The default branch's head commit, from `git ls-remote` (None for an empty repository)."""
+    """The default branch's head commit, from `git ls-remote`: "" for an
+    empty repository, None when the repository can't be reached."""
     p = subprocess.run(["git", "ls-remote", url, "HEAD"], stdout=subprocess.PIPE,
                        stderr=subprocess.DEVNULL, universal_newlines=True,
                        env=dict(os.environ, GIT_TERMINAL_PROMPT="0"))
@@ -150,7 +160,7 @@ def head(url):
         sha, _, ref = line.partition("\t")
         if ref == "HEAD" and re.fullmatch(r"[0-9a-f]{40}", sha):
             return sha
-    return None
+    return "" if p.returncode == 0 else None
 
 
 def entry(meta, found_by, seed=None, fork_of=None, inherit=None):
@@ -167,7 +177,12 @@ def entry(meta, found_by, seed=None, fork_of=None, inherit=None):
     return t
 
 
-def discover(cfg, gh, self_repo=None, log=print):
+def discover(cfg, gh, self_repo=None, log=print, pinned=None, previous=None):
+    """pinned: {repo: (commit, tree)} from the committed list; a head that
+    hasn't moved keeps its tree without asking the API again. previous: the
+    committed targets; one this run's searches didn't return stays a target
+    (search results vary from run to run) unless its repository is gone."""
+    pinned = pinned or {}
     mention = re.compile(cfg["mentions"])
     langs = set(cfg.get("name_only_languages", []))
     found = {}
@@ -199,16 +214,27 @@ def discover(cfg, gh, self_repo=None, log=print):
         if meta.get("forks_count", 1):
             for f in gh.pages("/repos/%s/forks" % meta["full_name"]):
                 add(f, entry(f, "fork", fork_of=meta["full_name"], inherit=parent))
+    keys = ("repo", "url", "found_by", "fork_of", "seed", "paths", "licence", "licence_class")
+    carried = set()
+    for t in previous or []:
+        if t["repo"] not in found and t["repo"] != self_repo:
+            found[t["repo"]] = {k: t[k] for k in keys if k in t}
+            carried.add(t["repo"])
     targets = []
     for name in sorted(found, key=str.lower):
         t = found[name]
         sha = head(t["url"] + ".git")
+        if sha is None and name in carried:
+            continue  # pinned before, and its repository is gone now
         if not sha:
-            t["status"] = "empty"
+            t["status"] = "empty" if sha == "" else "unreachable"
             targets.append(t)
             continue
-        c = gh.get("/repos/%s/git/commits/%s" % (name, sha)) or {}
-        tree = (c.get("tree") or {}).get("sha")
+        if pinned.get(name, (None,))[0] == sha and pinned[name][1]:
+            tree = pinned[name][1]
+        else:
+            c = gh.get("/repos/%s/git/commits/%s" % (name, sha)) or {}
+            tree = (c.get("tree") or {}).get("sha")
         t.update({"commit": sha, "tree": tree, "status": "scored" if tree else "unreachable"})
         targets.append(t)
     return dedupe(targets)
@@ -226,7 +252,10 @@ def main(argv=None):
     if os.path.exists(a.targets):
         with open(a.targets, encoding="utf-8") as f:
             old = json.load(f)
-    targets = discover(cfg, GitHub(token()), os.environ.get("GITHUB_REPOSITORY"))
+    gh = GitHub(token())
+    pinned = {t["repo"]: (t.get("commit"), t.get("tree")) for t in old.get("targets", [])}
+    targets = discover(cfg, gh, os.environ.get("GITHUB_REPOSITORY"), pinned=pinned,
+                       previous=old.get("targets", []))
     new = {"schema": SCHEMA,
            "comment": "Written by tools/audit-discover.py from repository metadata only; docs/AUDIT.md. Pinned by commit and tree.",
            "discovered": time.strftime("%Y-%m-%d", time.gmtime()),
@@ -237,7 +266,7 @@ def main(argv=None):
                                           "licence_class", "commit", "tree", "status", "same_tree_as")
                         if k in t} for t in targets]}
     added, gone, moved = changes(old, new)
-    print("targets: %s" % ", ".join("%d %s" % (n, s) for s, n in new["counts"].items()))
+    print("targets: %s; %d API requests" % (", ".join("%d %s" % (n, s) for s, n in new["counts"].items()), gh.requests))
     for label, names in (("new", added), ("gone", gone), ("moved", moved)):
         print("%s: %d%s" % (label, len(names), "".join("\n  " + n for n in names)))
     if a.write:

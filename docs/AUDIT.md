@@ -55,9 +55,10 @@ and never prints a description. A target is:
 - **any fork of a target, to any depth.** A fork inherits its parent's
   `paths` and licence override.
 
-**As found on 2026-10-22:** 776 repositories. Of these, 512 are scored and
-262 are duplicates by tree. The other 2 are empty. Of the 512 scored, 380
-are classed `gpl`, 45 `permissive`, 42 `other` and 45 `none`.
+**As found on 2026-10-22:** 780 repositories, after two passes whose
+search results differed a little. Of these, 516 are scored and 262 are
+duplicates by tree. The other 2 are empty. Of the 516 scored, 381 are classed `gpl`, 47
+`permissive`, 43 `other` and 45 `none`.
 
 The owner chose this wide net on 2026-10-22: every FM-1 repository, not
 only Felucca's and dinghy's lineage. A target that turns out to be
@@ -99,9 +100,25 @@ commit, it opens a pull request that changes `audit/targets.json` and lists
 those repositories by name. It never fetches a target's code: only the
 audit job does that.
 
-Two things about that pull request:
+Search results vary from run to run, so a target already in
+`targets.json` stays even when this month's searches miss it. It is
+dropped only when `git ls-remote` can no longer reach its repository. A
+run also reuses the stored tree of every target whose head hasn't moved, so
+only new or moved repositories cost an API request for their tree. When
+GitHub's rate limit runs out, it waits for the reset time GitHub gives.
+Each run prints how many requests it made.
+
+New repository names can trip the separation check (C-SEP-TERMS), as
+`audit/targets.json` already did once: a repository named after another
+M-VAVE keyboard that the emulator also models. In principle they could
+trip the privacy check (C-PRIVATE) too. A spec-side session reviews such a
+hit. A separation hit gets an entry by hash in
+`config/emulator-terms-reviewed.json`; a privacy hit goes to the owner.
+
+Three things about that pull request:
 - The repository setting "Allow GitHub Actions to create and approve pull
   requests" must be on.
+- It needs the review just described for any separation or privacy hit.
 - GitHub does not run CI for a pull request that a workflow opens. The owner
   closes and reopens it to start `ci`, then merges it as usual.
 
@@ -238,7 +255,8 @@ its first run is the push that merges it.
   builds a made-up local target that holds verbatim copies of our files,
   runs the whole pipeline on it, and checks that each of our files is found
   and that the leak check passes (C-AUDIT-SELFTEST). No GPL code is
-  involved.
+  involved. If the self-test fails, the audit still runs and is recorded,
+  and the job fails at the end.
 - **Job `audit`** has read-only permissions, no environment and no
   secrets. For each target in turn it:
   1. fetches the pinned commit into a temporary folder: depth 1, blob-less,

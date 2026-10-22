@@ -288,8 +288,8 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     Exact captures while waiting would change capture times, and with them
     golden files on both sides. That is an option for the owner.
   - **The similarity audit** (docs/AUDIT.md, R-AUDIT-1 to R-AUDIT-6):
-    - **Targets:** 776 FM-1 repositories found from metadata alone (the
-      owner chose every FM-1 repository): 512 scored, 262 duplicates by
+    - **Targets:** 780 FM-1 repositories found from metadata alone (the
+      owner chose every FM-1 repository): 516 scored, 262 duplicates by
       tree, 2 empty. All are pinned by commit and tree in
       `audit/targets.json`. Felucca Salt and Felucca 8 Patterns are
       unresolved: no repository found.
