@@ -12,7 +12,9 @@
       (used by tools/reproduce). Exit status 1 on any difference.
 
 Environment: COMMIT_RANGE (for C-COMMIT-MSG, default: every commit reachable
-from HEAD), GITHUB_* (recorded, and used by C-LOW-PROFILE and C-MERGE).
+from HEAD), PERF_BASE_REF (for C-PERF: the history whose latest record is the
+baseline, default origin/main), GITHUB_* (recorded, and used by
+C-LOW-PROFILE, C-PERF and C-MERGE).
 """
 import argparse
 import datetime
@@ -49,13 +51,24 @@ def _commit_range():
     return os.environ.get("COMMIT_RANGE") or "..HEAD"
 
 
+def _perf_cmd():
+    # CI must find the records branch for the speed gate's baseline; a
+    # clean folder may not have its blobs, and then compares nothing.
+    argv = [PY, "-I", "tools/perf.py", "check", "--build", os.path.join(OUT, "build-a"),
+            "--out", os.path.join(OUT, "perf"),
+            "--base-ref", os.environ.get("PERF_BASE_REF") or "origin/main"]
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        argv.append("--require-records")
+    return argv
+
+
 # Each check: id, title, requirement IDs, and either a command (list, or a
 # function returning one, run from the repository root) or an internal
 # function name. "records_only" checks run only with --with-merge.
 CHECKS = [
     {"id": "C-UNIT", "title": "Unit tests of the tools",
      "reqs": ["R-PROC-1", "R-PROC-4", "R-REC-1", "R-CLEAN-3", "R-CLEAN-4", "R-PUB-1",
-              "R-SEP-2", "R-SPEC-1", "R-SPEC-3"],
+              "R-SEP-2", "R-SPEC-1", "R-SPEC-3", "R-PERF-4"],
      "cmd": [PY, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"]},
     {"id": "C-REUSE", "title": "reuse lint (SPDX licence and copyright on every file)",
      "reqs": ["R-LIC-1", "R-LIC-2"], "cmd": ["reuse", "lint"]},
@@ -105,6 +118,13 @@ CHECKS = [
      "reqs": ["R-BOOT-1", "R-BOOT-2", "R-BOOT-3", "R-BOOT-4", "R-BOOT-5"],
      "cmd": lambda: [PY, "-I", "tools/fw-suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "fwtest")]},
+    # Performance (M0e): size, RAM, stack high-water and speed, gated.
+    {"id": "C-PERF", "title": "Firmware size, RAM, stack high-water and instructions per period, within budget and the 3% speed gate",
+     "reqs": ["R-PERF-1", "R-PERF-2", "R-PERF-3"], "cmd": _perf_cmd},
+    {"id": "C-PERF-PROBES", "title": "Deliberately slower and bigger builds fail the performance gates",
+     "reqs": ["R-PERF-5"],
+     "cmd": lambda: [PY, "-I", "tools/perf.py", "probes", "--build", os.path.join(OUT, "build-a"),
+                     "--out", os.path.join(OUT, "perf-probes")]},
     # The harness (spec side): skipped where harness/ isn't on disk.
     {"id": "C-HARNESS-SCOPE", "title": "The harness uses no update-package or stock-boot paths",
      "reqs": ["R-HARN-9"], "needs": "harness", "cmd": ["sh", "harness/ci.sh", "scope"]},
@@ -337,6 +357,23 @@ def traceability(checks, defined=None):
     return table
 
 
+def perf_markdown(perf):
+    """The record's performance section (tools/perf.py's perf.json)."""
+    cur = perf.get("current") or {}
+    L = ["Overall: **%s**. Period: %s." % (perf.get("result"), perf.get("period")), ""]
+    if not cur.get("error"):
+        L += ["| Measure | Value |", "|---------|-------|"]
+        for k in ("code", "data", "bss", "image", "static_ram", "stack_reserved", "stack_high_water",
+                  "instructions", "periods", "instructions_per_period"):
+            if k in cur:
+                L.append("| %s | %s |" % (k, cur[k]))
+        L.append("")
+    L += ["Baseline: %s." % perf.get("baseline_note"), "",
+          "| Gate | Result | Detail |", "|------|--------|--------|"]
+    L += ["| %s | %s | %s |" % (v["gate"], v["result"], v["detail"]) for v in perf.get("gates", [])]
+    return L
+
+
 def write_markdown(report, path):
     L = ["# Test record %s" % report["commit"][:12], "",
          "- Commit: `%s`" % report["commit"],
@@ -361,6 +398,8 @@ def write_markdown(report, path):
         for part in ("code", "data", "bss", "image", "stack"):
             if part in report["firmware_size"]:
                 L.append("| %s | %d |" % (part, report["firmware_size"][part]))
+    if report.get("perf"):
+        L += ["", "## Performance", ""] + perf_markdown(report["perf"])
     L += ["", "## Traceability", "", "| Requirement | Checks | Result |",
           "|-------------|--------|--------|"]
     for t in report["traceability"]:
@@ -417,6 +456,12 @@ def cmd_run(a):
             shutil.copyfile(os.path.join(build_a, name), os.path.join(OUT, "outputs", name))
     for d in ("build-a", "build-b", "harness-a", "harness-b"):
         shutil.rmtree(os.path.join(OUT, d), ignore_errors=True)
+    perf = {}
+    try:
+        with open(os.path.join(OUT, "perf", "perf.json")) as f:
+            perf = json.load(f)
+    except (OSError, ValueError):
+        pass
 
     report = {
         "schema": SCHEMA,
@@ -429,6 +474,7 @@ def cmd_run(a):
         "checks": results,
         "outputs": outputs,
         "firmware_size": dict(FIRMWARE_SIZE),
+        "perf": perf,
         "traceability": traceability(results),
         "overall": "PASS" if results and all(r["result"] in ("PASS", "SKIP") for r in results) else "FAIL",
     }

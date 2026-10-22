@@ -9,7 +9,7 @@ SPDX-FileCopyrightText: 2026 japes98
 
 **How:** the approach, and anything tried and rejected
 
-**Result:** what the author saw when testing
+**Result:** what the author saw when testing (and the performance summary from CI: say so if it shows an improvement of more than 3%)
 
 **Sources:** PROVENANCE IDs used (or "none")
 
