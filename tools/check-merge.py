@@ -5,12 +5,15 @@
 
   check-merge.py SHA [--owner LOGIN]
 
-The owner merges pull requests locally with a signed merge commit and
-pushes as the ruleset's only bypass actor (CONTRIBUTING.md). This check
-makes each such push auditable. It passes when:
+The owner merges pull requests with GitHub's merge button (decided
+2026-10-22, CONTRIBUTING.md). GitHub then commits and signs the merge as
+`web-flow`, and records who pressed the button as the pull request's
+`merged_by`. This check passes when:
   - SHA is a merge commit (two parents);
-  - GitHub reports its signature as verified, and the committer is the
-    owner (the repository owner unless --owner is given);
+  - GitHub reports its signature as verified;
+  - its committer is `web-flow` and the pull request's merged_by is the
+    owner, or (merges made before that decision could also be local) its
+    committer is the owner;
   - its second parent is the head commit of a pull request into main whose
     CI workflow ("ci") concluded successfully on that commit.
 The first commit (the bootstrap, no parents) is reported as such and passes:
@@ -25,6 +28,7 @@ import sys
 import urllib.request
 
 API = "https://api.github.com"
+WEB_FLOW = "web-flow"
 
 
 def api(path):
@@ -37,6 +41,26 @@ def api(path):
         return json.load(r)
 
 
+def evaluate(n_parents, verified, reason, committer, merged_by, owner, pr_found, ci_success):
+    """Returns the list of problems for one merge commit (pure, for tests)."""
+    problems = []
+    if n_parents != 2:
+        problems.append("not a merge commit (%d parent)" % n_parents)
+    if not verified:
+        problems.append("merge commit signature not verified (%s)" % reason)
+    if committer == WEB_FLOW:
+        if merged_by != owner:
+            problems.append("merged by %s, not the owner %s" % (merged_by, owner))
+    elif committer != owner:
+        problems.append("committer is %s, neither %s nor the owner %s"
+                        % (committer, WEB_FLOW, owner))
+    if not pr_found:
+        problems.append("second parent is not the head of a pull request into main")
+    if not ci_success:
+        problems.append("no successful ci run on the pull request head")
+    return problems
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -45,7 +69,6 @@ def main():
     a = ap.parse_args()
     repo = os.environ["GITHUB_REPOSITORY"]
     owner = a.owner or repo.split("/")[0]
-    problems = []
 
     parents = subprocess.run(["git", "rev-list", "--parents", "-n", "1", a.sha], check=True,
                              stdout=subprocess.PIPE, universal_newlines=True).stdout.split()[1:]
@@ -53,34 +76,32 @@ def main():
         print("%s is the root (bootstrap) commit, pushed before the rulesets existed" % a.sha)
         print("merge check: PASS")
         return 0
-    if len(parents) != 2:
-        problems.append("%s is not a merge commit (%d parent)" % (a.sha, len(parents)))
 
     c = api("/repos/%s/commits/%s" % (repo, a.sha))
     v = c["commit"].get("verification") or {}
     committer = (c.get("committer") or {}).get("login")
     print("signature: verified=%s reason=%s committer=%s"
           % (v.get("verified"), v.get("reason"), committer))
-    if not v.get("verified"):
-        problems.append("merge commit signature not verified (%s)" % v.get("reason"))
-    if committer != owner:
-        problems.append("committer is %s, not the owner %s" % (committer, owner))
 
+    merged_by, pr_found, ci_success = None, False, False
     if len(parents) == 2:
         head = parents[1]
         prs = [p for p in api("/repos/%s/commits/%s/pulls" % (repo, head))
                if (p.get("base") or {}).get("ref") == "main" and p["head"]["sha"] == head]
-        if not prs:
-            problems.append("second parent %s is not the head of a pull request into main" % head)
+        pr_found = bool(prs)
         for p in prs:
-            print("pull request #%d: %s" % (p["number"], p["html_url"]))
+            full = api("/repos/%s/pulls/%d" % (repo, p["number"]))
+            merged_by = (full.get("merged_by") or {}).get("login")
+            print("pull request #%d: %s merged_by=%s merge_commit=%s"
+                  % (p["number"], p["html_url"], merged_by, full.get("merge_commit_sha")))
         runs = api("/repos/%s/actions/runs?head_sha=%s&event=pull_request" % (repo, head))
         ci = [r for r in runs.get("workflow_runs", []) if r.get("name") == "ci"]
         for r in ci:
             print("ci run %s: %s/%s %s" % (r["id"], r["status"], r["conclusion"], r["html_url"]))
-        if not any(r.get("conclusion") == "success" for r in ci):
-            problems.append("no successful ci run on pull request head %s" % head)
+        ci_success = any(r.get("conclusion") == "success" for r in ci)
 
+    problems = evaluate(len(parents), v.get("verified"), v.get("reason"), committer,
+                        merged_by, owner, pr_found, ci_success)
     for p in problems:
         print("FAIL " + p)
     print("merge check: %s" % ("FAIL" if problems else "PASS"))

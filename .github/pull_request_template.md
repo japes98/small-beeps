@@ -20,5 +20,5 @@ SPDX-FileCopyrightText: 2026 japes98
 **Record:** filled in after merge: `records/<merge commit>/` on the `records` branch
 
 ---
-Merge (owner only): a signed merge commit of exactly the head commit that passed CI
+Merge (owner only): GitHub's "Create a merge commit" button, after CI passed on the head commit
 (CONTRIBUTING.md, "Pull requests and merging").

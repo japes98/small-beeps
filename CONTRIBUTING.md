@@ -128,42 +128,37 @@ Exposure: the author's role and exposure (e.g. "firmware side, none")
   request using `.github/pull_request_template.md` (the same sections, plus
   links to the CI run and the record).
 - CI (`.github/workflows/ci.yml`) must pass.
-- The **owner merges with a merge commit signed with their SSH key** (below),
-  so every change on main carries the owner's signature. No squash or
-  rebase merges.
+- The **owner merges with GitHub's merge button** ("Create a merge commit").
+  GitHub commits and signs the merge commit as `web-flow` (shown as
+  Verified) and records the owner as the pull request's `merged_by`. No
+  squash or rebase merges, and nobody bypasses the rules.
 - Records (`records/<sha>/` on the `records` branch) are written only by
   `.github/workflows/records.yml`, for pushes to main.
-- Milestones end with a tag `mN`, signed by the owner, and a GitHub release
-  with the build outputs, the record and an SBOM.
+- Milestones end with a tag `mN`, signed by the owner with their SSH key
+  (below), and a GitHub release with the build outputs, the record and an
+  SBOM.
 
-### Why the owner is a ruleset bypass actor
+### Merge policy and its history
 
-GitHub can't both require pull requests from everyone and accept a merge
-commit signed with the owner's own key. A merge done with GitHub's merge
-button is signed by GitHub's web-flow key, not the owner's. A merge the owner
-signs locally and pushes is a direct push to main, which a "require a pull
-request" rule rejects. On 2026-10-21 the owner chose to be the **only bypass
-actor** on main, and to merge only like this:
+- **2026-10-21:** the owner first chose to sign every merge with their own
+  SSH key, as the ruleset's only bypass actor, because GitHub's button signs
+  with GitHub's key instead.
+- **2026-10-22:** pull request #1 was merged with the button. Its merge
+  commit `2fd28219` is signed by GitHub (`web-flow`, verified), and its
+  record shows C-MERGE **FAIL** under the old rule ("committer is web-flow,
+  not the owner"). The record stays as it is, and history is not rewritten.
+- **2026-10-22:** the owner then chose button merges for good. The bypass
+  was removed from the main ruleset, so the rules now apply to everyone.
 
-```sh
-git fetch origin
-git switch main && git pull --ff-only
-git merge --no-ff -S origin/<branch> -m "Merge pull request #<N> from <branch>"
-git push origin main
-```
-
-Rules for the bypass:
-
-- Only merge a pull request whose head commit passed CI. Merge exactly that
-  commit.
-- Never push anything else to main: no direct commits, no force pushes.
-- GitHub marks the pull request as merged when the push contains its head
-  commit.
-- The records workflow re-checks every push to main (check C-MERGE). The new
-  main commit must be a merge commit, signed and verified by GitHub, by the
-  owner; its second parent must be the head of a pull request whose CI
-  passed. Otherwise the record says **FAIL** for C-MERGE, and the record is
-  still written.
+What a merge on main proves: GitHub's signature shows the commit was made
+by GitHub on the owner's merge. `merged_by` shows the owner pressed the
+button. The required `ci` check shows CI passed on exactly the merged head.
+The records workflow re-checks all of this for every push to main
+(C-MERGE): a merge commit, a verified signature, committer `web-flow` with
+the pull request's `merged_by` the owner (or, for older merges, the owner
+as committer), and its second parent the head of a pull request whose `ci`
+run passed. Otherwise the record says **FAIL** for C-MERGE, and the record
+is still written.
 
 ## Rulesets
 
@@ -171,8 +166,8 @@ Repository rulesets (Settings → Rules → Rulesets):
 
 - **main**: restrict deletions; block force pushes; require a pull request
   before merging (allowed merge method: merge only); require status checks to
-  pass (the `ci` job); bypass list: the owner only (repository admin role,
-  "always").
+  pass (the `ci` job); no bypass (until 2026-10-22: the repository admin
+  role).
 - **records-history** (branch `records`): restrict deletions; block force
   pushes; no bypass.
 - **records-writer** (branch `records`): restrict creations; restrict
@@ -189,7 +184,7 @@ GitHub API:
 
 | What | ID or fingerprint |
 |------|-------------------|
-| Ruleset `main` | 25612787 (bypass: repository admin role; required check `ci` from GitHub Actions) |
+| Ruleset `main` | 25612787 (required check `ci` from GitHub Actions; no bypass since 2026-10-22, before that the repository admin role) |
 | Ruleset `records-history` | 25612788 |
 | Ruleset `records-writer` | 25612790 (bypass: deploy keys) |
 | Ruleset `milestone-tags` | 25612791 |
@@ -201,7 +196,7 @@ folder, piped into the environment secret without being printed, and
 deleted. To rotate it: make a new pair, replace the secret, add the new
 public key, delete the old key.
 
-## SSH commit signing (one-time setup, owner)
+## SSH signing for milestone tags (one-time setup, owner)
 
 1. Create a signing key (or reuse an SSH key you already have):
    `ssh-keygen -t ed25519 -C "small-beeps signing" -f ~/.ssh/id_ed25519_signing`
@@ -211,16 +206,16 @@ public key, delete the old key.
    git config --global user.signingkey ~/.ssh/id_ed25519_signing.pub
    git config --global tag.gpgSign true
    ```
-   Leave `commit.gpgSign` off, or sign with `-S` per merge. Either works.
+   Leave `commit.gpgSign` off: merges are signed by GitHub's button.
 3. Let git verify signatures locally: add a line
    `<your git email> <contents of id_ed25519_signing.pub>` to
    `~/.ssh/allowed_signers`, then
    `git config --global gpg.ssh.allowedSignersFile ~/.ssh/allowed_signers`.
 4. On GitHub: Settings → SSH and GPG keys → New SSH key → Key type
    **Signing Key**, and paste the `.pub` contents.
-5. Check: `git log --show-signature -1` after a signed merge shows
-   "Good "git" signature", and GitHub shows the merge commit as **Verified**.
-6. Milestone tags: `git tag -s mN -m "mN"` then `git push origin mN`.
+5. Tag a milestone: `git tag -s mN -m "mN"`, then `git push origin mN`.
+6. Check: `git tag -v mN` shows "Good "git" signature", and GitHub shows the
+   tag as **Verified**.
 
 ## Licences
 
