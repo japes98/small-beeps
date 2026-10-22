@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The harness's own suite (C-HARNESS-SUITE): `fwtest suite tests/harness.suite
+# --out DIR`, run twice in CI with byte-identical outputs (C-HARNESS-DET).
+# NAME  EXPECT  IMAGE  [run options; paths relative to this file]
+heartbeat completed images/heartbeat.bin --ms 20 --ram 0x01c00100:8@10 --ram 0x01c00100:8@end --watchdog 0x01c00104:1 --golden golden/heartbeat
+halt      halt      images/halt.bin --ms 20 --ram 0x01c00100:4@end --golden golden/halt
+wild      fault     images/wild.bin --ms 20
+undecodable fault   data/undecodable.bin --ms 1
+hang      hang      images/hang.bin --ms 50 --watchdog 0x01c00104:5
+console   halt      images/console.bin --ms 5 --console --golden golden/console
+lcd       halt      images/lcd.bin --ms 30 --lcd 1 --lcd end --golden golden/lcd
+leds      completed images/leds.bin --ms 30 --leds-every 5 --golden golden/leds
+keys      completed images/keys.bin --ms 40 --script scripts/keys.txt --ram 0x01c00100:44@3 --ram 0x01c00100:44@7 --ram 0x01c00140:4@end --golden golden/keys
+pot       completed images/pot.bin --ms 10 --script scripts/pot.txt --ram 0x01c00100:4@2 --ram 0x01c00100:4@end --golden golden/pot
+midi      completed images/midi.bin --ms 10 --script scripts/midi.txt --ram 0x01c00200:8@1.5 --ram 0x01c00200:8@2.5 --ram 0x01c00200:8@end --golden golden/midi
+audio     completed images/audio.bin --ms 20 --wav --ipb --golden golden/audio
+flashrw   halt      images/flashrw.bin --ms 5 --flash data/flash-in.bin --flash-out --ram 0x01c00200:16@end --golden golden/flashrw
