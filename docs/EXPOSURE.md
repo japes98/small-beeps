@@ -141,6 +141,44 @@ training cutoff (see "Model cutoffs" below).
   listed parts of their generated instruction table to find encodings for
   its test images. Nothing else of that repository was read or fetched.
 
+### Clean maintenance session 1 (before M0d)
+- Date: 2026-10-22
+- Role: firmware side (clean). **Stays firmware side, by the owner's
+  decision** (below).
+- Tool: Claude Code 2.1.308 (`claude --version`).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `3a0a372e-7fbc-4446-b51a-1298219a7562` (a
+  local session; it has no claude.ai session URL).
+- Where it ran: the owner's Mac, in `~/Development/F-Irmware/clean`. The
+  owner's fix steps named `~/work/small-beeps/`; the session asked, and the
+  owner chose this folder's paths (the fresh copy was made beside it, in
+  `~/Development/F-Irmware/.clean-new`).
+- What it did: brought the clean folder up to main (8d55367) by the
+  owner's steps. The folder had been a full clone; it was made blob-less
+  (promisor remote, `blob:none` filter), fetched, given the narrowed sparse
+  checkout and fast-forwarded with lazy fetching allowed.
+- What happened: the fast-forward's merge summary listed the names and line
+  counts of files under `vendor/emulator/` and `harness/`. No contents were
+  displayed or opened. To count lines, git downloaded those files' objects
+  into the folder's `.git`; `tools/clean-update.sh` then stopped with
+  `STOP: 29 file(s) under vendor/emulator are in .git` and
+  `STOP: 67 file(s) under harness are in .git`. None were on disk.
+- How it was fixed: after checking that the folder held nothing unique (no
+  unpushed commits, no stashes, no changes), the session made a fresh
+  blob-less clone with the clean sparse checkout, checked that it held no
+  object of the three spec-side folders (0, 0, 0), moved the old `.git`
+  aside, put the fresh one in its place and deleted the old one, all
+  without opening, listing or printing anything inside it. The fresh
+  clone's checkout needed lazy fetching for the files it checks out (this
+  session runs with it off), so that one command ran with it allowed, as
+  `tools/clean-update.sh` does for its fast-forward. Afterwards
+  `git status` showed no changes, `tools/clean-setup.sh` ran, and
+  `tools/clean-update.sh` passed: "no spec-side files on disk or in .git".
+- Exposure: none. The owner decided that a summary of file names and line
+  counts is not exposure to their contents, so this session stays firmware
+  side.
+
 ## Barrier log
 
 | When (UTC) | Folder | Settings SHA-256 | Event |
@@ -153,6 +191,9 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-22T04:11:17Z | same | `eaa5f875…ed542f810` | `tools/spec-setup.sh` installed `config/claude/spec.json` (same seven deny rules plus the banner hook); role file `spec`; banner printed `status: OK` |
 | 2026-10-22T04:11Z to 04:20Z | same (upstream copy in the session's scratch folder) | `eaa5f875…ed542f810` | Blob-less, sparse clone of the upstream emulator (three crates, licence, workspace manifest; commit `43ed5580`), read to plan the harness |
 | 2026-10-22T04:21Z | same | `eaa5f875…ed542f810` | M0a's two transcripts archived into `sessions/clean/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-22T11:17:25Z (session start) | `~/Development/F-Irmware/clean` | `6240e19a…9f639156` | Clean maintenance session 1 starts; banner `status: OK` |
+| 2026-10-22T11:18:01Z | same | `aa535102…9f25ab` | After the fast-forward to main, `tools/clean-setup.sh` installed the updated `config/claude/clean.json` (no deny rule dropped); banner `status: OK` |
+| 2026-10-22T11:26:43Z | same | `aa535102…9f25ab` | The folder's `.git` replaced by a fresh blob-less clone, the old one deleted unread; `tools/clean-setup.sh` re-run, banner `status: OK`; `tools/clean-update.sh` passed |
 
 ## Model cutoffs
 
