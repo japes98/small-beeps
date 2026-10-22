@@ -78,11 +78,13 @@ emits JUnit and JSON.
     as that record.
   - **Before the next clean session**, in the clean folder, from a shell:
     `export GIT_NO_LAZY_FETCH=1; git fetch origin;` then
-    `env -u GIT_NO_LAZY_FETCH git merge --ff-only origin/main` (only the
-    folder's own files are fetched), then `tools/clean-setup.sh`. Its live
-    settings predate the new deny rule and the lazy-fetch setting, so its
-    banner would otherwise say CONFIG MISMATCH. From then on,
-    `tools/clean-update.sh` updates it.
+    `env -u GIT_NO_LAZY_FETCH git merge -q --no-stat --ff-only origin/main`
+    (only the folder's own files are fetched; without `--no-stat` the merge
+    summary downloads the excluded files to count their lines, as
+    happened in clean maintenance session 1), then `tools/clean-setup.sh`.
+    Its live settings predate the new deny rule and the lazy-fetch
+    setting, so its banner would otherwise say CONFIG MISMATCH. From then
+    on, `tools/clean-update.sh` updates it.
 
 ### M0c: hardware spec (spec side, next)
 `HARDWARE-SPEC.md`: facts only (addresses, bits, pins, timings, protocols),
