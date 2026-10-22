@@ -1,0 +1,20 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 80864b9b85013abd7f3a7e5c0f796863eebd2264..4760d5612f477b1ad65409ab13e1c12ae8a5dfe5
+OK     3e37185b4233 docs: M0d prompt and this session's exposure entry
+OK     e9e0cc17d765 firmware: startup, linker script and main with a marker and heartbeat
+OK     a1bb730ea40b tests: the firmware's fwtest suite and its heartbeat check
+OK     c42d0903d61e tools: the record runs the firmware suite and states the image's size
+OK     0426d34951bb docs: design notes and provenance for M0d
+OK     b8fb4966b7aa docs: plan records M0d, M0e is next
+OK     b160b8ea1107 docs: the M0d addendum (privacy)
+OK     ec52728cbf04 tools: a check that no private term is in the repository
+OK     a46e1062d227 tools: the archiver redacts the top folder, the username and the terms
+OK     68f25c8a262d docs: local paths in the exposure register written as ~/<top>/...
+OK     ca8389dd296b docs: plan records M0d's privacy check
+OK     be21328aa708 config: four spec addresses reviewed for the separation check
+OK     8a271c50809e tools: spec-side privacy hits are counted, and terms are redacted whole
+OK     d3458b6aab5f docs: this session continued as a second transcript
+OK     7477b45a20f2 config: the vector table's address reviewed for the separation check
+EXEMPT 4760d5612f47 (merge) Merge pull request #10 from japes98/m0d/firmware
+16 commit(s) checked: PASS
+
+exit status 0
