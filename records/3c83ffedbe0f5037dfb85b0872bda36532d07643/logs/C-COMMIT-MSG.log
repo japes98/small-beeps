@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range f5740bc8ce2f91b92b84d5150dd3090e968ca629..3c83ffedbe0f5037dfb85b0872bda36532d07643
+OK     ceba38df571d docs: HARNESS.md says exactly when fwtest treats core 0 as waiting
+EXEMPT 3c83ffedbe0f (merge) Merge pull request #16 from japes98/m0e/harness-time
+2 commit(s) checked: PASS
+
+exit status 0

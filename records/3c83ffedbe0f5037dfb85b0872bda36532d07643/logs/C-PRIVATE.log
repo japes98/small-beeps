@@ -1,0 +1,5 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-private.py --require
+exempt, unchanged since base 80864b9b8501: docs/prompts 5, sessions 1, sessions/clean 6, spec-side transcripts 2
+private-terms check: 5 term(s); PASS
+
+exit status 0
