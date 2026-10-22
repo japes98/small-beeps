@@ -170,7 +170,7 @@ d="$work/probe-update"
 oid=$(printf 'clean-update probe: a spec-side output in a record\n' | git -C "$d" hash-object -w --stdin)
 t=$(printf '100644 blob %s\tprobe.txt\n' "$oid" | git -C "$d" mktree)
 for name in spec-experiments x records; do t=$(printf '040000 tree %s\t%s\n' "$t" "$name" | git -C "$d" mktree); done
-git -C "$d" update-ref refs/heads/planted "$(git -C "$d" commit-tree "$t" -m 'clean-update probe')"
+git -C "$d" update-ref refs/heads/planted "$(git -C "$d" -c user.name=probe -c user.email=probe@invalid commit-tree "$t" -m 'clean-update probe')"
 if sh "$ROOT/tools/clean-update.sh" --dir "$d" main > "$work/planted.log" 2>&1; then
     cat "$work/planted.log"; bad "tools/clean-update.sh missed a spec-side output reached through another branch"
 elif grep -q '^STOP: 1 spec-side' "$work/planted.log"; then
