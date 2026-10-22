@@ -191,6 +191,307 @@
       "reason": "A shell command that only read the archived clean transcript sessions/clean/2026-10-22-clean-cd816ac2-14a7-4eb6-ba5f-1732c57ec45f.jsonl with a Python heredoc and printed the lines of three flagged commands that mention the spec-side folder names, to review them. Nothing under sessions/spec/ was opened, listed or searched; it isn't in the clean folder.",
       "added_by": "session M1 clean (claude-opus-5-5), 2026-10-22, approved by the owner",
       "superseded": "2026-10-22, session M1: tools/check-transcripts.py now clears this call itself (its quoted heredoc fed to python3 opens only sessions/REVIEWED.json or files under sessions/clean/); kept for history, and the check fails if the call is ever flagged again."
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_013M6BfKJPSJLyJRPLKAHuyb",
+      "rule": "spec-side session transcripts",
+      "reason": "`git log` of commit trailers with the pathspecs `:!` that leave the three spec-side folders out, then `env | grep` for the session URL. It names the folders only to exclude them; nothing under them was opened, listed or fetched.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01GDZ77kRZjvpaQMNCkPa5aC",
+      "rule": "spec-side session transcripts",
+      "reason": "Wrote a pull request body (`cat > out/msg/pr-a.md <<'EOF'`) and opened the pull request. The text names the folder rules to explain earlier reviewed entries; nothing was opened or listed.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01VEysqXHBcmaXs5iMkUa2G6",
+      "rule": "Felucca and firmwares built on it",
+      "reason": "A Python heredoc that only edited tools/check-transcripts.py: its docstring and the FORBIDDEN table, whose patterns name the forbidden folders, sites and repositories. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01VEysqXHBcmaXs5iMkUa2G6",
+      "rule": "hugelton (Felucca's author)",
+      "reason": "A Python heredoc that only edited tools/check-transcripts.py: its docstring and the FORBIDDEN table, whose patterns name the forbidden folders, sites and repositories. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01VEysqXHBcmaXs5iMkUa2G6",
+      "rule": "dinghy",
+      "reason": "A Python heredoc that only edited tools/check-transcripts.py: its docstring and the FORBIDDEN table, whose patterns name the forbidden folders, sites and repositories. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01VEysqXHBcmaXs5iMkUa2G6",
+      "rule": "FM-1 SID firmware",
+      "reason": "A Python heredoc that only edited tools/check-transcripts.py: its docstring and the FORBIDDEN table, whose patterns name the forbidden folders, sites and repositories. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01VEysqXHBcmaXs5iMkUa2G6",
+      "rule": "F-Emulator / fm1-emu repository",
+      "reason": "A Python heredoc that only edited tools/check-transcripts.py: its docstring and the FORBIDDEN table, whose patterns name the forbidden folders, sites and repositories. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01VEysqXHBcmaXs5iMkUa2G6",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A Python heredoc that only edited tools/check-transcripts.py: its docstring and the FORBIDDEN table, whose patterns name the forbidden folders, sites and repositories. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01VEysqXHBcmaXs5iMkUa2G6",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python heredoc that only edited tools/check-transcripts.py: its docstring and the FORBIDDEN table, whose patterns name the forbidden folders, sites and repositories. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01VEysqXHBcmaXs5iMkUa2G6",
+      "rule": "thefirmwarehub.com",
+      "reason": "A Python heredoc that only edited tools/check-transcripts.py: its docstring and the FORBIDDEN table, whose patterns name the forbidden folders, sites and repositories. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01VEysqXHBcmaXs5iMkUa2G6",
+      "rule": "spec-side session transcripts",
+      "reason": "A Python heredoc that only edited tools/check-transcripts.py: its docstring and the FORBIDDEN table, whose patterns name the forbidden folders, sites and repositories. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01VEysqXHBcmaXs5iMkUa2G6",
+      "rule": "FM-1-RE firmware images or disassembly",
+      "reason": "A Python heredoc that only edited tools/check-transcripts.py: its docstring and the FORBIDDEN table, whose patterns name the forbidden folders, sites and repositories. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01U9XEoLvTyxWsU1KWpgsPQn",
+      "rule": "Felucca and firmwares built on it",
+      "reason": "A Python heredoc that only edited sessions/REVIEWED.json (marking entries superseded) and tests/test_transcripts.py, whose test strings name the spec-side folders and forbidden repositories as inputs the check must catch. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01U9XEoLvTyxWsU1KWpgsPQn",
+      "rule": "hugelton (Felucca's author)",
+      "reason": "A Python heredoc that only edited sessions/REVIEWED.json (marking entries superseded) and tests/test_transcripts.py, whose test strings name the spec-side folders and forbidden repositories as inputs the check must catch. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01U9XEoLvTyxWsU1KWpgsPQn",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A Python heredoc that only edited sessions/REVIEWED.json (marking entries superseded) and tests/test_transcripts.py, whose test strings name the spec-side folders and forbidden repositories as inputs the check must catch. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01U9XEoLvTyxWsU1KWpgsPQn",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python heredoc that only edited sessions/REVIEWED.json (marking entries superseded) and tests/test_transcripts.py, whose test strings name the spec-side folders and forbidden repositories as inputs the check must catch. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01U9XEoLvTyxWsU1KWpgsPQn",
+      "rule": "spec-side session transcripts",
+      "reason": "A Python heredoc that only edited sessions/REVIEWED.json (marking entries superseded) and tests/test_transcripts.py, whose test strings name the spec-side folders and forbidden repositories as inputs the check must catch. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01MZL9nQXZcqQBjfMqmB6fBS",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A Python heredoc that only edited the folder patterns in tools/check-transcripts.py (a trial, later reverted, of the boundary M2 adds), then a `grep` of that file, the tests and the check. The folder names are the checker's own patterns; nothing under the folders was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01MZL9nQXZcqQBjfMqmB6fBS",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python heredoc that only edited the folder patterns in tools/check-transcripts.py (a trial, later reverted, of the boundary M2 adds), then a `grep` of that file, the tests and the check. The folder names are the checker's own patterns; nothing under the folders was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01MZL9nQXZcqQBjfMqmB6fBS",
+      "rule": "spec-side session transcripts",
+      "reason": "A Python heredoc that only edited the folder patterns in tools/check-transcripts.py (a trial, later reverted, of the boundary M2 adds), then a `grep` of that file, the tests and the check. The folder names are the checker's own patterns; nothing under the folders was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01BByyL5Sf3GvDN6bjWCRCrn",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "`sed -i` edits to the folder patterns in tools/check-transcripts.py and to a test string in tests/test_transcripts.py, a `grep` of that test file and `git diff` of the checker, then the tests and the check. The folder names are the checker's own patterns and test inputs; nothing under the folders was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01PQZdkAmv4UEMfoJtnWpA2e",
+      "rule": "harness/ source (spec side)",
+      "reason": "Wrote a commit message (`cat > $T/c4 <<'EOF'`) and committed. The message names the folder in examples of commands the check still fails; nothing was opened or listed.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_013jfjf9zEi9LB5428qr7V3o",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "Wrote a pull request body (`cat > out/msg/pr-b.md <<'EOF'`) and opened the pull request. The text describes the check's rules with example commands naming the folders; nothing was opened or listed.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_013jfjf9zEi9LB5428qr7V3o",
+      "rule": "harness/ source (spec side)",
+      "reason": "Wrote a pull request body (`cat > out/msg/pr-b.md <<'EOF'`) and opened the pull request. The text describes the check's rules with example commands naming the folders; nothing was opened or listed.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01HNEV5wHY9ckNR2RJ4PVrh1",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python heredoc that only edited docs/REQUIREMENTS.md, adding M1's requirement rows; the word matched is in prose about the test harness. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_019tNV5hyVu1eeehbQa1gYjn",
+      "rule": "spec-side session transcripts",
+      "reason": "`git grep` for an address in two commits with the pathspecs `:!` that leave the three spec-side folders out, and `grep -r` in docs, PROVENANCE.md, firmware, tools and tests. The folders are named only to exclude them; nothing under them was searched.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01PLcsMhpRj83grsPnRrMPjG",
+      "rule": "harness/ source (spec side)",
+      "reason": "Pushed the firmware branch and wrote its pull request body (`cat > out/msg/pr-e.md <<'EOF'`); the word matched is in prose about the test harness's behaviour. Nothing was opened or listed.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01F2WvrYG9Vf8W7tgY7geGFs",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "Made a fresh blob-less sparse clean folder with tools/clean-setup.sh, then counted, with lazy fetching off, how many objects under each excluded folder were present (0, 0, 0) and whether any was on disk: the same test tools/clean-update.sh makes. No file name or content was shown.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01F2WvrYG9Vf8W7tgY7geGFs",
+      "rule": "harness/ source (spec side)",
+      "reason": "Made a fresh blob-less sparse clean folder with tools/clean-setup.sh, then counted, with lazy fetching off, how many objects under each excluded folder were present (0, 0, 0) and whether any was on disk: the same test tools/clean-update.sh makes. No file name or content was shown.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01F2WvrYG9Vf8W7tgY7geGFs",
+      "rule": "spec-side session transcripts",
+      "reason": "Made a fresh blob-less sparse clean folder with tools/clean-setup.sh, then counted, with lazy fetching off, how many objects under each excluded folder were present (0, 0, 0) and whether any was on disk: the same test tools/clean-update.sh makes. No file name or content was shown.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_011ZaCosPTQympERyRkatX4q",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A Python heredoc that only edited tools/clean-update.sh: comments naming the folders and the all-branches guard's pattern, which matches them to stop on them. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_011ZaCosPTQympERyRkatX4q",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python heredoc that only edited tools/clean-update.sh: comments naming the folders and the all-branches guard's pattern, which matches them to stop on them. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_011ZaCosPTQympERyRkatX4q",
+      "rule": "spec-side session transcripts",
+      "reason": "A Python heredoc that only edited tools/clean-update.sh: comments naming the folders and the all-branches guard's pattern, which matches them to stop on them. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_015r13ZCyLdJLv2Z4xaUQox3",
+      "rule": "harness/ source (spec side)",
+      "reason": "Tested the new all-branches guard by hand: with lazy fetching off, listed the records branch's tree (trees only, in a blob-less clone), kept the object IDs of files under spec-side folders by the guard's own pattern, and printed only how many of them were present or missing. No file name or content was shown.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01ECDSfP2XggttSMbqV3NVsk",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "Checked out the wrap-up branch, merged main into it without a summary (`--no-stat`), ran tools/clean-update.sh and tested that none of the three folders was on disk. The names are in that test; tools/clean-update.sh found no spec-side object in .git afterwards (and again at the start of M2).",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01ECDSfP2XggttSMbqV3NVsk",
+      "rule": "harness/ source (spec side)",
+      "reason": "Checked out the wrap-up branch, merged main into it without a summary (`--no-stat`), ran tools/clean-update.sh and tested that none of the three folders was on disk. The names are in that test; tools/clean-update.sh found no spec-side object in .git afterwards (and again at the start of M2).",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01ECDSfP2XggttSMbqV3NVsk",
+      "rule": "spec-side session transcripts",
+      "reason": "Checked out the wrap-up branch, merged main into it without a summary (`--no-stat`), ran tools/clean-update.sh and tested that none of the three folders was on disk. The names are in that test; tools/clean-update.sh found no spec-side object in .git afterwards (and again at the start of M2).",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_011hUSkRxYkm4bVyNt1wTZkv",
+      "rule": "spec-side session transcripts",
+      "reason": "Compared docs/PLAN.md and docs/EXPOSURE.md with main (`git show origin/main:<file>`) and ran `git diff --stat` with the pathspecs `:!` that leave the three spec-side folders out. The folders are named only to exclude them.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01UKhZ7YKwuxYhDPVpbjADD1",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python heredoc that only edited CONTRIBUTING.md, adding the rule on fetching records, whose text names the folders. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01PckXfcXuenzxfrC6kQU86J",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python heredoc that only edited docs/EXPOSURE.md, recording the barrier STOP in general terms. Nothing else was opened.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01QdgJyQpPwwKDqghvqCWfks",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A `sed -i` on one line of docs/EXPOSURE.md, then commit messages written with `cat > $T/g1 <<EOF` naming the folders the new guard checks, commits, the tests and a push. Nothing under the folders was opened or listed.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01QdgJyQpPwwKDqghvqCWfks",
+      "rule": "harness/ source (spec side)",
+      "reason": "A `sed -i` on one line of docs/EXPOSURE.md, then commit messages written with `cat > $T/g1 <<EOF` naming the folders the new guard checks, commits, the tests and a push. Nothing under the folders was opened or listed.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "7968e45c-bdf6-4029-950b-1b4d01285ed1",
+      "tool_use_id": "toolu_01QdgJyQpPwwKDqghvqCWfks",
+      "rule": "spec-side session transcripts",
+      "reason": "A `sed -i` on one line of docs/EXPOSURE.md, then commit messages written with `cat > $T/g1 <<EOF` naming the folders the new guard checks, commits, the tests and a push. Nothing under the folders was opened or listed.",
+      "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
     }
   ]
 }
