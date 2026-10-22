@@ -84,6 +84,24 @@ class TranscriptTest(unittest.TestCase):
             p = self.write([hook(BANNER_OK), c])
             self.assertTrue(any("forbidden" in x for x in self.problems(p)), json.dumps(c))
 
+    def test_reviewed_hits_pass_only_for_that_exact_call(self):
+        c = call("Bash", command="printf 'leaves out vendor/emulator/' > msg.txt")
+        c["message"]["content"][0]["id"] = "toolu_1"
+        p = self.write([hook(BANNER_OK), c])
+        rule = "vendor/emulator/ (spec side)"
+        self.assertTrue(self.problems(p))
+        ok = ct.check_session(p, {(SID, "toolu_1", rule): "writes a message only"})
+        self.assertEqual(ok[0], [])
+        self.assertTrue(any("REVIEWED toolu_1" in l for l in ok[1]))
+        self.assertTrue(ct.check_session(p, {(SID, "toolu_2", rule): "other call"})[0])
+        self.assertTrue(ct.check_session(p, {("other", "toolu_1", rule): "other session"})[0])
+
+    def test_reviewed_file_needs_a_reason(self):
+        with open(os.path.join(self.dir, "REVIEWED.json"), "w") as f:
+            json.dump({"reviewed": [{"session": SID, "tool_use_id": "t", "rule": "r"}]}, f)
+        with self.assertRaises(SystemExit):
+            ct.load_reviewed(self.dir)
+
     def test_writing_about_forbidden_material_is_not_a_read(self):
         p = self.write([hook(BANNER_OK),
                         call("Write", file_path="/w/CONTRIBUTING.md",

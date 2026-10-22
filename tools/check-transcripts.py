@@ -17,7 +17,10 @@ For every transcript:
     none, and why.)
 For every clean-side transcript, including its subagents:
   - every file read, write, search, web fetch, web search and shell command
-    is listed, and any that touches FORBIDDEN fails.
+    is listed, and any that touches FORBIDDEN fails, unless that exact tool
+    call is in sessions/REVIEWED.json (a reviewed false positive, such as a
+    shell command that only writes a document naming a forbidden folder).
+    Matching is on text, so it errs towards flagging.
 
 The format is Claude Code's JSONL transcript: tool calls are `tool_use`
 blocks inside `type: "assistant"` entries; hook output is an `attachment`
@@ -127,13 +130,32 @@ def tool_calls(entries):
             continue
         for block in content:
             if isinstance(block, dict) and block.get("type") == "tool_use":
-                yield block.get("name", ""), block.get("input") or {}
+                yield block.get("id", ""), block.get("name", ""), block.get("input") or {}
     # Files attached to a user message (e.g. @-mentions) are reads too.
     for e in entries:
         a = e.get("attachment") if e.get("type") == "attachment" else None
         if isinstance(a, dict) and a.get("type") in ("file", "directory", "opened_file_in_ide",
                                                        "selected_lines_in_ide", "compact_file_reference"):
-            yield "Read", {"file_path": a.get("filename") or a.get("path") or ""}
+            yield e.get("uuid", ""), "Read", {"file_path": a.get("filename") or a.get("path") or ""}
+
+
+def load_reviewed(sessions_dir):
+    """sessions/REVIEWED.json: hits that people reviewed and found not to be
+    a touch of forbidden material (e.g. a shell command that only *writes*
+    a document naming a forbidden folder). Each entry names the session, the
+    tool call's ID, the matched rule and the reason. It is added by pull
+    request, so the owner's signed merge approves it."""
+    path = os.path.join(sessions_dir, "REVIEWED.json")
+    if not os.path.exists(path):
+        return {}
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    reviewed = {}
+    for r in data.get("reviewed", []):
+        if not (r.get("session") and r.get("tool_use_id") and r.get("rule") and r.get("reason")):
+            raise SystemExit("%s: every entry needs session, tool_use_id, rule and reason" % path)
+        reviewed[(r["session"], r["tool_use_id"], r["rule"])] = r["reason"]
+    return reviewed
 
 
 def check_banner(sid, entries, problems):
@@ -157,7 +179,8 @@ def check_banner(sid, entries, problems):
     return "no banner"
 
 
-def check_session(path):
+def check_session(path, reviewed=None):
+    reviewed = reviewed if reviewed is not None else load_reviewed(os.path.dirname(path))
     base = os.path.basename(path)
     m = NAME_RE.match(base)
     if not m:
@@ -175,7 +198,7 @@ def check_session(path):
         count = 0
         for f in files:
             sub = "" if f == path else " [subagent %s]" % os.path.basename(f)
-            for name, inp in tool_calls(load(f) if f != path else entries):
+            for tid, name, inp in tool_calls(load(f) if f != path else entries):
                 for kind, target in targets(name, inp):
                     count += 1
                     hits = forbidden_hits(kind, target)
@@ -184,8 +207,12 @@ def check_session(path):
                         shown = shown[:240] + "..."
                     lines.append("  %-10s %-9s %s%s" % (kind, name[:9], shown, sub))
                     for why in hits:
-                        problems.append("%s %s touches forbidden material (%s): %s"
-                                        % (kind, name, why, shown[:120]))
+                        reason = reviewed.get((sid, tid, why))
+                        if reason:
+                            lines.append("    REVIEWED %s (%s): %s" % (tid, why, reason))
+                        else:
+                            problems.append("%s %s %s touches forbidden material (%s): %s"
+                                            % (kind, name, tid, why, shown[:120]))
         lines.append("  %d reads, writes, searches, fetches and commands listed" % count)
     return problems, lines
 
@@ -194,9 +221,10 @@ def main():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sessions = sys.argv[1] if len(sys.argv) > 1 else os.path.join(root, "sessions")
     paths = sorted(glob.glob(os.path.join(sessions, "*.jsonl")))
+    reviewed = load_reviewed(sessions)
     failed = False
     for p in paths:
-        problems, lines = check_session(p)
+        problems, lines = check_session(p, reviewed)
         for l in lines:
             print(l)
         for pr in problems:

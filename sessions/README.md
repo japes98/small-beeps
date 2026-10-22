@@ -50,3 +50,10 @@ and commits the result.
 - for clean-side transcripts, every file read, write, search, web fetch, web
   search and shell command is listed in the check's log, and any that touches
   forbidden material fails.
+
+Matching is on text, so it errs towards flagging: a shell command that only
+*writes* a document naming a forbidden folder is flagged too. Such a hit can
+be cleared only by an entry in `REVIEWED.json` naming that exact session and
+tool call, the rule it matched and why it isn't a touch, added by pull
+request so the owner's signed merge approves it. Agents avoid the problem by
+writing prose with their file-writing tool, not with shell commands.

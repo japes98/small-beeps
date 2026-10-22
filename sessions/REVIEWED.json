@@ -1,0 +1,19 @@
+{
+  "comment": "Reviewed false positives of tools/check-transcripts.py: tool calls whose text matched a forbidden-material rule but did not open, fetch or search that material. Each entry names the exact session and tool call. Added only by pull request; the owner's signed merge approves it.",
+  "reviewed": [
+    {
+      "session": "36860ab8-77fd-4fd6-aa1d-2063c15a5548",
+      "tool_use_id": "toolu_01Tqk2Hx7P8WneuS5pUnSCmu",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A shell command that only wrote commit-message text files (cat > file <<EOF) into the session's scratch folder, then committed. The text describes the clean folder's sparse checkout, which leaves out vendor/emulator/ and harness/. Neither folder exists in the repository; nothing was opened or listed.",
+      "added_by": "session M0a (claude-opus-5-5), 2026-10-22"
+    },
+    {
+      "session": "36860ab8-77fd-4fd6-aa1d-2063c15a5548",
+      "tool_use_id": "toolu_01Tqk2Hx7P8WneuS5pUnSCmu",
+      "rule": "harness/ source (spec side)",
+      "reason": "The same command: commit-message text mentioning harness/ (the sparse-checkout exclusion, and the checker's own pattern fix). Neither folder exists in the repository; nothing was opened or listed.",
+      "added_by": "session M0a (claude-opus-5-5), 2026-10-22"
+    }
+  ]
+}
