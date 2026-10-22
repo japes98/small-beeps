@@ -1,17 +1,31 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
 #
-# M0d's fwtest suite (docs/HARNESS.md, "Suites"). tools/fw-suite.py puts the
-# image under test at out/fw/app.bin, runs this suite through tools/fwtest
-# and then checks the heartbeat's timing from the captured beacons.
+# The firmware's fwtest suite (docs/HARNESS.md, "Suites"). tools/fw-suite.py
+# puts the image under test at out/fw/app.bin and the test images (the same
+# source built with one SB_TEST_* define each) beside it, runs this suite
+# through tools/fwtest, and then checks the captures: its docstring says how.
 #
-# boot (R-BOOT-1, R-BOOT-4, R-BOOT-5): main runs and writes the marker and
-#   the console line; RAM from 0x01c7fc00 to its top is as fwtest started
-#   it (the r0 block, then zeros). Golden files, exact.
-# heartbeat (R-BOOT-2, R-BOOT-3, R-BOOT-4): a second of heartbeat, the
-#   beacon captured along the way; the watchdog fails the run if the beat
-#   count stops for 5 ms. tools/fw-suite.py checks the captures' timing.
+# boot (R-BOOT-1, R-BOOT-4, R-BOOT-5, R-CLK-1, R-IRQ-1, R-IRQ-2): main runs,
+#   writes the marker and the console line, measures the clock and starts
+#   the tick; RAM from 0x01c7fc00 to the vector table is as fwtest started
+#   it (the r0 block, then zeros): golden files, exact. The beacon and the
+#   vector table are checked by tools/fw-suite.py (the table against the
+#   ELF's symbols, so a code change doesn't need a new golden file).
+# heartbeat (R-BOOT-2, R-BOOT-3, R-BOOT-4, R-IRQ-1, R-IRQ-2): a second on
+#   the tick, the beacon captured along the way; the watchdog fails the run
+#   if the beat count stops for 5 ms.
+# fault (R-IRQ-4): a test build overruns main's stack; the next tick finds
+#   the guard overwritten, reports it on the console and halts.
+# stray (R-IRQ-3): a test build raises an interrupt nothing handles; its
+#   stub reports the source on the console and halts.
+# badinsn (a limit of the harness, no requirement): an undecodable
+#   instruction ends the run with fwtest's own fault, before any handler of
+#   ours could run (SR-1).
 #
-# NAME      EXPECT     IMAGE                 run options
-boot        completed  ../../out/fw/app.bin  --ms 5 --console --ram 0x01c00000:4@end --ram 0x01c7fc00:0x400@end --golden golden/boot
-heartbeat   completed  ../../out/fw/app.bin  --ms 1000 --watchdog 0x01c00004:5 --ram 0x01c00000:16@1 --ram 0x01c00000:16@10 --ram 0x01c00000:16@100 --ram 0x01c00000:16@500 --ram 0x01c00000:16@end
+# NAME      EXPECT     IMAGE                          run options
+boot        completed  ../../out/fw/app.bin           --ms 5 --console --ram 0x01c00000:0x3c@end --ram 0x01c00000:4@end --ram 0x01c7fc00:0x200@end --ram 0x01c7fe00:0x200@end --golden golden/boot
+heartbeat   completed  ../../out/fw/app.bin           --ms 1000 --watchdog 0x01c00004:5 --ram 0x01c00000:0x3c@1 --ram 0x01c00000:0x3c@10 --ram 0x01c00000:0x3c@100 --ram 0x01c00000:0x3c@500 --ram 0x01c00000:0x3c@end
+fault       halt       ../../out/fw/test-fault.bin    --ms 20 --console --ram 0x01c00000:0x3c@end --golden golden/fault
+stray       halt       ../../out/fw/test-stray.bin    --ms 20 --console --ram 0x01c00000:0x3c@end --golden golden/stray
+badinsn     fault      ../../out/fw/test-badinsn.bin  --ms 20

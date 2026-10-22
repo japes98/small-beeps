@@ -278,3 +278,176 @@ Format for each entry:
   example; for M4, when there are audio blocks); a stored per-commit
   number as the baseline (rejected: it would compare across fwtest
   versions).
+
+### 2026-10-22 M1: clocks
+- Facts: HW-11 (in fwtest the core runs one instruction a cycle at a fixed
+  240 MHz and clock registers have no effect; on the chip the set-up is
+  open, Q-2), HW-10 (in fwtest one bit of `SYS_DIV` releases core 1),
+  HW-13 (TIMER4 counts 24 MHz).
+- Reasoning: the spec allows no clock set-up on the chip yet, and in
+  fwtest none is needed, so M1 writes no clock register (a guessed write,
+  from register names alone, could release core 1 or misconfigure the
+  chip) and asks for the procedure instead (SR-2). The clock it runs at is
+  measured instead: `sb_clock_measure` (crt0.S, assembly so the
+  instruction count is exact) reads TIMER4, runs 1 200 passes of a
+  two-instruction loop, reads it again; between the reads are 2 402
+  instructions, which at 240 MHz against 24 MHz is 240.2 ticks, so 240 or
+  241 depending on where in a count the reads fall. Any other rate fails
+  (R-CLK-1): 120 MHz would give 480, 480 MHz 120. The reads are 2 402
+  instructions apart, never three within 64, so fwtest never treats the
+  loop as waiting. Cost: about 2 400 instructions once (2.4 a period over
+  the perf run's second).
+- Experiment (ours, in fwtest): the boot case reads 240 (241 in an earlier build whose reads fell elsewhere in a count). The counter's address comes from C (the SDK's `JL_TIMER4`), so the assembly holds no address.
+- Alternatives: setting the PLL from `WL82.h`'s register names (rejected:
+  not in the spec, and no way to check it in fwtest); comparing instruction
+  counts with `emulated_ms` in the tests only (rejected: the firmware would
+  not know its own clock).
+
+### 2026-10-22 M1: the tick
+- Facts: HW-16 (TIMER0: `CON` bits 0-1 run it, bits 4-7 = 2 divide 24 MHz
+  by 16, it interrupts on reaching `PRD` and starts again from 0, writing
+  `CON` with bit 14 acknowledges; confirmed by E-3 with `PRD` 1500), HW-19
+  (TIMER0 is source 4), HW-17 (the core tick timer fires every 10 ms in
+  fwtest whatever `TTMR_PRD` says), HW-14, HW-15 (TIMER4 raises no
+  interrupt in fwtest; TIMER5's clock select is ignored there).
+- Reasoning: a 1 ms tick keeps M0's heartbeat period, the perf gate's
+  unit, and is fine-grained enough for M2's screen and M3's scanning.
+  TIMER0 at 1.5 MHz with `PRD` 1500 is the only 1 ms periodic interrupt
+  the spec confirms; the core tick timer can't be set to 1 ms in fwtest,
+  and TIMER5's clock selection is emulator-only. The acknowledge writes
+  `0x4021`: bit 14 with the same run and prescaler bits, so the timer keeps
+  running as configured.
+- Experiment (ours, in fwtest): over one second, timed by TIMER4 at the
+  handler's entry, TIMER0's 1 ms was 24 000.7 TIMER4 ticks on average with
+  `PRD` 750, 1500 and 3000 alike (intervals of 24 000 and 24 001), a fixed
+  surplus of about 7 core cycles a period rather than a rate error, and the
+  same with an idling or a busy main loop. With the final handler every
+  interval is 24 001 (jitter 0). So the tick is about 42 ppm slow against
+  the time base in fwtest; on the chip it is unknown.
+- So the heartbeat counts whole milliseconds of the time base, not ticks:
+  each tick adds every whole millisecond that has passed since the last
+  (M0d's catch-up), which stays exact whatever the tick's period does, on
+  either side. Ticks are counted on the side, with the shortest and
+  longest interval between two, for R-IRQ-1's period and jitter check:
+  every interval within 24 000 ± 24 ticks (± 1 µs, 0.1%) and their spread
+  within 24. Over a second ticks and beats then differ by at most one.
+- Alternatives: counting ticks as beats (rejected: 42 ppm off in fwtest,
+  and R-BOOT-3 is about the time base); the core tick timer (rejected:
+  10 ms in fwtest); TIMER5 (rejected: emulator-only clock).
+
+### 2026-10-22 M1: the vector table and handler conventions
+- Facts: HW-18 (the handler of source n is the word at `0x01C7FE00 + 4n`,
+  in RAM, written by the firmware; slot 126 is also core 1's start word),
+  HW-20 (`ICFG00`-`ICFG31`: enable and priority, 4 bits a source), HW-21
+  (both gates: `icfg` bit 8 and `sti`), HW-22 (a handler built with the
+  toolchain's interrupt attribute enters and returns correctly; nesting
+  only above the running priority; emulator-only), HW-3 (user mode, and an
+  interrupt switches to `ssp`; emulator-only). The SDK's `hwi.h` (P-16):
+  sources 0 to 2 are the debug, exception and system-call sources, and its
+  `irq.h` shows the toolchain's `interrupt("")` attribute.
+- Reasoning:
+  - Handlers are C functions with the toolchain's `interrupt("")`
+    attribute, which saves and restores what it uses (`psr`, `reti` and the
+    registers it touches) and returns with `rti`; so the tick is plain C.
+  - Every slot is written at startup: source 4 gets `sb_tick`, every other
+    source its own 2-byte stub in crt0.S (`call sb_irq_stub_common`, 128
+    in source order, 256 bytes). The common code works out the source from
+    the return address the call left in `rets` and halts with a report, so
+    an unexpected interrupt is named exactly, without reading any pending
+    register the spec doesn't describe. The link fails if a stub isn't 2
+    bytes. Slot 126 holds a stub like the others: core 1 stays parked (it
+    is never released, so its start word is never needed).
+  - All 32 `ICFG` words are written, so nothing a loader left enabled stays
+    enabled. Only two sources are enabled: the tick at priority 1, and the
+    exception source at 7. Nothing else is enabled, so nothing nests; when
+    something needs to preempt the tick (M4's audio), priorities are set
+    then.
+  - Stacks: main runs in user mode on `sp`, interrupts on `ssp` (HW-3),
+    each 2 KiB of the 4 KiB stack area, main's on top. `ssp` is set in
+    `_start`, before anything could enable an interrupt.
+- Experiment (ours, in fwtest): the attribute's code saves `{psr, reti}`
+  and `{r5-r0}`, and a handler's `sp` was `ssp` less 32 bytes: so
+  interrupts from user mode do run on `ssp`, and user mode may read and
+  write `ssp` and `icfg` (HW-3, HW-21 confirmed by our own run). Every one
+  of the 128 slots is checked against the image's symbols in the boot case.
+- Alternatives: one shared handler for every unexpected source (rejected:
+  it couldn't say which); reading `IPND0`-`IPND7` (`csfr.h`) to find the
+  source (rejected: not in the spec, and fwtest may not model it); a
+  supervisor-mode main on one stack (rejected: the spec doesn't say how to
+  enter supervisor mode).
+
+### 2026-10-22 M1: faults and stray interrupts
+- Facts: HW-25 (the console), the halt rule of docs/HARNESS.md (a jump to
+  itself with interrupts disabled), SR-1 (open).
+- Reasoning: one way out, `sb_halt`: interrupts off, the reason, source
+  and `reti` into the beacon, one console line of whole words,
+  `HALT <stray|fault|stack> <source in hex> `, and a jump to itself, which
+  fwtest reports as a halt. Nothing is resumed: a fault means the state
+  can't be trusted. Sources 0 to 2 report `fault`, the others `stray`.
+  - Stack guard: each stack's lowest word holds the fill pattern after
+    `sb_stack_fill`, and every tick checks both. A stack that reached its
+    last word is reported as `HALT stack 001` (main's) or `002` (the
+    interrupt stack's), at most a millisecond later.
+- Experiment (ours, in fwtest): a misaligned word load, a read of an
+  unmapped address and a write to the code window all completed, the last
+  two listed as unmodelled accesses; none raised source 1. An undecodable
+  instruction ended the run with fwtest's own fault, exit 3, before any
+  handler ran. So no deliberate CPU fault reaches our handler in fwtest:
+  SR-1 asks what raises source 1 on the chip and whether fwtest can, and
+  R-IRQ-5 stays open (not passed) until then. Meanwhile the suite has:
+  `fault`, a test build overrunning main's stack (it halts at the next
+  tick, `HALT stack 001`); `stray`, a test build raising software
+  interrupt 7 (`HALT stray 07f`); and `badinsn`, the undecodable
+  instruction, expected to end in fwtest's fault: a limit of the harness,
+  not firmware behaviour.
+- Alternatives: a fault test calling the fault handler directly (rejected:
+  it would test nothing a real fault does).
+
+### 2026-10-22 M1: idle, and timing the tests
+- Facts: HW-24 (`idle` waits until something is due, and the pending
+  interrupt is then taken), docs/HARNESS.md ("Time": a waiting core 0 lets
+  time jump; a run is at most 1 024 instructions; captures, and the end,
+  come late while it waits).
+- Reasoning: everything happens in the tick handler, and `main` loops on
+  `idle`, counting how often it returns. The idle count equal to the tick
+  count (less the one in progress) shows the wait is really used. Waiting
+  costs fwtest nothing, so instructions per period now measure work: 69.2
+  in the perf run, against M0's polling loop's 358.9 (re-measured by the
+  perf gate in the same run), a fall of 80.7%.
+- Timing the tests exactly: with about 70 instructions a tick, one run
+  of 1 024 instructions crosses 15 ticks, so captures come up to about
+  15 ms late (the 1 ms capture is taken at 15 ms). The tests therefore
+  check what the image recorded, not when it was captured:
+  - the beacon's own time base values (consistency is exact: beats equal
+    ticks divided by 24 000);
+  - the tick intervals the handler measured (exact in fwtest: every one
+    24 001);
+  - the first tick's time, from the last tick's time base, the ticks taken
+    and the shortest interval;
+  - and `emulated_ms` for the end.
+  The capture time bound is only a sanity check (30 ms, twice the worst
+  seen).
+  - A capture can land in the middle of the handler: the first runs caught
+    `beats` new and `ticks` old. So the handler writes the pair twice, A
+    then B, between two increments of `seq`. A capture splits at most one
+    copy, so the test demands that at least one is consistent at every
+    capture, and both when `seq` is even.
+- Stack fill: moved to `_start`, before any C. In M1, `sb_console_write`
+  is shared with `irq.c` and no longer inlined, and its disassembly saves
+  `{rets, r6-r4}` on main's stack: 16 bytes used before the fill, which
+  would have hidden them from the high-water mark. M0e kept the fill after
+  the time base started because R-BOOT-3 then compared the time base with
+  emulated time from the very start, within 10 µs; M1's end check is
+  relative to the last tick instead, and the fill's 2 050 cycles (8.5 µs)
+  only delay the time base's start. So the fill now comes first, covers
+  both stacks whole, and `tools/perf.py` measures each from its own limit
+  and adds the two (app.size's `irq_stack` says where they divide; older
+  images are read as one stack). M1 uses 64 bytes in the perf run.
+- Alternatives: keeping core 0 busy so captures are exact (rejected: it
+  would defeat the idle wait, the point of M1).
+
+### 2026-10-22 M1: core 1
+- Facts: HW-9, HW-10 (core 1 runs only once released).
+- Reasoning: nothing in M1 needs a second core, so core 1 stays parked:
+  it is never released, `SYS_DIV` is never written, and every case checks
+  that core 1 ran no instruction (R-BOOT-4). M4's audio may want it.

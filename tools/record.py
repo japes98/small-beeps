@@ -117,8 +117,9 @@ CHECKS = [
     # The firmware (M0d): its size from build A, and its fwtest suite.
     {"id": "C-FW-SIZE", "title": "Firmware image size (code, data, bss) from build A",
      "reqs": ["R-BUILD-2"], "internal": "firmware_size"},
-    {"id": "C-FW-SUITE", "title": "Firmware in fwtest: boots, marker, heartbeat timing, no faults (tests/fw/boot.suite)",
-     "reqs": ["R-BOOT-1", "R-BOOT-2", "R-BOOT-3", "R-BOOT-4", "R-BOOT-5"],
+    {"id": "C-FW-SUITE", "title": "Firmware in fwtest: boot, clock, tick and heartbeat timing, vector table, idle, fault and stray reports (tests/fw/boot.suite)",
+     "reqs": ["R-BOOT-1", "R-BOOT-2", "R-BOOT-3", "R-BOOT-4", "R-BOOT-5", "R-CLK-1",
+              "R-IRQ-1", "R-IRQ-2", "R-IRQ-3", "R-IRQ-4"],
      "cmd": lambda: [PY, "-I", "tools/fw-suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "fwtest")]},
     # Performance (M0e): size, RAM, stack high-water and speed, gated.

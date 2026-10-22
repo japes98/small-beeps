@@ -103,11 +103,19 @@ def read_size(text):
     return size
 
 
-def stack_high_water(data):
+def stack_high_water(data, irq_stack=0):
     """(bytes of stack ever used, the method). With the fill pattern at the
     stack's limit: from the lowest word not holding it to the top. Without
     (an image that doesn't fill): from the lowest non-zero word, which
-    misses words written as zero."""
+    misses words written as zero. With irq_stack (app.size's, from M1 on),
+    the area's lowest irq_stack bytes are the interrupt stack and the rest
+    main's: each is measured from its own limit to its own top, and the
+    two are added, since both can be at their deepest at once."""
+    if irq_stack and len(data) > irq_stack:
+        irq, irq_how = stack_high_water(data[:irq_stack])
+        main, main_how = stack_high_water(data[irq_stack:])
+        return irq + main, "%s, two stacks" % (main_how if main_how == irq_how else
+                                                "%s and %s" % (main_how, irq_how))
     words = struct.unpack("<%dI" % (len(data) // 4), data[:len(data) // 4 * 4])
     if words and words[0] == STACK_FILL:
         for i, w in enumerate(words):
@@ -152,8 +160,8 @@ def run_fwtest(image_bytes, size, out, label):
     m.update({"outcome": run.get("outcome"), "emulated_ms": run.get("emulated_ms"),
               "instructions": run.get("instructions", {}).get("core0"),
               "periods": beats, "marker": "0x%08x" % marker,
-              "stack_high_water": stack_high_water(stack)[0],
-              "stack_method": stack_high_water(stack)[1]})
+              "stack_high_water": stack_high_water(stack, size.get("irq_stack", 0))[0],
+              "stack_method": stack_high_water(stack, size.get("irq_stack", 0))[1]})
     try:
         with open(os.path.join(out, "runner.txt")) as f:
             m["fwtest_image"] = f.readline().split(":", 1)[1].strip()
@@ -368,7 +376,7 @@ def check_stack_probe(m):
     """Problems with the STACK probe's measurement: its known stack use
     must show, by the fill pattern."""
     probs = []
-    if m.get("stack_method") != "pattern":
+    if not str(m.get("stack_method", "")).startswith("pattern"):
         probs.append("SB_PROBE_STACK: the stack does not hold the fill pattern")
     if m.get("stack_high_water", 0) < PROBE_STACK_BYTES:
         probs.append("SB_PROBE_STACK: stack high-water %s bytes, less than the %d it uses"
