@@ -11,7 +11,22 @@ fetched, ran and wrote, so anyone can check that a firmware-side (clean)
 session never touched forbidden material (CONTRIBUTING.md, "Clean-room
 rules"; R-CLEAN-1, R-CLEAN-3).
 
+## Folders, and who archives whom
+
+- `clean/`: firmware-side (clean) sessions.
+- `spec/`: spec-side sessions. Their transcripts contain emulator source,
+  so `tools/clean-setup.sh` leaves this folder out of clean folders, and the
+  clean settings deny reading it.
+
+A **spec** session may archive the previous session of either role. A
+**clean** session archives only clean sessions, and never opens, lists or
+searches anything under `spec/`. When the previous session was spec side
+and the next is clean, the clean session leaves it for the next spec
+session to archive.
+
 ## Files
+
+Each role folder holds:
 
 - `<date>-<role>-<id>.jsonl`: the session's Claude Code transcript, one JSON
   entry per line, as Claude Code wrote it under `~/.claude/projects/`, with
@@ -32,7 +47,7 @@ written. The **next** session, before doing anything else, runs:
 
 ```sh
 python3 tools/archive-session.py ~/.claude/projects/<project>/<id>.jsonl --role <role> \
-    --archived-by "<this session's id>"
+    --archived-by "<this session's id>"        # writes to sessions/<role>/
 python3 tools/check-transcripts.py
 ```
 
@@ -42,11 +57,15 @@ and commits the result.
 
 `tools/check-transcripts.py` (C-TRANSCRIPTS in every test record):
 
+- every transcript must be in the folder of its role (a file outside
+  `clean/` and `spec/` fails). When `spec/` isn't on disk (a clean folder),
+  spec transcripts are skipped, not read, and the output says so;
 - every transcript must show the SessionStart banner from
   `tools/session-banner.sh` with `status: OK`. Any `CONFIG MISMATCH` fails.
-  The only exemption is the first session (M0a,
-  `36860ab8-77fd-4fd6-aa1d-2063c15a5548`), which began before the banner
-  existed (docs/EXPOSURE.md);
+  The exemptions are listed by session ID in the check's `EXEMPT_NO_BANNER`,
+  each with its reason (docs/EXPOSURE.md): the first session (M0a), M0a's
+  one-prompt hook test, and the first spec session (M0b), each of which
+  began before its folder had the banner hook;
 - for clean-side transcripts, every file read, write, search, web fetch, web
   search and shell command is listed in the check's log, and any that touches
   forbidden material fails.
