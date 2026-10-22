@@ -1,0 +1,16 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 3fd31854ebafc78d655c28b2df2fd1ddfb6aacf0..2fd28219b59b3d6f2da8b6656ad22ae034abbcfb
+OK     b19eb0c51975 config: Claude Code settings, session banner and folder setup
+OK     2a10327d7179 tools: commit-message check and commit-msg hook
+OK     a3ac1e48c938 tools: archive session transcripts and check them
+OK     1515b01bf8bb vendor: JieLi AC79 SDK register headers at a pinned commit
+OK     40cb5ca5f4ec tools: pinned build container and deterministic double build
+OK     81057677f8a7 tools: test record writer, repository checks and reproduce
+OK     8af03d16264e ci: pull request checks, permanent records and timestamp upgrades
+OK     90d19e8e4bdd tools: reviewed false positives for the transcript check
+OK     1728b13e93c2 ci: token permissions for C-MERGE; tighter records rulesets
+OK     2b84f6724210 docs: record the GitHub rulesets, environment and deploy key
+OK     d7f604c8851f docs: record the toolchain preservation copy
+EXEMPT 2fd28219b59b (merge) Merge pull request #1 from japes98/m0a/foundation
+12 commit(s) checked: PASS
+
+exit status 0

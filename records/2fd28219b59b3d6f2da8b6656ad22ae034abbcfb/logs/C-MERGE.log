@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-merge.py 2fd28219b59b3d6f2da8b6656ad22ae034abbcfb
+signature: verified=True reason=valid committer=web-flow
+pull request #1: https://github.com/japes98/small-beeps/pull/1
+ci run 39719507790: completed/success https://github.com/japes98/small-beeps/actions/runs/39719507790
+FAIL committer is web-flow, not the owner japes98
+merge check: FAIL
+
+exit status 1
