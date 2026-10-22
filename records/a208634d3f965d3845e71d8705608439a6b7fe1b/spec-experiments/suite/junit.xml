@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="9" failures="0">
+  <testsuite name="experiments" tests="9" failures="0">
+    <testcase classname="experiments" name="e1-boot"/>
+    <testcase classname="experiments" name="e2-console"/>
+    <testcase classname="experiments" name="e3-timers"/>
+    <testcase classname="experiments" name="e4-core1"/>
+    <testcase classname="experiments" name="e5-lcd"/>
+    <testcase classname="experiments" name="e6-matrix"/>
+    <testcase classname="experiments" name="e7-leds"/>
+    <testcase classname="experiments" name="e8-adc"/>
+    <testcase classname="experiments" name="e9-audio"/>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-merge.py a208634d3f965d3845e71d8705608439a6b7fe1b
+signature: verified=True reason=valid committer=web-flow
+pull request #13: https://github.com/japes98/small-beeps/pull/13 merged_by=japes98 merge_commit=a208634d3f965d3845e71d8705608439a6b7fe1b
+FAIL no successful ci run on the pull request head
+merge check: FAIL
+
+exit status 1
