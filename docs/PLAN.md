@@ -219,6 +219,28 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   - **History**: the records workflow appends one line per main commit
     to `perf-history.csv` at the root of the `records` branch, never
     rewriting it; a re-run adds no line.
+  - **C-MERGE's three failures, and the fix** (pull request #17): every
+    other check passed in each of these records, and each FAIL record
+    stays as it is.
+    1. M0a's merge (`2fd28219`) failed under the merge rule of that time
+       (CONTRIBUTING.md, "Merge policy and its history").
+    2. #10's merge (`4760d561`) failed because GitHub still reported the
+       head's ci run as in progress after its job had passed. Since #11,
+       the check waits for an unfinished run.
+    3. #13's merge (`a2086340`) failed because GitHub's run search briefly
+       found no ci run for the head, though its CI had passed about ten
+       minutes before; the check took no answer as a failure at once.
+       Its `perf-history.csv` line says FAIL. A re-run of the records
+       workflow writes a PASS record beside it and, being a re-run, adds
+       no line.
+
+    Since #17, an empty answer is asked again like an unfinished run, with
+    backoff (10 s, doubling, at most 300 s) up to the same 30 minutes.
+    Triggering the records workflow from the ci run's completion
+    (`workflow_run`) was considered, so there would be nothing to search
+    for. It can't serve: `ci` runs only on pull requests, and a trigger of
+    the push to main describes the merge commit's run, not the pull
+    request head's run, which is what C-MERGE must prove passed.
   - **M0d's firmware, measured**: code 252, data 4, bss 20 bytes; image
     256; static RAM 24; stack high-water 0 of 4 096 bytes (no function
     uses the stack); 356 887 instructions over 1 000 heartbeat periods,
