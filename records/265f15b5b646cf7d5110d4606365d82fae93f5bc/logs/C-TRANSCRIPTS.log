@@ -1,0 +1,4 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-transcripts.py
+0 archived transcript(s) checked: PASS
+
+exit status 0

@@ -1,0 +1,11 @@
+$ sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/265f15b5b646cf7d5110d4606365d82fae93f5bc/build-a
+clang version 4.0.1 () ()
+GNU ld (GNU Binutils) 2.26.51.20160621
+SOURCE_DATE_EPOCH=1767225600
++ clang -target pi32v2 -std=c11 -ffreestanding -nostdlib -Os -g -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -c firmware/src/placeholder.c -o /out/placeholder.o
++ ld -nostdlib -e placeholder -o /out/placeholder.elf /out/placeholder.o
++ set +x
+d244f5f69b8316cba91e93349118552b4aeed38205336a67a606780f27b0e1eb  placeholder.elf
+e979d19e666fcdc0ca0e71b5159634bf39a1d5283060ea59f98da8252cb04f9a  placeholder.o
+
+exit status 0

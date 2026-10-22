@@ -1,0 +1,7 @@
+$ sh tools/fetch-sdk.sh --verify
+OK      LICENSE
+OK      include_lib/driver/cpu/wl82/asm/WL82.h
+OK      include_lib/driver/cpu/wl82/asm/csfr.h
+SDK files match commit 5fa84a9b2f723a5e9337ad79dc2ad741fc98fe2d
+
+exit status 0
