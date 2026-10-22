@@ -1,0 +1,115 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Runs fwtest from its published container image, pinned by digest in
+# config/fwtest-image (R-SEP-3). The firmware side uses the harness only
+# this way: docs/HARNESS.md is the manual.
+#
+#   tools/fwtest run IMAGE --ms MS --out DIR [options]
+#   tools/fwtest suite FILE --out DIR
+#   tools/fwtest version
+#   tools/fwtest --image          print the pinned image reference
+#
+# The current directory is mounted read-only at /work, and every path
+# argument must be inside it (relative, or absolute under it). The --out
+# folder is created on the host and mounted read-write on its own. The
+# container runs as linux/amd64 with no network, as your user. After a run,
+# DIR/runner.txt names the image used, for the record.
+#
+# FWTEST_IMAGE overrides the pinned image (spec side, to try a local build);
+# runner.txt then says the image was not the pinned one.
+set -eu
+
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+PIN_FILE="$ROOT/config/fwtest-image"
+pinned=$(grep -v '^#' "$PIN_FILE" | grep . | head -1)
+
+if [ -n "${FWTEST_IMAGE:-}" ]; then
+    ref=$FWTEST_IMAGE
+    note="not the pinned image (FWTEST_IMAGE); pinned: $pinned"
+else
+    case "$pinned" in
+        *@sha256:????????????????????????????????????????????????????????????????) ;;
+        *) echo "tools/fwtest: no published image is pinned yet (config/fwtest-image: $pinned)" >&2; exit 2 ;;
+    esac
+    ref=$pinned
+    note="pinned (config/fwtest-image)"
+fi
+
+if [ "${1:-}" = "--image" ]; then
+    echo "$ref"
+    exit 0
+fi
+
+cwd=$(pwd -P)
+inside() {
+    # a path argument as the container sees it, or an error if it is outside cwd
+    case "$1" in
+        /*) p=$1 ;;
+        *) p="$cwd/$1" ;;
+    esac
+    d=$(dirname "$p")
+    if [ -d "$d" ]; then p="$(cd "$d" && pwd -P)/$(basename "$p")"; fi
+    case "$p" in
+        "$cwd") echo /work ;;
+        "$cwd"/*) echo "/work/${p#"$cwd"/}" ;;
+        *) echo "tools/fwtest: $1 is outside the current directory" >&2; return 1 ;;
+    esac
+}
+
+quote() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+out=""
+args=""
+cmd=${1:-}
+[ $# -gt 0 ] && shift
+args=$(quote "$cmd")
+positional=0
+while [ $# -gt 0 ]; do
+    a=$1
+    shift
+    case "$a" in
+        --out)
+            [ $# -gt 0 ] || { echo "tools/fwtest: --out needs a value" >&2; exit 2; }
+            out=$1; shift
+            args="$args --out /out" ;;
+        --script|--flash|--golden)
+            [ $# -gt 0 ] || { echo "tools/fwtest: $a needs a value" >&2; exit 2; }
+            p=$(inside "$1") || exit 2
+            args="$args $a $(quote "$p")"; shift ;;
+        --ms|--ram|--lcd|--leds-every|--watchdog)
+            [ $# -gt 0 ] || { echo "tools/fwtest: $a needs a value" >&2; exit 2; }
+            args="$args $a $(quote "$1")"; shift ;;
+        --*) args="$args $(quote "$a")" ;;
+        *)
+            # the IMAGE of `run`, the FILE of `suite`
+            if [ "$positional" = 0 ] && { [ "$cmd" = run ] || [ "$cmd" = suite ]; }; then
+                p=$(inside "$a") || exit 2
+                args="$args $(quote "$p")"
+                positional=1
+            else
+                args="$args $(quote "$a")"
+            fi ;;
+    esac
+done
+
+mounts="-v $(quote "$cwd"):/work:ro"
+if [ -n "$out" ]; then
+    case "$out" in /*) ;; *) out="$cwd/$out" ;; esac
+    if [ -e "$out" ] && [ -n "$(ls -A "$out" 2>/dev/null)" ]; then
+        echo "tools/fwtest: --out $out is not empty" >&2
+        exit 2
+    fi
+    mkdir -p "$out"
+    out=$(cd "$out" && pwd -P)
+    mounts="$mounts -v $(quote "$out"):/out"
+fi
+
+set +e
+eval "docker run --rm --platform linux/amd64 --network none --user $(id -u):$(id -g) $mounts -w /work $(quote "$ref") $args"
+code=$?
+set -e
+if [ -n "$out" ]; then
+    printf 'image: %s\nstatus: %s\nexit: %d\n' "$ref" "$note" "$code" > "$out/runner.txt"
+fi
+exit $code
