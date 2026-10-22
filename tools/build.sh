@@ -6,9 +6,11 @@
 #
 #   tools/build.sh image                      build the container image
 #   tools/build.sh image-tag                  print its tag
-#   tools/build.sh build --out DIR [--src-mount PATH]
+#   tools/build.sh build --out DIR [--src-mount PATH] [--define NAME]...
 #                                             build in a fresh container,
-#                                             outputs and SHA256SUMS in DIR
+#                                             outputs and SHA256SUMS in DIR;
+#                                             --define adds -DNAME (test
+#                                             builds only, tools/perf.py)
 #   tools/build.sh inside SRC OUT             (runs inside the container)
 #
 # Builds are deterministic (R-REPRO-3): fixed SOURCE_DATE_EPOCH (set in the
@@ -35,11 +37,16 @@ cmd_image() {
 }
 
 cmd_build() {
-    out="" src_mount=/mnt/small-beeps-src
+    out="" src_mount=/mnt/small-beeps-src defines=""
     while [ $# -gt 0 ]; do
         case "$1" in
             --out) out=$2; shift 2 ;;
             --src-mount) src_mount=$2; shift 2 ;;
+            --define)
+                case "$2" in
+                    ''|*[!A-Z0-9_]*) echo "build: --define takes a NAME of A-Z, 0-9 and _" >&2; exit 2 ;;
+                esac
+                defines="$defines $2"; shift 2 ;;
             *) echo "unknown option $1" >&2; exit 2 ;;
         esac
     done
@@ -50,7 +57,7 @@ cmd_build() {
     mkdir -p "$out"
     out=$(cd "$out" && pwd)
     docker run --rm --platform "$PLATFORM" --network none \
-        --user "$(id -u):$(id -g)" \
+        --user "$(id -u):$(id -g)" -e SB_DEFINES="$defines" \
         -v "$ROOT:$src_mount:ro" -v "$out:/out" -w "$src_mount" \
         "$tag" sh "$src_mount/tools/build.sh" inside "$src_mount" /out
     cat "$out/SHA256SUMS"
@@ -80,6 +87,7 @@ cmd_inside() {
     CFLAGS="-target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g
             -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=$src=.
             -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm"
+    for d in ${SB_DEFINES:-}; do CFLAGS="$CFLAGS -D$d"; done
     # Assembly is built without -g, which would record the source path.
     ASFLAGS="-target pi32v2 -nostdinc -Werror"
     clang --version | head -1
