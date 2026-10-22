@@ -396,6 +396,25 @@ training cutoff (see "Model cutoffs" below).
   - **Separation check.** When C-SEP-TERMS flagged a line of SR-1, it
     hashed its own words to find which one (an address it had picked); it
     never saw the emulator's list.
+  - **A barrier STOP, and a fresh `.git`.** For #29's update,
+    `tools/clean-update.sh` printed "STOP: 17 file(s) under harness are in
+    .git". The session stopped and told the owner without opening or
+    listing them. The planning conversation (spec side) checked them: the
+    golden outputs of the spec-side experiments (memory dumps, CSV, PNG,
+    text, WAV). The `records` branch holds identical copies, which came in
+    when this session fetched records wholesale: the M0 record with
+    `git archive`, then the whole branch to count private terms. No
+    emulator or harness source was among them. This session read none of
+    those files. It had written the two extractions to its scratch folder
+    and only scanned their bytes for the private terms by script. Its
+    record listings did show their paths.
+  - **What was done, at the owner's direction.** The folder's `.git` was
+    replaced by a fresh blob-less sparse clone, and the old `.git` and the
+    scratch extractions were deleted unread (22:55Z). `tools/clean-update.sh`
+    then passed. New rule: clean sessions fetch only named files of the
+    firmware's own records (CONTRIBUTING.md, "Records in a clean folder").
+    The guard: `tools/clean-update.sh` now also checks every branch,
+    records included, and C-CLEAN-FOLDER tests it.
   - **Exposure:** still none.
 
 ## Barrier log
@@ -419,6 +438,8 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-22T12:37:16Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session M0e-spec starts; banner `status: OK`. 13:48:09Z: `tools/spec-setup.sh`, banner `status: OK`; M0c's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-22T13:47:30Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M0e (performance part) starts; banner `status: OK`; `tools/clean-update.sh` fast-forwarded to `5c6efc6` and passed; M0d's two transcripts archived; `tools/check-transcripts.py` PASS |
 | 2026-10-22T21:27:00Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M1 starts; banner `status: OK`; `tools/clean-update.sh` found main at `2513b93` and passed; M0e's performance part archived; `tools/check-transcripts.py` PASS with the owner-approved reviewed entries |
+| 2026-10-22, before 22:55Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M1: `tools/clean-update.sh` printed STOP (17 spec-side experiment outputs in `.git`, brought in with the records branch); the session stopped and told the owner, opening nothing |
+| 2026-10-22T22:55:06Z | same | `aa535102…9f25ab` | The folder's `.git` replaced by a fresh blob-less sparse clone, the old one and the session's scratch extractions of records deleted unread; `tools/clean-setup.sh` re-run, banner `status: OK`; `tools/clean-update.sh` passed, then gained the all-branches check |
 
 ## Model cutoffs
 
