@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
+import io
 import unittest
+import urllib.error
 
 from tests.helpers import load_tool
 
@@ -121,6 +123,46 @@ class MergeCiWaitTest(unittest.TestCase):
 
     def test_backoff(self):
         self.assertEqual([cm.backoff(n) for n in range(7)], [10, 20, 40, 80, 160, 300, 300])
+
+
+class MergeApiRetryTest(unittest.TestCase):
+    """Requirements: R-PROC-2"""
+
+    def err(self, code):
+        return urllib.error.HTTPError("https://api.github.com/x", code, "e", {}, io.BytesIO(b""))
+
+    def test_a_server_error_is_asked_again(self):
+        answers = [self.err(500), self.err(502), {"ok": True}]
+        sleeps = []
+
+        def call():
+            a = answers.pop(0)
+            if isinstance(a, Exception):
+                raise a
+            return a
+        self.assertEqual(cm.with_retries(call, sleep=sleeps.append), {"ok": True})
+        self.assertEqual(sleeps, [10, 20])
+
+    def test_gives_up_after_the_tries(self):
+        sleeps = []
+
+        def call():
+            raise self.err(500)
+        with self.assertRaises(urllib.error.HTTPError):
+            cm.with_retries(call, tries=3, sleep=sleeps.append)
+        self.assertEqual(len(sleeps), 2)
+
+    def test_other_errors_are_not_retried(self):
+        sleeps = []
+
+        def call():
+            raise self.err(404)
+        with self.assertRaises(urllib.error.HTTPError):
+            cm.with_retries(call, sleep=sleeps.append)
+        self.assertEqual(sleeps, [])
+        self.assertTrue(cm.transient(urllib.error.URLError("down")))
+        self.assertTrue(cm.transient(self.err(429)))
+        self.assertFalse(cm.transient(ValueError("bad json")))
 
 
 if __name__ == "__main__":

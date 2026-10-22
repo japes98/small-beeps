@@ -21,7 +21,10 @@ is waited for (asking again after POLL_FIRST seconds, then twice as long
 each time up to POLL_MAX, until --wait-minutes, default 30). GitHub can
 report a run as in progress for minutes after its last job has finished
 (the record of PR #10's merge failed this check that way), and its run
-search can briefly find no run for a head whose CI passed (PR #13's). The
+search can briefly find no run for a head whose CI passed (PR #13's).
+A GitHub API error that may pass (5xx, 429, no answer) is asked again
+with the same backoff, up to API_TRIES times (a re-run of #13's record
+failed on one 500). The
 search stays, because the records workflow runs for the push to main and
 no event of it carries the pull request head's ci run.
 The first commit (the bootstrap, no parents) is reported as such and passes:
@@ -34,6 +37,7 @@ import os
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 
 API = "https://api.github.com"
@@ -42,14 +46,40 @@ POLL_FIRST = 10
 POLL_MAX = 300
 
 
+API_TRIES = 6
+
+
+def transient(e):
+    """True for an error worth asking again: GitHub's own (5xx), its rate
+    limit (429), or no answer at all."""
+    if isinstance(e, urllib.error.HTTPError):
+        return e.code >= 500 or e.code == 429
+    return isinstance(e, (urllib.error.URLError, TimeoutError, ConnectionError))
+
+
+def with_retries(call, tries=API_TRIES, sleep=time.sleep):
+    """call(), asked again with backoff (10 s, doubling) on a transient
+    error, up to `tries` times; other errors are raised at once."""
+    for n in range(tries):
+        try:
+            return call()
+        except Exception as e:  # sorted by transient(); anything else is raised
+            if not transient(e) or n == tries - 1:
+                raise
+            print("GitHub API: %s; asking again in %d s" % (e, backoff(n)), flush=True)
+            sleep(backoff(n))
+
+
 def api(path):
-    req = urllib.request.Request(API + path, headers={
-        "Accept": "application/vnd.github+json", "User-Agent": "small-beeps-checks"})
-    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
-    if token:
-        req.add_header("Authorization", "Bearer " + token)
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.load(r)
+    def call():
+        req = urllib.request.Request(API + path, headers={
+            "Accept": "application/vnd.github+json", "User-Agent": "small-beeps-checks"})
+        token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+        if token:
+            req.add_header("Authorization", "Bearer " + token)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)
+    return with_retries(call)
 
 
 def evaluate(n_parents, verified, reason, committer, merged_by, owner, pr_found, ci_success):
