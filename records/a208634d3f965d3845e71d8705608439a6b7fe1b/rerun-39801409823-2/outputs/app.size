@@ -1,0 +1,5 @@
+code 252
+data 4
+bss 20
+image 256
+stack 4096

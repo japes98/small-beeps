@@ -1,0 +1,58 @@
+{
+  "fwtest": {
+    "version": "0.1.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "e9-audio.bin",
+    "bytes": 252,
+    "sha256": "6bb2a5686fe381951322b716414d9c707f6eac2a498fddfb19e09d1f63d90dfa"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "20.321",
+    "instructions": {
+      "core0": 17556,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 3628,
+        "sha256": "048b905723391f821f5b70dbdd2b2fbfe8aa212bd60ca23dffd507f5d264ebcc"
+      },
+      {
+        "name": "ipb.csv",
+        "bytes": 247,
+        "sha256": "e40849cc488193b3ee0407eadd9ebce39da9d487255562e56643090a82d7afd0"
+      },
+      {
+        "name": "ram-01c00100-24-end.bin",
+        "bytes": 36,
+        "sha256": "6e2ea90e178423d79ce24cf3dc02a9ad21ebad91673238c24eab76d0c7439783"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "audio.wav",
+      "result": "match",
+      "detail": null
+    },
+    {
+      "name": "ipb.csv",
+      "result": "match",
+      "detail": null
+    },
+    {
+      "name": "ram-01c00100-24-end.bin",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 0
+}
