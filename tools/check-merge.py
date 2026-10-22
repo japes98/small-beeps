@@ -16,6 +16,10 @@ The owner merges pull requests with GitHub's merge button (decided
     committer is the owner;
   - its second parent is the head commit of a pull request into main whose
     CI workflow ("ci") concluded successfully on that commit.
+A ci run on that head that hasn't finished yet is waited for (polling every
+POLL seconds, up to --wait-minutes, default 30): GitHub can report a run as
+in progress for minutes after its last job has finished, and the record of
+PR #10's merge failed this check that way while CI had passed.
 The first commit (the bootstrap, no parents) is reported as such and passes:
 it was pushed before the rulesets existed (docs/prompts/M0a.md, section 4).
 Needs GITHUB_REPOSITORY and GITHUB_TOKEN (or GH_TOKEN).
@@ -25,10 +29,12 @@ import json
 import os
 import subprocess
 import sys
+import time
 import urllib.request
 
 API = "https://api.github.com"
 WEB_FLOW = "web-flow"
+POLL = 30
 
 
 def api(path):
@@ -61,11 +67,36 @@ def evaluate(n_parents, verified, reason, committer, merged_by, owner, pr_found,
     return problems
 
 
+def ci_verdict(runs):
+    """"success" if any ci run concluded successfully, "pending" if none did
+    and one hasn't finished, else "failed" (pure, for tests)."""
+    if any(r.get("conclusion") == "success" for r in runs):
+        return "success"
+    if any(r.get("status") != "completed" for r in runs):
+        return "pending"
+    return "failed"
+
+
+def wait_for_ci(fetch, wait_s, sleep=time.sleep, clock=time.monotonic):
+    """Fetches the ci runs until one succeeded, none is pending, or wait_s
+    seconds have passed. Returns (verdict, runs)."""
+    deadline = clock() + wait_s
+    while True:
+        runs = fetch()
+        verdict = ci_verdict(runs)
+        if verdict != "pending" or clock() >= deadline:
+            return verdict, runs
+        print("ci run still in progress; checking again in %d s" % POLL, flush=True)
+        sleep(POLL)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("sha")
     ap.add_argument("--owner", default="")
+    ap.add_argument("--wait-minutes", type=float, default=30,
+                    help="how long to wait for an unfinished ci run on the head")
     a = ap.parse_args()
     repo = os.environ["GITHUB_REPOSITORY"]
     owner = a.owner or repo.split("/")[0]
@@ -94,11 +125,15 @@ def main():
             merged_by = (full.get("merged_by") or {}).get("login")
             print("pull request #%d: %s merged_by=%s merge_commit=%s"
                   % (p["number"], p["html_url"], merged_by, full.get("merge_commit_sha")))
-        runs = api("/repos/%s/actions/runs?head_sha=%s&event=pull_request" % (repo, head))
-        ci = [r for r in runs.get("workflow_runs", []) if r.get("name") == "ci"]
+        def fetch():
+            runs = api("/repos/%s/actions/runs?head_sha=%s&event=pull_request" % (repo, head))
+            return [r for r in runs.get("workflow_runs", []) if r.get("name") == "ci"]
+        verdict, ci = wait_for_ci(fetch, a.wait_minutes * 60)
         for r in ci:
             print("ci run %s: %s/%s %s" % (r["id"], r["status"], r["conclusion"], r["html_url"]))
-        ci_success = any(r.get("conclusion") == "success" for r in ci)
+        if verdict == "pending":
+            print("ci run still unfinished after %g minutes" % a.wait_minutes)
+        ci_success = verdict == "success"
 
     problems = evaluate(len(parents), v.get("verified"), v.get("reason"), committer,
                         merged_by, owner, pr_found, ci_success)
