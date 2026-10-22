@@ -169,6 +169,16 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     once, before merge and with the owner's approval, so the local path
     in the saved M0d prompt never reached main; `docs/EXPOSURE.md`'s
     older paths are redacted in its current text.
+  - **Merged**: pull request #10 as `4760d561`. Its first record
+    (`records/4760d561…/`) is FAIL on C-MERGE alone: the records workflow
+    read the head's ci run while GitHub still reported it in progress,
+    although its only job had finished with success (13:25:15Z; GitHub
+    marked the run complete at 13:35:00Z). That record stays as it is. A
+    re-run of the records workflow wrote `rerun-39787187755-2/` beside
+    it: **PASS**, every check run, traceability PASS for R-BOOT-1 to
+    R-BOOT-5, R-BUILD-1, R-BUILD-2 and R-PUB-3, firmware size code 252,
+    data 4, bss 20 bytes. Since pull request #11, C-MERGE waits up to 30
+    minutes for an unfinished ci run on the head.
   - `firmware/src/placeholder.c` removed. M0e is next.
 
 ### M0e: audit and performance
