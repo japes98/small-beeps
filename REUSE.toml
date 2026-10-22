@@ -58,3 +58,17 @@ path = ["vendor/emulator/SHA256SUMS"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 japes98"
 SPDX-License-Identifier = "MIT"
+
+# The harness's generated and binary files: test images built from the
+# sources beside them, golden outputs, test data, the lockfile.
+[[annotations]]
+path = [
+  "harness/Cargo.lock",
+  "harness/tests/images/*.bin",
+  "harness/tests/images/SHA256SUMS",
+  "harness/tests/golden/**",
+  "harness/tests/data/**",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 japes98"
+SPDX-License-Identifier = "MIT"

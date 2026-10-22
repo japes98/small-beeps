@@ -65,6 +65,12 @@ CHECKS = [
     {"id": "C-TRANSCRIPTS", "title": "Archived session transcripts: banners and forbidden material",
      "reqs": ["R-CLEAN-1", "R-CLEAN-3", "R-CLEAN-5", "R-SEP-2"],
      "cmd": [PY, "-I", "tools/check-transcripts.py"]},
+    {"id": "C-SEP-TERMS", "title": "No emulator-only identifiers outside the spec side's folders",
+     "reqs": ["R-SEP-1"], "cmd": [PY, "-I", "tools/check-emulator-terms.py"]},
+    {"id": "C-CLEAN-FOLDER", "title": "A fresh clean folder has no spec-side files and denies them",
+     "reqs": ["R-CLEAN-1", "R-SEP-2"], "needs": "vendor/emulator", "cmd": ["sh", "tools/check-clean-folder.sh"]},
+    {"id": "C-FWTEST-PIN", "title": "tools/fwtest runs an image pinned by digest",
+     "reqs": ["R-SEP-3", "R-HARN-10"], "cmd": [PY, "-I", "tools/check-fwtest-pin.py"]},
     {"id": "C-SDK-PIN", "title": "Vendored SDK files match the pinned commit",
      "reqs": ["R-REPRO-5", "R-LIC-2"], "cmd": ["sh", "tools/fetch-sdk.sh", "--verify"]},
     {"id": "C-EMU-PIN", "title": "Vendored emulator crates match the pinned upstream commit",
@@ -80,6 +86,24 @@ CHECKS = [
                      "--src-mount", "/tmp/elsewhere/small-beeps-src-b"]},
     {"id": "C-DETERMINISM", "title": "Builds A and B are byte-identical",
      "reqs": ["R-REPRO-3"], "internal": "determinism"},
+    # The harness (spec side): skipped where harness/ isn't on disk.
+    {"id": "C-HARNESS-SCOPE", "title": "The harness uses no update-package or stock-boot paths",
+     "reqs": ["R-HARN-9"], "needs": "harness", "cmd": ["sh", "harness/ci.sh", "scope"]},
+    {"id": "C-HARNESS-IMAGES", "title": "Harness test images rebuild identically with the pinned toolchain",
+     "reqs": ["R-HARN-8"], "needs": "harness", "cmd": ["sh", "harness/tests/images/build.sh", "--check"]},
+    {"id": "C-HARNESS-IMAGE", "title": "fwtest container (pinned bases, offline build)",
+     "reqs": ["R-HARN-8"], "needs": "harness", "cmd": ["sh", "harness/ci.sh", "image"]},
+    {"id": "C-HARNESS-TEST", "title": "The harness's own tests (cargo test in the container)",
+     "reqs": ["R-HARN-1", "R-HARN-2", "R-HARN-3", "R-HARN-4", "R-HARN-5", "R-HARN-6", "R-HARN-7"],
+     "needs": "harness", "cmd": ["sh", "harness/ci.sh", "test"]},
+    {"id": "C-HARNESS-SUITE-A", "title": "Harness suite, run A (fresh container, tests at /mnt/harness-a)",
+     "reqs": ["R-HARN-1", "R-HARN-2", "R-HARN-3", "R-HARN-4", "R-HARN-5", "R-HARN-7"], "needs": "harness",
+     "cmd": lambda: ["sh", "harness/ci.sh", "suite", os.path.join(OUT, "harness-a"), "/mnt/harness-a"]},
+    {"id": "C-HARNESS-SUITE-B", "title": "Harness suite, run B (fresh container, tests at another path)",
+     "reqs": ["R-HARN-6"], "needs": "harness",
+     "cmd": lambda: ["sh", "harness/ci.sh", "suite", os.path.join(OUT, "harness-b"), "/tmp/elsewhere/harness-b"]},
+    {"id": "C-HARNESS-DET", "title": "Harness suite runs A and B are byte-identical",
+     "reqs": ["R-HARN-6"], "needs": "harness", "internal": "harness_determinism"},
     {"id": "C-MERGE", "title": "Signed owner merge of a pull request that passed CI",
      "reqs": ["R-PROC-2"], "records_only": True,
      "cmd": lambda: [PY, "-I", "tools/check-merge.py", git("rev-parse", "HEAD")]},
@@ -145,6 +169,43 @@ def determinism():
     return (0 if ok else 1), "\n".join(lines) + "\n"
 
 
+def tree_files(top):
+    out = {}
+    for dirpath, _, names in os.walk(top):
+        for n in names:
+            p = os.path.join(dirpath, n)
+            out[os.path.relpath(p, top)] = sha256_file(p)
+    return out
+
+
+def harness_determinism():
+    """Compares suite runs A and B file by file, then keeps A's result.json,
+    junit.xml and the hashes of every output in the record (harness/)."""
+    a, b = os.path.join(OUT, "harness-a", "suite"), os.path.join(OUT, "harness-b", "suite")
+    fa, fb = tree_files(a), tree_files(b)
+    lines, ok = [], bool(fa)
+    if sorted(fa) != sorted(fb):
+        ok = False
+        lines.append("different file lists: %d vs %d files" % (len(fa), len(fb)))
+    for name in sorted(set(fa) & set(fb)):
+        same = fa[name] == fb[name]
+        ok = ok and same
+        lines.append("%s %s %s" % ("IDENTICAL" if same else "DIFFERENT", name, fa[name]))
+    if not fa:
+        lines.append("no outputs")
+    keep = os.path.join(OUT, "harness")
+    if fa:
+        os.makedirs(keep, exist_ok=True)
+        for n in ("result.json", "junit.xml"):
+            if n in fa:
+                shutil.copyfile(os.path.join(a, n), os.path.join(keep, n))
+        with open(os.path.join(keep, "outputs.sha256"), "w") as f:
+            for name in sorted(fa):
+                f.write("%s  %s\n" % (fa[name], name))
+    lines.append("harness determinism: %s" % ("PASS" if ok else "FAIL"))
+    return (0 if ok else 1), "\n".join(lines) + "\n"
+
+
 def dockerfile_pins():
     pins = {}
     with open(os.path.join(ROOT, "tools", "Dockerfile")) as f:
@@ -173,6 +234,13 @@ def environment():
         m = re.search(r"^SDK_COMMIT=(\S+)", f.read(), re.M)
     env["sdk_commit"] = m.group(1) if m else ""
     env["sdk_sha256sums"] = sha256_file(os.path.join(ROOT, "vendor", "jieli-sdk", "SHA256SUMS"))
+    with open(os.path.join(ROOT, "config", "fwtest-image")) as f:
+        env["fwtest_image"] = [l.strip() for l in f if l.strip() and not l.startswith("#")][0]
+    with open(os.path.join(ROOT, "tools", "fetch-emulator.sh")) as f:
+        m = re.search(r"^UPSTREAM_COMMIT=(\S+)", f.read(), re.M)
+    env["emulator_commit"] = m.group(1) if m else ""
+    if os.path.isdir(os.path.join(ROOT, "harness")):
+        env["harness_image_tag"] = run_cmd(["sh", "harness/ci.sh", "tag"])[1].strip()
     tag = run_cmd(["sh", "tools/build.sh", "image-tag"])[1].strip()
     env["build_image_tag"] = tag
     env["build_image_id"] = tool_version(["docker", "image", "inspect", "--format", "{{.Id}}", tag])
@@ -183,7 +251,8 @@ def environment():
     env["git"] = tool_version(["git", "--version"])
     env["host"] = "%s %s %s" % (platform.system(), platform.release(), platform.machine())
     env["claude_configs"] = {n: sha256_file(os.path.join(ROOT, "config", "claude", n))
-                             for n in ("clean.json", "spec.json", "handmade-settings.json")}
+                             for n in ("clean.json", "spec.json", "handmade-settings.json",
+                                       "handmade-spec-settings.json")}
     env["github"] = {k: os.environ[k] for k in sorted(os.environ)
                      if k in ("GITHUB_REPOSITORY", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT",
                               "GITHUB_WORKFLOW", "GITHUB_EVENT_NAME", "GITHUB_REF",
@@ -208,7 +277,7 @@ def traceability(checks, defined=None):
     defined check that covers it ran and passed; checks that didn't run in
     this record are named."""
     defined = CHECKS if defined is None else defined
-    ran = {c["id"]: c["result"] for c in checks}
+    ran = {c["id"]: c["result"] for c in checks if c["result"] != "SKIP"}
     table = []
     for req in requirements_table():
         mine = [c["id"] for c in defined if req["id"] in c["reqs"]]
@@ -271,6 +340,14 @@ def cmd_run(a):
         if c["id"] in skip or (c.get("records_only") and not a.with_merge):
             continue
         start = time.time()
+        if c.get("needs") and not os.path.isdir(os.path.join(ROOT, c["needs"])):
+            with open(os.path.join(OUT, "logs", c["id"] + ".log"), "w", encoding="utf-8") as f:
+                f.write("SKIP: %s/ is not on disk (a clean folder leaves it out)\n" % c["needs"])
+            print("%-14s %-4s %6.1fs  %s" % (c["id"], "SKIP", 0.0, c["title"]), flush=True)
+            results.append({"id": c["id"], "title": c["title"], "reqs": c["reqs"], "command": "",
+                            "result": "SKIP", "exit_status": 0, "seconds": 0.0,
+                            "log": "logs/%s.log" % c["id"]})
+            continue
         if "internal" in c:
             code, log = globals()[c["internal"]]()
             argv = ["(internal) " + c["internal"]]
@@ -293,7 +370,7 @@ def cmd_run(a):
         os.makedirs(os.path.join(OUT, "outputs"), exist_ok=True)
         for name in outputs:
             shutil.copyfile(os.path.join(build_a, name), os.path.join(OUT, "outputs", name))
-    for d in ("build-a", "build-b"):
+    for d in ("build-a", "build-b", "harness-a", "harness-b"):
         shutil.rmtree(os.path.join(OUT, d), ignore_errors=True)
 
     report = {
@@ -307,7 +384,7 @@ def cmd_run(a):
         "checks": results,
         "outputs": outputs,
         "traceability": traceability(results),
-        "overall": "PASS" if results and all(r["result"] == "PASS" for r in results) else "FAIL",
+        "overall": "PASS" if results and all(r["result"] in ("PASS", "SKIP") for r in results) else "FAIL",
     }
     with open(os.path.join(OUT, "report.json"), "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, sort_keys=True)
