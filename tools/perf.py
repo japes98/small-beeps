@@ -16,7 +16,9 @@ C-PERF and C-PERF-PROBES; R-PERF-1 to R-PERF-5).
       (firmware/src/probe.c), measures each, and checks that the gates
       fail each one for its own reason, measured against DIR/app.bin: the
       slower build its speed, the bigger build each budget, with the
-      unmodified build's sizes as the budgets.
+      unmodified build's sizes as the budgets. Builds it also with
+      SB_PROBE_STACK and checks the stack's high-water mark shows at least
+      the 1 KiB that build is known to use.
       Exit status 1 if any gate did not fail as it should.
   perf.py history --record REPORT.json --csv FILE
       Appends the record's line to perf-history.csv (records workflow).
@@ -27,9 +29,12 @@ C-PERF and C-PERF-PROBES; R-PERF-1 to R-PERF-5).
 What is measured (docs/DESIGN-NOTES.md, M0e):
 - size: code, data, bss, the raw image and the stack reserved, from
   app.size; static RAM is data + bss;
-- the stack's high-water mark: fwtest starts with RAM all zero
-  (docs/HARNESS.md), so the deepest word the firmware ever wrote is the
-  lowest non-zero word of the stack, captured at the end of the run;
+- the stack's high-water mark: the firmware fills its unused stack with
+  STACK_FILL once at startup (crt0.S, sb_stack_fill), so the deepest the
+  stack went is the lowest word no longer holding it, in the stack
+  captured at the end of the run. An image without the fill (an older
+  record's) is read by the lowest non-zero word, as fwtest starts RAM at
+  zero; that method can't see words written as zero;
 - speed: emulated core-0 instructions per period. Until audio (M4) the
   period is the heartbeat (one beat per millisecond): the instructions of
   a one-second run divided by the beats the beacon shows at its end.
@@ -62,6 +67,7 @@ RUN_MS = 1000
 BEACON = 0x01C00000          # firmware/app.ld, firmware/src/sb.h
 BEACON_LEN = 16
 MARKER = 0x44304253          # "SB0D"
+STACK_FILL = 0x4B415453      # "STAK", firmware/src/crt0.S
 STACK_TOP = 0x01C7FC00       # firmware/app.ld asserts it
 BUDGETED = ("code", "static_ram", "stack_high_water")
 SIZES = ("code", "data", "bss", "image", "stack")
@@ -98,14 +104,20 @@ def read_size(text):
 
 
 def stack_high_water(data):
-    """Bytes of stack ever used: from the lowest non-zero word to the top.
-    RAM starts at zero in fwtest, so a word the firmware wrote shows unless
-    it wrote zero there; the mark can only be too low by such words."""
+    """(bytes of stack ever used, the method). With the fill pattern at the
+    stack's limit: from the lowest word not holding it to the top. Without
+    (an image that doesn't fill): from the lowest non-zero word, which
+    misses words written as zero."""
     words = struct.unpack("<%dI" % (len(data) // 4), data[:len(data) // 4 * 4])
+    if words and words[0] == STACK_FILL:
+        for i, w in enumerate(words):
+            if w != STACK_FILL:
+                return (len(words) - i) * 4, "pattern"
+        return 0, "pattern"
     for i, w in enumerate(words):
         if w:
-            return (len(words) - i) * 4
-    return 0
+            return (len(words) - i) * 4, "non-zero"
+    return 0, "non-zero"
 
 
 def run_fwtest(image_bytes, size, out, label):
@@ -140,7 +152,8 @@ def run_fwtest(image_bytes, size, out, label):
     m.update({"outcome": run.get("outcome"), "emulated_ms": run.get("emulated_ms"),
               "instructions": run.get("instructions", {}).get("core0"),
               "periods": beats, "marker": "0x%08x" % marker,
-              "stack_high_water": stack_high_water(stack)})
+              "stack_high_water": stack_high_water(stack)[0],
+              "stack_method": stack_high_water(stack)[1]})
     try:
         with open(os.path.join(out, "runner.txt")) as f:
             m["fwtest_image"] = f.readline().split(":", 1)[1].strip()
@@ -317,11 +330,15 @@ def cmd_check(a):
 # Each probe build, the gates it must fail, and whose sizes are its
 # budgets: the unmodified build's for the bigger probe, so it fails each
 # budget whatever config/budgets.json allows (budgets only rise); its own
-# for the slower probe, so only its speed is under test.
+# for the others, so only what they test is under test.
 PROBES = [
     ("SB_PROBE_SLOW", {"speed"}, "probe"),
     ("SB_PROBE_BIG", set(BUDGETED), "reference"),
+    ("SB_PROBE_STACK", set(), "probe"),
 ]
+# The stack the STACK probe is known to use (a 1 KiB frame written with
+# zeros, firmware/src/probe.c): the measured mark must be at least this.
+PROBE_STACK_BYTES = 1024
 
 
 def probe_budgets(sizes, budgets, whose):
@@ -340,6 +357,18 @@ def check_probe(define, verdicts, must_fail):
               if g not in must_fail and res[g] == "FAIL"]
     if "measurement" in res:
         probs.append("%s: the measurement failed" % define)
+    return probs
+
+
+def check_stack_probe(m):
+    """Problems with the STACK probe's measurement: its known stack use
+    must show, by the fill pattern."""
+    probs = []
+    if m.get("stack_method") != "pattern":
+        probs.append("SB_PROBE_STACK: the stack does not hold the fill pattern")
+    if m.get("stack_high_water", 0) < PROBE_STACK_BYTES:
+        probs.append("SB_PROBE_STACK: stack high-water %s bytes, less than the %d it uses"
+                     % (m.get("stack_high_water"), PROBE_STACK_BYTES))
     return probs
 
 
@@ -373,6 +402,8 @@ def cmd_probes(a):
         verdicts = gate(m, ref, limits)
         print_verdicts(verdicts)
         problems += check_probe(define, verdicts, must_fail)
+        if define == "SB_PROBE_STACK":
+            problems += check_stack_probe(m)
         shutil.rmtree(build, ignore_errors=True)
     shutil.rmtree(os.path.join(ROOT, "out", "perf-run"), ignore_errors=True)
     for prob in problems:
@@ -435,7 +466,7 @@ def summary(perf):
         L += ["| Measure | Value |", "|---|---|"]
         L += ["| %s | %s |" % (k, cur[k]) for k in
               ("code", "data", "bss", "image", "static_ram", "stack_reserved", "stack_high_water",
-               "instructions", "periods", "instructions_per_period") if k in cur]
+               "stack_method", "instructions", "periods", "instructions_per_period") if k in cur]
         L.append("")
     L.append("Baseline: %s." % perf["baseline_note"])
     L += ["", "| Gate | Result | Detail |", "|---|---|---|"]

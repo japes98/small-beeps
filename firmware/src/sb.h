@@ -31,12 +31,18 @@ extern volatile struct sb_beacon sb_beacon;
 
 int main(void) __attribute__((noreturn));
 
+/* crt0.S: fill the unused stack with a pattern (the high-water test). */
+void sb_stack_fill(void);
+
 /* Test builds only (firmware/src/probe.c). */
 #if defined(SB_PROBE_SLOW)
 void sb_probe_slow(void);
 #endif
 #if defined(SB_PROBE_BIG)
 void sb_probe_big(void);
+#endif
+#if defined(SB_PROBE_STACK)
+void sb_probe_stack(void);
 #endif
 
 #endif

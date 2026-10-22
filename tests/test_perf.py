@@ -114,14 +114,33 @@ class GateTest(unittest.TestCase):
 class MeasureTest(unittest.TestCase):
     """Requirements: R-PERF-1, R-PERF-3"""
 
-    def test_stack_high_water(self):
+    def test_stack_high_water_by_pattern(self):
+        fill = struct.pack("<I", perf.STACK_FILL)
+        n = 512                                    # words
+        self.assertEqual(perf.stack_high_water(fill * n), (0, "pattern"))
+        # a frame written with zeros shows: it no longer holds the pattern
+        self.assertEqual(perf.stack_high_water(fill * (n - 256) + bytes(1024)), (1024, "pattern"))
+        self.assertEqual(perf.stack_high_water(fill * (n - 1) + b"\x01\0\0\0"), (4, "pattern"))
+        # the pattern above the deepest word changed still counts as used
+        data = fill * (n - 16) + bytes(4) + fill * 15
+        self.assertEqual(perf.stack_high_water(data), (64, "pattern"))
+
+    def test_stack_high_water_without_the_fill(self):
+        # an image that doesn't fill (an older record's): non-zero words
         n = 1024
-        self.assertEqual(perf.stack_high_water(bytes(n)), 0)
-        self.assertEqual(perf.stack_high_water(bytes(n - 4) + b"\x01\0\0\0"), 4)
-        self.assertEqual(perf.stack_high_water(b"\0\0\0\x80" + bytes(n - 4)), n)
-        # zeros above the deepest written word still count as used
-        data = bytes(n - 64) + b"\x07\0\0\0" + bytes(60)
-        self.assertEqual(perf.stack_high_water(data), 64)
+        self.assertEqual(perf.stack_high_water(bytes(n)), (0, "non-zero"))
+        self.assertEqual(perf.stack_high_water(bytes(n - 4) + b"\x01\0\0\0"), (4, "non-zero"))
+        self.assertEqual(perf.stack_high_water(bytes(n - 64) + b"\x07\0\0\0" + bytes(60)), (64, "non-zero"))
+
+    def test_the_fill_pattern_matches_crt0(self):
+        with open(os.path.join(ROOT, "firmware", "src", "crt0.S")) as f:
+            self.assertIn("SB_STACK_FILL, 0x%08X" % perf.STACK_FILL, f.read())
+
+    def test_stack_probe_expectation(self):
+        ok = {"stack_high_water": 1024, "stack_method": "pattern"}
+        self.assertEqual(perf.check_stack_probe(ok), [])
+        self.assertTrue(perf.check_stack_probe(dict(ok, stack_high_water=1020)))
+        self.assertTrue(perf.check_stack_probe(dict(ok, stack_method="non-zero")))
 
     def test_options_capture_the_stack_below_its_top(self):
         opts = perf.options(0x1000)
@@ -267,7 +286,7 @@ class HistoryTest(unittest.TestCase):
 
 
 class ProbeSourceTest(unittest.TestCase):
-    """Requirements: R-PERF-5"""
+    """Requirements: R-PERF-3, R-PERF-5"""
 
     def test_probes_are_compiled_only_on_request(self):
         # every probe's code is under its define, so the firmware itself
@@ -282,9 +301,9 @@ class ProbeSourceTest(unittest.TestCase):
                     guard.append(m.group(1))
                 elif line.startswith("#endif") and guard:
                     guard.pop()
-                elif re.search(r"\bsb_probe_\w+|probe_(table|ram|stack)\b", line):
+                elif re.search(r"\b(sb_)?probe_\w+", line):
                     self.assertTrue(guard, "%s: %r outside a probe's #if" % (name, line))
-        self.assertEqual({d for d, _, _ in perf.PROBES}, {"SB_PROBE_SLOW", "SB_PROBE_BIG"})
+        self.assertEqual({d for d, _, _ in perf.PROBES}, {"SB_PROBE_SLOW", "SB_PROBE_BIG", "SB_PROBE_STACK"})
 
 
 if __name__ == "__main__":

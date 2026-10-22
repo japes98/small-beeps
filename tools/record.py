@@ -121,8 +121,8 @@ CHECKS = [
     # Performance (M0e): size, RAM, stack high-water and speed, gated.
     {"id": "C-PERF", "title": "Firmware size, RAM, stack high-water and instructions per period, within budget and the 3% speed gate",
      "reqs": ["R-PERF-1", "R-PERF-2", "R-PERF-3"], "cmd": _perf_cmd},
-    {"id": "C-PERF-PROBES", "title": "Deliberately slower and bigger builds fail the performance gates",
-     "reqs": ["R-PERF-5"],
+    {"id": "C-PERF-PROBES", "title": "Deliberately slower and bigger builds fail the performance gates; a known stack use shows",
+     "reqs": ["R-PERF-3", "R-PERF-5"],
      "cmd": lambda: [PY, "-I", "tools/perf.py", "probes", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "perf-probes")]},
     # The harness (spec side): skipped where harness/ isn't on disk.
@@ -364,7 +364,7 @@ def perf_markdown(perf):
     if not cur.get("error"):
         L += ["| Measure | Value |", "|---------|-------|"]
         for k in ("code", "data", "bss", "image", "static_ram", "stack_reserved", "stack_high_water",
-                  "instructions", "periods", "instructions_per_period"):
+                  "stack_method", "instructions", "periods", "instructions_per_period"):
             if k in cur:
                 L.append("| %s | %s |" % (k, cur[k]))
         L.append("")
