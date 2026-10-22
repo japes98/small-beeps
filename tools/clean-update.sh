@@ -13,6 +13,10 @@
 # fast-forward, then re-applies the sparse checkout and checks that no file
 # under vendor/emulator/, harness/ or sessions/spec/ reached the disk or the
 # folder's .git. Stop and tell the owner if it fails.
+#
+# The fast-forward runs with --no-stat and -q: a merge summary (diffstat)
+# counts the lines of every changed file, and with lazy fetching allowed git
+# downloads the excluded files' contents to count them.
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -22,7 +26,7 @@ role=$(cat "$ROOT/.claude/small-beeps-role" 2>/dev/null || true)
 [ "$role" = clean ] || { echo "clean-update.sh is for clean folders (role here: ${role:-none})" >&2; exit 2; }
 
 GIT_NO_LAZY_FETCH=1 git -C "$ROOT" fetch -q origin
-env -u GIT_NO_LAZY_FETCH git -C "$ROOT" merge -q --ff-only "origin/$ref"
+env -u GIT_NO_LAZY_FETCH git -C "$ROOT" merge -q --no-stat --ff-only "origin/$ref"
 GIT_NO_LAZY_FETCH=1 sh "$ROOT/tools/clean-setup.sh" > /dev/null
 
 fail=0

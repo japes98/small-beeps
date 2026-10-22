@@ -15,7 +15,9 @@
 #     checks, the emulator pin check, and `git log -p` over this branch,
 #     which must fail rather than fetch), fetch none of those contents;
 #   - tools/clean-update.sh brings a clean folder made at HEAD's parent up to
-#     HEAD with the same results.
+#     HEAD with the same results, and updates one across a commit (made here)
+#     that changes vendor/emulator/ and harness/ without fetching any of
+#     their blobs, while a plain merge with its summary does fetch some.
 # It never reads those folders' contents itself: only their file lists and
 # object IDs, from this checkout's history. In a clean folder it says SKIP
 # and does nothing: it needs the full history to serve the copy it checks.
@@ -108,6 +110,56 @@ if parent=$(git -C "$ROOT" rev-parse -q --verify "HEAD~1"); then
     no_blobs "after an update"
     clean=$clean_saved
 fi
+
+# An update across a commit that changes vendor/emulator/ and harness/. The
+# commit is made here, on top of HEAD: in each folder one existing file gets
+# new contents and one file is added (made-up text; nothing is read from the
+# folders but one file name each). tools/clean-update.sh must bring none of
+# their blobs, old or new, into .git. As a control, a plain fast-forward,
+# whose merge summary counts the changed files' lines, must fetch some in
+# another copy; otherwise this test would prove nothing. The control's output
+# goes to /dev/null, since it names the files.
+src="$work/src.git"
+idx="$work/probe.index"
+GIT_INDEX_FILE=$idx git -C "$src" read-tree "$head"
+for p in vendor/emulator harness; do
+    set -- $(git -C "$ROOT" ls-tree -r HEAD -- "$p" | awk '$2 == "blob" { print $1, $4; exit }')
+    changed=$(printf 'clean-update probe: %s, changed\n' "$p" | git -C "$src" hash-object -w --stdin)
+    added=$(printf 'clean-update probe: %s, added\nsecond line\n' "$p" | git -C "$src" hash-object -w --stdin)
+    GIT_INDEX_FILE=$idx git -C "$src" update-index --add --cacheinfo "$1,$changed,$2" \
+        --cacheinfo "100644,$added,$p/clean-update-probe.txt"
+done
+probe=$(git -C "$src" -c user.name=probe -c user.email=probe@invalid commit-tree \
+    "$(GIT_INDEX_FILE=$idx git -C "$src" write-tree)" -p "$head" -m "probe: change both folders")
+git -C "$src" update-ref refs/heads/main "$probe"
+# Every blob under the two folders at HEAD or at the probe commit.
+probe_blobs=$( (git -C "$src" ls-tree -r "$head" -- vendor/emulator harness
+                git -C "$src" ls-tree -r "$probe" -- vendor/emulator harness) | awk '$2 == "blob" { print $3 }' | sort -u)
+present() {
+    n=0
+    for oid in $probe_blobs; do
+        if GIT_NO_LAZY_FETCH=1 git -C "$1" cat-file -e "$oid" 2>/dev/null; then n=$((n + 1)); fi
+    done
+    echo $n
+}
+for c in probe-update probe-control; do
+    SETUP_SOURCE="file://$src" SETUP_REF=checked \
+        sh "$ROOT/tools/clean-setup.sh" "$work/$c" > /dev/null 2>&1 || bad "clean-setup.sh for $c failed"
+done
+if sh "$ROOT/tools/clean-update.sh" --dir "$work/probe-update" main > "$work/probe.log" 2>&1; then
+    echo "update across a change to both folders: $(tail -1 "$work/probe.log")"
+else
+    cat "$work/probe.log"; bad "tools/clean-update.sh across a change to both folders failed"
+fi
+[ "$(git -C "$work/probe-update" rev-parse HEAD)" = "$probe" ] || bad "the update did not reach the probe commit"
+n=$(present "$work/probe-update")
+if [ "$n" = 0 ]; then echo "no blobs (update across a change to both folders): 0 present"
+else bad "the update across a change to both folders brought $n of their blobs into .git"; fi
+GIT_NO_LAZY_FETCH=1 git -C "$work/probe-control" fetch -q origin
+env -u GIT_NO_LAZY_FETCH git -C "$work/probe-control" merge --ff-only origin/main > /dev/null 2>&1 || true
+n=$(present "$work/probe-control")
+if [ "$n" -gt 0 ]; then echo "control: a merge with its summary fetched $n of their blobs, as expected"
+else bad "control: a merge with its summary fetched none of their blobs, so this test can't tell"; fi
 
 if [ $fail -eq 0 ]; then echo "clean folder: PASS"; else echo "clean folder: FAIL"; fi
 exit $fail
