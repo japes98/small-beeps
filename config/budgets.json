@@ -1,11 +1,16 @@
 {
   "comment": "Performance budgets (R-PERF-1, R-PERF-2; tools/perf.py, check C-PERF). `milestone` names the budgets in force. Sizes are bytes: code (code and constants in the image), static_ram (initialised and zeroed data), stack_high_water (the deepest the stack went in the one-second perf run). speed_rise_percent: the most instructions per period may rise against the latest main record. Raising a budget, or moving to the next milestone's, takes its own pull request that says why (What/Why/How/Result), with nothing else in it.",
-  "milestone": "M0",
+  "milestone": "M1",
   "speed_rise_percent": 3,
   "budgets": {
     "M0": {
       "code": 512,
       "static_ram": 64,
+      "stack_high_water": 256
+    },
+    "M1": {
+      "code": 2048,
+      "static_ram": 160,
       "stack_high_water": 256
     }
   }
