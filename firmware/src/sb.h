@@ -66,7 +66,7 @@ void sb_irq_on(void);
 void sb_halt(u32 reason, u32 source, u32 reti) __attribute__((noreturn));
 
 /* crt0.S */
-u32 sb_clock_measure(void);
+u32 sb_clock_measure(volatile u32 *count);
 #define SB_CLOCK_CYCLES 2402u  /* instructions between its two reads */
 
 /* Test builds only (firmware/src/probe.c). */

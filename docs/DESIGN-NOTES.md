@@ -297,7 +297,7 @@ Format for each entry:
   instructions apart, never three within 64, so fwtest never treats the
   loop as waiting. Cost: about 2 400 instructions once (2.4 a period over
   the perf run's second).
-- Experiment (ours, in fwtest): the boot case reads 241.
+- Experiment (ours, in fwtest): the boot case reads 240 (241 in an earlier build whose reads fell elsewhere in a count). The counter's address comes from C (the SDK's `JL_TIMER4`), so the assembly holds no address.
 - Alternatives: setting the PLL from `WL82.h`'s register names (rejected:
   not in the spec, and no way to check it in fwtest); comparing instruction
   counts with `emulated_ms` in the tests only (rejected: the firmware would

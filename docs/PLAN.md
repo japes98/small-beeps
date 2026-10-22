@@ -389,7 +389,7 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     bytes.
   - **Firmware** (#28; docs/DESIGN-NOTES.md, M1):
     - **Clock:** no clock register is written. The core clock is measured
-      at startup: 241 time-base ticks for 2 402 cycles, i.e. 240 MHz.
+      at startup: 240 time-base ticks for 2 402 cycles, i.e. 240 MHz.
     - **Vector table:** all 128 slots are written. TIMER0's is the tick;
       every other source has its own 2-byte stub that reports it by number
       and halts.
@@ -403,8 +403,9 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   - **Results** (local runs; the records of the merges are authoritative):
     - First tick by 1.013 ms; every tick interval is 24 001 time-base
       ticks (jitter 0, tolerance ±24).
+    - The suite run twice gives identical outputs, all 27 files.
     - **69.2 instructions per period against M0's 358.9: −80.7%.**
-    - Code 1172, static RAM 80, stack 64 bytes.
+    - Code 1168, static RAM 80, stack 64 bytes.
     - The fault and stray test builds halt with `HALT stack 001` and
       `HALT stray 07f`.
   - **Open:**

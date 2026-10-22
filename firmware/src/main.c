@@ -109,7 +109,7 @@ int main(void)
     JL_TIMER4->CON = TIMER4_RUN;
     tb_start = JL_TIMER4->CNT;
     /* No clock register is written (HW-11, SR-2): the clock is measured. */
-    sb_beacon.clock = sb_clock_measure();
+    sb_beacon.clock = sb_clock_measure((volatile u32 *)&JL_TIMER4->CNT);
 #if defined(SB_PROBE_BIG)
     sb_probe_big();
 #endif

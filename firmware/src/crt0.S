@@ -59,8 +59,8 @@ sb_stack_fill:
 	.size	sb_stack_fill, .-sb_stack_fill
 
 /* Measures the core clock against the 24 MHz time base (HW-13): reads
- * TIMER4's count, runs exactly SB_CLOCK_CYCLES instructions, reads it
- * again and returns the difference. fwtest runs one instruction a cycle
+ * TIMER4's count (its address in r0, from C), runs exactly
+ * SB_CLOCK_CYCLES instructions, reads it again and returns the difference. fwtest runs one instruction a cycle
  * (HW-11), so at 240 MHz the result is SB_CLOCK_CYCLES / 10, give or take
  * one for where in a count the reads fall. The two reads are far apart,
  * so fwtest never treats this as waiting (docs/HARNESS.md, "Time"). */
@@ -69,14 +69,13 @@ sb_stack_fill:
 	.globl	sb_clock_measure
 	.type	sb_clock_measure,@function
 sb_clock_measure:
-	r1 = 0x10804				/* JL_TIMER4->CNT (HW-12) */
-	r2 = [r1+0]
+	r2 = [r0+0]
 	r3 = SB_CLOCK_LOOPS
 .Lspin:
 	r3 += -1
 	if (r3 != 0) goto .Lspin
-	r0 = [r1+0]
-	r0 = r0 - r2
+	r1 = [r0+0]
+	r0 = r1 - r2
 	rts
 	.size	sb_clock_measure, .-sb_clock_measure
 
