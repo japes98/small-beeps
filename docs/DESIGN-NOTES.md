@@ -199,20 +199,46 @@ Format for each entry:
   `firmware/app.ld` (4 KiB of stack below `0x01C7FC00`), R-BOOT-3 (the
   time base must agree with emulated time within 10 µs at the end of a
   one-second run, so everything before `main` starts the timer counts).
-- Reasoning: the whole stack is captured at the end of the perf run, and
-  the lowest non-zero word marks the deepest the stack ever went. No
-  firmware change is needed. It can read too low only if the deepest
-  words ever written were all zero; a frame that saves a return address or
-  a register usually leaves something non-zero at its bottom.
-- M0d's firmware uses no stack at all: `crt0.S` sets `sp`, and the
-  compiler keeps `sb_start` and `main` in registers (a call keeps its
-  return address in a register, not on the stack; seen in the
-  disassembly). The mark is 0 bytes.
-- Alternatives: filling the stack with a pattern in `crt0.S` before
-  `sb_start` (rejected for now: at two instructions a word, 4 KiB takes
-  about 2 050 cycles, 8.5 µs, most of R-BOOT-3's 10 µs before the timer
-  starts, and it would grow with the stack); a fill in C (rejected: it
-  would write over its own frame).
+- First method (pull request #12): the lowest non-zero word of the stack
+  captured at the end of the run, relying on fwtest's zeroed RAM.
+- Experiment (our own, in fwtest through `tools/fwtest`), asked for by
+  the owner after the first record showed 0: a test build whose function
+  writes a 1 KiB local array and reads it back. Written with `0x5A5A5A5A`
+  the mark read 1 024 bytes; written with zeros it read **0**. The
+  compiler saved nothing at the frame's bottom, so the first method could
+  not see stack written as zero, which is common (cleared buffers,
+  counters at 0). It is replaced.
+- Reasoning (the fix): `sb_stack_fill` in `crt0.S` fills the unused
+  stack, from `__stack_limit` up to the current `sp`, with `0x4B415453`
+  ("STAK"); the mark is the lowest word that no longer holds it. It is
+  assembly because it needs `sp`, and a leaf, so it uses no stack itself
+  (a call keeps its return address in `rets`). `main` calls it once,
+  right after starting TIMER4: everything before the time base starts
+  counts against R-BOOT-3's 10 µs, and the fill takes about 2 050
+  cycles (8.5 µs), so it can't run in `_start`. After the time base
+  starts it costs only a later first pass of the heartbeat loop, which the
+  catch-up count absorbs (the boot suite still passes, the end within
+  10 µs). Nothing before it uses the stack (below). Cost: 28 bytes of
+  code, and 2 047 instructions once, +0.57% per heartbeat period. An image
+  without the pattern at the stack's bottom (an older record's) is still
+  read the first way, and the record says which method it used.
+- Test: C-PERF-PROBES builds `SB_PROBE_STACK`, a 1 KiB frame written
+  with zeros and read back, and fails unless the mark is at least 1 024
+  bytes by the pattern. It reads 1 024.
+- Why the firmware itself reads 0 (its disassembly, `objdump -d` of our
+  own `app.elf` in the build container): `sp` is written once (`sp = r1`
+  in `_start`) and read once (`r1 = sp + 0` in `sb_stack_fill`). There is
+  no push (`[--sp] = …`), no pop, no `sp`-relative load or store, and no
+  `sp +=` frame anywhere. `_start` calls `sb_start`, which calls `main`,
+  which calls `sb_stack_fill`. Each `call` puts the return address in
+  `rets`, and neither `sb_start` nor `main` returns (both `noreturn`), so
+  neither saves `rets`. All their variables fit in registers, and
+  `console_write` is inlined. Probe builds show the method sees the
+  first real use: with `SB_PROBE_SLOW`, `main` saves `rets` before
+  calling the probe, and the mark reads 4 bytes.
+- Alternatives: the fill in `_start` (rejected: R-BOOT-3, above); a fill
+  in C (rejected: C can't know `sp`, and would write over its own frame);
+  keeping the non-zero method (rejected: the experiment).
 
 ### 2026-10-22 M0e: the gates and their tests
 - Facts: none from the hardware spec.
@@ -243,10 +269,11 @@ Format for each entry:
     `config/budgets.json`'s, so raising a budget (M1 will) never makes the
     probe pass; the slower probe's budgets are its own sizes, so only its
     speed is under test. When M1 replaces the polling heartbeat, the slow
-    probe's hook moves with the per-beat work. The probes' code is in
-    `firmware/src/probe.c` and two guarded calls in `main.c`; without the
-    defines nothing of it is compiled (the image is byte for byte M0d's),
-    and `tools/build.sh --define` exists for these builds only.
+    probe's hook moves with the per-beat work. A third, `SB_PROBE_STACK`,
+    tests the stack measurement itself (the stack's high-water mark,
+    above). The probes' code is in `firmware/src/probe.c` and three
+    guarded calls in `main.c`; without the defines nothing of it is
+    compiled, and `tools/build.sh --define` exists for these builds only.
 - Alternatives: a golden `ipb.csv` with `rel-percent 3` (docs/HARNESS.md's
   example; for M4, when there are audio blocks); a stored per-commit
   number as the baseline (rejected: it would compare across fwtest

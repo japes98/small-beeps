@@ -46,15 +46,21 @@ int main(void)
     } else {
         sb_beacon.marker = SB_MARKER_BAD;
     }
-#if defined(SB_PROBE_BIG)
-    sb_probe_big();
-#endif
 
     /* Only differences of CNT are used: its value when started, and its
      * response to writes, don't matter. Unsigned subtraction is right
      * across a wrap of the 32-bit count. */
     JL_TIMER4->CON = TIMER4_RUN;
     start = JL_TIMER4->CNT;
+    /* After starting the time base, so its start tolerance is untouched;
+     * before anything that could use the stack. */
+    sb_stack_fill();
+#if defined(SB_PROBE_BIG)
+    sb_probe_big();
+#endif
+#if defined(SB_PROBE_STACK)
+    sb_probe_stack();
+#endif
     done = 0;
     for (;;) {
         u32 now = JL_TIMER4->CNT - start;

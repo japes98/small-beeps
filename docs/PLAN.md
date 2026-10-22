@@ -234,7 +234,19 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     (main before the merge) as its baseline, re-ran that image: +0.00%.
     `perf-history.csv` on `records` started with the merge's line (code
     252, static RAM 24, stack high-water 0, 356.887 instructions per
-    heartbeat period). This pull request's merge adds the second.
+    heartbeat period). Pull request #13's merge adds the second.
+  - **The stack measurement, proved** (the owner's request after #12's
+    record read 0): a test build with a 1 KiB frame written with zeros
+    read 0 by the first method (lowest non-zero word), so that method
+    could not see stack written as zero. Now `sb_stack_fill` (`crt0.S`)
+    fills the unused stack with a pattern right after the time base
+    starts, and the mark is the lowest word no longer holding it.
+    C-PERF-PROBES' new `SB_PROBE_STACK` build must read at least 1 024
+    bytes (it reads 1 024). The firmware itself still reads 0, and its
+    disassembly says why: no push, pop or `sp`-relative access anywhere,
+    and `sb_start` and `main` never return, so neither saves `rets`
+    (docs/DESIGN-NOTES.md). Cost: code 280 bytes (+28), 358.934
+    instructions per heartbeat period (+0.57%, within the gate).
   - The similarity audit is the spec side's part of M0e. M1 is next on
     the firmware side.
 
