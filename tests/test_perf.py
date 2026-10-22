@@ -125,6 +125,16 @@ class MeasureTest(unittest.TestCase):
         data = fill * (n - 16) + bytes(4) + fill * 15
         self.assertEqual(perf.stack_high_water(data), (64, "pattern"))
 
+    def test_two_stacks_are_measured_each_from_its_own_limit(self):
+        fill = struct.pack("<I", perf.STACK_FILL)
+        irq = fill * (512 - 11) + bytes(44)                  # 44 bytes used
+        main = fill * 512                                    # unused
+        self.assertEqual(perf.stack_high_water(irq + main, 2048), (44, "pattern, two stacks"))
+        main = fill * (512 - 256) + bytes(1024)               # 1 KiB used
+        self.assertEqual(perf.stack_high_water(irq + main, 2048), (1068, "pattern, two stacks"))
+        # read as one stack, the interrupt stack's use would count all of main's
+        self.assertEqual(perf.stack_high_water(irq + main)[0], 2048 + 44)
+
     def test_stack_high_water_without_the_fill(self):
         # an image that doesn't fill (an older record's): non-zero words
         n = 1024
@@ -141,6 +151,7 @@ class MeasureTest(unittest.TestCase):
         self.assertEqual(perf.check_stack_probe(ok), [])
         self.assertTrue(perf.check_stack_probe(dict(ok, stack_high_water=1020)))
         self.assertTrue(perf.check_stack_probe(dict(ok, stack_method="non-zero")))
+        self.assertEqual(perf.check_stack_probe(dict(ok, stack_method="pattern, two stacks")), [])
 
     def test_options_capture_the_stack_below_its_top(self):
         opts = perf.options(0x1000)

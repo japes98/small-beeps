@@ -66,7 +66,8 @@ cmd_build() {
 # The image's size in bytes, from the symbols firmware/app.ld defines:
 # code (code and constants, in the image), data (initialised data: in the
 # image and copied to RAM), bss (zeroed RAM, the beacon included), image
-# (the raw image's length) and stack (reserved at the top of RAM).
+# (the raw image's length), stack (reserved at the top of RAM, both
+# stacks) and irq_stack (the lower part of it: the interrupt stack).
 write_size() {
     sym() { nm "$1" | awk -v s="$2" '$3 == s { print $1 }'; }
     hex() { printf '%d' "0x$1"; }
@@ -75,8 +76,9 @@ write_size() {
     data=$(( $(hex "$(sym "$1" __data_end)") - $(hex "$(sym "$1" __data_start)") ))
     bss=$(( $(hex "$(sym "$1" __bss_end)") - $(hex "$(sym "$1" __bss_start)") ))
     stack=$(( $(hex "$(sym "$1" __stack_top)") - $(hex "$(sym "$1" __stack_limit)") ))
-    printf 'code %d\ndata %d\nbss %d\nimage %d\nstack %d\n' \
-        $((data_load - origin)) "$data" "$bss" $((data_load - origin + data)) "$stack"
+    irq=$(( $(hex "$(sym "$1" __irq_stack_top)") - $(hex "$(sym "$1" __stack_limit)") ))
+    printf 'code %d\ndata %d\nbss %d\nimage %d\nstack %d\nirq_stack %d\n' \
+        $((data_load - origin)) "$data" "$bss" $((data_load - origin + data)) "$stack" "$irq"
 }
 
 cmd_inside() {
