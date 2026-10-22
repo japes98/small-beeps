@@ -378,6 +378,25 @@ training cutoff (see "Model cutoffs" below).
   workflows and firmware. It builds with the pinned toolchain and runs its
   own images in fwtest through `tools/fwtest`. It does not open anything on
   the forbidden list or anything under the three spec-side folders.
+- Later in the session:
+  - **The M0 release.** It is made from the signed tag `m0`. The session
+    fetched `records/2513b93…/` from the `records` branch (results only:
+    logs, captures, outputs, as written by CI) and rebuilt the image at the
+    tag.
+  - **A private term, found and withdrawn.** The record's tarball was
+    attached for about a minute, then removed: its C-TRANSCRIPTS log holds
+    a private term echoed from the oldest archived transcripts. That text
+    was already public on the `records` branch, so nothing new was exposed.
+  - **The other records.** To count them, the session scanned every record
+    on the `records` branch for the private terms, by a script that never
+    printed a term (19 of 21 hold one, always in that log). It also showed
+    the hit lines with the term masked.
+  - **SDK headers.** From the SDK, at its pinned commit, it read `hwi.h`,
+    `irq.h` and `cpu.h` (a sparse fetch into a scratch folder; P-16).
+  - **Separation check.** When C-SEP-TERMS flagged a line of SR-1, it
+    hashed its own words to find which one (an address it had picked); it
+    never saw the emulator's list.
+  - **Exposure:** still none.
 
 ## Barrier log
 
