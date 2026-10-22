@@ -84,6 +84,40 @@ class ArchiveTest(unittest.TestCase):
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.assertNotEqual(again.returncode, 0)
 
+    def test_git_summary_lines_naming_spec_side_files(self):
+        names = {"harness/src/a.rs", "harness/tests/golden/x/long-name.bin",
+                 "vendor/emulator/LICENSE", "docs/PLAN.md", "tests/golden.py"}
+        summary = "\n".join([
+            "Fast-forward",
+            " docs/PLAN.md                 |  4 +-",
+            " harness/src/a.rs             | 12 +",
+            " .../golden/x/long-name.bin   | Bin 0 -> 8 bytes",
+            " vendor/emulator/LICENSE      | 21 +",
+            " tests/golden.py              |  3 +",
+            " 5 files changed, 40 insertions(+)",
+            " create mode 100644 docs/PLAN.md",
+            " create mode 100644 harness/src/a.rs",
+            "exit=0"])
+        line = json.dumps({"content": summary, "stdout": summary}) + "\n"
+        counts = {}
+        out = ar.redact_line(line, counts, spec_files=names)
+        d = json.loads(out)
+        self.assertEqual(d["content"], d["stdout"])
+        self.assertEqual(d["content"].splitlines(), [
+            "Fast-forward",
+            " docs/PLAN.md                 |  4 +-",
+            " [redacted: 3 line(s) naming spec-side files]",
+            " tests/golden.py              |  3 +",
+            " 5 files changed, 40 insertions(+)",
+            " create mode 100644 docs/PLAN.md",
+            " [redacted: 1 line(s) naming spec-side files]",
+            "exit=0"])
+        self.assertEqual(counts["spec-side file name in a git summary (lines)"], 8)
+        # Spec transcripts and plain mentions of the folders are left alone.
+        self.assertEqual(ar.redact_line(line, {}), line)
+        prose = json.dumps({"t": "the sparse checkout leaves out harness/\nand more"}) + "\n"
+        self.assertEqual(ar.redact_line(prose, {}, spec_files=names), prose)
+
     def test_settings_local_json_is_not_a_host_name(self):
         out = ar.redact_line(json.dumps({"t": "see .claude/settings.local.json"}) + "\n", {})
         self.assertIn("settings.local.json", out)
