@@ -270,6 +270,35 @@ training cutoff (see "Model cutoffs" below).
   anything on the forbidden list or anything under the three spec-side
   folders.
 
+### Session M0e, performance part (firmware side)
+- Date: 2026-10-22
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.308 (banner), Remote Control from the owner's phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `fbe5a7ff-8ae0-4c14-80aa-6bbda288912a`,
+  started by a `/clear` at 13:47:30Z (banner `source: clear`,
+  `status: OK`) in the same Claude Code job as M0d's second transcript.
+  Its own transcript is left for the next clean session to archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: `tools/clean-update.sh` fast-forwarded to `5c6efc6` and ended "no
+  spec-side files on disk or in .git"; `tools/private-terms.local` exists
+  (not opened). It archived M0d's two transcripts (`b7ed6c1a`,
+  `cd816ac2`) into `sessions/clean/`. The first try failed: the archiver's
+  e-mail rule took the `t` of a JSON tab escape before an address and broke
+  the line's JSON, and nothing was kept; the rule was fixed (with a test)
+  and the archive redone. `tools/check-transcripts.py` then flagged three
+  of `cd816ac2`'s shell commands, which only wrote code or PR text naming
+  the spec-side folders; with the owner's approval they are listed in
+  `sessions/REVIEWED.json`, and the check passes.
+- Reads: docs/PLAN.md, REQUIREMENTS.md, DESIGN-NOTES.md, HARNESS.md,
+  CONTRIBUTING.md (parts), this file, sessions/README.md, and this
+  repository's tools, workflows and firmware. It builds the firmware with
+  the pinned toolchain, disassembles it in the build container, and runs it
+  in fwtest through `tools/fwtest`. It does not open anything on the
+  forbidden list or anything under the three spec-side folders.
+
 ## Barrier log
 
 | When (UTC) | Folder | Settings SHA-256 | Event |
@@ -288,6 +317,7 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-22T11:31:22Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session M0c starts; banner `status: OK` |
 | 2026-10-22T11:38Z | same | `eaa5f875…ed542f810` | M0b's transcript archived into `sessions/spec/`, clean maintenance session 1's into `sessions/clean/` (merge summary redacted); `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-22T12:37:55Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M0d (started by the `/clear` at 11:31:15Z, banner `status: OK`) fast-forwards to `80864b9`; `tools/clean-setup.sh` banner `status: OK`; `tools/clean-update.sh` passed; `tools/check-transcripts.py` PASS |
+| 2026-10-22T13:47:30Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M0e (performance part) starts; banner `status: OK`; `tools/clean-update.sh` fast-forwarded to `5c6efc6` and passed; M0d's two transcripts archived; `tools/check-transcripts.py` PASS |
 
 ## Model cutoffs
 
