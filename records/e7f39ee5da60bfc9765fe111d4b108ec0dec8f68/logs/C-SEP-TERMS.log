@@ -1,0 +1,5 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-emulator-terms.py
+4458 emulator-only terms; 71 files, 2 commit messages, 0 pull request texts scanned
+emulator terms: PASS
+
+exit status 0

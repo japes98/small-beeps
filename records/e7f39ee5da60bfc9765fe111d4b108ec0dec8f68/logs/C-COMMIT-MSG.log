@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 8d55367fad20a53bf7b64865f607d52b060552c3..e7f39ee5da60bfc9765fe111d4b108ec0dec8f68
+OK     dd1635fb62d3 docs: exposure entry for clean maintenance session 1
+EXEMPT e7f39ee5da60 (merge) Merge pull request #6 from japes98/clean/maintenance-1
+2 commit(s) checked: PASS
+
+exit status 0
