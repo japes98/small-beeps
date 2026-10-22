@@ -107,6 +107,46 @@ class RecordTest(unittest.TestCase):
         finally:
             shutil.rmtree(out)
 
+    def test_a_record_file_holding_a_private_term_is_withheld(self):
+        out = tempfile.mkdtemp()
+        saved, saved_env = list(rec.CHECKS), os.environ.get("PRIVATE_TERMS")
+        try:
+            os.environ["PRIVATE_TERMS"] = "zebraword"
+            rec.CHECKS[:] = [{"id": "C-T", "title": "t", "reqs": ["R-PUB-3"],
+                              "cmd": ["sh", "-c", "printf 'a line with Zebra%s in it\\n' Word"]},
+                             {"id": "C-U", "title": "u", "reqs": ["R-PUB-3"], "cmd": ["echo", "fine"]}] + \
+                            [c for c in saved if c["id"] == "C-RECORD-PRIVATE"]
+            class A:
+                pass
+            a = A()
+            a.out, a.only, a.skip, a.with_merge = out, None, None, False
+            with contextlib.redirect_stdout(io.StringIO()) as printed:
+                code = rec.cmd_run(a)
+            self.assertEqual(code, 1)
+            self.assertNotIn("zebraword", printed.getvalue().lower())
+            with open(os.path.join(out, "report.json")) as f:
+                report = json.load(f)
+            self.assertEqual([c["id"] for c in report["checks"]], ["C-T", "C-U", "C-RECORD-PRIVATE"])
+            self.assertEqual(report["checks"][2]["result"], "FAIL")
+            self.assertEqual(report["overall"], "FAIL")
+            self.assertEqual([w["file"] for w in report["withheld"]], ["logs/C-T.log"])
+            self.assertFalse(os.path.exists(os.path.join(out, "logs", "C-T.log")))
+            sums = rec.read_sums(os.path.join(out, "SHA256SUMS"))
+            self.assertIn("WITHHELD.json", sums)
+            self.assertIn("logs/C-U.log", sums)
+            self.assertNotIn("logs/C-T.log", sums)
+            for dirpath, _, names in os.walk(out):
+                for n in names:
+                    with open(os.path.join(dirpath, n), "rb") as f:
+                        self.assertNotIn(b"zebraword", f.read().lower(), n)
+        finally:
+            rec.CHECKS[:] = saved
+            if saved_env is None:
+                del os.environ["PRIVATE_TERMS"]
+            else:
+                os.environ["PRIVATE_TERMS"] = saved_env
+            shutil.rmtree(out)
+
     def test_compare(self):
         d = tempfile.mkdtemp()
         try:

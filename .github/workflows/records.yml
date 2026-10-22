@@ -86,6 +86,8 @@ jobs:
           name: record-${{ github.sha }}
           path: out/${{ github.sha }}
           if-no-files-found: error
+          # The record itself is kept on the records branch; the artifact is a convenience.
+          retention-days: 14
 
       - name: Append to the records branch
         env:

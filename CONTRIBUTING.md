@@ -303,6 +303,12 @@ finds such a term in the repository tells the owner instead of repeating it.
   hooks scan staged files and the message (`tools/install-hooks.sh` turns
   them on). A hit is reported by file and line only, never the term. CI
   fails when the secret is missing.
+- **Records are scanned too** (since M1). Before a test record, an audit
+  report or a C-MERGE re-check is hashed, uploaded or pushed, any file in
+  it holding a term is withheld: deleted, and listed with the SHA-256 of
+  the original in `WITHHELD.json`, which the record keeps (C-RECORD-PRIVATE).
+  The original is not kept anywhere; the checks are deterministic, so it
+  can be regenerated and matched to its hash. CI artifacts are kept 14 days.
 - **Older records stay as they are.** A file under `sessions/` or
   `docs/prompts/` whose blob is identical to the same path at the base
   commit in `config/private-base` (the last main commit before the check)
