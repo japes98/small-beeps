@@ -124,7 +124,11 @@ results (pass/fail, hashes, images, numbers), never emulator source.
 `tools/check-emulator-terms.py` (C-SEP-TERMS) looks for identifiers that
 occur only in `vendor/emulator/` in all of those places and reports a hit
 by place and hash, never the word; run it (with `--show`, in a spec folder)
-on your commit messages before you push. People review the two doors.
+on your commit messages before you push. People review the two doors, so a
+term that occurs in either of them as merged on main is accepted everywhere
+(read from main's commit, never the working tree: a term a branch adds to a
+door is still a hit until that change has merged). Other reviewed false
+positives are listed by hash in `config/emulator-terms-reviewed.json`.
 
 ## Commit messages
 

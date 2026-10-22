@@ -270,6 +270,29 @@ training cutoff (see "Model cutoffs" below).
   anything on the forbidden list or anything under the three spec-side
   folders.
 
+### Session M0e-spec (the similarity audit, harness follow-ups)
+- Date: 2026-10-22
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.308 (`claude --version`), Remote Control from the
+  owner's phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `fbbe5c07-7ec8-41d0-a3e4-cabd7765042f`,
+  `https://claude.ai/code/session_01RWVcKRtXA4USAZaVZw4ZzA`.
+- Where it ran: the owner's Mac, in `~/<top>/spec`, started by `/clear`
+  after M0c; banner `status: OK`, and again after `tools/spec-setup.sh`.
+- What it archived: M0c's transcript (and its one subagent) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS. It left the clean
+  sessions alone (the clean side archives its own).
+- Exposure: reads the harness source (`harness/`) and the vendored emulator
+  (`vendor/emulator/`) where fwtest decides that core 0 is waiting, and the
+  separation check's tools. For the similarity audit it reads **metadata
+  only** about the GPL firmwares (repository names, owners, URLs, commit
+  SHAs, from GitHub's API and `git ls-remote`); it never opens their files,
+  READMEs or web pages, and their sources are fetched only inside the audit
+  job in CI, which prints scores and file names alone. It reads JPlag's
+  release metadata and the control project's metadata and licence.
+
 ### Session M0e, performance part (firmware side)
 - Date: 2026-10-22
 - Role: firmware side (clean).
@@ -322,6 +345,7 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-22T11:31:22Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session M0c starts; banner `status: OK` |
 | 2026-10-22T11:38Z | same | `eaa5f875…ed542f810` | M0b's transcript archived into `sessions/spec/`, clean maintenance session 1's into `sessions/clean/` (merge summary redacted); `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-22T12:37:55Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M0d (started by the `/clear` at 11:31:15Z, banner `status: OK`) fast-forwards to `80864b9`; `tools/clean-setup.sh` banner `status: OK`; `tools/clean-update.sh` passed; `tools/check-transcripts.py` PASS |
+| 2026-10-22T12:37:16Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session M0e-spec starts; banner `status: OK`. 13:48:09Z: `tools/spec-setup.sh`, banner `status: OK`; M0c's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-22T13:47:30Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M0e (performance part) starts; banner `status: OK`; `tools/clean-update.sh` fast-forwarded to `5c6efc6` and passed; M0d's two transcripts archived; `tools/check-transcripts.py` PASS |
 
 ## Model cutoffs
