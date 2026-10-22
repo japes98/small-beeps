@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Daily: upgrades pending OpenTimestamps proofs on the records branch once
+# Bitcoin has confirmed them (R-REC-2). The upgraded proof is added as a new
+# file, SHA256SUMS.upgraded.ots, beside the original SHA256SUMS.ots, which is
+# never rewritten.
+name: ots-upgrade
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: records
+  cancel-in-progress: false
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: records
+    steps:
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install opentimestamps-client
+        run: python -m pip install --disable-pip-version-check opentimestamps-client==0.7.2
+
+      - name: Upgrade pending proofs
+        env:
+          DEPLOY_KEY: ${{ secrets.RECORDS_DEPLOY_KEY }}
+        run: |
+          set -eu
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/records_key && chmod 600 ~/.ssh/records_key
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/records_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+          url="git@github.com:$GITHUB_REPOSITORY.git"
+          if ! git ls-remote --exit-code --heads "$url" records >/dev/null; then
+            echo "no records branch yet"; exit 0
+          fi
+          git clone --quiet --branch records --single-branch "$url" rec
+          upgraded=0
+          for proof in $(find rec/records -name SHA256SUMS.ots | sort); do
+            dir=$(dirname "$proof")
+            [ -e "$dir/SHA256SUMS.upgraded.ots" ] && continue
+            cp "$proof" /tmp/candidate.ots
+            if ots upgrade /tmp/candidate.ots && ! ots info /tmp/candidate.ots | grep -q PendingAttestation; then
+              cp /tmp/candidate.ots "$dir/SHA256SUMS.upgraded.ots"
+              echo "upgraded $dir"
+              upgraded=$((upgraded + 1))
+            else
+              echo "still pending: $dir"
+            fi
+            rm -f /tmp/candidate.ots /tmp/candidate.ots.bak
+          done
+          if [ "$upgraded" -gt 0 ]; then
+            cd rec
+            git add records
+            git -c user.name="small-beeps records" -c user.email="records@users.noreply.github.com" \
+              commit --quiet -m "records: $upgraded upgraded OpenTimestamps proof(s)" \
+              -m "Written by run https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
+            git push --quiet origin records
+          fi
+          rm -f ~/.ssh/records_key
