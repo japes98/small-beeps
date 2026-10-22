@@ -14,7 +14,9 @@ C-PERF and C-PERF-PROBES; R-PERF-1 to R-PERF-5).
   perf.py probes --build DIR --out DIR
       Builds the firmware with SB_PROBE_SLOW and with SB_PROBE_BIG
       (firmware/src/probe.c), measures each, and checks that the gates
-      fail each one for its own reason, measured against DIR/app.bin.
+      fail each one for its own reason, measured against DIR/app.bin: the
+      slower build its speed, the bigger build each budget, with the
+      unmodified build's sizes as the budgets.
       Exit status 1 if any gate did not fail as it should.
   perf.py history --record REPORT.json --csv FILE
       Appends the record's line to perf-history.csv (records workflow).
@@ -312,21 +314,30 @@ def cmd_check(a):
     return 1 if result == "FAIL" else 0
 
 
-# Each probe build, and the gates it must fail (and only those, for a
-# budget probe's size gates; the slow probe must leave every budget alone).
+# Each probe build, the gates it must fail, and whose sizes are its
+# budgets: the unmodified build's for the bigger probe, so it fails each
+# budget whatever config/budgets.json allows (budgets only rise); its own
+# for the slower probe, so only its speed is under test.
 PROBES = [
-    ("SB_PROBE_SLOW", {"speed"}, set(BUDGETED)),
-    ("SB_PROBE_BIG", set(BUDGETED), set()),
+    ("SB_PROBE_SLOW", {"speed"}, "probe"),
+    ("SB_PROBE_BIG", set(BUDGETED), "reference"),
 ]
 
 
-def check_probe(define, verdicts, must_fail, must_pass):
-    """Problems with one probe's verdicts."""
+def probe_budgets(sizes, budgets, whose):
+    """budgets with each limit set to the sizes measured in `sizes`."""
+    return {"milestone": whose, "limits": {k: sizes[k] for k in BUDGETED},
+            "speed_rise_percent": budgets["speed_rise_percent"]}
+
+
+def check_probe(define, verdicts, must_fail):
+    """Problems with one probe's verdicts: each gate in must_fail must fail,
+    and no other."""
     res = {v["gate"]: v["result"] for v in verdicts}
     probs = ["%s: %s did not fail (%s)" % (define, g, res.get(g, "not run")) for g in sorted(must_fail)
              if res.get(g) != "FAIL"]
-    probs += ["%s: %s failed, but this probe should not touch it" % (define, g) for g in sorted(must_pass)
-              if res.get(g) == "FAIL"]
+    probs += ["%s: %s failed, but this probe should not touch it" % (define, g) for g in sorted(res)
+              if g not in must_fail and res[g] == "FAIL"]
     if "measurement" in res:
         probs.append("%s: the measurement failed" % define)
     return probs
@@ -344,7 +355,7 @@ def cmd_probes(a):
     print_verdicts(control)
     if failed(control) or ref.get("error"):
         problems.append("the unmodified build does not pass against itself")
-    for define, must_fail, must_pass in PROBES:
+    for define, must_fail, whose in PROBES:
         build = os.path.join(out, define.lower(), "build")
         p = subprocess.run(["sh", "tools/build.sh", "build", "--out", build, "--define", define], cwd=ROOT,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -354,9 +365,14 @@ def cmd_probes(a):
             continue
         m = measure_build(build, os.path.join(out, define.lower(), "fwtest"), define)
         print(describe(m))
-        verdicts = gate(m, ref, budgets)
+        if m.get("error"):
+            problems.append("%s: %s" % (define, m["error"]))
+            continue
+        limits = probe_budgets(ref if whose == "reference" else m, budgets,
+                               "unmodified build's" if whose == "reference" else "probe's own")
+        verdicts = gate(m, ref, limits)
         print_verdicts(verdicts)
-        problems += check_probe(define, verdicts, must_fail, must_pass)
+        problems += check_probe(define, verdicts, must_fail)
         shutil.rmtree(build, ignore_errors=True)
     shutil.rmtree(os.path.join(ROOT, "out", "perf-run"), ignore_errors=True)
     for prob in problems:

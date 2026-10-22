@@ -234,11 +234,16 @@ Format for each entry:
     records' files, says "no baseline" and compares nothing.
   - Tests of the gates (C-PERF-PROBES): the firmware built with
     `SB_PROBE_SLOW` (20 volatile loop passes per beat) must fail the speed
-    gate and no budget; built with `SB_PROBE_BIG` (a 1 KiB table, 256
+    gate and nothing else; built with `SB_PROBE_BIG` (a 1 KiB table, 256
     bytes of zeroed data, a 512-byte stack frame) it must fail each of the
-    three budgets. Both are measured against the unmodified build in the
-    same run, not against the records branch, so they test the gates
-    whether or not a baseline exists. The probes' code is in
+    three budgets, and nothing else. Both are measured against the
+    unmodified build in the same run, not against the records branch, so
+    they test the gates whether or not a baseline exists. The bigger
+    probe's budgets are the unmodified build's own sizes, not
+    `config/budgets.json`'s, so raising a budget (M1 will) never makes the
+    probe pass; the slower probe's budgets are its own sizes, so only its
+    speed is under test. When M1 replaces the polling heartbeat, the slow
+    probe's hook moves with the per-beat work. The probes' code is in
     `firmware/src/probe.c` and two guarded calls in `main.c`; without the
     defines nothing of it is compiled (the image is byte for byte M0d's),
     and `tools/build.sh --define` exists for these builds only.

@@ -107,10 +107,13 @@ jobs:
           fi
           mkdir -p "$dest"
           cp -R "out/$GITHUB_SHA/." "$dest/"
-          # One line per main commit; a re-run adds none.
-          python tools/perf.py history --record "out/$GITHUB_SHA/report.json" --csv rec/perf-history.csv
+          # One line per main commit; a re-run adds none. A problem with
+          # the history must never keep the record from being pushed.
+          python tools/perf.py history --record "out/$GITHUB_SHA/report.json" --csv rec/perf-history.csv \
+            || echo "::error::perf-history.csv: no line appended for $GITHUB_SHA"
           cd rec
-          git add records perf-history.csv
+          git add records
+          if [ -e perf-history.csv ]; then git add perf-history.csv; fi
           git -c user.name="small-beeps records" -c user.email="records@users.noreply.github.com" \
             commit --quiet -m "records: $GITHUB_SHA" \
             -m "Record of commit $GITHUB_SHA, written by run https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)."

@@ -213,7 +213,8 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     and in the CI run's summary. Raising a budget takes its own pull
     request (CONTRIBUTING.md). C-PERF-PROBES builds the firmware once
     deliberately slower and once deliberately bigger and checks that the
-    gates fail each for its own reason. Requirements R-PERF-1 to
+    gates fail each for its own reason, against the unmodified build
+    measured in the same run. Requirements R-PERF-1 to
     R-PERF-5; design: docs/DESIGN-NOTES.md (M0e).
   - **History**: the records workflow appends one line per main commit
     to `perf-history.csv` at the root of the `records` branch, never

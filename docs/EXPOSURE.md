@@ -292,9 +292,14 @@ training cutoff (see "Model cutoffs" below).
   of `cd816ac2`'s shell commands, which only wrote code or PR text naming
   the spec-side folders; with the owner's approval they are listed in
   `sessions/REVIEWED.json`, and the check passes.
+- Privacy: tool output showed the local username and top folder in paths
+  (the archiver's messages, the Claude Code project folder's name); they
+  were never written to the repository, and the archiver redacts them
+  from this transcript.
 - Reads: docs/PLAN.md, REQUIREMENTS.md, DESIGN-NOTES.md, HARNESS.md,
-  CONTRIBUTING.md (parts), this file, sessions/README.md, and this
-  repository's tools, workflows and firmware. It builds the firmware with
+  CONTRIBUTING.md (parts), this file, sessions/README.md, the redacted
+  archive of `cd816ac2` (the three flagged commands, to review them), and
+  this repository's tools, workflows and firmware. It builds the firmware with
   the pinned toolchain, disassembles it in the build container, and runs it
   in fwtest through `tools/fwtest`. It does not open anything on the
   forbidden list or anything under the three spec-side folders.

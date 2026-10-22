@@ -79,14 +79,30 @@ class GateTest(unittest.TestCase):
 
     def test_probe_expectations(self):
         slow = perf.gate(measured(200000), measured(), BUDGETS)
-        self.assertEqual(perf.check_probe("SLOW", slow, {"speed"}, {"code", "static_ram", "stack_high_water"}), [])
+        self.assertEqual(perf.check_probe("SLOW", slow, {"speed"}), [])
         # a probe the gate let through is a problem
-        self.assertTrue(perf.check_probe("SLOW", perf.gate(measured(), measured(), BUDGETS), {"speed"}, set()))
+        self.assertTrue(perf.check_probe("SLOW", perf.gate(measured(), measured(), BUDGETS), {"speed"}))
         # and so is one that failed a gate it should not touch
         both = perf.gate(measured(200000, code=9999), measured(), BUDGETS)
-        self.assertTrue(perf.check_probe("SLOW", both, {"speed"}, {"code"}))
+        self.assertTrue(perf.check_probe("SLOW", both, {"speed"}))
         big = perf.gate(measured(code=9999, static_ram=999, stack=999), measured(), BUDGETS)
-        self.assertEqual(perf.check_probe("BIG", big, {"code", "static_ram", "stack_high_water"}, set()), [])
+        self.assertEqual(perf.check_probe("BIG", big, {"code", "static_ram", "stack_high_water"}), [])
+
+    def test_probe_budgets_follow_the_measured_build(self):
+        # The bigger probe is gated against the unmodified build's sizes, so
+        # it fails each budget however far config/budgets.json is raised.
+        ref = measured(code=300, static_ram=40, stack=8)
+        big = measured(code=1348, static_ram=280, stack=516)
+        raised = dict(BUDGETS, limits={"code": 4096, "static_ram": 4096, "stack_high_water": 4096})
+        self.assertFalse(perf.failed(perf.gate(big, ref, raised)))
+        limits = perf.probe_budgets(ref, raised, "reference")
+        self.assertEqual(limits["limits"], {"code": 300, "static_ram": 40, "stack_high_water": 8})
+        self.assertEqual(perf.check_probe("BIG", perf.gate(big, ref, limits),
+                                          {"code", "static_ram", "stack_high_water"}), [])
+        # the slower probe, against its own sizes, can fail only its speed
+        slow = measured(400000, code=344)
+        self.assertEqual(perf.check_probe("SLOW", perf.gate(slow, ref, perf.probe_budgets(slow, raised, "own")),
+                                          {"speed"}), [])
 
     def test_the_real_budgets_load(self):
         b = perf.load_budgets()
