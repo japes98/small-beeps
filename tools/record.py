@@ -6,7 +6,9 @@
   record.py run --out DIR [--only C-A,C-B] [--skip C-X] [--with-merge]
       Runs the checks in CHECKS, writes DIR/report.json, DIR/report.md,
       DIR/logs/<check>.log, DIR/outputs/ (the build outputs), DIR/fwtest/
-      (the firmware suite's outputs) and DIR/SHA256SUMS (of all of those). Exit status 1 if any check failed.
+      (the firmware suite's outputs), DIR/spec-experiments.sha256 (the
+      names and SHA-256 of the spec experiments' outputs, never the files)
+      and DIR/SHA256SUMS (of all of those). Exit status 1 if any check failed.
       Before hashing, C-RECORD-PRIVATE withholds any file holding a private
       term, listing it in DIR/WITHHELD.json with the original's SHA-256.
   record.py compare --record REPORT.json --outputs DIR
@@ -274,6 +276,19 @@ def harness_determinism():
     return (0 if ok else 1), "\n".join(lines) + "\n"
 
 
+def hashes_only(top, manifest):
+    """Replaces a folder of spec-experiment outputs (memory dumps, captures,
+    audio) with a list of their names and SHA-256: a record never keeps the
+    files themselves (CONTRIBUTING.md, "Records in a clean folder")."""
+    if not os.path.isdir(top):
+        return
+    files = tree_files(top)
+    with open(manifest, "w") as f:
+        for name in sorted(files):
+            f.write("%s  %s\n" % (files[name], name))
+    shutil.rmtree(top)
+
+
 def dockerfile_pins():
     pins = {}
     with open(os.path.join(ROOT, "tools", "Dockerfile")) as f:
@@ -496,6 +511,7 @@ def cmd_run(a):
             shutil.copyfile(os.path.join(build_a, name), os.path.join(OUT, "outputs", name))
     for d in ("build-a", "build-b", "harness-a", "harness-b"):
         shutil.rmtree(os.path.join(OUT, d), ignore_errors=True)
+    hashes_only(os.path.join(OUT, "spec-experiments"), os.path.join(OUT, "spec-experiments.sha256"))
     for c in CHECKS:
         if not c.get("last") or c["id"] in skip or (only is not None and c["id"] not in only):
             continue
