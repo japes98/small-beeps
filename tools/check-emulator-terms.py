@@ -22,7 +22,9 @@ side reads:
 The list is built at run time from vendor/emulator/ and never written down:
 identifier-shaped words (with an underscore, inner capitals, or letters and
 digits mixed; four characters or more, not just hex digits) and hex numbers
-of four digits or more. Terms that already occur in CLEAN_BASELINE's tree
+of four digits or more, except universal constants (powers of two, 2^n-1,
+2^n+1, sign-bit masks and IEEE 754's standard patterns: universal(), by
+rule, since SR-4's note). Terms that already occur in CLEAN_BASELINE's tree
 (the repository as the clean side left it at the end of M0a, before any
 emulator source entered it) or in vendor/jieli-sdk/ (whole identifiers, or the parts of one between
 underscores) are not on the list. Since M4b (the owner's decision) neither
@@ -89,9 +91,41 @@ def shaped(w):
     return bool(re.search(r"[A-Za-z]", w) and re.search(r"[0-9]", w))
 
 
+def power_of_two(v):
+    return v > 0 and v & (v - 1) == 0
+
+
+def ieee754(v):
+    """Whether v is a standard IEEE 754 single or double bit pattern: an
+    infinity or the quiet NaN (either sign; the exponent field all ones,
+    the fraction zero or only its top bit), or a signed power of two whose
+    unbiased exponent is 0, +-23 (single) or +-52 (double), i.e. one,
+    2^+-23 and 2^+-52 (the fraction zero)."""
+    for width, frac in ((32, 23), (64, 52)):
+        if v >> width:
+            continue
+        ebits = width - 1 - frac
+        emax, bias = (1 << ebits) - 1, (1 << (ebits - 1)) - 1
+        e, m = (v >> frac) & emax, v & ((1 << frac) - 1)
+        if e == emax and m in (0, 1 << (frac - 1)):
+            return True
+        if m == 0 and e - bias in (0, frac, -frac):
+            return True
+    return False
+
+
+def universal(v):
+    """Numbers that are universal constants, never emulator terms (since
+    SR-4's note; R-SEP-1), by rule rather than by list: powers of two (the
+    sign-bit masks among them), 2^n-1 (all-ones masks, the masks below a
+    sign bit, IEEE 754's exponent biases and fraction masks), 2^n+1, and
+    IEEE 754's standard single and double patterns (ieee754)."""
+    return power_of_two(v) or power_of_two(v + 1) or power_of_two(v - 1) or ieee754(v)
+
+
 def norm_hex(h):
     v = int(h[2:].replace("_", ""), 16)
-    return "0x%x" % v if v >= 0x1000 else None
+    return "0x%x" % v if v >= 0x1000 and not universal(v) else None
 
 
 def terms_of(text):

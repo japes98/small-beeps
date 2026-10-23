@@ -26,6 +26,21 @@ class EmulatorTermsTest(unittest.TestCase):
     def test_hex_numbers_are_terms_from_four_digits(self):
         self.assertEqual(terms.terms_of("a 0x0ABC_D123 b 0x12 c 0x0fff"), {"0xabcd123"})
 
+    def test_universal_constants_are_not_terms(self):
+        """By rule (R-SEP-1, since SR-4's note): powers of two, 2^n-1, 2^n+1,
+        sign-bit masks and IEEE 754's standard patterns."""
+        for v in (0x1000, 0x80000000, 0x8000000000000000, 0xffff, 0x7fffffff, 0xffffffff, 0x7fffff,
+                  0x10001, 0x100000001,
+                  0x3f800000, 0xbf800000, 0x7f800000, 0xff800000, 0x7fc00000, 0xffc00000,
+                  0x4b000000, 0x34000000,
+                  0x3ff0000000000000, 0x7ff0000000000000, 0xfff0000000000000, 0x7ff8000000000000,
+                  0x4330000000000000, 0x3cb0000000000000):
+            self.assertTrue(terms.universal(v), hex(v))
+            self.assertEqual(terms.terms_of("x 0x%x y" % v), set(), hex(v))
+        for v in (0x1c7f0, 0x01eef0d0, 0x3f800001, 0x40490fdb, 0x7fc00001, 0x13572468, 0x3e800000):
+            self.assertFalse(terms.universal(v), hex(v))
+            self.assertEqual(terms.terms_of("x 0x%x y" % v), {"0x%x" % v}, hex(v))
+
     def test_hits_report_place_and_hash_only(self):
         # built at run time, so this file holds no emulator identifier
         word = "made" + "_up_" + "term"
@@ -126,6 +141,15 @@ class PlaitsTermsTest(unittest.TestCase):
         self.assertIn("vendor/plaits/", terms.EXCLUDE)
         code, out = self.run_check()
         self.assertNotIn("vendor/plaits/", "".join(l for l in out.splitlines(True) if l.startswith("HIT")))
+
+    def test_a_universal_constant_passes_and_an_emulator_only_number_fails(self):
+        self.write("vendor/emulator/model.rs", "0x3f800000 0x7fffffff 0x1c7f0\n")
+        self.write("docs/NOTES.md", "one is 0x3f800000, a mask 0x7fffffff\nand 0x1c7f0\n")
+        subprocess.run(["git", "-C", self.dir, "add", "-A"], check=True)
+        code, out = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertNotIn("docs/NOTES.md:1", out)
+        self.assertIn("HIT docs/NOTES.md:2 term %s" % terms.h("0x1c7f0"), out)
 
     def test_our_own_notes_in_vendor_plaits_are_scanned(self):
         # SOURCE.md is ours, not upstream's: scanned (since SR-4)
