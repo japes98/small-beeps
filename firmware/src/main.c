@@ -2,9 +2,11 @@
  * SPDX-License-Identifier: MIT
  * SPDX-FileCopyrightText: 2026 japes98
  *
- * M1's firmware: check that startup gave C its memory, write the marker,
- * measure the core clock, then run on a 1 ms tick interrupt that keeps
- * the heartbeat, idling in between.
+ * The firmware's main: check that startup gave C its memory, write the
+ * marker, measure the core clock, start the 1 ms tick interrupt that
+ * keeps the heartbeat (M1), bring up the screen and show the address
+ * pattern, then the test screen (M2), and idle between ticks, putting the
+ * heartbeat on the screen once a second.
  */
 
 #include "sb.h"
@@ -26,6 +28,18 @@
 #define TICK_ACK     (1u << 14)
 #define TICK_PRD     1500u
 
+/* HW-19, HW-20: the sources main enables, and their priorities. The tick
+ * is above SPI1's, so a tick waits at most for one short SPI1 handler
+ * (DESIGN-NOTES.md, M2). */
+#define SRC_TIMER0   4u
+#define SRC_SPI1     16u
+#define PRIO_TICK    1u
+#define PRIO_SPI1    0u
+
+/* When the test screen replaces the address pattern, in beats. */
+#define TEST_SCREEN_MS 500u
+#define BEATS_PER_SECOND 1000u
+
 extern u32 __stack_limit[], __irq_stack_top[];
 
 volatile struct sb_beacon sb_beacon __attribute__((section(".beacon")));
@@ -39,6 +53,21 @@ static volatile u32 bss_probe;
  * it, the ticks counted into beats so far, the time base at the last
  * tick. */
 static u32 tb_start, tb_done, tb_last;
+
+u32 sb_now(void)
+{
+    return JL_TIMER4->CNT;
+}
+
+/* Waits at least ms milliseconds on the heartbeat, idling between ticks:
+ * one beat more, since the first may be nearly over. */
+void sb_wait_ms(u32 ms)
+{
+    u32 until = sb_beacon.beats + ms + 1;
+
+    while ((int)(sb_beacon.beats - until) < 0)
+        __asm__ volatile("idle");
+}
 
 void sb_console_write(const char *text, u32 words)
 {
@@ -94,7 +123,7 @@ void sb_tick(void)
 
 int main(void)
 {
-    static const char hello[16] = "small-beeps M1 \n";
+    static const char hello[16] = "small-beeps M2 \n";
 
     sb_beacon.period = TICKS_PER_MS;
     if (data_probe == 0x5EED0001u && bss_probe == 0) {
@@ -117,7 +146,9 @@ int main(void)
     sb_probe_stack();
 #endif
 
-    sb_irq_init(sb_tick);
+    sb_irq_init();
+    sb_irq_enable(SRC_TIMER0, sb_tick, PRIO_TICK);
+    sb_irq_enable(SRC_SPI1, lcd_spi_done, PRIO_SPI1);
     JL_TIMER0->CNT = 0;
     JL_TIMER0->PRD = TICK_PRD;
     JL_TIMER0->CON = TICK_CON;
@@ -132,9 +163,54 @@ int main(void)
 #if defined(SB_TEST_BADINSN)
     sb_test_badinsn();
 #endif
-    /* Everything happens in sb_tick; between ticks the core waits. */
-    for (;;) {
-        __asm__ volatile("idle");
-        sb_beacon.wakes++;
+
+    /* The screen: the controller's start, the address pattern sent while
+     * the display is still off, then display on (DESIGN-NOTES.md, M2). */
+    lcd_init();
+    screen_pattern();
+    lcd_send_rows(0, SCREEN_H);
+    lcd_command(LCD_DISPON, 0, 0);
+    sb_beacon.screen = SB_SCREEN_PATTERN;
+
+    if (sb_beacon.beats + 1 < TEST_SCREEN_MS)
+        sb_wait_ms(TEST_SCREEN_MS - 1 - sb_beacon.beats);
+    {
+        u32 t = sb_now();
+        screen_test();
+        sb_beacon.render_ticks = sb_now() - t;
+    }
+    lcd_send_rows(0, SCREEN_H);
+    sb_beacon.screen = SB_SCREEN_TEST;
+#if defined(SB_TEST_FLOOD)
+    sb_test_flood();
+#endif
+
+    /* Between ticks the core waits. Each return from the wait is one tick
+     * (in steady state nothing else wakes it: the heartbeat's rows go as
+     * one transfer whose end is polled), so counting them in a register
+     * finds each whole second without reading anything else, and the
+     * heartbeat goes on the screen then. The count reaches the beacon once
+     * a second, with the ticks taken at that moment, so the test can still
+     * check one wake a tick while the loop stays three instructions, as in
+     * M1 (DESIGN-NOTES.md, M2). */
+    {
+        u32 wakes, next, b;
+
+        lcd_wait();
+        wakes = sb_beacon.wakes;
+        b = sb_beacon.beats;
+        sb_beacon.loop_ticks = sb_beacon.tick_count;
+        while (b >= BEATS_PER_SECOND)
+            b -= BEATS_PER_SECOND;
+        next = wakes + BEATS_PER_SECOND - b;
+        for (;;) {
+            __asm__ volatile("idle");
+            if (++wakes == next) {
+                next += BEATS_PER_SECOND;
+                sb_beacon.wakes = wakes;
+                sb_beacon.wakes_ticks = sb_beacon.tick_count;
+                screen_beat();
+            }
+        }
     }
 }
