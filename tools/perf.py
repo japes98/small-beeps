@@ -56,7 +56,9 @@ The gates: each budget in config/budgets.json for the current milestone
 must hold: code, static RAM, stack high-water, startup instructions and
 steady-state instructions per period. Steady-state instructions per period
 may also rise by at most `speed_rise_percent` against the baseline, when
-the baseline's record was made under the same steady-state budget;
+the baseline's record was made under the same steady-state budget and was
+not the first record made under it (since M3: that record is the raise's
+own merge, which still holds the firmware from before the raise);
 otherwise that comparison is not made, and the record says why. A fall of
 more than that is reported as an improvement. Startup has its budget but
 no such comparison. The count is deterministic, so there is no noise
@@ -307,18 +309,34 @@ def budget_value(m, k):
     return m.get(k)
 
 
-def comparable(budgets, base_budgets):
+def steady_budget(budgets):
+    return ((budgets or {}).get("limits") or {}).get("steady_per_period")
+
+
+def first_under_budget(recorded):
+    """Whether a record's perf section (report.json's `perf`) was the first
+    made under its steady-state budget: its own baseline's record was made
+    under another budget, or none. That record is the merge of the pull
+    request that raised the budget, so it still holds the firmware from
+    before the raise (since M3)."""
+    recorded = recorded or {}
+    return steady_budget(recorded.get("baseline_budgets")) != steady_budget(recorded.get("budgets"))
+
+
+def comparable(budgets, base_budgets, base_first=False):
     """Whether the baseline's record was made under the same steady-state
-    budget: the only case the 3% comparison is made (since M2)."""
-    if not base_budgets:
+    budget (since M2), and was not the first made under it (since M3): the
+    only case the 3% comparison is made."""
+    if not base_budgets or base_first:
         return False
-    return (base_budgets.get("limits") or {}).get("steady_per_period") == budgets["limits"]["steady_per_period"]
+    return steady_budget(base_budgets) == budgets["limits"]["steady_per_period"]
 
 
-def gate(cur, base, budgets, base_budgets=None):
+def gate(cur, base, budgets, base_budgets=None, base_first=False):
     """The gates' verdicts: a list of {gate, result, detail}, result one of
     PASS, FAIL, IMPROVED (passes) and NOT COMPARED (passes). base_budgets
-    are the budgets the baseline's record was made under."""
+    are the budgets the baseline's record was made under; base_first says
+    it was the first record made under them (first_under_budget)."""
     out = []
     if cur.get("error"):
         out.append({"gate": "measurement", "result": "FAIL", "detail": cur["error"]})
@@ -339,9 +357,17 @@ def gate(cur, base, budgets, base_budgets=None):
     elif base is None or base.get("error"):
         why = "no baseline" if base is None else "the baseline: " + base["error"]
         out.append({"gate": "speed", "result": "NOT COMPARED", "detail": why})
+    elif base_first and steady_budget(base_budgets) == budgets["limits"]["steady_per_period"]:
+        c, b = per_period(cur), per_period(base)
+        out.append({"gate": "speed", "result": "NOT COMPARED", "detail":
+                    "%.3f steady-state instructions per period, %.3f before (%+.2f%%), but the baseline's "
+                    "record was the first made under this %s budget of %d (the raise's own merge, which "
+                    "still holds the firmware from before it)"
+                    % (float(c), float(b), float((c - b) * 100 / b),
+                       budgets["milestone"], budgets["limits"]["steady_per_period"])})
     elif not comparable(budgets, base_budgets):
         c, b = per_period(cur), per_period(base)
-        was = ((base_budgets or {}).get("limits") or {}).get("steady_per_period")
+        was = steady_budget(base_budgets)
         out.append({"gate": "speed", "result": "NOT COMPARED", "detail":
                     "%.3f steady-state instructions per period, %.3f before (%+.2f%%), but the baseline's "
                     "record was made under %s, not this %s budget of %d"
@@ -416,7 +442,8 @@ def cmd_check(a):
                 base_recorded = json.loads(files["report.json"].decode()).get("perf")
             except ValueError:
                 pass
-    verdicts = gate(cur, base, budgets, (base_recorded or {}).get("budgets"))
+    verdicts = gate(cur, base, budgets, (base_recorded or {}).get("budgets"),
+                    base_recorded is not None and first_under_budget(base_recorded))
     print_verdicts(verdicts)
     result = "FAIL" if failed(verdicts) else "PASS"
     perf = {"period": PERIOD, "runs_ms": list(RUN_MS), "budgets": budgets, "current": cur, "baseline": base,

@@ -6,9 +6,12 @@ import shutil
 import tempfile
 import unittest
 
-from tests.helpers import load_tool
+from tests.helpers import PLACEHOLDER_FOLDERS, load_tool
 
 ct = load_tool("check-transcripts.py")
+# The spec-side folders' rules built from made-up names (tests/helpers.py),
+# as check-transcripts.py builds them from config/spec-side-folders.
+ct.configure(PLACEHOLDER_FOLDERS)
 SID = "11111111-2222-3333-4444-555555555555"
 BANNER_OK = ("=== small-beeps session banner v1 ===\nrole: clean\nstatus: OK\n"
              "=== end of banner ===\n")
@@ -68,29 +71,29 @@ class TranscriptTest(unittest.TestCase):
 
     def test_forbidden_reads_fetches_and_commands_fail(self):
         cases = [
-            call("Read", file_path="/w/vendor/emulator/src/lib.rs"),
-            call("Read", file_path="./harness/src/main.rs"),
+            call("Read", file_path="/w/spa/one/src/lib.rs"),
+            call("Read", file_path="./sptwo/src/main.rs"),
             call("Grep", pattern="lcd", path="/w/fm1-sid"),
             call("WebFetch", url="https://github.com/hugelton/Felucca"),
             call("WebFetch", url="https://thefirmwarehub.com/x"),
             call("Bash", command="git clone https://github.com/zvenson/dinghy"),
             call("Bash", command="cat ../fm1-emu/crates/fm1-soc/src/lcd.rs"),
             call("Glob", pattern="**/probes/lcdtest.c"),
-            call("Bash", command="ls harness"),
-            call("Bash", command="cat vendor/emulator/README"),
+            call("Bash", command="ls sptwo"),
+            call("Bash", command="cat spa/one/README"),
             call("WebFetch", url="https://github.com/AL-255/FM-1-RE/tree/main/firmware-images"),
-            call("Read", file_path="/w/sessions/spec/2026-10-22-spec-x.jsonl"),
-            call("Bash", command="ls sessions/spec"),
+            call("Read", file_path="/w/spl/three/2026-10-22-spec-x.jsonl"),
+            call("Bash", command="ls spl/three"),
         ]
         for c in cases:
             p = self.write([hook(BANNER_OK), c])
             self.assertTrue(any("forbidden" in x for x in self.problems(p)), json.dumps(c))
 
     def test_reviewed_hits_pass_only_for_that_exact_call(self):
-        c = call("Bash", command="printf 'leaves out vendor/emulator/' > msg.txt")
+        c = call("Bash", command="printf 'leaves out spa/one/' > msg.txt")
         c["message"]["content"][0]["id"] = "toolu_1"
         p = self.write([hook(BANNER_OK), c])
-        rule = "vendor/emulator/ (spec side)"
+        rule = "spa/one/ (spec side)"
         self.assertTrue(self.problems(p))
         ok = ct.check_session(p, {(SID, "toolu_1", rule): "writes a message only"})
         self.assertEqual(ok[0], [])
@@ -106,40 +109,40 @@ class TranscriptTest(unittest.TestCase):
 
     def test_heredoc_that_only_edits_the_reviewed_list_passes(self):
         body = ("import json\np='sessions/REVIEWED.json'; d=json.load(open(p))\n"
-                "d['reviewed'].append({'reason': 'names harness/ and vendor/emulator/ and sessions/spec/'})\n"
+                "d['reviewed'].append({'reason': 'names sptwo/ and spa/one/ and spl/three/'})\n"
                 "open(p,'w').write(json.dumps(d))")
         self.assertEqual(self.heredoc_call(body, tail="\ngit diff --stat sessions/REVIEWED.json"), [])
 
     def test_heredoc_that_reads_a_clean_transcript_passes(self):
         body = ("import json\nf='sessions/clean/2026-10-22-clean-x.jsonl'\n"
-                "for l in open(f):\n    if any(k in l for k in ('harness','vendor/emulator','sessions/spec')):\n"
+                "for l in open(f):\n    if any(k in l for k in ('sptwo','spa/one','spl/three')):\n"
                 "        print(l[:200])")
         self.assertEqual(self.heredoc_call(body, head="cd ~/w/clean && python3 - <<'EOF'"), [])
 
     def test_heredocs_that_reach_further_still_fail(self):
-        names = "x=('harness/', 'vendor/emulator/', 'sessions/spec/')\n"
+        names = "x=('sptwo/', 'spa/one/', 'spl/three/')\n"
         bodies = [
             "open('sessions/' + 'spec/x')",                       # a built path
-            "p='sessions/clean/a'\np='harness/b'\nopen(p)",       # rebound name
+            "p='sessions/clean/a'\np='sptwo/b'\nopen(p)",       # rebound name
             "open('sessions/clean/../spec/x')",                   # escapes the folder
-            "open('/w/harness/x')",
-            "import os\nos.listdir('harness')",
-            "import glob\nglob.glob('harness/*')",
-            "import subprocess\nsubprocess.run(['cat', 'harness/x'])",
-            "from os import listdir\nlistdir('harness')",
-            "__import__('os').listdir('harness')",
-            "exec(\"open('harness/x')\")",
+            "open('/w/sptwo/x')",
+            "import os\nos.listdir('sptwo')",
+            "import glob\nglob.glob('sptwo/*')",
+            "import subprocess\nsubprocess.run(['cat', 'sptwo/x'])",
+            "from os import listdir\nlistdir('sptwo')",
+            "__import__('os').listdir('sptwo')",
+            "exec(\"open('sptwo/x')\")",
             "open('sessions/clean/a').__class__",
             "def f():\n    return 1",
-            "this is not python harness/",
+            "this is not python sptwo/",
         ]
         for b in bodies:
             self.assertTrue(self.heredoc_call(names + b), b)
         ok = names + "open('sessions/REVIEWED.json')"
         self.assertTrue(self.heredoc_call(ok, head="python3 - <<EOF"))          # unquoted: expands
         self.assertTrue(self.heredoc_call(ok, head="cat > x.py <<'EOF'"))        # not python
-        self.assertTrue(self.heredoc_call(ok, head="cd harness && python3 - <<'EOF'"))
-        self.assertTrue(self.heredoc_call(ok, tail="\ncat harness/x"))
+        self.assertTrue(self.heredoc_call(ok, head="cd sptwo && python3 - <<'EOF'"))
+        self.assertTrue(self.heredoc_call(ok, tail="\ncat sptwo/x"))
         self.assertEqual(self.heredoc_call(ok), [])
 
     def test_other_rules_are_never_cleared(self):
@@ -147,30 +150,30 @@ class TranscriptTest(unittest.TestCase):
         self.assertTrue(any("F-FELUCCA" in x for x in self.heredoc_call(body)))
 
     def test_plain_commands_naming_the_folders_still_fail(self):
-        for cmd in ("cat sessions/clean/a harness/b", "cd harness && ls", "D=vendor/emulator/; ls $D",
-                    "git show HEAD:harness/x"):
+        for cmd in ("cat sessions/clean/a sptwo/b", "cd sptwo && ls", "D=spa/one/; ls $D",
+                    "git show HEAD:sptwo/x"):
             p = self.write([hook(BANNER_OK), call("Bash", command=cmd)])
             self.assertTrue(any("forbidden" in x for x in self.problems(p)), cmd)
 
     def test_folder_names_ended_by_a_shell_operator_fail(self):
-        for cmd in ("D=vendor/emulator; ls $D", "D=harness; ls $D", "ls sessions/spec;",
-                    "ls harness&& true", "ls harness|head", "cat <harness/x", "(cd harness)",
-                    "x=`ls harness`", "{ ls vendor/emulator; }", "ls sessions/spec>out",
-                    "for p in vendor/emulator harness sessions/spec; do ls $p; done"):
+        for cmd in ("D=spa/one; ls $D", "D=sptwo; ls $D", "ls spl/three;",
+                    "ls sptwo&& true", "ls sptwo|head", "cat <sptwo/x", "(cd sptwo)",
+                    "x=`ls sptwo`", "{ ls spa/one; }", "ls spl/three>out",
+                    "for p in spa/one sptwo spl/three; do ls $p; done"):
             p = self.write([hook(BANNER_OK), call("Bash", command=cmd)])
             self.assertTrue(any("forbidden" in x for x in self.problems(p)), cmd)
 
     def test_names_that_only_contain_a_folder_name_pass(self):
         p = self.write([hook(BANNER_OK),
-                        call("Bash", command="ls tests/harness_free; ls sessions/specimen; "
-                                             "grep -n harnessing docs/x.md; ls emulator/; ls myvendor/emulatorx")])
+                        call("Bash", command="ls tests/sptwo_free; ls spl/threeimen; "
+                                             "grep -n sptwoing docs/x.md; ls one/; ls myspa/onex")])
         self.assertEqual(self.problems(p), [])
 
     def test_a_superseded_entry_clears_nothing_and_must_stay_unneeded(self):
-        c = call("Bash", command="printf 'leaves out vendor/emulator/' > msg.txt")
+        c = call("Bash", command="printf 'leaves out spa/one/' > msg.txt")
         c["message"]["content"][0]["id"] = "toolu_1"
         p = self.write([hook(BANNER_OK), c])
-        key = (SID, "toolu_1", "vendor/emulator/ (spec side)")
+        key = (SID, "toolu_1", "spa/one/ (spec side)")
         probs = ct.check_session(p, {key: {"superseded": "x"}})[0]
         self.assertTrue(any("marked superseded" in x for x in probs))
         with open(os.path.join(self.dir, "REVIEWED.json"), "w") as f:
@@ -180,12 +183,12 @@ class TranscriptTest(unittest.TestCase):
 
     def test_output_never_quotes_the_transcript(self):
         secret = "private-words-here"
-        c = call("Bash", command="cat harness/x # " + secret)
+        c = call("Bash", command="cat sptwo/x # " + secret)
         c["message"]["content"][0]["id"] = "toolu_q"
         problems, lines = ct.check_session(self.write([hook(BANNER_OK), c]))
         text = "\n".join(problems + lines)
         self.assertNotIn(secret, text)
-        self.assertNotIn("cat harness", text)
+        self.assertNotIn("cat sptwo", text)
         self.assertIn("entry 2 shell Bash toolu_q touches forbidden material (F-HARNESS)", text)
 
     def test_reviewed_file_needs_a_reason(self):
@@ -197,18 +200,18 @@ class TranscriptTest(unittest.TestCase):
     def test_writing_about_forbidden_material_is_not_a_read(self):
         p = self.write([hook(BANNER_OK),
                         call("Write", file_path="/w/CONTRIBUTING.md",
-                             content="never open vendor/emulator/ or Felucca")])
+                             content="never open spa/one/ or Felucca")])
         self.assertEqual(self.problems(p), [])
 
     def test_words_that_are_not_paths_pass(self):
         p = self.write([hook(BANNER_OK),
                         call("Bash", command="python3 tools/check-transcripts.py"),
-                        call("Grep", pattern="harnessing", path="docs")])
+                        call("Grep", pattern="sptwoing", path="docs")])
         self.assertEqual(self.problems(p), [])
 
     def test_spec_side_may_read_emulator_source(self):
         p = self.write([hook(BANNER_OK.replace("clean", "spec")),
-                        call("Read", file_path="/w/vendor/emulator/src/lib.rs")], role="spec")
+                        call("Read", file_path="/w/spa/one/src/lib.rs")], role="spec")
         self.assertEqual(self.problems(p), [])
 
     def test_subagent_transcripts_are_checked(self):
@@ -216,7 +219,7 @@ class TranscriptTest(unittest.TestCase):
         sub = p[:-len(".jsonl")] + ".subagents"
         os.makedirs(sub)
         with open(os.path.join(sub, "agent-1.jsonl"), "w") as f:
-            f.write(json.dumps(call("Read", file_path="/w/harness/src/x.rs")) + "\n")
+            f.write(json.dumps(call("Read", file_path="/w/sptwo/src/x.rs")) + "\n")
         self.assertTrue(any("forbidden" in x for x in self.problems(p)))
 
     def test_redaction_note_required(self):

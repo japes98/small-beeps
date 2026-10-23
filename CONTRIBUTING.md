@@ -119,6 +119,14 @@ was used) and name the ID in the commit's `Sources:` field:
   such outputs into a clean folder; docs/EXPOSURE.md).
   `tools/spec-setup.sh [DIR]` does the same for spec side with
   `config/claude/spec.json`.
+- **One list of the spec-side folders.** `config/spec-side-folders` names
+  the three folders once (since M3). The barrier tools build every name,
+  pattern and exclusion from it, and their tests use made-up names
+  (`tests/helpers.py`), so changing them needs no command that names the
+  folders. Scratch test repositories made by hand use the made-up names
+  too. The deny lists keep their literal paths (Claude Code's syntax), and
+  C-UNIT checks they cover every folder on the list and that no barrier
+  tool or test spells one out.
 - **Deny lists only grow.** Never remove or loosen an entry in
   `config/claude/*.json`. Check C-DENY-LISTS fails if one is dropped.
 - **Session banner.** Both configs run `tools/session-banner.sh` on every
