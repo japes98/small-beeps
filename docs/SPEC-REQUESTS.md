@@ -98,3 +98,32 @@ an issue or a pull request against docs/HARNESS.md.
   (SR-2, real hardware)": HW-53, HW-54). Open: Q-2 (the PLL's registers,
   the steps, the clock at app start).
 - Answered: 2026-10-22, session SR-1-SR-2 (spec side)
+
+### SR-3: The panel's wiring and SPI1's set-up on the chip; source 16 in fwtest
+- Asked: 2026-10-22, session M2 (firmware side)
+- Question: (a) On the chip, how SPI1 must be set up to drive the panel:
+  its `CON` bits (mode, direction, enable) and `BAUD` (the clock it gives,
+  and the fastest the panel takes), which pins carry its clock and data and
+  the panel's chip select, and the `JL_IOMAP` selection and port set-up
+  (direction, drive) for them and for PC8 (HW-30). (b) Whether the panel
+  has a reset pin and a backlight pin, which, and their levels. (c) The
+  panel's place in the controller's 240 x 320 memory (any row or column
+  offset) for each `MADCTL` orientation, which orientation shows the
+  picture upright as the FM-1 is held, and whether the panel needs display
+  inversion (`0x21`) to show colours right. This is Q-6. (d) The longest
+  transfer one write of `JL_SPI1->CNT` may ask for on the chip (the
+  counter's width or limit). (e) In fwtest: a DMA transfer started with
+  `CON` bit 13 clear still raises source 16 at its end, whatever the last
+  write to `CON` held (our runs); HW-29 says bit 13 makes a finished
+  transfer raise it. Which is right for the chip, and what fwtest does
+  for single bytes written to `BUF`.
+- Why: M2 brings up the panel and sends whole frames by DMA. In fwtest no
+  set-up is needed (HW-29, HW-30), so M2 writes no SPI1 `CON` set-up bits,
+  no `BAUD`, no pins, no reset or backlight, and leaves inversion off; it
+  sends whole frames as 16-row chunks (7 680 bytes) because only 480-byte
+  transfers are confirmed (E-5). Real hardware needs all of (a) to (d).
+  For (e), the firmware's handler acknowledges a transfer it didn't chain,
+  which is right under either behaviour, but the spec and fwtest disagree.
+  Read: HARDWARE-SPEC.md sections 5 and 3, Q-6, the ST7789V datasheet
+  (P-11, P-22), and `WL82.h`'s `JL_SPI_TypeDef` and port registers.
+- Status: open
