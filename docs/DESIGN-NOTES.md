@@ -1074,3 +1074,46 @@ Format for each entry:
   fwtest one instruction is one cycle; on the chip, with code run from
   flash through the cache, it will be more, which M4b's real engine and
   a probe on the chip will show.
+
+### 2026-10-23 M4b: the loaded measure
+- Facts: docs/HARNESS.md ("Input scripts", "Time"); the owner's request
+  in M4b (R-PERF-1, R-PERF-2, R-PERF-4, R-PERF-5).
+- Why: the steady state measures the firmware at rest (1 813 instructions
+  a block), while M4's five oscillators cost about 9 900 and nothing
+  gated that. For an instrument the worst case is what matters.
+- **The script** (`tests/fw/scripts/perfload.txt`): from 100 ms, PLAY
+  once (the tone), four keys held (every voice), then a pattern repeated
+  every 250 ms until 2 500 ms: each held key in turn released for 10 ms
+  and pressed again (its voice releases, then takes the key back, so all
+  four keep sounding), all seven encoders turned 15 detents one way and
+  15 back (they never rest), and MASTER swept 1023 to 0 and back, a step
+  every 5 ms. The window between the perf runs (1 250 to 2 250 ms) holds
+  four whole repeats; a test checks the repeat and the PLAY tap.
+- **Measured the same way** as the steady state: the two runs again, with
+  the script; instructions gained over blocks gained. Its startup isn't
+  used. Under load core 0 never waits near the runs' ends, so they end
+  exactly at 1 250.000 and 2 250.000 ms.
+- **Result:** 114 172.717 instructions a block (689 blocks), 32.8% of
+  core 0, against 1 813 at rest. The audio engine is about 9 900 of it;
+  the rest is main redrawing the panel screen for every event (blocks in
+  the window run from 9 900 to a whole block's 348 160 cycles while a
+  redraw is in progress). No underrun: the engine preempts main.
+  So under heavy input, drawing, not sound, is most of the work; M5's
+  screen should redraw only what changed, at a bounded rate.
+- **Gates:** its own budget (`loaded_per_period`, optional: a milestone
+  without one records it as NOT GATED) and its own 3% gate against a
+  baseline found by the M3 rule keyed on the loaded budget, so it may be
+  another record than the steady state's (re-measured only then). The
+  records before M4b have no loaded budget. M4b changes no base firmware,
+  so after the budgets pull request every record still holds the
+  pre-raise image, and the loaded gate stays NOT COMPARED until the
+  firmware changes (M5); until then the probe below is what proves it.
+- **Probe:** `SB_PROBE_SLOW`'s work per heartbeat beat adds about 87
+  instructions a block, 0.08% under load, so it can't prove the loaded
+  gate. `SB_PROBE_LOADED` adds a short loop for each voice sounding, each
+  block: nothing at rest, about 12 000 a block under load (about 10%). It
+  fails the loaded speed gate and the loaded budget and nothing else.
+- **History:** `perf-history.csv` keeps its columns (it can't grow one:
+  append only). Beside it, `perf-measures.csv` has one row per commit
+  and measure (the owner's design): commit, record time, milestone,
+  measure, value, unit, budget, change, and whether the change was gated.

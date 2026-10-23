@@ -1,5 +1,5 @@
 {
-  "comment": "Performance budgets (R-PERF-1, R-PERF-2; tools/perf.py, check C-PERF). `milestone` names the budgets in force. Sizes are bytes: code (code and constants in the image), static_ram (initialised and zeroed data), stack_high_water (the deepest the stack went in the perf runs). Since M2's method: startup_instructions (the one-off core-0 instructions before the firmware settles) and steady_per_period (core-0 instructions per period in steady state). speed_rise_percent: the most steady-state instructions per period may rise against the latest main record made under the same steady_per_period budget. Raising a budget, or moving to the next milestone's, takes its own pull request that says why (What/Why/How/Result), with nothing else in it.",
+  "comment": "Performance budgets (R-PERF-1, R-PERF-2; tools/perf.py, check C-PERF). `milestone` names the budgets in force. Sizes are bytes: code (code and constants in the image), static_ram (initialised and zeroed data), stack_high_water (the deepest the stack went in the perf runs). Since M2's method: startup_instructions (the one-off core-0 instructions before the firmware settles) and steady_per_period (core-0 instructions per period in steady state). Since M4b, optional: loaded_per_period (the same, under tools/perf.py's fixed heaviest input; left out, it is recorded and not gated). speed_rise_percent: the most steady-state (and loaded) instructions per period may rise against the latest main record made under the same steady_per_period (loaded_per_period) budget. Raising a budget, or moving to the next milestone's, takes its own pull request that says why (What/Why/How/Result), with nothing else in it.",
   "milestone": "M4",
   "speed_rise_percent": 3,
   "budgets": {
@@ -34,7 +34,8 @@
       "static_ram": 131072,
       "stack_high_water": 512,
       "startup_instructions": 1572864,
-      "steady_per_period": 2048
+      "steady_per_period": 2048,
+      "loaded_per_period": 131072
     }
   }
 }

@@ -447,8 +447,21 @@ def perf_markdown(perf):
             L.append("| run of %s ms | %s instructions, %s periods, ended at %s ms |"
                      % (r.get("ms"), r.get("instructions"), r.get("periods"), r.get("emulated_ms")))
         L.append("")
-    L += ["Baseline: %s." % perf.get("baseline_note"), "",
-          "| Gate | Result | Detail |", "|------|--------|--------|"]
+    loaded = cur.get("loaded") or {}
+    if loaded:
+        # since M4b: the loaded measure (tools/perf.py)
+        L += ["Loaded (`%s`, SHA-256 `%s`): %s" % (
+            loaded.get("script"), loaded.get("script_sha256"), loaded.get("error") or
+            "%s instructions for %s audio blocks, %s a block." % (
+                loaded.get("instructions"), loaded.get("periods"), loaded.get("instructions_per_period"))), ""]
+        for r in loaded.get("runs", []):
+            L.append("- loaded run of %s ms: %s instructions, %s periods, ended at %s ms"
+                     % (r.get("ms"), r.get("instructions"), r.get("periods"), r.get("emulated_ms")))
+        L.append("")
+    L += ["Baseline: %s." % perf.get("baseline_note"), ""]
+    if perf.get("loaded"):
+        L += ["Loaded baseline: %s." % perf["loaded"].get("baseline_note"), ""]
+    L += ["| Gate | Result | Detail |", "|------|--------|--------|"]
     L += ["| %s | %s | %s |" % (v["gate"], v["result"], v["detail"]) for v in perf.get("gates", [])]
     return L
 

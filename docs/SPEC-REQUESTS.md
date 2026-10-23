@@ -140,3 +140,67 @@ an issue or a pull request against docs/HARNESS.md.
   of bit 14 alone also clears bit 13, so acknowledge by setting bit 14
   and keeping the other bits. Open: Q-6, Q-15.
 - Answered: 2026-10-23, session SR-3 (spec side)
+
+### SR-4: The similarity audit: vendored Plaits as base code (an audit request)
+- Asked: 2026-10-23, session M4b (firmware side). Not a hardware question:
+  the owner asked for it to be filed here, as a request about the audit's
+  tooling, which the spec side keeps.
+- Question: Add `vendor/plaits/` (Mutable Instruments' Plaits and stmlib,
+  MIT, vendored unmodified at pinned upstream commits; pull request #59) to
+  the similarity audit's base code, beside `vendor/jieli-sdk/include_lib`
+  (`audit/audit.json`, `base_code`; docs/AUDIT.md, "What is compared"), so
+  that matches between a target and code we both took from Plaits are
+  dropped. Our own glue in `firmware/demos/plaits/` stays compared.
+- Why: M4b ports Plaits as a separate demo build (`firmware/demos/plaits/`)
+  to measure the chip. `vendor/` is never compared as ours, but FM-1
+  firmwares that ported Plaits would match our glue's calls into it, and
+  any of its code a target copied would count against files of ours that
+  include its headers. `base_code` takes one path today, so this needs a
+  change to the audit tool or its settings, which are spec side. Read:
+  docs/AUDIT.md, `audit/audit.json`.
+- Status: open
+
+### SR-5: Hardware single-precision floating point on the chip and in fwtest
+- Asked: 2026-10-23, session M4b (firmware side)
+- Question: (a) Does the AC791N's core execute the toolchain's hardware
+  single-precision float instructions (its `fprev1` feature, enabled by
+  clang's `-mfprev1`), and which of the toolchain's CPU models
+  (`-mcpu=r1` to `r5`) is the chip's core? (b) Does fwtest model those
+  instructions as the chip runs them (results, and the floating-point
+  exception bits of HW-50's `EMU_MSG`), and at what cost: fwtest counts
+  each as one cycle; how many cycles does each take on the chip (add,
+  multiply, divide, square root, conversions, loads and stores)?
+- Why: M4b measures Plaits (floats throughout) on our base. With our own
+  soft-float a block of most engines costs 0.7 to 1.8 million of core 0's
+  instructions, more than a block's 348 160 cycles: only one engine plays
+  live. Built with `fprev1`, the same engines cost 10 000 to 52 000, and
+  fwtest runs them with the same sound bit for bit (the bench's
+  checksums). The SDK's own AC791N builds use `-mcpu=r3 -mfprev1`
+  (`apps/demo/demo_hello/board/wl82/Makefile` lines 74 and 75, at the
+  pinned SDK commit; PROVENANCE P-29), which suggests the chip has them,
+  but HARDWARE-SPEC.md says nothing about it, and M5's engine design
+  (fixed or floating point, how many operators) depends on it. Read:
+  HARDWARE-SPEC.md (HW-50's float exception bits), the toolchain's
+  feature list, the SDK's Makefiles.
+- Status: open
+
+### SR-6: Running both cores on the chip
+- Asked: 2026-10-23, session M4b (firmware side)
+- Question: (a) When both cores run code from the code window and work in
+  main RAM, what does each cost the other on the chip: shared caches or
+  buses, wait states, and whether core 1 runs at the same clock as core 0
+  (HW-11 gives fwtest's)? (b) What core 1 needs before it runs on the
+  chip from a raw image (Q-11: the release, its cache and its MMU or
+  protection set-up), and whether core 1 can take interrupts (its own
+  `ICFG` and `ILAT` registers, HW-20 to HW-23, which fwtest has for core 0
+  only). (c) Whether a plain store by one core is seen by the other's next
+  load, or needs a barrier or a cache operation first.
+- Why: M4b's bench starts core 1 (HW-9, HW-10) on a loop that renders a
+  second Plaits voice when core 0 sets a word in RAM, and polls another for
+  the result. In fwtest two voices at once take 0.50 to 0.55 of the time of
+  one after the other on core 0, so core 1 nearly doubles what the
+  firmware can play. M5 decides how to split voices between the cores, and
+  needs to know how much of that holds on the chip. Read: HARDWARE-SPEC.md
+  HW-8 to HW-11, HW-18 to HW-23, Q-11; docs/HARNESS.md ("Time": core 1's
+  timer reads).
+- Status: open

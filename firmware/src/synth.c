@@ -242,8 +242,12 @@ void synth_block(s32 *out, u32 frames)
     for (n = 0; n < frames; n++)
         mix[n] = 0;
     for (v = 0; v < VOICES; v++)
-        if (voice[v].state != OFF)
+        if (voice[v].state != OFF) {
             on += render(&voice[v], frames, 26);
+#if defined(SB_PROBE_LOADED)
+            sb_probe_loaded();
+#endif
+        }
     m = master;
     for (n = 0, w = out; n < frames; n++, w += 2) {
         s32 s = (s32)((s64)mix[n] * m >> 24);
