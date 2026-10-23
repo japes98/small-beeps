@@ -795,6 +795,43 @@ SR-3 wrote only its barrier-log row.*
   `7e415aa7` (the three flagged commands only), and this repository's
   tools, tests, docs and firmware. It does not open anything on the
   forbidden list or anything under the three spec-side folders.
+- Later in the session:
+  - **Pull requests:** #55, the start; #56, neutral rule IDs (the owner's
+    request); #57, the loaded measure; #58, the M4 loaded budget; #59, the
+    vendored Plaits and the C-SEP-TERMS change the owner approved; #60,
+    spec requests SR-4 to SR-6; #61, the Plaits demo and results; this
+    wrap-up.
+  - **Reads:** `docs/HARDWARE-SPEC.md` (HW-8 to HW-13, HW-18 to HW-25,
+    HW-38, HW-39, HW-43 to HW-50), docs/HARNESS.md; the upstream Plaits
+    and stmlib at their pinned commits, in scratch folders (P-28): the
+    vendored files, and, not vendored, upstream's `plaits/plaits.cc` and
+    the two makefiles (for its buffer size and compiler flags); two of
+    the SDK's app Makefiles at its pinned commit, for compiler flags
+    (P-29). Nothing from FM-1-RE, no datasheet, nothing on the forbidden
+    list. From CI it read the checks' pass or fail and the run logs'
+    check lines; it downloaded no record or artifact.
+  - **A push that wanted a spec-side object.** After the owner merged #55
+    and #56, main on GitHub was a commit this folder didn't have, so
+    `git push` of #57's branch tried to pack the branch's whole history
+    and asked for a blob of a spec-side folder. Lazy fetching was off, so
+    nothing was fetched and the push failed. To find the cause, a loop of
+    `git ls-tree -r` over every local branch printed one spec-side file's
+    path (a name, no contents). `tools/clean-update.sh` then brought main
+    in and ended "no spec-side files on disk or in .git", and the push
+    went through. Ref-wide tree listings are not to be repeated.
+  - **Lazy fetching** was turned on only for scratch clones of upstream
+    Plaits, stmlib and the SDK, command by command (as
+    `tools/fetch-plaits.sh` does), never for this repository.
+  - **Outside this folder, at the owner's request:** one built firmware
+    image copied to `~/<top>/drop/` (`small-beeps-dc82c85.bin`, main's
+    firmware); nothing else there was read or written.
+  - **Measurement-only edits:** two switches added to `firmware/src/panel.c`
+    for the loaded measure's breakdown, then restored from a copy; not
+    committed.
+  - **Commands the next clean session may see.** Two `grep`s whose
+    patterns spell old rule IDs, run over our own tools and tests (the
+    access rule clears a grep pattern over our own files; logged as
+    mentions). No other is expected.
 
 ## Corrections
 
