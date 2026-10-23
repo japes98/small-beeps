@@ -1033,7 +1033,11 @@ requests.
   the chip, the sources don't say (Q-16).
 - Sources: SDK `apps/demo/demo_hello/board/wl82/Makefile` lines 74-75
   (`-mcpu=r3`, `-mfprev1`), 233 and 273-274 (the linker plugin's
-  `mcpu=r3`, `-mattr=+fprev1`); SDK `csfr.h` lines 267-272 and SDK
+  `mcpu=r3`, `-mattr=+fprev1`); the same flags at lines 74-75 of eight
+  more of the SDK's `board/wl82/Makefile`s (`demo_DevKitBoard`,
+  `demo_audio`, `demo_ble`, `demo_edr`, `demo_matter`, `demo_ui`,
+  `demo_wifi_ext`, `wifi_ipc`; the other six were not read); SDK `csfr.h`
+  lines 267-272 and SDK
   `cpu/wl82/debug.c` lines 70-110 (the float bits of `EMU_MSG`, HW-50).
   The sources are the vendor's build settings and register map; no
   datasheet states it.
