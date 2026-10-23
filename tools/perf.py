@@ -86,14 +86,19 @@ REPO = ROOT                  # where find_baseline looks (tests change it)
 PERIOD = "heartbeat-steady"
 RUN_MS = (1250, 2250)        # the two runs, shorter first (see the docstring)
 BEACON = 0x01C00000          # firmware/app.ld, firmware/src/sb.h
-BEACON_LEN = 16
+BEACON_LEN = 0x60            # the whole beacon since M2 (firmware/src/sb.h)
+# Beacon words (by index) holding the screen's timings since M2, in time
+# base ticks (24 a microsecond); an image that doesn't record one leaves 0.
+SCREEN_TIMES = (("frame_update_us", 18), ("render_us", 19), ("heartbeat_update_us", 20))
+TICKS_PER_US = 24
 MARKER = 0x44304253          # "SB0D"
 STACK_FILL = 0x4B415453      # "STAK", firmware/src/crt0.S
 STACK_TOP = 0x01C7FC00       # firmware/app.ld asserts it
 BUDGETED = ("code", "static_ram", "stack_high_water", "startup_instructions", "steady_per_period")
 # What the record shows, in order (here and tools/record.py).
 MEASURES = ("code", "data", "bss", "image", "static_ram", "stack_reserved", "stack_high_water",
-            "stack_method", "startup_instructions", "instructions", "periods", "instructions_per_period")
+            "stack_method", "startup_instructions", "instructions", "periods", "instructions_per_period",
+            "frame_update_us", "render_us", "heartbeat_update_us")
 UNIT = {"code": "bytes", "static_ram": "bytes", "stack_high_water": "bytes",
         "startup_instructions": "instructions", "steady_per_period": "instructions per period"}
 SIZES = ("code", "data", "bss", "image", "stack")
@@ -210,6 +215,10 @@ def run_once(image_bytes, size, out, label, ms):
         return m
     run = result.get("run", {})
     marker, beats = struct.unpack("<2I", beacon[:8])
+    words = struct.unpack("<%dI" % (len(beacon) // 4), beacon[:len(beacon) // 4 * 4])
+    for k, i in SCREEN_TIMES:
+        if i < len(words) and words[i]:
+            m[k] = round(words[i] / TICKS_PER_US, 3)
     m.update({"outcome": run.get("outcome"), "emulated_ms": run.get("emulated_ms"),
               "instructions": run.get("instructions", {}).get("core0"),
               "periods": beats, "marker": "0x%08x" % marker,

@@ -225,7 +225,7 @@ class MeasureTest(unittest.TestCase):
     def test_options_capture_the_stack_below_its_top(self):
         opts = perf.options(0x1000)
         self.assertIn("0x01c7ec00:0x1000@end", opts)
-        self.assertIn("0x01c00000:0x10@end", opts)
+        self.assertIn("0x01c00000:0x60@end", opts)
         self.assertEqual(perf.capture_name(0x01c7ec00, 0x1000), "ram-01c7ec00-1000-end.bin")
 
     def test_layout_constants_match_the_linker_script(self):
