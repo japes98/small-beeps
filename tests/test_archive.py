@@ -8,7 +8,7 @@ import sys
 import tempfile
 import unittest
 
-from tests.helpers import ROOT, load_tool
+from tests.helpers import PLACEHOLDER_DIRS, ROOT, load_tool
 
 ar = load_tool("archive-session.py")
 ct = load_tool("check-transcripts.py")
@@ -144,21 +144,24 @@ class ArchiveTest(unittest.TestCase):
         self.assertNotEqual(again.returncode, 0)
 
     def test_git_summary_lines_naming_spec_side_files(self):
-        names = {"harness/src/a.rs", "harness/tests/golden/x/long-name.bin",
-                 "vendor/emulator/LICENSE", "docs/PLAN.md", "tests/golden.py"}
+        names = {"sptwo/src/a.rs", "sptwo/tests/golden/x/long-name.bin",
+                 "spa/one/LICENSE", "docs/PLAN.md", "tests/golden.py"}
         summary = "\n".join([
             "Fast-forward",
             " docs/PLAN.md                 |  4 +-",
-            " harness/src/a.rs             | 12 +",
+            " sptwo/src/a.rs             | 12 +",
             " .../golden/x/long-name.bin   | Bin 0 -> 8 bytes",
-            " vendor/emulator/LICENSE      | 21 +",
+            " spa/one/LICENSE      | 21 +",
             " tests/golden.py              |  3 +",
             " 5 files changed, 40 insertions(+)",
             " create mode 100644 docs/PLAN.md",
-            " create mode 100644 harness/src/a.rs",
+            " create mode 100644 sptwo/src/a.rs",
             "exit=0"])
         line = json.dumps({"content": summary, "stdout": summary}) + "\n"
         counts = {}
+        # made-up spec-side folders (tests/helpers.py), not the real list
+        saved, ar.SPEC_DIRS = ar.SPEC_DIRS, PLACEHOLDER_DIRS
+        self.addCleanup(setattr, ar, "SPEC_DIRS", saved)
         out = ar.redact_line(line, counts, spec_files=names)
         d = json.loads(out)
         self.assertEqual(d["content"], d["stdout"])
@@ -174,7 +177,7 @@ class ArchiveTest(unittest.TestCase):
         self.assertEqual(counts["spec-side file name in a git summary (lines)"], 8)
         # Spec transcripts and plain mentions of the folders are left alone.
         self.assertEqual(ar.redact_line(line, {}), line)
-        prose = json.dumps({"t": "the sparse checkout leaves out harness/\nand more"}) + "\n"
+        prose = json.dumps({"t": "the sparse checkout leaves out sptwo/\nand more"}) + "\n"
         self.assertEqual(ar.redact_line(prose, {}, spec_files=names), prose)
 
     def test_host_name_after_a_json_escape(self):

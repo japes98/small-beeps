@@ -4,7 +4,9 @@
 #
 # C-CLEAN-FOLDER (R-CLEAN-1, R-SEP-2): makes a fresh clean folder with
 # tools/clean-setup.sh from this checkout's HEAD, and checks that
-#   - vendor/emulator/, harness/ and sessions/spec/ are not on disk;
+#   - the spec-side folders (config/spec-side-folders: since M3 this script
+#     and the other barrier tools build their names from that one list) are
+#     not on disk;
 #   - none of their files' contents are in its .git (a blob-less clone that
 #     never fetched them);
 #   - its live settings are config/claude/clean.json, which denies reading
@@ -20,7 +22,7 @@
 #     through another branch (as the records branch holds them);
 #   - tools/clean-update.sh brings a clean folder made at HEAD's parent up to
 #     HEAD with the same results, and updates one across a commit (made here)
-#     that changes vendor/emulator/ and harness/ without fetching any of
+#     that changes the spec-side source folders without fetching any of
 #     their blobs, while a plain merge with its summary does fetch some.
 # It never reads those folders' contents itself: only their file lists and
 # object IDs, from this checkout's history. In a clean folder it says SKIP
@@ -28,11 +30,15 @@
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-if [ ! -d "$ROOT/vendor/emulator" ] || [ "$(cat "$ROOT/.claude/small-beeps-role" 2>/dev/null)" = clean ]; then
+LIST="$ROOT/config/spec-side-folders"
+EXCLUDED=$(grep -v '^#' "$LIST" | cut -f1)
+SOURCES=$(grep -v '^#' "$LIST" | awk -F '\t' '$2 == "source" { print $1 }')
+[ -n "$EXCLUDED" ] && [ -n "$SOURCES" ] || { echo "FAIL: no spec-side folders in $LIST"; exit 1; }
+first=$(echo "$SOURCES" | head -n 1)
+if [ ! -d "$ROOT/$first" ] || [ "$(cat "$ROOT/.claude/small-beeps-role" 2>/dev/null)" = clean ]; then
     echo "SKIP: this is a clean folder (it can't serve the spec-side files a check would need)"
     exit 0
 fi
-EXCLUDED="vendor/emulator harness sessions/spec"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 fail=0
@@ -74,7 +80,8 @@ no_blobs "after setup"
 live="$clean/.claude/settings.json"
 if cmp -s "$live" "$ROOT/config/claude/clean.json"; then echo "settings: config/claude/clean.json"
 else bad "the live settings are not config/claude/clean.json"; fi
-for rule in 'Read(./vendor/emulator/**)' 'Read(./harness/**)' 'Read(./sessions/spec/**)'; do
+for p in $EXCLUDED; do
+    rule="Read(./$p/**)"
     if grep -qF "\"$rule\"" "$live"; then echo "denied:   $rule"; else bad "settings lack $rule"; fi
 done
 attrs="$(git -C "$clean" rev-parse --absolute-git-dir)/info/attributes"
@@ -115,7 +122,7 @@ if parent=$(git -C "$ROOT" rev-parse -q --verify "HEAD~1"); then
     clean=$clean_saved
 fi
 
-# An update across a commit that changes vendor/emulator/ and harness/. The
+# An update across a commit that changes the spec-side source folders. The
 # commit is made here, on top of HEAD: in each folder one existing file gets
 # new contents and one file is added (made-up text; nothing is read from the
 # folders but one file name each). tools/clean-update.sh must bring none of
@@ -126,7 +133,7 @@ fi
 src="$work/src.git"
 idx="$work/probe.index"
 GIT_INDEX_FILE=$idx git -C "$src" read-tree "$head"
-for p in vendor/emulator harness; do
+for p in $SOURCES; do
     set -- $(git -C "$ROOT" ls-tree -r HEAD -- "$p" | awk '$2 == "blob" { print $1, $4; exit }')
     changed=$(printf 'clean-update probe: %s, changed\n' "$p" | git -C "$src" hash-object -w --stdin)
     added=$(printf 'clean-update probe: %s, added\nsecond line\n' "$p" | git -C "$src" hash-object -w --stdin)
@@ -137,8 +144,9 @@ probe=$(git -C "$src" -c user.name=probe -c user.email=probe@invalid commit-tree
     "$(GIT_INDEX_FILE=$idx git -C "$src" write-tree)" -p "$head" -m "probe: change both folders")
 git -C "$src" update-ref refs/heads/main "$probe"
 # Every blob under the two folders at HEAD or at the probe commit.
-probe_blobs=$( (git -C "$src" ls-tree -r "$head" -- vendor/emulator harness
-                git -C "$src" ls-tree -r "$probe" -- vendor/emulator harness) | awk '$2 == "blob" { print $3 }' | sort -u)
+# shellcheck disable=SC2086
+probe_blobs=$( (git -C "$src" ls-tree -r "$head" -- $SOURCES
+                git -C "$src" ls-tree -r "$probe" -- $SOURCES) | awk '$2 == "blob" { print $3 }' | sort -u)
 present() {
     n=0
     for oid in $probe_blobs; do
@@ -191,8 +199,9 @@ if (cd "$work/export" && env -u GIT_NO_LAZY_FETCH sh tools/reproduce --export-on
 else
     cat "$work/export.log"; bad "tools/reproduce --export-only failed"
 fi
-env -u GIT_NO_LAZY_FETCH git -C "$work/export-control" archive HEAD -- . ':(exclude)vendor/emulator' \
-    ':(exclude)harness' ':(exclude)sessions/spec' > /dev/null 2>&1 || true
+# shellcheck disable=SC2046
+env -u GIT_NO_LAZY_FETCH git -C "$work/export-control" archive HEAD -- . \
+    $(for p in $EXCLUDED; do printf ':(exclude)%s ' "$p"; done) > /dev/null 2>&1 || true
 n=$(count_present "$work/export-control")
 if [ "$n" -gt 0 ]; then echo "control: git archive with exclude pathspecs fetched $n spec-side blobs, as expected"
 else bad "control: git archive with exclude pathspecs fetched none, so this test can't tell"; fi

@@ -51,7 +51,14 @@ BASE_FILE = os.path.join(ROOT, "config", "private-base")
 EXEMPT_DIRS = ("sessions/", "docs/prompts/")
 # The spec side's folders: a hit there is counted, never named, because the
 # firmware side reads this check's output.
-SPEC_DIRS = ("vendor/emulator/", "harness/", "sessions/spec/")
+def spec_dirs(path=os.path.join(ROOT, "config", "spec-side-folders")):
+    """The spec-side folders, each ending in a slash, from
+    config/spec-side-folders (since M3: one list for every barrier tool)."""
+    with open(path, encoding="utf-8") as f:
+        return tuple(l.split("\t")[0] + "/" for l in f if l.strip() and not l.startswith("#"))
+
+
+SPEC_DIRS = spec_dirs()
 
 
 def load_terms():
