@@ -1360,6 +1360,19 @@ Format for each entry:
   awkward (wide-range values: rates, pitch ratios, envelope curves
   computed per block, not per sample). On the chip their cycle cost is
   still unknown (Q-16), so nothing per sample depends on a float.
+- Found on the way: `-mcpu=r3` alone already makes clang use the float
+  instructions (the disassembler shows them as unknown instructions). So
+  the Plaits demo's own C (its soft-float runtime and that runtime's
+  bit-for-bit test) keeps the flags it had, without either: built with
+  them, the test ran on fwtest's float instructions instead and
+  C-PLAITS-BENCH failed for add, subtract, multiply and divide. Checked
+  against the test's 20 000 operand pairs a operation in Python: add,
+  multiply and divide differ from the exact reference only in the NaN
+  they return (fwtest gives the first NaN operand, quieted; the soft-float
+  and the reference give the canonical `0x7FC00000`); subtract differs
+  too, presumably in that NaN's sign (not pinned down). Every numeric
+  result matched. HW-63 doesn't say which NaN comes out; nothing in the
+  firmware depends on it.
 - Alternatives: leaving the default CPU model (the same code today, but
   float would need a library); building only the engine with the flag
   (two ABIs to keep straight for no gain).

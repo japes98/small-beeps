@@ -121,8 +121,8 @@ build_demo_plaits() {
         case "$s" in
             # shellcheck disable=SC2086
             *.S) set -x; clang $ASFLAGS $defs -c "$s" -o "$o"; set +x ;;
-            # shellcheck disable=SC2086
-            *) set -x; clang $CFLAGS -c "$s" -o "$o"; set +x ;;
+            # shellcheck disable=SC2086,SC2046
+            *) set -x; clang $(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//') -c "$s" -o "$o"; set +x ;;
         esac
         objs="$objs $o"
     done
@@ -145,7 +145,10 @@ cmd_inside() {
     src=$1 out=$2
     cd "$src"
     # The chip's CPU model and its single-precision float instructions, as
-    # the SDK builds for it (HW-62, since M5).
+    # the SDK builds for it (HW-62, since M5). The Plaits demo's own C is
+    # built without them, as before (build_demo_plaits): its soft-float
+    # test must exercise the soft-float routines, and `-mcpu=r3` on its
+    # own already makes the compiler use the instructions.
     CPU="-mcpu=r3 -mfprev1"
     # -nostdinc: no C library headers either; the SDK's register headers
     # are the only outside includes. -fno-common puts zeroed data in .bss.
