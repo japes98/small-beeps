@@ -174,10 +174,13 @@ def read_worktree(p):
 
 
 def read_staged(p):
-    try:
-        return git("show", ":" + p, raw=True)
-    except subprocess.CalledProcessError:
-        return None
+    """A staged file's contents, or None. Never fetches: in a blob-less
+    clean folder a merge stages spec-side files whose contents are not
+    there, and with lazy fetching on, reading them would download them
+    (found in M2). CI's full scan reads every tracked file."""
+    out = subprocess.run(["git", "show", ":" + p], cwd=ROOT, stdout=subprocess.PIPE,
+                         stderr=subprocess.DEVNULL, env=dict(os.environ, GIT_NO_LAZY_FETCH="1"))
+    return out.stdout if out.returncode == 0 else None
 
 
 def check_messages(rng, terms):
