@@ -30,6 +30,41 @@ class PrivateTermsTest(unittest.TestCase):
     def test_files_not_on_disk_are_skipped(self):
         self.assertEqual(cp.check_files(["gone"], lambda p: None, [b"x"]), [])
 
+    def test_a_staged_file_without_its_contents_is_never_fetched(self):
+        # A merge in a blob-less clean folder stages spec-side files whose
+        # contents are not there; the pre-commit scan must not download
+        # them, even with lazy fetching allowed (found in M2).
+        d = tempfile.mkdtemp()
+        try:
+            env = {k: v for k, v in os.environ.items() if k != "GIT_NO_LAZY_FETCH"}
+            run = lambda *a, cwd=d: subprocess.run(a, cwd=cwd, env=env, check=True, capture_output=True)
+            os.mkdir(os.path.join(d, "src"))
+            src = os.path.join(d, "src")
+            run("git", "init", "-q", cwd=src)
+            with open(os.path.join(src, "far.txt"), "w") as f:
+                f.write("contents only the server has\n")
+            run("git", "add", "far.txt", cwd=src)
+            run("git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "x", cwd=src)
+            run("git", "config", "uploadpack.allowfilter", "true", cwd=src)
+            run("git", "clone", "-q", "--filter=blob:none", "--no-checkout", "file://" + src, "cl")
+            clone = os.path.join(d, "cl")
+            run("git", "read-tree", "HEAD", cwd=clone)          # staged, contents missing
+            oid = run("git", "rev-parse", ":far.txt", cwd=clone).stdout.decode().strip()
+            saved, saved_env = cp.ROOT, dict(os.environ)
+            os.environ.pop("GIT_NO_LAZY_FETCH", None)
+            cp.ROOT = clone
+            try:
+                self.assertIsNone(cp.read_staged("far.txt"))
+            finally:
+                cp.ROOT = saved
+                os.environ.clear()
+                os.environ.update(saved_env)
+            missing = subprocess.run(["git", "cat-file", "-e", oid], cwd=clone,
+                                     env=dict(env, GIT_NO_LAZY_FETCH="1"), capture_output=True)
+            self.assertNotEqual(missing.returncode, 0, "the contents were fetched")
+        finally:
+            shutil.rmtree(d)
+
     def test_spec_side_hits_are_counted_not_named(self):
         self.assertTrue("harness/x.rs:3".startswith(cp.SPEC_DIRS))
         self.assertTrue("sessions/spec/a.jsonl:1".startswith(cp.SPEC_DIRS))
