@@ -22,3 +22,12 @@ licensed under the MIT License. Copies are under vendor/emulator/, with that
 project's LICENSE at vendor/emulator/LICENSE; the pinned commit, the patch
 applied and the tree hash are in vendor/emulator/UPSTREAM.md. Container
 images of the test runner built from them carry the same LICENSE.
+
+This repository also includes parts of Mutable Instruments' Plaits and of
+its library stmlib, by Emilie Gillet, from https://github.com/pichenettes/eurorack
+and https://github.com/pichenettes/stmlib, copyright 2012-2021 Emilie
+Gillet, licensed under the MIT License (in each file's own header, and in
+vendor/plaits/stmlib/LICENSE). Copies are under vendor/plaits/, unmodified;
+the pinned commits and the SHA-256 of each file are in
+vendor/plaits/SOURCE.md and vendor/plaits/SHA256SUMS. They are built only
+into a separate demo image, not into the firmware.

@@ -42,6 +42,23 @@ precedence = "override"
 SPDX-FileCopyrightText = "JIELI"
 SPDX-License-Identifier = "Apache-2.0"
 
+# Vendored Plaits and stmlib files, unmodified (vendor/plaits/SOURCE.md).
+# Each carries the MIT notice in its header, without an SPDX tag.
+[[annotations]]
+path = [
+  "vendor/plaits/eurorack/**",
+  "vendor/plaits/stmlib/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2012-2021 Emilie Gillet"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["vendor/plaits/SHA256SUMS"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 japes98"
+SPDX-License-Identifier = "MIT"
+
 # Vendored emulator crates and their workspace manifest, from the public
 # upstream at a pinned commit (vendor/emulator/UPSTREAM.md). The patch files
 # quote upstream's manifest.
