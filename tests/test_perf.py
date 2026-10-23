@@ -92,6 +92,38 @@ class GateTest(unittest.TestCase):
         # the other budgets still hold whatever the baseline
         self.assertEqual(results(perf.gate(measured(250000), base, BUDGETS, None))["steady_per_period"], "FAIL")
 
+    def test_the_first_record_under_a_raised_budget_is_not_compared(self):
+        # Since M3. A raise merges in its own pull request, so its record
+        # holds the older firmware under the new budget: the next firmware
+        # is not gated against it. The record after that is a baseline again.
+        older = dict(BUDGETS, limits=dict(BUDGETS["limits"], steady_per_period=72))
+        raise_merge = {"budgets": BUDGETS, "baseline_budgets": older}
+        firmware_merge = {"budgets": BUDGETS, "baseline_budgets": BUDGETS}
+        self.assertTrue(perf.first_under_budget(raise_merge))
+        self.assertFalse(perf.first_under_budget(firmware_merge))
+        # a record whose own baseline had no budget, or no record at all
+        self.assertTrue(perf.first_under_budget({"budgets": BUDGETS, "baseline_budgets": None}))
+        self.assertTrue(perf.first_under_budget({"budgets": BUDGETS}))
+
+        base = measured(65000, 1000)
+        v = perf.gate(measured(150000), base, BUDGETS, BUDGETS, perf.first_under_budget(raise_merge))
+        speed = [x for x in v if x["gate"] == "speed"][0]
+        self.assertEqual(speed["result"], "NOT COMPARED")
+        self.assertIn("the first made under this M0 budget of 200", speed["detail"])
+        self.assertIn("+130.77%", speed["detail"])
+        self.assertFalse(perf.failed(v))
+        # the budgets themselves still hold
+        r = results(perf.gate(measured(250000), base, BUDGETS, BUDGETS, True))
+        self.assertEqual(r["steady_per_period"], "FAIL")
+        # and against the next record the 3% gate applies again
+        v = perf.gate(measured(150000), base, BUDGETS, BUDGETS, perf.first_under_budget(firmware_merge))
+        self.assertEqual(results(v)["speed"], "FAIL")
+        # a first record under another budget is reported as another budget's
+        v = perf.gate(measured(150000), base, BUDGETS, older, True)
+        speed = [x for x in v if x["gate"] == "speed"][0]
+        self.assertEqual(speed["result"], "NOT COMPARED")
+        self.assertIn("a steady-state budget of 72", speed["detail"])
+
     def test_no_baseline_is_not_compared(self):
         v = gate(measured(), None)
         self.assertEqual(results(v)["speed"], "NOT COMPARED")
