@@ -119,9 +119,10 @@ CHECKS = [
     # The firmware (M0d): its size from build A, and its fwtest suite.
     {"id": "C-FW-SIZE", "title": "Firmware image size (code, data, bss) from build A",
      "reqs": ["R-BUILD-2"], "internal": "firmware_size"},
-    {"id": "C-FW-SUITE", "title": "Firmware in fwtest: boot, clock, tick and heartbeat timing, vector table, idle, fault and stray reports (tests/fw/boot.suite)",
+    {"id": "C-FW-SUITE", "title": "Firmware in fwtest: boot, clock, tick and heartbeat timing, vector table, idle, fault and stray reports, the screen (tests/fw/boot.suite)",
      "reqs": ["R-BOOT-1", "R-BOOT-2", "R-BOOT-3", "R-BOOT-4", "R-BOOT-5", "R-CLK-1",
-              "R-IRQ-1", "R-IRQ-2", "R-IRQ-3", "R-IRQ-4"],
+              "R-IRQ-1", "R-IRQ-2", "R-IRQ-3", "R-IRQ-4",
+              "R-LCD-1", "R-LCD-2", "R-LCD-3", "R-LCD-4", "R-LCD-5"],
      "cmd": lambda: [PY, "-I", "tools/fw-suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "fwtest")]},
     # Performance (M0e): size, RAM, stack high-water and speed, gated.
@@ -414,7 +415,8 @@ def perf_markdown(perf):
         L += ["| Measure | Value |", "|---------|-------|"]
         # tools/perf.py's MEASURES, and since M2 each perf run's numbers
         for k in ("code", "data", "bss", "image", "static_ram", "stack_reserved", "stack_high_water",
-                  "stack_method", "startup_instructions", "instructions", "periods", "instructions_per_period"):
+                  "stack_method", "startup_instructions", "instructions", "periods", "instructions_per_period",
+                  "frame_update_us", "render_us", "heartbeat_update_us"):
             if k in cur:
                 L.append("| %s | %s |" % (k, cur[k]))
         for r in cur.get("runs", []):

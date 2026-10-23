@@ -7,8 +7,9 @@
  * the performance gates fail the first two and that the stack's high-water
  * mark sees the third (R-PERF-3, R-PERF-5). tools/fw-suite.py builds it
  * with each of SB_TEST_FAULT, SB_TEST_STRAY and SB_TEST_BADINSN, which go
- * wrong on purpose once interrupts are on (R-IRQ-3, R-IRQ-4). The firmware
- * itself is built with none, and then nothing here is compiled.
+ * wrong on purpose once interrupts are on (R-IRQ-3, R-IRQ-4), and with
+ * SB_TEST_FLOOD, which keeps the panel busy (R-LCD-5). The firmware itself
+ * is built with none, and then nothing here is compiled.
  */
 
 #include "sb.h"
@@ -115,5 +116,19 @@ void sb_test_stray(void)
 void sb_test_badinsn(void)
 {
     __asm__ volatile(".short 0xffff\n\t.short 0xffff");
+}
+#endif
+
+#if defined(SB_TEST_FLOOD)
+/* Whole frames back to back, for ever, once the test screen is up: every
+ * tick of the run comes while a frame is being sent or set up, and must
+ * keep its timing (R-LCD-5). Core 0 never waits here, so fwtest's
+ * captures are exact. */
+void sb_test_flood(void)
+{
+    for (;;) {
+        lcd_send_rows(0, SCREEN_H);
+        lcd_wait();
+    }
 }
 #endif

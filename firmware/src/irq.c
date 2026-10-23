@@ -17,17 +17,15 @@ extern volatile u32 __vectors[];
 /* crt0.S: one 2-byte stub per source, in source order. */
 extern const unsigned short sb_irq_stubs[];
 
-/* HW-19 and the SDK's hwi.h (P-16): the sources M1 handles. Sources 0 to
- * 2 are the debug, exception and system-call sources, the CPU's own
- * faults: their stubs report a fault rather than a stray interrupt. */
+/* HW-19 and the SDK's hwi.h (P-16): sources 0 to 2 are the debug,
+ * exception and system-call sources, the CPU's own faults: their stubs
+ * report a fault rather than a stray interrupt. */
 #define SRC_EXCEPTION   1u
 #define SRC_LAST_FAULT  2u
-#define SRC_TIMER0      4u
 
 /* HW-20: 4 bits a source in ICFG00-ICFG31, bit 0 enable, bits 1-3 the
- * priority (higher wins). Only the tick and the exception source are
- * enabled; nothing nests (DESIGN-NOTES.md, M1). */
-#define PRIO_TICK   1u
+ * priority (higher wins). The exception source is enabled here; main
+ * enables the others it handles (DESIGN-NOTES.md, M1 and M2). */
 #define PRIO_FAULT  7u
 #define ICFG_BITS(src, prio)  ((1u | (prio) << 1) << 4 * ((src) % 8))
 #define ICFG_WORDS  32
@@ -37,21 +35,29 @@ extern const unsigned short sb_irq_stubs[];
 
 void sb_irq_unexpected(u32 source, u32 reti) __attribute__((noreturn));
 
-void sb_irq_init(void (*tick)(void))
+void sb_irq_init(void)
 {
     volatile u32 *icfg = &q32DSP(0)->ICFG00;
     u32 n;
 
     for (n = 0; n < SOURCES; n++)
         __vectors[n] = (u32)&sb_irq_stubs[n];
-    __vectors[SRC_TIMER0] = (u32)tick;
 
-    /* Every word written, so nothing a loader left enabled stays so. Both
-     * sources M1 enables are in the first word. */
-    _Static_assert(SRC_EXCEPTION / 8 == 0 && SRC_TIMER0 / 8 == 0, "both in ICFG00");
-    icfg[0] = ICFG_BITS(SRC_EXCEPTION, PRIO_FAULT) | ICFG_BITS(SRC_TIMER0, PRIO_TICK);
+    /* Every word written, so nothing a loader left enabled stays so. */
+    _Static_assert(SRC_EXCEPTION / 8 == 0, "in ICFG00");
+    icfg[0] = ICFG_BITS(SRC_EXCEPTION, PRIO_FAULT);
     for (n = 1; n < ICFG_WORDS; n++)
         icfg[n] = 0;
+}
+
+/* Installs a handler for a source and enables it at a priority (0 to 7),
+ * before interrupts are turned on. */
+void sb_irq_enable(u32 source, void (*handler)(void), u32 priority)
+{
+    volatile u32 *icfg = &q32DSP(0)->ICFG00;
+
+    __vectors[source] = (u32)handler;
+    icfg[source / 8] = (icfg[source / 8] & ~(0xFu << 4 * (source % 8))) | ICFG_BITS(source, priority);
 }
 
 /* HW-21: both gates, icfg's bit 8 and sti. */

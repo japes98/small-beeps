@@ -10,8 +10,10 @@
 #define SB_H
 
 typedef unsigned char u8;
+typedef unsigned short u16;
 typedef unsigned int u32;
 
+_Static_assert(sizeof(u16) == 2, "u16 is 16 bits");
 _Static_assert(sizeof(u32) == 4, "u32 is 32 bits");
 
 /* The beacon: words at the start of main RAM (firmware/app.ld) that
@@ -34,12 +36,29 @@ struct sb_beacon {
     u32 tick_count;     /* tick interrupts taken */
     u32 interval_min;   /* shortest time base interval between two ticks */
     u32 interval_max;   /* longest */
-    u32 wakes;          /* times main's idle wait returned */
+    u32 wakes;          /* times main's idle wait returned (since M2 stored
+                         * once a second, with wakes_ticks) */
     u32 clock;          /* sb_clock_measure: time base ticks per SB_CLOCK_CYCLES */
     u32 halt_reason;    /* SB_HALT_*, 0 while running */
     u32 halt_source;    /* the interrupt source, or which stack's guard */
     u32 halt_reti;      /* where the interrupt came in (reti), if any */
+    /* Since M2: the screen (docs/DESIGN-NOTES.md, M2). Times are in time
+     * base ticks (24 per microsecond). */
+    u32 screen;         /* SB_SCREEN_*: what the panel shows */
+    u32 loop_ticks;     /* tick_count when main's idle loop began */
+    u32 frames;         /* whole frames sent to the panel */
+    u32 frame_ticks;    /* the last whole frame: window set to last byte sent */
+    u32 render_ticks;   /* drawing the test screen into the frame buffer */
+    u32 beat_ticks;     /* the last heartbeat update: drawn and its rows sent */
+    u32 shown;          /* the heartbeat's seconds on the screen */
+    u32 chunks;         /* DMA transfers to the panel */
+    u32 wakes_ticks;    /* tick_count when main last stored wakes */
 };
+
+/* What the screen shows (sb_beacon.screen), in order. */
+#define SB_SCREEN_NONE    0u
+#define SB_SCREEN_PATTERN 1u  /* the address pattern (screen.c) */
+#define SB_SCREEN_TEST    2u  /* the test screen with the heartbeat */
 
 #define SB_MARKER     0x44304253u  /* "SB0D" in memory order */
 #define SB_MARKER_BAD 0x21444142u  /* "BAD!": startup left data wrong */
@@ -60,10 +79,50 @@ int main(void) __attribute__((noreturn));
 void sb_console_write(const char *text, u32 words);
 void sb_tick(void) __attribute__((interrupt("")));
 
+void sb_wait_ms(u32 ms);
+
 /* irq.c */
-void sb_irq_init(void (*tick)(void));
+void sb_irq_init(void);
+void sb_irq_enable(u32 source, void (*handler)(void), u32 priority);
 void sb_irq_on(void);
 void sb_halt(u32 reason, u32 source, u32 reti) __attribute__((noreturn));
+
+/* The time base's count (HW-13), for timing. */
+u32 sb_now(void);
+
+/* lcd.c: the panel (HW-27 to HW-32). Rows are whole rows of the frame
+ * buffer, sent from it as they are. */
+void lcd_init(void);
+void lcd_command(u8 command, const u8 *params, u32 count);
+void lcd_send_rows(u32 first, u32 rows);
+void lcd_wait(void);
+void lcd_spi_done(void) __attribute__((interrupt("")));
+#define LCD_DISPON 0x29u
+
+/* gfx.c: drawing into the frame buffer. Colours are RGB565 (HW-27). */
+#define SCREEN_W 240u
+#define SCREEN_H 240u
+#define RGB565(r5, g6, b5) ((u32)(r5) << 11 | (u32)(g6) << 5 | (u32)(b5))
+extern u16 sb_fb[SCREEN_W * SCREEN_H];
+void gfx_fill(u32 x, u32 y, u32 w, u32 h, u32 colour);
+void gfx_frame(u32 x, u32 y, u32 w, u32 h, u32 colour);
+void gfx_line(int x0, int y0, int x1, int y1, u32 colour);
+void gfx_pixel(u32 x, u32 y, u32 colour);
+u32 gfx_text(u32 x, u32 y, const char *text, u32 fg, u32 bg, u32 scale);
+void gfx_glyph(u32 x, u32 y, u32 c, u32 fg, u32 bg, u32 scale);
+
+/* font.c: our own font, 5 x 8 in a 6 x 8 cell, printable ASCII. */
+#define FONT_W 5u
+#define FONT_H 8u
+#define FONT_CELL 6u
+#define FONT_FIRST 32u
+#define FONT_LAST 126u
+extern const u8 font_glyphs[FONT_LAST - FONT_FIRST + 1][FONT_H];
+
+/* screen.c */
+void screen_pattern(void);
+void screen_test(void);
+void screen_beat(void);
 
 /* crt0.S */
 u32 sb_clock_measure(volatile u32 *count);
@@ -87,6 +146,9 @@ void sb_test_stray(void);
 #endif
 #if defined(SB_TEST_BADINSN)
 void sb_test_badinsn(void);
+#endif
+#if defined(SB_TEST_FLOOD)
+void sb_test_flood(void) __attribute__((noreturn));
 #endif
 
 #endif

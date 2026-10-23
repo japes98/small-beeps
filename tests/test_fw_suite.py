@@ -66,17 +66,35 @@ class FwSuiteCheckTest(unittest.TestCase):
 
     def test_tick_statistics(self):
         result = {"run": {"instructions": {"core0": 69641}}}
+        # main's loop began at tick 502 and stored 498 wakes at tick 1000
         good = beacon(ticks=24169514, tick_count=1007, interval_min=24001, interval_max=24001,
-                      wakes=1006)
+                      wakes=498, loop_ticks=502, wakes_ticks=1000)
         self.assertEqual(fw.check_ticks(good, result)[0], [])
+        self.assertEqual(fw.check_ticks(dict(good, wakes=499), result)[0], [])   # within one
         for bad in (dict(good, interval_max=24000 + fw.INTERVAL_TOL + 1),
                     dict(good, interval_min=24000 - fw.INTERVAL_TOL - 1),
                     dict(good, interval_min=23990, interval_max=24020),   # jitter 30
-                    dict(good, wakes=500),                               # not idling per tick
+                    dict(good, wakes=200),                               # not idling per tick
+                    dict(good, wakes_ticks=0),                           # never stored
                     dict(good, tick_count=900)):                         # ticks and beats apart
             self.assertTrue(fw.check_ticks(bad, result)[0], bad)
-        busy = {"run": {"instructions": {"core0": 1007 * (fw.IDLE_MAX_IPT + 1)}}}
-        self.assertTrue(fw.check_ticks(good, busy)[0])
+
+    def test_steady_state_instructions_a_tick(self):
+        def run(i):
+            return {"run": {"instructions": {"core0": i}}}
+        ok, lines = fw.check_steady([run(1116418), run(1181964)],
+                                    [beacon(tick_count=1251), beacon(tick_count=2253)])
+        self.assertEqual(ok, [])
+        self.assertIn("65.415", lines[0])
+        busy, _ = fw.check_steady([run(1000000), run(1000000 + 1002 * (fw.IDLE_MAX_IPT + 1))],
+                                  [beacon(tick_count=1251), beacon(tick_count=2253)])
+        self.assertTrue(busy)
+        self.assertTrue(fw.check_steady([run(1), run(2)], [beacon(tick_count=5), beacon(tick_count=5)])[0])
+
+    def test_start_slack_grows_with_what_startup_clears(self):
+        self.assertEqual(fw.start_slack(0), 240)
+        # M2's 115 336 bytes of bss: 28 834 words, 3 cycles each at most
+        self.assertEqual(fw.start_slack(115336), 240 + 8651)
 
     def test_case_problems(self):
         good = {"run": {"outcome": "completed", "unmodelled_accesses": [],
@@ -98,7 +116,7 @@ class FwSuiteBootTest(unittest.TestCase):
 
     def setUp(self):
         self.dir = tempfile.mkdtemp()
-        self.syms = {"sb_irq_stubs": 0x0200004C, "sb_tick": 0x020002BC}
+        self.syms = {"sb_irq_stubs": 0x0200004C, "sb_tick": 0x020002BC, "lcd_spi_done": 0x0200060E}
 
     def tearDown(self):
         shutil.rmtree(self.dir)
@@ -109,6 +127,7 @@ class FwSuiteBootTest(unittest.TestCase):
         if table is None:
             table = [self.syms["sb_irq_stubs"] + 2 * n for n in range(128)]
             table[4] = self.syms["sb_tick"]
+            table[16] = self.syms["lcd_spi_done"]
         with open(os.path.join(self.dir, fw.VECTORS), "wb") as f:
             f.write(struct.pack("<128I", *table))
         return table
@@ -150,3 +169,100 @@ class FwSuiteBootTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def png(rows, filters=(0,)):
+    """An 8-bit RGB PNG of rows of (r, g, b), each row stored with the next
+    filter type in turn (0 none, 1 sub, 2 up, 3 average, 4 Paeth)."""
+    import zlib
+    w, raw, prev = len(rows[0]), b"", bytes(len(rows[0]) * 3)
+    for y, row in enumerate(rows):
+        line = bytes(c for px in row for c in px)
+        kind, out = filters[y % len(filters)], bytearray()
+        for i, v in enumerate(line):
+            a = line[i - 3] if i >= 3 else 0
+            b, c = prev[i], prev[i - 3] if i >= 3 else 0
+            if kind == 1:
+                v -= a
+            elif kind == 2:
+                v -= b
+            elif kind == 3:
+                v -= (a + b) // 2
+            elif kind == 4:
+                p = a + b - c
+                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                v -= a if pa <= pb and pa <= pc else b if pb <= pc else c
+            out.append(v & 255)
+        raw += bytes([kind]) + bytes(out)
+        prev = line
+
+    def chunk(kind, body):
+        return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, len(rows), 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+
+
+def pattern():
+    return [[fw.rgb8(x >> 3, y >> 2, (x & 7) << 2 | (y & 3)) for x in range(240)] for y in range(240)]
+
+
+def test_screen():
+    """The test screen's checked parts, on black (screen.c)."""
+    rows = [[(0, 0, 0)] * 240 for _ in range(240)]
+    for y in range(240):
+        for x in range(240):
+            if x in (0, 239) or y in (0, 239):
+                rows[y][x] = fw.WHITE
+    for (x0, y0), colour in fw.CORNERS:
+        for y in range(y0, y0 + 12):
+            for x in range(x0, x0 + 12):
+                rows[y][x] = colour
+    for y0, steps, width, colour in ((44, 32, 6, lambda i: fw.rgb8(i, 0, 0)), (60, 64, 3, lambda i: fw.rgb8(0, i, 0)),
+                                     (76, 32, 6, lambda i: fw.rgb8(0, 0, i))):
+        for i in range(steps):
+            for x in range(24 + width * i, 24 + width * (i + 1)):
+                for y in range(y0, y0 + 14):
+                    rows[y][x] = colour(i)
+    return rows
+
+
+class FwSuiteScreenTest(unittest.TestCase):
+    """Requirements: R-LCD-2, R-LCD-3, R-LCD-4"""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.dir)
+
+    def test_png_reader_undoes_every_filter(self):
+        rows = [[((x * 7 + y) & 255, (x * y) & 255, (255 - x - y) & 255) for x in range(9)] for y in range(10)]
+        path = os.path.join(self.dir, "t.png")
+        with open(path, "wb") as f:
+            f.write(png(rows, filters=(0, 1, 2, 3, 4)))
+        self.assertEqual(fw.read_png(path), (9, 10, rows))
+
+    def test_colours_scale_as_fwtest_writes_them(self):
+        self.assertEqual(fw.rgb8(31, 63, 31), (255, 255, 255))
+        self.assertEqual(fw.rgb8(1, 1, 1), (8, 4, 8))
+
+    def test_the_address_pattern_is_checked_pixel_by_pixel(self):
+        rows = pattern()
+        self.assertEqual(fw.check_pattern(rows), [])
+        rows[100][37] = rows[100][38]           # one pixel in the wrong place
+        self.assertIn("(37, 100)", fw.check_pattern(rows)[0])
+        flipped = [row[::-1] for row in pattern()]
+        self.assertTrue(fw.check_pattern(flipped))
+        swapped = [[(b, g, r) for r, g, b in row] for row in pattern()]
+        self.assertTrue(fw.check_pattern(swapped))
+
+    def test_the_test_screen_shows_orientation_colour_order_and_edges(self):
+        rows = test_screen()
+        self.assertEqual(fw.check_test_screen(rows), [])
+        for broken in ([row[::-1] for row in rows],                       # mirrored
+                       rows[::-1],                                        # upside down
+                       [[(b, g, r) for r, g, b in row] for row in rows]):  # BGR
+            self.assertTrue(fw.check_test_screen(broken))
+        missing_edge = [list(r) for r in rows]
+        missing_edge[239][120] = (0, 0, 0)
+        self.assertTrue(any("edge" in p for p in fw.check_test_screen(missing_edge)))

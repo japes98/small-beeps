@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
 """Runs the firmware's fwtest suite and checks what it captured (check
-C-FW-SUITE; R-BOOT-1 to R-BOOT-5, R-CLK-1, R-IRQ-1 to R-IRQ-4).
+C-FW-SUITE; R-BOOT-1 to R-BOOT-5, R-CLK-1, R-IRQ-1 to R-IRQ-4, R-LCD-1
+to R-LCD-5).
 
   fw-suite.py --build DIR --out DIR
 
@@ -38,6 +39,19 @@ the suite through tools/fwtest (the pinned image), and then checks:
 - badinsn: fwtest's own fault outcome for an undecodable instruction. A
   limit of the harness, not firmware behaviour: no handler of ours runs
   (SR-1).
+- heartbeat2 (since M2): the heartbeat's checks again over 2.25 s; with
+  heartbeat (1.25 s) its difference is the steady state, which may take
+  at most IDLE_MAX_IPT instructions a tick. The idle loop's wakes, stored
+  once a second, equal the ticks taken since it began, within one.
+- screen (since M2): every pixel of the address pattern (300 ms) against
+  its formula; the test screen's border, corners and ramps pixel by pixel
+  (800 ms); one heartbeat later (1 500 ms) only the heartbeat's rows
+  changed; the beacon's screen and seconds shown at each capture; and the
+  three pictures against golden images.
+- flood (since M2): a test build that sends whole frames back to back from
+  500 ms: every tick interval still within INTERVAL_TOL, far more frames
+  than ticks, and the picture still the test screen. Prints how long a
+  whole frame takes.
 
 Prints what it saw for the record, and exits 1 if anything failed.
 """
@@ -49,33 +63,44 @@ import shutil
 import struct
 import subprocess
 import sys
+import zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SUITE = "tests/fw/boot.suite"
 IMAGE = os.path.join("out", "fw", "app.bin")
 # Test images: name -> define (firmware/src/probe.c).
 TEST_BUILDS = {"test-fault": "SB_TEST_FAULT", "test-stray": "SB_TEST_STRAY",
-               "test-badinsn": "SB_TEST_BADINSN"}
+               "test-badinsn": "SB_TEST_BADINSN", "test-flood": "SB_TEST_FLOOD"}
 # Each case's expected outcome (the suite says the same; checked twice).
-EXPECT = {"boot": "completed", "heartbeat": "completed", "fault": "halt",
-          "stray": "halt", "badinsn": "fault"}
+EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "completed",
+          "screen": "completed", "flood": "completed", "fault": "halt", "stray": "halt",
+          "badinsn": "fault"}
 
 MARKER = 0x44304253        # "SB0D", firmware/src/sb.h
 TICKS_PER_MS = 24000       # HW-13
 START_SLACK = 240          # ticks: 10 microseconds (main starts the time base)
+# Startup clears .bss before main starts the time base, at most this many
+# core cycles a word (2 measured in M2), 10 cycles a time base tick: since
+# M2's frame buffer that is about a quarter of a millisecond, so the slack
+# grows with the image's bss (start_slack).
+CLEAR_CYCLES_PER_WORD = 3
 LATE_MS = 30               # a waiting core 0 crosses many ticks in one run
 INTERVAL_TOL = 24          # ticks: 1 microsecond, 0.1% of a tick period
 CLOCK_TICKS = (240, 241)   # SB_CLOCK_CYCLES = 2402 cycles at 10 a tick
 FIRST_TICK_MS = 2          # the first tick: one period after main starts it
-IDLE_MAX_IPT = 100         # instructions per tick
+IDLE_MAX_IPT = 100         # instructions per tick, in steady state (since M2)
 M0_IPP = 356.887           # M0's instructions per period (its last record)
 STUB_SIZE = 2              # crt0.S's sb_irq_stubs
 SRC_TICK = 4               # TIMER0 (HW-16, HW-19)
+SRC_SPI1 = 16              # SPI1, the panel's transfers (HW-29)
 HALT_STRAY, HALT_FAULT, HALT_STACK = 1, 2, 3
 
 BEACON_FIELDS = ("marker", "beats", "ticks", "period", "seq", "beats_b", "ticks_b",
                  "tick_count", "interval_min", "interval_max", "wakes", "clock",
-                 "halt_reason", "halt_source", "halt_reti")
+                 "halt_reason", "halt_source", "halt_reti",
+                 # since M2 (firmware/src/sb.h)
+                 "screen", "loop_ticks", "frames", "frame_ticks", "render_ticks", "beat_ticks",
+                 "shown", "chunks", "wakes_ticks")
 BEACON_LEN = 4 * len(BEACON_FIELDS)
 CAPTURE = re.compile(r"^ram-01c00000-%x-(?P<when>[0-9.]+ms|end)\.bin$" % BEACON_LEN)
 VECTORS = "ram-01c7fe00-200-end.bin"
@@ -124,6 +149,12 @@ def consistent(b):
             if be == ti // TICKS_PER_MS]
 
 
+def start_slack(bss):
+    """Time base ticks by which main may start the time base after fwtest's
+    emulated time began: START_SLACK and the clearing of bss."""
+    return START_SLACK + (bss // 4 * CLEAR_CYCLES_PER_WORD + 9) // 10
+
+
 def check_beacon(when_ms, b, end_ms=None):
     """Problems with one beacon captured at when_ms (the time asked; end_ms
     is result.json's emulated_ms for the capture at the end)."""
@@ -157,11 +188,9 @@ def check_ticks(b, result):
     """Problems with the end beacon's tick statistics, and lines to print."""
     problems = []
     n, lo, hi = b["tick_count"], b["interval_min"], b["interval_max"]
-    instr = result["run"]["instructions"]["core0"]
-    lines = ["  ticks %d, interval %d to %d time base ticks (jitter %d), wakes %d, %.1f instructions"
-             " a tick (M0: %.1f a period, %+.1f%%)"
-             % (n, lo, hi, hi - lo, b["wakes"], instr / max(n, 1), M0_IPP,
-                100.0 * (instr / max(n, 1) - M0_IPP) / M0_IPP)]
+    loop = b["wakes_ticks"] - b["loop_ticks"]
+    lines = ["  ticks %d, interval %d to %d time base ticks (jitter %d); the idle loop's wait returned"
+             " %d times in its first %d ticks" % (n, lo, hi, hi - lo, b["wakes"], loop)]
     if n < 2:
         return ["heartbeat: %d ticks" % n], lines
     for name, v in (("shortest", lo), ("longest", hi)):
@@ -173,11 +202,29 @@ def check_ticks(b, result):
     beats = consistent(b)[-1][0] if consistent(b) else b["beats"]
     if abs(beats - n) > 1:
         problems.append("heartbeat: %d beats but %d ticks" % (beats, n))
-    if b["wakes"] not in (n - 1, n):
-        problems.append("heartbeat: the idle wait returned %d times for %d ticks" % (b["wakes"], n))
-    if instr / n > IDLE_MAX_IPT:
-        problems.append("heartbeat: %.1f instructions a tick, more than %d" % (instr / n, IDLE_MAX_IPT))
+    # Since M2 main counts its wakes in a register and stores the count
+    # once a second, with the ticks taken then (DESIGN-NOTES.md, M2).
+    if not b["wakes_ticks"]:
+        problems.append("heartbeat: main's idle loop never stored its wakes")
+    elif b["wakes"] not in (loop - 1, loop, loop + 1):
+        problems.append("heartbeat: the idle wait returned %d times in %d ticks" % (b["wakes"], loop))
     return problems, lines
+
+
+def check_steady(results, ends):
+    """Steady-state instructions per tick, from the two heartbeat cases
+    (the same options but their length: R-IRQ-1 since M2), and lines."""
+    (r1, r2), (b1, b2) = results, ends
+    i1, i2 = r1["run"]["instructions"]["core0"], r2["run"]["instructions"]["core0"]
+    dn = b2["tick_count"] - b1["tick_count"]
+    if dn <= 0:
+        return ["heartbeat2: no more ticks than heartbeat"], []
+    ipt = (i2 - i1) / dn
+    lines = ["  steady state: %d instructions for %d ticks between the two heartbeat runs: %.3f a tick"
+             " (M0's polling heartbeat: %.1f a period)" % (i2 - i1, dn, ipt, M0_IPP)]
+    if ipt > IDLE_MAX_IPT:
+        return ["heartbeat: %.1f instructions a tick in steady state, more than %d" % (ipt, IDLE_MAX_IPT)], lines
+    return [], lines
 
 
 def check_heartbeat(case_dir, result):
@@ -246,9 +293,10 @@ def check_boot(case_dir, symbols):
         table = struct.unpack("<128I", f.read())
     want = [symbols["sb_irq_stubs"] + STUB_SIZE * n for n in range(128)]
     want[SRC_TICK] = symbols["sb_tick"]
+    want[SRC_SPI1] = symbols["lcd_spi_done"]
     wrong = [n for n in range(128) if table[n] != want[n]]
-    lines.append("  vector table: %d of 128 slots as built (tick 0x%08x, stubs from 0x%08x)"
-                 % (128 - len(wrong), symbols["sb_tick"], symbols["sb_irq_stubs"]))
+    lines.append("  vector table: %d of 128 slots as built (tick 0x%08x, SPI1 0x%08x, stubs from 0x%08x)"
+                 % (128 - len(wrong), symbols["sb_tick"], symbols["lcd_spi_done"], symbols["sb_irq_stubs"]))
     if wrong:
         problems.append("boot: vector table slots %s are not the handler built for them" % wrong)
     return problems, lines
@@ -263,6 +311,164 @@ def check_halt(name, case_dir, reason, source):
         return ["%s: halted with reason %d source %d, not %d %d"
                 % (name, b["halt_reason"], b["halt_source"], reason, source)], [line]
     return [], [line]
+
+
+def read_png(path):
+    """(width, height, rows of (r, g, b)) from an 8-bit RGB, non-interlaced
+    PNG, as fwtest writes them (docs/HARNESS.md, lcd-WHEN.png)."""
+    with open(path, "rb") as f:
+        data = f.read()
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("not a PNG")
+    pos, idat, w = 8, b"", None
+    while pos < len(data):
+        n, kind = struct.unpack_from(">I4s", data, pos)
+        body = data[pos + 8:pos + 8 + n]
+        if kind == b"IHDR":
+            w, h, depth, ctype, _, _, interlace = struct.unpack(">IIBBBBB", body)
+            if (depth, ctype, interlace) != (8, 2, 0):
+                raise ValueError("not 8-bit RGB without interlace")
+        elif kind == b"IDAT":
+            idat += body
+        pos += 12 + n
+    raw, stride, rows, prev = zlib.decompress(idat), w * 3, [], bytearray(w * 3)
+    for y in range(h):
+        kind, line = raw[y * (stride + 1)], bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
+        for i in range(stride):
+            a = line[i - 3] if i >= 3 else 0
+            b, c = prev[i], prev[i - 3] if i >= 3 else 0
+            if kind == 1:
+                line[i] = (line[i] + a) & 255
+            elif kind == 2:
+                line[i] = (line[i] + b) & 255
+            elif kind == 3:
+                line[i] = (line[i] + (a + b) // 2) & 255
+            elif kind == 4:
+                p = a + b - c
+                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                line[i] = (line[i] + (a if pa <= pb and pa <= pc else b if pb <= pc else c)) & 255
+        rows.append([tuple(line[i:i + 3]) for i in range(0, stride, 3)])
+        prev = line
+    return w, h, rows
+
+
+def rgb8(r5, g6, b5):
+    """The colour fwtest's PNG shows for an RGB565 pixel."""
+    return (r5 * 255 // 31, g6 * 255 // 63, b5 * 255 // 31)
+
+
+# screen.c's layouts (firmware/src/screen.c): where the test screen puts
+# what, in pixels from the top left.
+WHITE, RED, GREEN, BLUE, YELLOW = (rgb8(31, 63, 31), rgb8(31, 0, 0), rgb8(0, 63, 0),
+                                   rgb8(0, 0, 31), rgb8(31, 63, 0))
+CORNERS = (((3, 3), RED), ((225, 3), GREEN), ((3, 225), BLUE), ((225, 225), YELLOW))
+BEAT_ROWS = range(200, 216)
+
+
+def check_pattern(rows):
+    """Problems with the address pattern: every pixel's colour must say
+    where it is (screen.c's screen_pattern), so the orientation, the
+    colour order and every pixel's address are checked at once."""
+    bad = [(x, y) for y in range(240) for x in range(240)
+           if rows[y][x] != rgb8(x >> 3, y >> 2, (x & 7) << 2 | (y & 3))]
+    if bad:
+        return ["screen: %d pixels of the address pattern are wrong, the first at %s" % (len(bad), bad[0])]
+    return []
+
+
+def check_test_screen(rows):
+    """Problems with the test screen's fixed parts: the border, the corner
+    squares and the three ramps (screen.c's screen_test)."""
+    problems = []
+    edge = [(x, y) for y in range(240) for x in range(240)
+            if (x in (0, 239) or y in (0, 239)) and rows[y][x] != WHITE]
+    if edge:
+        problems.append("screen: %d edge pixels are not white, the first at %s" % (len(edge), edge[0]))
+    for (x0, y0), colour in CORNERS:
+        wrong = [(x, y) for y in range(y0, y0 + 12) for x in range(x0, x0 + 12) if rows[y][x] != colour]
+        if wrong:
+            problems.append("screen: the corner square at %s is not %s (first wrong pixel %s: %s)"
+                            % ((x0, y0), colour, wrong[0], rows[wrong[0][1]][wrong[0][0]]))
+    for name, y0, steps, width, colour in (("red", 44, 32, 6, lambda i: rgb8(i, 0, 0)),
+                                           ("green", 60, 64, 3, lambda i: rgb8(0, i, 0)),
+                                           ("blue", 76, 32, 6, lambda i: rgb8(0, 0, i))):
+        wrong = [(x, y) for i in range(steps) for x in range(24 + width * i, 24 + width * (i + 1))
+                 for y in range(y0, y0 + 14) if rows[y][x] != colour(i)]
+        if wrong:
+            problems.append("screen: the %s ramp is wrong at %s" % (name, wrong[0]))
+    return problems
+
+
+def check_screen(case_dir):
+    """Problems with the screen case: the address pattern at 300 ms, the
+    test screen at 800 ms and 1 500 ms (the heartbeat one second on, and
+    nothing else changed), and the beacon captured with each; lines."""
+    problems, lines, shots, beacons = [], [], {}, {}
+    for when in (300, 800, 1500):
+        try:
+            w, h, shots[when] = read_png(os.path.join(case_dir, "lcd-%dms.png" % when))
+        except (OSError, ValueError) as e:
+            return ["screen: lcd-%dms.png: %s" % (when, e)], lines
+        if (w, h) != (240, 240):
+            problems.append("screen: lcd-%dms.png is %dx%d" % (when, w, h))
+        with open(os.path.join(case_dir, "ram-01c00000-%x-%dms.bin" % (BEACON_LEN, when)), "rb") as f:
+            beacons[when] = beacon(f.read())
+    if problems:
+        return problems, lines
+    problems += check_pattern(shots[300])
+    problems += check_test_screen(shots[800])
+    changed = {y for y in range(240) for x in range(240) if shots[800][y][x] != shots[1500][y][x]}
+    if not changed or not changed <= set(BEAT_ROWS):
+        problems.append("screen: from 800 to 1 500 ms rows %s changed, not some of the heartbeat's %d to %d only"
+                        % (sorted(changed)[:8], BEAT_ROWS[0], BEAT_ROWS[-1]))
+    for when, (screen, shown) in ((300, (1, None)), (800, (2, 0)), (1500, (2, 1))):
+        b = beacons[when]
+        good = consistent(b)
+        seconds = good[-1][0] // 1000 if good else None
+        lines.append("  %4d ms: screen %d, heartbeat shown %d s, beats %s" % (when, b["screen"], b["shown"],
+                                                                            good[-1][0] if good else "?"))
+        if b["screen"] != screen:
+            problems.append("screen %d ms: the beacon says screen %d, not %d" % (when, b["screen"], screen))
+        if shown is not None and (b["shown"] != shown or seconds != shown):
+            problems.append("screen %d ms: heartbeat shown %d at %s whole seconds, expected %d"
+                            % (when, b["shown"], seconds, shown))
+    return problems, lines
+
+
+def check_flood(case_dir, result, screen_dir):
+    """Problems with the flood case (whole frames back to back): every tick
+    interval still within INTERVAL_TOL, frames going out, and the picture
+    still the test screen; lines with the frame time."""
+    with open(os.path.join(case_dir, "ram-01c00000-%x-end.bin" % BEACON_LEN), "rb") as f:
+        b = beacon(f.read())
+    problems, lines = [], []
+    n, lo, hi = b["tick_count"], b["interval_min"], b["interval_max"]
+    ms = float(result["run"]["emulated_ms"])
+    instr = result["run"]["instructions"]["core0"]
+    flood = b["frames"] - 2       # the two frames before the flood
+    lines.append("  ticks %d, interval %d to %d time base ticks (jitter %d), during %d whole frames"
+                 % (n, lo, hi, hi - lo, flood))
+    if flood > 0:
+        lines.append("  a whole frame: %d time base ticks (%.2f us) from its window to its last transfer"
+                     " started; %.0f core-0 instructions a frame over the run"
+                     % (b["frame_ticks"], b["frame_ticks"] / 24.0, instr / b["frames"]))
+    for name, v in (("shortest", lo), ("longest", hi)):
+        if abs(v - TICKS_PER_MS) > INTERVAL_TOL:
+            problems.append("flood: %s tick interval %d, not within %d of %d" % (name, v, INTERVAL_TOL, TICKS_PER_MS))
+    # The flood starts with the test screen, at 500 ms; a frame is a few
+    # microseconds of the core's time in fwtest, so far more frames than
+    # ticks go out.
+    if n < ms - 2 or flood < 10 * (n - 500):
+        problems.append("flood: %d ticks and %d frames in %.3f ms, expected a tick a ms and more than ten"
+                        " frames a tick after 500 ms" % (n, flood, ms))
+    try:
+        _, _, end = read_png(os.path.join(case_dir, "lcd-end.png"))
+        _, _, ref = read_png(os.path.join(screen_dir, "lcd-800ms.png"))
+        if end != ref:
+            problems.append("flood: the picture at the end is not the test screen")
+    except (OSError, ValueError) as e:
+        problems.append("flood: %s" % e)
+    return problems, lines
 
 
 def build_tests(build):
@@ -288,10 +494,14 @@ def main():
 
     os.makedirs(os.path.join(ROOT, os.path.dirname(IMAGE)), exist_ok=True)
     shutil.copyfile(os.path.join(a.build, "app.bin"), os.path.join(ROOT, IMAGE))
+    global START_SLACK
     size = os.path.join(a.build, "app.size")
     if os.path.exists(size):
         with open(size) as f:
-            print("image size: " + ", ".join(l.strip() for l in f if l.strip()))
+            sizes = dict(l.split() for l in f if l.strip())
+        print("image size: " + ", ".join("%s %s" % kv for kv in sizes.items()))
+        START_SLACK = start_slack(int(sizes.get("bss", 0)))
+        print("start slack: %d time base ticks (bss cleared before main starts the time base)" % START_SLACK)
     symbols = elf_symbols(os.path.join(a.build, "app.elf"))
     problems = build_tests(a.build)
 
@@ -302,6 +512,7 @@ def main():
     if p.returncode != 0:
         problems.append("fwtest suite exited %d" % p.returncode)
 
+    steady = {}
     for name in EXPECT:
         path = os.path.join(out, name, "result.json")
         if not os.path.exists(path):
@@ -318,14 +529,24 @@ def main():
             print("  golden %s: %s" % (g.get("name"), g.get("result")))
             if g.get("result") != "match":
                 problems.append("%s: golden %s: %s" % (name, g.get("name"), g.get("detail")))
-        if name in ("boot", "fault", "stray") and not result.get("golden"):
+        if name in ("boot", "screen", "fault", "stray") and not result.get("golden"):
             problems.append("%s: no golden files compared" % name)
         case_dir = os.path.join(out, name)
         more, lines = [], []
         if name == "boot":
             more, lines = check_boot(case_dir, symbols)
-        elif name == "heartbeat" and "emulated_ms" in run:
+        elif name in ("heartbeat", "heartbeat2") and "emulated_ms" in run:
             more, lines = check_heartbeat(case_dir, result)
+            with open(os.path.join(case_dir, "ram-01c00000-%x-end.bin" % BEACON_LEN), "rb") as f:
+                steady[name] = (result, beacon(f.read()))
+            if len(steady) == 2:
+                m, l = check_steady([steady["heartbeat"][0], steady["heartbeat2"][0]],
+                                    [steady["heartbeat"][1], steady["heartbeat2"][1]])
+                more, lines = more + m, lines + l
+        elif name == "screen":
+            more, lines = check_screen(case_dir)
+        elif name == "flood" and "emulated_ms" in run:
+            more, lines = check_flood(case_dir, result, os.path.join(out, "screen"))
         elif name == "fault":
             more, lines = check_halt(name, case_dir, HALT_STACK, 1)
         elif name == "stray":
