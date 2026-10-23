@@ -523,8 +523,9 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
       black-box test, and each key lit only its own LED.
     - Key latency 2.83 to 4.11 ms; detents within 1.10 ms; the pot's
       first event within 0.82 ms and its value within 3.82 ms.
-    - LEDs were set 1.1 µs after their event; brightness within 1.25
-      thousandths of each step.
+    - From an event to its LED: set by main within 1.0 µs, then driven by
+      the scan within 0.916 ms (its column comes round again), measured
+      by the firmware; brightness within 1.25 thousandths of each step.
     - No ghost at a matrix rectangle's fourth corner in fwtest.
     - Tick intervals stayed 24 001 to 24 002 time base ticks under the
       heaviest input.
@@ -533,8 +534,8 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
       142, and about 533 for 12 interrupts and main's wakes a
       millisecond. A slower or interrupt-driven scan was weighed and not
       taken.
-    - Startup 1 037 911 instructions; code 7 024 bytes, static RAM
-      117 788, stack 280.
+    - Startup 1 037 912 instructions; code 7 024 bytes, static RAM
+      117 792, stack 280.
   - **Open:** which printed label each fwtest number is (HW-37, HW-39) is
     emulator-only; the owner is to confirm it by hand on the app's panel
     screen. The board's wiring, diodes and pin set-up are Q-7 (SR-3).
