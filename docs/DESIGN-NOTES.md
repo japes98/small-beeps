@@ -1117,3 +1117,225 @@ Format for each entry:
   append only). Beside it, `perf-measures.csv` has one row per commit
   and measure (the owner's design): commit, record time, milestone,
   measure, value, unit, budget, change, and whether the change was gated.
+
+### 2026-10-23 M4b: porting Plaits, what it needed
+- Facts: HW-9 and HW-10 (starting core 1), HW-11 and HW-13 (240 MHz,
+  the 24 MHz time base: 10 cycles a tick in fwtest), HW-25 (the debug
+  console), HW-39 (ALGORITHM is fwtest's encoder 1), HW-43 to HW-46; the
+  SDK's app Makefiles (P-29); our own runs (P-30).
+- **Source:** Mutable Instruments' Plaits by Emilie Gillet, MIT, from the
+  original upstream only (pichenettes/eurorack and the stmlib its
+  submodule pins), vendored unmodified with checksums (vendor/plaits/,
+  P-28). Every file's licence checked: MIT throughout.
+- **Built unmodified** in upstream's own portable configuration
+  (`-DTEST`: plain C++ where the STM32 build has assembly and flash
+  access), at upstream's `-O2`, as its own image (`tools/build.sh build
+  --demo plaits`); the firmware's sources gain only a hook under
+  `SB_DEMO_PLAITS`, and the firmware's image is unchanged byte for byte.
+- **What the toolchain and the chip lacked, and what it took** (all ours,
+  in firmware/demos/plaits/):
+  - **C++:** the toolchain's clang compiles it (`-std=c++11`, no
+    exceptions or RTTI); there is no C++ library, so six small headers
+    give the few standard pieces Plaits includes (`min`, `max`, `swap`,
+    `fill`, `copy`, an insertion `sort`, the integer types, `size_t`).
+    No global constructors: the voices are built in static storage by
+    placement new at start. A handler for pure virtual calls and the
+    deallocation functions a virtual destructor names, each stopping the
+    firmware (never reached).
+  - **Floating point:** clang turns every float operation into a call
+    (`__addsf3` and the rest) and we don't link the toolchain's library
+    (docs/TOOLCHAIN.md), so runtime/softfloat.c is our own IEEE 754
+    binary32: correctly rounded add, subtract, multiply, divide and
+    square root, comparisons and conversions, integer arithmetic only.
+    It counts invalid operations, overflows and bad conversions (IEEE's
+    flags) for the bench. Tested bit for bit: 4 million random and edge
+    cases per operation against the host's IEEE hardware while writing it,
+    and in every record 20 000 per operation in fwtest against an exact
+    rational reference (tools/plaits-bench.py).
+  - **Maths:** nothing more: at these flags Plaits calls only `sqrtf`.
+    It uses no double precision at all.
+  - **memcpy, memset, memmove** (the compiler calls them for structure
+    copies), byte by byte.
+  - **Sample rate:** Plaits' tables and filters are made for its own
+    47 872.34 Hz; ours is 44 117.647 Hz, so the demo raises every note by
+    12 log2(47 872.34 / 44 117.647) = 1.414 semitones. Its time constants
+    run 7.8% slow. A block is four renders of 16 frames (Plaits takes up
+    to 24).
+- **Found on the way:** a Plaits source no header names (the speech
+  synthesiser's phoneme table) was missed by the include walk that chose
+  the files, and was added when the first link asked for it.
+  ALGORITHM is fwtest's encoder 1, not 2 (HW-39), which the first live
+  check got wrong. C-SEP-TERMS flagged identifiers in Plaits' MIT code
+  that also occur in the emulator's source; with the owner's approval the
+  vendored Plaits' terms now count as public like the SDK's (R-SEP-1).
+- **Hardware float:** the toolchain has single-precision float
+  instructions (its `fprev1` feature). fwtest runs them, and the SDK's
+  own AC791N builds use them (`-mcpu=r3 -mfprev1`, P-29), but
+  HARDWARE-SPEC.md says nothing yet: SR-5 asks. So the demo's default is
+  soft-float; `PLAITS_HWFLOAT` builds Plaits with the instructions for
+  the measurements. Every engine gives the same sound bit for bit either
+  way (the bench's checksums): two independent float paths agree.
+
+### 2026-10-23 M4b: what Plaits costs, engine by engine
+- **Method** (firmware/demos/plaits/bench.c, check C-PLAITS-BENCH): in
+  main, before interrupts, each engine renders one block after it is
+  selected (its set-up, reported apart), then four blocks at each of nine
+  settings (HARMONICS, TIMBRE and MORPH each at 0 and 1, and all at 0.5),
+  a key struck at the first of each. Each block is timed with the time
+  base, read only before and after it, and converted at 10 cycles a tick;
+  in fwtest an instruction is a cycle. Cross-check: on the live
+  hardware-float demo, fwtest's own count is 30 581 a block on engine 0
+  against the bench's 28 832 plus the firmware's 1 813 at rest.
+- **Results**, instructions a block (64 frames; core 0 has 348 160),
+  heaviest of the nine settings:
+
+  | # | Engine | Soft-float | Hardware float | Voices on core 0 (hardware float, at rest) |
+  |---|---|---|---|---|
+  | 0 | virtual analog VCF | 1 005 730 | 29 150 | 11 |
+  | 1 | phase distortion | 1 149 230 | 40 840 | 8 |
+  | 2-4 | six-op FM (3 banks) | 818 620 to 828 930 | 30 510 to 30 760 | 11 |
+  | 5 | wave terrain | 1 141 280 | 29 910 | 11 |
+  | 6 | string machine | 1 215 960 | 40 510 | 8 |
+  | 7 | chiptune | 184 280 | 10 560 | 32 |
+  | 8 | virtual analog | 864 760 | 32 490 | 10 |
+  | 9 | waveshaping | 751 790 | 19 490 | 17 |
+  | 10 | FM | 1 122 150 | 41 400 | 8 |
+  | 11 | grain | 1 023 190 | 28 590 | 12 |
+  | 12 | additive | 1 679 090 | 45 790 | 7 |
+  | 13 | wavetable | 1 291 050 | 30 680 | 11 |
+  | 14 | chords | 1 139 300 | 35 620 | 9 |
+  | 15 | speech | 888 940 | 26 330 | 13 |
+  | 16 | swarm | 1 073 190 | 28 200 | 12 |
+  | 17 | noise | 1 039 740 | 48 390 | 7 |
+  | 18 | particle | 1 184 630 | 47 720 | 7 |
+  | 19 | string | 1 126 800 | 38 540 | 8 |
+  | 20 | modal | 1 838 260 | 52 640 | 6 |
+  | 21 | bass drum | 922 440 | 27 000 | 12 |
+  | 22 | snare drum | 1 031 790 | 35 080 | 9 |
+  | 23 | hi-hat | 627 640 | 25 210 | 13 |
+
+  (The record's table, from tools/plaits-bench.py, has the means, the
+  set-up blocks, and voices under the heaviest input too.)
+- **What the bench holds fixed:** one pitch (MIDI 48, plus the rate
+  offset) and decay 0.5, so an engine whose cost grows with pitch may cost
+  more higher up. The voices column counts time only. Each voice is about
+  29.5 KB of RAM (its 16 KiB buffer and Plaits' voice object: the demo's
+  zeroed data is 59 160 bytes more than the firmware's, for two). The
+  chip's 511 KiB of RAM, less the firmware's 124 KB and its stacks, holds
+  about 13 voices, fewer than the column for the lightest engines.
+- **Soft-float doesn't fit.** Every engine but chiptune takes two to five
+  blocks' time for one block, so only chiptune plays live with soft-float.
+  Any other overloads core 0: underruns, and main starves. Soft-float is
+  about 30 times slower than the instructions (18 to 39 times, by engine).
+- **Clean audio:** over the whole bench soft-float raised no invalid
+  operation, no overflow and no bad conversion, so Plaits made no NaN and
+  no infinity. Some engines reach full scale at extreme settings (chords
+  33 samples, modal 23, bass drum 149, snare 3, noise 1, of 2 304 a
+  setting run): Plaits' own output stage saturating on purpose (its
+  `Clip16`), not an overflow. Live, with a key held: the soft-float demo
+  on chiptune, and the hardware-float demo on engine 0, with no underrun.
+- **Core 1** (HW-9, HW-10): started from the bench on a loop that renders
+  a second voice whenever core 0 sets a word in RAM. Two voices at once
+  take 0.49 to 0.50 of the time of one after the other with hardware
+  float (speed-up 1.99 to 2.02), 0.51 to 0.59 with soft-float. The
+  comparison is of successive blocks, so it is good to a few percent.
+  fwtest models no contention between the cores; SR-6 asks what the chip
+  costs, and what core 1 needs before it runs from a raw image.
+
+### 2026-10-23 M4b: the headroom it implies for M5
+- **A frequency-modulation operator:** Plaits' six-op engine plays two
+  six-operator voices, 768 operator-samples a block, for 30 550
+  instructions with hardware float: at most 40 an operator-sample, its
+  envelopes, low-pass gate and limiter included. M4's fixed-point sine
+  oscillator (interpolated table, envelope) is 25.6 a sample. With
+  soft-float it is about 1 070: soft-float is out for M5's engine.
+- **At 44 117.647 Hz, 64-frame blocks:** core 0 has 348 160 cycles a
+  block; the firmware takes 1 813 at rest and 114 173 under the heaviest
+  input (the loaded measure, M4b), most of it main redrawing the panel.
+  - **One core:** about 346 000 a block at rest, 234 000 under load:
+    8 600 or 5 800 operator-samples a block, that is **135 or 91
+    operators** (at 40 each; 210 or 140 at M4's 25.6), for example 22 or
+    15 six-operator voices.
+  - **Two cores:** core 1 adds a whole 348 000 (it does no input or
+    drawing): about **8 700 more operator-samples a block, 135 more
+    operators**, if the chip runs both cores like fwtest (SR-6).
+  - These are fwtest's numbers, an instruction a cycle. On the chip, code
+    run from flash through the cache will take more; a probe on the chip
+    is still to come. Leave M5 a wide margin: plan for half.
+- **For M5's design:** fixed point (as M4's oscillator) costs about what
+  hardware float does in fwtest, and needs no answer from SR-5; floats
+  need SR-5 to say the chip has them. The screen, not the sound, is the
+  heaviest user of core 0 under input: M5's screen should redraw only
+  what changed, at a bounded rate.
+
+### 2026-10-23 M4b: the loaded measure, broken down (the owner's question)
+- **Method:** the M4 firmware under the loaded script (#57's
+  `tests/fw/scripts/perfload.txt`), core 0's instructions between the 1 250
+  and 2 250 ms runs, over the blocks that second holds (689.3), in builds
+  that each leave one part out: the existing cost builds (`SB_COST_*`), and
+  two measurement-only switches added to `panel.c` for these runs and not
+  committed (one skipping the panel's drawing and sending, one drawing
+  without sending). Taking differences:
+
+  | Part | Instructions a block | Share |
+  |---|---|---|
+  | Screen: drawing into the frame buffer (main, `panel_serve`) | 102 437 | 89.8% |
+  | Screen: sending the changed rows (`lcd_send_rows`, DMA started, waited for) | 1 104 | 1.0% |
+  | Audio engine (the test instrument, four voices and the tone) | 8 309 | 7.3% |
+  | Input scan (keys, encoders, pot, LEDs; LEDs 215 of it) | 1 861 | 1.6% |
+  | Audio output path (the interrupt, its checks, the stores) | 302 | 0.3% |
+  | The tick, main's wakes and the rest | 104 | 0.1% |
+  | **Total** (114 173 by the record's count of blocks) | **114 117** | |
+
+  The scan's share is the "no panel" build less the build with no scan as
+  well, less the audio engine's (with no scan no note sounds).
+- **The screen dominates, and it is the drawing, not the sending.** The
+  panel already redraws only the region an event touches (a button, the
+  keys strip, a knob's row, the event line). But it does so for every
+  event, and the script makes about 1 070 a second (840 encoder detents,
+  200 pot steps, 32 key changes): about 66 000 instructions an event,
+  mostly pixel-by-pixel fills and scaled glyphs into the 240 x 240 frame
+  buffer. A key event repaints the whole 52-row keys strip.
+- **It is already off the audio's critical path** in the sense that
+  matters for underruns: drawing runs in main, at the lowest level, and
+  the audio interrupt preempts it, so no block was late. What it costs is
+  core 0's time, which M5's voices need, and under an overloaded engine
+  main starves and the screen freezes.
+- **What it would take, before M5** (not done; measure first):
+  - **Coalesce:** mark regions dirty per event, and redraw at most once
+    per frame, at a fixed rate (30 to 60 Hz), not once per event. At 1 070
+    events a second against 60 frames, that is up to 18 times less: about
+    6 000 a block under this load, if a frame redraws what one event does.
+  - **Cheaper drawing:** fill whole words and rows (`gfx_fill` writes
+    pairs of pixels today), and draw text from pre-rendered glyph rows at
+    the scale used instead of pixel by pixel; redraw a knob's value, not
+    its row.
+  - **A drawing budget:** let main draw for at most a set share of each
+    block (from the time base), carrying on next time, so the screen can
+    never take what the voices need.
+  - **Moving it:** core 1 could draw (the panel's DMA and its interrupt
+    would move with it, and needs SR-6's answer about core 1's
+    interrupts), but core 1 is worth a whole second core of voices
+    (above), so coalescing on core 0 is the better first step.
+- Re-measure with the loaded measure after any of these: the loaded gate
+  (#57, #58) will show the change, and its budget can then come down.
+
+### 2026-10-23 M4b: what the API should change before M5
+- **An engine context.** `audio_engine_fn` takes no pointer, so an engine
+  keeps its state in globals, and two voices on two cores can't share
+  one function cleanly. Add a `void *` to the engine call.
+- **Knobs as parameters.** `input_value()` gives an encoder's raw detents
+  since start, unbounded; the demo maps them to 0 to 1 itself. A small
+  layer giving each knob a clamped parameter, and a pickup of the pot,
+  would save every engine the same code.
+- **A deadline the engine can see.** An engine that overruns has no way
+  to know: the audio record's fill times are tests' data, not API. Give
+  the engine its last fill time against the block, so it can shed voices
+  before underruns start, and protect main, which starves when the
+  engine overloads core 0.
+- **Core 1 as an API.** The bench drives core 1 by hand (its start word,
+  `C1_CON`, a RAM flag). M5 needs a small, tested way to start it, post a
+  job each block and wait for it, once SR-6 says what the chip needs.
+- **Floats:** if SR-5 confirms the instructions, build the firmware with
+  `-mcpu=r3 -mfprev1` like the SDK, and the soft-float runtime stays a
+  demo's.

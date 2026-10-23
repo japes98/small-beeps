@@ -139,6 +139,10 @@ CHECKS = [
      "reqs": ["R-PERF-3", "R-PERF-5"],
      "cmd": lambda: [PY, "-I", "tools/perf.py", "probes", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "perf-probes")]},
+    {"id": "C-PLAITS-BENCH", "title": "The Plaits load test: demo builds, soft-float exact, every engine measured, clean audio",
+     "reqs": ["R-PLAITS-1", "R-PLAITS-2", "R-PLAITS-3", "R-PLAITS-4"],
+     "cmd": lambda: [PY, "-I", "tools/plaits-bench.py", "run", "--out", os.path.join(OUT, "plaits"),
+                     "--perf", os.path.join(OUT, "perf", "perf.json")]},
     # The harness (spec side): skipped where harness/ isn't on disk.
     {"id": "C-HARNESS-SCOPE", "title": "The harness uses no update-package or stock-boot paths",
      "reqs": ["R-HARN-9"], "needs": "harness", "cmd": ["sh", "harness/ci.sh", "scope"]},
@@ -498,6 +502,9 @@ def write_markdown(report, path):
                 L.append("| %s | %d |" % (part, report["firmware_size"][part]))
     if report.get("perf"):
         L += ["", "## Performance", ""] + perf_markdown(report["perf"])
+    if report.get("plaits_md"):
+        # since M4b: tools/plaits-bench.py's own table
+        L += [""] + report["plaits_md"].rstrip("\n").splitlines()
     L += ["", "## Traceability", "", "| Requirement | Checks | Result |",
           "|-------------|--------|--------|"]
     for t in report["traceability"]:
@@ -580,6 +587,15 @@ def cmd_run(a):
     except (OSError, ValueError):
         pass
 
+    plaits, plaits_md = {}, ""
+    try:
+        with open(os.path.join(OUT, "plaits", "plaits.json")) as f:
+            plaits = json.load(f)
+        with open(os.path.join(OUT, "plaits", "plaits.md")) as f:
+            plaits_md = f.read()
+    except (OSError, ValueError):
+        pass
+
     report = {
         "schema": SCHEMA,
         "commit": git("rev-parse", "HEAD"),
@@ -592,6 +608,8 @@ def cmd_run(a):
         "outputs": outputs,
         "firmware_size": dict(FIRMWARE_SIZE),
         "perf": perf,
+        "plaits": plaits,
+        "plaits_md": plaits_md,
         "withheld": withheld,
         "traceability": traceability(results),
         "overall": "PASS" if results and all(r["result"] in ("PASS", "SKIP") for r in results) else "FAIL",
