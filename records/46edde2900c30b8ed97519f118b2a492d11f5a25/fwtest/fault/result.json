@@ -1,0 +1,43 @@
+{
+  "fwtest": {
+    "version": "0.2.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "test-fault.bin",
+    "bytes": 4228,
+    "sha256": "ec82980f1b2ca7dbd7f80dfd640ada59483a320a10c425f0053282b2eb9736ca"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "halt",
+    "detail": "core 0 jumped to itself with interrupts disabled at pc 0x02000560",
+    "emulated_ms": "1.270",
+    "instructions": {
+      "core0": 66567,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "console.txt",
+        "bytes": 32,
+        "sha256": "68a4dc0c6e904b490843f2d3d072e112df0a0221adc44ccfcca14945c5b1043d"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "3f81e2f8dbd22cc2bc26c5ac739bfe116345412c906fe6adfb872537f3547137"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "console.txt",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 4
+}

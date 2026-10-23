@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 4b901ac9f66cdd43de5d571283f062bbbf65aa7e..46edde2900c30b8ed97519f118b2a492d11f5a25
+OK     a8d5973fcf36 config: pin fwtest 0.2.0 (SPI1's control register writes clear bits)
+EXEMPT 46edde2900c3 (merge) Merge pull request #45 from japes98/sr/sr3-pin
+2 commit(s) checked: PASS
+
+exit status 0
