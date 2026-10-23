@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range c38330ff5fa790d054de0f5e11b92cb994598aaa..dc82c8501463907ae208d1389d43976b41f2949b
+OK     2910109b7b21 tools: the transcript check's rule IDs become neutral numbers
+EXEMPT dc82c8501463 (merge) Merge pull request #56 from japes98/m4b/rule-ids
+2 commit(s) checked: PASS
+
+exit status 0
