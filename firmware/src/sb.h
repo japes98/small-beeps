@@ -12,9 +12,12 @@
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
+typedef signed char s8;
+typedef short s16;
 
 _Static_assert(sizeof(u16) == 2, "u16 is 16 bits");
 _Static_assert(sizeof(u32) == 4, "u32 is 32 bits");
+_Static_assert(sizeof(s16) == 2, "s16 is 16 bits");
 
 /* The beacon: words at the start of main RAM (firmware/app.ld) that
  * fwtest reads with --ram and --watchdog (HW-26). Tests depend on this
@@ -59,6 +62,7 @@ struct sb_beacon {
 #define SB_SCREEN_NONE    0u
 #define SB_SCREEN_PATTERN 1u  /* the address pattern (screen.c) */
 #define SB_SCREEN_TEST    2u  /* the test screen with the heartbeat */
+#define SB_SCREEN_PANEL   3u  /* the live panel screen (panel.c, M3) */
 
 #define SB_MARKER     0x44304253u  /* "SB0D" in memory order */
 #define SB_MARKER_BAD 0x21444142u  /* "BAD!": startup left data wrong */
@@ -89,6 +93,15 @@ void sb_halt(u32 reason, u32 source, u32 reti) __attribute__((noreturn));
 
 /* The time base's count (HW-13), for timing. */
 u32 sb_now(void);
+/* Time base ticks since main started the time base (the beacon's ticks;
+ * input events' times). */
+u32 sb_ticks(void);
+
+/* Work for main's idle loop (since M3): any change of sb_work means look
+ * again. The tick adds one at each whole second of the heartbeat (and
+ * adds one to sb_seconds), the input scan one with each event it queues
+ * (docs/DESIGN-NOTES.md, M3). */
+extern volatile u32 sb_work, sb_seconds;
 
 /* lcd.c: the panel (HW-27 to HW-32). Rows are whole rows of the frame
  * buffer, sent from it as they are. */
@@ -123,6 +136,11 @@ extern const u8 font_glyphs[FONT_LAST - FONT_FIRST + 1][FONT_H];
 void screen_pattern(void);
 void screen_test(void);
 void screen_beat(void);
+void screen_beat_all(void);
+
+/* panel.c: the live panel screen (M3): takes every queued input event,
+ * lights the LEDs to match and, from the first one on, shows the panel. */
+void panel_serve(void);
 
 /* crt0.S */
 u32 sb_clock_measure(volatile u32 *count);
@@ -149,6 +167,9 @@ void sb_test_badinsn(void);
 #endif
 #if defined(SB_TEST_FLOOD)
 void sb_test_flood(void) __attribute__((noreturn));
+#endif
+#if defined(SB_TEST_LEDS)
+void sb_test_leds(void);
 #endif
 
 #endif

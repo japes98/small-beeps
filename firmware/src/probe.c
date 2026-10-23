@@ -8,11 +8,13 @@
  * mark sees the third (R-PERF-3, R-PERF-5). tools/fw-suite.py builds it
  * with each of SB_TEST_FAULT, SB_TEST_STRAY and SB_TEST_BADINSN, which go
  * wrong on purpose once interrupts are on (R-IRQ-3, R-IRQ-4), and with
- * SB_TEST_FLOOD, which keeps the panel busy (R-LCD-5). The firmware itself
+ * SB_TEST_FLOOD, which keeps the panel busy (R-LCD-5), and SB_TEST_LEDS,
+ * which sets every LED to its own brightness (R-LED-2). The firmware itself
  * is built with none, and then nothing here is compiled.
  */
 
 #include "sb.h"
+#include "input.h"
 #include "WL82.h"
 
 #if defined(SB_PROBE_STACK)
@@ -130,5 +132,18 @@ void sb_test_flood(void)
         lcd_send_rows(0, SCREEN_H);
         lcd_wait();
     }
+}
+#endif
+
+#if defined(SB_TEST_LEDS)
+/* Every LED at its own brightness: LED n at (n mod 9) eighths of full,
+ * as levels 0 to 255 round them (input.h), so each of the 9 steps shows
+ * on several LEDs and every LED on some step. */
+void sb_test_leds(void)
+{
+    u32 n;
+
+    for (n = 0; n < INPUT_LEDS; n++)
+        input_led(n, n % 9 * INPUT_LED_FULL / 8);
 }
 #endif

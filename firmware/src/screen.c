@@ -80,7 +80,7 @@ void screen_test(void)
     gfx_text(18, SCREEN_H - 13, "blue", BLUE, BLACK, 1);
     gfx_text(SCREEN_W - 18 - 6 * FONT_CELL, SCREEN_H - 13, "yellow", YELLOW, BLACK, 1);
 
-    gfx_text(36, 20, "small-beeps M2", WHITE, BLACK, 2);
+    gfx_text(36, 20, "small-beeps M3", WHITE, BLACK, 2);
     for (i = 0; i < 32; i++) {
         gfx_fill(24 + 6 * i, 44, 6, 14, RGB565(i, 0, 0));
         gfx_fill(24 + 6 * i, 76, 6, 14, RGB565(0, 0, i));
@@ -97,12 +97,22 @@ void screen_test(void)
     for (i = 0; i < 3; i++)
         gfx_text(24, 166 + 10 * i, rows[i], WHITE, BLACK, 1);
 
-    gfx_text(24, BEAT_Y, "beat", WHITE, BLACK, BEAT_SCALE);
-    for (i = 0; i < BEAT_DIGITS; i++) {
+    for (i = 0; i < BEAT_DIGITS; i++)
         beat_digits[i] = 0;
-        draw_beat_digit(i);
-    }
     sb_beacon.shown = 0;
+    screen_beat_all();
+}
+
+/* The heartbeat as it stands, label and every digit, in the same place
+ * on every screen that shows it (the panel screen too, since M3), so
+ * screen_beat can go on updating it there. */
+void screen_beat_all(void)
+{
+    u32 i;
+
+    gfx_text(24, BEAT_Y, "beat", WHITE, BLACK, BEAT_SCALE);
+    for (i = 0; i < BEAT_DIGITS; i++)
+        draw_beat_digit(i);
 }
 
 /* One second more: the digits that change are drawn again, and the
