@@ -1,0 +1,13 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py check --build /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/build-a --out /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/perf --base-ref 51af4e7339d7b8b7b40df274f9d3fffd62e464e9^1 --require-records
+current: code 7012, data 12, bss 117780, image 7024 bytes; static RAM 117792; stack 280 of 4096 bytes used; startup 1037868 instructions; steady state 992027 instructions for 1000 heartbeat periods (992.027 per period) between the 1250.604 and 2250.588 ms runs
+baseline: the record of c36ae5f4b537, the latest of 51af4e7339d7b8b7b40df274f9d3fffd62e464e9^1 on origin/records
+baseline: code 7024, data 12, bss 117780, image 7036 bytes; static RAM 117792; stack 280 of 4096 bytes used; startup 1037870 instructions; steady state 992027 instructions for 1000 heartbeat periods (992.027 per period) between the 1250.604 and 2250.588 ms runs
+  code                 PASS         7012 of 10240 bytes (M4 budget)
+  static_ram           PASS         117792 of 131072 bytes (M4 budget)
+  stack_high_water     PASS         280 of 512 bytes (M4 budget)
+  startup_instructions PASS         1037868 of 1572864 instructions (M4 budget)
+  steady_per_period    PASS         992.027 of 2048 instructions per period (M4 budget)
+  speed                NOT COMPARED 992.027 steady-state instructions per period, 992.027 before (+0.00%), but the baseline's record was made under a steady-state budget of 1152, not this M4 budget of 2048
+perf: PASS
+
+exit status 0

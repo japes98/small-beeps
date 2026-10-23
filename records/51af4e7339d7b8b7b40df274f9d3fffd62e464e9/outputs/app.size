@@ -1,0 +1,6 @@
+code 7012
+data 12
+bss 117780
+image 7024
+stack 4096
+irq_stack 2048

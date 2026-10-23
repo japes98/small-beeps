@@ -1,0 +1,1356 @@
+{
+  "checks": [
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -m unittest discover -s tests -t . -v",
+      "exit_status": 0,
+      "id": "C-UNIT",
+      "log": "logs/C-UNIT.log",
+      "reqs": [
+        "R-PROC-1",
+        "R-PROC-4",
+        "R-REC-1",
+        "R-CLEAN-3",
+        "R-CLEAN-4",
+        "R-PUB-1",
+        "R-SEP-2",
+        "R-SPEC-1",
+        "R-SPEC-3",
+        "R-AUDIT-1",
+        "R-AUDIT-2",
+        "R-AUDIT-3",
+        "R-AUDIT-4",
+        "R-AUDIT-5",
+        "R-PERF-4"
+      ],
+      "result": "PASS",
+      "seconds": 8.1,
+      "title": "Unit tests of the tools"
+    },
+    {
+      "command": "reuse lint",
+      "exit_status": 0,
+      "id": "C-REUSE",
+      "log": "logs/C-REUSE.log",
+      "reqs": [
+        "R-LIC-1",
+        "R-LIC-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.6,
+      "title": "reuse lint (SPDX licence and copyright on every file)"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 074d54d9223dd91accdc93568c3ef01438058b31..51af4e7339d7b8b7b40df274f9d3fffd62e464e9",
+      "exit_status": 0,
+      "id": "C-COMMIT-MSG",
+      "log": "logs/C-COMMIT-MSG.log",
+      "reqs": [
+        "R-PROC-1"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "Commit messages follow .gitmessage"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-low-profile.py --require-api",
+      "exit_status": 0,
+      "id": "C-LOW-PROFILE",
+      "log": "logs/C-LOW-PROFILE.log",
+      "reqs": [
+        "R-PUB-1"
+      ],
+      "result": "PASS",
+      "seconds": 0.4,
+      "title": "Low profile: name, description, topics, README"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-tracked.py secrets",
+      "exit_status": 0,
+      "id": "C-SECRETS",
+      "log": "logs/C-SECRETS.log",
+      "reqs": [
+        "R-PUB-2"
+      ],
+      "result": "PASS",
+      "seconds": 3.0,
+      "title": "No secrets in tracked files"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-private.py --require",
+      "exit_status": 0,
+      "id": "C-PRIVATE",
+      "log": "logs/C-PRIVATE.log",
+      "reqs": [
+        "R-PUB-3"
+      ],
+      "result": "PASS",
+      "seconds": 0.6,
+      "title": "No private terms in tracked files or commit messages"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-tracked.py no-toolchain",
+      "exit_status": 0,
+      "id": "C-NO-TOOLCHAIN",
+      "log": "logs/C-NO-TOOLCHAIN.log",
+      "reqs": [
+        "R-REPRO-1"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "No toolchain parts or binaries tracked"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-deny-lists.py",
+      "exit_status": 0,
+      "id": "C-DENY-LISTS",
+      "log": "logs/C-DENY-LISTS.log",
+      "reqs": [
+        "R-CLEAN-4",
+        "R-SEP-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "Claude Code deny lists never drop an entry"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-transcripts.py",
+      "exit_status": 0,
+      "id": "C-TRANSCRIPTS",
+      "log": "logs/C-TRANSCRIPTS.log",
+      "reqs": [
+        "R-CLEAN-1",
+        "R-CLEAN-3",
+        "R-CLEAN-5",
+        "R-SEP-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.8,
+      "title": "Archived session transcripts: banners and forbidden material"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-emulator-terms.py",
+      "exit_status": 0,
+      "id": "C-SEP-TERMS",
+      "log": "logs/C-SEP-TERMS.log",
+      "reqs": [
+        "R-SEP-1",
+        "R-SPEC-2"
+      ],
+      "result": "PASS",
+      "seconds": 1.6,
+      "title": "No emulator-only identifiers outside the spec side's folders"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-hardware-spec.py",
+      "exit_status": 0,
+      "id": "C-SPEC-LINT",
+      "log": "logs/C-SPEC-LINT.log",
+      "reqs": [
+        "R-SPEC-1",
+        "R-SPEC-3"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "docs/HARDWARE-SPEC.md: every entry has an ID, fact, sources, standing; no code; IDs kept"
+    },
+    {
+      "command": "sh tools/check-clean-folder.sh",
+      "exit_status": 0,
+      "id": "C-CLEAN-FOLDER",
+      "log": "logs/C-CLEAN-FOLDER.log",
+      "reqs": [
+        "R-CLEAN-1",
+        "R-SEP-2"
+      ],
+      "result": "PASS",
+      "seconds": 17.7,
+      "title": "A fresh clean folder has no spec-side files and denies them"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-fwtest-pin.py",
+      "exit_status": 0,
+      "id": "C-FWTEST-PIN",
+      "log": "logs/C-FWTEST-PIN.log",
+      "reqs": [
+        "R-SEP-3",
+        "R-HARN-10"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "tools/fwtest runs an image pinned by digest"
+    },
+    {
+      "command": "sh tools/fetch-sdk.sh --verify",
+      "exit_status": 0,
+      "id": "C-SDK-PIN",
+      "log": "logs/C-SDK-PIN.log",
+      "reqs": [
+        "R-REPRO-5",
+        "R-LIC-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "Vendored SDK files match the pinned commit"
+    },
+    {
+      "command": "sh tools/fetch-emulator.sh --verify",
+      "exit_status": 0,
+      "id": "C-EMU-PIN",
+      "log": "logs/C-EMU-PIN.log",
+      "reqs": [
+        "R-REPRO-6",
+        "R-LIC-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.1,
+      "title": "Vendored emulator crates match the pinned upstream commit"
+    },
+    {
+      "command": "sh tools/build.sh image",
+      "exit_status": 0,
+      "id": "C-IMAGE",
+      "log": "logs/C-IMAGE.log",
+      "reqs": [
+        "R-REPRO-1",
+        "R-REPRO-2"
+      ],
+      "result": "PASS",
+      "seconds": 16.5,
+      "title": "Build container (pinned base, toolchain SHA-256 checked)"
+    },
+    {
+      "command": "sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/build-a",
+      "exit_status": 0,
+      "id": "C-BUILD-A",
+      "log": "logs/C-BUILD-A.log",
+      "reqs": [
+        "R-REPRO-3",
+        "R-BUILD-1"
+      ],
+      "result": "PASS",
+      "seconds": 0.6,
+      "title": "Build A in a fresh container (source at /mnt/small-beeps-src)"
+    },
+    {
+      "command": "sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/build-b --src-mount /tmp/elsewhere/small-beeps-src-b",
+      "exit_status": 0,
+      "id": "C-BUILD-B",
+      "log": "logs/C-BUILD-B.log",
+      "reqs": [
+        "R-REPRO-3"
+      ],
+      "result": "PASS",
+      "seconds": 0.5,
+      "title": "Build B in a fresh container (source at another path)"
+    },
+    {
+      "command": "(internal) determinism",
+      "exit_status": 0,
+      "id": "C-DETERMINISM",
+      "log": "logs/C-DETERMINISM.log",
+      "reqs": [
+        "R-REPRO-3"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "Builds A and B are byte-identical"
+    },
+    {
+      "command": "(internal) firmware_size",
+      "exit_status": 0,
+      "id": "C-FW-SIZE",
+      "log": "logs/C-FW-SIZE.log",
+      "reqs": [
+        "R-BUILD-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "Firmware image size (code, data, bss) from build A"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/fw-suite.py --build /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/build-a --out /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/fwtest",
+      "exit_status": 0,
+      "id": "C-FW-SUITE",
+      "log": "logs/C-FW-SUITE.log",
+      "reqs": [
+        "R-BOOT-1",
+        "R-BOOT-2",
+        "R-BOOT-3",
+        "R-BOOT-4",
+        "R-BOOT-5",
+        "R-CLK-1",
+        "R-IRQ-1",
+        "R-IRQ-2",
+        "R-IRQ-3",
+        "R-IRQ-4",
+        "R-LCD-1",
+        "R-LCD-2",
+        "R-LCD-3",
+        "R-LCD-4",
+        "R-LCD-5",
+        "R-KEY-1",
+        "R-KEY-2",
+        "R-KEY-3",
+        "R-ENC-1",
+        "R-ENC-2",
+        "R-POT-1",
+        "R-POT-2",
+        "R-LED-1",
+        "R-LED-2",
+        "R-LED-3",
+        "R-INPUT-1",
+        "R-INPUT-2",
+        "R-INPUT-3"
+      ],
+      "result": "PASS",
+      "seconds": 127.8,
+      "title": "Firmware in fwtest: boot, clock, tick and heartbeat timing, vector table, idle, fault and stray reports, the screen, the panel's keys, encoders, pot and LEDs (tests/fw/boot.suite)"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py check --build /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/build-a --out /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/perf --base-ref 51af4e7339d7b8b7b40df274f9d3fffd62e464e9^1 --require-records",
+      "exit_status": 0,
+      "id": "C-PERF",
+      "log": "logs/C-PERF.log",
+      "reqs": [
+        "R-PERF-1",
+        "R-PERF-2",
+        "R-PERF-3"
+      ],
+      "result": "PASS",
+      "seconds": 0.9,
+      "title": "Firmware size, RAM, stack high-water and instructions per period, within budget and the 3% speed gate"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py probes --build /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/build-a --out /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/perf-probes",
+      "exit_status": 0,
+      "id": "C-PERF-PROBES",
+      "log": "logs/C-PERF-PROBES.log",
+      "reqs": [
+        "R-PERF-3",
+        "R-PERF-5"
+      ],
+      "result": "PASS",
+      "seconds": 3.4,
+      "title": "Deliberately slower and bigger builds fail the performance gates; a known stack use shows"
+    },
+    {
+      "command": "sh harness/ci.sh scope",
+      "exit_status": 0,
+      "id": "C-HARNESS-SCOPE",
+      "log": "logs/C-HARNESS-SCOPE.log",
+      "reqs": [
+        "R-HARN-9"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "The harness uses no update-package or stock-boot paths"
+    },
+    {
+      "command": "sh harness/tests/images/build.sh --check",
+      "exit_status": 0,
+      "id": "C-HARNESS-IMAGES",
+      "log": "logs/C-HARNESS-IMAGES.log",
+      "reqs": [
+        "R-HARN-8"
+      ],
+      "result": "PASS",
+      "seconds": 0.5,
+      "title": "Harness test images rebuild identically with the pinned toolchain"
+    },
+    {
+      "command": "sh harness/ci.sh image",
+      "exit_status": 0,
+      "id": "C-HARNESS-IMAGE",
+      "log": "logs/C-HARNESS-IMAGE.log",
+      "reqs": [
+        "R-HARN-8"
+      ],
+      "result": "PASS",
+      "seconds": 16.2,
+      "title": "fwtest container (pinned bases, offline build)"
+    },
+    {
+      "command": "sh harness/ci.sh test",
+      "exit_status": 0,
+      "id": "C-HARNESS-TEST",
+      "log": "logs/C-HARNESS-TEST.log",
+      "reqs": [
+        "R-HARN-1",
+        "R-HARN-2",
+        "R-HARN-3",
+        "R-HARN-4",
+        "R-HARN-5",
+        "R-HARN-6",
+        "R-HARN-7"
+      ],
+      "result": "PASS",
+      "seconds": 2.7,
+      "title": "The harness's own tests (cargo test in the container)"
+    },
+    {
+      "command": "sh harness/ci.sh suite /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/harness-a /mnt/harness-a",
+      "exit_status": 0,
+      "id": "C-HARNESS-SUITE-A",
+      "log": "logs/C-HARNESS-SUITE-A.log",
+      "reqs": [
+        "R-HARN-1",
+        "R-HARN-2",
+        "R-HARN-3",
+        "R-HARN-4",
+        "R-HARN-5",
+        "R-HARN-7"
+      ],
+      "result": "PASS",
+      "seconds": 0.6,
+      "title": "Harness suite, run A (fresh container, tests at /mnt/harness-a)"
+    },
+    {
+      "command": "sh harness/ci.sh suite /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/harness-b /tmp/elsewhere/harness-b",
+      "exit_status": 0,
+      "id": "C-HARNESS-SUITE-B",
+      "log": "logs/C-HARNESS-SUITE-B.log",
+      "reqs": [
+        "R-HARN-6"
+      ],
+      "result": "PASS",
+      "seconds": 0.7,
+      "title": "Harness suite, run B (fresh container, tests at another path)"
+    },
+    {
+      "command": "(internal) harness_determinism",
+      "exit_status": 0,
+      "id": "C-HARNESS-DET",
+      "log": "logs/C-HARNESS-DET.log",
+      "reqs": [
+        "R-HARN-6"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "Harness suite runs A and B are byte-identical"
+    },
+    {
+      "command": "sh harness/spec-experiments/run.sh /home/runner/work/small-beeps/small-beeps/out/51af4e7339d7b8b7b40df274f9d3fffd62e464e9/spec-experiments",
+      "exit_status": 0,
+      "id": "C-SPEC-EXPERIMENTS",
+      "log": "logs/C-SPEC-EXPERIMENTS.log",
+      "reqs": [
+        "R-SPEC-4"
+      ],
+      "result": "PASS",
+      "seconds": 3.0,
+      "title": "Spec-side experiments rebuild identically and give the results the spec cites"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-merge.py 51af4e7339d7b8b7b40df274f9d3fffd62e464e9",
+      "exit_status": 0,
+      "id": "C-MERGE",
+      "log": "logs/C-MERGE.log",
+      "reqs": [
+        "R-PROC-2"
+      ],
+      "result": "PASS",
+      "seconds": 1.3,
+      "title": "Signed owner merge of a pull request that passed CI"
+    },
+    {
+      "command": "(internal) record_private",
+      "exit_status": 0,
+      "id": "C-RECORD-PRIVATE",
+      "log": "logs/C-RECORD-PRIVATE.log",
+      "reqs": [
+        "R-PUB-3"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "No private terms in the record's own files (any that hold one are withheld, named with their SHA-256)"
+    }
+  ],
+  "commit": "51af4e7339d7b8b7b40df274f9d3fffd62e464e9",
+  "created_utc": "2026-10-23T09:11:34Z",
+  "environment": {
+    "build_image_id": "sha256:d8cc39be024d6a103e5c07102532e2500db6d98d462b36297464739402f975ad",
+    "build_image_tag": "small-beeps-build:2f1adc7009fddc03",
+    "claude_configs": {
+      "clean.json": "aa53510256cb28a0fe4f49edfcc8eff8acd4a625b958efbf0ffdf6b96d9f25ab",
+      "handmade-settings.json": "a557bd84008372ff9d3e24cd648df9986d76a05928d9f50b5d3e60975bf29b32",
+      "handmade-spec-settings.json": "daa6c52d7e54c363b17ebace836c3019a6c4a9551f9d8af7b9175f88459ce27d",
+      "spec.json": "eaa5f875583b21f3fcbb93b00bfbf8113dfc4b8d0cdb849df457a80ed542f810"
+    },
+    "docker": "client 28.0.4 server 28.0.4",
+    "dockerfile": {
+      "base": "debian:bookworm-slim@sha256:ec31d744f83f4a73447ba045aaab9409997efe5cc706eca4890c1be36cc1606a",
+      "dockerfile_frontend": "docker/dockerfile:1.10@sha256:865e5dd094beca432e8c0a1d5e1c465db5f998dca4e439981029b3b81fb39ed5",
+      "snapshot": "20261020T000000Z",
+      "source_date_epoch": "1767225600",
+      "toolchain_name": "jieli-linux-toolchains-20250324.1",
+      "toolchain_sha256": "f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958",
+      "toolchain_url": "https://jl-update.oss-cn-shenzhen.aliyuncs.com/jieli-linux-toolchains-20250324.1.tar.xz"
+    },
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f",
+    "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:00a33c9a0e1184030cac85c31d46aa2bad9d6438190c19a148943b6b9af0e6df",
+    "git": "git version 2.55.0",
+    "github": {
+      "GITHUB_EVENT_NAME": "push",
+      "GITHUB_REF": "refs/heads/main",
+      "GITHUB_REPOSITORY": "japes98/small-beeps",
+      "GITHUB_RUN_ATTEMPT": "1",
+      "GITHUB_RUN_ID": "39929620110",
+      "GITHUB_SHA": "51af4e7339d7b8b7b40df274f9d3fffd62e464e9",
+      "GITHUB_WORKFLOW": "records",
+      "ImageOS": "ubuntu24",
+      "ImageVersion": "20261012.334.1",
+      "RUNNER_ARCH": "X64",
+      "RUNNER_OS": "Linux"
+    },
+    "harness_image_tag": "small-beeps-fwtest:0e8cc3303c7219c6",
+    "host": "Linux 6.17.0-1022-azure x86_64",
+    "python": "3.12.15",
+    "reuse": "reuse, version 6.2.0",
+    "sdk_commit": "5fa84a9b2f723a5e9337ad79dc2ad741fc98fe2d",
+    "sdk_sha256sums": "49ddeb5feab02203f64e14f581808fc8e84d9af858953dd76b8602c906a95fa6"
+  },
+  "firmware_size": {
+    "bss": 117780,
+    "code": 7012,
+    "data": 12,
+    "image": 7024,
+    "irq_stack": 2048,
+    "stack": 4096
+  },
+  "outputs": {
+    "app.bin": "79c123c45194515c592ac1cf0aa499f352fd118d5d0a54287f9fa3913a48b506",
+    "app.elf": "771dcb6a31471a5a10a3e19602e396b54c9a958815b30bad170154ccc9c589db",
+    "app.size": "f7b635f7f9ae6b343aae946c98df78fb74fd885e86585f58bf7ac73fcaf307dd"
+  },
+  "overall": "PASS",
+  "perf": {
+    "baseline": {
+      "bss": 117780,
+      "code": 7024,
+      "commit": "c36ae5f4b53764ef2186becfd394fb2e1a2bcdf8",
+      "data": 12,
+      "emulated_ms": "2250.588",
+      "frame_update_us": 6.458,
+      "fwtest_exit": 0,
+      "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:00a33c9a0e1184030cac85c31d46aa2bad9d6438190c19a148943b6b9af0e6df",
+      "heartbeat_update_us": 5.792,
+      "image": 7036,
+      "instructions": 992027,
+      "instructions_per_period": 992.027,
+      "label": "baseline",
+      "marker": "0x44304253",
+      "ms": 2250,
+      "options": [
+        [
+          "--ms",
+          "1250",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end"
+        ],
+        [
+          "--ms",
+          "2250",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end"
+        ]
+      ],
+      "outcome": "completed",
+      "periods": 1000,
+      "render_us": 1155.542,
+      "runs": [
+        {
+          "emulated_ms": "1250.604",
+          "instructions": 2277904,
+          "ms": 1250,
+          "outcome": "completed",
+          "periods": 1250
+        },
+        {
+          "emulated_ms": "2250.588",
+          "instructions": 3269931,
+          "ms": 2250,
+          "outcome": "completed",
+          "periods": 2250
+        }
+      ],
+      "stack": 4096,
+      "stack_high_water": 280,
+      "stack_method": "pattern, two stacks",
+      "stack_reserved": 4096,
+      "startup_instructions": 1037870,
+      "static_ram": 117792
+    },
+    "baseline_budgets": {
+      "limits": {
+        "code": 8192,
+        "stack_high_water": 512,
+        "startup_instructions": 1572864,
+        "static_ram": 122880,
+        "steady_per_period": 1152
+      },
+      "milestone": "M3",
+      "speed_rise_percent": 3
+    },
+    "baseline_note": "the record of c36ae5f4b537, the latest of 51af4e7339d7b8b7b40df274f9d3fffd62e464e9^1 on origin/records",
+    "baseline_recorded": {
+      "bss": 117780,
+      "code": 7024,
+      "data": 12,
+      "emulated_ms": "2250.588",
+      "frame_update_us": 6.458,
+      "fwtest_exit": 0,
+      "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:00a33c9a0e1184030cac85c31d46aa2bad9d6438190c19a148943b6b9af0e6df",
+      "heartbeat_update_us": 5.792,
+      "image": 7036,
+      "instructions": 992027,
+      "instructions_per_period": 992.027,
+      "label": "current",
+      "marker": "0x44304253",
+      "ms": 2250,
+      "options": [
+        [
+          "--ms",
+          "1250",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end"
+        ],
+        [
+          "--ms",
+          "2250",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end"
+        ]
+      ],
+      "outcome": "completed",
+      "periods": 1000,
+      "render_us": 1155.542,
+      "runs": [
+        {
+          "emulated_ms": "1250.604",
+          "instructions": 2277904,
+          "ms": 1250,
+          "outcome": "completed",
+          "periods": 1250
+        },
+        {
+          "emulated_ms": "2250.588",
+          "instructions": 3269931,
+          "ms": 2250,
+          "outcome": "completed",
+          "periods": 2250
+        }
+      ],
+      "stack": 4096,
+      "stack_high_water": 280,
+      "stack_method": "pattern, two stacks",
+      "stack_reserved": 4096,
+      "startup_instructions": 1037870,
+      "static_ram": 117792
+    },
+    "budgets": {
+      "limits": {
+        "code": 10240,
+        "stack_high_water": 512,
+        "startup_instructions": 1572864,
+        "static_ram": 131072,
+        "steady_per_period": 2048
+      },
+      "milestone": "M4",
+      "speed_rise_percent": 3
+    },
+    "current": {
+      "bss": 117780,
+      "code": 7012,
+      "data": 12,
+      "emulated_ms": "2250.588",
+      "frame_update_us": 6.458,
+      "fwtest_exit": 0,
+      "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:00a33c9a0e1184030cac85c31d46aa2bad9d6438190c19a148943b6b9af0e6df",
+      "heartbeat_update_us": 5.792,
+      "image": 7024,
+      "instructions": 992027,
+      "instructions_per_period": 992.027,
+      "label": "current",
+      "marker": "0x44304253",
+      "ms": 2250,
+      "options": [
+        [
+          "--ms",
+          "1250",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end"
+        ],
+        [
+          "--ms",
+          "2250",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end"
+        ]
+      ],
+      "outcome": "completed",
+      "periods": 1000,
+      "render_us": 1155.542,
+      "runs": [
+        {
+          "emulated_ms": "1250.604",
+          "instructions": 2277902,
+          "ms": 1250,
+          "outcome": "completed",
+          "periods": 1250
+        },
+        {
+          "emulated_ms": "2250.588",
+          "instructions": 3269929,
+          "ms": 2250,
+          "outcome": "completed",
+          "periods": 2250
+        }
+      ],
+      "stack": 4096,
+      "stack_high_water": 280,
+      "stack_method": "pattern, two stacks",
+      "stack_reserved": 4096,
+      "startup_instructions": 1037868,
+      "static_ram": 117792
+    },
+    "gates": [
+      {
+        "detail": "7012 of 10240 bytes (M4 budget)",
+        "gate": "code",
+        "result": "PASS"
+      },
+      {
+        "detail": "117792 of 131072 bytes (M4 budget)",
+        "gate": "static_ram",
+        "result": "PASS"
+      },
+      {
+        "detail": "280 of 512 bytes (M4 budget)",
+        "gate": "stack_high_water",
+        "result": "PASS"
+      },
+      {
+        "detail": "1037868 of 1572864 instructions (M4 budget)",
+        "gate": "startup_instructions",
+        "result": "PASS"
+      },
+      {
+        "detail": "992.027 of 2048 instructions per period (M4 budget)",
+        "gate": "steady_per_period",
+        "result": "PASS"
+      },
+      {
+        "detail": "992.027 steady-state instructions per period, 992.027 before (+0.00%), but the baseline's record was made under a steady-state budget of 1152, not this M4 budget of 2048",
+        "gate": "speed",
+        "result": "NOT COMPARED"
+      }
+    ],
+    "period": "heartbeat-steady",
+    "result": "PASS",
+    "runs_ms": [
+      1250,
+      2250
+    ],
+    "speed_change_percent": 0.0
+  },
+  "schema": 1,
+  "subject": "Merge pull request #52 from japes98/m4/budgets",
+  "traceability": [
+    {
+      "checks": [
+        "C-UNIT",
+        "C-COMMIT-MSG"
+      ],
+      "requirement": "R-PROC-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-MERGE"
+      ],
+      "requirement": "R-PROC-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-PROC-3",
+      "result": "not machine-checked (review)"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-PROC-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-REC-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-REC-2",
+      "result": "not machine-checked (records.yml, ots-upgrade.yml)"
+    },
+    {
+      "checks": [
+        "C-NO-TOOLCHAIN",
+        "C-IMAGE"
+      ],
+      "requirement": "R-REPRO-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-IMAGE"
+      ],
+      "requirement": "R-REPRO-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-BUILD-A",
+        "C-BUILD-B",
+        "C-DETERMINISM"
+      ],
+      "requirement": "R-REPRO-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-REPRO-4",
+      "result": "not machine-checked (review (run by hand; result in the PR))"
+    },
+    {
+      "checks": [
+        "C-SDK-PIN"
+      ],
+      "requirement": "R-REPRO-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-EMU-PIN"
+      ],
+      "requirement": "R-REPRO-6",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-BUILD-A"
+      ],
+      "requirement": "R-BUILD-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SIZE"
+      ],
+      "requirement": "R-BUILD-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-REUSE"
+      ],
+      "requirement": "R-LIC-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-REUSE",
+        "C-SDK-PIN",
+        "C-EMU-PIN"
+      ],
+      "requirement": "R-LIC-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-LOW-PROFILE"
+      ],
+      "requirement": "R-PUB-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SECRETS"
+      ],
+      "requirement": "R-PUB-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PRIVATE",
+        "C-RECORD-PRIVATE"
+      ],
+      "requirement": "R-PUB-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-TRANSCRIPTS",
+        "C-CLEAN-FOLDER"
+      ],
+      "requirement": "R-CLEAN-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-CLEAN-2",
+      "result": "not machine-checked (review)"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-TRANSCRIPTS"
+      ],
+      "requirement": "R-CLEAN-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-DENY-LISTS"
+      ],
+      "requirement": "R-CLEAN-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-TRANSCRIPTS"
+      ],
+      "requirement": "R-CLEAN-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEP-TERMS"
+      ],
+      "requirement": "R-SEP-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-DENY-LISTS",
+        "C-TRANSCRIPTS",
+        "C-CLEAN-FOLDER"
+      ],
+      "requirement": "R-SEP-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FWTEST-PIN"
+      ],
+      "requirement": "R-SEP-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-A"
+      ],
+      "requirement": "R-HARN-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-A"
+      ],
+      "requirement": "R-HARN-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-A"
+      ],
+      "requirement": "R-HARN-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-A"
+      ],
+      "requirement": "R-HARN-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-A"
+      ],
+      "requirement": "R-HARN-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-B",
+        "C-HARNESS-DET"
+      ],
+      "requirement": "R-HARN-6",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-A"
+      ],
+      "requirement": "R-HARN-7",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-IMAGES",
+        "C-HARNESS-IMAGE"
+      ],
+      "requirement": "R-HARN-8",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-SCOPE"
+      ],
+      "requirement": "R-HARN-9",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FWTEST-PIN"
+      ],
+      "requirement": "R-HARN-10",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-SPEC-LINT"
+      ],
+      "requirement": "R-SPEC-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEP-TERMS"
+      ],
+      "requirement": "R-SPEC-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-SPEC-LINT"
+      ],
+      "requirement": "R-SPEC-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SPEC-EXPERIMENTS"
+      ],
+      "requirement": "R-SPEC-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-BOOT-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-BOOT-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-BOOT-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-BOOT-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-BOOT-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-CLK-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-IRQ-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-IRQ-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-IRQ-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-IRQ-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-IRQ-5",
+      "result": "not machine-checked (planned (SR-1))"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LCD-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LCD-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LCD-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LCD-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LCD-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-KEY-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-KEY-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-KEY-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-ENC-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-ENC-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-POT-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-POT-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LED-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LED-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LED-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-INPUT-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-INPUT-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-INPUT-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-AUDIT-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-AUDIT-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-AUDIT-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-AUDIT-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-AUDIT-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-AUDIT-6",
+      "result": "not machine-checked (review; C-TRANSCRIPTS (no transcript outside `sessions/clean/` and `sessions/spec/`))"
+    },
+    {
+      "checks": [
+        "C-PERF"
+      ],
+      "requirement": "R-PERF-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PERF"
+      ],
+      "requirement": "R-PERF-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PERF",
+        "C-PERF-PROBES"
+      ],
+      "requirement": "R-PERF-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-PERF-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PERF-PROBES"
+      ],
+      "requirement": "R-PERF-5",
+      "result": "PASS"
+    }
+  ],
+  "tree": "ecfb3ef57ed7f929a5e145f7cd55894784c5bd89",
+  "withheld": [],
+  "worktree_clean": true
+}
