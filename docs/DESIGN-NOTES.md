@@ -928,3 +928,142 @@ Format for each entry:
   clears bit 13 and acknowledges anything pending, and every chain
   starts with one that acknowledges before setting bit 13, so whichever
   way Q-15 is answered, no polled transfer raises source 16.
+
+### 2026-10-23 M4: the audio output
+- Facts: HW-43 (`JL_ALNK0`'s registers, source 11), HW-44 (the buffer at
+  `ADR3`, two halves of `LEN` words, left and right alternating, 24-bit
+  signed samples sign-extended), HW-45 (`CON0` bit 11 runs it, a frame
+  every 544 ticks of 24 MHz, bit 15 the half playing, `CON2` bit 7 a half
+  finished and bit 3 its clear, source 11 per half), HW-46 (fwtest reads a
+  half when it finishes), HW-19 and HW-20 (the source, its priority), the
+  SDK's `WL82.h` (`JL_ALNK0`'s struct). Q-9 (the chip's codec, bits, clock
+  and true rate) is open, so nothing here sets up a clock or a codec.
+- **Rate:** 24 MHz / 544 = 44 117.647 Hz, the only rate HW-45 gives.
+  fwtest's WAV header says 44 100 Hz; every pitch and every measurement
+  uses the true rate (taking 44 100 would put every pitch 0.69 cents off).
+- **Block:** 64 stereo frames (`LEN` 128), 1.451 ms: 348 160 cycles of core
+  0. The buffer is two blocks, 1 KiB. When half h finishes, the other
+  starts playing and the engine refills h, which plays next: a sample
+  computed now plays one to two blocks later (1.45 to 2.90 ms), and an
+  input event waits at most one block for the next refill, so from an
+  event's time stamp to its sound is at most two blocks (measured: 1.8 to
+  3.2 ms, R-AUD-6). From a key's contact, add M3's debounce (2.5 to
+  4.5 ms): measured 4.8 to 6.8 ms. 32 frames would halve that and double
+  the interrupts and their fixed costs; 128 would double it. 64 is
+  below the 10 ms a player feels on a keyboard, with the per-block costs
+  small against the work.
+- **Where the engine runs:** in source 11's handler, at priority 0, the
+  lowest. The input scan and SPI1 move to 1 and the tick to 2, so the
+  tick still preempts everything (its ±1 µs holds: R-IRQ-1, R-AUD-3), the
+  scan keeps its 83.3 µs slots while the engine works, and main's drawing
+  (which can take longer than a block) never delays a refill. Considered:
+  filling from main's loop (a long panel redraw would make it late); a
+  short source-11 handler that raises a software interrupt for the fill
+  (HW-23), which buys nothing here, as the handler can be the lowest
+  priority itself; the engine above the scan (the scan's slots would
+  stretch by a whole block's work).
+- **Underruns** (R-AUD-3): at each interrupt the half found free (`CON0`
+  bit 15 inverted) must be the one expected (the halves alternate);
+  after the engine, `CON2` bit 7 set again means the next half finished
+  first, so on the chip the half just refilled began to play before it
+  was full. Either counts in the audio record and writes `AUDIO UNDERRUN
+  nnnn` (the count, hex) to the debug channel; the next half is refilled
+  as usual. A test build late for one block in 64 gives exactly one
+  report each. The firmware's longest refill: 1.8 µs at rest, 40 µs with
+  every voice, the tone and the heaviest input, of 1 451 µs.
+- **The audio record** follows the input record at `0x01C00550` (app.ld
+  asserts it), with a marker, the start, blocks, underruns, the refill's
+  time and nine words for the engine.
+- **Core 1** stays parked (R-BOOT-4): one core does all of it with 97%
+  to spare, and M5 decides how to split voices.
+
+### 2026-10-23 M4: the audio API
+- `firmware/src/audio.h`, beside `input.h`. An engine is one function,
+  `void engine(s32 *out, u32 frames)`, called once a block to write 64
+  stereo frames, left then right, straight into the half to be played:
+  nothing is copied after it, so the engine costs only its own work. The
+  words are the hardware's (24-bit, sign-extended), so the API is what
+  HW-44 takes, not a format to convert from.
+- Events: the engine reads them with `input_read_audio()`, from inside its
+  callback, that is between blocks. The input layer queues each event
+  twice, for main and for the engine (64 each), so neither reader can
+  starve the other, and main's panel screen and LEDs work as in M3 while
+  an engine plays. `input_value()` gives any control's state, and each
+  event's time stamp lets a later engine place it within a block.
+- Rules for an engine: finish within a block (else an underrun is
+  reported), expect the tick and the scan to interrupt it, keep samples
+  within ±`AUDIO_FULL`, and never call main-context functions
+  (`input_read`, `input_led`, the screen).
+- Considered: a block of floats (no FPU here, R-BUILD-1's freestanding
+  C), 16-bit samples converted by the layer (a copy and a shift per
+  word, and 8 bits lost), an engine that pulls events from main's queue
+  (two readers of one queue).
+
+### 2026-10-23 M4: the test instrument
+- `firmware/src/synth.c`: an engine to prove the path, not a synth.
+- **Oscillators:** a 1 025-word sine table (a full cycle in 1 024 steps,
+  24-bit), each step linearly interpolated with 15 bits of a 32-bit phase
+  (interpolation error about -106 dB). The table is computed at startup
+  from sin's series to x^11 in 2^-29 fixed point, a quarter cycle and
+  the rest by symmetry, using the core's 32 x 32 to 64-bit multiply (seen
+  in our own disassembly: `r1_r0 = r1 * r0 (s)`): no table copied from
+  anywhere and no maths library. Phase increments: the twelve notes of
+  the top octave, round(440 * 2^((n - 69) / 12) / rate * 2^32), computed
+  offline in double precision; lower octaves halve them, rounded.
+- **Voices:** four, from the 27 keys: KEY1 is F3, KEY8 middle C, KEY27 G5
+  (the keys are chromatic from F, HW-36's layout), OCT- and OCT+ shift by
+  octaves, two each way. A fifth key takes the quietest releasing voice,
+  or the oldest, keeping its phase and level, so it changes pitch without
+  a step.
+- **Envelope:** linear, 5 ms attack (221 samples) and 20 ms release
+  (882), from and to exactly 0: a voice that reaches 0 stops, and the
+  output at rest is digital silence.
+- **Level:** each voice a quarter of full scale, times MASTER's gain,
+  the square of its position (roughly even loudness), full at 1 023,
+  ramped over each block so a move doesn't click.
+- **Test tone:** PLAY starts and stops 1 kHz at half of full scale
+  (-6.02 dBFS), whatever MASTER says, with the same ramps.
+- Found on the way: the first table overflowed (x^2 at pi/2 doesn't fit
+  in 2^-30 fixed point), which the first capture's pitch showed (684 Hz
+  for A4); the series is now in 2^-29. A 20-byte character array
+  initialised on the stack made the compiler call `memcpy`, which the
+  freestanding build doesn't have; the underrun line is a static array.
+
+### 2026-10-23 M4: how the sound is measured
+- `tools/audio_analysis.py`, our own, Python's standard library only (so
+  no PROVENANCE entry): `wave` reads fwtest's capture; a four-parameter
+  sine fit (amplitude, phase, offset, frequency; Gauss-Newton from a
+  zero-crossing guess) gives each tone's frequency and level, and its
+  residual gives THD+N. Sample times come from `ipb.csv`'s block ends.
+- **Clicks:** a step shows as a second difference about the size of the
+  step; a sine of amplitude A and angular step w under a linear ramp of
+  R samples shows at most A((2 sin(w/2))^2 + (1 + 2w)/R), plus 4 for the
+  capture's rounding. Each start and stop is checked against that bound,
+  and a unit test shows an abrupt start or stop of the same notes
+  exceeds it, from F1 to G7.
+- Results (R-AUD-4 to R-AUD-6): the tone 1 000.000000 Hz (0.00000 cents),
+  -6.021 dBFS, THD+N -92.2 dB (the 16-bit capture's own rounding is about
+  -92 dB at this level); eight notes from F1 to G7 within 0.0003 cents,
+  levels within 0.001 dB of MASTER's law, THD+N -74 to -86 dB; every
+  sample 0 at rest.
+
+### 2026-10-23 M4: what audio costs, and the measure's new period
+- R-PERF-2's period is now the audio block, counted by fwtest (the rows of
+  `ipb.csv`), and `perf-history.csv`'s `period` says
+  `audio-block-steady`. An image from before M4 has no blocks, so a
+  baseline made of one is reported, not compared.
+- Steady state, instructions a block (two runs, as tools/perf.py does;
+  builds `SB_COST_NO_AUDIO` and `SB_COST_SILENT_ENGINE` leave parts out):
+  - M3's tick, scan and LEDs, without audio: about 1 440 (992 a ms);
+  - the output path alone (an engine writing silence): 1 742, so about
+    300 for the interrupt, the checks and 128 stores;
+  - the test instrument at rest: 1 813 (+71: reading events and MASTER);
+  - four voices and the tone playing: 9 927, so about 1 640 an
+    oscillator a block (25.6 a sample).
+- Of core 0's 348 160 cycles a block, the platform (M3's input, the
+  output path, the instrument at rest) takes 0.52%; all five oscillators
+  2.85%. That leaves about 345 000 cycles a block, 99% of core 0, for
+  M5's engine, less main's bursts of drawing; core 1 is untouched. In
+  fwtest one instruction is one cycle; on the chip, with code run from
+  flash through the cache, it will be more, which M4b's real engine and
+  a probe on the chip will show.
