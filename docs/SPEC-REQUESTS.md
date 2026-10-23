@@ -261,3 +261,57 @@ an issue or a pull request against docs/HARNESS.md.
   main RAM is cached, is open (Q-18). No fwtest change: no source
   establishes different behaviour.
 - Answered: 2026-10-23, session SR-4-6 (spec side)
+
+### SR-7: fwtest doesn't run a two-register load the compiler emits (a harness gap)
+- Asked: 2026-10-23, session M5 (firmware side)
+- Question: fwtest ends a run as a fault ("an instruction the emulator
+  does not implement") at the two-register load that moves its address
+  down first, which the toolchain's disassembler prints as
+  `{r3, r0} = [-r4]` (bytes `44 eb 09 00`). Please make fwtest run it,
+  and its kin if the encoding has them (other register pairs, the store
+  `[-rN] = {rA, rB}`, a post-incrementing form), as the chip does, and
+  say in HARNESS.md or HARDWARE-SPEC.md which forms fwtest runs. This is
+  about fwtest only, not the hardware: the compiler emits the form on its
+  own, with or without `-mcpu=r3 -mfprev1`.
+- Where it came from: M5's FM engine. clang (the pinned toolchain,
+  P-1), `-target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -Os`
+  (tools/build.sh), made one of it in `voice_start()` in
+  `firmware/src/fm_play.c`, from seven consecutive word copies of one
+  struct's array fields into another's (`o->step[0..3] =
+  p->op[i].step[0..3]; o->target[0..2] = ...`). The same file built with
+  the toolchain's default CPU and no float flag gives the same
+  instruction. The engine's first fwtest run faulted there on core 0.
+- Minimal reproduction (our own code; assembled with the pinned clang,
+  `-target pi32v2 -mcpu=r3`, linked at `0x02000000`, raw image from
+  `.text`, run with `tools/fwtest run IMAGE --ms 1 --ram
+  0x01c00020:12@end`):
+
+  ```
+  _start:
+  	r4 = 0x01C00010
+  	r1 = 0x29F3A1C5
+  	[r4+-8] = r1
+  	r1 = 0x7E41D60B
+  	[r4+-4] = r1
+  	{r3, r0} = [-r4]
+  	r5 = 0x01C00020
+  	[r5+0] = r0
+  	[r5+4] = r3
+  	[r5+8] = r4
+  	cli
+  1:	goto 1b
+  ```
+
+  fwtest: exit 3, `fault`, "core 0 at pc 0x02000016: an instruction the
+  emulator does not implement", nothing stored. The control image, the
+  same with `r4 += -8; r0 = [r4+0]; r3 = [r4+4]` in place of the one
+  instruction: exit 4, `halt` as meant, and the stores show r0
+  `0x29F3A1C5`, r3 `0x7E41D60B`, r4 `0x01C00008`, which is what we expect
+  the one instruction to leave (which register gets which word is part of
+  the question).
+- Workaround until then: `voice_start()` copies those fields a word at a
+  time through a volatile pointer (`copy_words`, fm_play.c), and
+  tools/build.sh fails an image whose disassembly holds the form, so
+  none reaches fwtest unnoticed (docs/DESIGN-NOTES.md, M5). Both go once
+  fwtest runs it.
+- Status: open
