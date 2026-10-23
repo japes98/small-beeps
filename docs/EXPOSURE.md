@@ -816,6 +816,12 @@ SR-3 wrote only its barrier-log row.*
   datasheets), this repository's tools, tests and docs, the vendored
   Plaits tree (`vendor/plaits/`, MIT) and pull request #59's branch. It
   never opens or fetches an audit target.
+- Later in the session: it ran the separation check on #61's branch
+  (places and hashes only) and read SDK files at the pinned commit
+  (PROVENANCE P-31). The audit's self-test ran locally against copies of
+  our own files only. The owner approved deleting the session's scratch
+  files when the Mac's disk filled; the container runtime then stopped
+  responding, so no new spec experiment was built.
 
 ## Corrections
 
