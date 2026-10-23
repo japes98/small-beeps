@@ -1,0 +1,13 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 51af4e7339d7b8b7b40df274f9d3fffd62e464e9..d68c836798967112803685271c0379838ce3dd9d
+OK     6586ed274715 firmware: audio output, the audio API and a test instrument
+OK     8aefc23650a3 tools: the speed measure's period is the audio block
+OK     5d1f3dc370a1 tests: the audio output and the instrument, measured in fwtest
+OK     6da5f3426e87 docs: M4's requirements, design notes, provenance and results
+EXEMPT cebca8fbc138 (merge) config: merge the M4 budgets (#52) into the M4 firmware
+OK     e03c546fbe41 tests: time event to sound exactly; records keep WAVs as hashes
+EXEMPT e4c3c5e2c817 (merge) firmware: merge main into the M4 firmware, after #49 to #52
+OK     b37fb7e85a82 docs: M4's design note no longer quotes a disassembly register pair
+EXEMPT d68c83679896 (merge) Merge pull request #53 from japes98/m4/firmware
+9 commit(s) checked: PASS
+
+exit status 0
