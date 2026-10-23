@@ -566,7 +566,7 @@ training cutoff (see "Model cutoffs" below).
     - `docs/HARDWARE-SPEC.md` (HW-33 to HW-42, HW-19 to HW-24, HW-48,
       the open questions) and docs/HARNESS.md;
     - the vendored SDK header `WL82.h` (the port, timer and ADC structs);
-    - our own fwtest runs and disassembly (PROVENANCE P-23, P-24).
+    - our own fwtest runs and disassembly (PROVENANCE P-24, P-25; P-23 and P-24 until SR-3 took P-23 on main).
     It fetched nothing from FM-1-RE and did not open the panel screenshot
     in `docs/sources/`. From the CI run it read only the log's check
     lines, never the record artifact. Spec session SR-3's pull request
@@ -586,7 +586,36 @@ training cutoff (see "Model cutoffs" below).
     - the `awk` checks of the new pattern on made-up tree lines;
     - the `gh pr create` call whose body names a harness check, and the
       edit that wrote this list.
+  - **After a server restart** (the same session, later on 2026-10-23):
+    the owner asked for main (SR-3, fwtest 0.2.0, the audit self-test)
+    to be merged into #38, #42 and #44. `tools/clean-update.sh` passed
+    first, at `7d8e1a7`. Each merge staged spec-side paths by name, as
+    in M2; no blob was fetched. One `git diff --stat HEAD` without a
+    pathspec asked for a staged spec-side blob and was refused (lazy
+    fetching off), so nothing reached `.git`; `tools/clean-update.sh`
+    passed again after each merge. Main's SR-3 had taken P-23, so the
+    session's provenance became P-24 and P-25.
   - **Exposure:** still none.
+
+### Session audit-selftest (the similarity audit's self-test)
+- Date: 2026-10-23
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.309 (banner), Remote Control from the owner's
+  phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `dcfce033-7499-43f1-a8c3-adb8e2509ca4`,
+  started by `/clear` (banner `source: clear`, `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+- What it archived: SR-3's transcript (`0fb48e95`) into `sessions/spec/`;
+  `tools/check-transcripts.py` PASS.
+- Exposure: none beyond the spec side's. It reads our own files (the
+  audit's tools, tests, settings and docs, and `firmware/`), the audit
+  runs' check lines, and the permissive control and calibration projects
+  (pico-examples, TinyUSB's `src/`). It runs the self-test, which uses
+  only our files and the control, locally. It never opens or fetches an
+  audit target, nor anything under `harness/` or `vendor/emulator/`.
 
 ## Barrier log
 
@@ -615,6 +644,8 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-23, about 00:30Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M2: merging main into a branch staged spec-side paths; `git diff --cached` and the pre-commit hook showed their names, the hook's reads failed (lazy fetching off); a barrier check (disk, index, every branch) found no spec-side contents in `.git`, before and after the merge commit |
 | 2026-10-22T23:04:40Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-1-SR-2 starts; banner `status: OK`. 23:05:19Z: `tools/spec-setup.sh`, banner `status: OK`; M0e-spec's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-23T00:24:53Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M3 starts; banner `status: OK`; `tools/clean-update.sh` found main at `4c5d76f` and passed; M2 archived; `tools/check-transcripts.py` PASS with the 13 reviewed entries the owner approved in the session |
+| 2026-10-23T00:25:37Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-3 starts; banner `status: OK`. 00:26:15Z: `tools/spec-setup.sh`, banner `status: OK`; SR-1-SR-2's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-23T02:10:46Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session audit-selftest starts; banner `status: OK`. 02:11:08Z: `tools/spec-setup.sh`, banner `status: OK`; SR-3's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 
 ## Model cutoffs
 

@@ -354,6 +354,24 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
       18,498 files; the control's baseline was 35 tokens (threshold 59), no
       target was control-related, and our best pair was a 12-token match.
       Its report is in the record, beside the main record.
+    - **The self-test gap** (2026-10-23, a spec session; docs/AUDIT.md,
+      "The self-test gap"). From M2's firmware on, the self-test failed
+      with "8 of our 9 files found". The file was `src/font.c`, a single
+      table JPlag makes 5 tokens of, so it drops it as `TOO_SMALL`. In
+      these runs the gate passed, but `src/font.c` was compared with
+      nothing. The merges that ran without a passing self-test:
+      - #34, #35 and #36: their own audit runs were cancelled while
+        queued. #37's run covered their commits;
+      - #37 (run 39877916755), #40 (run 39886734506) and #45 (run
+        39888000310): self-test FAIL, gate PASS.
+
+      Those runs stay red in the records. **The fix:** a file JPlag cannot
+      score is reported as "not scorable by JPlag", with the reason, and
+      goes to a text check (C-AUDIT-TEXT). That check finds exact copies,
+      and the share of the file's normalised text in each target file, and
+      fails at 0.5. The threshold is calibrated on the same permissive
+      pair as the gate. The self-test now also finds a reformatted copy of
+      each file, so it covers the text check too.
   - **Auditor role**: CONTRIBUTING.md, `config/claude/auditor.json`,
     `tools/auditor-setup.sh`. Its transcripts go to the owner's private
     repository (created when the first auditor session runs), never here.
@@ -529,7 +547,8 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     - No ghost at a matrix rectangle's fourth corner in fwtest.
     - Tick intervals stayed 24 001 to 24 002 time base ticks under the
       heaviest input.
-    - **Steady state 991.99 instructions a period** (M2: 65.415), 0.41% of
+    - **Steady state 992.03 instructions a period** on fwtest 0.2.0 (991.99
+      on 0.1.x; M2: 65.415), 0.41% of
       core 0 at 240 MHz: keys about 127, encoders 94, the pot 27, LEDs
       142, and about 533 for 12 interrupts and main's wakes a
       millisecond. A slower or interrupt-driven scan was weighed and not
