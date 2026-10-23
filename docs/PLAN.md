@@ -633,13 +633,63 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
       the firmware itself is unchanged.
     - Then **M5**, the FM engine.
 
+### M4b: platform load test, and the loaded-case budget (firmware side)
+- Measure what the chip can afford before M5's engine is designed: a
+  loaded speed measure and its budget, and Mutable Instruments' Plaits
+  (MIT) ported as a separate demo build (docs/prompts/M4b.md).
+- Requirements: R-PERF-1, R-PERF-2, R-PERF-4, R-PERF-5 and R-SEP-1
+  amended; R-REPRO-7 and R-PLAITS-1 to R-PLAITS-4 new.
+- Status 2026-10-23 (session M4b, firmware side, on the owner's Mac):
+  - **Start** (#55): M4's transcript archived; its 3 flagged calls, each
+    naming a rule only, approved by the owner. **Neutral rule IDs** (#56,
+    the owner's request): the transcript check's rules are `F-1` to
+    `F-13`, so naming one no longer flags a command.
+  - **The loaded measure** (#57): the perf runs again under a fixed script
+    driving every voice and every control (`tests/fw/scripts/perfload.txt`),
+    with its own budget, 3% gate and baseline rule, a probe build that
+    proves the gate, and `perf-measures.csv` (one row per commit and
+    measure; the owner's design). **M4 loaded budget** (#58): 131 072.
+    M4's firmware: **114 173 instructions a block** under load, against
+    1 813 at rest. Of that, 90% is the panel's drawing (about 66 000 an
+    input event), 7% the audio engine, 2% the scan, 1% sending.
+  - **Plaits vendored** (#59): 127 files from pichenettes/eurorack and
+    stmlib at pinned commits, unmodified, every file MIT; C-PLAITS-PIN.
+    C-SEP-TERMS counts its terms as public like the SDK's (the owner's
+    decision, with conditions).
+  - **The demo** (#61): its own image (`tools/build.sh build --demo
+    plaits`), our audio and input APIs only. It needed our own IEEE 754
+    soft-float (bit for bit against an exact reference), memory functions,
+    six standard headers and two C++ handlers; Plaits builds unmodified.
+    C-PLAITS-BENCH measures it in every record.
+  - **Spec requests** (#60): SR-4 (the audit: Plaits as base code, spec
+    side to make), SR-5 (hardware float on the chip), SR-6 (both cores
+    on the chip).
+  - **Results** (fwtest, an instruction a cycle; docs/DESIGN-NOTES.md,
+    M4b):
+    - **Soft-float:** 0.6 to 1.8 million instructions a block per engine,
+      2 to 5 blocks' time: only chiptune plays live. Not viable for M5.
+    - **Hardware float** (the toolchain's `fprev1`, which fwtest runs and
+      the SDK's builds use; SR-5 open): 10 600 to 52 600 a block, 6 to 32
+      voices an engine on core 0, the same sound bit for bit.
+    - **Core 1** starts and renders a second voice: two at once take half
+      the time (fwtest has no contention; SR-6).
+    - **For M5:** an FM operator is at most 40 instructions a sample
+      (Plaits' six-op, all-in) against M4's fixed-point sine at 25.6: about
+      135 operators on core 0 at rest, 91 under the heaviest input, and
+      about 135 more on core 1. Plan for half on the chip.
+    - **API before M5:** an engine context pointer, knobs as clamped
+      parameters, a deadline the engine can see, core 1 as an API, and the
+      screen's redraws coalesced to a frame rate.
+  - **Next: M5, the FM engine.** Fixed point needs no answer from SR-5;
+    floats would. The demo is not shipped in releases.
+
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer (done; above).
 - **M2** screen (done; above).
 - **M3** keys, encoders, pot, LEDs (done; above).
-- **M4** audio (done; above). **M4b** a platform test: a ported
-  permissively licensed engine (Plaits, MIT, first) as a demo build.
-- **M5** the FM engine.
+- **M4** audio (done; above). **M4b** a platform test: Plaits (MIT) as
+  a demo build, and the loaded-case budget (done; above).
+- **M5** the FM engine (next).
 - **M6** MIDI in.
 - **M7** flash storage.
 - **M8** UI and original presets (no Yamaha factory voices).
