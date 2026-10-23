@@ -26,10 +26,19 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 # (found in M2). So the file list comes from the trees (which a blob-less
 # clone has), and each file is read by its own object ID: only the files
 # kept are ever asked for, and a missing one is downloaded alone.
+# The spec-side folders come from config/spec-side-folders (since M3).
+SPEC_FOLDERS=$(grep -v '^#' "$ROOT/config/spec-side-folders" | cut -f1)
+[ -n "$SPEC_FOLDERS" ] || { echo "no spec-side folders in config/spec-side-folders" >&2; exit 1; }
+spec_side() {
+    for f in $SPEC_FOLDERS; do
+        case "$1" in "$f"/*) return 0 ;; esac
+    done
+    return 1
+}
 export_tree() {
     out=$2
     GIT_NO_LAZY_FETCH=1 git -C "$ROOT" ls-tree -r "$1" | while IFS="$(printf '\t')" read -r meta path; do
-        case "$path" in vendor/emulator/*|harness/*|sessions/spec/*) continue ;; esac
+        ! spec_side "$path" || continue
         set -- $meta   # mode, type, object ID
         [ "$2" = blob ] || continue
         mkdir -p "$out/$(dirname "$path")"

@@ -8,8 +8,8 @@
 #
 # ROLE is clean, spec or auditor. With a DIR that doesn't exist yet, clones
 # this repository into it first (clean: blob-less clone with a sparse checkout
-# that leaves out vendor/emulator/, harness/ and sessions/spec/, so their
-# contents never reach the disk; spec and auditor: a full clone). Without DIR, sets up
+# that leaves out the spec-side folders listed in config/spec-side-folders,
+# so their contents never reach the disk; spec and auditor: a full clone). Without DIR, sets up
 # this checkout. SETUP_SOURCE (a URL, default this checkout's origin) and
 # SETUP_REF (default main) choose what a new folder is cloned from; CI uses
 # them to test a pull request's own tree.
@@ -29,7 +29,9 @@ DIR=${2:-}
 case "$ROLE" in clean|spec|auditor) ;; *) echo "usage: $0 clean|spec|auditor [DIR]" >&2; exit 2 ;; esac
 
 HERE=$(cd "$(dirname "$0")/.." && pwd)
-CLEAN_EXCLUDES="/vendor/emulator/ /harness/ /sessions/spec/"
+# The spec-side folders, from the one list (since M3).
+CLEAN_EXCLUDES=$(grep -v '^#' "$HERE/config/spec-side-folders" | cut -f1 | sed 's|.*|/&/|')
+[ -n "$CLEAN_EXCLUDES" ] || { echo "no spec-side folders in config/spec-side-folders" >&2; exit 1; }
 
 if [ -n "$DIR" ] && [ ! -e "$DIR" ]; then
     url=${SETUP_SOURCE:-$(git -C "$HERE" remote get-url origin 2>/dev/null || echo "file://$HERE")}
