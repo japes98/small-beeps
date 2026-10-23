@@ -554,6 +554,54 @@ training cutoff (see "Model cutoffs" below).
   (the 5 flagged commands only), and this repository's tools, tests, docs
   and firmware. It does not open anything on the forbidden list or
   anything under the three spec-side folders.
+- Later in the session:
+  - **Pull requests:**
+    - #38, the start;
+    - #39, the speed gate's fix, chosen by the owner;
+    - #41, the M3 budgets;
+    - #42, the firmware, tests and docs;
+    - #43, the barrier tools' shared folder list, the owner's request;
+    - this wrap-up.
+  - **Reads:**
+    - `docs/HARDWARE-SPEC.md` (HW-33 to HW-42, HW-19 to HW-24, HW-48,
+      the open questions) and docs/HARNESS.md;
+    - the vendored SDK header `WL82.h` (the port, timer and ADC structs);
+    - our own fwtest runs and disassembly (PROVENANCE P-24, P-25; P-23 and P-24 until SR-3 took P-23 on main).
+    It fetched nothing from FM-1-RE and did not open the panel screenshot
+    in `docs/sources/`. From the CI run it read only the log's check
+    lines, never the record artifact. Spec session SR-3's pull request
+    was seen by title only.
+  - **A tool call the safety classifier denied:** the first attempt to
+    add the reviewed entries, before the owner had approved them. The
+    session asked, and the owner approved.
+  - **Commands the next clean session will see flagged.** They name the
+    spec-side folders as text only; none opened, listed or fetched
+    anything under them:
+    - the two Python heredocs that added the reviewed entries (the
+      denied one and the approved one), whose reasons describe M2's
+      commands;
+    - the `git grep`s that found where tools and tests name the folders;
+    - the Python and `sed` edits of the barrier tools and their tests
+      for #43, which replaced the literal names;
+    - the `awk` checks of the new pattern on made-up tree lines;
+    - the `gh pr create` call whose body names a harness check, and the
+      edit that wrote this list.
+  - **After a server restart** (the same session, later on 2026-10-23):
+    the owner asked for main (SR-3, fwtest 0.2.0, the audit self-test)
+    to be merged into #38, #42 and #44. `tools/clean-update.sh` passed
+    first, at `7d8e1a7`. Each merge staged spec-side paths by name, as
+    in M2; no blob was fetched. One `git diff --stat HEAD` without a
+    pathspec asked for a staged spec-side blob and was refused (lazy
+    fetching off), so nothing reached `.git`; `tools/clean-update.sh`
+    passed again after each merge. Main's SR-3 had taken P-23, so the
+    session's provenance became P-24 and P-25. To see why #42's speed
+    gate was not compared after the owner merged #38, #39, #41 and #43,
+    it fetched the records branch's commits and trees (a blob-less fetch:
+    no file contents) and read two named files, the `report.json` of
+    #41's and #43's merge records, printing only their perf budgets,
+    baseline note and speed verdict; `tools/clean-update.sh` passed
+    after.
+  - **Exposure:** still none.
 
 ### Session audit-selftest (the similarity audit's self-test)
 - Date: 2026-10-23
