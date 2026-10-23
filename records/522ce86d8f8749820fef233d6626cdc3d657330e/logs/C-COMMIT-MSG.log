@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range dc82c8501463907ae208d1389d43976b41f2949b..522ce86d8f8749820fef233d6626cdc3d657330e
+OK     970fdc415ba8 tools: a loaded speed measure, with its own budget and 3% gate
+EXEMPT 522ce86d8f87 (merge) Merge pull request #57 from japes98/m4b/perf-loaded
+2 commit(s) checked: PASS
+
+exit status 0
