@@ -14,6 +14,8 @@
 #     off as clean sessions run (the tool tests, the transcript, term and spec
 #     checks, the emulator pin check, and `git log -p` over this branch,
 #     which must fail rather than fetch), fetch none of those contents;
+#   - tools/reproduce's export of a commit, even with lazy fetching on,
+#     fetches none of those contents (since M2);
 #   - tools/clean-update.sh stops when a spec-side output reaches .git
 #     through another branch (as the records branch holds them);
 #   - tools/clean-update.sh brings a clean folder made at HEAD's parent up to
@@ -162,6 +164,38 @@ env -u GIT_NO_LAZY_FETCH git -C "$work/probe-control" merge --ff-only origin/mai
 n=$(present "$work/probe-control")
 if [ "$n" -gt 0 ]; then echo "control: a merge with its summary fetched $n of their blobs, as expected"
 else bad "control: a merge with its summary fetched none of their blobs, so this test can't tell"; fi
+
+# tools/reproduce's export of a commit, run in a clean folder with lazy
+# fetching on (as a person might run it), must fetch no spec-side blob and
+# export none of those folders. As a control, `git archive` with exclude
+# pathspecs (its method before M2) fetches some in another copy.
+head_blobs=$(git -C "$ROOT" ls-tree -r HEAD -- $EXCLUDED | awk '$2 == "blob" { print $3 }' | sort -u)
+count_present() {
+    n=0
+    for oid in $head_blobs; do
+        if GIT_NO_LAZY_FETCH=1 git -C "$1" cat-file -e "$oid" 2>/dev/null; then n=$((n + 1)); fi
+    done
+    echo $n
+}
+for c in export export-control; do
+    SETUP_SOURCE="file://$src" SETUP_REF=checked \
+        sh "$ROOT/tools/clean-setup.sh" "$work/$c" > /dev/null 2>&1 || bad "clean-setup.sh for $c failed"
+done
+mkdir "$work/exported"
+if (cd "$work/export" && env -u GIT_NO_LAZY_FETCH sh tools/reproduce --export-only HEAD "$work/exported") > "$work/export.log" 2>&1; then
+    n=$(count_present "$work/export")
+    if [ "$n" = 0 ]; then echo "no blobs (tools/reproduce's export, lazy fetching on): 0 present"
+    else bad "tools/reproduce's export brought $n spec-side blobs into .git"; fi
+    for p in $EXCLUDED; do [ ! -e "$work/exported/$p" ] || bad "tools/reproduce exported $p"; done
+    [ -f "$work/exported/tools/build.sh" ] || bad "tools/reproduce's export lacks tools/build.sh"
+else
+    cat "$work/export.log"; bad "tools/reproduce --export-only failed"
+fi
+env -u GIT_NO_LAZY_FETCH git -C "$work/export-control" archive HEAD -- . ':(exclude)vendor/emulator' \
+    ':(exclude)harness' ':(exclude)sessions/spec' > /dev/null 2>&1 || true
+n=$(count_present "$work/export-control")
+if [ "$n" -gt 0 ]; then echo "control: git archive with exclude pathspecs fetched $n spec-side blobs, as expected"
+else bad "control: git archive with exclude pathspecs fetched none, so this test can't tell"; fi
 
 # A spec-side output reached through another branch (as a record on the
 # records branch holds them): a made-up file under records/x/spec-experiments/

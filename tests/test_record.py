@@ -107,6 +107,29 @@ class RecordTest(unittest.TestCase):
         finally:
             shutil.rmtree(out)
 
+    def test_spec_experiment_outputs_are_kept_as_hashes_only(self):
+        out = tempfile.mkdtemp()
+        saved = list(rec.CHECKS)
+        try:
+            rec.CHECKS[:] = [{"id": "C-T", "title": "t", "reqs": ["R-SPEC-4"], "cmd": lambda: [
+                "sh", "-c", "mkdir -p '%s/spec-experiments/suite/e1' && printf dump > '%s/spec-experiments/suite/e1/ram.bin'"
+                % (rec.OUT, rec.OUT)]}]
+            class A:
+                pass
+            a = A()
+            a.out, a.only, a.skip, a.with_merge = out, None, None, False
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(rec.cmd_run(a), 0)
+            self.assertFalse(os.path.exists(os.path.join(out, "spec-experiments")))
+            with open(os.path.join(out, "spec-experiments.sha256")) as f:
+                self.assertEqual(f.read(), "%s  suite/e1/ram.bin\n" % rec.hashlib.sha256(b"dump").hexdigest())
+            sums = rec.read_sums(os.path.join(out, "SHA256SUMS"))
+            self.assertIn("spec-experiments.sha256", sums)
+            self.assertFalse([n for n in sums if n.startswith("spec-experiments/")])
+        finally:
+            rec.CHECKS[:] = saved
+            shutil.rmtree(out)
+
     def test_a_record_file_holding_a_private_term_is_withheld(self):
         out = tempfile.mkdtemp()
         saved, saved_env = list(rec.CHECKS), os.environ.get("PRIVATE_TERMS")

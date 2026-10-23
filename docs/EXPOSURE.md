@@ -417,6 +417,90 @@ training cutoff (see "Model cutoffs" below).
     records included, and C-CLEAN-FOLDER tests it.
   - **Exposure:** still none.
 
+### Session M2 (the screen)
+- Date: 2026-10-22
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.309 (banner), Remote Control from the owner's phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `d0aa28c2-493e-48cb-b0fd-be2a2d41a714`,
+  started by a `/clear` at 23:04:37Z (banner `source: clear`, `status: OK`)
+  in the same Claude Code job as M1. Its own transcript is left for the
+  next clean session to archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh` found main at
+  `9fe07f8` and ended "no spec-side files on disk or in .git";
+  `tools/private-terms.local` exists (not opened). It archived M1
+  (`7968e45c`) into `sessions/clean/`; no other clean session was left
+  unarchived. `tools/check-transcripts.py` flagged 19 of M1's shell
+  commands. The session reviewed each in the redacted archive: they wrote
+  pull request bodies, commit messages and docs naming the spec-side
+  folders, edited the check's own patterns and tests, excluded the folders
+  by pathspec, or counted spec-side objects without printing a name. It
+  then closed the gap M1 found (a folder name ended by `;` or another
+  shell operator wasn't matched), which flags three more calls of older
+  clean sessions of the same kinds. All 22 are listed in
+  `sessions/REVIEWED.json` for the owner's approval.
+- Privacy: tool output showed the local username and top folder in paths
+  (Claude Code's project folder, the archiver's messages, and the older
+  archived transcripts, which predate the archiver's top-folder rule and
+  are exempt by blob hash); they were never written to the repository, and
+  the archiver redacts them from this transcript.
+- Reads: CONTRIBUTING.md, this file, sessions/README.md,
+  sessions/REVIEWED.json, docs/PLAN.md, docs/prompts/M1.md, the redacted
+  archives of `7968e45c`, `36860ab8` and `3a0a372e` (the flagged commands
+  only, to review them), and this repository's tools and tests. It does
+  not open anything on the forbidden list or anything under the three
+  spec-side folders.
+- Later in the session:
+  - **The M1 release.** Made from the signed tag `m1` (`9fe07f8`). From
+    the `records` branch the session read only two named files of that
+    commit's record, `report.json` and `SHA256SUMS`, one path at a time,
+    and printed only the overall result, the checks' results and the two
+    output lines of `SHA256SUMS`. The record's tree hash came from the
+    trees alone.
+  - **A barrier gap in `tools/reproduce`, found and closed.** Its first
+    run stopped: `git archive` with pathspecs that leave the spec-side
+    folders out still asked for a file under one of them, and lazy
+    fetching was off, so nothing was fetched. A test in a made-up
+    blob-less repository in the scratch folder showed that, with lazy
+    fetching on, `git archive` downloads the excluded files into `.git`,
+    even with a pathspec that names only the kept paths.
+    `tools/reproduce` now reads each kept file by its object ID, and
+    C-CLEAN-FOLDER tests it with lazy fetching on, against a control.
+    `tools/clean-update.sh` passed before and after, so no spec-side file
+    reached this folder. The session printed only the missing object's ID
+    and its folder, never a file name under it.
+  - **Commands the next clean session will see flagged.** Several of this
+    session's shell commands name the spec-side folders as text: the
+    transcript check's review commands (grep and awk over its log and the
+    checker's own patterns), the folder test of the classifying command
+    above, and a Python edit of the made-up test script in the scratch
+    folder. None opened, listed or fetched anything under them. From then
+    on the session kept those names out of shell commands.
+
+### Session SR-1-SR-2 (spec requests SR-1 and SR-2, M1's observations)
+- Date: 2026-10-22
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.309 (banner), Remote Control from the owner's
+  phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `a091f4ce-8c5f-4da5-83fe-dace0af5b03e`,
+  started by `/clear` (banner `source: clear`, `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+- What it archived: M0e-spec's transcript (`fbbe5c07`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS.
+- Exposure: reads the harness source (`harness/`) and the vendored emulator
+  (`vendor/emulator/`): its memory map and bus access paths, its division,
+  its timers, how fwtest reports faults, and its region handling for the
+  exception and clock registers; the
+  JieLi SDK (Apache-2.0) and FM-1-RE's hardware documents (WTFPL) for the
+  exception and clock questions. It never opens the GPL firmwares or
+  anything on the clean side's forbidden list beyond the emulator.
+
 ## Barrier log
 
 | When (UTC) | Folder | Settings SHA-256 | Event |
@@ -440,6 +524,8 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-22T21:27:00Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M1 starts; banner `status: OK`; `tools/clean-update.sh` found main at `2513b93` and passed; M0e's performance part archived; `tools/check-transcripts.py` PASS with the owner-approved reviewed entries |
 | 2026-10-22, before 22:55Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M1: `tools/clean-update.sh` printed STOP (17 spec-side experiment outputs in `.git`, brought in with the records branch); the session stopped and told the owner, opening nothing |
 | 2026-10-22T22:55:06Z | same | `aa535102…9f25ab` | The folder's `.git` replaced by a fresh blob-less sparse clone, the old one and the session's scratch extractions of records deleted unread; `tools/clean-setup.sh` re-run, banner `status: OK`; `tools/clean-update.sh` passed, then gained the all-branches check |
+| 2026-10-22T23:04:37Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M2 starts; banner `status: OK`; `tools/clean-update.sh` found main at `9fe07f8` and passed; M1 archived; `tools/check-transcripts.py` PASS with the reviewed entries listed for the owner's approval |
+| 2026-10-22T23:04:40Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-1-SR-2 starts; banner `status: OK`. 23:05:19Z: `tools/spec-setup.sh`, banner `status: OK`; M0e-spec's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 
 ## Model cutoffs
 

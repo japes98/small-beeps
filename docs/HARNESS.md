@@ -151,6 +151,18 @@ for them.
   include the time jumped over: a waiting image's counts stay small and
   stable.
 
+### Timers and their acknowledge
+
+The write to a TIMER0 to TIMER3 control register that acknowledges its
+interrupt also restarts that timer's count and its period from the moment
+of the write. So the time between two of its interrupts is the
+period programmed plus the time from the interrupt to the acknowledging
+write: about one tick of the 24 MHz time base when the handler acknowledges
+first, more when it acknowledges later (`HARDWARE-SPEC.md`, HW-48). To
+measure a period exactly, acknowledge first, or subtract the time the
+handler took to reach its acknowledge. Whether the chip does the same is an
+open question in `HARDWARE-SPEC.md`.
+
 ## The command line
 
 ```
@@ -253,6 +265,29 @@ All in `--out`. A run writes only what it was asked for, plus
 When several apply, the first in this order wins: 2, 3, 5, 1, 4, 0. Captures
 and `result.json` are written for 1, 3, 4 and 5 too. Any other exit code
 means fwtest itself failed.
+
+### Faults and CPU exceptions
+
+fwtest raises no CPU exception: no condition makes interrupt source 0, 1
+or 2 pending, so an image's exception handler is never entered by a fault.
+What happens instead (`HARDWARE-SPEC.md`, HW-52, says it with the measured
+values):
+
+- Misaligned loads and stores complete. A word load or store uses the 4
+  bytes at the address given; a halfword load from an odd RAM address
+  ignores the lowest address bit.
+- Reads outside every memory and register fwtest models give 0, writes
+  there are dropped, and both are listed in `unmodelled_accesses`; so are
+  writes to the code window, which are dropped too.
+- A division by zero gives 0.
+- An instruction fwtest cannot decode ends the run as a fault (exit 3).
+  fwtest may stop at the start of the straight-line code that holds it,
+  before any of that code has run, and `result.json` then gives that
+  address as the fault's `pc`; to have code run up to it, put the
+  instruction behind a call or a branch.
+- A jump outside every memory runs what fwtest reads there (zeros) for up to
+  1024 instructions, until fwtest next checks the program counter, and then
+  ends the run as a fault.
 
 ## Golden files
 

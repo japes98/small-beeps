@@ -103,8 +103,11 @@ was used) and name the ID in the commit's `Sources:` field:
   lazy fetching off. `tools/clean-update.sh` updates a clean folder and
   checks nothing excluded arrived; C-CLEAN-FOLDER tests all of this in CI.
 - **Records in a clean folder.** Each record on the `records` branch also
-  keeps the harness's and the spec experiments' outputs. Clean sessions
-  never fetch the records branch wholesale (no `git archive`, checkout or
+  keeps the harness's own test results and the hashes of their outputs.
+  Records before SR-1-SR-2 also keep the spec experiments' outputs (memory
+  dumps, captures, audio); since then a record keeps only their names and
+  SHA-256 (`spec-experiments.sha256`), and older records stay as they are.
+  Clean sessions never fetch the records branch wholesale (no `git archive`, checkout or
   lazy fetch of a whole record or of the branch): they fetch only named
   files of the firmware's own records, `report.json`, `report.md` and
   named logs under `logs/`, one path at a time. `tools/clean-update.sh`
