@@ -1216,6 +1216,13 @@ Format for each entry:
 
   (The record's table, from tools/plaits-bench.py, has the means, the
   set-up blocks, and voices under the heaviest input too.)
+- **What the bench holds fixed:** one pitch (MIDI 48, plus the rate
+  offset) and decay 0.5, so an engine whose cost grows with pitch may cost
+  more higher up. The voices column counts time only. Each voice is about
+  29.5 KB of RAM (its 16 KiB buffer and Plaits' voice object: the demo's
+  zeroed data is 59 160 bytes more than the firmware's, for two). The
+  chip's 511 KiB of RAM, less the firmware's 124 KB and its stacks, holds
+  about 13 voices, fewer than the column for the lightest engines.
 - **Soft-float doesn't fit.** Every engine but chiptune takes two to five
   blocks' time for one block, so only chiptune plays live with soft-float.
   Any other overloads core 0: underruns, and main starves. Soft-float is
