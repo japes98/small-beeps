@@ -52,12 +52,23 @@ tools/fwtest --image        # the pinned image reference
 | Writes to the window | Ignored (and listed as unmodelled accesses). |
 | RAM | 1 MiB at `0x01C00000`, all zero at the start. Other memories, and what the real chip has: `HARDWARE-SPEC.md`. |
 | Core 0 at the start | User mode. Every register is 0, both stack pointers included (set your own stacks first), except `r0` = `0x01C7FC00`: a 64-byte block of zeros whose first word holds `0x01C7FC40`. |
-| Core 1 | Does not run until the image releases it (`HARDWARE-SPEC.md` says how). Then it runs alongside core 0. |
+| Core 1 | Does not run until the image releases it (`HARDWARE-SPEC.md` says how). Then it runs alongside core 0 (below, "Time"). |
 
 ## Time
 
 - Emulated time starts at 0 when the image starts. One instruction of core 0
   takes one cycle; there are 240 000 cycles in an emulated millisecond.
+- Every instruction counts the same: the hardware float instructions
+  (`-mfprev1`) too, divide included. fwtest computes them as IEEE 754
+  single precision, rounding to nearest even and keeping subnormals; no
+  float condition raises an exception or sets a flag (`HARDWARE-SPEC.md`,
+  HW-63, gives the edge cases).
+- Once released, core 1 also runs one instruction a cycle. The cores take
+  turns: core 0 runs 1024 instructions, then core 1 as many cycles as
+  passed. They share memory with no caches and no contention, so neither
+  slows the other, but a store by one core reaches the other core's loads
+  up to one turn (1024 cycles) later. Core 1 takes the interrupts its own
+  enable words enable (HW-64).
 - Everything happens at exact emulated times, and the outputs are
   deterministic (below), but **while core 0 waits, fwtest moves time ahead**,
   so that waiting costs (almost) no instructions and instruction counts

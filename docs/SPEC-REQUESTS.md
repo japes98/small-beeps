@@ -214,7 +214,17 @@ an issue or a pull request against docs/HARNESS.md.
   (fixed or floating point, how many operators) depends on it. Read:
   HARDWARE-SPEC.md (HW-50's float exception bits), the toolchain's
   feature list, the SDK's Makefiles.
-- Status: open
+- Status: answered in part (HARDWARE-SPEC.md, "14. Floating point and the
+  second core (SR-5, SR-6)"): (a) in HW-62: the SDK builds its AC791N
+  code for `r3` with `fprev1`, so build for the chip the same way; what
+  `r1` to `r5` differ in is open. (b) in HW-63: what fwtest computes,
+  including the edge cases (rounding, subnormals, NaNs, conversions,
+  multiply-add rounded twice); it sets no float flag and raises nothing,
+  and every float instruction costs one cycle there, like any other. The
+  chip's cycle costs and edge behaviour are open (Q-16). No fwtest change:
+  no source establishes different behaviour. Plan M5 for either outcome:
+  fwtest's float timings are a lower bound, not a measurement.
+- Answered: 2026-10-23, session SR-4-6 (spec side)
 
 ### SR-6: Running both cores on the chip
 - Asked: 2026-10-23, session M4b (firmware side)
@@ -235,4 +245,19 @@ an issue or a pull request against docs/HARNESS.md.
   needs to know how much of that holds on the chip. Read: HARDWARE-SPEC.md
   HW-8 to HW-11, HW-18 to HW-23, Q-11; docs/HARNESS.md ("Time": core 1's
   timer reads).
-- Status: open
+- Status: answered in part (HARDWARE-SPEC.md, section 14): (a) in fwtest,
+  HW-64: both cores at one instruction a cycle, no caches or contention,
+  so the 0.50 to 0.55 measured is fwtest's best case; on the chip, open
+  (Q-17), including core 1's clock. (b) Core 1's own interrupt words and
+  gates are in HW-17, HW-20, HW-21 and HW-23 (confirmed, SDK). In fwtest
+  core 1 takes the sources its own words enable; the tick timer and
+  software-interrupt words are core 0's only, and a source pending there
+  goes to every core that enables it, so enable each source on one core
+  (HW-64). What core 1 needs before it runs on the chip stays open (Q-11,
+  Q-17). (c) In fwtest a store is seen by the other core within one turn
+  of 1024 cycles (HW-64). On the chip, HW-65 gives the SDK's practice:
+  `testset` for locks and `csync` around shared accesses, which you
+  should follow; whether a plain store is seen without it, and whether
+  main RAM is cached, is open (Q-18). No fwtest change: no source
+  establishes different behaviour.
+- Answered: 2026-10-23, session SR-4-6 (spec side)

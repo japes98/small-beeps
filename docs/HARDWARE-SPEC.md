@@ -18,7 +18,8 @@ none. Session SR-1-SR-2 (spec side, 2026-10-22) added sections 9 to 11 for
 SR-1 and SR-2, which are answered in part; what stays open is Q-2, Q-13
 and Q-14. Session SR-3 (spec side, 2026-10-23) added section 12 for SR-3,
 answered in part (open: Q-6, Q-15), and section 13, which confirms HW-41's
-fwtest part for M3.
+fwtest part for M3. Session SR-4-6 (spec side, 2026-10-23) added section 14
+for SR-5 and SR-6, answered in part (open: Q-16 to Q-18).
 
 ## How to read it
 
@@ -1018,6 +1019,97 @@ requests.
 
 ---
 
+## 14. Floating point and the second core (SR-5, SR-6)
+
+### HW-62: The core's CPU model, and hardware single-precision float
+- Fact: JieLi builds the SDK's AC791N code for the toolchain's CPU model
+  `r3` with its hardware single-precision float extension `fprev1`:
+  clang's `-mcpu=r3 -mfprev1`, and for link-time optimisation the linker
+  plugin's `mcpu=r3` and `-mattr=+fprev1`. So the vendor's own code for
+  this chip uses the extension's instructions, and each core reports five
+  float conditions in `EMU_MSG` (bits 16 to 20, HW-50). Build firmware for
+  the chip with `-mcpu=r3 -mfprev1`, as the SDK does. What `r1` to `r5`
+  differ in, and how the extension behaves at its edges and in cycles on
+  the chip, the sources don't say (Q-16).
+- Sources: SDK `apps/demo/demo_hello/board/wl82/Makefile` lines 74-75
+  (`-mcpu=r3`, `-mfprev1`), 233 and 273-274 (the linker plugin's
+  `mcpu=r3`, `-mattr=+fprev1`); SDK `csfr.h` lines 267-272 and SDK
+  `cpu/wl82/debug.c` lines 70-110 (the float bits of `EMU_MSG`, HW-50).
+  The sources are the vendor's build settings and register map; no
+  datasheet states it.
+- Standing: confirmed (SDK)
+- Needed by: M5 (SR-5)
+
+### HW-63: Floating point in fwtest
+- Fact: fwtest executes the `fprev1` instructions (add, subtract,
+  multiply, divide, min, max, multiply-add and multiply-subtract, the
+  conversions between float and signed or unsigned integer, and the float
+  compares) on the ordinary registers, as IEEE 754 single precision:
+  - results rounded to nearest, ties to even, with subnormals kept (no
+    flush to zero); a division by zero gives an infinity of the right sign;
+  - multiply-add and multiply-subtract round the product before the add
+    (not fused);
+  - a conversion to integer truncates toward zero and saturates at the
+    integer type's limits; a NaN converts to 0;
+  - min and max with one NaN operand give the other operand;
+  - ordered compares are false when either operand is a NaN, their
+    unordered negations true.
+  No float condition sets an `EMU_MSG` bit or raises source 1 (HW-52).
+  Each of these instructions is one instruction and one cycle, like every
+  other (HW-11); fwtest models no extra cost for divide, square root (a
+  library call, not an instruction) or conversions. Whether the chip
+  rounds, keeps subnormals and treats NaNs the same way, and its cycle
+  costs, is open (Q-16).
+- Sources: the emulator model; HARNESS ("Time").
+- Standing: emulator-only
+- Needed by: M5 (SR-5)
+
+### HW-64: The two cores in fwtest: pace, memory and interrupts
+- Fact: In fwtest, once released (HW-9), core 1 executes one instruction
+  per cycle at 240 MHz like core 0 (HW-11). The cores take turns: core 0
+  runs 1024 instructions, then core 1 runs as many cycles as passed. They
+  share one memory with no caches, no bus or memory contention and no
+  wait states, so neither core slows the other, and a store by one core
+  is seen by the other core's next load; but because of the turns, the
+  other core sees it up to one turn (1024 cycles, about 4.3 µs) later.
+  `testset` is atomic between the cores and `csync` has no effect. Core 1
+  takes interrupts: the sources its own `ICFG` words enable (HW-20, from
+  `0x01EEF300`), behind its own gates (HW-21), through the one vector table
+  (HW-18, HW-22). The tick timer and software-interrupt words are core
+  0's only (HW-17, HW-23): a source pending there interrupts every core
+  whose `ICFG` words enable it, so enable each source on one core only.
+  When core 1 loops with nothing changing (a polling loop), fwtest ends
+  its turn early; its instruction counts are kept per turn (HARNESS,
+  `ipb.csv`).
+- Sources: the emulator model; HARNESS ("The raw image", "Outputs").
+- Standing: emulator-only
+- Needed by: M5 (SR-6)
+
+### HW-65: Sharing memory between the cores, on the chip
+- Fact: On the chip, the SDK's lock between the two cores is a byte taken
+  with the atomic test-and-set instruction `testset` (repeated while the
+  byte was already set), with `csync` before and after; it is released by
+  `csync` and then a plain store of 0. Its atomic read executes `csync`
+  before the load. The chip has instruction and data caches with shared
+  controls (`CACHE_CON`, `DCACHE_WAY`, `ICACHE_WAY` in the `corex2` block,
+  words 2 to 4 from `0x01EEE000`); the SDK flushes and invalidates the data
+  cache by address range, and chooses how many of its ways the cores and
+  the peripherals use. Its uncached-address macro gives an
+  address at or above `0x04000000` an uncached alias `0x04000000` higher,
+  and returns lower addresses, main RAM's included (HW-6), unchanged. So
+  for data shared between the cores, follow the SDK: `testset` for locks,
+  `csync` before a shared load and around a lock. Whether main RAM is
+  behind the data cache, and whether a plain store is seen by the other
+  core's load without `csync`, the sources don't say (Q-18).
+- Sources: SDK `include_lib/driver/cpu/wl82/asm/cpu.h` lines 49-50 (the
+  uncached alias), 134-148 (`csync`, the atomic read), 189-190 (the
+  lock); SDK `include_lib/system/spinlock.h` (the lock used when there are
+  two cores); SDK `include_lib/driver/cpu/wl82/asm/cache.h` lines 24-28 (flush,
+  invalidate, the way split); SDK `csfr.h` lines 106-115 (`corex2`, its
+  cache words).
+- Standing: confirmed (SDK)
+- Needed by: M5 (SR-6)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -1105,3 +1197,23 @@ spec request can turn one into a fact.
   raises it, as in fwtest (HW-59). The SDK's example sets bit 13 before
   it starts a transfer and acknowledges in the handler, which works either
   way. Settled by a probe on real hardware.
+- **Q-16. Floating point on the chip.** How many cycles each `fprev1`
+  instruction takes (add, multiply, divide, multiply-add, conversions,
+  compares) and whether they pair or stall; whether the chip rounds to
+  nearest even, keeps subnormals and handles NaNs and out-of-range
+  conversions as fwtest does (HW-63); which conditions set `EMU_MSG` bits
+  16 to 20 and whether they raise source 1 (Q-14); what the toolchain's
+  CPU models `r1` to `r5` differ in. Settled by a timing probe on real
+  hardware; the toolchain documents none of it.
+- **Q-17. The second core on the chip.** Whether core 1 runs at the same
+  clock as core 0; what the two cores cost each other (shared caches,
+  buses, flash and RAM wait states) when both run from the code window
+  and work in main RAM; what core 1 needs before it runs from a raw image
+  (its release, Q-11; its cache and protection set-up); whether a
+  peripheral source enabled on both cores interrupts both. The `corex2`
+  block has per-core counters (words 0x80 to 0x8F, SDK `csfr.h` lines
+  119-134) whose meaning the SDK doesn't state. Settled by a probe on real hardware.
+- **Q-18. Memory seen across the cores on the chip.** Whether main RAM is
+  cached, and whether a plain store by one core is seen by the other's
+  next load without `csync` or a cache operation (HW-65). Settled by a
+  probe on real hardware.
