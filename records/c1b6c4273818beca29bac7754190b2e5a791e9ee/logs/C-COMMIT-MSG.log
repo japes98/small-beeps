@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 4de2a8b10cfe50f7d7bd6f1f67e2f357e8b64f94..c1b6c4273818beca29bac7754190b2e5a791e9ee
+OK     80dd11b8c44f tools: build the firmware for -mcpu=r3 -mfprev1, as the SDK does
+OK     c6c0969835d1 tools: the Plaits demo's own C keeps its flags, without -mcpu=r3
+EXEMPT c1b6c4273818 (merge) Merge pull request #65 from japes98/m5/cpu-flags
+3 commit(s) checked: PASS
+
+exit status 0
