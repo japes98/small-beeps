@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 24a73ba3339f103267b284e111974df3c28409c9..074d54d9223dd91accdc93568c3ef01438058b31
+OK     8ce842f80de3 firmware: drop SPI1's handler path for a polled transfer's interrupt
+EXEMPT 074d54d9223d (merge) Merge pull request #50 from japes98/m4/spi-tidy
+2 commit(s) checked: PASS
+
+exit status 0
