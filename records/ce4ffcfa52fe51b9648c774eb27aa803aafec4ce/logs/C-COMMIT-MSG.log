@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 41705767727e5a3015c5cba2d314e958f18a3ce4..ce4ffcfa52fe51b9648c774eb27aa803aafec4ce
+OK     6aa27e4b0928 docs: M3's results in the plan; M4 is next; EXPOSURE's later notes
+OK     487047d3e0ec docs: the plan's M3 figures from the final build
+EXEMPT e6a865cc22b9 (merge) docs: merge main into the M3 wrap-up; both sides' exposure entries kept
+EXEMPT f8dc17669768 (merge) docs: merge main into the M3 wrap-up again, after #38, #39, #41, #43
+EXEMPT ce4ffcfa52fe (merge) Merge pull request #44 from japes98/m3/wrapup
+5 commit(s) checked: PASS
+
+exit status 0

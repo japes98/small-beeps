@@ -1,0 +1,43 @@
+{
+  "fwtest": {
+    "version": "0.2.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "test-stray.bin",
+    "bytes": 7056,
+    "sha256": "24c879b1322554c18ac74a16a7d24b6f5089bc26dc09be6bf66ebf1a336eee0a"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "halt",
+    "detail": "core 0 jumped to itself with interrupts disabled at pc 0x02000a58",
+    "emulated_ms": "0.277",
+    "instructions": {
+      "core0": 66564,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "console.txt",
+        "bytes": 32,
+        "sha256": "69c84de5f1bee97923e47d15a9f1ca24b4997f1b1bfc055cb06cdc79776cd244"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "ee890c23b2329147c4eed49f0369cd33e9cf5308ae67abc392329f58d073327c"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "console.txt",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 4
+}
