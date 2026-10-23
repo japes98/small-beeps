@@ -99,6 +99,32 @@ void gfx_glyph(u32 x, u32 y, u32 c, u32 fg, u32 bg, u32 scale)
 
     if (x + FONT_CELL * scale > SCREEN_W || y + FONT_H * scale > SCREEN_H)
         return;
+    if (scale == 1) {
+        /* Since M5 (DESIGN-NOTES.md, "the screen's cost"): two pixels a
+         * store, each pair's colours looked up by its two bits (the left
+         * pixel is the lower address, so the low half). A cell at an odd
+         * x has a single pixel at each end and two pairs between. */
+        u32 pair[4] = { b | b << 16, b | f << 16, f | b << 16, f | f << 16 };
+        u32 odd = x & 1;
+
+        for (r = 0; r < FONT_H; r++) {
+            u16 *p = &sb_fb[(y + r) * SCREEN_W + x];
+            u32 bits = (u32)rows[r] << 1;   /* bit 5 is the left column */
+            if (!odd) {
+                u32 *w = (u32 *)p;
+                w[0] = pair[bits >> 4 & 3];
+                w[1] = pair[bits >> 2 & 3];
+                w[2] = pair[bits & 3];
+            } else {
+                u32 *w = (u32 *)(p + 1);
+                p[0] = bits >> 5 & 1 ? f : b;
+                w[0] = pair[bits >> 3 & 3];
+                w[1] = pair[bits >> 1 & 3];
+                p[5] = bits & 1 ? f : b;
+            }
+        }
+        return;
+    }
     for (r = 0; r < FONT_H; r++) {
         u16 *line = &sb_fb[(y + r * scale) * SCREEN_W + x];
         u32 bits = (u32)rows[r] << 1;   /* bit FONT_CELL - 1 is the left column */

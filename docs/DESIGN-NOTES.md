@@ -1339,3 +1339,50 @@ Format for each entry:
 - **Floats:** if SR-5 confirms the instructions, build the firmware with
   `-mcpu=r3 -mfprev1` like the SDK, and the soft-float runtime stays a
   demo's.
+
+### 2026-10-23 M5: the screen's cost, drawn in frames within a budget
+- Facts: HW-13 (the time base), HW-45 (a block is 64 frames of 544 time
+  base ticks); docs/HARNESS.md "Time" (reading the time base three times
+  within 64 cycles counts as waiting). M4b's breakdown of the loaded
+  measure: drawing was 89.8% of it, about 66 000 instructions an event.
+- Reasoning:
+  - **Coalesce.** An event still sets its LED at once (R-LED-3), but now
+    only marks what it changed: a button, the keys strip, a knob's value
+    (and the MASTER bar), the event line. What is marked is drawn at most
+    once a frame of 16 ms (about the panel's own refresh), however many
+    events came in it: under the loaded script's 1 070 events a second,
+    60 frames instead. A frame starts at once if the last began 16 ms or
+    more ago; otherwise main asks the tick to wake it when one is due
+    (`sb_wake_at`, a compare in the tick that costs nothing measurable at
+    rest), so the last change always shows within one frame.
+  - **A drawing budget per audio block.** Within a frame, items are drawn
+    one at a time; none is started once drawing has taken 4 352 time base
+    ticks (an eighth of a block, about 43 500 instructions) in the current
+    block (counted by `sb_audio.blocks`). The rest waits for the next
+    millisecond's tick. The time base is read once before and once after
+    each item, never in a tight loop, so fwtest's waiting rule can't
+    apply. Main is still the lowest level, so the audio interrupt
+    preempts drawing as before; the budget bounds how much of core 0
+    drawing can take, the time the voices will need in M5.
+  - **Cheaper drawing.** Text at scale 1 (all of the panel's) writes two
+    pixels a store, each pair's colours picked by its two bits from a
+    four-entry table (an odd x has one single pixel at each end). The
+    keys strip no longer fills all 52 rows black first: only the margins
+    and the gaps between the lower keys, which the keys don't cover. Both
+    give the same pixels: every golden image still matches.
+- Results (fwtest, tools/perf.py, main at `7eb74e8` before):
+  - **Loaded: 114 172.7 → 15 521.8 instructions a block, 86.4% less**
+    (7.4 times less), the R-PERF-2 improvement. At rest: 1 812.9 →
+    1 820.4 (+0.4%: the tick's compare and the loop's larger frame).
+    Startup: 1 058 323 → 987 014 (the test screen's text is faster).
+    Code +428 bytes (9 064).
+  - Under the loaded script (a measurement build, not committed): the
+    budget stopped a frame 107 times in 2.25 s, and the most drawing in
+    any one block was 6 342 ticks, 18% of a block: the budget plus the
+    longest item, the keys strip (about 20 000 instructions).
+  - The chords case's picture shows the last encoder detent one frame
+    later than before: its capture moved from 1 030 to 1 050 ms (the same
+    golden image, renamed); the image is identical from 1 040 ms on.
+- Alternatives: drawing on core 1 (it is worth a whole core of voices,
+  M4b); a fixed frame timer (wakes main every frame even at rest); a
+  budget in instructions (fwtest counts them, the chip can't).
