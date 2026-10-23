@@ -14,7 +14,7 @@ set -eu
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../.." && pwd)
-IMAGES="heartbeat halt wild hang console lcd leds keys pot midi audio flashrw"
+IMAGES="heartbeat halt wild hang console lcd leds keys pot midi audio flashrw spi1irq"
 
 inside() {
     out=$1

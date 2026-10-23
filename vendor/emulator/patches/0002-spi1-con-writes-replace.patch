@@ -1,0 +1,22 @@
+SPI1's CON: a write replaces the register. Upstream merged each write into
+the stored value, so a bit, once written 1, could never be cleared: after
+any write with bit 13 (the transfer-done interrupt enable), every later
+transfer raised interrupt 16, even after CON was written with bit 13 clear.
+The JieLi SDK clears CON bits with ordinary writes, so on the chip CON reads
+back as last written. Bit 14 (clear pending) is still a strobe, not stored.
+Reported upstream by the owner (harness/upstream/fm1-emu-spi1-con.md).
+
+--- a/crates/fm1-soc/src/lib.rs
++++ b/crates/fm1-soc/src/lib.rs
+@@ -402,8 +402,9 @@
+                 if value & 0x4000 != 0 {
+                     self.periph.spi1_pending = false;
+                 }
+-                let stored = self.sfr_get(addr);
+-                self.sfr_set(addr, (stored & !0x4000) | (value & !0x4000));
++                // a write replaces CON (bit 14 is a strobe, not stored): merging it into the
++                // stored value kept bit 13 set once any write had set it
++                self.sfr_set(addr, value & !0x4000);
+             }
+             0x11d04 => self.sfr_set(addr, value), // BAUD
+             0x11d08 => {
