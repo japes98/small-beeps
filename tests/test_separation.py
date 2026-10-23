@@ -127,6 +127,14 @@ class PlaitsTermsTest(unittest.TestCase):
         code, out = self.run_check()
         self.assertNotIn("vendor/plaits/", "".join(l for l in out.splitlines(True) if l.startswith("HIT")))
 
+    def test_our_own_notes_in_vendor_plaits_are_scanned(self):
+        # SOURCE.md is ours, not upstream's: scanned (since SR-4)
+        self.write("vendor/plaits/SOURCE.md", "%s\n" % self.other)
+        subprocess.run(["git", "-C", self.dir, "add", "-A"], check=True)
+        code, out = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("HIT vendor/plaits/SOURCE.md:1 term %s" % terms.h(self.other), out)
+
     def test_only_the_checksum_verified_tree_counts(self):
         # a changed file, or one SHA256SUMS doesn't list, fails the check
         self.write("vendor/plaits/eurorack/plaits/dsp/x.cc", "float %s; // changed\n" % self.plaits_word)

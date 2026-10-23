@@ -10,7 +10,8 @@ vendor/jieli-sdk/ or (since M4b) vendor/plaits/, in the places the firmware
 side reads:
   - every tracked text file outside vendor/emulator/, harness/, sessions/
     (transcripts), docs/prompts/ (prompts are kept verbatim) and
-    vendor/plaits/ (third-party code we didn't write, since M4b);
+    vendor/plaits/ (third-party code we didn't write, since M4b; its
+    SOURCE.md, which we write, is scanned since SR-4);
   - the two doors, docs/HARNESS.md and docs/HARDWARE-SPEC.md, and their
     reviews in docs/reviews/, for identifier-shaped words only: they carry
     addresses and other numbers on purpose, each one sourced, and people
@@ -52,6 +53,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sha256sums  # noqa: E402  (tools/, our own)
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EMU = os.path.join(ROOT, "vendor", "emulator")
 SDK = os.path.join(ROOT, "vendor", "jieli-sdk")
@@ -60,6 +64,8 @@ REVIEWED = os.path.join(ROOT, "config", "emulator-terms-reviewed.json")
 # main at the end of M0a (pull request #2): written by the clean side only
 CLEAN_BASELINE = "265f15b5b646cf7d5110d4606365d82fae93f5bc"
 EXCLUDE = ("vendor/emulator/", "harness/", "sessions/", "docs/prompts/", "vendor/plaits/")
+# what we write ourselves inside an excluded vendored tree is scanned (since SR-4)
+OWN_NOTES = ("vendor/plaits/SOURCE.md",)
 DOORS = ("docs/HARNESS.md", "HARDWARE-SPEC.md", "docs/HARDWARE-SPEC.md")
 # The doors whose merged text is accepted everywhere, and the commit read for them.
 DOOR_FILES = ("docs/HARDWARE-SPEC.md", "docs/HARNESS.md")
@@ -118,33 +124,10 @@ def public_terms(texts):
 
 def verified_texts(top):
     """The texts of the files top/SHA256SUMS lists, each checked against its
-    hash; ValueError names the first that is missing or doesn't match, or
-    a file there that isn't listed. Nothing else in top is read."""
-    sums = os.path.join(top, "SHA256SUMS")
-    listed = {}
-    with open(sums, encoding="utf-8") as f:
-        for line in f:
-            if line.strip():
-                want, path = line.split()
-                listed[path] = want
-    on_disk = set()
-    for dirpath, _, names in os.walk(top):
-        for n in names:
-            rel = os.path.relpath(os.path.join(dirpath, n), top)
-            if rel not in ("SHA256SUMS", "SOURCE.md"):
-                on_disk.add(rel)
-    extra = sorted(on_disk - set(listed))
-    if extra:
-        raise ValueError("%s is not in SHA256SUMS" % extra[0])
+    hash (tools/sha256sums.py); ValueError names the first that is missing
+    or doesn't match, or a file there that isn't listed."""
     texts = []
-    for path in sorted(listed):
-        try:
-            with open(os.path.join(top, path), "rb") as f:
-                data = f.read()
-        except OSError:
-            raise ValueError("%s is missing" % path)
-        if hashlib.sha256(data).hexdigest() != listed[path]:
-            raise ValueError("%s does not match its SHA-256" % path)
+    for data in sha256sums.verified(top).values():
         try:
             texts.append(data.decode("utf-8"))
         except UnicodeDecodeError:
@@ -250,7 +233,7 @@ def main():
     hits = []
     scanned = 0
     for p in tracked():
-        if p.startswith(EXCLUDE):
+        if p.startswith(EXCLUDE) and p not in OWN_NOTES:
             continue
         try:
             with open(os.path.join(ROOT, p), encoding="utf-8") as f:
