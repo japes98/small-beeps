@@ -98,9 +98,38 @@ class TranscriptTest(unittest.TestCase):
         ok = ct.check_session(p, {(SID, "toolu_1", rule): "writes a message only"})
         self.assertEqual(ok[0], [])
         i = next(n for n, l in enumerate(ok[1]) if "toolu_1" in l)
-        self.assertEqual(ok[1][i + 1].strip(), "REVIEWED F-VENDOR-EMU")
+        self.assertEqual(ok[1][i + 1].strip(), "REVIEWED F-8")
         self.assertTrue(ct.check_session(p, {(SID, "toolu_2", rule): "other call"})[0])
         self.assertTrue(ct.check_session(p, {("other", "toolu_1", rule): "other session"})[0])
+
+    def test_reviewed_entries_name_a_rule_by_label_or_id(self):
+        # Since M4b an entry may name its rule by ID; older ones keep labels.
+        c = call("Bash", command="printf 'leaves out spa/one/' > msg.txt")
+        c["message"]["content"][0]["id"] = "toolu_1"
+        p = self.write([hook(BANNER_OK), c])
+        for rule in ("spa/one/ (spec side)", "F-8"):
+            with open(os.path.join(self.dir, "REVIEWED.json"), "w") as f:
+                json.dump({"reviewed": [{"session": SID, "tool_use_id": "toolu_1",
+                                         "rule": rule, "reason": "a message only"}]}, f)
+            self.assertEqual(self.problems(p), [], rule)
+        with open(os.path.join(self.dir, "REVIEWED.json"), "w") as f:
+            json.dump({"reviewed": [{"session": SID, "tool_use_id": "toolu_1",
+                                     "rule": "F-9", "reason": "another rule"}]}, f)
+        self.assertTrue(self.problems(p))
+
+    def test_rule_ids_are_neutral(self):
+        # Since M4b (the owner's request) no rule ID or old ID matches a
+        # rule, so a command that only names a rule is not flagged; the old
+        # IDs map one to one onto the new.
+        ids = [rid for rid, _, _ in ct.FORBIDDEN]
+        self.assertEqual(ids, ["F-%d" % n for n in range(1, len(ids) + 1)])
+        for rid in ids:
+            self.assertEqual(ct.forbidden_hits("shell", "echo %s" % rid)[0], [], rid)
+        self.assertEqual(sorted(ct.OLD_IDS.values(), key=ids.index), ids)
+        lines = ct.check_session(self.write([hook(BANNER_OK),
+                                             call("Bash", command="echo F-4 F-9 F-11")]))
+        self.assertEqual(lines[0], [])
+        self.assertFalse(any("MENTION" in x for x in lines[1]))
 
     def heredoc_call(self, body, head="python3 - <<'EOF'", tail=""):
         c = call("Bash", command="%s\n%s\nEOF%s" % (head, body, tail))
@@ -154,10 +183,10 @@ class TranscriptTest(unittest.TestCase):
         # so the name is a mention: logged, not failed.
         body = "x='https://github.com/hugelton/Felucca'\nopen('sessions/REVIEWED.json')"
         command = "python3 - <<'EOF'\n%s\nEOF" % body
-        self.assertIn("F-FELUCCA", ct.forbidden_hits("shell", command)[0])
+        self.assertIn("F-1", ct.forbidden_hits("shell", command)[0])
         self.assertEqual(self.heredoc_call(body), [])
         lines = ct.check_session(self.write([hook(BANNER_OK), call("Bash", command=command)]))[1]
-        self.assertIn("    MENTION F-FELUCCA (report only: not an access)", lines)
+        self.assertIn("    MENTION F-1 (report only: not an access)", lines)
 
     def test_plain_commands_naming_the_folders_still_fail(self):
         for cmd in ("cat sessions/clean/a sptwo/b", "cd sptwo && ls", "D=spa/one/; ls $D",
@@ -199,7 +228,7 @@ class TranscriptTest(unittest.TestCase):
         text = "\n".join(problems + lines)
         self.assertNotIn(secret, text)
         self.assertNotIn("cat sptwo", text)
-        self.assertIn("entry 2 shell Bash toolu_q touches forbidden material (F-HARNESS)", text)
+        self.assertIn("entry 2 shell Bash toolu_q touches forbidden material (F-9)", text)
 
     def test_reviewed_file_needs_a_reason(self):
         with open(os.path.join(self.dir, "REVIEWED.json"), "w") as f:
@@ -334,7 +363,7 @@ class AccessRuleTest(unittest.TestCase):
     def test_a_file_written_earlier_and_run_later_fails(self):
         write = call("Bash", command="cat > $T/x.py <<'EOF'\nopen('sptwo/x')\nEOF")
         problems, _ = self.run_calls(write, call("Bash", command="python3 $T/x.py"))
-        self.assertTrue(any("toolu_1" in x and "F-HARNESS" in x for x in problems), problems)
+        self.assertTrue(any("toolu_1" in x and "F-9" in x for x in problems), problems)
         problems, _ = self.run_calls(write, call("Bash", command="wc -l $T/x.py"))
         self.assertEqual(problems, [])
 

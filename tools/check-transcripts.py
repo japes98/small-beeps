@@ -92,28 +92,35 @@ ROLES = ("clean", "spec")
 # Mirrors CONTRIBUTING.md, "Firmware side never opens, fetches, searches or
 # quotes". Each pattern is matched, case-insensitively, against the targets
 # of reads, searches, fetches and shell commands (not against the contents
-# a session writes).
+# a session writes). The rule IDs are neutral numbers (since M4b, the
+# owner's request), so a command that only names a rule matches none;
+# OLD_IDS maps the IDs used before, which older logs and records show.
 FORBIDDEN = [
-    ("F-FELUCCA", "Felucca and firmwares built on it", r"felucca|hortator|ghoulbox|melodee|\bskiff\b"),
-    ("F-HUGELTON", "hugelton (Felucca's author)", r"hugelton"),
-    ("F-DINGHY", "dinghy", r"dinghy|zvenson"),
-    ("F-FM1-SID", "FM-1 SID firmware", r"fm1-sid"),
-    ("F-PROBE", "emulator probe source", r"probes/lcdtest\.c"),
-    ("F-EMU-REPO", "F-Emulator / fm1-emu repository", r"fm1-emu|f-emulator"),
-    ("F-EMU-CRATES", "emulator crates", r"\bcrates/fm1-"),
-    # The spec-side folders' rules (F-VENDOR-EMU, F-HARNESS, F-SPEC-SESSIONS)
-    # are built here, in these places, from config/spec-side-folders
-    # (configure, below).
-    ("F-VENDOR-EMU", None, None),
-    ("F-HARNESS", None, None),
-    ("F-FWHUB", "thefirmwarehub.com", r"thefirmwarehub\.com"),
-    ("F-SPEC-SESSIONS", None, None),
-    ("F-RE-FIRMWARE", "FM-1-RE firmware images or disassembly",
+    ("F-1", "Felucca and firmwares built on it", r"felucca|hortator|ghoulbox|melodee|\bskiff\b"),
+    ("F-2", "hugelton (Felucca's author)", r"hugelton"),
+    ("F-3", "dinghy", r"dinghy|zvenson"),
+    ("F-4", "FM-1 SID firmware", r"fm1-sid"),
+    ("F-5", "emulator probe source", r"probes/lcdtest\.c"),
+    ("F-6", "F-Emulator / fm1-emu repository", r"fm1-emu|f-emulator"),
+    ("F-7", "emulator crates", r"\bcrates/fm1-"),
+    # The spec-side folders' rules (F-8, F-9, F-11) are built here, in these
+    # places, from config/spec-side-folders (configure, below).
+    ("F-8", None, None),
+    ("F-9", None, None),
+    ("F-10", "thefirmwarehub.com", r"thefirmwarehub\.com"),
+    ("F-11", None, None),
+    ("F-12", "FM-1-RE firmware images or disassembly",
      r"fm-1-re.*(firmware-images|disasm|disassembl|ghidra|\.idb\b|\.i64\b|functions)"
      r"|firmware-images/"),
-    ("F-STOCK", "M-VAVE stock firmware", r"m-?vave.*\.(fwsc|bin|ufw|hex)\b"),
+    ("F-13", "M-VAVE stock firmware", r"m-?vave.*\.(fwsc|bin|ufw|hex)\b"),
 ]
 TEMPLATE = FORBIDDEN
+OLD_IDS = {
+    "F-FELUCCA": "F-1", "F-HUGELTON": "F-2", "F-DINGHY": "F-3", "F-FM1-SID": "F-4",
+    "F-PROBE": "F-5", "F-EMU-REPO": "F-6", "F-EMU-CRATES": "F-7", "F-VENDOR-EMU": "F-8",
+    "F-HARNESS": "F-9", "F-FWHUB": "F-10", "F-SPEC-SESSIONS": "F-11",
+    "F-RE-FIRMWARE": "F-12", "F-STOCK": "F-13",
+}
 
 FOLDERS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                             "config", "spec-side-folders")
@@ -704,7 +711,7 @@ def load_reviewed(sessions_dir):
     """sessions/REVIEWED.json: hits that people reviewed and found not to be
     a touch of forbidden material (e.g. a shell command that only *writes*
     a document naming a forbidden folder). Each entry names the session, the
-    tool call's ID, the matched rule and the reason. It is added by pull
+    tool call's ID, the matched rule (its label, or its ID) and the reason. It is added by pull
     request, so the owner's signed merge approves it. An entry with a
     `superseded` note is kept for history but clears nothing: its value is
     a dict {"superseded": note} instead of the reason."""
@@ -719,7 +726,9 @@ def load_reviewed(sessions_dir):
     for r in data.get("reviewed", []):
         if not (r.get("session") and r.get("tool_use_id") and r.get("rule") and r.get("reason")):
             raise SystemExit("%s: every entry needs session, tool_use_id, rule and reason" % path)
-        key = (r["session"], r["tool_use_id"], r["rule"])
+        # A rule is named by its label, or (since M4b) by its rule ID, which
+        # new entries use since some labels match their own patterns.
+        key = (r["session"], r["tool_use_id"], RULE_WHY.get(r["rule"], r["rule"]))
         reviewed[key] = {"superseded": r["superseded"]} if r.get("superseded") else r["reason"]
     return reviewed
 

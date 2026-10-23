@@ -21,8 +21,8 @@ def load_tool(filename):
 # tools' real code without spelling the real folders out. Scratch test
 # repositories made by hand use these names too.
 PLACEHOLDER_FOLDERS = [
-    ("spa/one", "source", "F-VENDOR-EMU", "spa/one/ (spec side)"),
-    ("sptwo", "source", "F-HARNESS", "sptwo/ source (spec side)"),
-    ("spl/three", "transcripts", "F-SPEC-SESSIONS", "spec-side session transcripts"),
+    ("spa/one", "source", "F-8", "spa/one/ (spec side)"),
+    ("sptwo", "source", "F-9", "sptwo/ source (spec side)"),
+    ("spl/three", "transcripts", "F-11", "spec-side session transcripts"),
 ]
 PLACEHOLDER_DIRS = tuple(f + "/" for f, _, _, _ in PLACEHOLDER_FOLDERS)
