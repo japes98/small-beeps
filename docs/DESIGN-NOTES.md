@@ -882,3 +882,30 @@ Format for each entry:
   such a run is compared sorted; one control's events keep their order. The panel screen's golden
   image is captured at 1 030 ms, long after its events, and
   `leds.csv` is checked with bounds rather than a golden file.
+
+### 2026-10-23 M3: the pre-raise image is no baseline (replaces the first-record rule)
+- What happened: after the M3 budgets merged (#41), the owner merged the
+  barrier tools' change (#43) before the firmware (#42). #43's record runs
+  M2's firmware under the M3 budget and is not the first record under it,
+  so under the first-record rule it would have gated the firmware at +3%
+  against M2's 65 a period. It didn't, by luck of timing: #43's records job
+  ran before the records of the merges before it were written, so its own
+  baseline was still a record under the old budget, and it looked first.
+- The owner's rule: a main record is a speed baseline only if its firmware
+  image differs from the image of the last record before the current
+  steady-state budget was raised. `tools/perf.py` walks main's records
+  newest first down to the last one made under another budget (the
+  pre-raise record), skips every record under the current budget whose
+  image has that record's SHA-256, and names them in the baseline note
+  (`choose_baseline`). It reads only each record's own budget and image,
+  never which baseline that record happened to use, so the order records
+  are written in no longer matters.
+- What it gives: before the firmware merges, the baseline falls back to
+  the pre-raise record, under another budget, so the change is reported
+  and not gated; after it merges, the firmware's record (and any later
+  record holding its image) is the baseline, gated at 3%. A revert to the
+  pre-raise image under the raised budget is skipped too, since it runs
+  the firmware the raise wasn't for.
+- Tests: an unrelated merge between the raise and the firmware, records
+  written out of order, and the firmware's record as the next baseline,
+  in a made-up repository and records branch.

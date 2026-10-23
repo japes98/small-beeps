@@ -92,37 +92,42 @@ class GateTest(unittest.TestCase):
         # the other budgets still hold whatever the baseline
         self.assertEqual(results(perf.gate(measured(250000), base, BUDGETS, None))["steady_per_period"], "FAIL")
 
-    def test_the_first_record_under_a_raised_budget_is_not_compared(self):
-        # Since M3. A raise merges in its own pull request, so its record
-        # holds the older firmware under the new budget: the next firmware
-        # is not gated against it. The record after that is a baseline again.
-        older = dict(BUDGETS, limits=dict(BUDGETS["limits"], steady_per_period=72))
-        raise_merge = {"budgets": BUDGETS, "baseline_budgets": older}
-        firmware_merge = {"budgets": BUDGETS, "baseline_budgets": BUDGETS}
-        self.assertTrue(perf.first_under_budget(raise_merge))
-        self.assertFalse(perf.first_under_budget(firmware_merge))
-        # a record whose own baseline had no budget, or no record at all
-        self.assertTrue(perf.first_under_budget({"budgets": BUDGETS, "baseline_budgets": None}))
-        self.assertTrue(perf.first_under_budget({"budgets": BUDGETS}))
+    def test_choose_baseline_skips_the_pre_raise_image(self):
+        # Since M3, newest first: (commit, steady budget, image hash).
+        old, new = 72, 1152
+        # the raise merged, then an unrelated merge, both still M2's image A
+        recs = [("unrelated", new, "A"), ("raise", new, "A"), ("m2", old, "A"), ("m1", old, "Z")]
+        i, skipped, pre = perf.choose_baseline(recs, new)
+        self.assertEqual((recs[i][0], skipped, pre), ("m2", ["unrelated", "raise"], "m2"))
+        # once the firmware that needed the raise is in, it is the baseline
+        recs.insert(0, ("firmware", new, "B"))
+        i, skipped, _ = perf.choose_baseline(recs, new)
+        self.assertEqual((recs[i][0], skipped), ("firmware", []))
+        # an unrelated merge after the firmware is a baseline too: its image
+        # is the firmware's, not the pre-raise one
+        recs.insert(0, ("docs", new, "B"))
+        self.assertEqual(recs[perf.choose_baseline(recs, new)[0]][0], "docs")
+        # a record holding image A again later (a revert) is not compared
+        # either: it runs the firmware from before the raise
+        i, skipped, _ = perf.choose_baseline([("revert", new, "A")] + recs, new)
+        self.assertEqual(skipped, ["revert"])
+        # no raise in sight: the newest record, as before M3
+        same = [("b", new, "X"), ("a", new, "X")]
+        self.assertEqual(perf.choose_baseline(same, new), (0, [], None))
+        self.assertEqual(perf.choose_baseline([], new), (None, [], None))
+        # no budget given: the newest record
+        self.assertEqual(perf.choose_baseline(recs, None)[0], 0)
 
-        base = measured(65000, 1000)
-        v = perf.gate(measured(150000), base, BUDGETS, BUDGETS, perf.first_under_budget(raise_merge))
-        speed = [x for x in v if x["gate"] == "speed"][0]
-        self.assertEqual(speed["result"], "NOT COMPARED")
-        self.assertIn("the first made under this M0 budget of 200", speed["detail"])
-        self.assertIn("+130.77%", speed["detail"])
-        self.assertFalse(perf.failed(v))
-        # the budgets themselves still hold
-        r = results(perf.gate(measured(250000), base, BUDGETS, BUDGETS, True))
-        self.assertEqual(r["steady_per_period"], "FAIL")
-        # and against the next record the 3% gate applies again
-        v = perf.gate(measured(150000), base, BUDGETS, BUDGETS, perf.first_under_budget(firmware_merge))
-        self.assertEqual(results(v)["speed"], "FAIL")
-        # a first record under another budget is reported as another budget's
-        v = perf.gate(measured(150000), base, BUDGETS, older, True)
+    def test_the_gate_compares_only_under_the_same_budget(self):
+        # what choose_baseline falls back to, the pre-raise record, is
+        # reported and not gated
+        older = dict(BUDGETS, limits=dict(BUDGETS["limits"], steady_per_period=72))
+        v = perf.gate(measured(150000), measured(65000), BUDGETS, older)
         speed = [x for x in v if x["gate"] == "speed"][0]
         self.assertEqual(speed["result"], "NOT COMPARED")
         self.assertIn("a steady-state budget of 72", speed["detail"])
+        self.assertFalse(perf.failed(v))
+        self.assertEqual(results(perf.gate(measured(150000), measured(65000), BUDGETS, BUDGETS))["speed"], "FAIL")
 
     def test_no_baseline_is_not_compared(self):
         v = gate(measured(), None)
@@ -345,6 +350,100 @@ class BaselineTest(unittest.TestCase):
         self.assertIn("not available", note)
         sha, _, note = perf.find_baseline(self.shas[0] + "^0", "records", head=self.shas[0])
         self.assertIsNone(sha)
+
+
+class RaisedBudgetBaselineTest(unittest.TestCase):
+    """Requirements: R-PERF-1, R-PERF-2"""
+
+    # main's history, oldest first: (name, steady budget, image). M2's
+    # firmware, the raise's own merge, an unrelated merge (#43 in M3), the
+    # firmware that needed the raise.
+    HISTORY = [("m2", 72, b"A"), ("raise", 1152, b"A"), ("unrelated", 1152, b"A"), ("firmware", 1152, b"B")]
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.saved = perf.REPO
+        perf.REPO = self.dir
+        self.g("init", "-q", "-b", "main")
+        self.sha = {}
+        for name, _, _ in self.HISTORY:
+            with open(os.path.join(self.dir, "f"), "w") as f:
+                f.write(name)
+            self.g("add", "f")
+            self.g("commit", "-q", "-m", name)
+            self.sha[name] = self.g("rev-parse", "HEAD")
+        self.g("checkout", "-q", "--orphan", "records")
+        self.g("rm", "-q", "-rf", ".")
+        self.g("commit", "-q", "--allow-empty", "-m", "records")
+        self.g("checkout", "-q", "main")
+
+    def tearDown(self):
+        perf.REPO = self.saved
+        shutil.rmtree(self.dir)
+
+    def g(self, *args):
+        return subprocess.run(["git", "-C", self.dir, "-c", "user.name=t", "-c", "user.email=t@example.org"]
+                              + list(args), check=True, stdout=subprocess.PIPE,
+                              universal_newlines=True).stdout.strip()
+
+    def record(self, name, baseline_steady):
+        """Writes name's record. baseline_steady is the budget of whatever
+        record its records job happened to find: it depends on the order
+        records were written, so the rule must not use it."""
+        _, steady, image = next(h for h in self.HISTORY if h[0] == name)
+        self.g("checkout", "-q", "records")
+        d = os.path.join(self.dir, "records", self.sha[name])
+        os.makedirs(os.path.join(d, "outputs"))
+        with open(os.path.join(d, "outputs", "app.bin"), "wb") as f:
+            f.write(image)
+        with open(os.path.join(d, "outputs", "app.size"), "w") as f:
+            f.write("code 1\n")
+        perf_ = {"budgets": {"limits": {"steady_per_period": steady}},
+                 "baseline_budgets": {"limits": {"steady_per_period": baseline_steady}}}
+        with open(os.path.join(d, "report.json"), "w") as f:
+            json.dump({"perf": perf_}, f)
+        self.g("add", "records")
+        self.g("commit", "-q", "-m", "record " + name)
+        self.g("checkout", "-q", "main")
+
+    def baseline(self, upto):
+        """The firmware's pull request: its base is main at upto."""
+        return perf.find_baseline(self.sha[upto], "records", head="none", steady=1152)
+
+    def test_an_unrelated_merge_between_the_raise_and_the_firmware(self):
+        for name, prev in (("m2", 72), ("raise", 72), ("unrelated", 1152)):
+            self.record(name, prev)
+        sha, _, note = self.baseline("unrelated")
+        # both records under the new budget still hold M2's image: skipped,
+        # and the baseline is M2's record, under another budget (reported)
+        self.assertEqual(sha, self.sha["m2"])
+        self.assertIn("skipped %s, %s" % (self.sha["unrelated"][:12], self.sha["raise"][:12]), note)
+        self.assertIn("still holding the image of %s" % self.sha["m2"][:12], note)
+        # after the firmware merges, the next pull request is gated against it
+        self.record("firmware", 1152)
+        sha, _, note = self.baseline("firmware")
+        self.assertEqual(sha, self.sha["firmware"])
+        self.assertNotIn("skipped", note)
+
+    def test_records_written_out_of_order(self):
+        # The unrelated merge's records job ran before the raise's record
+        # was written, so its own baseline was M2's record: under #39's rule
+        # it looked like the first under the budget. Under this rule only
+        # its budget and image count.
+        self.record("m2", 72)
+        self.record("unrelated", 72)
+        sha, _, note = self.baseline("unrelated")
+        self.assertEqual(sha, self.sha["m2"])
+        self.assertIn("skipped %s" % self.sha["unrelated"][:12], note)
+        # the raise's record arrives later; the answer doesn't change
+        self.record("raise", 72)
+        self.assertEqual(self.baseline("unrelated")[0], self.sha["m2"])
+
+    def test_without_a_budget_the_newest_record(self):
+        for name, prev in (("m2", 72), ("raise", 72)):
+            self.record(name, prev)
+        sha, _, _ = perf.find_baseline(self.sha["raise"], "records", head="none")
+        self.assertEqual(sha, self.sha["raise"])
 
 
 class HistoryTest(unittest.TestCase):
