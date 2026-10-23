@@ -844,6 +844,13 @@ SR-3 wrote only its barrier-log row.*
     - `toolu_01DoGqqdewBty2B6xA9yRz4J` (F-8): `git commit -F -` with a
       message about C-SEP-TERMS, which names the emulator's folder.
     Ten more calls are logged as mentions only.
+  - **C-SEP-TERMS on #61:** it failed on terms in this session's new files.
+    The planning conversation (spec side) ran the check with `--show` and
+    passed back only their kind (generic numeric constants: powers of two,
+    masks, sign-bit and float-format constants), the three files, and
+    seven hashes; no word. At the owner's direction nothing was renamed:
+    the spec side is to change the check so universal constants don't
+    count, and #61 waits for it.
 
 ## Corrections
 
