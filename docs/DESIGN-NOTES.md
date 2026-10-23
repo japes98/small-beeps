@@ -1339,3 +1339,27 @@ Format for each entry:
 - **Floats:** if SR-5 confirms the instructions, build the firmware with
   `-mcpu=r3 -mfprev1` like the SDK, and the soft-float runtime stays a
   demo's.
+
+### 2026-10-23 M5: built for the chip's CPU model and its float instructions
+- Facts: HW-62 (the SDK builds this chip's code with `-mcpu=r3
+  -mfprev1`), HW-63 (fwtest runs those instructions, one cycle each);
+  Q-16 open (their cost on the chip). PROVENANCE P-32.
+- Reasoning: SR-5's answer says to build as the SDK does, so the C and
+  assembly flags now carry `-mcpu=r3 -mfprev1` (tools/build.sh, `CPU`;
+  R-BUILD-1). Measured before and after on main at `7eb74e8`: the image
+  is **byte for byte the same** (`app.bin` `543e5764...`, and the ELF):
+  the firmware has no float yet, and the integer code `r3` gets is what
+  the default gave. So the steady state (1 812.9 instructions a block),
+  the loaded measure (114 172.7) and every size are unchanged. With the
+  flag, a float operation is one instruction where it was a call into a
+  float library (a test file: `a * b + a / b` became three instructions
+  and a return, from two calls and their set-up).
+- Fixed point stays where it is cheaper: M4's oscillator and mixing are
+  32- and 64-bit integer multiplies, single instructions here (M4, P-27),
+  with no conversions at the ends. Floats are for what fixed point makes
+  awkward (wide-range values: rates, pitch ratios, envelope curves
+  computed per block, not per sample). On the chip their cycle cost is
+  still unknown (Q-16), so nothing per sample depends on a float.
+- Alternatives: leaving the default CPU model (the same code today, but
+  float would need a library); building only the engine with the flag
+  (two ABIs to keep straight for no gain).

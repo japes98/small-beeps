@@ -144,14 +144,17 @@ build_demo_plaits() {
 cmd_inside() {
     src=$1 out=$2
     cd "$src"
+    # The chip's CPU model and its single-precision float instructions, as
+    # the SDK builds for it (HW-62, since M5).
+    CPU="-mcpu=r3 -mfprev1"
     # -nostdinc: no C library headers either; the SDK's register headers
     # are the only outside includes. -fno-common puts zeroed data in .bss.
-    CFLAGS="-target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g
+    CFLAGS="-target pi32v2 $CPU -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g
             -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=$src=.
             -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm"
     for d in ${SB_DEFINES:-}; do CFLAGS="$CFLAGS -D$d"; done
     # Assembly is built without -g, which would record the source path.
-    ASFLAGS="-target pi32v2 -nostdinc -Werror"
+    ASFLAGS="-target pi32v2 $CPU -nostdinc -Werror"
     clang --version | head -1
     ld --version | head -1
     echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
