@@ -141,6 +141,22 @@ fn lcd_capture() {
     assert_eq!(px(100, 100), [0, 0, 0], "the diagonal");
 }
 
+/// HARNESS.md ("The LCD"): SPI1's CON reads back as last written (bit 15
+/// set: transfers finish at once), and a finished transfer, DMA or single
+/// byte, raises source 16 only while bit 13 is set (SR-3).
+#[test]
+fn spi1_interrupt_follows_con_bit_13() {
+    let mut o = opts(2);
+    o.ram = vec![(OUT0, 32, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("spi1irq"), &o).unwrap();
+    let w = words(output(&r, "ram-01c00100-20-end.bin"));
+    assert_eq!(&w[0..2], &[1, 0xa000], "bit 13 set: the DMA raised it");
+    assert_eq!(&w[2..4], &[1, 0x8000], "CON written 0: bit 13 clear, no interrupt");
+    assert_eq!(&w[4..6], &[1, 0x8000], "a byte with bit 13 clear: none");
+    assert_eq!(&w[6..8], &[2, 0xa000], "a byte with bit 13 set: one");
+}
+
 /// R-HARN-3: LED duty per sample.
 #[test]
 fn led_capture() {

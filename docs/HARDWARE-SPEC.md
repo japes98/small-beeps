@@ -16,7 +16,9 @@ Written by session M0c (spec side), 2026-10-22. Ask for anything missing
 through docs/SPEC-REQUESTS.md. Open spec requests at the time of writing:
 none. Session SR-1-SR-2 (spec side, 2026-10-22) added sections 9 to 11 for
 SR-1 and SR-2, which are answered in part; what stays open is Q-2, Q-13
-and Q-14.
+and Q-14. Session SR-3 (spec side, 2026-10-23) added section 12 for SR-3,
+answered in part (open: Q-6, Q-15), and section 13, which confirms HW-41's
+fwtest part for M3.
 
 ## How to read it
 
@@ -581,7 +583,7 @@ least significant. Register names are the JieLi SDK's.
   start write sets again. The pot is the `MASTER` knob (HW-36).
 - Sources: SDK `hwi.h` line 65 (`IRQ_SARADC_IDX` 24); the emulator model
   (the interrupt condition, the acknowledge, `MASTER`).
-- Standing: emulator-only
+- Standing: superseded by HW-60 (and HW-61)
 - Needed by: M3
 
 ### HW-42: The LEDs, in fwtest
@@ -872,6 +874,148 @@ requests.
 - Standing: confirmed (SDK, RE)
 - Needed by: real hardware (Level 2)
 
+## 12. The LCD on the chip, and SPI1 in fwtest (SR-3)
+
+### HW-55: SPI1's CON on the chip
+- Fact: On the chip, `JL_SPI1->CON` is an ordinary read/write register: a
+  write sets each bit as written (the SDK sets and clears its bits with
+  ordinary read-modify-write), except that bit 15, the pending (done) flag,
+  is read, and writing bit 14 as 1 clears the pending flag. The bits the
+  SDK names: bit 0 turns SPI on; bit 12 set is receive mode; bit 13 makes a
+  finished transfer raise interrupt source 16; bit 14 clears the pending
+  flag (the SDK's handler sets it, keeping the other bits); bits 2, 10 and
+  11 are cleared for what the SDK calls one-bit mode. `BAUD` is one byte
+  wide. When FM-1's own firmware sets up the panel it writes
+  `CON` = `0x4020` and `BAUD` = 4. The sources don't give the meaning of
+  `CON` bit 5 or of the other mode bits, how `BAUD` sets the clock, or what
+  state SPI1 is in when an installed app starts (Q-6).
+- Sources: SDK `apps/common/example/peripheral/spi/spi_slave/spi_nomask_interrupt.c`
+  lines 59 (bit 14 set in the handler), 116-119 (bits 2, 10, 11 cleared;
+  bits 12, 13, 0 set, with their meanings); SDK
+  `include_lib/driver/cpu/wl82/asm/spi.h` lines 107-115 (`BAUD` a byte);
+  RE `docs/io/08-display.md` §1 (bit 15 pending, 14 clear, 13 interrupt
+  enable; `CON` = `0x4020` and `BAUD` = 4 at the panel's set-up, high
+  confidence).
+- Standing: confirmed (SDK, RE)
+- Needed by: real hardware (Level 2)
+
+### HW-56: SPI1's pins, and the port set-up registers
+- Fact: On the chip SPI1 has two pin groups: A, clock PB6, data out PB7,
+  data in PB5; B, clock PC9, data out PC10, data in PC8. Neither has a
+  chip select pin of its own: a chip select is an ordinary port pin.
+  `JL_IOMAP->CON1` (`0x00051020`; `JL_IOMAP` is at `0x0005101C`) bit 4
+  picks the group: clear A, set B. On the FM-1 the panel is probably on
+  group B: PC8 is the panel's data/command line (HW-30), used as a port
+  pin, not as data in; and during the panel's set-up FM-1's own firmware
+  makes GPIO 39 an input and GPIO 40 to 42 outputs driven low (FM-1-RE,
+  which suggests they may be the panel's reset and backlight). If those
+  numbers follow the SDK's numbering, 16 pins a port, they are PC7, and
+  PC8 to PC10, the group B pins. That the FM-1 uses group B is inferred
+  from these sources together; none of them states it. Each port's
+  registers (`JL_PORTC` at `0x00050080`) are `OUT` +0, `IN` +4, `DIR` +8,
+  `DIE` +12, `PU` +16, `PD` +20, `HD0` +24, `HD` +28, one bit per pin:
+  `DIR` bit 0 makes the pin an output, 1 an input; `PU` and `PD` turn on
+  its pull-up and pull-down; `HD0` and `HD` its two strong-drive
+  settings; `DIE` its digital input. Which pin is the panel's chip select
+  (FM-1-RE sees PC7 toggled with PC8, HW-30; if the numbering above
+  holds, it is also set up as an input), and whether the clock and data
+  pins need strong drive, is Q-6. fwtest needs none of this set-up
+  (HW-29).
+- Sources: SDK `include_lib/driver/cpu/wl82/asm/spi.h` lines 212-243
+  (SPI1's two pin groups, no chip select, `JL_IOMAP->CON1` bit 4); SDK
+  `WL82.h` lines 12, 16, 251-270 (the port registers, `JL_PORTC`), 307-320
+  (`JL_IOMAP`); SDK `include_lib/driver/cpu/wl82/asm/gpio.h` lines 5,
+  50-53 (16 pins a port: PC7 is 39, PC10 is 42); SDK
+  `apps/common/example/peripheral/gpio/gpio.c` lines 63-122 (`DIR` 0
+  output, 1 input; `HD0`, `HD`, `PU`, `PD`, `DIE` set to turn on); RE
+  `docs/io/08-display.md` §1 (GPIO 39 an input, GPIO 40 to 42 outputs
+  driven low during the panel's set-up; PC7 and PC8 toggled; both medium
+  confidence).
+- Standing: confirmed (SDK, RE)
+- Needed by: real hardware (Level 2)
+
+### HW-57: The panel's serial clock and its reset line
+- Fact: The controller takes a serial write clock cycle of at least 66 ns
+  (a clock of at most about 15 MHz), high and low each at least 15 ns,
+  with its 4-line serial interface (a data/command line, as on the FM-1).
+  Its reset input `RESX` is active low: a low pulse of at least 10 µs
+  resets it. After the pulse ends it needs 5 ms before the next command,
+  and 120 ms before a sleep out command; a reset in sleep out mode blanks
+  the display for up to 120 ms. Whether the board wires `RESX` to a port
+  pin, or the backlight to one, and which, is Q-6. fwtest needs neither
+  (HW-29).
+- Sources: DS page 44 (4-line serial interface timing: `TSCYCW` 66 ns,
+  `TSHW` and `TSLW` 15 ns), pages 48 and 49 (reset timing, table 9 and
+  its notes 3 and 5 to 7: `TRW` 10 µs, `TRT` 5 ms in sleep in mode and
+  120 ms in sleep out mode; 5 ms before commands, 120 ms before sleep
+  out).
+- Standing: confirmed (DS)
+- Needed by: real hardware (Level 2)
+
+### HW-58: The longest transfer
+- Fact: On the chip, the SDK's limit on one SPI DMA transfer for the
+  AC791N is `0x7FFFFFFE` bytes (its examples say 2^31; 65 535 on the
+  AC790N), so a whole 240 × 240 frame (115 200 bytes) fits in one `CNT`
+  write. How wide the `CNT` counter itself is, the sources don't say. In
+  fwtest one `CNT` write of 115 200 bytes sends a whole frame: the screen
+  shows every pixel in order.
+- Sources: SDK `include_lib/driver/cpu/wl82/asm/spi.h` line 8
+  (`SPI_MAX_SIZE`); SDK `apps/common/example/peripheral/spi/spi_1bit/main.c`
+  line 37 (the AC791N and AC790N limits); E-16: one transfer of a whole
+  frame from RAM drew it, the first and last pixels in place.
+- Standing: confirmed (SDK, E-16)
+- Needed by: M2
+
+### HW-59: SPI1's interrupt in fwtest
+- Fact: In fwtest `JL_SPI1->CON` reads back as last written, with bit 15
+  always 1 (a transfer finishes at once) and bit 14 reading 0; before any
+  write it reads `0x8000`. A transfer that finishes while bit 13 is set
+  raises interrupt source 16, a DMA transfer (`CNT`) or a single byte
+  (`BUF`) alike; with bit 13 clear neither raises anything. A write with
+  bit 14 set acknowledges it, and sets the other bits as written: a write
+  of bit 14 alone also clears bit 13. A transfer that finished with bit 13
+  set stays pending until acknowledged, even if bit 13 is cleared and the
+  source enabled only afterwards. This agrees with HW-29 and HW-55. It
+  holds from fwtest 0.2.0; before, a `CON` write could set bits but not
+  clear them, so once bit 13 had been set every later transfer raised
+  source 16 (SR-3). What the chip does with a transfer that finished while
+  bit 13 was clear, when bit 13 is set later, is Q-15.
+- Sources: E-15: with bit 13 never set, or written clear, no interrupt
+  for a DMA transfer or a byte; with it set, one for each; `CON` read
+  `0x8000`, then `0xA000` while bit 13 was set; a transfer done with the
+  source disabled and bit 13 then cleared was still taken once the source
+  was enabled; HARNESS ("The LCD").
+- Standing: confirmed (E-15)
+- Needed by: M2
+
+## 13. The SARADC's interrupt, confirmed (M3)
+
+### HW-60: The SARADC's interrupt in fwtest
+- Fact: In fwtest, a conversion started (`JL_ADC->CON` written with bits
+  4 and 6) with `CON` bit 5 set raises interrupt source 24 when it
+  finishes, which is at once; started without bit 5 it raises nothing. In
+  the handler `RES` holds the result and `CON` reads as written with bit 7
+  set. Writing `CON` with bit 6 set and bit 4 clear acknowledges it; that
+  write also clears bit 4, the enable, and bit 7, and the next start write
+  sets bit 4 again. `CON` writes set and clear bits as written: a start
+  without bit 5 after one with it raises nothing. The fwtest part of HW-41,
+  now confirmed; which knob the pot is moved to HW-61.
+- Sources: SDK `hwi.h` line 65 (`IRQ_SARADC_IDX` 24); E-17: one
+  interrupt for each start with bit 5 and none without, `RES` 900 (the
+  pot) and `CON` `0x4F0` in the handler, `0x40` after the acknowledge,
+  `0x4D0` after a start without bit 5.
+- Standing: confirmed (SDK, E-17)
+- Needed by: M3
+
+### HW-61: The pot is the MASTER knob
+- Fact: The pot that fwtest reads on SARADC channel 4 (HW-40), and that
+  input scripts move with `pot V`, is the `MASTER` knob (HW-36). Which
+  channel carries it on the chip is Q-8.
+- Sources: the emulator model (which panel control the pot is); PANEL
+  (the label, HW-36).
+- Standing: emulator-only
+- Needed by: M3
+
 ---
 
 ## Open questions
@@ -903,11 +1047,18 @@ spec request can turn one into a fact.
   anywhere on real hardware (the SDK marks it read-only, and reads it as
   the exception's cause word, HW-51), or which UART pins could carry debug
   output.
-- **Q-6. LCD wiring.** Which pins carry SPI1's clock, data and chip select
-  (and the `JL_IOMAP` selection for them), whether the panel has a reset
-  pin and a backlight pin, and which ones; the panel's orientation and its
-  offset within the controller's 240 × 320 memory. fwtest needs none of
-  them.
+- **Q-6. LCD wiring.** Since SR-3, SPI1's pin groups, the pin-group
+  select, the port set-up registers, `CON`'s named bits, the panel's clock
+  limit and reset timing, and FM-1's own `CON` and `BAUD` values are known
+  (HW-55 to HW-58); still open: which pin is the panel's chip select
+  (probably PC7), whether the panel has a reset pin and a backlight pin,
+  which ones and their levels; the drive the pins need; `CON` bit 5 and
+  the other mode bits, and how `BAUD` sets the clock (so which value gives
+  at most 15 MHz); the panel's offset within the controller's 240 × 320
+  memory for each `MADCTL` orientation, which orientation shows the
+  picture upright as the FM-1 is held, and whether it needs inversion on
+  (`0x21`) to show colours right (none of the sources says; fwtest ignores
+  `MADCTL` and inversion, HW-31). Settled by a probe on real hardware.
 - **Q-7. The panel's wiring on the chip.** Whether the board's key matrix,
   encoders and LEDs are wired as fwtest presents them (HW-33, HW-34,
   HW-38, HW-42: the pins, the shift registers, an LED for every key, which
@@ -947,3 +1098,10 @@ spec request can turn one into a fact.
   (`EMU_MSG` bit 1 is named "illegal instruction"); whether a write to the
   code window does. fwtest models none of it (HW-52). Settled by a probe on
   real hardware.
+- **Q-15. SPI1's interrupt on the chip.** Whether source 16 follows the
+  pending flag and `CON` bit 13 together (so setting bit 13 while a
+  finished transfer is still pending raises it at once, and clearing bit
+  13 withdraws it), or only a transfer that finishes while bit 13 is set
+  raises it, as in fwtest (HW-59). The SDK's example sets bit 13 before
+  it starts a transfer and acknowledges in the handler, which works either
+  way. Settled by a probe on real hardware.

@@ -35,8 +35,13 @@ typedef int s32;
 #define PD_OUT REG(0x500c0u)
 #define PH_OUT REG(0x501c0u)
 
-/* SPI1 to the LCD (lib.rs spi1_write): byte at BUF, D/C on PC8. */
+/* SPI1 to the LCD (lib.rs spi1_write): byte at BUF, D/C on PC8; DMA of
+   CNT bytes from ADR; CON bit 13 enables source 16, bit 14 acknowledges. */
+#define SPI1_CON REG(0x11d00u)
 #define SPI1_BUF REG(0x11d08u)
+#define SPI1_ADR REG(0x11d0cu)
+#define SPI1_CNT REG(0x11d10u)
+#define IRQ_SPI1 16u
 /* SPI0 to the flash chip (spiflash.rs): byte at BUF, chip select PD0 low. */
 #define SPI0_BUF REG(0x11c08u)
 
