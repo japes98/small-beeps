@@ -1,0 +1,17 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range bdc77c8433ca0a65b8c2899d095cd0b890555fde..6db115d45e8938e778c0048f33da667063a98bb7
+OK     9fbb667aba95 sessions: archive record-fixes-1; SR-4-6's exposure entry and prompt
+OK     711ad8fac8fc docs: SR-4-6's exposure entry gives the prompt's arrival time
+EXEMPT 88909bdf25db (merge) docs: merge main into SR-4-6, which sits on #59, for SR-4 to SR-6
+OK     c5ac84dd2b1b tools: C-SEP-TERMS scans our own notes in vendor/plaits/; shared checksums
+OK     b8087b55a28f tools: the audit's base code is a list; Plaits only for the demo's files
+OK     93a69ff771de tools: C-SEP-TERMS never counts universal constants as emulator terms
+OK     d3ab43744250 docs: SR-4 answered: the audit's base code, #59's check kept, #61 checked
+OK     60c4bdbce3d3 docs: SR-5 and SR-6 answered in part: float and the second core
+OK     6e169a6e478d docs: SR-4-6's exposure entry, later in the session
+OK     e5b9bb140b7a docs: HW-62 cites the same build flags in eight more SDK Makefiles
+OK     f46fad5e072a docs: name #63 in SR-4's answer; integer and float division by zero
+EXEMPT 66eef981a8d1 (merge) docs: merge main into SR-4-6 again, after #59
+EXEMPT 6db115d45e89 (merge) Merge pull request #63 from japes98/spec/sr-4-6
+13 commit(s) checked: PASS
+
+exit status 0
