@@ -66,13 +66,17 @@ class PrivateTermsTest(unittest.TestCase):
             shutil.rmtree(d)
 
     def test_spec_side_hits_are_counted_not_named(self):
-        self.assertTrue("harness/x.rs:3".startswith(cp.SPEC_DIRS))
-        self.assertTrue("sessions/spec/a.jsonl:1".startswith(cp.SPEC_DIRS))
+        # every folder of config/spec-side-folders, by name from the list
+        for d in cp.spec_dirs():
+            self.assertTrue((d + "x.rs:3").startswith(cp.SPEC_DIRS), d)
         self.assertFalse("docs/PLAN.md:1".startswith(cp.SPEC_DIRS))
+        self.assertFalse("sessions/clean/a.jsonl:1".startswith(cp.SPEC_DIRS))
 
     def test_exempt_labels_name_no_spec_file(self):
+        transcripts = [d for d in cp.spec_dirs() if d.startswith("sessions/")]
+        self.assertEqual(len(transcripts), 1)
         self.assertEqual(cp.label("sessions/clean/x.jsonl"), "sessions/clean")
-        self.assertEqual(cp.label("sessions/spec/x.jsonl"), "spec-side transcripts")
+        self.assertEqual(cp.label(transcripts[0] + "x.jsonl"), "spec-side transcripts")
         self.assertEqual(cp.label("docs/prompts/M0a.md"), "docs/prompts")
 
     def test_exemption_needs_the_base_blob(self):

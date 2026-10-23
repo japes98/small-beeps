@@ -82,24 +82,66 @@ FORBIDDEN = [
     ("F-PROBE", "emulator probe source", r"probes/lcdtest\.c"),
     ("F-EMU-REPO", "F-Emulator / fm1-emu repository", r"fm1-emu|f-emulator"),
     ("F-EMU-CRATES", "emulator crates", r"\bcrates/fm1-"),
-    # A path into the folder, or the folder itself as a whole word, ended by
-    # whitespace, a quote or a shell operator or bracket (since M2, so that
-    # `D=harness; ls $D` is caught too).
-    ("F-VENDOR-EMU", "vendor/emulator/ (spec side)",
-     r"(^|[\s\"'=:/;&|<>(){}`])vendor/emulator(/|[\s\"';&|<>(){}`]|$)"),
-    ("F-HARNESS", "harness/ source (spec side)",
-     r"(^|[\s\"'=:/;&|<>(){}`])harness(/|[\s\"';&|<>(){}`]|$)"),
+    # The spec-side folders' rules (F-VENDOR-EMU, F-HARNESS, F-SPEC-SESSIONS)
+    # are built here, in these places, from config/spec-side-folders
+    # (configure, below).
+    ("F-VENDOR-EMU", None, None),
+    ("F-HARNESS", None, None),
     ("F-FWHUB", "thefirmwarehub.com", r"thefirmwarehub\.com"),
-    ("F-SPEC-SESSIONS", "spec-side session transcripts", r"sessions/spec(/|[\s\"';&|<>(){}`]|$)"),
+    ("F-SPEC-SESSIONS", None, None),
     ("F-RE-FIRMWARE", "FM-1-RE firmware images or disassembly",
      r"fm-1-re.*(firmware-images|disasm|disassembl|ghidra|\.idb\b|\.i64\b|functions)"
      r"|firmware-images/"),
     ("F-STOCK", "M-VAVE stock firmware", r"m-?vave.*\.(fwsc|bin|ufw|hex)\b"),
 ]
-FORBIDDEN_RE = [(rid, why, re.compile(p, re.IGNORECASE)) for rid, why, p in FORBIDDEN]
-RULE_ID = {why: rid for rid, why, _ in FORBIDDEN}
-# The rules a heredoc's body can be cleared of (exempt_heredoc).
-FOLDER_RULES = ("F-VENDOR-EMU", "F-HARNESS", "F-SPEC-SESSIONS")
+TEMPLATE = FORBIDDEN
+
+FOLDERS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                            "config", "spec-side-folders")
+# A folder's name in a target is bounded by whitespace, a quote, or a shell
+# operator or bracket (since M2, so that `D=<folder>; ls $D` is caught
+# too), or followed by a slash. A source folder is also matched as a whole
+# word; a transcripts folder only as a path ending in its name.
+BEFORE = r"(^|[\s\"'=:/;&|<>(){}`])"
+AFTER = r"(/|[\s\"';&|<>(){}`]|$)"
+
+
+def read_folders(path=FOLDERS_FILE):
+    """[(folder, kind, rule, label)] from config/spec-side-folders."""
+    rows = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.strip() and not line.startswith("#"):
+                folder, kind, rule, label = line.rstrip("\n").split("\t")
+                if kind not in ("source", "transcripts"):
+                    raise ValueError("%s: unknown kind %r" % (path, kind))
+                rows.append((folder, kind, rule, label))
+    return rows
+
+
+def folder_rule(folder, kind, rule, label):
+    p = re.escape(folder) + AFTER
+    return (rule, label, BEFORE + p if kind == "source" else p)
+
+
+def configure(folders):
+    """Builds the rules from the spec-side folders: the real list at import,
+    placeholder names in the tests (since M3, so the tests never spell the
+    folders out). Every folder rule of TEMPLATE must be given."""
+    global FORBIDDEN, FORBIDDEN_RE, RULE_ID, FOLDER_RULES
+    rules = {r[2]: folder_rule(*r) for r in folders}
+    missing = [rid for rid, why, _ in TEMPLATE if why is None and rid not in rules]
+    if missing or set(rules) - {rid for rid, _, _ in TEMPLATE}:
+        raise ValueError("the spec-side folders' rules must be exactly %s"
+                         % [rid for rid, why, _ in TEMPLATE if why is None])
+    FORBIDDEN = [rules.get(rid, (rid, why, p)) if why is None else (rid, why, p) for rid, why, p in TEMPLATE]
+    FORBIDDEN_RE = [(rid, why, re.compile(p, re.IGNORECASE)) for rid, why, p in FORBIDDEN]
+    RULE_ID = {why: rid for rid, why, _ in FORBIDDEN}
+    # The rules a heredoc's body can be cleared of (exempt_heredoc).
+    FOLDER_RULES = tuple(r[2] for r in folders)
+
+
+configure(read_folders())
 
 
 def targets(name, inp):
