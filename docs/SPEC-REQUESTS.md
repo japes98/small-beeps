@@ -158,7 +158,39 @@ an issue or a pull request against docs/HARNESS.md.
   include its headers. `base_code` takes one path today, so this needs a
   change to the audit tool or its settings, which are spec side. Read:
   docs/AUDIT.md, `audit/audit.json`.
-- Status: open
+- Status: answered (docs/AUDIT.md, "Base code"; R-AUDIT-4, R-SEP-1), in
+  the pull request that follows #59; merge #59 first.
+  - (1) The audit: `audit/audit.json`'s `base_code` is a list. The JieLi
+    SDK is base code for all our files. The vendored Plaits, only the
+    files `vendor/plaits/SHA256SUMS` lists and each matching its hash (or
+    the audit fails), is base code **only for files under
+    `firmware/demos/plaits/`**. Those files get a JPlag pass of their own,
+    with the control scored again under the same base code, and the text
+    check leaves out base-code pieces the same way. Given to every file,
+    Plaits cut the self-test's longest matches in core files that don't
+    use it (11 of 15 files found), so the owner chose the demo-only scope.
+    A file outside `firmware/demos/plaits/` that includes a Plaits header
+    fails the audit (C-AUDIT-BASE): don't include Plaits from the core
+    firmware without asking the owner. The self-test finds all 15 of our
+    files today; with a trial glue file under `firmware/demos/plaits/`, 16
+    of 16, in two passes.
+  - (2) The separation check: keep #59's version. It meets the owner's
+    four conditions, and the spec side's review found one gap, which the
+    pull request after #59 closes: `vendor/plaits/SOURCE.md`, which we
+    write, was not scanned; now it is (it has no hit). The checksum code
+    moved to `tools/sha256sums.py`, which the audit shares.
+  - (3) #59's branch at `247ddfa`, its commits and pull request text:
+    C-SEP-TERMS PASS, no hit; the Plaits list takes off 4 terms.
+  - Note (the owner's request, 2026-10-23): C-SEP-TERMS never counts
+    universal constants as emulator terms: powers of two (sign-bit masks
+    among them), 2^n-1, 2^n+1, and IEEE 754's standard single and double
+    patterns (infinities, quiet NaNs, one, 2^±23, 2^±52), defined by rule
+    in the check (R-SEP-1). #61's branch at `52fa29b`, its commits and
+    pull request text: under #61's own copy of the check, 25 hits, its
+    only failing check in CI; under the new rule, PASS, no hit (the Plaits
+    list takes off 3 terms). So #61 passes once this pull request has
+    merged and #61 has merged main.
+- Answered: 2026-10-23, session SR-4-6 (spec side)
 
 ### SR-5: Hardware single-precision floating point on the chip and in fwtest
 - Asked: 2026-10-23, session M4b (firmware side)
