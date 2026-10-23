@@ -258,7 +258,14 @@ pairs, all permissive).
   file.
 - For `src/font.c` that is about 1,770 of its 3,540 pieces, roughly half
   its glyphs' rows. Against the same 434 files it scored 0 at every piece
-  length.
+  length. That only shows that neither project holds a font like it: the
+  calibration has no font drawn as text. The first run on main, whose
+  report shows `src/font.c`'s best containment, is the first measurement
+  against files of its kind. A font drawn the same way with common glyph
+  shapes could share pieces with ours without copying, a common source
+  like the USB headers. If the check flags such a pair, it goes to an
+  auditor like any flagged pair. The threshold is never moved after
+  seeing the targets' scores.
 - 24 characters is also the leak check's line length: a piece about as
   long as one C statement, or three rows of a glyph.
 
