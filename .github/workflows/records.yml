@@ -7,8 +7,9 @@
 # appends it to the orphan `records` branch with a deploy key that only this
 # workflow's `records` environment holds, and uploads the same files as an
 # artifact. A failing check still produces a record that says so. It also
-# appends the commit's line to perf-history.csv at the branch's root
-# (R-PERF-4), never rewriting earlier lines.
+# appends the commit's line to perf-history.csv at the branch's root, and
+# since M4b its rows to perf-measures.csv beside it (R-PERF-4), never
+# rewriting earlier lines.
 name: records
 
 on:
@@ -120,12 +121,16 @@ jobs:
             fi
             mkdir -p "$dest"
             cp -R "out/$GITHUB_SHA/." "$dest/"
-            # One line per main commit; a re-run adds none. A problem with
-            # the history must never keep the record from being pushed.
+            # One line per main commit (and since M4b one per commit and
+            # measure in perf-measures.csv); a re-run adds none. A problem
+            # with the history must never keep the record from being pushed.
             python tools/perf.py history --record "out/$GITHUB_SHA/report.json" --csv rec/perf-history.csv \
-              || echo "::error::perf-history.csv: no line appended for $GITHUB_SHA"
+              --measures rec/perf-measures.csv \
+              || echo "::error::perf-history.csv or perf-measures.csv: no line appended for $GITHUB_SHA"
             git -C rec add records
-            if [ -e rec/perf-history.csv ]; then git -C rec add perf-history.csv; fi
+            for f in perf-history.csv perf-measures.csv; do
+              if [ -e "rec/$f" ]; then git -C rec add "$f"; fi
+            done
             git -C rec -c user.name="small-beeps records" -c user.email="records@users.noreply.github.com" \
               commit --quiet -m "records: $GITHUB_SHA" \
               -m "Record of commit $GITHUB_SHA, written by run https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)."

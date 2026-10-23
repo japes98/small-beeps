@@ -1,0 +1,718 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# perfload (tools/perf.py, R-PERF-2): the loaded measure's fixed input,
+# the heaviest steady load the firmware has. From 100 ms: PLAY tapped once
+# (the test tone on), four keys held (every voice), and then a pattern
+# that repeats every 250 ms, so the window between the perf runs (1 250
+# and 2 250 ms) holds four whole repeats, until 2 500 ms (past a late end):
+# - each held key in turn released for 10 ms and pressed again (the
+#   voice releases, then attacks again, so all four keep sounding);
+# - all seven encoders turned 15 detents one way and 15 back (each detent
+#   is 8 ms of contact changes, so they never rest), alternate encoders
+#   in opposite directions;
+# - MASTER swept from 1023 to 0 and back, a step every 5 ms.
+# Made by a short script from this description; change both together.
+#
+# time   event
+100      key 12 tap 50
+100      key 14 down
+100      key 21 down
+100      key 28 down
+100      key 33 down
+110      key 14 up
+110      enc 0 +15
+110      enc 1 -15
+110      enc 2 +15
+110      enc 3 -15
+110      enc 4 +15
+110      enc 5 -15
+110      enc 6 +15
+110      pot 1023
+115      pot 982
+120      key 14 down
+120      pot 941
+125      pot 900
+130      pot 859
+135      pot 818
+140      pot 777
+145      pot 737
+150      pot 696
+155      pot 655
+160      pot 614
+165      pot 573
+170      key 21 up
+170      pot 532
+175      pot 491
+180      key 21 down
+180      pot 450
+185      pot 409
+190      pot 368
+195      pot 327
+200      pot 286
+205      pot 246
+210      pot 205
+215      pot 164
+220      pot 123
+225      pot 82
+230      key 28 up
+230      pot 41
+235      enc 0 -15
+235      enc 1 +15
+235      enc 2 -15
+235      enc 3 +15
+235      enc 4 -15
+235      enc 5 +15
+235      enc 6 -15
+235      pot 0
+240      key 28 down
+240      pot 41
+245      pot 82
+250      pot 123
+255      pot 164
+260      pot 205
+265      pot 246
+270      pot 286
+275      pot 327
+280      pot 368
+285      pot 409
+290      key 33 up
+290      pot 450
+295      pot 491
+300      key 33 down
+300      pot 532
+305      pot 573
+310      pot 614
+315      pot 655
+320      pot 696
+325      pot 737
+330      pot 777
+335      pot 818
+340      pot 859
+345      pot 900
+350      pot 941
+355      pot 982
+360      key 14 up
+360      enc 0 +15
+360      enc 1 -15
+360      enc 2 +15
+360      enc 3 -15
+360      enc 4 +15
+360      enc 5 -15
+360      enc 6 +15
+360      pot 1023
+365      pot 982
+370      key 14 down
+370      pot 941
+375      pot 900
+380      pot 859
+385      pot 818
+390      pot 777
+395      pot 737
+400      pot 696
+405      pot 655
+410      pot 614
+415      pot 573
+420      key 21 up
+420      pot 532
+425      pot 491
+430      key 21 down
+430      pot 450
+435      pot 409
+440      pot 368
+445      pot 327
+450      pot 286
+455      pot 246
+460      pot 205
+465      pot 164
+470      pot 123
+475      pot 82
+480      key 28 up
+480      pot 41
+485      enc 0 -15
+485      enc 1 +15
+485      enc 2 -15
+485      enc 3 +15
+485      enc 4 -15
+485      enc 5 +15
+485      enc 6 -15
+485      pot 0
+490      key 28 down
+490      pot 41
+495      pot 82
+500      pot 123
+505      pot 164
+510      pot 205
+515      pot 246
+520      pot 286
+525      pot 327
+530      pot 368
+535      pot 409
+540      key 33 up
+540      pot 450
+545      pot 491
+550      key 33 down
+550      pot 532
+555      pot 573
+560      pot 614
+565      pot 655
+570      pot 696
+575      pot 737
+580      pot 777
+585      pot 818
+590      pot 859
+595      pot 900
+600      pot 941
+605      pot 982
+610      key 14 up
+610      enc 0 +15
+610      enc 1 -15
+610      enc 2 +15
+610      enc 3 -15
+610      enc 4 +15
+610      enc 5 -15
+610      enc 6 +15
+610      pot 1023
+615      pot 982
+620      key 14 down
+620      pot 941
+625      pot 900
+630      pot 859
+635      pot 818
+640      pot 777
+645      pot 737
+650      pot 696
+655      pot 655
+660      pot 614
+665      pot 573
+670      key 21 up
+670      pot 532
+675      pot 491
+680      key 21 down
+680      pot 450
+685      pot 409
+690      pot 368
+695      pot 327
+700      pot 286
+705      pot 246
+710      pot 205
+715      pot 164
+720      pot 123
+725      pot 82
+730      key 28 up
+730      pot 41
+735      enc 0 -15
+735      enc 1 +15
+735      enc 2 -15
+735      enc 3 +15
+735      enc 4 -15
+735      enc 5 +15
+735      enc 6 -15
+735      pot 0
+740      key 28 down
+740      pot 41
+745      pot 82
+750      pot 123
+755      pot 164
+760      pot 205
+765      pot 246
+770      pot 286
+775      pot 327
+780      pot 368
+785      pot 409
+790      key 33 up
+790      pot 450
+795      pot 491
+800      key 33 down
+800      pot 532
+805      pot 573
+810      pot 614
+815      pot 655
+820      pot 696
+825      pot 737
+830      pot 777
+835      pot 818
+840      pot 859
+845      pot 900
+850      pot 941
+855      pot 982
+860      key 14 up
+860      enc 0 +15
+860      enc 1 -15
+860      enc 2 +15
+860      enc 3 -15
+860      enc 4 +15
+860      enc 5 -15
+860      enc 6 +15
+860      pot 1023
+865      pot 982
+870      key 14 down
+870      pot 941
+875      pot 900
+880      pot 859
+885      pot 818
+890      pot 777
+895      pot 737
+900      pot 696
+905      pot 655
+910      pot 614
+915      pot 573
+920      key 21 up
+920      pot 532
+925      pot 491
+930      key 21 down
+930      pot 450
+935      pot 409
+940      pot 368
+945      pot 327
+950      pot 286
+955      pot 246
+960      pot 205
+965      pot 164
+970      pot 123
+975      pot 82
+980      key 28 up
+980      pot 41
+985      enc 0 -15
+985      enc 1 +15
+985      enc 2 -15
+985      enc 3 +15
+985      enc 4 -15
+985      enc 5 +15
+985      enc 6 -15
+985      pot 0
+990      key 28 down
+990      pot 41
+995      pot 82
+1000     pot 123
+1005     pot 164
+1010     pot 205
+1015     pot 246
+1020     pot 286
+1025     pot 327
+1030     pot 368
+1035     pot 409
+1040     key 33 up
+1040     pot 450
+1045     pot 491
+1050     key 33 down
+1050     pot 532
+1055     pot 573
+1060     pot 614
+1065     pot 655
+1070     pot 696
+1075     pot 737
+1080     pot 777
+1085     pot 818
+1090     pot 859
+1095     pot 900
+1100     pot 941
+1105     pot 982
+1110     key 14 up
+1110     enc 0 +15
+1110     enc 1 -15
+1110     enc 2 +15
+1110     enc 3 -15
+1110     enc 4 +15
+1110     enc 5 -15
+1110     enc 6 +15
+1110     pot 1023
+1115     pot 982
+1120     key 14 down
+1120     pot 941
+1125     pot 900
+1130     pot 859
+1135     pot 818
+1140     pot 777
+1145     pot 737
+1150     pot 696
+1155     pot 655
+1160     pot 614
+1165     pot 573
+1170     key 21 up
+1170     pot 532
+1175     pot 491
+1180     key 21 down
+1180     pot 450
+1185     pot 409
+1190     pot 368
+1195     pot 327
+1200     pot 286
+1205     pot 246
+1210     pot 205
+1215     pot 164
+1220     pot 123
+1225     pot 82
+1230     key 28 up
+1230     pot 41
+1235     enc 0 -15
+1235     enc 1 +15
+1235     enc 2 -15
+1235     enc 3 +15
+1235     enc 4 -15
+1235     enc 5 +15
+1235     enc 6 -15
+1235     pot 0
+1240     key 28 down
+1240     pot 41
+1245     pot 82
+1250     pot 123
+1255     pot 164
+1260     pot 205
+1265     pot 246
+1270     pot 286
+1275     pot 327
+1280     pot 368
+1285     pot 409
+1290     key 33 up
+1290     pot 450
+1295     pot 491
+1300     key 33 down
+1300     pot 532
+1305     pot 573
+1310     pot 614
+1315     pot 655
+1320     pot 696
+1325     pot 737
+1330     pot 777
+1335     pot 818
+1340     pot 859
+1345     pot 900
+1350     pot 941
+1355     pot 982
+1360     key 14 up
+1360     enc 0 +15
+1360     enc 1 -15
+1360     enc 2 +15
+1360     enc 3 -15
+1360     enc 4 +15
+1360     enc 5 -15
+1360     enc 6 +15
+1360     pot 1023
+1365     pot 982
+1370     key 14 down
+1370     pot 941
+1375     pot 900
+1380     pot 859
+1385     pot 818
+1390     pot 777
+1395     pot 737
+1400     pot 696
+1405     pot 655
+1410     pot 614
+1415     pot 573
+1420     key 21 up
+1420     pot 532
+1425     pot 491
+1430     key 21 down
+1430     pot 450
+1435     pot 409
+1440     pot 368
+1445     pot 327
+1450     pot 286
+1455     pot 246
+1460     pot 205
+1465     pot 164
+1470     pot 123
+1475     pot 82
+1480     key 28 up
+1480     pot 41
+1485     enc 0 -15
+1485     enc 1 +15
+1485     enc 2 -15
+1485     enc 3 +15
+1485     enc 4 -15
+1485     enc 5 +15
+1485     enc 6 -15
+1485     pot 0
+1490     key 28 down
+1490     pot 41
+1495     pot 82
+1500     pot 123
+1505     pot 164
+1510     pot 205
+1515     pot 246
+1520     pot 286
+1525     pot 327
+1530     pot 368
+1535     pot 409
+1540     key 33 up
+1540     pot 450
+1545     pot 491
+1550     key 33 down
+1550     pot 532
+1555     pot 573
+1560     pot 614
+1565     pot 655
+1570     pot 696
+1575     pot 737
+1580     pot 777
+1585     pot 818
+1590     pot 859
+1595     pot 900
+1600     pot 941
+1605     pot 982
+1610     key 14 up
+1610     enc 0 +15
+1610     enc 1 -15
+1610     enc 2 +15
+1610     enc 3 -15
+1610     enc 4 +15
+1610     enc 5 -15
+1610     enc 6 +15
+1610     pot 1023
+1615     pot 982
+1620     key 14 down
+1620     pot 941
+1625     pot 900
+1630     pot 859
+1635     pot 818
+1640     pot 777
+1645     pot 737
+1650     pot 696
+1655     pot 655
+1660     pot 614
+1665     pot 573
+1670     key 21 up
+1670     pot 532
+1675     pot 491
+1680     key 21 down
+1680     pot 450
+1685     pot 409
+1690     pot 368
+1695     pot 327
+1700     pot 286
+1705     pot 246
+1710     pot 205
+1715     pot 164
+1720     pot 123
+1725     pot 82
+1730     key 28 up
+1730     pot 41
+1735     enc 0 -15
+1735     enc 1 +15
+1735     enc 2 -15
+1735     enc 3 +15
+1735     enc 4 -15
+1735     enc 5 +15
+1735     enc 6 -15
+1735     pot 0
+1740     key 28 down
+1740     pot 41
+1745     pot 82
+1750     pot 123
+1755     pot 164
+1760     pot 205
+1765     pot 246
+1770     pot 286
+1775     pot 327
+1780     pot 368
+1785     pot 409
+1790     key 33 up
+1790     pot 450
+1795     pot 491
+1800     key 33 down
+1800     pot 532
+1805     pot 573
+1810     pot 614
+1815     pot 655
+1820     pot 696
+1825     pot 737
+1830     pot 777
+1835     pot 818
+1840     pot 859
+1845     pot 900
+1850     pot 941
+1855     pot 982
+1860     key 14 up
+1860     enc 0 +15
+1860     enc 1 -15
+1860     enc 2 +15
+1860     enc 3 -15
+1860     enc 4 +15
+1860     enc 5 -15
+1860     enc 6 +15
+1860     pot 1023
+1865     pot 982
+1870     key 14 down
+1870     pot 941
+1875     pot 900
+1880     pot 859
+1885     pot 818
+1890     pot 777
+1895     pot 737
+1900     pot 696
+1905     pot 655
+1910     pot 614
+1915     pot 573
+1920     key 21 up
+1920     pot 532
+1925     pot 491
+1930     key 21 down
+1930     pot 450
+1935     pot 409
+1940     pot 368
+1945     pot 327
+1950     pot 286
+1955     pot 246
+1960     pot 205
+1965     pot 164
+1970     pot 123
+1975     pot 82
+1980     key 28 up
+1980     pot 41
+1985     enc 0 -15
+1985     enc 1 +15
+1985     enc 2 -15
+1985     enc 3 +15
+1985     enc 4 -15
+1985     enc 5 +15
+1985     enc 6 -15
+1985     pot 0
+1990     key 28 down
+1990     pot 41
+1995     pot 82
+2000     pot 123
+2005     pot 164
+2010     pot 205
+2015     pot 246
+2020     pot 286
+2025     pot 327
+2030     pot 368
+2035     pot 409
+2040     key 33 up
+2040     pot 450
+2045     pot 491
+2050     key 33 down
+2050     pot 532
+2055     pot 573
+2060     pot 614
+2065     pot 655
+2070     pot 696
+2075     pot 737
+2080     pot 777
+2085     pot 818
+2090     pot 859
+2095     pot 900
+2100     pot 941
+2105     pot 982
+2110     key 14 up
+2110     enc 0 +15
+2110     enc 1 -15
+2110     enc 2 +15
+2110     enc 3 -15
+2110     enc 4 +15
+2110     enc 5 -15
+2110     enc 6 +15
+2110     pot 1023
+2115     pot 982
+2120     key 14 down
+2120     pot 941
+2125     pot 900
+2130     pot 859
+2135     pot 818
+2140     pot 777
+2145     pot 737
+2150     pot 696
+2155     pot 655
+2160     pot 614
+2165     pot 573
+2170     key 21 up
+2170     pot 532
+2175     pot 491
+2180     key 21 down
+2180     pot 450
+2185     pot 409
+2190     pot 368
+2195     pot 327
+2200     pot 286
+2205     pot 246
+2210     pot 205
+2215     pot 164
+2220     pot 123
+2225     pot 82
+2230     key 28 up
+2230     pot 41
+2235     enc 0 -15
+2235     enc 1 +15
+2235     enc 2 -15
+2235     enc 3 +15
+2235     enc 4 -15
+2235     enc 5 +15
+2235     enc 6 -15
+2235     pot 0
+2240     key 28 down
+2240     pot 41
+2245     pot 82
+2250     pot 123
+2255     pot 164
+2260     pot 205
+2265     pot 246
+2270     pot 286
+2275     pot 327
+2280     pot 368
+2285     pot 409
+2290     key 33 up
+2290     pot 450
+2295     pot 491
+2300     key 33 down
+2300     pot 532
+2305     pot 573
+2310     pot 614
+2315     pot 655
+2320     pot 696
+2325     pot 737
+2330     pot 777
+2335     pot 818
+2340     pot 859
+2345     pot 900
+2350     pot 941
+2355     pot 982
+2360     key 14 up
+2360     enc 0 +15
+2360     enc 1 -15
+2360     enc 2 +15
+2360     enc 3 -15
+2360     enc 4 +15
+2360     enc 5 -15
+2360     enc 6 +15
+2360     pot 1023
+2365     pot 982
+2370     key 14 down
+2370     pot 941
+2375     pot 900
+2380     pot 859
+2385     pot 818
+2390     pot 777
+2395     pot 737
+2400     pot 696
+2405     pot 655
+2410     pot 614
+2415     pot 573
+2420     key 21 up
+2420     pot 532
+2425     pot 491
+2430     key 21 down
+2430     pot 450
+2435     pot 409
+2440     pot 368
+2445     pot 327
+2450     pot 286
+2455     pot 246
+2460     pot 205
+2465     pot 164
+2470     pot 123
+2475     pot 82
+2480     key 28 up
+2480     pot 41
+2485     enc 0 -15
+2485     enc 1 +15
+2485     enc 2 -15
+2485     enc 3 +15
+2485     enc 4 -15
+2485     enc 5 +15
+2485     enc 6 -15
+2485     pot 0
+2490     key 28 down
+2490     pot 41
+2495     pot 82
