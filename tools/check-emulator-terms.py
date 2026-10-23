@@ -10,7 +10,8 @@ vendor/jieli-sdk/ or (since M4b) vendor/plaits/, in the places the firmware
 side reads:
   - every tracked text file outside vendor/emulator/, harness/, sessions/
     (transcripts), docs/prompts/ (prompts are kept verbatim) and
-    vendor/plaits/ (third-party code we didn't write, since M4b);
+    vendor/plaits/ (third-party code we didn't write, since M4b; its
+    SOURCE.md, which we write, is scanned since SR-4);
   - the two doors, docs/HARNESS.md and docs/HARDWARE-SPEC.md, and their
     reviews in docs/reviews/, for identifier-shaped words only: they carry
     addresses and other numbers on purpose, each one sourced, and people
@@ -21,7 +22,9 @@ side reads:
 The list is built at run time from vendor/emulator/ and never written down:
 identifier-shaped words (with an underscore, inner capitals, or letters and
 digits mixed; four characters or more, not just hex digits) and hex numbers
-of four digits or more. Terms that already occur in CLEAN_BASELINE's tree
+of four digits or more, except universal constants (powers of two, 2^n-1,
+2^n+1, sign-bit masks and IEEE 754's standard patterns: universal(), by
+rule, since SR-4's note). Terms that already occur in CLEAN_BASELINE's tree
 (the repository as the clean side left it at the end of M0a, before any
 emulator source entered it) or in vendor/jieli-sdk/ (whole identifiers, or the parts of one between
 underscores) are not on the list. Since M4b (the owner's decision) neither
@@ -52,6 +55,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sha256sums  # noqa: E402  (tools/, our own)
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EMU = os.path.join(ROOT, "vendor", "emulator")
 SDK = os.path.join(ROOT, "vendor", "jieli-sdk")
@@ -60,6 +66,8 @@ REVIEWED = os.path.join(ROOT, "config", "emulator-terms-reviewed.json")
 # main at the end of M0a (pull request #2): written by the clean side only
 CLEAN_BASELINE = "265f15b5b646cf7d5110d4606365d82fae93f5bc"
 EXCLUDE = ("vendor/emulator/", "harness/", "sessions/", "docs/prompts/", "vendor/plaits/")
+# what we write ourselves inside an excluded vendored tree is scanned (since SR-4)
+OWN_NOTES = ("vendor/plaits/SOURCE.md",)
 DOORS = ("docs/HARNESS.md", "HARDWARE-SPEC.md", "docs/HARDWARE-SPEC.md")
 # The doors whose merged text is accepted everywhere, and the commit read for them.
 DOOR_FILES = ("docs/HARDWARE-SPEC.md", "docs/HARNESS.md")
@@ -83,9 +91,41 @@ def shaped(w):
     return bool(re.search(r"[A-Za-z]", w) and re.search(r"[0-9]", w))
 
 
+def power_of_two(v):
+    return v > 0 and v & (v - 1) == 0
+
+
+def ieee754(v):
+    """Whether v is a standard IEEE 754 single or double bit pattern: an
+    infinity or the quiet NaN (either sign; the exponent field all ones,
+    the fraction zero or only its top bit), or a signed power of two whose
+    unbiased exponent is 0, +-23 (single) or +-52 (double), i.e. one,
+    2^+-23 and 2^+-52 (the fraction zero)."""
+    for width, frac in ((32, 23), (64, 52)):
+        if v >> width:
+            continue
+        ebits = width - 1 - frac
+        emax, bias = (1 << ebits) - 1, (1 << (ebits - 1)) - 1
+        e, m = (v >> frac) & emax, v & ((1 << frac) - 1)
+        if e == emax and m in (0, 1 << (frac - 1)):
+            return True
+        if m == 0 and e - bias in (0, frac, -frac):
+            return True
+    return False
+
+
+def universal(v):
+    """Numbers that are universal constants, never emulator terms (since
+    SR-4's note; R-SEP-1), by rule rather than by list: powers of two (the
+    sign-bit masks among them), 2^n-1 (all-ones masks, the masks below a
+    sign bit, IEEE 754's exponent biases and fraction masks), 2^n+1, and
+    IEEE 754's standard single and double patterns (ieee754)."""
+    return power_of_two(v) or power_of_two(v + 1) or power_of_two(v - 1) or ieee754(v)
+
+
 def norm_hex(h):
     v = int(h[2:].replace("_", ""), 16)
-    return "0x%x" % v if v >= 0x1000 else None
+    return "0x%x" % v if v >= 0x1000 and not universal(v) else None
 
 
 def terms_of(text):
@@ -118,33 +158,10 @@ def public_terms(texts):
 
 def verified_texts(top):
     """The texts of the files top/SHA256SUMS lists, each checked against its
-    hash; ValueError names the first that is missing or doesn't match, or
-    a file there that isn't listed. Nothing else in top is read."""
-    sums = os.path.join(top, "SHA256SUMS")
-    listed = {}
-    with open(sums, encoding="utf-8") as f:
-        for line in f:
-            if line.strip():
-                want, path = line.split()
-                listed[path] = want
-    on_disk = set()
-    for dirpath, _, names in os.walk(top):
-        for n in names:
-            rel = os.path.relpath(os.path.join(dirpath, n), top)
-            if rel not in ("SHA256SUMS", "SOURCE.md"):
-                on_disk.add(rel)
-    extra = sorted(on_disk - set(listed))
-    if extra:
-        raise ValueError("%s is not in SHA256SUMS" % extra[0])
+    hash (tools/sha256sums.py); ValueError names the first that is missing
+    or doesn't match, or a file there that isn't listed."""
     texts = []
-    for path in sorted(listed):
-        try:
-            with open(os.path.join(top, path), "rb") as f:
-                data = f.read()
-        except OSError:
-            raise ValueError("%s is missing" % path)
-        if hashlib.sha256(data).hexdigest() != listed[path]:
-            raise ValueError("%s does not match its SHA-256" % path)
+    for data in sha256sums.verified(top).values():
         try:
             texts.append(data.decode("utf-8"))
         except UnicodeDecodeError:
@@ -250,7 +267,7 @@ def main():
     hits = []
     scanned = 0
     for p in tracked():
-        if p.startswith(EXCLUDE):
+        if p.startswith(EXCLUDE) and p not in OWN_NOTES:
             continue
         try:
             with open(os.path.join(ROOT, p), encoding="utf-8") as f:
