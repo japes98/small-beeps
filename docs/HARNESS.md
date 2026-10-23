@@ -306,7 +306,8 @@ values):
 - Reads outside every memory and register fwtest models give 0, writes
   there are dropped, and both are listed in `unmodelled_accesses`; so are
   writes to the code window, which are dropped too.
-- A division by zero gives 0.
+- An integer division by zero gives 0 (a float one gives an infinity or a
+  NaN, HW-63).
 - An instruction fwtest cannot decode ends the run as a fault (exit 3).
   fwtest may stop at the start of the straight-line code that holds it,
   before any of that code has run, and `result.json` then gives that

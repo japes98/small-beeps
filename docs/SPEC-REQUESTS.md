@@ -159,7 +159,7 @@ an issue or a pull request against docs/HARNESS.md.
   change to the audit tool or its settings, which are spec side. Read:
   docs/AUDIT.md, `audit/audit.json`.
 - Status: answered (docs/AUDIT.md, "Base code"; R-AUDIT-4, R-SEP-1), in
-  the pull request that follows #59; merge #59 first.
+  #63, which follows #59; merge #59 first.
   - (1) The audit: `audit/audit.json`'s `base_code` is a list. The JieLi
     SDK is base code for all our files. The vendored Plaits, only the
     files `vendor/plaits/SHA256SUMS` lists and each matching its hash (or
@@ -175,8 +175,8 @@ an issue or a pull request against docs/HARNESS.md.
     files today; with a trial glue file under `firmware/demos/plaits/`, 16
     of 16, in two passes.
   - (2) The separation check: keep #59's version. It meets the owner's
-    four conditions, and the spec side's review found one gap, which the
-    pull request after #59 closes: `vendor/plaits/SOURCE.md`, which we
+    four conditions, and the spec side's review found one gap, which #63
+    closes: `vendor/plaits/SOURCE.md`, which we
     write, was not scanned; now it is (it has no hit). The checksum code
     moved to `tools/sha256sums.py`, which the audit shares.
   - (3) #59's branch at `247ddfa`, its commits and pull request text:
@@ -188,8 +188,8 @@ an issue or a pull request against docs/HARNESS.md.
     in the check (R-SEP-1). #61's branch at `52fa29b`, its commits and
     pull request text: under #61's own copy of the check, 25 hits, its
     only failing check in CI; under the new rule, PASS, no hit (the Plaits
-    list takes off 3 terms). So #61 passes once this pull request has
-    merged and #61 has merged main.
+    list takes off 3 terms). So #61 passes once #63 has merged and
+    #61 has merged main.
 - Answered: 2026-10-23, session SR-4-6 (spec side)
 
 ### SR-5: Hardware single-precision floating point on the chip and in fwtest

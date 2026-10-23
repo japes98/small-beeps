@@ -1050,7 +1050,8 @@ requests.
   conversions between float and signed or unsigned integer, and the float
   compares) on the ordinary registers, as IEEE 754 single precision:
   - results rounded to nearest, ties to even, with subnormals kept (no
-    flush to zero); a division by zero gives an infinity of the right sign;
+    flush to zero); a division of a non-zero number by zero gives an infinity of
+    the right sign, and 0/0 a NaN;
   - multiply-add and multiply-subtract round the product before the add
     (not fused);
   - a conversion to integer truncates toward zero and saturates at the
@@ -1060,8 +1061,8 @@ requests.
     unordered negations true.
   No float condition sets an `EMU_MSG` bit or raises source 1 (HW-52).
   Each of these instructions is one instruction and one cycle, like every
-  other (HW-11); fwtest models no extra cost for divide, square root (a
-  library call, not an instruction) or conversions. Whether the chip
+  other (HW-11); fwtest models no extra cost for divide or the conversions,
+  and has no square-root instruction. Whether the chip
   rounds, keeps subnormals and treats NaNs the same way, and its cycle
   costs, is open (Q-16).
 - Sources: the emulator model; HARNESS ("Time").
