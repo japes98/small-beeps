@@ -560,11 +560,85 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     screen. The board's wiring, diodes and pin set-up are Q-7 (SR-3).
   - **Next: M4, audio.**
 
+### M4: audio (firmware side)
+- Get sound out: the audio output double-buffered on its interrupt, one
+  audio API for engines, a test instrument, underruns reported
+  (docs/prompts/M4.md).
+- Requirements: R-AUD-1 to R-AUD-7; R-IRQ-1, R-IRQ-2, R-PERF-2 and
+  R-PERF-4 amended.
+- Status 2026-10-23 (session M4, firmware side, on the owner's Mac):
+  - **Start** (#49): `tools/clean-update.sh` passed. M3's transcript was
+    archived; the restart session after M3's server stopped is in the same
+    transcript. Its 18 flagged calls (47 entries) were reviewed, and the
+    owner approved them in the session.
+  - **The transcript check** (#51, the owner's request): it now tells an
+    access from a mention. It strips only the spans it can prove are
+    mentions, matches the same rules against the rest, and never flags
+    more than text matching. Text matching still runs, report only. Of the
+    124 REVIEWED.json entries that clear a hit, 70 would not have been
+    flagged.
+  - **Tidy-up** (#50): SPI1's handler path for a polled transfer's
+    interrupt, unused since fwtest 0.2.0, removed. A build that halted on
+    that path passed the whole suite first.
+  - **M4 budgets** (#52): code 10 240, static RAM 131 072, stack 512,
+    startup 1 572 864, steady state 2 048 instructions an audio block.
+  - **Firmware** (docs/DESIGN-NOTES.md, M4):
+    - **Output:** `JL_ALNK0` at 24 MHz / 544 = 44 117.647 Hz, two halves of
+      64 stereo frames (1.451 ms each), 24-bit samples. Source 11's handler
+      refills the finished half at the lowest priority; the scan and SPI1
+      are at 1 and the tick at 2. Output latency is one to two blocks.
+    - **The audio API** (`firmware/src/audio.h`): one block callback that
+      writes 64 frames straight into the half to be played. The engine
+      reads events with `input_read_audio` (`input.h`), from its own queue
+      of the same events.
+    - **Underruns:** a half missed, or a refill still going when the next
+      half finishes, is counted and reported as `AUDIO UNDERRUN nnnn` on
+      the debug channel.
+    - **The test instrument** (`firmware/src/synth.c`): four sine voices
+      on the 27 keys (KEY1 = F3, OCT-/OCT+ two octaves each way), 5 ms
+      attack and 20 ms release, level from MASTER (its position squared),
+      and a 1 kHz test tone at -6 dBFS on PLAY. Fixed point throughout,
+      with the sine table computed at startup. Core 1 stays parked.
+  - **Results** (local runs; the merges' records are authoritative), by
+    our own analysis at the true rate (`tools/audio_analysis.py`):
+    - Test tone: 1 000.000000 Hz (0.00000 cents), -6.021 dBFS, THD+N
+      -92.2 dB.
+    - Eight notes F1 to G7 within 0.0003 cents, levels within 0.001 dB.
+    - No clicks at any start or stop; digital silence at rest.
+    - Key contact to sound 4.8 to 6.8 ms; press event to sound 1.6 to
+      2.9 ms.
+    - 11 s of M3's heaviest input with every voice and the tone: no
+      underrun, every tick on time, and every one of 5 886 events reached
+      the engine. The longest refill was 40 µs of a 1 451 µs block.
+    - A test build late for one block in 64 reported each late block
+      once. The golden WAV matched exactly.
+  - **Cost and headroom for M5**, instructions an audio block of 348 160
+    cycles (R-PERF-2's period from M4):
+    - Without audio, about 1 440 (M3's input).
+    - The output path alone, 1 742.
+    - The instrument at rest, 1 813 (0.52% of core 0).
+    - All five oscillators, 9 927 (2.85%).
+    - About 345 000 cycles a block, 99% of core 0, are left for M5's engine
+      (less main's drawing), and core 1 is free. fwtest runs one
+      instruction a cycle; the chip, running from flash through its
+      cache, will be slower.
+    - Code 8 636 bytes, static RAM 123 936, stack 336, startup 1 058 323.
+  - **Open:** Q-9, the chip's codec, clock and true rate (fwtest needs no
+    set-up).
+  - **Next:**
+    - **M4b**, a platform test: port a permissively licensed engine from
+      its original source as a separate demo build, to measure real DSP
+      load through the audio API. Mutable Instruments' Plaits (MIT) is
+      the first candidate. Each source is logged in PROVENANCE.md, and
+      the firmware itself is unchanged.
+    - Then **M5**, the FM engine.
+
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer (done; above).
 - **M2** screen (done; above).
 - **M3** keys, encoders, pot, LEDs (done; above).
-- **M4** audio.
+- **M4** audio (done; above). **M4b** a platform test: a ported
+  permissively licensed engine (Plaits, MIT, first) as a demo build.
 - **M5** the FM engine.
 - **M6** MIDI in.
 - **M7** flash storage.

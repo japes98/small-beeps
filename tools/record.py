@@ -6,7 +6,9 @@
   record.py run --out DIR [--only C-A,C-B] [--skip C-X] [--with-merge]
       Runs the checks in CHECKS, writes DIR/report.json, DIR/report.md,
       DIR/logs/<check>.log, DIR/outputs/ (the build outputs), DIR/fwtest/
-      (the firmware suite's outputs), DIR/spec-experiments.sha256 (the
+      (the firmware suite's outputs, but since M4 its audio captures only
+      as names and SHA-256 in DIR/fwtest-audio.sha256: about a megabyte a
+      record otherwise), DIR/spec-experiments.sha256 (the
       names and SHA-256 of the spec experiments' outputs, never the files)
       and DIR/SHA256SUMS (of all of those). Exit status 1 if any check failed.
       Before hashing, C-RECORD-PRIVATE withholds any file holding a private
@@ -119,12 +121,13 @@ CHECKS = [
     # The firmware (M0d): its size from build A, and its fwtest suite.
     {"id": "C-FW-SIZE", "title": "Firmware image size (code, data, bss) from build A",
      "reqs": ["R-BUILD-2"], "internal": "firmware_size"},
-    {"id": "C-FW-SUITE", "title": "Firmware in fwtest: boot, clock, tick and heartbeat timing, vector table, idle, fault and stray reports, the screen, the panel's keys, encoders, pot and LEDs (tests/fw/boot.suite)",
+    {"id": "C-FW-SUITE", "title": "Firmware in fwtest: boot, clock, tick and heartbeat timing, vector table, idle, fault and stray reports, the screen, the panel's keys, encoders, pot and LEDs, the audio output and the test instrument (tests/fw/boot.suite)",
      "reqs": ["R-BOOT-1", "R-BOOT-2", "R-BOOT-3", "R-BOOT-4", "R-BOOT-5", "R-CLK-1",
               "R-IRQ-1", "R-IRQ-2", "R-IRQ-3", "R-IRQ-4",
               "R-LCD-1", "R-LCD-2", "R-LCD-3", "R-LCD-4", "R-LCD-5",
               "R-KEY-1", "R-KEY-2", "R-KEY-3", "R-ENC-1", "R-ENC-2", "R-POT-1", "R-POT-2",
-              "R-LED-1", "R-LED-2", "R-LED-3", "R-INPUT-1", "R-INPUT-2", "R-INPUT-3"],
+              "R-LED-1", "R-LED-2", "R-LED-3", "R-INPUT-1", "R-INPUT-2", "R-INPUT-3",
+              "R-AUD-1", "R-AUD-2", "R-AUD-3", "R-AUD-4", "R-AUD-5", "R-AUD-6", "R-AUD-7"],
      "cmd": lambda: [PY, "-I", "tools/fw-suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "fwtest")]},
     # Performance (M0e): size, RAM, stack high-water and speed, gated.
@@ -290,6 +293,23 @@ def hashes_only(top, manifest):
         for name in sorted(files):
             f.write("%s  %s\n" % (files[name], name))
     shutil.rmtree(top)
+
+
+def audio_hashes_only(top, manifest, ext=".wav"):
+    """Since M4: replaces the firmware suite's audio captures under top
+    with a list of their names and SHA-256 in manifest. The suite checked
+    them, and they are deterministic, so the hash is enough to match a
+    rerun; the rest of the suite's outputs stay."""
+    if not os.path.isdir(top):
+        return
+    files = {n: h for n, h in tree_files(top).items() if n.endswith(ext)}
+    if not files:
+        return
+    with open(manifest, "w") as f:
+        for name in sorted(files):
+            f.write("%s  %s\n" % (files[name], name))
+    for name in files:
+        os.remove(os.path.join(top, name))
 
 
 def dockerfile_pins():
@@ -520,6 +540,7 @@ def cmd_run(a):
     for d in ("build-a", "build-b", "harness-a", "harness-b"):
         shutil.rmtree(os.path.join(OUT, d), ignore_errors=True)
     hashes_only(os.path.join(OUT, "spec-experiments"), os.path.join(OUT, "spec-experiments.sha256"))
+    audio_hashes_only(os.path.join(OUT, "fwtest"), os.path.join(OUT, "fwtest-audio.sha256"))
     for c in CHECKS:
         if not c.get("last") or c["id"] in skip or (only is not None and c["id"] not in only):
             continue

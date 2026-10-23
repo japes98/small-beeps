@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# audiogold (tests/fw/boot.suite): a note and the test tone, short enough
+# to keep the whole output as a golden WAV, compared exactly.
+#
+# time   event
+100      key 30 tap 100
+300      key 12 tap 50

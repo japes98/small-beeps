@@ -5,14 +5,16 @@
  * The firmware's main: check that startup gave C its memory, write the
  * marker, measure the core clock, start the 1 ms tick interrupt that
  * keeps the heartbeat (M1), bring up the screen and show the address
- * pattern, then the test screen (M2), start scanning the panel (M3), and
- * idle between interrupts, putting the heartbeat on the screen once a
+ * pattern, then the test screen (M2), start scanning the panel (M3) and
+ * the audio output with the test instrument (M4), and idle between
+ * interrupts, putting the heartbeat on the screen once a
  * second and showing the panel's controls on the panel screen from the
  * first touch on.
  */
 
 #include "sb.h"
 #include "input.h"
+#include "audio.h"
 #include "WL82.h"
 
 /* HW-25: in fwtest each word written here is appended to the console. The
@@ -33,11 +35,12 @@
 
 /* HW-19, HW-20: the sources main enables, and their priorities. The tick
  * is above SPI1's, so a tick waits at most for one short SPI1 handler
- * (DESIGN-NOTES.md, M2). */
+ * (DESIGN-NOTES.md, M2); since M4 both are above the audio engine's (0),
+ * which they may interrupt (DESIGN-NOTES.md, M4). */
 #define SRC_TIMER0   4u
 #define SRC_SPI1     16u
-#define PRIO_TICK    1u
-#define PRIO_SPI1    0u
+#define PRIO_TICK    2u
+#define PRIO_SPI1    1u
 
 /* When the test screen replaces the address pattern, in beats. */
 #define TEST_SCREEN_MS 500u
@@ -58,6 +61,18 @@ static volatile u32 bss_probe;
 static u32 tb_start, tb_done, tb_last, next_second = 1000;
 
 volatile u32 sb_work, sb_seconds;
+
+#if defined(SB_COST_SILENT_ENGINE)
+/* The output path's own cost (docs/DESIGN-NOTES.md, M4): an engine that
+ * only writes silence. */
+static void sb_silent_block(s32 *out, u32 frames)
+{
+    u32 n;
+
+    for (n = 0; n < 2 * frames; n++)
+        out[n] = 0;
+}
+#endif
 
 u32 sb_now(void)
 {
@@ -140,7 +155,7 @@ void sb_tick(void)
 
 int main(void)
 {
-    static const char hello[16] = "small-beeps M3 \n";
+    static const char hello[16] = "small-beeps M4 \n";
 
     sb_beacon.period = TICKS_PER_MS;
     if (data_probe == 0x5EED0001u && bss_probe == 0) {
@@ -170,6 +185,16 @@ int main(void)
     JL_TIMER0->PRD = TICK_PRD;
     JL_TIMER0->CON = TICK_CON;
     input_start();
+    synth_init();
+#if defined(SB_COST_NO_AUDIO)
+    (void)synth_block;
+#elif defined(SB_COST_SILENT_ENGINE)
+    audio_start(sb_silent_block);
+#elif defined(SB_TEST_UNDERRUN)
+    audio_start(sb_test_late_block);
+#else
+    audio_start(synth_block);
+#endif
 #if defined(SB_TEST_LEDS)
     sb_test_leds();
 #endif
@@ -207,7 +232,8 @@ int main(void)
 #endif
 
     /* Between interrupts the core waits. Since M3 the input scan wakes it
-     * twelve times a tick as well, so each wake only looks whether the
+     * twelve times a tick as well (and since M4 the audio output once a
+     * block), so each wake only looks whether the
      * tick (at a whole second) or the scan (with an event) added work,
      * and the rest is done then (DESIGN-NOTES.md, M3). The wakes are
      * counted in a register and reach the beacon, with the ticks taken,

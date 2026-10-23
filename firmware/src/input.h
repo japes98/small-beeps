@@ -13,6 +13,8 @@
  *   changes only input.c's tables.
  * - input_value() gives a control's present state at any time.
  * - input_led() sets the LED of a button or key, with a brightness.
+ * - Since M4, input_read_audio() hands the same events to the audio
+ *   engine, from a queue of its own (audio.h).
  */
 
 #ifndef INPUT_H
@@ -90,6 +92,12 @@ _Static_assert(sizeof(struct input_event) == 8, "an event is 8 bytes");
 /* Takes the oldest event into *e: 1, or 0 if there is none. Main context
  * only (one reader). */
 int input_read(struct input_event *e);
+
+/* The same events for the audio engine (since M4): a queue of its own,
+ * INPUT_QUEUE events, read only from the engine's block callback
+ * (audio.h), so it never competes with main. When it is full, new events
+ * are dropped and counted (sb_audio.dropped). */
+int input_read_audio(struct input_event *e);
 
 /* A control's present state: 1 while a button or key is held, else 0; an
  * encoder's position (detents since start, clockwise positive); the pot's

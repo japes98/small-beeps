@@ -130,6 +130,23 @@ class RecordTest(unittest.TestCase):
             rec.CHECKS[:] = saved
             shutil.rmtree(out)
 
+    def test_the_suites_audio_captures_are_kept_as_hashes_only(self):
+        # since M4: the WAVs go, their names and SHA-256 stay; the rest of
+        # the suite's outputs stay as they are
+        out = tempfile.mkdtemp()
+        try:
+            top = os.path.join(out, "fwtest", "tone")
+            os.makedirs(top)
+            for name, data in (("audio.wav", b"RIFF"), ("ipb.csv", b"block\n")):
+                with open(os.path.join(top, name), "wb") as f:
+                    f.write(data)
+            rec.audio_hashes_only(os.path.join(out, "fwtest"), os.path.join(out, "fwtest-audio.sha256"))
+            self.assertEqual(sorted(os.listdir(top)), ["ipb.csv"])
+            with open(os.path.join(out, "fwtest-audio.sha256")) as f:
+                self.assertEqual(f.read(), "%s  tone/audio.wav\n" % rec.hashlib.sha256(b"RIFF").hexdigest())
+        finally:
+            shutil.rmtree(out)
+
     def test_a_record_file_holding_a_private_term_is_withheld(self):
         out = tempfile.mkdtemp()
         saved, saved_env = list(rec.CHECKS), os.environ.get("PRIVATE_TERMS")
