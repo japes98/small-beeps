@@ -5,11 +5,14 @@
  * The firmware's main: check that startup gave C its memory, write the
  * marker, measure the core clock, start the 1 ms tick interrupt that
  * keeps the heartbeat (M1), bring up the screen and show the address
- * pattern, then the test screen (M2), and idle between ticks, putting the
- * heartbeat on the screen once a second.
+ * pattern, then the test screen (M2), start scanning the panel (M3), and
+ * idle between interrupts, putting the heartbeat on the screen once a
+ * second and showing the panel's controls on the panel screen from the
+ * first touch on.
  */
 
 #include "sb.h"
+#include "input.h"
 #include "WL82.h"
 
 /* HW-25: in fwtest each word written here is appended to the console. The
@@ -51,12 +54,19 @@ static volatile u32 bss_probe;
 
 /* The heartbeat's state, kept by sb_tick: the time base when main started
  * it, the ticks counted into beats so far, the time base at the last
- * tick. */
-static u32 tb_start, tb_done, tb_last;
+ * tick; and the next whole second. */
+static u32 tb_start, tb_done, tb_last, next_second = 1000;
+
+volatile u32 sb_work, sb_seconds;
 
 u32 sb_now(void)
 {
     return JL_TIMER4->CNT;
+}
+
+u32 sb_ticks(void)
+{
+    return JL_TIMER4->CNT - tb_start;
 }
 
 /* Waits at least ms milliseconds on the heartbeat, idling between ticks:
@@ -113,6 +123,13 @@ void sb_tick(void)
     sb_beacon.beats_b = beats;
     sb_beacon.ticks_b = now;
     sb_beacon.seq++;
+    /* A whole second: main puts it on the screen (since M3 the tick tells
+     * it, as the input scan's interrupts wake main too). */
+    if (beats >= next_second) {
+        next_second += BEATS_PER_SECOND;
+        sb_seconds++;
+        sb_work++;
+    }
 
     /* Each stack's lowest word still holds the fill: nothing ran past it. */
     if (__irq_stack_top[0] != SB_STACK_FILL)
@@ -123,7 +140,7 @@ void sb_tick(void)
 
 int main(void)
 {
-    static const char hello[16] = "small-beeps M2 \n";
+    static const char hello[16] = "small-beeps M3 \n";
 
     sb_beacon.period = TICKS_PER_MS;
     if (data_probe == 0x5EED0001u && bss_probe == 0) {
@@ -152,6 +169,10 @@ int main(void)
     JL_TIMER0->CNT = 0;
     JL_TIMER0->PRD = TICK_PRD;
     JL_TIMER0->CON = TICK_CON;
+    input_start();
+#if defined(SB_TEST_LEDS)
+    sb_test_leds();
+#endif
     sb_irq_on();
 
 #if defined(SB_TEST_FAULT)
@@ -185,31 +206,34 @@ int main(void)
     sb_test_flood();
 #endif
 
-    /* Between ticks the core waits. Each return from the wait is one tick
-     * (in steady state nothing else wakes it: the heartbeat's rows go as
-     * one transfer whose end is polled), so counting them in a register
-     * finds each whole second without reading anything else, and the
-     * heartbeat goes on the screen then. The count reaches the beacon once
-     * a second, with the ticks taken at that moment, so the test can still
-     * check one wake a tick while the loop stays three instructions, as in
-     * M1 (DESIGN-NOTES.md, M2). */
+    /* Between interrupts the core waits. Since M3 the input scan wakes it
+     * twelve times a tick as well, so each wake only looks whether the
+     * tick (at a whole second) or the scan (with an event) added work,
+     * and the rest is done then (DESIGN-NOTES.md, M3). The wakes are
+     * counted in a register and reach the beacon, with the ticks taken,
+     * whenever there is work, for the test of R-IRQ-1. An interrupt that
+     * adds work between the test and the idle leaves it until the next
+     * wake, at most one scan slot (83 us) later. */
     {
-        u32 wakes, next, b;
+        u32 wakes, seen, second;
 
         lcd_wait();
         wakes = sb_beacon.wakes;
-        b = sb_beacon.beats;
         sb_beacon.loop_ticks = sb_beacon.tick_count;
-        while (b >= BEATS_PER_SECOND)
-            b -= BEATS_PER_SECOND;
-        next = wakes + BEATS_PER_SECOND - b;
+        seen = sb_work;
+        second = sb_seconds;
         for (;;) {
             __asm__ volatile("idle");
-            if (++wakes == next) {
-                next += BEATS_PER_SECOND;
+            wakes++;
+            if (sb_work != seen) {
+                seen = sb_work;
                 sb_beacon.wakes = wakes;
                 sb_beacon.wakes_ticks = sb_beacon.tick_count;
-                screen_beat();
+                panel_serve();
+                while (second != sb_seconds) {
+                    second++;
+                    screen_beat();
+                }
             }
         }
     }

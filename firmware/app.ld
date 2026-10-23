@@ -39,10 +39,12 @@ SECTIONS
         . = ALIGN(4);
     } > IMAGE
 
-    /* Fixed at the start of RAM so the tests know where it is. */
+    /* Fixed at the start of RAM so the tests know where it is: the
+     * beacon, then (since M3) the input record. */
     .beacon (NOLOAD) : {
         __bss_start = .;
         KEEP(*(.beacon))
+        KEEP(*(.beacon.input))
     } > RAM
 
     .bss (NOLOAD) : {
@@ -67,6 +69,7 @@ SECTIONS
     __vectors = 0x01C7FE00;
 
     ASSERT(ADDR(.beacon) == 0x01C00000, "the beacon must start main RAM")
+    ASSERT(sb_input == 0x01C00060, "the input record must follow the beacon (M3)")
     ASSERT(__data_end <= __stack_limit, "data and bss run into the stack")
     ASSERT(__stack_top == 0x01C7FC00, "the stack must end below the reserved top of RAM")
     ASSERT(__stack_top % 8 == 0, "the stack must be 8-byte aligned")
