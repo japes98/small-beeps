@@ -15,6 +15,7 @@
  */
 
 #include "input.h"
+#include "audio.h"
 #include "WL82.h"
 
 /* HW-33: the column shift registers on port A. A rising edge of PA3
@@ -44,9 +45,10 @@
 #define SCAN_ACK  (1u << 14)
 #define SCAN_PRD  125u
 #define SRC_TIMER1 5u
-/* Below the tick (1), which may preempt it, and level with SPI1 (0):
- * docs/DESIGN-NOTES.md, M3. */
-#define PRIO_SCAN 0u
+/* Below the tick (2), which may preempt it, level with SPI1 (1), and
+ * above the audio engine (0), which it may preempt: docs/DESIGN-NOTES.md,
+ * M3 and M4. */
+#define PRIO_SCAN 1u
 
 /* HW-40: the SARADC. CON bits 8-11 the channel (the pot is 4), bit 4
  * enables, bit 6 with it starts a conversion, bit 7 reads 1 when it is
@@ -113,6 +115,9 @@ static u32 pot_sum, pot_next, pot_shown;
 
 static struct input_event queue[INPUT_QUEUE];
 static volatile u32 queue_in, queue_out;
+/* The audio engine's queue (since M4). */
+static struct input_event audio_queue[INPUT_QUEUE];
+static volatile u32 audio_in, audio_out;
 /* The time of the last event input_read() handed out. */
 static u32 taken_time;
 #if defined(SB_TEST_LED_SHOW)
@@ -141,6 +146,17 @@ static void emit(u32 control, u32 kind, int value)
         e->value = (s16)value;
         e->time = t;
         queue_in = in + 1;
+    }
+    in = audio_in;
+    if (in - audio_out >= INPUT_QUEUE) {
+        sb_audio.dropped++;
+    } else {
+        struct input_event *e = &audio_queue[in % INPUT_QUEUE];
+        e->control = (u8)control;
+        e->kind = (u8)kind;
+        e->value = (s16)value;
+        e->time = t;
+        audio_in = in + 1;
     }
     sb_work++;
 }
@@ -305,6 +321,17 @@ int input_read(struct input_event *e)
     taken_time = e->time;
     queue_out = out + 1;
     sb_input.taken++;
+    return 1;
+}
+
+int input_read_audio(struct input_event *e)
+{
+    u32 out = audio_out;
+
+    if (out == audio_in)
+        return 0;
+    *e = audio_queue[out % INPUT_QUEUE];
+    audio_out = out + 1;
     return 1;
 }
 

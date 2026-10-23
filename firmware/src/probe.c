@@ -11,12 +11,14 @@
  * SB_TEST_FLOOD, which keeps the panel busy (R-LCD-5), SB_TEST_LEDS,
  * which sets every LED to its own brightness (R-LED-2), and
  * SB_TEST_LED_SHOW, whose scan times when it first drives an LED just set
- * (input.c; R-LED-3). The firmware itself
+ * (input.c; R-LED-3), and SB_TEST_UNDERRUN, whose engine is late for a
+ * block on purpose (R-AUD-3). The firmware itself
  * is built with none, and then nothing here is compiled.
  */
 
 #include "sb.h"
 #include "input.h"
+#include "audio.h"
 #include "WL82.h"
 
 #if defined(SB_PROBE_STACK)
@@ -147,5 +149,21 @@ void sb_test_leds(void)
 
     for (n = 0; n < INPUT_LEDS; n++)
         input_led(n, n % 9 * INPUT_LED_FULL / 8);
+}
+#endif
+
+#if defined(SB_TEST_UNDERRUN)
+/* The test instrument, late on purpose for one block in 64: it runs on
+ * for about 1.2 blocks (420 000 instructions at one a cycle) after
+ * filling it, so the next half finishes first. Each must be counted and
+ * reported once, "AUDIO UNDERRUN nnnn", and the output must go on. */
+void sb_test_late_block(s32 *out, u32 frames)
+{
+    volatile u32 i;
+
+    synth_block(out, frames);
+    if (sb_audio.blocks % 64 == 32)
+        for (i = 0; i < 105000; i++)
+            ;
 }
 #endif
