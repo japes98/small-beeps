@@ -594,7 +594,13 @@ training cutoff (see "Model cutoffs" below).
     pathspec asked for a staged spec-side blob and was refused (lazy
     fetching off), so nothing reached `.git`; `tools/clean-update.sh`
     passed again after each merge. Main's SR-3 had taken P-23, so the
-    session's provenance became P-24 and P-25.
+    session's provenance became P-24 and P-25. To see why #42's speed
+    gate was not compared after the owner merged #38, #39, #41 and #43,
+    it fetched the records branch's commits and trees (a blob-less fetch:
+    no file contents) and read two named files, the `report.json` of
+    #41's and #43's merge records, printing only their perf budgets,
+    baseline note and speed verdict; `tools/clean-update.sh` passed
+    after.
   - **Exposure:** still none.
 
 ### Session audit-selftest (the similarity audit's self-test)

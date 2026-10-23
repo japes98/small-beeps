@@ -27,7 +27,7 @@ redacts:
     tools/private-terms.local; tools/check-private.py), anywhere;
   - in clean transcripts only: the lines of a git summary (a merge's
     diffstat, `create mode` and `delete mode` lines) that name files under
-    vendor/emulator/, harness/ or sessions/spec/. Each run of such lines
+    the spec-side folders (config/spec-side-folders). Each run of such lines
     becomes one note saying how many were removed. A name shortened to
     `.../tail` counts when its tail matches only such files.
 It writes `<same name>.REDACTIONS.md` beside the copy, saying what was
@@ -129,7 +129,14 @@ def private_rules():
     return [("private term", re.compile(re.escape(t), re.I), "[REDACTED:private]") for t in terms]
 
 
-SPEC_DIRS = ("vendor/emulator/", "harness/", "sessions/spec/")
+def spec_dirs(path=os.path.join(ROOT, "config", "spec-side-folders")):
+    """The spec-side folders, each ending in a slash, from
+    config/spec-side-folders (since M3: one list for every barrier tool)."""
+    with open(path, encoding="utf-8") as f:
+        return tuple(l.split("\t")[0] + "/" for l in f if l.strip() and not l.startswith("#"))
+
+
+SPEC_DIRS = spec_dirs()
 # One line of a git summary inside a JSON string: " path | 12 +-" or
 # " create mode 100644 path". Lines are split on the JSON escape \n.
 STAT_LINE = re.compile(r'^ (?:(?:create|delete) mode \d{6} (?P<m>[^\s"\\]+)'
