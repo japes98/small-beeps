@@ -53,6 +53,94 @@ class EmulatorTermsTest(unittest.TestCase):
         self.assertNotIn("sha256", found, "words the clean side already used are not terms")
 
 
+class PlaitsTermsTest(unittest.TestCase):
+    """Since M4b (the owner's decision): the terms of vendor/plaits/, read
+    only from its checksum-verified files, are public, like the SDK's; the
+    check says how many emulator terms that takes off, and doesn't scan
+    vendor/plaits/ itself. Requirements: R-SEP-1"""
+
+    def write(self, path, text):
+        os.makedirs(os.path.dirname(os.path.join(self.dir, path)), exist_ok=True)
+        with open(os.path.join(self.dir, path), "w") as f:
+            f.write(text)
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        # made-up words, built at run time
+        self.plaits_word, self.other = "plaits" + "_only_term", "nowhere" + "_else_term"
+        subprocess.run(["git", "-C", self.dir, "init", "-q", "-b", "main"], check=True)
+        self.write("vendor/emulator/model.rs", "%s %s\n" % (self.plaits_word, self.other))
+        self.write("vendor/plaits/eurorack/plaits/dsp/x.cc", "float %s;\n" % self.plaits_word)
+        self.sums()
+        self.write("docs/NOTES.md", "%s\n%s\n" % (self.plaits_word, self.other))
+        subprocess.run(["git", "-C", self.dir, "add", "-A"], check=True)
+        self.saved = (terms.ROOT, terms.EMU, terms.SDK, terms.REVIEWED, terms.baseline_texts, terms.PLAITS)
+        terms.ROOT, terms.EMU = self.dir, os.path.join(self.dir, "vendor", "emulator")
+        terms.SDK = terms.REVIEWED = os.path.join(self.dir, "none")
+        terms.PLAITS = os.path.join(self.dir, "vendor", "plaits")
+        terms.baseline_texts = lambda: iter(())
+        self.env = dict(os.environ)
+
+    def sums(self):
+        import hashlib
+        top = os.path.join(self.dir, "vendor", "plaits")
+        lines = []
+        for dirpath, _, names in os.walk(top):
+            for n in names:
+                rel = os.path.relpath(os.path.join(dirpath, n), top)
+                if rel != "SHA256SUMS":
+                    with open(os.path.join(dirpath, n), "rb") as f:
+                        lines.append("%s %s\n" % (hashlib.sha256(f.read()).hexdigest(), rel))
+        with open(os.path.join(top, "SHA256SUMS"), "w") as f:
+            f.write("".join(sorted(lines, key=lambda l: l.split()[1])))
+
+    def tearDown(self):
+        terms.ROOT, terms.EMU, terms.SDK, terms.REVIEWED, terms.baseline_texts, terms.PLAITS = self.saved
+        os.environ.clear()
+        os.environ.update(self.env)
+        shutil.rmtree(self.dir)
+
+    def run_check(self):
+        os.environ["DOORS_REF"] = "no-such-ref"
+        os.environ["COMMIT_RANGE"] = "HEAD..HEAD"
+        os.environ.pop("GITHUB_EVENT_PATH", None)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = terms.main()
+        return code, out.getvalue()
+
+    def test_a_plaits_term_passes_and_one_in_neither_fails(self):
+        found, by_plaits = terms.emulator_terms_counted()
+        self.assertNotIn(self.plaits_word, found)
+        self.assertIn(self.other, found)
+        self.assertEqual(by_plaits, 1)
+        code, out = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("HIT docs/NOTES.md:2 term %s" % terms.h(self.other), out)
+        self.assertNotIn("docs/NOTES.md:1", out)
+        self.assertIn("took 1 of the emulator's terms off the list", out)
+        self.assertNotIn(self.plaits_word, out)
+        self.assertNotIn(self.other, out)
+
+    def test_vendor_plaits_itself_is_not_scanned(self):
+        self.assertIn("vendor/plaits/", terms.EXCLUDE)
+        code, out = self.run_check()
+        self.assertNotIn("vendor/plaits/", "".join(l for l in out.splitlines(True) if l.startswith("HIT")))
+
+    def test_only_the_checksum_verified_tree_counts(self):
+        # a changed file, or one SHA256SUMS doesn't list, fails the check
+        self.write("vendor/plaits/eurorack/plaits/dsp/x.cc", "float %s; // changed\n" % self.plaits_word)
+        code, out = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("does not match its SHA-256", out)
+        self.sums()
+        self.write("vendor/plaits/eurorack/plaits/dsp/extra.cc", "int %s;\n" % self.other)
+        code, out = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("is not in SHA256SUMS", out)
+        self.assertNotIn(self.other, out)
+
+
 class DoorsOnMainTest(unittest.TestCase):
     """Terms in the doors as merged on main are accepted; a door's text on a
     branch is not. Requirements: R-SEP-1, R-SPEC-2"""
@@ -82,14 +170,14 @@ class DoorsOnMainTest(unittest.TestCase):
         self.write("docs/NOTES.md", "%s and %s, at 0x1c7f0\n" % (self.merged, self.new))
         self.git("add", "-A")
         self.git("commit", "-q", "-m", "branch")
-        self.saved = (terms.ROOT, terms.EMU, terms.SDK, terms.REVIEWED, terms.baseline_texts)
+        self.saved = (terms.ROOT, terms.EMU, terms.SDK, terms.REVIEWED, terms.baseline_texts, terms.PLAITS)
         terms.ROOT, terms.EMU = self.dir, os.path.join(self.dir, "vendor", "emulator")
-        terms.SDK = terms.REVIEWED = os.path.join(self.dir, "none")
+        terms.SDK = terms.REVIEWED = terms.PLAITS = os.path.join(self.dir, "none")
         terms.baseline_texts = lambda: iter(())
         self.env = dict(os.environ)
 
     def tearDown(self):
-        terms.ROOT, terms.EMU, terms.SDK, terms.REVIEWED, terms.baseline_texts = self.saved
+        terms.ROOT, terms.EMU, terms.SDK, terms.REVIEWED, terms.baseline_texts, terms.PLAITS = self.saved
         os.environ.clear()
         os.environ.update(self.env)
         shutil.rmtree(self.dir)
