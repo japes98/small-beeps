@@ -6,9 +6,11 @@
   check-emulator-terms.py [--show]
 
 Looks for identifiers that occur in vendor/emulator/ and nowhere in
-vendor/jieli-sdk/, in the places the firmware side reads:
+vendor/jieli-sdk/ or (since M4b) vendor/plaits/, in the places the firmware
+side reads:
   - every tracked text file outside vendor/emulator/, harness/, sessions/
-    (transcripts) and docs/prompts/ (prompts are kept verbatim);
+    (transcripts), docs/prompts/ (prompts are kept verbatim) and
+    vendor/plaits/ (third-party code we didn't write, since M4b);
   - the two doors, docs/HARNESS.md and docs/HARDWARE-SPEC.md, and their
     reviews in docs/reviews/, for identifier-shaped words only: they carry
     addresses and other numbers on purpose, each one sourced, and people
@@ -22,7 +24,12 @@ digits mixed; four characters or more, not just hex digits) and hex numbers
 of four digits or more. Terms that already occur in CLEAN_BASELINE's tree
 (the repository as the clean side left it at the end of M0a, before any
 emulator source entered it) or in vendor/jieli-sdk/ (whole identifiers, or the parts of one between
-underscores) are not on the list. A hit is reported as its place and a SHA-256 prefix of the word, never
+underscores) are not on the list. Since M4b (the owner's decision) neither
+are the terms of vendor/plaits/, Mutable Instruments' Plaits, MIT, built
+the same way as the SDK's, but only from the files vendor/plaits/SHA256SUMS
+lists, each matching its hash (the pinned upstream tree, R-REPRO-7); if any
+doesn't, the check fails. The output says how many emulator-only terms the
+Plaits list takes off (a count, never the terms). A hit is reported as its place and a SHA-256 prefix of the word, never
 the word or the text around it, because the log is visible to the firmware
 side; `--show` prints the word too, for a spec-side author fixing it.
 
@@ -48,10 +55,11 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EMU = os.path.join(ROOT, "vendor", "emulator")
 SDK = os.path.join(ROOT, "vendor", "jieli-sdk")
+PLAITS = os.path.join(ROOT, "vendor", "plaits")
 REVIEWED = os.path.join(ROOT, "config", "emulator-terms-reviewed.json")
 # main at the end of M0a (pull request #2): written by the clean side only
 CLEAN_BASELINE = "265f15b5b646cf7d5110d4606365d82fae93f5bc"
-EXCLUDE = ("vendor/emulator/", "harness/", "sessions/", "docs/prompts/")
+EXCLUDE = ("vendor/emulator/", "harness/", "sessions/", "docs/prompts/", "vendor/plaits/")
 DOORS = ("docs/HARNESS.md", "HARDWARE-SPEC.md", "docs/HARDWARE-SPEC.md")
 # The doors whose merged text is accepted everywhere, and the commit read for them.
 DOOR_FILES = ("docs/HARDWARE-SPEC.md", "docs/HARNESS.md")
@@ -96,20 +104,70 @@ def walk_text(top):
                 continue
 
 
-def emulator_terms():
+def public_terms(texts):
+    """The terms of a public source's texts, with the parts of each
+    identifier between underscores (JL_TIMER4 names TIMER4, IRQ_SPI1_IDX
+    names SPI1)."""
+    known = set()
+    for text in texts:
+        t = terms_of(text)
+        known |= t
+        known |= set(w for x in t if not x.startswith("0x") for w in x.split("_") if shaped(w))
+    return known
+
+
+def verified_texts(top):
+    """The texts of the files top/SHA256SUMS lists, each checked against its
+    hash; ValueError names the first that is missing or doesn't match, or
+    a file there that isn't listed. Nothing else in top is read."""
+    sums = os.path.join(top, "SHA256SUMS")
+    listed = {}
+    with open(sums, encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                want, path = line.split()
+                listed[path] = want
+    on_disk = set()
+    for dirpath, _, names in os.walk(top):
+        for n in names:
+            rel = os.path.relpath(os.path.join(dirpath, n), top)
+            if rel not in ("SHA256SUMS", "SOURCE.md"):
+                on_disk.add(rel)
+    extra = sorted(on_disk - set(listed))
+    if extra:
+        raise ValueError("%s is not in SHA256SUMS" % extra[0])
+    texts = []
+    for path in sorted(listed):
+        try:
+            with open(os.path.join(top, path), "rb") as f:
+                data = f.read()
+        except OSError:
+            raise ValueError("%s is missing" % path)
+        if hashlib.sha256(data).hexdigest() != listed[path]:
+            raise ValueError("%s does not match its SHA-256" % path)
+        try:
+            texts.append(data.decode("utf-8"))
+        except UnicodeDecodeError:
+            continue
+    return texts
+
+
+def emulator_terms_counted():
+    """(the emulator-only terms, how many of the emulator's terms only the
+    Plaits list took off). ValueError if vendor/plaits/ isn't the
+    checksum-verified tree."""
     emu = set()
     for text in walk_text(EMU):
         emu |= terms_of(text)
-    known = set()
-    for text in walk_text(SDK):
-        sdk = terms_of(text)
-        known |= sdk
-        # the parts of an SDK identifier are SDK names too (JL_TIMER4 names
-        # TIMER4, IRQ_SPI1_IDX names SPI1)
-        known |= set(w for t in sdk if not t.startswith("0x") for w in t.split("_") if shaped(w))
-    for text in baseline_texts():
-        known |= terms_of(text)
-    return emu - known
+    known = public_terms(walk_text(SDK))
+    known |= set().union(*(terms_of(text) for text in baseline_texts()))
+    plaits = public_terms(verified_texts(PLAITS)) if os.path.isdir(PLAITS) else set()
+    left = emu - known
+    return left - plaits, len(left & plaits)
+
+
+def emulator_terms():
+    return emulator_terms_counted()[0]
 
 
 def baseline_texts():
@@ -182,7 +240,12 @@ def main():
     if not os.path.isdir(EMU):
         print("SKIP: vendor/emulator/ is not on disk (a clean folder leaves it out)")
         return 0
-    terms = emulator_terms()
+    try:
+        terms, by_plaits = emulator_terms_counted()
+    except (OSError, ValueError) as e:
+        print("vendor/plaits/: %s, so its terms can't be taken off the list" % e)
+        print("emulator terms: FAIL")
+        return 1
     ok_hashes = reviewed()
     hits = []
     scanned = 0
@@ -234,6 +297,8 @@ def main():
         print("HIT %s:%d term %s%s" % (where, n, key, (" (%s)" % t) if show else ""))
     print("%d emulator-only terms; %d files, %d commit messages, %d pull request texts scanned"
           % (len(terms), scanned, len(commits), pr))
+    print("the Plaits list (vendor/plaits/, checksums verified) took %d of the emulator's terms off "
+          "the list" % by_plaits if os.path.isdir(PLAITS) else "no vendor/plaits/: no Plaits list")
     print("emulator terms: %s" % ("FAIL" if bad else "PASS"))
     return 1 if bad else 0
 

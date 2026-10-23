@@ -169,6 +169,10 @@ term that occurs in either of them as merged on main is accepted everywhere
 (read from main's commit, never the working tree: a term a branch adds to a
 door is still a hit until that change has merged). Other reviewed false
 positives are listed by hash in `config/emulator-terms-reviewed.json`.
+Since M4b the terms of the vendored Plaits (`vendor/plaits/`, read only from
+its checksum-verified files) are public like the SDK's, the check says how
+many emulator terms that takes off, and `vendor/plaits/` itself is not
+scanned (R-SEP-1).
 
 ## Commit messages
 

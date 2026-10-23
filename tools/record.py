@@ -105,6 +105,8 @@ CHECKS = [
      "reqs": ["R-SEP-3", "R-HARN-10"], "cmd": [PY, "-I", "tools/check-fwtest-pin.py"]},
     {"id": "C-SDK-PIN", "title": "Vendored SDK files match the pinned commit",
      "reqs": ["R-REPRO-5", "R-LIC-2"], "cmd": ["sh", "tools/fetch-sdk.sh", "--verify"]},
+    {"id": "C-PLAITS-PIN", "title": "Vendored Plaits files match the pinned upstream commits",
+     "reqs": ["R-REPRO-7", "R-LIC-2"], "cmd": ["sh", "tools/fetch-plaits.sh", "--verify"]},
     {"id": "C-EMU-PIN", "title": "Vendored emulator crates match the pinned upstream commit",
      "reqs": ["R-REPRO-6", "R-LIC-2"], "cmd": ["sh", "tools/fetch-emulator.sh", "--verify"]},
     {"id": "C-IMAGE", "title": "Build container (pinned base, toolchain SHA-256 checked)",
