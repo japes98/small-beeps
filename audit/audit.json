@@ -16,7 +16,16 @@
     "licence": "BSD-3-Clause"
   },
   "ours": "firmware",
-  "base_code": "vendor/jieli-sdk/include_lib",
+  "base_code": [
+    {
+      "path": "vendor/jieli-sdk/include_lib"
+    },
+    {
+      "path": "vendor/plaits",
+      "sha256sums": true,
+      "only_for": "firmware/demos/plaits"
+    }
+  ],
   "suffixes": [
     ".c",
     ".h",
