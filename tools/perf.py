@@ -39,14 +39,18 @@ What is measured (docs/DESIGN-NOTES.md, M0e):
 - speed (since M2, the owner's decision): emulated core-0 instructions,
   in two parts, from two runs that differ only in length (RUN_MS):
   - steady state, per period: the longer run's instructions less the
-    shorter's, divided by the beats the beacon gained between their ends.
-    Until audio (M4) the period is the heartbeat (one beat per
-    millisecond). Both runs end a quarter of a second past a whole
-    second, so the window between them holds whole seconds and none of
+    shorter's, divided by the periods gained between their ends. Since M4
+    the period is the audio block (64 stereo frames, 1.451 ms), counted by
+    fwtest itself as the rows of `ipb.csv` (`--ipb`, which changes no
+    count); an image without audio output (one from before M4) has none,
+    so its measurement says so and the speed gate doesn't compare with
+    it. Until M4 the period was the heartbeat (one beat per millisecond,
+    the beats the beacon gained). Both runs end a quarter of a second
+    past a whole second, so the window between them holds whole seconds and none of
     the firmware's work timed on whole seconds or tenths of a second
     falls near its ends (an end can come up to about 30 ms late while the
     image idles, docs/HARNESS.md "Time");
-  - startup: the instructions of the shorter run beyond its beats at the
+  - startup: the instructions of the shorter run beyond its periods at the
     steady-state rate, the one-off work before the firmware settles.
   The stack's high-water mark is read at the end of the longer run.
   Until M2 speed was the instructions of one one-second run divided by
@@ -70,7 +74,8 @@ change of the firmware.
 
 perf-history.csv keeps its columns: since M2 its `instructions`,
 `periods` and `instructions_per_period` are the steady state's window,
-and its `period` says `heartbeat-steady`. Startup is in each record.
+and its `period` says `heartbeat-steady` (since M4 `audio-block-steady`).
+Startup is in each record.
 """
 import argparse
 import csv
@@ -88,7 +93,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUDGETS = os.path.join(ROOT, "config", "budgets.json")
 REPO = ROOT                  # where find_baseline looks (tests change it)
 
-PERIOD = "heartbeat-steady"
+# Since M4 the period is the audio block (R-PERF-2): the blocks are
+# counted by fwtest itself, as the rows of ipb.csv.
+PERIOD = "audio-block-steady"
 RUN_MS = (1250, 2250)        # the two runs, shorter first (see the docstring)
 BEACON = 0x01C00000          # firmware/app.ld, firmware/src/sb.h
 BEACON_LEN = 0x60            # the whole beacon since M2 (firmware/src/sb.h)
@@ -118,7 +125,7 @@ def options(stack, ms=RUN_MS[-1]):
     """A perf run's fwtest options: the instrument. Kept fixed and minimal
     (no watchdog, no captures but these two), because captures change when
     a waiting core 0 is looked at, and with it the count."""
-    return ["--ms", str(ms),
+    return ["--ms", str(ms), "--ipb",
             "--ram", "0x%08x:0x%x@end" % (BEACON, BEACON_LEN),
             "--ram", "0x%08x:0x%x@end" % (STACK_TOP - stack, stack)]
 
@@ -182,7 +189,7 @@ def run_fwtest(image_bytes, size, out, label):
     short, long_ = runs[0], runs[-1]
     di, dp = long_["instructions"] - short["instructions"], long_["periods"] - short["periods"]
     if dp <= 0 or di < 0:
-        m["error"] = "the longer run gained %d beats and %d instructions over the shorter" % (dp, di)
+        m["error"] = "the longer run gained %d audio blocks and %d instructions over the shorter" % (dp, di)
         m.pop("instructions_per_period", None)
         return m
     steady = Fraction(di, dp)
@@ -204,6 +211,13 @@ def run_once(image_bytes, size, out, label, ms):
                        cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     log = p.stdout.decode("utf-8", "replace")
     m = {"label": label, "ms": ms, "fwtest_exit": p.returncode, "options": opts}
+    return read_run(out, size, m, log)
+
+
+def read_run(out, size, m, log=""):
+    """A perf run's measurement from its outputs in out (run_once): sizes,
+    the beacon's marker and beats, the stack, and since M4 the audio
+    blocks fwtest finished (the rows of ipb.csv) as its periods."""
     for k in SIZES:
         m[k] = size[k]
     m["stack_reserved"] = size["stack"]
@@ -220,13 +234,18 @@ def run_once(image_bytes, size, out, label, ms):
         return m
     run = result.get("run", {})
     marker, beats = struct.unpack("<2I", beacon[:8])
+    try:
+        with open(os.path.join(out, "ipb.csv")) as f:
+            blocks = max(0, sum(1 for line in f if line.strip()) - 1)
+    except OSError:
+        blocks = 0
     words = struct.unpack("<%dI" % (len(beacon) // 4), beacon[:len(beacon) // 4 * 4])
     for k, i in SCREEN_TIMES:
         if i < len(words) and words[i]:
             m[k] = round(words[i] / TICKS_PER_US, 3)
     m.update({"outcome": run.get("outcome"), "emulated_ms": run.get("emulated_ms"),
               "instructions": run.get("instructions", {}).get("core0"),
-              "periods": beats, "marker": "0x%08x" % marker,
+              "periods": blocks, "beats": beats, "marker": "0x%08x" % marker,
               "stack_high_water": stack_high_water(stack, size.get("irq_stack", 0))[0],
               "stack_method": stack_high_water(stack, size.get("irq_stack", 0))[1]})
     try:
@@ -237,8 +256,12 @@ def run_once(image_bytes, size, out, label, ms):
     if run.get("outcome") != "completed" or marker != MARKER or not beats or m["instructions"] is None:
         m["error"] = "the perf run did not complete with the marker and a heartbeat " \
                      "(outcome %s, marker 0x%08x, beats %d)" % (run.get("outcome"), marker, beats)
+    elif not blocks:
+        # An image from before M4 (an older record's) plays no audio, so
+        # it has no period to compare with: the gate says so.
+        m["error"] = "no audio blocks: this image does not run the audio output (before M4)"
     else:
-        m["instructions_per_period"] = round(m["instructions"] / beats, 3)
+        m["instructions_per_period"] = round(m["instructions"] / blocks, 3)
     return m
 
 
@@ -437,8 +460,8 @@ def describe(m):
     if m.get("error"):
         return "%s: %s" % (m["label"], m["error"])
     return ("%s: code %d, data %d, bss %d, image %d bytes; static RAM %d; stack %d of %d bytes used; "
-            "startup %d instructions; steady state %d instructions for %d heartbeat periods (%.3f per "
-            "period) between the %s ms runs"
+            "startup %d instructions; steady state %d instructions for %d audio blocks (%.3f per "
+            "block) between the %s ms runs"
             % (m["label"], m["code"], m["data"], m["bss"], m["image"], m["static_ram"],
                m["stack_high_water"], m["stack_reserved"], m["startup_instructions"], m["instructions"],
                m["periods"], m["instructions_per_period"],

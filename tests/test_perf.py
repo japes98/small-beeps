@@ -181,6 +181,35 @@ class GateTest(unittest.TestCase):
         self.assertEqual(results(gate(ref, ref, perf.probe_budgets(ref, ref, raised, set())))["steady_per_period"],
                          "PASS")
 
+    def test_the_period_is_the_audio_block_and_an_image_without_audio_has_none(self):
+        # Since M4 the periods are fwtest's audio blocks (ipb.csv's rows);
+        # an older image plays none, so its measurement says why and the
+        # speed gate does not compare with it.
+        self.assertEqual(perf.PERIOD, "audio-block-steady")
+        self.assertIn("--ipb", perf.options(64))
+        size = {"code": 1, "data": 0, "bss": 0, "image": 1, "stack": 64}
+        d = tempfile.mkdtemp()
+        try:
+            with open(os.path.join(d, "result.json"), "w") as f:
+                json.dump({"run": {"outcome": "completed", "emulated_ms": 10.0,
+                                   "instructions": {"core0": 7000}}}, f)
+            with open(os.path.join(d, perf.capture_name(perf.BEACON, perf.BEACON_LEN)), "wb") as f:
+                f.write(struct.pack("<2I", perf.MARKER, 10) + b"\0" * (perf.BEACON_LEN - 8))
+            with open(os.path.join(d, perf.capture_name(perf.STACK_TOP - 64, 64)), "wb") as f:
+                f.write(b"\0" * 64)
+            with open(os.path.join(d, "ipb.csv"), "w") as f:
+                f.write("block,end_ms,core0,core1\n" + "".join("%d,1.0,1,0\n" % b for b in range(7)))
+            m = perf.read_run(d, size, {"label": "t", "ms": 10})
+            self.assertEqual((m["periods"], m["beats"], m["instructions_per_period"]), (7, 10, 1000.0))
+            with open(os.path.join(d, "ipb.csv"), "w") as f:
+                f.write("block,end_ms,core0,core1\n")
+            old = perf.read_run(d, size, {"label": "baseline", "ms": 10})
+            self.assertIn("no audio blocks", old["error"])
+        finally:
+            shutil.rmtree(d)
+        verdicts = gate(measured(), {"label": "baseline", "error": old["error"]})
+        self.assertEqual(results(verdicts)["speed"], "NOT COMPARED")
+
     def test_two_runs_give_steady_state_and_startup(self):
         size = {"code": 1, "data": 0, "bss": 0, "image": 1, "stack": 64}
         calls = []
