@@ -493,3 +493,136 @@ Format for each entry:
   gate); steady state alone with no startup budget (startup could then
   grow unchecked); one absolute budget for the mixed measure (startup
   would hide per-period regressions).
+
+### 2026-10-22 M2: bringing up the panel
+- Facts: HW-27 (an ST7789V-family controller, 16-bit pixels), HW-29 and
+  HW-30 (bytes through `BUF`, DMA through `ADR` and `CNT`, PC8 for data or
+  command), HW-31 (the commands fwtest acts on), HW-32 and the datasheet
+  (P-22: 5 ms after `SWRESET`, 120 ms after one sent in sleep mode before
+  `SLPOUT`, 5 ms after `SLPOUT`; `0x3A` `0x55` for 16-bit pixels;
+  `MADCTL`'s bits, page 215).
+- Our sequence (`lcd_init`, then `main`): software reset; 120 ms, because
+  after power-up the controller is in sleep mode, which covers the 5 ms
+  too; sleep out; 5 ms; 16-bit pixels; `MADCTL` 0 (rows top to bottom,
+  columns left to right, not exchanged, refresh top to bottom, RGB order);
+  the first whole frame (the address pattern) while the display is still
+  off, so nothing undefined is ever shown; display on. Each delay is
+  waited on the tick (`sb_wait_ms` waits one beat more than asked, since
+  the first may be nearly over), so it holds on the chip too, where
+  fwtest doesn't check it. The 125 ms cost nothing in instructions: the
+  core idles.
+- What is left out, and why: the panel's reset pin, backlight pin, SPI1's
+  clock, mode and pins, and the panel's offset in the controller's
+  240 x 320 memory are unknown (Q-6; SR-3 asks). Writing guesses would
+  either touch registers fwtest doesn't model (every case fails on an
+  unmodelled access) or set the chip up wrongly. `SPI_CON` in `lcd.c` is
+  the one place their bits will go. Display inversion isn't sent: whether
+  this panel needs it is part of Q-6, and fwtest shows pixels as written
+  either way (HW-31). Only bit 8 of `JL_PORTC->OUT` is ever changed, by
+  read-modify-write, so M3 can share the port.
+
+### 2026-10-22 M2: the frame buffer and sending it
+- Facts: HW-29 (DMA from RAM; a finished transfer can raise source 16;
+  E-5 confirms 480-byte transfers), HW-31 (pixels high byte first,
+  filling the window row by row), HW-6 (512 KiB of RAM on the chip),
+  HW-19 and HW-20 (source 16, priorities).
+- Layout: one buffer of the panel's 240 x 240 pixels, row by row from the
+  top left, each pixel's RGB565 colour stored high byte first: exactly the
+  bytes the panel takes after a memory write, so any run of whole rows is
+  one contiguous block DMA can send as it is, with no conversion and no
+  copy. 115 200 bytes, in `.bss` (cleared at startup like any zeroed data,
+  about 58 000 instructions; the pattern then writes every pixel).
+- Sending (`lcd_send_rows`): the window (column and row address set),
+  memory write, then the rows by DMA. Up to 16 rows (7 680 bytes) go as
+  one transfer whose end the next command polls; more go as a chain of
+  16-row chunks, each started by SPI1's interrupt (source 16) when the
+  one before ends, so the core is free while a frame goes out. A whole
+  frame is 15 chunks. 16 rows is a guess at a safe transfer length: E-5
+  confirms 480 bytes, and the chip's limit on `CNT` is asked in SR-3.
+- The tick is above SPI1 in priority (1 against 0), and nothing nests, so
+  a tick waits at most for one SPI1 handler: about 40 instructions, well
+  inside the ±24 time base ticks (240 cycles) the tick's timing allows.
+  The flood test (R-LCD-5) sends whole frames back to back for a second:
+  every interval stays 24 001 or 24 002.
+- Cost: in fwtest a transfer finishes at once (HW-29), so a whole frame
+  is only the core's work: 6.3 µs from the window to the last chunk
+  started (about 1 000 instructions), recorded as `frame_update_us`. On
+  the chip the bytes take time: at the datasheet's fastest serial write
+  (66 ns a bit, page 43) a whole frame is at least 921 600 bits, 60.8 ms,
+  during which the core is free; the real figure waits for SPI1's clock
+  (SR-3).
+- fwtest raises source 16 at the end of every DMA transfer while the
+  source is enabled, bit 13 or not (our experiment, P-20); HW-29 says bit
+  13 enables it. So the handler acknowledges a transfer it didn't chain
+  (the polled one) and marks it done, which is right under either
+  behaviour; SR-3 reports the difference.
+- `lcd_wait` spins rather than idling: an interrupt ending the last chunk
+  between the test and an `idle` made the core sleep until the next tick,
+  once a frame (the flood test found it: 999 frames a second instead of
+  over 200 000). Only a command that must follow a frame still going out
+  ever waits.
+- Alternatives: 8-bit colour with a palette (57 600 bytes, but every pixel
+  converted on the way out, so no straight DMA); two buffers (twice the
+  RAM, for tearing-free updates M2 doesn't need); sending a dirty
+  rectangle row by row (a transfer per row; the heartbeat is cheaper as
+  whole rows, one transfer).
+
+### 2026-10-22 M2: drawing, and our own font
+- Fill and frames write two pixels a word where they can; lines step one
+  pixel along the longer axis and move along the other when the
+  accumulated error passes half a pixel; text writes every pixel of each
+  character cell (glyph and background), so text needs no clearing first.
+  Everything is clipped to the screen.
+- The font is ours (P-21): printable ASCII on a 5 x 8 grid in a 6 x 8
+  cell, capitals and digits in rows 0 to 6, descenders in row 7. It is
+  written in `font.c` as rows of `#` and `.`, which the compiler folds
+  into one byte a row (760 bytes), so anyone can see each glyph in the
+  source. Characters outside it draw as a filled box.
+
+### 2026-10-22 M2: the screens, and what they prove
+- The address pattern (first): red = column / 8, green = row / 4, blue =
+  (column mod 8) x 4 + row mod 4. No two pixels share a colour, so
+  fw-suite.py decodes fwtest's capture and checks every one of the 57 600
+  pixels against the formula: orientation, colour order and every pixel's
+  address at once (R-LCD-2).
+- The test screen (from 500 ms): a white border on every edge pixel;
+  12 x 12 corner squares, red top left, green top right, blue bottom left,
+  yellow bottom right, each named beside it; red, green and blue ramps
+  (32, 64 and 32 steps from 0); a box with diagonals and a cross of lines;
+  every glyph of the font; the title; the heartbeat. fw-suite.py checks
+  the border, corners and ramps pixel by pixel on its own (a mirrored,
+  upside-down or BGR picture fails), and the whole picture against a
+  golden image (R-LCD-3).
+- Captures come late while the image idles (up to about 15 ms here), so
+  each screen stays up for hundreds of milliseconds around its capture
+  times (300, 800 and 1 500 ms), and the heartbeat changes only on whole
+  seconds.
+
+### 2026-10-22 M2: the heartbeat on screen, within 3% a period
+- The heartbeat's seconds, five digits at twice the font's size, are
+  drawn when a second is up, and only their 16 rows are sent, as one
+  transfer: 5.75 µs of the core a second. Only the digits that change are
+  drawn again.
+- Finding the second without costing a period anything: `main`'s idle
+  loop counts its wakes in a register (one a tick: in steady state nothing
+  else wakes it) and compares with the next second's count. That is three
+  instructions a period, as M1's loop (`idle`, a memory increment, a jump)
+  was; a first version that stored the count every time cost one more,
+  64 to 65 a period, which with the heartbeat's drawing went over the 3%
+  gate (+3.9%). The count goes to the beacon once a second with the ticks
+  taken then, so R-IRQ-1 is still checked exactly.
+- Result: steady state 65.415 instructions a period against M1's 64.000
+  (+2.2%): the heartbeat's drawing and sending, about 1 400 instructions a
+  second. Startup 1 036 288 (the two screens and clearing the buffer).
+
+### 2026-10-22 M2: the tests' timing
+- The two heartbeat cases differ only in length (1.25 and 2.25 s), so
+  their difference is the steady state, as in perf.py; R-IRQ-1's 100
+  instructions a tick is checked there, since the whole run's count is now
+  mostly startup.
+- Startup clears `.bss` before `main` starts the time base, so the time
+  base starts about 0.24 ms after fwtest's clock (it was 8 µs). The end
+  check's slack now grows with the image's `.bss` (at most 3 cycles a
+  word: 2 measured), from `app.size` (P-20).
+- The screen case captures the beacon with each picture; the beacon's
+  `shown` seconds must equal the heartbeat's whole seconds (R-LCD-4).
