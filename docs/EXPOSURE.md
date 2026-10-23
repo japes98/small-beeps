@@ -730,6 +730,38 @@ SR-3 wrote only its barrier-log row.*
   and this repository's tools, tests, docs and firmware. It does not open
   anything on the forbidden list or anything under the three spec-side
   folders.
+- Later in the session:
+  - **Pull requests:**
+    - #49, the start;
+    - #50, the SPI1 tidy-up from M3;
+    - #51, the transcript check's access rule, the owner's request;
+    - #52, the M4 budgets;
+    - #53, the audio firmware, tests and docs;
+    - this wrap-up.
+  - **Reads:**
+    - `docs/HARDWARE-SPEC.md` (HW-43 to HW-46, HW-19 to HW-25, HW-36,
+      HW-48, HW-59, the open questions);
+    - docs/HARNESS.md;
+    - the vendored SDK header `WL82.h` (`JL_ALNK0`'s struct, the register
+      width macros);
+    - our own fwtest runs and toolchain disassembly (PROVENANCE P-26,
+      P-27).
+    It fetched nothing from FM-1-RE and opened no datasheet. From CI it
+    read only the checks' pass or fail.
+  - **Its own transcript, previewed:** both versions of the transcript
+    check were run on a scratch copy of it (not archived).
+  - **A tool call the safety classifier denied:** the first attempt to
+    add the last three reviewed entries, before the owner had approved
+    them. The session asked, and the owner approved all 47.
+  - **Commands the next clean session will see flagged.** They name a
+    forbidden project only as text, the check's own rule IDs and labels;
+    none opened, listed, fetched or searched anything forbidden:
+    - with #51 merged, three: two `python3 -c` calls that added the
+      reviewed entries (a rule's ID as a dictionary key), and the
+      `python3 -c` that printed which of this session's calls the preview
+      flagged;
+    - without #51, also the Python heredoc that drafted the reviewed
+      entries and the heredoc that wrote their reasons to a scratch file.
 
 ## Corrections
 
