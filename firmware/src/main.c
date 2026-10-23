@@ -153,6 +153,15 @@ void sb_tick(void)
         sb_halt(SB_HALT_STACK, 2, 0);
 }
 
+#if defined(SB_DEMO_PLAITS)
+/* The Plaits demo (firmware/demos/plaits/, M4b), built as its own image
+ * by tools/build.sh build --demo plaits; with PLAITS_BENCH it tests its
+ * float routines and measures Plaits' engines, and stops. */
+void plaits_demo_init(void);
+void plaits_demo_block(s32 *out, u32 frames);
+void plaits_bench(void) __attribute__((noreturn));
+#endif
+
 int main(void)
 {
     static const char hello[16] = "small-beeps M4 \n";
@@ -186,7 +195,12 @@ int main(void)
     JL_TIMER0->CON = TICK_CON;
     input_start();
     synth_init();
-#if defined(SB_COST_NO_AUDIO)
+#if defined(SB_DEMO_PLAITS) && defined(PLAITS_BENCH)
+    plaits_bench();
+#elif defined(SB_DEMO_PLAITS)
+    plaits_demo_init();
+    audio_start(plaits_demo_block);
+#elif defined(SB_COST_NO_AUDIO)
     (void)synth_block;
 #elif defined(SB_COST_SILENT_ENGINE)
     audio_start(sb_silent_block);
