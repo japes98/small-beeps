@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 522ce86d8f8749820fef233d6626cdc3d657330e..555a31f13a1fc945c35a509787680a1860c33878
+OK     aceb5e5de5b6 config: the M4 loaded budget, 131 072 instructions a block
+EXEMPT 555a31f13a1f (merge) Merge pull request #58 from japes98/m4b/budgets
+2 commit(s) checked: PASS
+
+exit status 0
