@@ -94,7 +94,35 @@ unseen. `tools/check-transcripts.py`'s docstring lists the spans.
 
 A flagged call can be cleared only by an entry in `REVIEWED.json` naming
 that exact session and tool call, the rule it matched and why it isn't a
-touch, added by pull request so the owner's signed merge approves it.
+touch, added by pull request so the owner's signed merge approves it. An
+entry names its rule by the rule's label (older entries) or by its ID
+(new entries, since M4b: some labels match their own rules).
+
+### Rule IDs
+
+Since M4b (the owner's request) the rule IDs are neutral numbers, so a
+command that only names a rule, such as one adding a `REVIEWED.json`
+entry, no longer matches it. Logs and records before M4b show the old
+IDs:
+
+| Old ID | New ID |
+|--------|--------|
+| `F-FELUCCA` | `F-1` |
+| `F-HUGELTON` | `F-2` |
+| `F-DINGHY` | `F-3` |
+| `F-FM1-SID` | `F-4` |
+| `F-PROBE` | `F-5` |
+| `F-EMU-REPO` | `F-6` |
+| `F-EMU-CRATES` | `F-7` |
+| `F-VENDOR-EMU` | `F-8` |
+| `F-HARNESS` | `F-9` |
+| `F-FWHUB` | `F-10` |
+| `F-SPEC-SESSIONS` | `F-11` |
+| `F-RE-FIRMWARE` | `F-12` |
+| `F-STOCK` | `F-13` |
+
+The check's `OLD_IDS` holds the same table; the labels and patterns are
+unchanged.
 Agents still do best writing prose with their file-writing tool, not with
 shell commands.
 

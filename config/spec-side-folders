@@ -5,10 +5,11 @@
 # "Barriers"): the one list the barrier tools and their tests build these
 # names from, since M3. Tab-separated: the folder, its kind (source:
 # matched as a whole word or a path into it; transcripts: a path into it),
-# the transcript check's rule ID and its label (sessions/REVIEWED.json
-# names rules by label, so a label never changes). The deny lists in
-# config/claude/*.json are Claude Code's own syntax and keep their literal
-# paths; C-UNIT checks they cover every folder here.
-vendor/emulator	source	F-VENDOR-EMU	vendor/emulator/ (spec side)
-harness	source	F-HARNESS	harness/ source (spec side)
-sessions/spec	transcripts	F-SPEC-SESSIONS	spec-side session transcripts
+# the transcript check's rule ID (neutral numbers since M4b) and its label
+# (sessions/REVIEWED.json names rules by label or ID, so a label never
+# changes). The deny lists in config/claude/*.json are Claude Code's own
+# syntax and keep their literal paths; C-UNIT checks they cover every
+# folder here.
+vendor/emulator	source	F-8	vendor/emulator/ (spec side)
+harness	source	F-9	harness/ source (spec side)
+sessions/spec	transcripts	F-11	spec-side session transcripts

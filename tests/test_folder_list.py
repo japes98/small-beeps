@@ -42,18 +42,20 @@ class FolderListTest(unittest.TestCase):
     def test_the_list(self):
         rows = ct.read_folders()
         self.assertEqual(len(rows), 3)
-        self.assertEqual([r[2] for r in rows], ["F-VENDOR-EMU", "F-HARNESS", "F-SPEC-SESSIONS"])
+        self.assertEqual([r[2] for r in rows], ["F-8", "F-9", "F-11"])
         self.assertEqual([r[1] for r in rows], ["source", "source", "transcripts"])
         self.assertEqual([r[2] for r in rows], [r[2] for r in PLACEHOLDER_FOLDERS])
 
     def test_the_rules_are_the_ones_before_m3(self):
-        rules = [r for r in ct.FORBIDDEN if r[0] in ct.FOLDER_RULES]
+        # under their IDs before M4b (OLD_IDS)
+        old = {new: o for o, new in ct.OLD_IDS.items()}
+        rules = [(old[r[0]],) + r[1:] for r in ct.FORBIDDEN if r[0] in ct.FOLDER_RULES]
         self.assertEqual(sha("\n".join("%s\t%s\t%s" % r for r in rules)), RULES_BEFORE_M3)
         self.assertEqual(sha("\n".join(ar.SPEC_DIRS)), DIRS_BEFORE_M3)
         self.assertEqual(sha("\n".join(cp.SPEC_DIRS)), DIRS_BEFORE_M3)
         # in the same places in the table as before
         self.assertEqual([r[0] for r in ct.FORBIDDEN][7:11],
-                         ["F-VENDOR-EMU", "F-HARNESS", "F-FWHUB", "F-SPEC-SESSIONS"])
+                         ["F-8", "F-9", "F-10", "F-11"])
 
     def test_configure_needs_every_folder_rule(self):
         mod = load_tool("check-transcripts.py")
