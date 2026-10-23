@@ -605,8 +605,8 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
       -92.2 dB.
     - Eight notes F1 to G7 within 0.0003 cents, levels within 0.001 dB.
     - No clicks at any start or stop; digital silence at rest.
-    - Key contact to sound 4.8 to 6.8 ms; press event to sound 1.8 to
-      3.2 ms.
+    - Key contact to sound 4.8 to 6.8 ms; press event to sound 1.6 to
+      2.9 ms.
     - 11 s of M3's heaviest input with every voice and the tone: no
       underrun, every tick on time, and every one of 5 886 events reached
       the engine. The longest refill was 40 µs of a 1 451 µs block.

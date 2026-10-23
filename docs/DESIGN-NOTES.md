@@ -946,8 +946,8 @@ Format for each entry:
   starts playing and the engine refills h, which plays next: a sample
   computed now plays one to two blocks later (1.45 to 2.90 ms), and an
   input event waits at most one block for the next refill, so from an
-  event's time stamp to its sound is at most two blocks (measured: 1.8 to
-  3.2 ms, R-AUD-6). From a key's contact, add M3's debounce (2.5 to
+  event's time stamp to its sound is at most two blocks (measured: 1.6 to
+  2.9 ms, R-AUD-6). From a key's contact, add M3's debounce (2.5 to
   4.5 ms): measured 4.8 to 6.8 ms. 32 frames would halve that and double
   the interrupts and their fixed costs; 128 would double it. 64 is
   below the 10 ms a player feels on a keyboard, with the per-block costs
@@ -1046,6 +1046,13 @@ Format for each entry:
   -92 dB at this level); eight notes from F1 to G7 within 0.0003 cents,
   levels within 0.001 dB of MASTER's law, THD+N -74 to -86 dB; every
   sample 0 at rest.
+- The golden WAV (R-AUD-7) is exact, so it moves whenever a change moves
+  a note by a block; tests/fw/boot.suite says how to renew it. Records
+  keep the suite's audio captures as names and SHA-256 only
+  (`fwtest-audio.sha256`), not about a megabyte of WAVs a merge.
+- Event to sound is timed against the time base's own start, found from
+  the captures: the output began one block before its first block ended,
+  `sb_audio.start` ticks after the time base began.
 
 ### 2026-10-23 M4: what audio costs, and the measure's new period
 - R-PERF-2's period is now the audio block, counted by fwtest (the rows of

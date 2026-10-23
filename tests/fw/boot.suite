@@ -53,7 +53,10 @@
 # audioload (R-AUD-1, R-AUD-3, R-INPUT-3): 10 s of the heaviest input with
 #   every voice and the tone: no underrun, every tick on time.
 # audiogold (R-AUD-7): a note and the tone, the whole output against a
-#   golden WAV, exact.
+#   golden WAV, exact. It moves whenever startup or the scan's timing
+#   moves a note by a block (later milestones will): run the suite, check
+#   that every other audio case passes, then copy audiogold/audio.wav
+#   over golden/audiogold/audio.wav in the same commit.
 # underrun (R-AUD-3): a test build late for one block in 64: each counted
 #   and reported on the console, and the output goes on.
 #

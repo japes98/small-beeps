@@ -847,7 +847,7 @@ LEVEL_DB = 0.1
 TONE_THDN_DB, NOTE_THDN_DB = -85.0, -70.0
 ATTACK_SAMPLES, RELEASE_SAMPLES = 221, 882   # the instrument's ramps (synth.c)
 SOUND_FROM_KEY = (2.5, 7.5)     # ms from the key's contact to its first sample
-SOUND_FROM_EVENT = 2 * BLOCK_TICKS / TICKS_PER_MS + 0.2   # ms: two blocks
+SOUND_FROM_EVENT = 2 * BLOCK_TICKS / TICKS_PER_MS + 0.2   # ms: two blocks, and 0.2
 SILENCE_RUN = 200               # zero samples in a row that end a sound
 
 
@@ -983,6 +983,11 @@ def check_notes(case_dir):
     s = sounds(x)
     if len(s) != len(NOTES):
         return problems + ["notes: %d sounds, expected %d" % (len(s), len(NOTES))], lines
+    # Where fwtest's time and the time base's meet: the output started one
+    # block before its first block ended, sb_audio.start time base ticks
+    # after main started the time base.
+    base_ms = ends[0] - BLOCK_TICKS / TICKS_PER_MS - a["start"] / TICKS_PER_MS
+    lines.append("  the time base started at %.3f ms of fwtest's time" % base_ms)
     lats, evs = [], []
     for (down, key, note, pot), (first, last) in zip(NOTES, s):
         fit = aa.sine_fit(x[first + int(0.01 * aa.RATE):first + int(0.2 * aa.RATE)])
@@ -991,8 +996,8 @@ def check_notes(case_dir):
         lvl = aa.dbfs(fit["amplitude"])
         want_lvl = aa.dbfs(aa.FULL / 4.0 * master_gain(pot))
         on = aa.sample_ms(first, ends)
-        press = [t for _, ctl, k, _, t in log if ctl == key and k == PRESS and t / TICKS_PER_MS < on]
-        ev = on - press[-1] / TICKS_PER_MS if press else None
+        press = [t for _, ctl, k, _, t in log if ctl == key and k == PRESS and t / TICKS_PER_MS < on - base_ms]
+        ev = on - (base_ms + press[-1] / TICKS_PER_MS) if press else None
         lats.append(on - down)
         if ev is not None:
             evs.append(ev)
@@ -1011,7 +1016,7 @@ def check_notes(case_dir):
         if not SOUND_FROM_KEY[0] <= on - down <= SOUND_FROM_KEY[1]:
             problems.append("notes: note %d sounded %.3f ms after its key, not within %s"
                             % (note, on - down, SOUND_FROM_KEY))
-        if ev is None or not 0 < ev <= SOUND_FROM_EVENT + START_SLACK / TICKS_PER_MS:
+        if ev is None or not 0 < ev <= SOUND_FROM_EVENT:
             problems.append("notes: note %d sounded %s after its press event, not within %.3f ms"
                             % (note, "?" if ev is None else "%.3f ms" % ev, SOUND_FROM_EVENT))
         problems += check_clicks("notes", x, first, last, fit)
