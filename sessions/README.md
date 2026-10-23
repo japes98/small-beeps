@@ -80,12 +80,23 @@ and commits the result.
   test record, and the oldest archived transcripts still hold text that the
   archiver now redacts.
 
-Matching is on text, so it errs towards flagging: a shell command that only
-*writes* a document naming a forbidden folder is flagged too. Such a hit can
-be cleared only by an entry in `REVIEWED.json` naming that exact session and
-tool call, the rule it matched and why it isn't a touch, added by pull
-request so the owner's signed merge approves it. Agents avoid the problem by
-writing prose with their file-writing tool, not with shell commands.
+Since M4 (the owner's request) the check tells an access from a mention.
+It fails a call only when what is left of it, once the spans it can
+prove are mentions are taken out, still names forbidden material: a pull
+request's title or body, a commit message, a heredoc written into one of
+our own files, Python fed to `python3 -` that provably opens only our own
+files, a grep pattern or a substituting sed script over our own files.
+Anything it can't parse or doesn't know stays flagged, and it never flags
+what plain text matching would not, except a later command that runs a
+file such a heredoc wrote. Text matching still runs, report only: every
+mention it finds is logged as `MENTION` with its rule ID, so nothing goes
+unseen. `tools/check-transcripts.py`'s docstring lists the spans.
+
+A flagged call can be cleared only by an entry in `REVIEWED.json` naming
+that exact session and tool call, the rule it matched and why it isn't a
+touch, added by pull request so the owner's signed merge approves it.
+Agents still do best writing prose with their file-writing tool, not with
+shell commands.
 
 One kind of command is cleared by the check itself (since M1, at the
 owner's request): a quoted heredoc fed to `python3 -` whose code provably
@@ -93,6 +104,8 @@ opens nothing but `sessions/REVIEWED.json` and files under `sessions/clean/`
 (only `json` and `re` imported, no other file, process or `exec`-like call,
 every `open()` path a literal under those two places). Its body is then left
 out of the three spec-side folder rules only; every other rule, and the rest
-of the command, is still matched as text. A `REVIEWED.json` entry this made
-unnecessary is marked `superseded` rather than deleted; it clears nothing,
-and the check fails if its call is ever flagged again.
+of the command, is still matched as text. (Since M4 this is the text
+rule's exception; the access rule's, above, is wider.) A `REVIEWED.json`
+entry a rule made unnecessary may be marked `superseded` rather than
+deleted; it clears nothing, and the check fails if the access rule ever
+flags its call again.
