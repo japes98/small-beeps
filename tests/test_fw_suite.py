@@ -75,6 +75,7 @@ class FwSuiteCheckTest(unittest.TestCase):
                     dict(good, interval_min=24000 - fw.INTERVAL_TOL - 1),
                     dict(good, interval_min=23990, interval_max=24020),   # jitter 30
                     dict(good, wakes=200),                               # not idling per tick
+                    dict(good, wakes=14 * 499),                          # more than one an interrupt
                     dict(good, wakes_ticks=0),                           # never stored
                     dict(good, tick_count=900)):                         # ticks and beats apart
             self.assertTrue(fw.check_ticks(bad, result)[0], bad)
@@ -116,7 +117,8 @@ class FwSuiteBootTest(unittest.TestCase):
 
     def setUp(self):
         self.dir = tempfile.mkdtemp()
-        self.syms = {"sb_irq_stubs": 0x0200004C, "sb_tick": 0x020002BC, "lcd_spi_done": 0x0200060E}
+        self.syms = {"sb_irq_stubs": 0x0200004C, "sb_tick": 0x020002BC, "lcd_spi_done": 0x0200060E,
+                     "input_scan": 0x0200047E}
 
     def tearDown(self):
         shutil.rmtree(self.dir)
@@ -128,6 +130,7 @@ class FwSuiteBootTest(unittest.TestCase):
             table = [self.syms["sb_irq_stubs"] + 2 * n for n in range(128)]
             table[4] = self.syms["sb_tick"]
             table[16] = self.syms["lcd_spi_done"]
+            table[5] = self.syms["input_scan"]
         with open(os.path.join(self.dir, fw.VECTORS), "wb") as f:
             f.write(struct.pack("<128I", *table))
         return table
@@ -154,7 +157,7 @@ class FwSuiteBootTest(unittest.TestCase):
 
     def test_every_vector_slot_is_checked(self):
         table = self.write(self.boot())
-        for n in (0, 4, 126, 127):
+        for n in (0, 4, 5, 16, 126, 127):
             bad = list(table)
             bad[n] += 2
             self.write(self.boot(), bad)
@@ -266,3 +269,72 @@ class FwSuiteScreenTest(unittest.TestCase):
         missing_edge = [list(r) for r in rows]
         missing_edge[239][120] = (0, 0, 0)
         self.assertTrue(any("edge" in p for p in fw.check_test_screen(missing_edge)))
+
+
+class FwSuiteInputTest(unittest.TestCase):
+    """Requirements: R-INPUT-1, R-KEY-2, R-ENC-2, R-POT-2"""
+
+    def record(self, events, **head):
+        h = dict.fromkeys(fw.INPUT_FIELDS, 0)
+        h.update(head, events=len(events))
+        data = struct.pack("<%dI" % len(fw.INPUT_FIELDS), *[h[k] for k in fw.INPUT_FIELDS])
+        data += struct.pack("<%di" % fw.INPUT_VALUES, *range(fw.INPUT_VALUES))
+        log = [b"\0" * 8] * fw.INPUT_LOG
+        for seq, e in enumerate(events):
+            log[seq % fw.INPUT_LOG] = struct.pack("<BBhI", *e)
+        return data + b"".join(log)
+
+    def test_the_record_layout(self):
+        self.assertEqual(len(self.record([])), fw.INPUT_LEN)
+        path = os.path.join(tempfile.mkdtemp(), "r.bin")
+        try:
+            # 130 events: the log keeps the last 128, oldest first
+            with open(path, "wb") as f:
+                f.write(self.record([(n % 49, 1, -n, 1000 * n) for n in range(130)], dropped=3))
+            head, values, log = fw.input_record(path)
+            self.assertEqual((head["events"], head["dropped"]), (130, 3))
+            self.assertEqual(values[:3], [0, 1, 2])
+            self.assertEqual(log[0], (2, 2, 1, -2, 2000))
+            self.assertEqual(log[-1], (129, 129 % 49, 1, -129, 129000))
+            self.assertEqual(fw.event_lines(log[:1]), ["2 FX press -2"])
+        finally:
+            shutil.rmtree(os.path.dirname(path))
+
+    def test_events_of_one_scan_are_compared_as_a_set(self):
+        # a chord decided in one scan comes in the scan's column order,
+        # which moves with its phase: sorted. One control's events, and
+        # events a scan or more apart, keep their order.
+        t = fw.TICKS_PER_MS
+        chord = [(0, 40, 1, 1, 100 * t), (1, 14, 1, 1, 100 * t + 2000), (2, 20, 1, 1, 100 * t + 20000)]
+        self.assertEqual(fw.event_lines(chord), ["0 KEY1 press 1", "1 KEY7 press 1", "2 KEY27 press 1"])
+        pot = [(0, 41, 4, 750, 100 * t), (1, 41, 4, 600, 101 * t)]
+        self.assertEqual(fw.event_lines(pot), ["0 MASTER move 750", "1 MASTER move 600"])
+        apart = [(0, 40, 1, 1, 100 * t), (1, 14, 1, 1, 102 * t)]
+        self.assertEqual(fw.event_lines(apart), ["0 KEY27 press 1", "1 KEY1 press 1"])
+
+    def test_latency_allows_for_the_time_base_start(self):
+        lo, hi = fw.latency(103 * fw.TICKS_PER_MS, 100)
+        self.assertAlmostEqual(lo, 3.0)
+        self.assertAlmostEqual(hi - lo, fw.START_SLACK / fw.TICKS_PER_MS)
+
+    def test_events_compare_with_their_golden(self):
+        case = tempfile.mkdtemp()
+        old = fw.ROOT
+        try:
+            fw.ROOT = case
+            os.makedirs(os.path.join(case, fw.EVENTS_DIR))
+            log = [(0, 2, 1, 1, 5), (1, 2, 2, 0, 9)]
+            self.assertTrue(fw.check_events("t", case, log))          # no golden yet
+            with open(os.path.join(case, "events.txt")) as f:
+                written = f.read()
+            self.assertEqual(written, "0 FX press 1\n1 FX release 0\n")
+            with open(os.path.join(case, fw.EVENTS_DIR, "t.txt"), "w") as f:
+                f.write("# a comment\n" + written)
+            self.assertEqual(fw.check_events("t", case, log), [])
+            # times never matter; anything else does
+            self.assertEqual(fw.check_events("t", case, [(0, 2, 1, 1, 7), (1, 2, 2, 0, 99)]), [])
+            self.assertTrue(fw.check_events("t", case, log[:1]))
+            self.assertTrue(fw.check_events("t", case, [(0, 3, 1, 1, 5), (1, 2, 2, 0, 9)]))
+        finally:
+            fw.ROOT = old
+            shutil.rmtree(case)

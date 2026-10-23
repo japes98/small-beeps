@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The pot case's events (tests/fw/boot.suite): sequence, control, kind,
+# value, as tools/fw-suite.py writes them (a run of different controls
+# decided in one scan sorted); checked by hand against
+# tests/fw/scripts/pot.txt.
+0 MASTER move 750
+1 MASTER move 600
+2 MASTER move 450
+3 MASTER move 300
+4 MASTER move 225
+5 MASTER move 150
+6 MASTER move 75
+7 MASTER move 0
+8 MASTER move 255
+9 MASTER move 511
+10 MASTER move 767
+11 MASTER move 1023
+12 MASTER move 895
+13 MASTER move 767
+14 MASTER move 639
+15 MASTER move 512
