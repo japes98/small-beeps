@@ -163,6 +163,22 @@ measure a period exactly, acknowledge first, or subtract the time the
 handler took to reach its acknowledge. Whether the chip does the same is an
 open question in `HARDWARE-SPEC.md`.
 
+## The LCD
+
+The panel's transfers finish at once: SPI1's done bit always reads 1, and
+a DMA transfer of any length up to a whole screen in one `CNT` write
+(115 200 bytes) draws (`HARDWARE-SPEC.md`, HW-29, HW-58). SPI1's `CON`
+reads back as last written. A transfer, by DMA or a single byte, that
+finishes while `CON` bit 13 is set raises interrupt source 16; with bit 13
+clear it raises nothing. A write with bit 14 set acknowledges it, and like
+every write it sets the other bits as written: a write of bit 14 alone also
+clears bit 13. A transfer that finished with bit 13 set stays pending until
+acknowledged, even if bit 13 is cleared afterwards (HW-59).
+
+From fwtest 0.2.0. Before it, a write to `CON` could set bits but never
+clear them: once any write had set bit 13, every later transfer raised
+source 16, whatever `CON` was written to afterwards (SR-3).
+
 ## The command line
 
 ```
@@ -342,3 +358,6 @@ differ, that is a bug in fwtest: report it.
 `result.json` has both. The image is identified by its digest. When the
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
+
+- 0.2.0: SPI1's `CON` writes set and clear bits as written ("The LCD").
+- 0.1.0: the first published image.
