@@ -22,11 +22,11 @@ For M4b's platform load test only: a separate demo build
   own originals; nothing comes from a fork or a port.
 - **Licence:** MIT, copyright Emilie Gillet. Every file taken carries the
   MIT notice in its own header (checked file by file at these commits:
-  126 source files, all "Copyright 2012" to "2021 Emilie Gillet", MIT);
+  127 source files, all "Copyright 2012" to "2021 Emilie Gillet", MIT);
   `stmlib/LICENSE` states it for stmlib. stmlib's third-party code (ST's
   drivers, under other terms) is not taken.
 - **Which files:** those `plaits/dsp/voice.cc` and `plaits/resources.cc`
-  include, directly or not, and their `.cc` files; none of the hardware
+  include, directly or not, their `.cc` files, and the speech synthesiser's phoneme table, a `.cc` no header names; none of the hardware
   drivers, the bootloader, the tests or the hardware designs. Listed with
   their SHA-256 in `SHA256SUMS`, at their upstream paths.
 - **Unmodified.** The demo builds them with `-DTEST`, upstream's own

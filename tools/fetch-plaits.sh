@@ -16,7 +16,8 @@
 # it), and pichenettes/stmlib at STMLIB_COMMIT, the commit eurorack's
 # stmlib submodule is pinned to at EURORACK_COMMIT (checked on fetch).
 # The files are the ones Plaits' voice (plaits/dsp/voice.cc) and its
-# tables (plaits/resources.cc) include, and their sources; nothing of the
+# tables (plaits/resources.cc) include, and their sources (with the one
+# source no header names, the speech synthesiser's phoneme table); nothing of the
 # hardware drivers, bootloader, test or hardware designs. They are kept
 # unmodified; any change would be a patch file in vendor/plaits/patches/
 # with its reason (there is none).
@@ -131,6 +132,7 @@ EURORACK_FILES="
     plaits/dsp/speech/lpc_speech_synth.h
     plaits/dsp/speech/lpc_speech_synth_controller.cc
     plaits/dsp/speech/lpc_speech_synth_controller.h
+    plaits/dsp/speech/lpc_speech_synth_phonemes.cc
     plaits/dsp/speech/lpc_speech_synth_words.cc
     plaits/dsp/speech/lpc_speech_synth_words.h
     plaits/dsp/speech/naive_speech_synth.cc
