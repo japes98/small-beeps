@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 7d8e1a7e7b6584ef7c27bea3f886a31c327c10c5..d7278ad968245339d42b57061b060d209b179d21
+OK     4d503dd2d46d sessions: archive M2's transcript; its flagged commands listed as reviewed
+OK     f6b4801092cc docs: M3 prompt, and session M3's exposure entry
+EXEMPT 249b5f0027b1 (merge) docs: merge main into the M3 start; both sessions' exposure entries kept
+EXEMPT d7278ad96824 (merge) Merge pull request #38 from japes98/m3/start
+4 commit(s) checked: PASS
+
+exit status 0
