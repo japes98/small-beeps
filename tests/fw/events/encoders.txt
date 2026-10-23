@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The encoders case's events (tests/fw/boot.suite): sequence, control, kind,
+# value, as tools/fw-suite.py writes them (a run of different controls
+# decided in one scan sorted); checked by hand against
+# tests/fw/scripts/encoders.txt.
+0 SELECT turn 1
+1 ALGORITHM turn 1
+2 KNOB1 turn 1
+3 KNOB2 turn 1
+4 KNOB3 turn 1
+5 KNOB4 turn 1
+6 PRESETS turn 1
+7 SELECT turn -1
+8 ALGORITHM turn -1
+9 KNOB1 turn -1
+10 KNOB2 turn -1
+11 KNOB3 turn -1
+12 KNOB4 turn -1
+13 PRESETS turn -1
