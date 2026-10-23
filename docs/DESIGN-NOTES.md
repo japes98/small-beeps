@@ -1340,6 +1340,42 @@ Format for each entry:
   `-mcpu=r3 -mfprev1` like the SDK, and the soft-float runtime stays a
   demo's.
 
+### 2026-10-23 M5: built for the chip's CPU model and its float instructions
+- Facts: HW-62 (the SDK builds this chip's code with `-mcpu=r3
+  -mfprev1`), HW-63 (fwtest runs those instructions, one cycle each);
+  Q-16 open (their cost on the chip). PROVENANCE P-32.
+- Reasoning: SR-5's answer says to build as the SDK does, so the C and
+  assembly flags now carry `-mcpu=r3 -mfprev1` (tools/build.sh, `CPU`;
+  R-BUILD-1). Measured before and after on main at `7eb74e8`: the image
+  is **byte for byte the same** (`app.bin` `543e5764...`, and the ELF):
+  the firmware has no float yet, and the integer code `r3` gets is what
+  the default gave. So the steady state (1 812.9 instructions a block),
+  the loaded measure (114 172.7) and every size are unchanged. With the
+  flag, a float operation is one instruction where it was a call into a
+  float library (a test file: `a * b + a / b` became three instructions
+  and a return, from two calls and their set-up).
+- Fixed point stays where it is cheaper: M4's oscillator and mixing are
+  32- and 64-bit integer multiplies, single instructions here (M4, P-27),
+  with no conversions at the ends. Floats are for what fixed point makes
+  awkward (wide-range values: rates, pitch ratios, envelope curves
+  computed per block, not per sample). On the chip their cycle cost is
+  still unknown (Q-16), so nothing per sample depends on a float.
+- Found on the way: `-mcpu=r3` alone already makes clang use the float
+  instructions (the disassembler shows them as unknown instructions). So
+  the Plaits demo's own C (its soft-float runtime and that runtime's
+  bit-for-bit test) keeps the flags it had, without either: built with
+  them, the test ran on fwtest's float instructions instead and
+  C-PLAITS-BENCH failed for add, subtract, multiply and divide. Checked
+  against the test's 20 000 operand pairs a operation in Python: add,
+  multiply and divide differ from the exact reference only in the NaN
+  they return (fwtest gives the first NaN operand, quieted; the soft-float
+  and the reference give the canonical `0x7FC00000`); subtract differs
+  too, presumably in that NaN's sign (not pinned down). Every numeric
+  result matched. HW-63 doesn't say which NaN comes out; nothing in the
+  firmware depends on it.
+- Alternatives: leaving the default CPU model (the same code today, but
+  float would need a library); building only the engine with the flag
+  (two ABIs to keep straight for no gain).
 ### 2026-10-23 M5: the screen's cost, drawn in frames within a budget
 - Facts: HW-13 (the time base), HW-45 (a block is 64 frames of 544 time
   base ticks); docs/HARNESS.md "Time" (reading the time base three times
