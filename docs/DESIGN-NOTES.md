@@ -658,7 +658,7 @@ Format for each entry:
   and its row's LED line, PA9, PA10, PH6 or PH9, is high), HW-48 (TIMER0
   to TIMER3, prescaler setting 2, the acknowledge restarts the count),
   HW-19, HW-20, HW-22 (sources and priorities); `WL82.h`'s port, timer
-  and ADC structs (P-23).
+  and ADC structs (P-24).
 - The scan (`input.c`): TIMER1 interrupts every 83.3 µs (125 counts of
   1.5 MHz), 12 slots a millisecond. In slot k (0 to 10) column k is
   selected and its LEDs lit; slot 11 selects none. Each interrupt:
@@ -739,7 +739,8 @@ Format for each entry:
   time since the previous detent; a shared helper can come when two
   consumers need the same curve.
 - The pot: read once a scan, in the blank slot, by polling. The interrupt
-  (HW-41) is emulator-only and not needed. A conversion started in one
+  (HW-60, confirmed in fwtest by SR-3 since; HW-41 before) is not needed:
+  the scan already comes once a millisecond. A conversion started in one
   scan is read in the next, which gives the chip time to convert (fwtest
   converts at once). The mean of the last 4 readings is reported when it
   moves more than 3 from the last value reported, or reaches 0 or 1023,
@@ -820,13 +821,13 @@ Format for each entry:
   (HW-39), +1 for `+`.
 - So fwtest's numbers, the matrix contacts, the LEDs and our IDs agree,
   by our own black-box test. Which printed label each number is (HW-37,
-  HW-39, HW-41) comes only from the emulator model. fwtest has no labels
+  HW-39, HW-61) comes only from the emulator model. fwtest has no labels
   to test it against, so it is to be confirmed by hand on the app's
   panel screen: press each control and see its name.
 
 ### 2026-10-23 M3: what scanning costs, and cheaper ways considered
 - Measured in fwtest with builds that leave one part out (`SB_COST_NO_*`
-  in `input.c`; P-24), in instructions a 1 ms period, steady state at
+  in `input.c`; P-25), in instructions a 1 ms period, steady state at
   rest:
 
   | Part | Instructions a period |

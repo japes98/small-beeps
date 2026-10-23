@@ -50,7 +50,7 @@
 
 /* HW-40: the SARADC. CON bits 8-11 the channel (the pot is 4), bit 4
  * enables, bit 6 with it starts a conversion, bit 7 reads 1 when it is
- * done; RES holds 10 bits. The interrupt (bit 5, HW-41) is not used. */
+ * done; RES holds 10 bits. The interrupt (bit 5, HW-60) is not used. */
 #define ADC_START (4u << 8 | 1u << 4 | 1u << 6)
 #define ADC_DONE  (1u << 7)
 

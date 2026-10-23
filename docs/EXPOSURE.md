@@ -522,6 +522,26 @@ training cutoff (see "Model cutoffs" below).
   exception and clock questions. It never opens the GPL firmwares or
   anything on the clean side's forbidden list beyond the emulator.
 
+### Session audit-selftest (the similarity audit's self-test)
+- Date: 2026-10-23
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.309 (banner), Remote Control from the owner's
+  phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `dcfce033-7499-43f1-a8c3-adb8e2509ca4`,
+  started by `/clear` (banner `source: clear`, `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+- What it archived: SR-3's transcript (`0fb48e95`) into `sessions/spec/`;
+  `tools/check-transcripts.py` PASS.
+- Exposure: none beyond the spec side's. It reads our own files (the
+  audit's tools, tests, settings and docs, and `firmware/`), the audit
+  runs' check lines, and the permissive control and calibration projects
+  (pico-examples, TinyUSB's `src/`). It runs the self-test, which uses
+  only our files and the control, locally. It never opens or fetches an
+  audit target, nor anything under `harness/` or `vendor/emulator/`.
+
 ## Barrier log
 
 | When (UTC) | Folder | Settings SHA-256 | Event |
@@ -548,6 +568,8 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-22T23:04:37Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M2 starts; banner `status: OK`; `tools/clean-update.sh` found main at `9fe07f8` and passed; M1 archived; `tools/check-transcripts.py` PASS with the reviewed entries listed for the owner's approval |
 | 2026-10-23, about 00:30Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M2: merging main into a branch staged spec-side paths; `git diff --cached` and the pre-commit hook showed their names, the hook's reads failed (lazy fetching off); a barrier check (disk, index, every branch) found no spec-side contents in `.git`, before and after the merge commit |
 | 2026-10-22T23:04:40Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-1-SR-2 starts; banner `status: OK`. 23:05:19Z: `tools/spec-setup.sh`, banner `status: OK`; M0e-spec's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-23T00:25:37Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-3 starts; banner `status: OK`. 00:26:15Z: `tools/spec-setup.sh`, banner `status: OK`; SR-1-SR-2's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-23T02:10:46Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session audit-selftest starts; banner `status: OK`. 02:11:08Z: `tools/spec-setup.sh`, banner `status: OK`; SR-3's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 
 ## Model cutoffs
 

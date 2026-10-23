@@ -10,6 +10,11 @@
       "sha256_16": "f0728a91274a90cb",
       "reason": "Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.",
       "added_by": "session M0e-spec (spec side), 2026-10-22"
+    },
+    {
+      "sha256_16": "8350af171db360ad",
+      "reason": "A port pin's name (port C's pin ten) in docs/HARDWARE-SPEC.md (HW-56), written in the spec's port-letter-and-number style from the JieLi SDK's pin list for SPI1 (spi.h) and its pin numbering (gpio.h); not taken from the emulator. Needed only until the entry that adds it has merged into a door.",
+      "added_by": "session SR-3 (spec side), 2026-10-23"
     }
   ]
 }

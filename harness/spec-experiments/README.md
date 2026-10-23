@@ -36,6 +36,9 @@ board, not how real hardware behaves.
 | E-12 | `e12-badjump` | A call to 0x00ABCDEE: fwtest runs the zeros it reads there for 1024 instructions, then ends the run as a fault ("the pc left every memory"); no handler ran. |
 | E-13 | `e13-timer-ack` | TIMER0, prescaler index 2, PRD 1500: 100 periods are 2 400 100 TIMER4 ticks with the acknowledge first in the handler (1 tick after entry) and 2 408 160 with it 82 ticks after entry; CNT reads 5 just before the acknowledge, 0 just after. The periphery model restarts the count and the period at every CON write. |
 | E-14 | `e14-undefined-inline` | A marker store, then the halfword 0xFFFF in the same straight-line code: the run ends as a fault at the start of that code (the pc of main's first instruction), and the marker was never written. |
+| E-15 | `e15-spi1-irq` | SPI1 CON bit 13 and source 16. CON reads 0x8000 before any write. Bit 13 never set, or written clear: no interrupt for a 2-byte DMA or a BUF byte. Bit 13 set: one interrupt each (the handler acknowledges with `CON |= 0x4000`); CON reads 0xA000. A DMA done with bit 13 set and the source off in ICFG, then CON written 0 and the source turned on: taken once. Before the SR-3 fix (vendor patch 0002, fwtest 0.2.0) a CON write could not clear bit 13, so the clear steps counted too. |
+| E-16 | `e16-lcd-frame` | One CNT write of 115 200 bytes from RAM draws a whole frame (rows 0-119 red, 120-239 blue), pixel (0,0) green and (239,239) white in place. |
+| E-17 | `e17-adc-irq` | SARADC CON bit 5 and source 24: a start of channel 4 with bit 5 gives one interrupt, without it none, also right after one with it. In the handler RES 900, CON 0x4F0; after the acknowledge (CON = 0x40) CON 0x40; after a start without bit 5, 0x4D0. |
 
 **Late captures.** While core 0 waits (in `idle`, or polling TIMER4), fwtest
 takes captures only between its runs of up to 1024 instructions, and each
