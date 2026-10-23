@@ -160,6 +160,9 @@ void sb_probe_big(void);
 #if defined(SB_PROBE_STACK)
 void sb_probe_stack(void);
 #endif
+#if defined(SB_PROBE_LOADED)
+void sb_probe_loaded(void);
+#endif
 #if defined(SB_TEST_FAULT)
 void sb_test_fault(void);
 #endif

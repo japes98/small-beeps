@@ -165,7 +165,8 @@ class GateTest(unittest.TestCase):
         big_gates = {"code", "static_ram", "stack_high_water", "startup_instructions"}
         limits = perf.probe_budgets(ref, big, raised, big_gates)
         self.assertEqual(limits["limits"], {"code": 300, "static_ram": 40, "stack_high_water": 8,
-                                            "startup_instructions": 5193, "steady_per_period": 64})
+                                            "startup_instructions": 5193, "steady_per_period": 64,
+                                            "loaded_per_period": None})
         self.assertEqual(perf.check_probe("BIG", gate(big, ref, limits), big_gates), [])
         # the slower probe fails its speed and the unmodified build's
         # steady-state budget, and nothing else
@@ -242,8 +243,139 @@ class GateTest(unittest.TestCase):
     def test_the_real_budgets_load(self):
         b = perf.load_budgets()
         self.assertIn(b["milestone"], json.load(open(perf.BUDGETS))["budgets"])
-        self.assertEqual(sorted(b["limits"]), sorted(perf.BUDGETED))
+        self.assertEqual(sorted(b["limits"]), sorted(perf.BUDGETED + perf.OPTIONAL))
         self.assertEqual(b["speed_rise_percent"], 3)
+
+
+LOADED_BUDGETS = dict(BUDGETS, limits=dict(BUDGETS["limits"], loaded_per_period=12000))
+
+
+def loaded(instructions=10000000, periods=1000, **kw):
+    """A measurement with its loaded measure (since M4b)."""
+    m = measured(**kw)
+    m["loaded"] = {"label": "t loaded", "instructions": instructions, "periods": periods,
+                   "script": perf.LOAD_SCRIPT}
+    return m
+
+
+class LoadedTest(unittest.TestCase):
+    """Requirements: R-PERF-1, R-PERF-2, R-PERF-5"""
+
+    def test_the_loaded_budget_and_speed_gate(self):
+        base = loaded(10000000)                      # 10 000 per period
+        for instr, want in ((10300000, "PASS"), (10300001, "FAIL"), (9699999, "IMPROVED")):
+            r = results(perf.gate(loaded(instr), base, LOADED_BUDGETS, LOADED_BUDGETS))
+            self.assertEqual(r["loaded_speed"], want, instr)
+            self.assertEqual(r["speed"], "PASS")
+        # the budget is exact: 12 000 per period passes, one more fails
+        r = results(perf.gate(loaded(12000000), None, LOADED_BUDGETS))
+        self.assertEqual(r["loaded_per_period"], "PASS")
+        r = results(perf.gate(loaded(12000001), None, LOADED_BUDGETS))
+        self.assertEqual([k for k, x in r.items() if x == "FAIL"], ["loaded_per_period"])
+
+    def test_without_a_loaded_budget_it_is_recorded_not_gated(self):
+        v = perf.gate(loaded(50000000), loaded(), BUDGETS, BUDGETS)
+        r = results(v)
+        self.assertEqual(r["loaded_per_period"], "NOT GATED")
+        self.assertEqual(r["loaded_speed"], "NOT COMPARED")
+        self.assertIn("no loaded budget for M0", [x for x in v if x["gate"] == "loaded_speed"][0]["detail"])
+        self.assertFalse(perf.failed(v))
+        self.assertEqual(perf.load_budgets()["limits"].get("loaded_per_period") is None,
+                         "loaded_per_period" not in json.load(open(perf.BUDGETS))["budgets"][
+                             json.load(open(perf.BUDGETS))["milestone"]])
+
+    def test_loaded_speed_is_compared_only_under_the_same_loaded_budget(self):
+        other = dict(LOADED_BUDGETS, limits=dict(LOADED_BUDGETS["limits"], loaded_per_period=9000))
+        for base_budgets in (other, BUDGETS, None):
+            v = perf.gate(loaded(11000000), loaded(), LOADED_BUDGETS, LOADED_BUDGETS, loaded()["loaded"],
+                          base_budgets or {})
+            self.assertEqual(results(v)["loaded_speed"], "NOT COMPARED", base_budgets)
+            self.assertIn("+10.00%", [x for x in v if x["gate"] == "loaded_speed"][0]["detail"])
+        # its own baseline and budgets, apart from the steady state's (whose
+        # baseline's loaded measure, 1 instruction, would be far off)
+        v = perf.gate(loaded(11000000), loaded(1), LOADED_BUDGETS, BUDGETS, loaded()["loaded"], LOADED_BUDGETS)
+        self.assertEqual((results(v)["loaded_speed"], results(v)["speed"]), ("FAIL", "PASS"))
+        self.assertIn("10000.000 before", [x for x in v if x["gate"] == "loaded_speed"][0]["detail"])
+        # no loaded baseline (none given, none in the steady baseline)
+        v = perf.gate(loaded(), None, LOADED_BUDGETS, None, None, {})
+        self.assertEqual(results(v)["loaded_speed"], "NOT COMPARED")
+        v = perf.gate(loaded(), measured(), LOADED_BUDGETS, LOADED_BUDGETS)
+        self.assertEqual(results(v)["loaded_speed"], "NOT COMPARED")
+
+    def test_a_failed_loaded_measurement_fails(self):
+        cur = loaded()
+        cur["loaded"] = {"label": "t loaded", "error": "the loaded 1250 ms run: no heartbeat"}
+        r = results(perf.gate(cur, loaded(), LOADED_BUDGETS, LOADED_BUDGETS))
+        self.assertEqual(r["loaded measurement"], "FAIL")
+        self.assertNotIn("loaded_speed", r)
+        self.assertEqual(perf.check_probe("X", perf.gate(cur, loaded(), LOADED_BUDGETS, LOADED_BUDGETS), set()),
+                         ["X: loaded measurement failed, but this probe should not touch it",
+                          "X: the loaded measurement failed"])
+
+    def test_the_loaded_probe_fails_only_its_own_gates(self):
+        ref, probe = loaded(10000000), loaded(11000000)
+        raised = dict(LOADED_BUDGETS, limits=dict(LOADED_BUDGETS["limits"], loaded_per_period=10 ** 6))
+        must = {"loaded_speed", "loaded_per_period"}
+        limits = perf.probe_budgets(ref, probe, raised, {"loaded_per_period"})
+        self.assertEqual(limits["limits"]["loaded_per_period"], 10000)
+        self.assertEqual(perf.check_probe("LOADED", perf.gate(probe, ref, limits, limits), must), [])
+        # a probe the loaded gates let through is a problem
+        same = perf.probe_budgets(ref, ref, raised, {"loaded_per_period"})
+        self.assertTrue(perf.check_probe("LOADED", perf.gate(ref, ref, same, same), must))
+        # without a loaded budget in config/budgets.json the probe is still gated
+        limits = perf.probe_budgets(ref, probe, BUDGETS, {"loaded_per_period"})
+        self.assertEqual(perf.check_probe("LOADED", perf.gate(probe, ref, limits, limits), must), [])
+        self.assertIn(("SB_PROBE_LOADED", must, {"loaded_per_period"}), perf.PROBES)
+
+    def test_two_loaded_runs_give_its_steady_state(self):
+        size = {"code": 1, "data": 0, "bss": 0, "image": 1, "stack": 64}
+        calls = []
+
+        def once(image, size_, out, label, ms, script=None):
+            calls.append((ms, script))
+            blocks = {1250: 861, 2250: 1550}[ms]
+            return {"label": label, "ms": ms, "outcome": "completed", "emulated_ms": float(ms),
+                    "instructions": 900000 + 114000 * blocks, "periods": blocks, "options": [str(ms)]}
+        saved = perf.run_once
+        perf.run_once = once
+        try:
+            m = perf.run_loaded(b"", size, "/nonexistent", "t")
+        finally:
+            perf.run_once = saved
+        self.assertEqual(calls, [(ms, perf.LOAD_SCRIPT) for ms in perf.RUN_MS])
+        self.assertEqual((m["instructions"], m["periods"], m["instructions_per_period"]),
+                         (114000 * 689, 689, 114000.0))
+        self.assertEqual(len(m["script_sha256"]), 64)
+        self.assertNotIn("error", m)
+        self.assertEqual(perf.options(64, 1250, perf.LOAD_SCRIPT)[-2:], ["--script", perf.LOAD_SCRIPT])
+        self.assertNotIn("--script", perf.options(64))
+
+    def test_the_load_script(self):
+        # Fixed and steady: PLAY once (it toggles the tone), four keys held,
+        # a pattern whose repeat divides the window between the runs, and
+        # events past the longer run's end.
+        with open(os.path.join(ROOT, perf.LOAD_SCRIPT)) as f:
+            events = [l.split("#")[0].split() for l in f]
+        events = [(float(e[0]), e[1:]) for e in events if e]
+        self.assertEqual(sum(1 for _, e in events if e[:2] == ["key", "12"]), 1)
+        self.assertFalse([e for _, e in events if e[0] == "key" and e[1] in ("0", "1")])
+        self.assertGreater(max(t for t, _ in events), perf.RUN_MS[-1] + 100)
+        for kind in ("key", "enc", "pot"):
+            self.assertTrue([e for _, e in events if e[0] == kind], kind)
+        times = sorted(t for t, e in events if e[0] == "enc" and e[1] == "0")
+        repeat = times[2] - times[0]
+        self.assertEqual((perf.RUN_MS[1] - perf.RUN_MS[0]) % repeat, 0)
+        shifted = sorted((t + repeat, tuple(e)) for t, e in events if 1000 <= t < 1000 + repeat)
+        self.assertEqual(shifted, sorted((t, tuple(e)) for t, e in events if 1000 + repeat <= t < 1000 + 2 * repeat))
+
+    def test_choose_baseline_with_no_budget_anywhere(self):
+        # old records have no loaded budget, and none is set yet: the newest
+        recs = [("b", None, "X"), ("a", None, "Y")]
+        self.assertEqual(perf.choose_baseline(recs, None), (0, [], None))
+        # once one is set, records still holding the pre-raise image are skipped
+        recs = [("budgets", 12000, "X"), ("b", None, "X"), ("a", None, "Y")]
+        i, skipped, pre = perf.choose_baseline(recs, 12000)
+        self.assertEqual((recs[i][0], skipped, pre), ("b", ["budgets"], "b"))
 
 
 class MeasureTest(unittest.TestCase):
@@ -415,7 +547,7 @@ class RaisedBudgetBaselineTest(unittest.TestCase):
                               + list(args), check=True, stdout=subprocess.PIPE,
                               universal_newlines=True).stdout.strip()
 
-    def record(self, name, baseline_steady):
+    def record(self, name, baseline_steady, loaded=None):
         """Writes name's record. baseline_steady is the budget of whatever
         record its records job happened to find: it depends on the order
         records were written, so the rule must not use it."""
@@ -427,7 +559,10 @@ class RaisedBudgetBaselineTest(unittest.TestCase):
             f.write(image)
         with open(os.path.join(d, "outputs", "app.size"), "w") as f:
             f.write("code 1\n")
-        perf_ = {"budgets": {"limits": {"steady_per_period": steady}},
+        limits = {"steady_per_period": steady}
+        if loaded is not None:
+            limits["loaded_per_period"] = loaded
+        perf_ = {"budgets": {"limits": limits},
                  "baseline_budgets": {"limits": {"steady_per_period": baseline_steady}}}
         with open(os.path.join(d, "report.json"), "w") as f:
             json.dump({"perf": perf_}, f)
@@ -467,6 +602,30 @@ class RaisedBudgetBaselineTest(unittest.TestCase):
         # the raise's record arrives later; the answer doesn't change
         self.record("raise", 72)
         self.assertEqual(self.baseline("unrelated")[0], self.sha["m2"])
+
+    def test_the_loaded_baseline_is_found_by_its_own_budget(self):
+        # Since M4b. M2 and the raise have no loaded budget; the loaded
+        # budget arrives with the firmware's record. Keyed on it, the
+        # records before have another budget (none), so the walk stops at
+        # the first of them; keyed on the steady state, nothing changes.
+        self.record("m2", 72)
+        self.record("raise", 72)
+        self.record("unrelated", 1152)
+        self.record("firmware", 1152, loaded=120000)
+        sha, _, note = perf.find_baseline(self.sha["firmware"], "records", head="none", steady=120000,
+                                          key=perf.LOADED)
+        self.assertEqual(sha, self.sha["firmware"])
+        # a later loaded raise with the same image: skipped, as for steady
+        sha, _, note = perf.find_baseline(self.sha["firmware"], "records", head="none", steady=130000,
+                                          key=perf.LOADED)
+        self.assertEqual(sha, self.sha["firmware"])
+        self.assertNotIn("skipped", note)
+        # no loaded budget yet: the newest record, not compared
+        sha, _, _ = perf.find_baseline(self.sha["firmware"], "records", head="none", steady=None,
+                                       key=perf.LOADED)
+        self.assertEqual(sha, self.sha["firmware"])
+        self.assertEqual(perf.find_baseline(self.sha["firmware"], "records", head="none",
+                                            steady=1152)[0], self.sha["firmware"])
 
     def test_without_a_budget_the_newest_record(self):
         for name, prev in (("m2", 72), ("raise", 72)):
@@ -527,6 +686,58 @@ class HistoryTest(unittest.TestCase):
         self.assertEqual(rows[0]["commit"], "c" * 40)
         self.assertEqual(rows[0]["code"], "")
 
+    def measures(self, record):
+        class A:
+            pass
+        a = A()
+        a.record, a.csv, a.measures = record, self.csv, os.path.join(self.dir, "perf-measures.csv")
+        return perf.cmd_history(a)
+
+    def loaded_record(self, commit, value=114172.717, gated=False, budget=None):
+        path = self.record(commit)
+        with open(path) as f:
+            report = json.load(f)
+        report["perf"]["current"]["loaded"] = {"instructions_per_period": value}
+        if budget is not None:
+            report["perf"]["budgets"] = dict(BUDGETS, limits=dict(BUDGETS["limits"], loaded_per_period=budget))
+        report["perf"]["loaded"] = {"change_percent": 1.5 if gated else None, "gated": gated}
+        with open(path, "w") as f:
+            json.dump(report, f)
+        return path
+
+    def test_perf_measures_one_row_per_commit_and_measure(self):
+        # Since M4b, beside perf-history.csv, which keeps its columns
+        mpath = os.path.join(self.dir, "perf-measures.csv")
+        self.assertEqual(self.measures(self.loaded_record("a" * 40)), 0)
+        self.assertEqual(self.measures(self.loaded_record("b" * 40, 120000.5, True, 131072)), 0)
+        with open(mpath, "rb") as f:
+            first = f.read()
+        self.assertEqual(self.measures(self.loaded_record("b" * 40, 1.0)), 0)   # a re-run
+        with open(mpath, "rb") as f:
+            self.assertEqual(f.read(), first)
+        rows = list(csv.DictReader(open(mpath)))
+        self.assertEqual(list(rows[0]), perf.MEASURE_FIELDS)
+        self.assertEqual([(r["commit"][0], r["measure"], r["value"], r["budget"], r["change_percent"], r["gated"])
+                          for r in rows],
+                         [("a", "loaded_per_period", "114172.717", "", "", "no"),
+                          ("b", "loaded_per_period", "120000.5", "131072", "1.500", "yes")])
+        self.assertEqual(rows[0]["unit"], "instructions per audio block")
+        self.assertEqual(next(csv.reader(open(self.csv))), perf.HISTORY_FIELDS)
+        self.assertEqual(len(list(csv.DictReader(open(self.csv)))), 2)
+        # a record without the loaded measure adds no measure row
+        self.assertEqual(self.measures(self.record("c" * 40)), 0)
+        self.assertEqual(len(list(csv.DictReader(open(mpath)))), 2)
+        # and a wrong header is refused
+        with open(mpath, "w") as f:
+            f.write("something,else\n")
+        self.assertEqual(self.measures(self.loaded_record("d" * 40)), 1)
+
+    def test_records_workflow_writes_both_files(self):
+        with open(os.path.join(ROOT, ".github", "workflows", "records.yml")) as f:
+            wf = f.read()
+        self.assertIn("--measures rec/perf-measures.csv", wf)
+        self.assertIn("perf-history.csv perf-measures.csv", wf)
+
     def test_an_unexpected_header_is_refused(self):
         with open(self.csv, "w") as f:
             f.write("something,else\n")
@@ -554,7 +765,7 @@ class ProbeSourceTest(unittest.TestCase):
     def test_probes_are_compiled_only_on_request(self):
         # every probe's code is under its define, so the firmware itself
         # carries none of it
-        for name in ("main.c", "probe.c", "sb.h"):
+        for name in ("main.c", "probe.c", "sb.h", "synth.c"):
             with open(os.path.join(ROOT, "firmware", "src", name)) as f:
                 text = f.read()
             guard = []
@@ -566,7 +777,8 @@ class ProbeSourceTest(unittest.TestCase):
                     guard.pop()
                 elif re.search(r"\b(sb_)?probe_\w+", line):
                     self.assertTrue(guard, "%s: %r outside a probe's #if" % (name, line))
-        self.assertEqual({d for d, _, _ in perf.PROBES}, {"SB_PROBE_SLOW", "SB_PROBE_BIG", "SB_PROBE_STACK"})
+        self.assertEqual({d for d, _, _ in perf.PROBES},
+                         {"SB_PROBE_SLOW", "SB_PROBE_BIG", "SB_PROBE_STACK", "SB_PROBE_LOADED"})
 
 
 if __name__ == "__main__":

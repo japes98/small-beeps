@@ -3,9 +3,9 @@
  * SPDX-FileCopyrightText: 2026 japes98
  *
  * Test builds only. tools/perf.py builds the firmware with each of
- * SB_PROBE_SLOW, SB_PROBE_BIG and SB_PROBE_STACK defined, and checks that
- * the performance gates fail the first two and that the stack's high-water
- * mark sees the third (R-PERF-3, R-PERF-5). tools/fw-suite.py builds it
+ * SB_PROBE_SLOW, SB_PROBE_BIG, SB_PROBE_LOADED and SB_PROBE_STACK defined,
+ * and checks that the performance gates fail the first three and that the
+ * stack's high-water mark sees the last (R-PERF-3, R-PERF-5). tools/fw-suite.py builds it
  * with each of SB_TEST_FAULT, SB_TEST_STRAY and SB_TEST_BADINSN, which go
  * wrong on purpose once interrupts are on (R-IRQ-3, R-IRQ-4), and with
  * SB_TEST_FLOOD, which keeps the panel busy (R-LCD-5), SB_TEST_LEDS,
@@ -32,6 +32,18 @@ void sb_probe_slow(void)
     volatile u32 i;
 
     for (i = 0; i < 20; i++)
+        ;
+}
+#endif
+
+#if defined(SB_PROBE_LOADED)
+/* Extra work for each voice sounding, each audio block (synth.c): none
+ * at rest, so only the loaded measure's gates must catch it. */
+void sb_probe_loaded(void)
+{
+    volatile u32 i;
+
+    for (i = 0; i < 1000; i++)
         ;
 }
 #endif
