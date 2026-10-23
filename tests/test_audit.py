@@ -242,7 +242,7 @@ class TextCheckTest(unittest.TestCase):
     the share of their normalised text in each target file.
     Requirements: R-AUDIT-1, R-AUDIT-5"""
 
-    OURS = (b"/* SPDX-License-Identifier: MIT */\n#include \"sb.h\"\n"
+    OURS = (b"/* our glyphs, a made-up font */\n#include \"sb.h\"\n"
             b"#define G(a, b) { ROW(a), ROW(b) }\n"
             b"const u8 glyphs[4][2] = {\n"
             b"    /* 'a' */ G(\".#.#.\", \"#...#\"),\n"
