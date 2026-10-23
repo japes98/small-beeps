@@ -8,6 +8,9 @@ SPDX-FileCopyrightText: 2026 japes98
 *Local paths in older entries were redacted on 2026-10-22 for privacy; git
 history keeps the originals; nothing else changed.*
 
+*Which hardware layer the emulator's chip model was written from, and
+under which licence, is pinned down in "Corrections" below (2026-10-23).*
+
 This is the record a clean-room claim rests on: who, or which session, saw
 what, and when. Roles are defined in CONTRIBUTING.md.
 
@@ -603,6 +606,52 @@ training cutoff (see "Model cutoffs" below).
     after.
   - **Exposure:** still none.
 
+### Session SR-3 (spec request SR-3, the panel and SPI1)
+*Entry added 2026-10-23 by session record-fixes-1, from SR-3's archived
+transcript (`sessions/spec/2026-10-23-spec-0fb48e95-45c5-4b91-bfbb-b527c2511e3e.jsonl`);
+SR-3 wrote only its barrier-log row.*
+- Date: 2026-10-23
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.309 (banner), Remote Control from the owner's
+  phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5; the only model in the
+  transcript). Published cutoffs: reliable knowledge Jun 2026, training
+  data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `0fb48e95-45c5-4b91-bfbb-b527c2511e3e`,
+  started by `/clear` (banner `source: clear`, `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+- What it archived: SR-1-SR-2's transcript (`a091f4ce`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS.
+- What it read:
+  - our own files: `docs/SPEC-REQUESTS.md`, `docs/HARDWARE-SPEC.md`,
+    `docs/HARNESS.md`, CONTRIBUTING.md, PROVENANCE.md, the harness source
+    and tests (`harness/`), the spec-side experiments
+    (`harness/spec-experiments/`), our tools and CI workflows;
+  - the vendored emulator (`vendor/emulator/`): its LCD and SPI1 model,
+    its bus read and write paths, its timed peripherals (timer and
+    SARADC), its CPU and machine loop, its `UPSTREAM.md` and patches. It
+    added patch 0002 (SPI1's control register writes) there, chosen by
+    the owner;
+  - the JieLi SDK (Apache-2.0) at `5fa84a9b`: the vendored
+    `vendor/jieli-sdk/` WL82 register header, and a sparse checkout into
+    its scratch folder of `cpu/wl82/`, `include_lib/driver/cpu/wl82/`,
+    `apps/common/example/peripheral/` (SPI and GPIO examples) and
+    `apps/common/ui/` (searched in its LCD drivers);
+  - FM-1-RE (WTFPL) at `ec832f28`, three documents fetched raw:
+    `docs/io/08-display.md`, `docs/reversing/01-hardware-map.md` and
+    `docs/io/01-boot.md`;
+  - the Sitronix ST7789V datasheet, from Newhaven Display
+    (SHA-256 `8ecf0e438aa25554efc473a4cfe6e436f3fb33e68cd876b25041557235d04ca1`),
+    converted to text in a Debian container;
+  - one empty read of another spec session's (M0e-spec's) task output in
+    the scratch area (it printed nothing).
+- Exposure: none beyond the spec side's. It never opens the GPL firmwares,
+  fm1-emu's `fm1-sid/` or probes, or the stock firmware's disassembly.
+  Whether `docs/reversing/01-hardware-map.md` counts as FM-1-RE
+  disassembly material (CONTRIBUTING.md's forbidden list) is the owner's
+  call; it is recorded here by its exact path.
+
 ### Session audit-selftest (the similarity audit's self-test)
 - Date: 2026-10-23
 - Role: **spec side (exposed).** Never writes firmware.
@@ -622,6 +671,71 @@ training cutoff (see "Model cutoffs" below).
   (pico-examples, TinyUSB's `src/`). It runs the self-test, which uses
   only our files and the control, locally. It never opens or fetches an
   audit target, nor anything under `harness/` or `vendor/emulator/`.
+
+### Session record-fixes-1 (two corrections to the record)
+- Date: 2026-10-23
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.309 (banner), Remote Control from the owner's
+  phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `da964365-f67d-4c41-b313-a7a78fead815`,
+  started by `/clear` (banner `source: clear`, `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+- What it archived: audit-selftest's transcript (`dcfce033`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS.
+- Exposure: none beyond the spec side's. It reads SR-3's archived
+  transcript; the vendored emulator's comments, `LICENSE` and
+  `UPSTREAM.md`; fm1-emu's `README.md`, `docs/*.md` and
+  `crates/fm1-plugin/README.md` at `43ed5580`; `audit/targets.json`; and
+  GitHub's API metadata (name, licence, description, dates) for
+  hugelton/Felucca, hugelton/felucca-bsp and joakimeriksson/fm1-emu. It
+  never opens any audit target's files, READMEs or web pages.
+
+## Corrections
+
+### 2026-10-23: which hardware layer, under which licence
+*Written by session record-fixes-1. Older entries are left as written.*
+
+- **What was stated.** This register (its opening list and the planning
+  conversation's entry), CONTRIBUTING.md ("Roles") and earlier prompts
+  (`docs/prompts/M0a.md`) say the emulator's chip model was partly written
+  from "the GPL Felucca firmware's hardware layer" or "Felucca's hardware
+  layer", without naming a repository or a licence version. The audit's
+  metadata (`audit/targets.json`) lists a separate repository by Felucca's
+  author, hugelton/felucca-bsp, a board support package licensed MPL-2.0,
+  which raised the question whether the hardware layer meant was that one.
+- **What the sources show.**
+  - The vendored emulator (`vendor/emulator/`, fm1-emu at `43ed5580`)
+    credits "Felucca's HAL" and "Felucca HAL headers" in the module
+    comments of `crates/fm1-soc/src/` (`lib.rs`, `periph.rs`, `lcd.rs`,
+    `spiflash.rs`), and `periph.rs` gives their location as
+    `reference/Felucca/firmware/hal/`: the `hal/` folder of a local clone
+    of Felucca. No file there names felucca-bsp, a BSP, or MPL. Its own
+    licence is MIT (`LICENSE`).
+  - fm1-emu's `README.md` ("Credits") names "the hardware layer of
+    hugelton/Felucca", linking https://github.com/hugelton/Felucca. Its
+    `docs/recon.md` lists hugelton/Felucca as a "GPL-3.0 C firmware" whose
+    `hal/` hardware layer is "de-facto peripheral documentation", and its
+    list of repositories cloned into `reference/` includes Felucca and no
+    BSP. None of fm1-emu's README or `docs/` files mentions felucca-bsp.
+  - GitHub's API (2026-10-23) reports hugelton/Felucca's licence as
+    GPL-3.0 and hugelton/felucca-bsp's as MPL-2.0 (no description).
+    felucca-bsp was created on 2026-10-09, a week after Felucca
+    (2026-10-02).
+  - Limit: the API reports a repository-level licence for the current
+    default branch. Per-file licence headers in Felucca's `hal/` were not
+    checked, since opening them is forbidden.
+- **What it means.** The chip model credits the hardware layer (`hal/`)
+  of **hugelton/Felucca, licensed GPL-3.0**, not hugelton/felucca-bsp. The
+  old wording was right; this names the repository and licence version.
+  The spec side's exposure is to GPL-3.0 material, as assumed; it is not
+  reduced. felucca-bsp's MPL-2.0 licence has no bearing on the emulator's
+  provenance, and felucca-bsp stays an audit target like Felucca's other
+  repositories. The clean-room rules are unchanged. CONTRIBUTING.md
+  ("Roles") now names the repository and licence; the older entries and
+  prompts keep their wording.
 
 ## Barrier log
 
@@ -652,6 +766,7 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-23T00:24:53Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M3 starts; banner `status: OK`; `tools/clean-update.sh` found main at `4c5d76f` and passed; M2 archived; `tools/check-transcripts.py` PASS with the 13 reviewed entries the owner approved in the session |
 | 2026-10-23T00:25:37Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-3 starts; banner `status: OK`. 00:26:15Z: `tools/spec-setup.sh`, banner `status: OK`; SR-1-SR-2's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-23T02:10:46Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session audit-selftest starts; banner `status: OK`. 02:11:08Z: `tools/spec-setup.sh`, banner `status: OK`; SR-3's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-23T02:52:56Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session record-fixes-1 starts; banner `status: OK`. 02:53:13Z: `tools/spec-setup.sh`, banner `status: OK`; audit-selftest's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 
 ## Model cutoffs
 

@@ -18,10 +18,12 @@ Clean-room work separates the people who have seen the protected code from
 the people who write ours.
 
 - **Spec side (exposed).** May read the F-Emulator emulator's source, whose
-  chip model was partly written from the GPL Felucca firmware's hardware
-  layer. Builds the test harness and writes `HARDWARE-SPEC.md`: facts only
-  (addresses, bits, pins, timings, protocols), never code or code structure,
-  each fact citing a non-GPL source where one exists. Never writes firmware.
+  chip model was partly written from the hardware layer (`hal/`) of the
+  Felucca firmware, hugelton/Felucca, licensed GPL-3.0 (docs/EXPOSURE.md,
+  "Corrections", 2026-10-23). Builds the test harness and writes
+  `HARDWARE-SPEC.md`: facts only (addresses, bits, pins, timings,
+  protocols), never code or code structure, each fact citing a non-GPL
+  source where one exists. Never writes firmware.
 - **Firmware side (clean).** Writes the firmware. Reads only
   `HARDWARE-SPEC.md`, the JieLi SDK (Apache-2.0), FM-1-RE's hardware
   documents (WTFPL), public datasheets, and results of its own black-box
