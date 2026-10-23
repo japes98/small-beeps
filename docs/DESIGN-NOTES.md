@@ -627,6 +627,29 @@ Format for each entry:
 - The screen case captures the beacon with each picture; the beacon's
   `shown` seconds must equal the heartbeat's whole seconds (R-LCD-4).
 
+### 2026-10-23 M3: the first record under a raised budget is no baseline
+- Facts: R-PERF-1 and R-PERF-2 (a budget is raised only by a pull request
+  of its own; the 3% gate compares steady state against the latest main
+  record made under the same steady-state budget).
+- The problem: M3's scanning costs hundreds of instructions a period, so
+  its steady-state budget is raised first, in its own pull request. That
+  pull request's merge gets a record under the new budget that still holds
+  M2's firmware (about 65 a period). As the latest record under the same
+  budget, it would be the firmware pull request's baseline, and the gate
+  would fail it by design, by about a thousand percent.
+- The owner's decision (session M3): `tools/perf.py` does not compare
+  against the first record made under a steady-state budget, the one whose
+  own baseline's record was made under another budget or none. The change
+  is still reported (NOT COMPARED, with the figures and why), every budget
+  still holds, and the record after it is a baseline again, so only the
+  first firmware after a raise goes ungated, and the raise itself was
+  reviewed in its own pull request.
+- Alternatives: raising the budget and the firmware in one pull request
+  (against R-PERF-1's rule); keeping the old budget active until the
+  firmware lands (the firmware would fail the old budget); comparing
+  firmware images to spot a budget-only merge (more machinery for the
+  same answer).
+
 ### 2026-10-23 M3: scanning the panel
 - Facts: HW-33 (11 columns through two cascaded shift registers on PA1,
   PA3, PA4; a column selected while its bit is 0), HW-34 (6 rows on PA0,
