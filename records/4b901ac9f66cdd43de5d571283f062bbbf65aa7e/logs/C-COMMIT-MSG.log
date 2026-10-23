@@ -1,0 +1,11 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 4c5d76f83f6c54fabfcb88cb1aa3e9da52e97470..4b901ac9f66cdd43de5d571283f062bbbf65aa7e
+OK     07a8c465f3fe sessions: SR-3 starts; SR-1-SR-2 archived, prompt saved
+OK     404052246d84 harness: SPI1's control register writes clear bits again (fwtest 0.2.0)
+OK     e1380f04232b harness: spec-side experiments E-15 to E-17 (SPI1 interrupt, a whole frame, the SARADC interrupt)
+OK     386e7187a0d4 docs: SR-3 answered in part; fwtest's SPI1 interrupt fixed; HW-41 confirmed for M3
+OK     31b319911a1e config: a reviewed pin name for the separation check; P-23 names no file
+OK     524bd78c20a6 docs: SR-3's entries say only what the sources show; the patch is not yet reported
+EXEMPT 4b901ac9f66c (merge) Merge pull request #40 from japes98/sr/sr3
+7 commit(s) checked: PASS
+
+exit status 0

@@ -1,0 +1,78 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/fw-suite.py --build /home/runner/work/small-beeps/small-beeps/out/4b901ac9f66cdd43de5d571283f062bbbf65aa7e/build-a --out /home/runner/work/small-beeps/small-beeps/out/4b901ac9f66cdd43de5d571283f062bbbf65aa7e/fwtest
+image size: code 4180, data 4, bss 115336, image 4184, stack 4096, irq_stack 2048
+start slack: 8891 time base ticks (bss cleared before main starts the time base)
+built test-badinsn (-DSB_TEST_BADINSN)
+built test-fault (-DSB_TEST_FAULT)
+built test-flood (-DSB_TEST_FLOOD)
+built test-stray (-DSB_TEST_STRAY)
+Unable to find image 'ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc' locally
+ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc: Pulling from japes98/small-beeps
+fb02902e2fd3: Pulling fs layer
+94312d059e3c: Pulling fs layer
+e5c4369ab42b: Pulling fs layer
+0d5ab9647376: Pulling fs layer
+3af49bcb79cf: Pulling fs layer
+bbf6346f9d17: Pulling fs layer
+0d5ab9647376: Waiting
+bbf6346f9d17: Waiting
+3af49bcb79cf: Waiting
+e5c4369ab42b: Download complete
+94312d059e3c: Verifying Checksum
+94312d059e3c: Download complete
+fb02902e2fd3: Verifying Checksum
+fb02902e2fd3: Download complete
+0d5ab9647376: Download complete
+3af49bcb79cf: Verifying Checksum
+3af49bcb79cf: Download complete
+bbf6346f9d17: Download complete
+fb02902e2fd3: Pull complete
+94312d059e3c: Pull complete
+e5c4369ab42b: Pull complete
+0d5ab9647376: Pull complete
+3af49bcb79cf: Pull complete
+bbf6346f9d17: Pull complete
+Digest: sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc
+Status: Downloaded newer image for ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc
+fwtest suite: PASS
+boot: completed at 9.262 ms, 63491 instructions on core 0
+  golden console.txt: match
+  golden ram-01c00000-4-end.bin: match
+  golden ram-01c7fc00-200-end.bin: match
+  clock: 240 time base ticks for 2402 cycles; 9 ticks by the end
+  first tick by 24307 time base ticks (1.013 ms)
+  vector table: 128 of 128 slots as built (tick 0x0200078c, SPI1 0x0200060a, stubs from 0x0200004a)
+heartbeat: completed at 1256.314 ms, 1118449 instructions on core 0
+  1ms    seq    18  beats     9  ticks    216315 (9.013 ms)  copy b     9    216315
+  10ms   seq    50  beats    25  ticks    600331 (25.014 ms)  copy b    25    600331
+  100ms  seq   210  beats   105  ticks   2520411 (105.017 ms)  copy b   105   2520411
+  500ms  seq  1000  beats   500  ticks  12000806 (500.034 ms)  copy b   500  12000806
+  end    seq  2512  beats  1256  ticks  30145562 (1256.065 ms)  copy b  1256  30145562
+  ticks 1256, interval 24001 to 24001 time base ticks (jitter 0); the idle loop's wait returned 499 times in its first 499 ticks
+heartbeat2: completed at 2258.356 ms, 1183995 instructions on core 0
+  1ms    seq    18  beats     9  ticks    216315 (9.013 ms)  copy b     9    216315
+  10ms   seq    50  beats    25  ticks    600331 (25.014 ms)  copy b    25    600331
+  100ms  seq   210  beats   105  ticks   2520411 (105.017 ms)  copy b   105   2520411
+  500ms  seq  1000  beats   500  ticks  12000806 (500.034 ms)  copy b   500  12000806
+  end    seq  4516  beats  2258  ticks  54194564 (2258.107 ms)  copy b  2258  54194564
+  ticks 2258, interval 24001 to 24001 time base ticks (jitter 0); the idle loop's wait returned 1499 times in its first 1499 ticks
+  steady state: 65546 instructions for 1002 ticks between the two heartbeat runs: 65.415 a tick (M0's polling heartbeat: 356.9 a period)
+screen: completed at 1608.329 ms, 1140977 instructions on core 0
+  golden lcd-1500ms.png: match
+  golden lcd-300ms.png: match
+  golden lcd-800ms.png: match
+   300 ms: screen 1, heartbeat shown 0 s, beats 313
+   800 ms: screen 2, heartbeat shown 0 s, beats 814
+  1500 ms: screen 2, heartbeat shown 1 s, beats 1512
+flood: completed at 1500.000 ms, 240722929 instructions on core 0
+  ticks 1499, interval 24001 to 24002 time base ticks (jitter 1), during 233809 whole frames
+  a whole frame: 99 time base ticks (4.12 us) from its window to its last transfer started; 1030 core-0 instructions a frame over the run
+fault: halt at 1.270 ms, 66567 instructions on core 0
+  golden console.txt: match
+  halt: reason 3, source 1, reti 0x00000000
+stray: halt at 0.268 ms, 64516 instructions on core 0
+  golden console.txt: match
+  halt: reason 1, source 127, reti 0x020009a2
+badinsn: fault at 0.262 ms, 62882 instructions on core 0
+fw suite: PASS
+
+exit status 0
