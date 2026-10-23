@@ -66,6 +66,9 @@ MIT licence. JieLi's build ships no licence text and no source, so we cannot
 confirm what is in it. **We don't link it.** `-nostdlib` keeps it out, and
 when the firmware needs builtins, our own runtime will provide them (M0d and
 later). If that ever changes, the change records the reason here.
+Since M4b the Plaits demo (`firmware/demos/plaits/`, its own image only)
+carries soft-float routines of its own (`runtime/softfloat.c`) for the float
+calls clang makes; the firmware itself still needs none.
 
 ### Risk
 
