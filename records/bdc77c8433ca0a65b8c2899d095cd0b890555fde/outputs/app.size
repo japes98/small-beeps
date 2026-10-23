@@ -1,0 +1,6 @@
+code 8636
+data 32
+bss 123904
+image 8668
+stack 4096
+irq_stack 2048

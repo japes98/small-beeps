@@ -1,0 +1,475 @@
+{
+  "baseline": {
+    "beats": 2249,
+    "bss": 123904,
+    "code": 8636,
+    "commit": "229dcf20b20c27c619a3d0397020306c89728d37",
+    "data": 32,
+    "emulated_ms": "2250.333",
+    "frame_update_us": 2.833,
+    "fwtest_exit": 0,
+    "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:00a33c9a0e1184030cac85c31d46aa2bad9d6438190c19a148943b6b9af0e6df",
+    "heartbeat_update_us": 5.792,
+    "image": 8668,
+    "instructions": 1250928,
+    "instructions_per_period": 1812.939,
+    "label": "baseline",
+    "loaded": {
+      "instructions": 78665002,
+      "instructions_per_period": 114172.717,
+      "label": "baseline loaded",
+      "options": [
+        [
+          "--ms",
+          "1250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end",
+          "--script",
+          "tests/fw/scripts/perfload.txt"
+        ],
+        [
+          "--ms",
+          "2250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end",
+          "--script",
+          "tests/fw/scripts/perfload.txt"
+        ]
+      ],
+      "periods": 689,
+      "runs": [
+        {
+          "emulated_ms": "1250.000",
+          "instructions": 66148016,
+          "ms": 1250,
+          "outcome": "completed",
+          "periods": 861
+        },
+        {
+          "emulated_ms": "2250.000",
+          "instructions": 144813018,
+          "ms": 2250,
+          "outcome": "completed",
+          "periods": 1550
+        }
+      ],
+      "script": "tests/fw/scripts/perfload.txt",
+      "script_sha256": "59e6abf129d9ac50dcf4d94dccc8a06e2e86b2bdc05e083626eaf2cafd30b34d"
+    },
+    "marker": "0x44304253",
+    "ms": 2250,
+    "options": [
+      [
+        "--ms",
+        "1250",
+        "--ipb",
+        "--ram",
+        "0x01c00000:0x60@end",
+        "--ram",
+        "0x01c7ec00:0x1000@end"
+      ],
+      [
+        "--ms",
+        "2250",
+        "--ipb",
+        "--ram",
+        "0x01c00000:0x60@end",
+        "--ram",
+        "0x01c7ec00:0x1000@end"
+      ]
+    ],
+    "outcome": "completed",
+    "periods": 690,
+    "render_us": 1157.125,
+    "runs": [
+      {
+        "emulated_ms": "1250.534",
+        "instructions": 2619264,
+        "ms": 1250,
+        "outcome": "completed",
+        "periods": 861
+      },
+      {
+        "emulated_ms": "2250.333",
+        "instructions": 3870192,
+        "ms": 2250,
+        "outcome": "completed",
+        "periods": 1551
+      }
+    ],
+    "stack": 4096,
+    "stack_high_water": 336,
+    "stack_method": "pattern, two stacks",
+    "stack_reserved": 4096,
+    "startup_instructions": 1058323,
+    "static_ram": 123936
+  },
+  "baseline_budgets": {
+    "limits": {
+      "code": 10240,
+      "loaded_per_period": 131072,
+      "stack_high_water": 512,
+      "startup_instructions": 1572864,
+      "static_ram": 131072,
+      "steady_per_period": 2048
+    },
+    "milestone": "M4",
+    "speed_rise_percent": 3
+  },
+  "baseline_note": "the record of 229dcf20b20c, the latest of bdc77c8433ca0a65b8c2899d095cd0b890555fde^1 on origin/records",
+  "baseline_recorded": {
+    "beats": 2249,
+    "bss": 123904,
+    "code": 8636,
+    "data": 32,
+    "emulated_ms": "2250.333",
+    "frame_update_us": 2.833,
+    "fwtest_exit": 0,
+    "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:00a33c9a0e1184030cac85c31d46aa2bad9d6438190c19a148943b6b9af0e6df",
+    "heartbeat_update_us": 5.792,
+    "image": 8668,
+    "instructions": 1250928,
+    "instructions_per_period": 1812.939,
+    "label": "current",
+    "loaded": {
+      "instructions": 78665002,
+      "instructions_per_period": 114172.717,
+      "label": "current loaded",
+      "options": [
+        [
+          "--ms",
+          "1250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end",
+          "--script",
+          "tests/fw/scripts/perfload.txt"
+        ],
+        [
+          "--ms",
+          "2250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end",
+          "--script",
+          "tests/fw/scripts/perfload.txt"
+        ]
+      ],
+      "periods": 689,
+      "runs": [
+        {
+          "emulated_ms": "1250.000",
+          "instructions": 66148016,
+          "ms": 1250,
+          "outcome": "completed",
+          "periods": 861
+        },
+        {
+          "emulated_ms": "2250.000",
+          "instructions": 144813018,
+          "ms": 2250,
+          "outcome": "completed",
+          "periods": 1550
+        }
+      ],
+      "script": "tests/fw/scripts/perfload.txt",
+      "script_sha256": "59e6abf129d9ac50dcf4d94dccc8a06e2e86b2bdc05e083626eaf2cafd30b34d"
+    },
+    "marker": "0x44304253",
+    "ms": 2250,
+    "options": [
+      [
+        "--ms",
+        "1250",
+        "--ipb",
+        "--ram",
+        "0x01c00000:0x60@end",
+        "--ram",
+        "0x01c7ec00:0x1000@end"
+      ],
+      [
+        "--ms",
+        "2250",
+        "--ipb",
+        "--ram",
+        "0x01c00000:0x60@end",
+        "--ram",
+        "0x01c7ec00:0x1000@end"
+      ]
+    ],
+    "outcome": "completed",
+    "periods": 690,
+    "render_us": 1157.125,
+    "runs": [
+      {
+        "emulated_ms": "1250.534",
+        "instructions": 2619264,
+        "ms": 1250,
+        "outcome": "completed",
+        "periods": 861
+      },
+      {
+        "emulated_ms": "2250.333",
+        "instructions": 3870192,
+        "ms": 2250,
+        "outcome": "completed",
+        "periods": 1551
+      }
+    ],
+    "stack": 4096,
+    "stack_high_water": 336,
+    "stack_method": "pattern, two stacks",
+    "stack_reserved": 4096,
+    "startup_instructions": 1058323,
+    "static_ram": 123936
+  },
+  "budgets": {
+    "limits": {
+      "code": 10240,
+      "loaded_per_period": 131072,
+      "stack_high_water": 512,
+      "startup_instructions": 1572864,
+      "static_ram": 131072,
+      "steady_per_period": 2048
+    },
+    "milestone": "M4",
+    "speed_rise_percent": 3
+  },
+  "current": {
+    "beats": 2249,
+    "bss": 123904,
+    "code": 8636,
+    "data": 32,
+    "emulated_ms": "2250.333",
+    "frame_update_us": 2.833,
+    "fwtest_exit": 0,
+    "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:00a33c9a0e1184030cac85c31d46aa2bad9d6438190c19a148943b6b9af0e6df",
+    "heartbeat_update_us": 5.792,
+    "image": 8668,
+    "instructions": 1250928,
+    "instructions_per_period": 1812.939,
+    "label": "current",
+    "loaded": {
+      "instructions": 78665002,
+      "instructions_per_period": 114172.717,
+      "label": "current loaded",
+      "options": [
+        [
+          "--ms",
+          "1250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end",
+          "--script",
+          "tests/fw/scripts/perfload.txt"
+        ],
+        [
+          "--ms",
+          "2250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end",
+          "--script",
+          "tests/fw/scripts/perfload.txt"
+        ]
+      ],
+      "periods": 689,
+      "runs": [
+        {
+          "emulated_ms": "1250.000",
+          "instructions": 66148016,
+          "ms": 1250,
+          "outcome": "completed",
+          "periods": 861
+        },
+        {
+          "emulated_ms": "2250.000",
+          "instructions": 144813018,
+          "ms": 2250,
+          "outcome": "completed",
+          "periods": 1550
+        }
+      ],
+      "script": "tests/fw/scripts/perfload.txt",
+      "script_sha256": "59e6abf129d9ac50dcf4d94dccc8a06e2e86b2bdc05e083626eaf2cafd30b34d"
+    },
+    "marker": "0x44304253",
+    "ms": 2250,
+    "options": [
+      [
+        "--ms",
+        "1250",
+        "--ipb",
+        "--ram",
+        "0x01c00000:0x60@end",
+        "--ram",
+        "0x01c7ec00:0x1000@end"
+      ],
+      [
+        "--ms",
+        "2250",
+        "--ipb",
+        "--ram",
+        "0x01c00000:0x60@end",
+        "--ram",
+        "0x01c7ec00:0x1000@end"
+      ]
+    ],
+    "outcome": "completed",
+    "periods": 690,
+    "render_us": 1157.125,
+    "runs": [
+      {
+        "emulated_ms": "1250.534",
+        "instructions": 2619264,
+        "ms": 1250,
+        "outcome": "completed",
+        "periods": 861
+      },
+      {
+        "emulated_ms": "2250.333",
+        "instructions": 3870192,
+        "ms": 2250,
+        "outcome": "completed",
+        "periods": 1551
+      }
+    ],
+    "stack": 4096,
+    "stack_high_water": 336,
+    "stack_method": "pattern, two stacks",
+    "stack_reserved": 4096,
+    "startup_instructions": 1058323,
+    "static_ram": 123936
+  },
+  "gates": [
+    {
+      "detail": "8636 of 10240 bytes (M4 budget)",
+      "gate": "code",
+      "result": "PASS"
+    },
+    {
+      "detail": "123936 of 131072 bytes (M4 budget)",
+      "gate": "static_ram",
+      "result": "PASS"
+    },
+    {
+      "detail": "336 of 512 bytes (M4 budget)",
+      "gate": "stack_high_water",
+      "result": "PASS"
+    },
+    {
+      "detail": "1058323 of 1572864 instructions (M4 budget)",
+      "gate": "startup_instructions",
+      "result": "PASS"
+    },
+    {
+      "detail": "1812.939 of 2048 instructions per period (M4 budget)",
+      "gate": "steady_per_period",
+      "result": "PASS"
+    },
+    {
+      "detail": "114172.717 of 131072 instructions per period (M4 budget)",
+      "gate": "loaded_per_period",
+      "result": "PASS"
+    },
+    {
+      "detail": "1812.939 steady-state instructions per period, 1812.939 before: +0.00%, within 3%",
+      "gate": "speed",
+      "result": "PASS"
+    },
+    {
+      "detail": "114172.717 loaded instructions per period, 114172.717 before (+0.00%), but the baseline's record was made under no loaded budget, not this M4 budget of 131072",
+      "gate": "loaded_speed",
+      "result": "NOT COMPARED"
+    }
+  ],
+  "loaded": {
+    "baseline": {
+      "commit": "522ce86d8f8749820fef233d6626cdc3d657330e",
+      "instructions": 78665002,
+      "instructions_per_period": 114172.717,
+      "label": "loaded-baseline loaded",
+      "options": [
+        [
+          "--ms",
+          "1250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end",
+          "--script",
+          "tests/fw/scripts/perfload.txt"
+        ],
+        [
+          "--ms",
+          "2250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end",
+          "--script",
+          "tests/fw/scripts/perfload.txt"
+        ]
+      ],
+      "periods": 689,
+      "runs": [
+        {
+          "emulated_ms": "1250.000",
+          "instructions": 66148016,
+          "ms": 1250,
+          "outcome": "completed",
+          "periods": 861
+        },
+        {
+          "emulated_ms": "2250.000",
+          "instructions": 144813018,
+          "ms": 2250,
+          "outcome": "completed",
+          "periods": 1550
+        }
+      ],
+      "script": "tests/fw/scripts/perfload.txt",
+      "script_sha256": "59e6abf129d9ac50dcf4d94dccc8a06e2e86b2bdc05e083626eaf2cafd30b34d"
+    },
+    "baseline_budgets": {
+      "limits": {
+        "code": 10240,
+        "loaded_per_period": null,
+        "stack_high_water": 512,
+        "startup_instructions": 1572864,
+        "static_ram": 131072,
+        "steady_per_period": 2048
+      },
+      "milestone": "M4",
+      "speed_rise_percent": 3
+    },
+    "baseline_note": "the record of 522ce86d8f87, the latest of bdc77c8433ca0a65b8c2899d095cd0b890555fde^1 on origin/records; skipped 229dcf20b20c, 555a31f13a1f, made under this budget but still holding the image of 522ce86d8f87, the last record before it was raised",
+    "change_percent": 0.0,
+    "gated": false,
+    "script": "tests/fw/scripts/perfload.txt",
+    "script_sha256": "59e6abf129d9ac50dcf4d94dccc8a06e2e86b2bdc05e083626eaf2cafd30b34d"
+  },
+  "period": "audio-block-steady",
+  "result": "PASS",
+  "runs_ms": [
+    1250,
+    2250
+  ],
+  "speed_change_percent": 0.0
+}

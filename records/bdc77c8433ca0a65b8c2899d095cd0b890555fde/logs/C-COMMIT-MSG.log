@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 229dcf20b20c27c619a3d0397020306c89728d37..bdc77c8433ca0a65b8c2899d095cd0b890555fde
+OK     699300ca934c vendor: Plaits' sound engine and stmlib, pinned and checksummed
+OK     079ddb4419ba vendor: add Plaits' phoneme table, which no header names
+OK     247ddfacac9a tools: C-SEP-TERMS counts the vendored Plaits' terms as public
+EXEMPT bdc77c8433ca (merge) Merge pull request #59 from japes98/m4b/vendor-plaits
+4 commit(s) checked: PASS
+
+exit status 0

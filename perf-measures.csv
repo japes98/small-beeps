@@ -2,3 +2,4 @@ commit,record_utc,milestone,measure,value,unit,budget,change_percent,gated
 522ce86d8f8749820fef233d6626cdc3d657330e,2026-10-23T12:26:56Z,M4,loaded_per_period,114172.717,instructions per audio block,,0.000,no
 555a31f13a1fc945c35a509787680a1860c33878,2026-10-23T12:27:34Z,M4,loaded_per_period,114172.717,instructions per audio block,131072,0.000,no
 229dcf20b20c27c619a3d0397020306c89728d37,2026-10-23T12:28:23Z,M4,loaded_per_period,114172.717,instructions per audio block,131072,0.000,no
+bdc77c8433ca0a65b8c2899d095cd0b890555fde,2026-10-23T13:01:11Z,M4,loaded_per_period,114172.717,instructions per audio block,131072,0.000,no
