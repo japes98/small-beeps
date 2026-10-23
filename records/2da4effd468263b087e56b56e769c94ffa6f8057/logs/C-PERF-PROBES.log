@@ -1,0 +1,33 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py probes --build /home/runner/work/small-beeps/small-beeps/out/2da4effd468263b087e56b56e769c94ffa6f8057/build-a --out /home/runner/work/small-beeps/small-beeps/out/2da4effd468263b087e56b56e769c94ffa6f8057/perf-probes
+reference: code 4180, data 4, bss 115336, image 4184 bytes; static RAM 115340; stack 188 of 4096 bytes used; startup 1036283 instructions; steady state 65542 instructions for 1002 heartbeat periods (65.411 per period) between the 1256.314 and 2259.356 ms runs
+control (the build against itself):
+  code                 PASS         4180 of 8192 bytes (M3 budget)
+  static_ram           PASS         115340 of 122880 bytes (M3 budget)
+  stack_high_water     PASS         188 of 512 bytes (M3 budget)
+  startup_instructions PASS         1036283 of 1572864 instructions (M3 budget)
+  steady_per_period    PASS         65.411 of 1152 instructions per period (M3 budget)
+  speed                PASS         65.411 steady-state instructions per period, 65.411 before: +0.00%, within 3%
+SB_PROBE_SLOW: code 4200, data 4, bss 115336, image 4204 bytes; static RAM 115340; stack 192 of 4096 bytes used; startup 1035654 instructions; steady state 125332 instructions for 999 heartbeat periods (125.457 per period) between the 1257.314 and 2256.356 ms runs
+  code                 PASS         4200 of 4200 bytes (probe budget)
+  static_ram           PASS         115340 of 115340 bytes (probe budget)
+  stack_high_water     PASS         192 of 192 bytes (probe budget)
+  startup_instructions PASS         1035654 of 1035654 instructions (probe budget)
+  steady_per_period    FAIL         125.457 instructions per period, over the probe budget of 65
+  speed                FAIL         125.457 steady-state instructions per period, 65.411 before: +91.80%, a rise of more than 3%
+SB_PROBE_BIG: code 5280, data 4, bss 115592, image 5284 bytes; static RAM 115596; stack 564 of 4096 bytes used; startup 1036338 instructions; steady state 65542 instructions for 1002 heartbeat periods (65.411 per period) between the 1256.317 and 2259.358 ms runs
+  code                 FAIL         5280 bytes, over the probe budget of 4180
+  static_ram           FAIL         115596 bytes, over the probe budget of 115340
+  stack_high_water     FAIL         564 bytes, over the probe budget of 188
+  startup_instructions FAIL         1036338 instructions, over the probe budget of 1036283
+  steady_per_period    PASS         65.411 of 66 instructions per period (probe budget)
+  speed                PASS         65.411 steady-state instructions per period, 65.411 before: +0.00%, within 3%
+SB_PROBE_STACK: code 4236, data 4, bss 115340, image 4240 bytes; static RAM 115344; stack 1072 of 4096 bytes used; startup 1037280 instructions; steady state 65542 instructions for 1002 heartbeat periods (65.411 per period) between the 1256.322 and 2259.363 ms runs
+  code                 PASS         4236 of 4236 bytes (probe budget)
+  static_ram           PASS         115344 of 115344 bytes (probe budget)
+  stack_high_water     PASS         1072 of 1072 bytes (probe budget)
+  startup_instructions PASS         1037280 of 1037280 instructions (probe budget)
+  steady_per_period    PASS         65.411 of 66 instructions per period (probe budget)
+  speed                PASS         65.411 steady-state instructions per period, 65.411 before: +0.00%, within 3%
+perf probes: PASS
+
+exit status 0
