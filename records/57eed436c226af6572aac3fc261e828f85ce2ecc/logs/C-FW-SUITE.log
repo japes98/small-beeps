@@ -1,0 +1,133 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/fw-suite.py --build /home/runner/work/small-beeps/small-beeps/out/57eed436c226af6572aac3fc261e828f85ce2ecc/build-a --out /home/runner/work/small-beeps/small-beeps/out/57eed436c226af6572aac3fc261e828f85ce2ecc/fwtest
+image size: code 8636, data 32, bss 123904, image 8668, stack 4096, irq_stack 2048
+start slack: 9533 time base ticks (bss cleared before main starts the time base)
+built test-badinsn (-DSB_TEST_BADINSN)
+built test-fault (-DSB_TEST_FAULT)
+built test-flood (-DSB_TEST_FLOOD)
+built test-leds (-DSB_TEST_LEDS)
+built test-ledshow (-DSB_TEST_LED_SHOW)
+built test-stray (-DSB_TEST_STRAY)
+built test-underrun (-DSB_TEST_UNDERRUN)
+Unable to find image 'ghcr.io/japes98/small-beeps@sha256:00a33c9a0e1184030cac85c31d46aa2bad9d6438190c19a148943b6b9af0e6df' locally
+ghcr.io/japes98/small-beeps@sha256:00a33c9a0e1184030cac85c31d46aa2bad9d6438190c19a148943b6b9af0e6df: Pulling from japes98/small-beeps
+fb02902e2fd3: Pulling fs layer
+a728725de00c: Pulling fs layer
+b6db24d1e6d2: Pulling fs layer
+a4c87fd484f0: Pulling fs layer
+2d22add2ced3: Pulling fs layer
+9a7c241c4558: Pulling fs layer
+2d22add2ced3: Waiting
+9a7c241c4558: Waiting
+a4c87fd484f0: Waiting
+b6db24d1e6d2: Verifying Checksum
+b6db24d1e6d2: Download complete
+a728725de00c: Verifying Checksum
+a728725de00c: Download complete
+2d22add2ced3: Download complete
+a4c87fd484f0: Verifying Checksum
+a4c87fd484f0: Download complete
+fb02902e2fd3: Verifying Checksum
+fb02902e2fd3: Download complete
+9a7c241c4558: Download complete
+fb02902e2fd3: Pull complete
+a728725de00c: Pull complete
+b6db24d1e6d2: Pull complete
+a4c87fd484f0: Pull complete
+2d22add2ced3: Pull complete
+9a7c241c4558: Pull complete
+Digest: sha256:00a33c9a0e1184030cac85c31d46aa2bad9d6438190c19a148943b6b9af0e6df
+Status: Downloaded newer image for ghcr.io/japes98/small-beeps@sha256:00a33c9a0e1184030cac85c31d46aa2bad9d6438190c19a148943b6b9af0e6df
+fwtest suite: PASS
+boot: completed at 5.868 ms, 90311 instructions on core 0
+  golden console.txt: match
+  golden ram-01c00000-4-end.bin: match
+  golden ram-01c7fc00-200-end.bin: match
+  clock: 240 time base ticks for 2402 cycles; 5 ticks by the end
+  first tick by 24307 time base ticks (1.013 ms)
+  vector table: 128 of 128 slots as built (tick 0x02000de6, SPI1 0x02000c5c, scan 0x020005a6, audio 0x0200005a, stubs from 0x0200013e)
+heartbeat: completed at 1250.534 ms, 2619264 instructions on core 0
+  1ms    seq     2  beats     1  ticks     24307 (1.013 ms)  copy b     1     24307
+  10ms   seq    20  beats    10  ticks    240316 (10.013 ms)  copy b    10    240316
+  100ms  seq   200  beats   100  ticks   2400406 (100.017 ms)  copy b   100   2400406
+  500ms  seq   998  beats   499  ticks  11976805 (499.034 ms)  copy b   499  11976805
+  end    seq  2500  beats  1250  ticks  30001556 (1250.065 ms)  copy b  1250  30001556
+  ticks 1250, interval 24001 to 24001 time base ticks (jitter 0); the idle loop's wait returned 6815 times in its first 499 ticks
+heartbeat2: completed at 2250.333 ms, 3870192 instructions on core 0
+  1ms    seq     2  beats     1  ticks     24307 (1.013 ms)  copy b     1     24307
+  10ms   seq    20  beats    10  ticks    240316 (10.013 ms)  copy b    10    240316
+  100ms  seq   200  beats   100  ticks   2400406 (100.017 ms)  copy b   100   2400406
+  500ms  seq   998  beats   499  ticks  11976805 (499.034 ms)  copy b   499  11976805
+  end    seq  4498  beats  2249  ticks  53978555 (2249.106 ms)  copy b  2249  53978555
+  ticks 2249, interval 24001 to 24001 time base ticks (jitter 0); the idle loop's wait returned 20475 times in its first 1499 ticks
+  steady state: 1250928 instructions for 999 ticks between the two heartbeat runs: 1252.180 a tick (M0's polling heartbeat: 356.9 a period)
+screen: completed at 1600.346 ms, 3056408 instructions on core 0
+  golden lcd-1500ms.png: match
+  golden lcd-300ms.png: match
+  golden lcd-800ms.png: match
+   300 ms: screen 1, heartbeat shown 0 s, beats 300
+   800 ms: screen 2, heartbeat shown 0 s, beats 800
+  1500 ms: screen 2, heartbeat shown 1 s, beats 1499
+flood: completed at 1500.000 ms, 241331181 instructions on core 0
+  ticks 1499, interval 24001 to 24002 time base ticks (jitter 1), during 233988 whole frames
+  a whole frame: 99 time base ticks (4.12 us) from its window to its last transfer started; 1031 core-0 instructions a frame over the run
+fault: halt at 1.288 ms, 88287 instructions on core 0
+  golden console.txt: match
+  halt: reason 3, source 1, reti 0x00000000
+stray: halt at 0.354 ms, 85183 instructions on core 0
+  golden console.txt: match
+  halt: reason 1, source 127, reti 0x020014a8
+badinsn: fault at 0.348 ms, 83715 instructions on core 0
+keys: completed at 2400.911 ms, 13801954 instructions on core 0
+  41 keys and buttons, each alone: fwtest key n at its HW-35 contact gave control n (HW-37), press and release; latency 2.736 to 4.130 ms
+  LEDs: 82 set by main, at most 0.0011 ms after their event
+  leds.csv: each LED's mean share while held 77.0 to 90.5 thousandths
+  leds.csv: 82 samples lit as expected, 19434 dark as expected
+chords: completed at 1300.146 ms, 5679757 instructions on core 0
+  golden lcd-1030ms.png: match
+  32 events, 0 dropped
+  no ghost at the rectangle's fourth corner; chatter gave one press and one release; the glitch none; encoders exact with keys held in their columns
+encoders: completed at 2300.539 ms, 18559702 instructions on core 0
+  14 slow detents: fwtest encoder n gave its control (HW-39), +1 clockwise; latency -0.220 to 1.122 ms
+  positions at the end: SELECT +45, PRESETS +15, ALGORITHM -20, KNOB1 +25, KNOB2 -25, KNOB3 +20, KNOB4 -20 (330 events, 0 dropped)
+  ticks 2300, interval 24001 to 24002 time base ticks (jitter 1)
+pot: completed at 1300.147 ms, 14826453 instructions on core 0
+  step to  300 at 700 ms: 4 events, the first 0.380 to 0.778 ms after, 300 reached 3.381 to 3.779 ms after
+  step to    0 at 750 ms: 4 events, the first 0.400 to 0.798 ms after, 0 reached 3.402 to 3.799 ms after
+  step to 1023 at 800 ms: 4 events, the first 0.420 to 0.818 ms after, 1023 reached 3.422 to 3.819 ms after
+  step to  512 at 850 ms: 4 events, the first 0.440 to 0.838 ms after, 512 reached 3.442 to 3.839 ms after
+  no events while the reading wandered by 2 at rest; the sweep rose in 128 events to 1023
+leds: completed at 1000.275 ms, 2311408 instructions on core 0
+  41 LEDs at 9 brightness steps: every sample within 1.17 thousandths of n/8 x 1000/12
+ledshow: completed at 2400.280 ms, 13887423 instructions on core 0
+  82 LED changes: set by main at most 0.0011 ms after their event, then driven by the scan at most 0.9159 ms later: 0.9170 ms from event to LED at most
+tone: completed at 2600.575 ms, 8887995 instructions on core 0
+  audio: 1792 blocks filled (fwtest: 1792), 0 underruns, longest fill 13.2 us, 4 events to the engine
+  audio.wav: 114688 frames (header 44100 Hz; measured at 44117.647 Hz)
+  test tone: 1000.000000 Hz (-0.00000 cents), -6.021 dBFS, THD+N -92.2 dB, from 104.819 to 2325.450 ms; silence (every sample 0) before and after
+notes: completed at 3900.179 ms, 11143278 instructions on core 0
+  audio: 2688 blocks filled (fwtest: 2688), 0 underruns, longest fill 9.7 us, 36 events to the engine
+  audio.wav: 172032 frames (header 44100 Hz; measured at 44117.647 Hz)
+  the time base started at 0.267 ms of fwtest's time
+  note  60 (KEY8): 261.6256 Hz (+0.0000 cents), -14.284 dBFS (MASTER 900: -14.283), THD+N -83.8 dB, sound 4.819 ms after the key, 1.578 ms after its event
+  note  69 (KEY17): 440.0000 Hz (+0.0000 cents), -14.284 dBFS (MASTER 900: -14.283), THD+N -83.6 dB, sound 5.203 ms after the key, 1.968 ms after its event
+  note  53 (KEY1): 174.6141 Hz (+0.0000 cents), -14.284 dBFS (MASTER 900: -14.283), THD+N -83.8 dB, sound 5.610 ms after the key, 2.548 ms after its event
+  note  79 (KEY27): 783.9909 Hz (+0.0000 cents), -14.284 dBFS (MASTER 900: -14.283), THD+N -83.8 dB, sound 5.971 ms after the key, 2.582 ms after its event
+  note  69 (KEY17): 440.0000 Hz (+0.0000 cents), -12.041 dBFS (MASTER 1023: -12.041), THD+N -86.0 dB, sound 6.355 ms after the key, 2.639 ms after its event
+  note  69 (KEY17): 440.0000 Hz (+0.0000 cents), -24.082 dBFS (MASTER 512: -24.082), THD+N -74.0 dB, sound 6.762 ms after the key, 2.885 ms after its event
+  note 103 (KEY27): 3135.9635 Hz (+0.0000 cents), -24.082 dBFS (MASTER 512: -24.082), THD+N -74.0 dB, sound 5.864 ms after the key, 1.914 ms after its event
+  note  29 (KEY1): 43.6535 Hz (-0.0003 cents), -24.082 dBFS (MASTER 512: -24.082), THD+N -74.0 dB, sound 5.273 ms after the key, 2.169 ms after its event
+  latency: key to sound 4.819 to 6.762 ms, press event to sound 1.578 to 2.885 ms; every sample between the notes 0
+audioload: completed at 11000.196 ms, 311885567 instructions on core 0
+  audio: 7582 blocks filled (fwtest: 7582), 0 underruns, longest fill 40.4 us, 5886 events to the engine
+  ticks 10999, interval 24001 to 24002 time base ticks (jitter 1)
+  11.00 s of audio under load: 126 notes (42 took a sounding voice), 5886 events to the engine, 5886 to main; longest fill 40.4 us of a 1450.7 us block
+audiogold: completed at 500.303 ms, 1915828 instructions on core 0
+  golden audio.wav: match
+  audio: 344 blocks filled (fwtest: 344), 0 underruns, longest fill 13.1 us, 4 events to the engine
+  audio.wav: 22016 frames (header 44100 Hz; measured at 44117.647 Hz)
+underrun: completed at 500.066 ms, 3506527 instructions on core 0
+  audio: 344 blocks filled (fwtest: 344), 5 underruns, longest fill 1758.9 us, 0 events to the engine
+  5 blocks late on purpose: 5 underruns counted, 5 reported (AUDIO UNDERRUN 0001, AUDIO UNDERRUN 0002, AUDIO UNDERRUN 0003, ...)
+fw suite: PASS
+
+exit status 0

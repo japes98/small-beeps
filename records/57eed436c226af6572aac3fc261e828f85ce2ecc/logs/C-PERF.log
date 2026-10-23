@@ -1,0 +1,18 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py check --build /home/runner/work/small-beeps/small-beeps/out/57eed436c226af6572aac3fc261e828f85ce2ecc/build-a --out /home/runner/work/small-beeps/small-beeps/out/57eed436c226af6572aac3fc261e828f85ce2ecc/perf --base-ref 57eed436c226af6572aac3fc261e828f85ce2ecc^1 --require-records
+current: code 8636, data 32, bss 123904, image 8668 bytes; static RAM 123936; stack 336 of 4096 bytes used; startup 1058323 instructions; steady state 1250928 instructions for 690 audio blocks (1812.939 per block) between the 1250.534 and 2250.333 ms runs
+current loaded: 78665002 instructions for 689 audio blocks (114172.717 per block) between the 1250.000 and 2250.000 ms runs with tests/fw/scripts/perfload.txt
+baseline: the record of 6db115d45e89, the latest of 57eed436c226af6572aac3fc261e828f85ce2ecc^1 on origin/records
+baseline: code 8636, data 32, bss 123904, image 8668 bytes; static RAM 123936; stack 336 of 4096 bytes used; startup 1058323 instructions; steady state 1250928 instructions for 690 audio blocks (1812.939 per block) between the 1250.534 and 2250.333 ms runs
+loaded-baseline loaded: 78665002 instructions for 689 audio blocks (114172.717 per block) between the 1250.000 and 2250.000 ms runs with tests/fw/scripts/perfload.txt
+loaded baseline: the record of 522ce86d8f87, the latest of 57eed436c226af6572aac3fc261e828f85ce2ecc^1 on origin/records; skipped 6db115d45e89, bdc77c8433ca, 229dcf20b20c, 555a31f13a1f, made under this budget but still holding the image of 522ce86d8f87, the last record before it was raised
+  code                 PASS         8636 of 10240 bytes (M4 budget)
+  static_ram           PASS         123936 of 131072 bytes (M4 budget)
+  stack_high_water     PASS         336 of 512 bytes (M4 budget)
+  startup_instructions PASS         1058323 of 1572864 instructions (M4 budget)
+  steady_per_period    PASS         1812.939 of 2048 instructions per period (M4 budget)
+  loaded_per_period    PASS         114172.717 of 131072 instructions per period (M4 budget)
+  speed                PASS         1812.939 steady-state instructions per period, 1812.939 before: +0.00%, within 3%
+  loaded_speed         NOT COMPARED 114172.717 loaded instructions per period, 114172.717 before (+0.00%), but the baseline's record was made under no loaded budget, not this M4 budget of 131072
+perf: PASS
+
+exit status 0

@@ -1,0 +1,11 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 6db115d45e8938e778c0048f33da667063a98bb7..57eed436c226af6572aac3fc261e828f85ce2ecc
+OK     fbad0d688c4a firmware: the Plaits demo, its own image, with its runtime and bench
+OK     1da0e240a6c1 tools: C-PLAITS-BENCH, the Plaits load test in every record
+OK     273cfa9356f8 docs: M4b's results: the port, the engine table, M5's headroom
+EXEMPT 4c32fe53d916 (merge) firmware: merge main into the Plaits demo, after #57, #58 and #60
+OK     52fa29b05c3d docs: the Plaits bench's fixed pitch, and RAM per voice
+EXEMPT 3e45a0b623cf (merge) firmware: merge main into the Plaits demo, after #63
+EXEMPT 57eed436c226 (merge) Merge pull request #61 from japes98/m4b/plaits-demo
+7 commit(s) checked: PASS
+
+exit status 0
