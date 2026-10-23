@@ -74,7 +74,10 @@ EXPOSURE.md at once, and stop writing firmware.
 - the sites hugelton.github.io and thefirmwarehub.com.
 
 `tools/check-transcripts.py` checks every archived clean-side session against
-this list (its `FORBIDDEN` table mirrors it; change both together).
+this list (its `FORBIDDEN` table mirrors it; change both together). Since
+M4 it fails a call that accesses listed material (reads, lists, searches,
+fetches or checks it out) and logs, report only, one that only mentions it
+(sessions/README.md).
 
 ### Firmware side may use
 

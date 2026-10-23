@@ -140,14 +140,24 @@ class TranscriptTest(unittest.TestCase):
             self.assertTrue(self.heredoc_call(names + b), b)
         ok = names + "open('sessions/REVIEWED.json')"
         self.assertTrue(self.heredoc_call(ok, head="python3 - <<EOF"))          # unquoted: expands
-        self.assertTrue(self.heredoc_call(ok, head="cat > x.py <<'EOF'"))        # not python
+        # Written into our own file it is a mention (the access rule, since
+        # M4), until the file is run.
+        self.assertEqual(self.heredoc_call(ok, head="cat > x.py <<'EOF'"), [])
+        self.assertTrue(self.heredoc_call(ok, head="cat > x.py <<'EOF'", tail="\npython3 x.py"))
         self.assertTrue(self.heredoc_call(ok, head="cd sptwo && python3 - <<'EOF'"))
         self.assertTrue(self.heredoc_call(ok, tail="\ncat sptwo/x"))
         self.assertEqual(self.heredoc_call(ok), [])
 
-    def test_other_rules_are_never_cleared(self):
+    def test_other_rules_are_cleared_only_as_mentions(self):
+        # The text rule's folder exemption never clears another rule; the
+        # access rule (since M4) sees code that opens only our own files,
+        # so the name is a mention: logged, not failed.
         body = "x='https://github.com/hugelton/Felucca'\nopen('sessions/REVIEWED.json')"
-        self.assertTrue(any("F-FELUCCA" in x for x in self.heredoc_call(body)))
+        command = "python3 - <<'EOF'\n%s\nEOF" % body
+        self.assertIn("F-FELUCCA", ct.forbidden_hits("shell", command)[0])
+        self.assertEqual(self.heredoc_call(body), [])
+        lines = ct.check_session(self.write([hook(BANNER_OK), call("Bash", command=command)]))[1]
+        self.assertIn("    MENTION F-FELUCCA (report only: not an access)", lines)
 
     def test_plain_commands_naming_the_folders_still_fail(self):
         for cmd in ("cat sessions/clean/a sptwo/b", "cd sptwo && ls", "D=spa/one/; ls $D",
@@ -230,6 +240,136 @@ class TranscriptTest(unittest.TestCase):
         with open(os.path.join(self.dir, "notes.jsonl"), "w") as f:
             f.write("{}\n")
         self.assertTrue(self.problems(os.path.join(self.dir, "notes.jsonl")))
+
+
+class AccessRuleTest(unittest.TestCase):
+    """The access rule (since M4): a mention of a forbidden name is logged,
+    an access fails. Requirements: R-CLEAN-1, R-CLEAN-3"""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.dir)
+
+    def run_calls(self, *calls):
+        name = "2026-10-21-clean-%s" % SID
+        with open(os.path.join(self.dir, name + ".jsonl"), "w") as f:
+            f.write(json.dumps(hook(BANNER_OK)) + "\n")
+            for n, c in enumerate(calls):
+                c["message"]["content"][0]["id"] = "toolu_%d" % n
+                f.write(json.dumps(c) + "\n")
+        open(os.path.join(self.dir, name + ".REDACTIONS.md"), "w").close()
+        return ct.check_session(os.path.join(self.dir, name + ".jsonl"))
+
+    def test_mentions_pass_and_are_logged(self):
+        cases = [
+            'gh pr create --title "sptwo left out" --body "never open spa/one/"',
+            'gh pr comment 3 -b "spl/three is left out"',
+            'git commit -q -m "spl/three left out" && git push',
+            "cat > $T/pr.md <<'EOF'\nnames sptwo/ and Felucca\nEOF\ngh pr create --body-file $T/pr.md",
+            "T=x; cat <<'EOF' > $T/c1\nleaves out spa/one/\nEOF\ngit commit -F $T/c1",
+            "tee -a docs/x.md <<'EOF'\nnever opens sptwo/\nEOF",
+            'git grep -n -E "spa/one|sptwo" -- tools tests ":!tools/Dockerfile" | cut -c1-80',
+            "grep -n 'sptwo\\|spl/three' tools/check-transcripts.py docs/x.md",
+            "grep -c hugelton $CLAUDE_JOB_DIR/../x 2>/dev/null; true".replace("$CLAUDE_JOB_DIR/../x", "out/ct.log"),
+            "sed -i '' 's/sptwo/fwtest/g; s|spa/one|the emulator|' docs/x.md tools/y.sh",
+            "sed -n '1,5p;8p' docs/x.md | sed 's/`sptwo`/x/'",
+            "python3 - <<'EOF'\np='tools/x.py'; s=open(p).read()\n"
+            "s=s.replace('sptwo/', 'the folders')\nopen(p,'w').write(s)\nEOF",
+        ]
+        for cmd in cases:
+            problems, lines = self.run_calls(call("Bash", command=cmd))
+            self.assertEqual(problems, [], cmd)
+            self.assertTrue(any(l.startswith("    MENTION ") for l in lines), cmd)
+        problems, lines = self.run_calls(call("Grep", pattern="sptwo|spa/one", path="tools"),
+                                         call("Grep", pattern="spl/three", glob="*.py"))
+        self.assertEqual(problems, [])
+
+    def test_accesses_still_fail(self):
+        cases = [
+            "grep -rn sptwo ~",                         # searches outside our files
+            "grep -n x sptwo/a",
+            "grep -n x < sptwo/a",
+            "git grep -n x -- sptwo",
+            "git grep -n sptwo origin/main",             # a revision, not a pathspec
+            "rg -n spa/one /",
+            'echo "$(cat sptwo/x)"',                      # a substitution in a text word
+            'git commit -m "$(cat spl/three/x)"',
+            "git commit -m `cat sptwo/x`",
+            "gh pr create --title t --body-file sptwo/x",
+            "cat > $T/x.sh <<'EOF'\ncat sptwo/x\nEOF\nsh $T/x.sh",
+            "cat <<'EOF' | sh\ncat sptwo/x\nEOF",
+            "cat > >(sh) <<'EOF'\ncat sptwo/x\nEOF",
+            "cat > sptwo/x <<'EOF'\nhello\nEOF",           # the file itself is theirs
+            "cat > x.txt <<EOF\n$(cat sptwo/x)\nEOF",       # unquoted: the shell expands it
+            "python3 - <<'EOF'\nprint(open('sptwo/x').read())\nEOF",
+            "python3 - <<'EOF'\nimport json\njson.codecs.open('docs/x').read()\nprint('sptwo/')\nEOF",
+            "python3 -c \"print(open('sptwo/x').read())\"",
+            "sed 'r sptwo/x' docs/a.md",
+            "sed -n 1p sptwo/x",
+            "sed -i '' 's/a/b/w sptwo/x' docs/a.md",
+            "awk 1 sptwo/x",
+            "D=sptwo; ls $D",
+            "cd spa/one && git log",
+            "git show HEAD:sptwo/x",
+            "git log -p -- spl/three",
+            "git checkout origin/main -- sptwo",
+            "printf 'sptwo/x\\n' | xargs cat",
+            "curl -s https://github.com/hugelton/Felucca",
+            "gh api repos/zvenson/dinghy/contents",
+            "bash -c 'cat sptwo/x'",
+            "x='unbalanced quote sptwo/x",
+        ]
+        for cmd in cases:
+            problems, _ = self.run_calls(call("Bash", command=cmd))
+            self.assertTrue(any("forbidden" in x for x in problems), cmd)
+        for c in (call("Grep", pattern="lcd", path="sptwo"), call("Grep", pattern="sptwo", path="/"),
+                  call("Grep", pattern="x", glob="sptwo/**"), call("Glob", pattern="sptwo/**"),
+                  call("Read", file_path="spl/three/x.jsonl"),
+                  call("WebSearch", query="Felucca source"),
+                  call("WebFetch", url="https://thefirmwarehub.com/x")):
+            self.assertTrue(any("forbidden" in x for x in self.run_calls(c)[0]), json.dumps(c))
+
+    def test_a_file_written_earlier_and_run_later_fails(self):
+        write = call("Bash", command="cat > $T/x.py <<'EOF'\nopen('sptwo/x')\nEOF")
+        problems, _ = self.run_calls(write, call("Bash", command="python3 $T/x.py"))
+        self.assertTrue(any("toolu_1" in x and "F-HARNESS" in x for x in problems), problems)
+        problems, _ = self.run_calls(write, call("Bash", command="wc -l $T/x.py"))
+        self.assertEqual(problems, [])
+
+    def test_a_superseded_entry_fails_only_on_an_access(self):
+        mention = call("Bash", command='git commit -m "leaves out spa/one/"')
+        name = "2026-10-21-clean-%s" % SID
+        self.run_calls(mention)
+        path = os.path.join(self.dir, name + ".jsonl")
+        key = (SID, "toolu_0", "spa/one/ (spec side)")
+        self.assertEqual(ct.check_session(path, {key: {"superseded": "x"}})[0], [])
+        self.run_calls(call("Bash", command="cat spa/one/x"))
+        self.assertTrue(ct.check_session(path, {key: {"superseded": "x"}})[0])
+
+    def test_the_access_rule_never_flags_what_the_text_rule_did_not(self):
+        # Over every archived clean transcript, with the real rules: each
+        # call's hits are among the text rule's, or come from a file a
+        # stripped heredoc wrote earlier in the session and the call ran.
+        real = load_tool("check-transcripts.py")
+        clean = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                             "sessions", "clean")
+        calls = 0
+        for p in sorted(os.listdir(clean)):
+            if not p.endswith(".jsonl"):
+                continue
+            entries = real.load(os.path.join(clean, p))
+            cwd = next((e["cwd"] for e in entries if isinstance(e.get("cwd"), str)), "")
+            written = {}
+            for _, tid, name, inp in real.tool_calls(entries):
+                for kind, target in real.targets(name, inp):
+                    calls += 1
+                    text = real.forbidden_hits(kind, target)[0]
+                    before = set().union(*written.values()) if written else set()
+                    hits = real.access_hits(name, kind, target, inp, text, written, cwd)
+                    self.assertTrue(set(hits) <= set(text) | before, (p, tid))
+        self.assertGreater(calls, 1000)
 
 
 class LayoutTest(unittest.TestCase):
