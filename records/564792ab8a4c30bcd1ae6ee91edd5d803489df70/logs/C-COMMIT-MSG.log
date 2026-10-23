@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range c36ae5f4b53764ef2186becfd394fb2e1a2bcdf8..564792ab8a4c30bcd1ae6ee91edd5d803489df70
+OK     343378cf3746 sessions: archive M3's clean transcript; its 47 reviewed entries
+OK     ffd5ce99e429 docs: start M4: the prompt, and session M4's exposure entry
+EXEMPT 564792ab8a4c (merge) Merge pull request #49 from japes98/m4/start
+3 commit(s) checked: PASS
+
+exit status 0

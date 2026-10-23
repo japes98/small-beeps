@@ -1,0 +1,98 @@
+$ sh harness/ci.sh test
+#0 building with "default" instance using docker driver
+
+#1 [internal] load remote build context
+#1 CACHED
+
+#2 copy /context /
+#2 CACHED
+
+#3 resolve image config for docker-image://docker.io/docker/dockerfile:1.10@sha256:865e5dd094beca432e8c0a1d5e1c465db5f998dca4e439981029b3b81fb39ed5
+#3 DONE 0.0s
+
+#4 docker-image://docker.io/docker/dockerfile:1.10@sha256:865e5dd094beca432e8c0a1d5e1c465db5f998dca4e439981029b3b81fb39ed5
+#4 CACHED
+
+#5 [internal] load metadata for docker.io/library/rust:1.99.0-slim-bookworm@sha256:ba81bc3eaa4422af576c0262515d96b0111a628a6ccc2c86557cf55c9a4bbee0
+#5 DONE 0.0s
+
+#6 [build 1/5] FROM docker.io/library/rust:1.99.0-slim-bookworm@sha256:ba81bc3eaa4422af576c0262515d96b0111a628a6ccc2c86557cf55c9a4bbee0
+#6 DONE 0.0s
+
+#7 [build 3/5] COPY vendor/emulator vendor/emulator
+#7 CACHED
+
+#8 [build 4/5] COPY harness harness
+#8 CACHED
+
+#9 [build 2/5] WORKDIR /src
+#9 CACHED
+
+#10 [build 5/5] RUN --network=none cd harness && cargo build --release --locked --offline  && sha256sum target/release/fwtest
+#10 CACHED
+
+#11 [test 1/1] RUN --network=none cd harness && cargo test --release --locked --offline
+#11 0.064    Compiling fwtest v0.2.0 (/src/harness)
+#11 1.179     Finished `release` profile [optimized] target(s) in 1.12s
+#11 1.179      Running unittests src/lib.rs (target/release/deps/fwtest-edcdbfbfa3c2c61e)
+#11 1.181 
+#11 1.181 running 12 tests
+#11 1.181 test formats::tests::crc32_known_value ... ok
+#11 1.181 test formats::tests::json_is_stable_and_escaped ... ok
+#11 1.181 test golden::tests::csv_relative_tolerance ... ok
+#11 1.181 test formats::tests::sha256_known_values ... ok
+#11 1.181 test formats::tests::wav_round_trips ... ok
+#11 1.182 test golden::tests::exact_by_default ... ok
+#11 1.182 test golden::tests::png_and_wav_tolerances ... ok
+#11 1.182 test golden::tests::tolerance_must_fit_the_file_type ... ok
+#11 1.182 test script::tests::parses_every_event_kind_in_time_order ... ok
+#11 1.182 test script::tests::times_take_three_decimals ... ok
+#11 1.182 test script::tests::rejects_bad_lines_with_their_number ... ok
+#11 1.184 test formats::tests::png_round_trips ... ok
+#11 1.184 
+#11 1.184 test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+#11 1.184 
+#11 1.184      Running unittests src/main.rs (target/release/deps/fwtest-b02e563add364714)
+#11 1.185 
+#11 1.185 running 0 tests
+#11 1.185 
+#11 1.185 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+#11 1.185 
+#11 1.185      Running tests/fwtest.rs (target/release/deps/fwtest-12dab34597529c6a)
+#11 1.187 
+#11 1.187 running 12 tests
+#11 1.191 test boot_state_matches_the_manual ... ok
+#11 1.202 test audio_ipb_and_console ... ok
+#11 1.211 test flash_capture ... ok
+#11 1.266 test boots_and_runs_for_the_time_asked ... ok
+#11 1.322 test halts_faults_and_hangs ... ok
+#11 1.334 test cli_exit_codes_golden_and_results ... ok
+#11 1.348 test lcd_capture ... ok
+#11 1.348 test refuses_empty_and_oversized_images ... ok
+#11 1.353 test spi1_interrupt_follows_con_bit_13 ... ok
+#11 1.367 test led_capture ... ok
+#11 1.537 test inputs_from_a_script ... ok
+#11 1.604 test deterministic ... ok
+#11 1.604 
+#11 1.604 test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+#11 1.604 
+#11 1.606    Doc-tests fwtest
+#11 1.640 
+#11 1.640 running 0 tests
+#11 1.640 
+#11 1.640 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+#11 1.640 
+#11 DONE 1.7s
+
+#12 exporting to image
+#12 exporting layers
+#12 exporting layers 0.7s done
+#12 writing image sha256:56360128bd482e3e599113af8661c8c7a34a5b6aca9dedfe3002c8a0ba95a9e5 done
+#12 naming to docker.io/library/small-beeps-fwtest:0e8cc3303c7219c6-test done
+#12 DONE 0.7s
+
+ [33m2 warnings found (use docker --debug to expand):
+[0m - FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 20)
+ - FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 35)
+
+exit status 0

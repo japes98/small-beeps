@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="0">
+  <testsuite name="boot.chords" tests="2" failures="0">
+    <testcase classname="boot.chords" name="run"/>
+    <testcase classname="boot.chords" name="golden lcd-1030ms.png"/>
+  </testsuite>
+</testsuites>
