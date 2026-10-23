@@ -626,3 +626,228 @@ Format for each entry:
   word: 2 measured), from `app.size` (P-20).
 - The screen case captures the beacon with each picture; the beacon's
   `shown` seconds must equal the heartbeat's whole seconds (R-LCD-4).
+
+### 2026-10-23 M3: scanning the panel
+- Facts: HW-33 (11 columns through two cascaded shift registers on PA1,
+  PA3, PA4; a column selected while its bit is 0), HW-34 (6 rows on PA0,
+  PA5-PA8, PB7, 0 while closed), HW-35 to HW-39 (where each key and
+  encoder contact is), HW-42 (an LED lit while its column is selected
+  and its row's LED line, PA9, PA10, PH6 or PH9, is high), HW-48 (TIMER0
+  to TIMER3, prescaler setting 2, the acknowledge restarts the count),
+  HW-19, HW-20, HW-22 (sources and priorities); `WL82.h`'s port, timer
+  and ADC structs (P-23).
+- The scan (`input.c`): TIMER1 interrupts every 83.3 µs (125 counts of
+  1.5 MHz), 12 slots a millisecond. In slot k (0 to 10) column k is
+  selected and its LEDs lit; slot 11 selects none. Each interrupt:
+  - acknowledges first, so the period stays 125 counts plus about one
+    time base tick;
+  - reads the rows of the column the slot before selected, which have
+    had the whole slot to settle;
+  - selects the next column with one shift and one latch: a single 0 is
+    shifted in before column 0 and walks one place a shift (each shift
+    moves every bit up one), and the shift after column 10 leaves no
+    column selected. The 16 bits are loaded with ones once at start,
+    since their state at power-up is unknown. The LED lines go low before
+    the shift and latch and high after, so no LED is lit on the wrong
+    column;
+  - then works on what it read.
+- Why 12 slots a millisecond: the LEDs share the columns, so every column
+  must have the same time selected (a burst of all columns at once would
+  leave one column lit almost all the time). An encoder's contacts change
+  2 ms apart in fwtest (HW-38), and each encoder's two contacts are in
+  neighbouring columns, so a whole scan must come well inside 2 ms; 1 ms
+  sees every state twice.
+- Priorities: the tick stays at 1, the scan is at 0 with SPI1. The tick
+  may preempt the scan (HW-22), so the scan's longest slot never delays
+  the heartbeat: with all seven encoders turning, a chord and a pot sweep,
+  every tick interval stayed 24 001 or 24 002 time base ticks. Nothing
+  the tick and the scan share needs a lock: both only add to `sb_work`,
+  and main reacts to any change of it.
+- No pin is set up (directions, pull-ups, drive): fwtest needs none and
+  the chip's are open (Q-7), and a write to a register fwtest doesn't
+  model would fail every case. The scan owns PA1, PA3, PA4, PA9, PA10,
+  PH6 and PH9, and keeps the ports' other bits as they were at start.
+- Inputs are served from main's idle loop, which starts after the test
+  screen at 500 ms. Events before then wait in the queue (64), and the
+  tests start their inputs at 700 ms.
+
+### 2026-10-23 M3: keys, and what the matrix can tell apart
+- Debounce: each column keeps its last 4 readings of its key rows, a
+  byte each in one word. A key's state changes when all 4 agree and
+  differ from it, so a change is reported in the 4th scan that sees it:
+  2.8 to 4.1 ms after the contact settles (measured), and a bounce or a
+  glitch shorter than 3 ms is never reported. When all 4 readings equal
+  the state, a slot spends one compare on its column's keys.
+- What it can tell apart in fwtest: every key on its own, any number held
+  at once (each reported), keys held in the same columns as turning
+  encoders (the encoders still count exactly), and three corners of a
+  rectangle in the matrix with no ghost at the fourth (keys 5, 34 and 11
+  held: key 35 never appeared). So fwtest models a matrix with a diode per
+  key, or none of the cross-currents a plain matrix has.
+- What it can't, and what the chip may do: whether the board has diodes
+  is part of Q-7. Without them, with three corners of a rectangle held,
+  selecting the fourth corner's column connects its row to that column
+  through the other three keys, and the fourth key reads closed whether
+  or not it is pressed: a ghost no scan can tell from a real press. The
+  outcome also depends on how strongly the shift registers drive the
+  columns that are not selected (open). If the board has no diodes, the
+  fix is in `keys()`: a new press that would complete a rectangle of held
+  keys is held back until one of the others is released. That is not
+  written now, because fwtest cannot show the case. Also not told apart:
+  a press and release within 3 ms (debounce), and the order of two
+  changes in different columns within one scan (each is stamped with the
+  slot that saw it).
+
+### 2026-10-23 M3: encoders, the pot and the LEDs
+- Encoders: decoded from their contacts with no debounce. Each odd column's
+  slot has both of an encoder's contacts (A read one slot earlier). A
+  table turns each change of (A, B) into +1 along clockwise's order (B
+  closes, A closes, B opens, A opens: HW-38), -1 against it, or 0 for no
+  change or both at once. Back at rest (both open), at least +2 is a
+  detent clockwise and at most -2 one the other way, so one missed or
+  bounced state still counts right, and a bounce that goes back counts
+  nothing. One event per detent, at its last change, 0.6 to 1.1 ms after
+  it.
+- No acceleration in the input layer. fwtest turns every detent at one
+  speed (8 ms), so it couldn't test a curve, and engines want different
+  curves. Each event carries its time, so a consumer can scale by the
+  time since the previous detent; a shared helper can come when two
+  consumers need the same curve.
+- The pot: read once a scan, in the blank slot, by polling. The interrupt
+  (HW-41) is emulator-only and not needed. A conversion started in one
+  scan is read in the next, which gives the chip time to convert (fwtest
+  converts at once). The mean of the last 4 readings is reported when it
+  moves more than 3 from the last value reported, or reaches 0 or 1023,
+  so both ends are reachable however the dead band falls. A reading
+  wandering by 2 either side gives no event. A step gives up to 4 events
+  as the mean moves, the first within 0.9 ms and the new value within
+  3.9 ms.
+- LEDs: lit with their column, so fully on is 1 slot in 12, 83.3
+  thousandths of the time in `leds.csv`. Brightness is lit in n of 8
+  scans (n = 0 to 8 from levels 0 to 255), spread out in bit-reversed
+  order so a half-lit LED flickers at 500 Hz, not 125. `input_led` writes
+  8 words (one per scan of the 8), each holding both ports' LED bits for
+  one slot. The scan reads one word a slot. A test build measured every
+  step within 1.2 thousandths of n/8 × 83.3. One `leds.csv` sample's
+  share varies with where its interval falls in the scan, more so when a
+  sample comes late while the core idles, so the keys test checks the
+  mean share over a hold, and that every sample in it is lit.
+
+### 2026-10-23 M3: the input API
+- `firmware/src/input.h` is the API later milestones and other engines
+  build on, kept small:
+  - `input_read(&e)`, one event at a time from one queue;
+  - `input_value(control)`, the state now;
+  - `input_led(control, level)`.
+  An event is 8 bytes: control, kind (press, release, turn, move), a
+  signed value (1 or 0, ±1 a detent, the pot's 0 to 1023), and its time
+  in time base ticks (24 a µs) since main started the time base. The
+  time wraps every 178.9 s, so consumers compare times by difference.
+- Control IDs are named after the printed labels (HW-36) and fixed:
+  - the 14 buttons are 0 to 13;
+  - the 27 keys are `INPUT_KEY1` to `INPUT_KEY27`, left to right, 14 to
+    40, with aliases for the ten second labels of the raised keys
+    (`INPUT_KEY_OP1` and so on). The raised key `GLO` is `INPUT_KEY_GLO`,
+    apart from the button `INPUT_GLO`; the 16 lower keys have no label of
+    their own;
+  - the knobs are 41 to 48, `MASTER` (the pot) first.
+  The buttons' and keys' IDs equal fwtest's key numbers (HW-37), but the
+  knobs' don't follow fwtest's encoder numbers. If the board's wiring
+  turns out different (Q-7), only `input.c`'s tables change.
+- The queue holds 64 events. When full, new events are dropped (the
+  oldest kept) and counted, since the oldest ones are what a consumer is
+  about to read. Every event is also logged, with counters and every
+  control's value, in the input record right after the beacon
+  (`0x01C00060`, 1 264 bytes), for the tests.
+- Main reacts to `sb_work`, which the tick changes at each whole second
+  and the scan with each event. Its idle loop now wakes 13 times a tick
+  (the tick and 12 slots). A wake that finds nothing costs about 6
+  instructions, against M2's 3, and the heartbeat's seconds are counted
+  by the tick, not by counting wakes.
+
+### 2026-10-23 M3: the panel screen
+- From the first event on, the panel screen replaces the test screen:
+  - the 14 buttons as labelled boxes, filled while held;
+  - the 8 knobs by name, with the encoders' positions and the pot's
+    value and bar;
+  - the 27 keys as a keyboard, 16 lower keys with the 11 raised keys
+    over them in groups of 3, 2, 3, 2 and 1 (HW-36);
+  - the last event;
+  - the heartbeat, in the same place as on the test screen.
+- Until a control is touched the screens are M2's, so M2's tests and
+  timing stand, and the perf runs (no input) measure scanning, not
+  drawing.
+- Each event lights or darkens its LED first, then redraws only what it
+  changed and sends only those rows: a button's 13 rows, a knob's 8, the
+  keyboard's 52 as a chain, and the event line's 8. Main set every LED
+  within 1.1 µs of its event's time.
+
+### 2026-10-23 M3: which fwtest number is which control, confirmed
+- The keys case presses each of fwtest's keys 0 to 40 alone. Each gave
+  exactly one press and one release for the control at the contact HW-35
+  gives, and lit only the LED with its number. The encoders case turns
+  each of encoders 0 to 6 one detent each way, and each gave its control
+  (HW-39), +1 for `+`.
+- So fwtest's numbers, the matrix contacts, the LEDs and our IDs agree,
+  by our own black-box test. Which printed label each number is (HW-37,
+  HW-39, HW-41) comes only from the emulator model. fwtest has no labels
+  to test it against, so it is to be confirmed by hand on the app's
+  panel screen: press each control and see its name.
+
+### 2026-10-23 M3: what scanning costs, and cheaper ways considered
+- Measured in fwtest with builds that leave one part out (`SB_COST_NO_*`
+  in `input.c`; P-24), in instructions a 1 ms period, steady state at
+  rest:
+
+  | Part | Instructions a period |
+  |------|-----------------------|
+  | the M2 firmware, with the tick's new second check | 69.5 |
+  | the scan's fixed cost: 12 interrupt entries and exits, acknowledges, row reads, column select, the slot count, and main's 12 extra wakes | 533 |
+  | keys (debounce check per column) | 127 |
+  | encoders (contact check per odd column) | 94 |
+  | the pot (one reading and filter a scan) | 27 |
+  | LEDs (one table word and two port writes a slot) | 142 |
+  | total | 992 |
+
+  Against M2's 65.4. On the chip that is 0.41% of core 0 at 240 MHz.
+  Packing both ports' LED bits into one word and keeping this scan's row
+  of them saved 21 a period. The compiled slot is about 80 instructions,
+  so a large saving needs fewer interrupts, not tighter code.
+- A slower scan: at 1.5 ms (8 slots a millisecond) the cost falls by about
+  a third, but:
+  - key latency becomes 4.5 to 6 ms, past R-KEY-2's 4.5;
+  - an encoder state of 2 ms is seen once instead of twice, leaving no
+    margin;
+  - LED refresh falls to 667 Hz.
+  At 2 ms or slower, encoder states can be missed. Not clearly better.
+- Interrupt-driven scanning (no scan while nothing happens): the spec
+  gives no pin-change interrupt, so a press can't wake the core. The LEDs
+  need the scan whenever one is lit, and a turning encoder needs a sample
+  every 2 ms. It would be possible only if the chip has pin-change
+  interrupts (a spec request), and only while every LED is dark and
+  nothing is held. Not possible now.
+- A burst scan while every LED is dark (all 11 columns in one interrupt a
+  millisecond) would save about 11 interrupts and 11 wakes, an estimated
+  400 a period, but only then. It would add a second scanning path to
+  test, and rows would get far less time to settle between columns on the
+  chip (unknown, Q-7). Not clearly better: left as an option for when the
+  board's timing is known.
+
+### 2026-10-23 M3: the tests' timing
+- Latency is measured exactly, by letting the firmware stamp its own
+  times (docs/HARNESS.md, "Getting exact timing"):
+  - each event carries the time base count of the slot that decided it;
+  - the input record keeps the longest delay from an event to main's
+    `input_led`.
+  A stamp counts from when main started the time base, which is up to
+  the start slack (R-BOOT-3, about 0.38 ms with this `.bss`) after
+  fwtest's zero. So each latency is checked as a range: from the script's
+  time of the change to the stamp, plus 0 to the slack. A limit holds
+  only if the whole range is inside it.
+- Golden lists hold each case's events as control, kind and value, never
+  times, which move with any change of code. Several controls changing
+  at once (a chord) are decided in one scan in the order of their
+  columns from wherever the scan was, which also moves with the code, so
+  such a run is compared sorted; one control's events keep their order. The panel screen's golden
+  image is captured at 1 030 ms, long after its events, and
+  `leds.csv` is checked with bounds rather than a golden file.
