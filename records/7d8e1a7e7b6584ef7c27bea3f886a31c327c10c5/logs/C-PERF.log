@@ -1,0 +1,13 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py check --build /home/runner/work/small-beeps/small-beeps/out/7d8e1a7e7b6584ef7c27bea3f886a31c327c10c5/build-a --out /home/runner/work/small-beeps/small-beeps/out/7d8e1a7e7b6584ef7c27bea3f886a31c327c10c5/perf --base-ref 7d8e1a7e7b6584ef7c27bea3f886a31c327c10c5^1 --require-records
+current: code 4180, data 4, bss 115336, image 4184 bytes; static RAM 115340; stack 188 of 4096 bytes used; startup 1036283 instructions; steady state 65542 instructions for 1002 heartbeat periods (65.411 per period) between the 1256.314 and 2259.356 ms runs
+baseline: the record of 46edde2900c3, the latest of 7d8e1a7e7b6584ef7c27bea3f886a31c327c10c5^1 on origin/records
+baseline: code 4180, data 4, bss 115336, image 4184 bytes; static RAM 115340; stack 188 of 4096 bytes used; startup 1036283 instructions; steady state 65542 instructions for 1002 heartbeat periods (65.411 per period) between the 1256.314 and 2259.356 ms runs
+  code                 PASS         4180 of 8192 bytes (M2 budget)
+  static_ram           PASS         115340 of 122880 bytes (M2 budget)
+  stack_high_water     PASS         188 of 512 bytes (M2 budget)
+  startup_instructions PASS         1036283 of 1572864 instructions (M2 budget)
+  steady_per_period    PASS         65.411 of 72 instructions per period (M2 budget)
+  speed                PASS         65.411 steady-state instructions per period, 65.411 before: +0.00%, within 3%
+perf: PASS
+
+exit status 0

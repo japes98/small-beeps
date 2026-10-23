@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 46edde2900c30b8ed97519f118b2a492d11f5a25..7d8e1a7e7b6584ef7c27bea3f886a31c327c10c5
+OK     10f5cb315644 sessions: SR-3 archived; the audit self-test session's prompt and entry
+OK     0c5a8e85a224 tools: the audit's text check for files JPlag cannot score
+OK     72841425a1cd docs: the plan notes the audit self-test gap and its fix
+OK     da79fd83e3bd docs: the text check's calibration holds no font drawn as text
+OK     46cea2b80d90 tests: the text check's fixture has no licence line
+EXEMPT 7d8e1a7e7b65 (merge) Merge pull request #46 from japes98/spec/audit-selftest
+6 commit(s) checked: PASS
+
+exit status 0
