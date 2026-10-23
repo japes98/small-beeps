@@ -479,10 +479,71 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     transfer, and source 16 in fwtest. M2 doesn't depend on it.
   - **Next: M3, keys, encoders, the pot and LEDs.**
 
+### M3: keys, encoders, the pot and LEDs (firmware side)
+- Read every control on the panel and drive its LEDs, through one input
+  API, with a live panel screen (docs/prompts/M3.md).
+- Requirements: R-KEY-1 to R-KEY-3, R-ENC-1, R-ENC-2, R-POT-1, R-POT-2,
+  R-LED-1 to R-LED-3, R-INPUT-1 to R-INPUT-3; R-IRQ-1, R-IRQ-2 and R-PERF-2
+  amended.
+- Status 2026-10-23 (session M3, firmware side, on the owner's Mac):
+  - **Start** (#38): `tools/clean-update.sh` passed. M2's transcript was
+    archived. Its 5 flagged calls (13 entries) were reviewed and the owner
+    approved them in the session.
+  - **The speed gate** (#39, the owner's decision): the first record made
+    under a raised steady-state budget, the raise's own merge, which still
+    holds the older firmware, is not a 3% baseline. The change is
+    reported, and every budget still holds.
+  - **M3 budgets** (#41): as M2's, except steady state 72 to 1 152 a
+    period.
+  - **Barrier tools** (#43, the owner's request): the three spec-side
+    folders are listed once, in `config/spec-side-folders`. The barrier
+    tools build every name and pattern from that list, and their tests
+    use made-up names; a test pins the generated rules to the old ones by
+    hash.
+  - **Firmware** (#42; docs/DESIGN-NOTES.md, M3):
+    - **The scan:** TIMER1, 12 slots of 83.3 µs a millisecond, one column
+      each and one blank. A single 0 walks through the column shift
+      registers, one shift and one latch a slot. Rows are read at the
+      next slot, and the LEDs are lit with their column. The tick stays
+      above it in priority.
+    - **Keys:** 41, debounced over 4 scans.
+    - **Encoders:** 7, decoded from their contacts' order, one event per
+      detent.
+    - **The pot:** polled once a scan; the mean of 4 readings, a dead band
+      of 3, both ends reachable.
+    - **LEDs:** 41, with 9 brightness steps.
+    - **The input API** (`firmware/src/input.h`): one queue of 8-byte
+      events (control, kind, value, time), `input_read`, `input_value`
+      and `input_led`. Control IDs are named after the printed labels.
+    - **The panel screen:** from the first touch on, every control's state,
+      the last event and the heartbeat.
+  - **Results** (local runs and the pull requests' CI; the merges' records
+    are authoritative):
+    - Each of fwtest's 41 keys and 7 encoders gave its control by our own
+      black-box test, and each key lit only its own LED.
+    - Key latency 2.83 to 4.11 ms; detents within 1.10 ms; the pot's
+      first event within 0.82 ms and its value within 3.82 ms.
+    - LEDs were set 1.1 µs after their event; brightness within 1.25
+      thousandths of each step.
+    - No ghost at a matrix rectangle's fourth corner in fwtest.
+    - Tick intervals stayed 24 001 to 24 002 time base ticks under the
+      heaviest input.
+    - **Steady state 991.99 instructions a period** (M2: 65.415), 0.41% of
+      core 0 at 240 MHz: keys about 127, encoders 94, the pot 27, LEDs
+      142, and about 533 for 12 interrupts and main's wakes a
+      millisecond. A slower or interrupt-driven scan was weighed and not
+      taken.
+    - Startup 1 037 911 instructions; code 7 024 bytes, static RAM
+      117 788, stack 280.
+  - **Open:** which printed label each fwtest number is (HW-37, HW-39) is
+    emulator-only; the owner is to confirm it by hand on the app's panel
+    screen. The board's wiring, diodes and pin set-up are Q-7 (SR-3).
+  - **Next: M4, audio.**
+
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer (done; above).
 - **M2** screen (done; above).
-- **M3** keys, encoders, pot, LEDs.
+- **M3** keys, encoders, pot, LEDs (done; above).
 - **M4** audio.
 - **M5** the FM engine.
 - **M6** MIDI in.
