@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 78ba31bc2e72c515c91b6be9f260606fc57506cc..4c5d76f83f6c54fabfcb88cb1aa3e9da52e97470
+OK     0480305422d4 docs: M2's results in the plan; M3 is next; EXPOSURE's later reads
+OK     e1b3f23124fa docs: EXPOSURE's barrier log records the merge's staged spec-side names
+EXEMPT 4c5d76f83f6c (merge) Merge pull request #37 from japes98/m2/wrapup
+3 commit(s) checked: PASS
+
+exit status 0

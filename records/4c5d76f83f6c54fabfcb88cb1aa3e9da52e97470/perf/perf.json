@@ -1,0 +1,237 @@
+{
+  "baseline": {
+    "bss": 76,
+    "code": 1168,
+    "commit": "8231f0129b6a5476f5c1eef9741cad49f4f9e890",
+    "data": 4,
+    "emulated_ms": "2255.115",
+    "fwtest_exit": 0,
+    "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc",
+    "image": 1172,
+    "instructions": 63488,
+    "instructions_per_period": 64.0,
+    "label": "baseline",
+    "marker": "0x44304253",
+    "ms": 2250,
+    "options": [
+      [
+        "--ms",
+        "1250",
+        "--ram",
+        "0x01c00000:0x60@end",
+        "--ram",
+        "0x01c7ec00:0x1000@end"
+      ],
+      [
+        "--ms",
+        "2250",
+        "--ram",
+        "0x01c00000:0x60@end",
+        "--ram",
+        "0x01c7ec00:0x1000@end"
+      ]
+    ],
+    "outcome": "completed",
+    "periods": 992,
+    "render_us": 66357930.708,
+    "runs": [
+      {
+        "emulated_ms": "1263.074",
+        "instructions": 86025,
+        "ms": 1250,
+        "outcome": "completed",
+        "periods": 1263
+      },
+      {
+        "emulated_ms": "2255.115",
+        "instructions": 149513,
+        "ms": 2250,
+        "outcome": "completed",
+        "periods": 2255
+      }
+    ],
+    "stack": 4096,
+    "stack_high_water": 64,
+    "stack_method": "pattern, two stacks",
+    "stack_reserved": 4096,
+    "startup_instructions": 5193,
+    "static_ram": 80
+  },
+  "baseline_budgets": {
+    "limits": {
+      "code": 2048,
+      "stack_high_water": 256,
+      "startup_instructions": 8192,
+      "static_ram": 160,
+      "steady_per_period": 72
+    },
+    "milestone": "M1",
+    "speed_rise_percent": 3
+  },
+  "baseline_note": "the record of 8231f0129b6a, the latest of 4c5d76f83f6c54fabfcb88cb1aa3e9da52e97470^1 on origin/records",
+  "baseline_recorded": {
+    "bss": 76,
+    "code": 1168,
+    "data": 4,
+    "emulated_ms": "2255.115",
+    "fwtest_exit": 0,
+    "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc",
+    "image": 1172,
+    "instructions": 63488,
+    "instructions_per_period": 64.0,
+    "label": "current",
+    "marker": "0x44304253",
+    "ms": 2250,
+    "options": [
+      [
+        "--ms",
+        "1250",
+        "--ram",
+        "0x01c00000:0x10@end",
+        "--ram",
+        "0x01c7ec00:0x1000@end"
+      ],
+      [
+        "--ms",
+        "2250",
+        "--ram",
+        "0x01c00000:0x10@end",
+        "--ram",
+        "0x01c7ec00:0x1000@end"
+      ]
+    ],
+    "outcome": "completed",
+    "periods": 992,
+    "runs": [
+      {
+        "emulated_ms": "1263.074",
+        "instructions": 86025,
+        "ms": 1250,
+        "outcome": "completed",
+        "periods": 1263
+      },
+      {
+        "emulated_ms": "2255.115",
+        "instructions": 149513,
+        "ms": 2250,
+        "outcome": "completed",
+        "periods": 2255
+      }
+    ],
+    "stack": 4096,
+    "stack_high_water": 64,
+    "stack_method": "pattern, two stacks",
+    "stack_reserved": 4096,
+    "startup_instructions": 5193,
+    "static_ram": 80
+  },
+  "budgets": {
+    "limits": {
+      "code": 8192,
+      "stack_high_water": 512,
+      "startup_instructions": 1572864,
+      "static_ram": 122880,
+      "steady_per_period": 72
+    },
+    "milestone": "M2",
+    "speed_rise_percent": 3
+  },
+  "current": {
+    "bss": 115336,
+    "code": 4180,
+    "data": 4,
+    "emulated_ms": "2258.356",
+    "frame_update_us": 6.292,
+    "fwtest_exit": 0,
+    "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:fa74baf9233540c2537f888c710c6d408c3500dfc6b56aa607791c71dca67adc",
+    "heartbeat_update_us": 5.75,
+    "image": 4184,
+    "instructions": 65546,
+    "instructions_per_period": 65.415,
+    "label": "current",
+    "marker": "0x44304253",
+    "ms": 2250,
+    "options": [
+      [
+        "--ms",
+        "1250",
+        "--ram",
+        "0x01c00000:0x60@end",
+        "--ram",
+        "0x01c7ec00:0x1000@end"
+      ],
+      [
+        "--ms",
+        "2250",
+        "--ram",
+        "0x01c00000:0x60@end",
+        "--ram",
+        "0x01c7ec00:0x1000@end"
+      ]
+    ],
+    "outcome": "completed",
+    "periods": 1002,
+    "render_us": 1151.25,
+    "runs": [
+      {
+        "emulated_ms": "1256.314",
+        "instructions": 1118449,
+        "ms": 1250,
+        "outcome": "completed",
+        "periods": 1256
+      },
+      {
+        "emulated_ms": "2258.356",
+        "instructions": 1183995,
+        "ms": 2250,
+        "outcome": "completed",
+        "periods": 2258
+      }
+    ],
+    "stack": 4096,
+    "stack_high_water": 188,
+    "stack_method": "pattern, two stacks",
+    "stack_reserved": 4096,
+    "startup_instructions": 1036288,
+    "static_ram": 115340
+  },
+  "gates": [
+    {
+      "detail": "4180 of 8192 bytes (M2 budget)",
+      "gate": "code",
+      "result": "PASS"
+    },
+    {
+      "detail": "115340 of 122880 bytes (M2 budget)",
+      "gate": "static_ram",
+      "result": "PASS"
+    },
+    {
+      "detail": "188 of 512 bytes (M2 budget)",
+      "gate": "stack_high_water",
+      "result": "PASS"
+    },
+    {
+      "detail": "1036288 of 1572864 instructions (M2 budget)",
+      "gate": "startup_instructions",
+      "result": "PASS"
+    },
+    {
+      "detail": "65.415 of 72 instructions per period (M2 budget)",
+      "gate": "steady_per_period",
+      "result": "PASS"
+    },
+    {
+      "detail": "65.415 steady-state instructions per period, 64.000 before: +2.21%, within 3%",
+      "gate": "speed",
+      "result": "PASS"
+    }
+  ],
+  "period": "heartbeat-steady",
+  "result": "PASS",
+  "runs_ms": [
+    1250,
+    2250
+  ],
+  "speed_change_percent": 2.211
+}
