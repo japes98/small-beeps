@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range d68c836798967112803685271c0379838ce3dd9d..e742f1539142771d89e3d5888c710fbbbfa39ee9
+OK     0e20716f1e99 docs: M4's later exposure notes
+EXEMPT 9e1f258d3b5b (merge) docs: merge main into the M4 wrap-up, after #49 to #52
+EXEMPT e742f1539142 (merge) Merge pull request #54 from japes98/m4/wrapup
+3 commit(s) checked: PASS
+
+exit status 0
