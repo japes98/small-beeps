@@ -522,6 +522,39 @@ training cutoff (see "Model cutoffs" below).
   exception and clock questions. It never opens the GPL firmwares or
   anything on the clean side's forbidden list beyond the emulator.
 
+### Session M3 (keys, encoders, pot, LEDs)
+- Date: 2026-10-23
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.309 (banner), Remote Control from the owner's phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `9f197bbc-a080-4f00-a1b8-6b6e48d827ea`,
+  started by a `/clear` at 00:24:53Z (banner `source: clear`,
+  `status: OK`) in the same Claude Code job as M1 and M2. Its own
+  transcript is left for the next clean session to archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh` found main at
+  `4c5d76f` and ended "no spec-side files on disk or in .git";
+  `tools/private-terms.local` exists (not opened). It archived M2
+  (`d0aa28c2`) into `sessions/clean/`; no other clean session was left
+  unarchived. `tools/check-transcripts.py` flagged 5 of M2's shell
+  commands, as M2 had warned. The session printed only those commands
+  from the redacted archive: an `awk` pattern list of forbidden names
+  over a scratch log, edits and a `grep` of the check's own patterns, a
+  `grep` of the check's log, and a scratch toy repository with dummy
+  files named after the folders. The owner approved their 13 entries in
+  `sessions/REVIEWED.json` in the session; the check then passed.
+- Privacy: tool output showed the local username and top folder in paths
+  (Claude Code's project folder, the archiver's messages); they were never
+  written to the repository, and the archiver redacts them from this
+  transcript.
+- Reads: CONTRIBUTING.md, this file, sessions/README.md,
+  sessions/REVIEWED.json, docs/PLAN.md, the redacted archive of `d0aa28c2`
+  (the 5 flagged commands only), and this repository's tools, tests, docs
+  and firmware. It does not open anything on the forbidden list or
+  anything under the three spec-side folders.
+
 ## Barrier log
 
 | When (UTC) | Folder | Settings SHA-256 | Event |
@@ -548,6 +581,7 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-22T23:04:37Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M2 starts; banner `status: OK`; `tools/clean-update.sh` found main at `9fe07f8` and passed; M1 archived; `tools/check-transcripts.py` PASS with the reviewed entries listed for the owner's approval |
 | 2026-10-23, about 00:30Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M2: merging main into a branch staged spec-side paths; `git diff --cached` and the pre-commit hook showed their names, the hook's reads failed (lazy fetching off); a barrier check (disk, index, every branch) found no spec-side contents in `.git`, before and after the merge commit |
 | 2026-10-22T23:04:40Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-1-SR-2 starts; banner `status: OK`. 23:05:19Z: `tools/spec-setup.sh`, banner `status: OK`; M0e-spec's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-23T00:24:53Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M3 starts; banner `status: OK`; `tools/clean-update.sh` found main at `4c5d76f` and passed; M2 archived; `tools/check-transcripts.py` PASS with the 13 reviewed entries the owner approved in the session |
 
 ## Model cutoffs
 
