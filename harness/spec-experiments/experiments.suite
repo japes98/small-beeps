@@ -19,3 +19,6 @@ e11-undefined fault  images/e11-undefined.bin --ms 2 --ram 0x01c00100:0x10@end -
 e12-badjump fault    images/e12-badjump.bin --ms 2 --ram 0x01c00100:0x10@end --golden golden/e12-badjump
 e13-timer-ack completed images/e13-timer-ack.bin --ms 260 --ram 0x01c00100:0x28@end --golden golden/e13-timer-ack
 e14-undefined-inline fault images/e14-undefined-inline.bin --ms 2 --ram 0x01c00100:0x10@end --golden golden/e14-undefined-inline
+e15-spi1-irq halt    images/e15-spi1-irq.bin --ms 2 --ram 0x01c00100:0x4c@end --golden golden/e15-spi1-irq
+e16-lcd-frame halt   images/e16-lcd-frame.bin --ms 10 --lcd end --golden golden/e16-lcd-frame
+e17-adc-irq halt     images/e17-adc-irq.bin --ms 2 --ram 0x01c00100:0x44@end --golden golden/e17-adc-irq
