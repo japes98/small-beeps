@@ -1,0 +1,6 @@
+code 1168
+data 4
+bss 76
+image 1172
+stack 4096
+irq_stack 2048
