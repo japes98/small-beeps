@@ -81,6 +81,7 @@ Prints what it saw for the record, and exits 1 if anything failed.
 """
 import argparse
 import json
+import math
 import os
 import re
 import shutil
@@ -89,18 +90,24 @@ import subprocess
 import sys
 import zlib
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import audio_analysis as aa  # noqa: E402  (tools/, our own)
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SUITE = "tests/fw/boot.suite"
 IMAGE = os.path.join("out", "fw", "app.bin")
 # Test images: name -> define (firmware/src/probe.c).
 TEST_BUILDS = {"test-fault": "SB_TEST_FAULT", "test-stray": "SB_TEST_STRAY",
                "test-badinsn": "SB_TEST_BADINSN", "test-flood": "SB_TEST_FLOOD",
-               "test-leds": "SB_TEST_LEDS", "test-ledshow": "SB_TEST_LED_SHOW"}
+               "test-leds": "SB_TEST_LEDS", "test-ledshow": "SB_TEST_LED_SHOW",
+               "test-underrun": "SB_TEST_UNDERRUN"}
 # Each case's expected outcome (the suite says the same; checked twice).
 EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "completed",
           "screen": "completed", "flood": "completed", "fault": "halt", "stray": "halt",
           "badinsn": "fault", "keys": "completed", "chords": "completed", "encoders": "completed",
-          "pot": "completed", "leds": "completed", "ledshow": "completed"}
+          "pot": "completed", "leds": "completed", "ledshow": "completed",
+          "tone": "completed", "notes": "completed", "audioload": "completed",
+          "audiogold": "completed", "underrun": "completed"}
 
 MARKER = 0x44304253        # "SB0D", firmware/src/sb.h
 TICKS_PER_MS = 24000       # HW-13
@@ -114,8 +121,9 @@ LATE_MS = 30               # a waiting core 0 crosses many ticks in one run
 INTERVAL_TOL = 24          # ticks: 1 microsecond, 0.1% of a tick period
 CLOCK_TICKS = (240, 241)   # SB_CLOCK_CYCLES = 2402 cycles at 10 a tick
 FIRST_TICK_MS = 2          # the first tick: one period after main starts it
-IDLE_MAX_IPT = 1280        # instructions per tick, in steady state (since M2;
-                           # 100 until M3's scanning: DESIGN-NOTES.md, M3)
+IDLE_MAX_IPT = 1536        # instructions per tick, in steady state (since M2;
+                           # 100 until M3's scanning, 1 280 until M4's audio:
+                           # DESIGN-NOTES.md, M3 and M4)
 SCAN_SLOTS = 12            # input scan interrupts a tick (input.c, since M3)
 M0_IPP = 356.887           # M0's instructions per period (its last record)
 STUB_SIZE = 2              # crt0.S's sb_irq_stubs
@@ -236,7 +244,8 @@ def check_ticks(b, result):
     # M3 the scan wakes it too: at least once a tick, and at most once an
     # interrupt (the tick, SCAN_SLOTS scan slots, and an SPI1 transfer's
     # end a second), so it idles rather than spins.
-    most = (SCAN_SLOTS + 1) * (loop + 1) + loop // 1000 + 2
+    # Since M4 the audio output's blocks wake it too.
+    most = (SCAN_SLOTS + 1) * (loop + 1) + loop // 1000 + 2 + loop * TICKS_PER_MS // BLOCK_TICKS + 2
     if not b["wakes_ticks"]:
         problems.append("heartbeat: main's idle loop never stored its wakes")
     elif not loop - 1 <= b["wakes"] <= most:
@@ -329,10 +338,12 @@ def check_boot(case_dir, symbols):
     want[SRC_TICK] = symbols["sb_tick"]
     want[SRC_SPI1] = symbols["lcd_spi_done"]
     want[SRC_SCAN] = symbols["input_scan"]
+    want[SRC_AUDIO] = symbols["audio_block"]
     wrong = [n for n in range(128) if table[n] != want[n]]
-    lines.append("  vector table: %d of 128 slots as built (tick 0x%08x, SPI1 0x%08x, scan 0x%08x, stubs from 0x%08x)"
+    lines.append("  vector table: %d of 128 slots as built (tick 0x%08x, SPI1 0x%08x, scan 0x%08x, audio 0x%08x,"
+                 " stubs from 0x%08x)"
                  % (128 - len(wrong), symbols["sb_tick"], symbols["lcd_spi_done"], symbols["input_scan"],
-                    symbols["sb_irq_stubs"]))
+                    symbols["audio_block"], symbols["sb_irq_stubs"]))
     if wrong:
         problems.append("boot: vector table slots %s are not the handler built for them" % wrong)
     return problems, lines
@@ -818,6 +829,250 @@ def check_ledshow(case_dir):
     return [], lines
 
 
+# Since M4: the audio output and the test instrument (firmware/src/audio.h,
+# synth.c; docs/REQUIREMENTS.md R-AUD-*). The sound is measured by our own
+# analysis (tools/audio_analysis.py), at the output's true rate.
+AUDIO_ADDR, AUDIO_LEN = 0x01c00550, 0x40
+AUDIO_FIELDS = ("marker", "start", "blocks", "underruns", "fill_last", "fill_max", "dropped",
+                "voices_on", "notes", "tone", "master", "taken", "stolen", "octave", "first_on",
+                "last_off")                                   # audio.h's order
+AUDIO_MARKER = 0x34445541  # "AUD4"
+SRC_AUDIO = 11             # the audio link (HW-19, HW-43)
+BLOCK_TICKS = aa.BLOCK * 544   # time base ticks a block (HW-45): 1.451 ms
+HELLO = "small-beeps M4 \n"
+# Limits (docs/REQUIREMENTS.md, R-AUD-4 to R-AUD-6).
+TONE_HZ, TONE_DBFS = 1000.0, 20 * math.log10(0.5)
+TONE_CENTS, NOTE_CENTS = 0.05, 0.1
+LEVEL_DB = 0.1
+TONE_THDN_DB, NOTE_THDN_DB = -85.0, -70.0
+ATTACK_SAMPLES, RELEASE_SAMPLES = 221, 882   # the instrument's ramps (synth.c)
+SOUND_FROM_KEY = (2.5, 7.5)     # ms from the key's contact to its first sample
+SOUND_FROM_EVENT = 2 * BLOCK_TICKS / TICKS_PER_MS + 0.2   # ms: two blocks
+SILENCE_RUN = 200               # zero samples in a row that end a sound
+
+
+def audio_record(path):
+    with open(path, "rb") as f:
+        return dict(zip(AUDIO_FIELDS, struct.unpack("<%dI" % len(AUDIO_FIELDS), f.read()[:AUDIO_LEN])))
+
+
+def audio_name(when="end"):
+    return "ram-%08x-%x-%s.bin" % (AUDIO_ADDR, AUDIO_LEN, when)
+
+
+def check_audio_common(name, case_dir, underruns=0):
+    """Every audio case: the output ran, each block was filled once, the
+    console holds nothing but the start line (and the underruns expected),
+    and the WAV is mono in stereo (left equals right). Returns (problems,
+    lines, record, wav) where wav is (left, block ends) or None."""
+    problems, lines = [], []
+    a = audio_record(os.path.join(case_dir, audio_name()))
+    ends = aa.read_ipb(os.path.join(case_dir, "ipb.csv"))
+    if a["marker"] != AUDIO_MARKER:
+        problems.append("%s: the audio record's marker is 0x%08x" % (name, a["marker"]))
+    # The end capture can come while the last block's fill is still going.
+    if not len(ends) - 1 <= a["blocks"] <= len(ends):
+        problems.append("%s: %d blocks filled, fwtest finished %d" % (name, a["blocks"], len(ends)))
+    if a["underruns"] != underruns:
+        problems.append("%s: %d underruns, expected %d" % (name, a["underruns"], underruns))
+    if a["dropped"]:
+        problems.append("%s: the engine's queue dropped %d events" % (name, a["dropped"]))
+    gaps = [i for i in range(1, len(ends)) if not 0 < ends[i] - ends[i - 1] < 2 * BLOCK_TICKS / TICKS_PER_MS]
+    if gaps:
+        problems.append("%s: blocks %s ended more than a block after the one before" % (name, gaps[:5]))
+    with open(os.path.join(case_dir, "console.txt")) as f:
+        console = f.read()
+    if not console.startswith(HELLO):
+        problems.append("%s: the console doesn't start with the start line" % name)
+    lines.append("  audio: %d blocks filled (fwtest: %d), %d underruns, longest fill %.1f us, "
+                 "%d events to the engine"
+                 % (a["blocks"], len(ends), a["underruns"], a["fill_max"] / 24.0, a["taken"]))
+    wav = None
+    path = os.path.join(case_dir, "audio.wav")
+    if os.path.exists(path):
+        rate, left, right = aa.read_wav(path)
+        if left != right:
+            problems.append("%s: left and right differ" % name)
+        if len(left) != aa.BLOCK * len(ends):
+            problems.append("%s: %d samples for %d blocks" % (name, len(left), len(ends)))
+        lines.append("  audio.wav: %d frames (header %d Hz; measured at %.3f Hz)" % (len(left), rate, aa.RATE))
+        wav = (left, ends)
+    return problems, lines, a, console, wav
+
+
+def sounds(x):
+    """[(first, last)] sample of each sound: from a non-zero sample to the
+    last before SILENCE_RUN zeros."""
+    out, i, n = [], 0, len(x)
+    while i < n:
+        while i < n and not x[i]:
+            i += 1
+        if i >= n:
+            break
+        first, zeros, j = i, 0, i
+        while j < n and zeros < SILENCE_RUN:
+            zeros = zeros + 1 if not x[j] else 0
+            j += 1
+        out.append((first, j - zeros - 1))
+        i = j
+    return out
+
+
+def check_clicks(name, x, first, last, fit):
+    """No click where a sound starts and stops: the largest second
+    difference over the attack and the release within click_bound."""
+    a, f = fit["amplitude"], fit["frequency"]
+    problems = []
+    for what, lo, hi, ramp in (("start", first - 50, first + ATTACK_SAMPLES + 50, ATTACK_SAMPLES),
+                               ("stop", last - RELEASE_SAMPLES - 150, last + 50, RELEASE_SAMPLES)):
+        d2 = aa.max_second_difference(x[max(0, lo):hi])
+        bound = aa.click_bound(a, f, ramp)
+        if d2 > bound:
+            problems.append("%s: a click at the %s of the sound at sample %d: second difference %d, "
+                            "more than %.1f" % (name, what, first if what == "start" else last, d2, bound))
+    return problems
+
+
+def check_tone(case_dir):
+    """The test tone (tests/fw/scripts/tone.txt): frequency, level, THD+N,
+    a clean start and stop, and digital silence at rest around it."""
+    problems, lines, a, _, wav = check_audio_common("tone", case_dir)
+    if wav is None:
+        return problems + ["tone: no audio.wav"], lines
+    x, ends = wav
+    s = sounds(x)
+    if len(s) != 1:
+        return problems + ["tone: %d sounds, expected one" % len(s)], lines
+    first, last = s[0]
+    fit = aa.sine_fit(x[int(0.5 * aa.RATE):int(2.2 * aa.RATE)])
+    c, lvl, thdn = aa.cents(fit["frequency"], TONE_HZ), aa.dbfs(fit["amplitude"]), aa.thd_n_db(fit)
+    lines.append("  test tone: %.6f Hz (%+.5f cents), %.3f dBFS, THD+N %.1f dB, from %.3f to %.3f ms;"
+                 " silence (every sample 0) before and after"
+                 % (fit["frequency"], c, lvl, thdn, aa.sample_ms(first, ends), aa.sample_ms(last, ends)))
+    if abs(c) > TONE_CENTS:
+        problems.append("tone: %.6f Hz, %+.4f cents from %s Hz (at most %s)" % (fit["frequency"], c, TONE_HZ, TONE_CENTS))
+    if abs(lvl - TONE_DBFS) > LEVEL_DB:
+        problems.append("tone: %.3f dBFS, not within %s dB of %.3f" % (lvl, LEVEL_DB, TONE_DBFS))
+    if thdn > TONE_THDN_DB:
+        problems.append("tone: THD+N %.1f dB, above %s" % (thdn, TONE_THDN_DB))
+    problems += check_clicks("tone", x, first, last, fit)
+    on = aa.sample_ms(first, ends)
+    if not SOUND_FROM_KEY[0] <= on - 100 <= SOUND_FROM_KEY[1]:
+        problems.append("tone: began %.3f ms after PLAY, not within %s" % (on - 100, SOUND_FROM_KEY))
+    return problems, lines
+
+
+# tests/fw/scripts/notes.txt: (key down ms, fwtest key, MIDI note, MASTER).
+NOTES = [(100, 21, 60, 900), (500, 30, 69, 900), (900, 14, 53, 900), (1300, 40, 79, 900),
+         (1700, 30, 69, 1023), (2100, 30, 69, 512), (2700, 40, 103, 512), (3500, 14, 29, 512)]
+
+
+def master_gain(pot):
+    """synth.c's MASTER law: the square of its position, full at 1023."""
+    return 1.0 if pot >= 1023 else pot * pot * 16 / float(1 << 24)
+
+
+def check_notes(case_dir):
+    """Single notes (tests/fw/scripts/notes.txt): each one's pitch, level
+    and latency, its start and stop, and silence between them."""
+    problems, lines, a, _, wav = check_audio_common("notes", case_dir)
+    if wav is None:
+        return problems + ["notes: no audio.wav"], lines
+    x, ends = wav
+    _, _, log = input_record(os.path.join(case_dir, input_name("end")))
+    s = sounds(x)
+    if len(s) != len(NOTES):
+        return problems + ["notes: %d sounds, expected %d" % (len(s), len(NOTES))], lines
+    lats, evs = [], []
+    for (down, key, note, pot), (first, last) in zip(NOTES, s):
+        fit = aa.sine_fit(x[first + int(0.01 * aa.RATE):first + int(0.2 * aa.RATE)])
+        want = aa.note_hz(note)
+        c = aa.cents(fit["frequency"], want)
+        lvl = aa.dbfs(fit["amplitude"])
+        want_lvl = aa.dbfs(aa.FULL / 4.0 * master_gain(pot))
+        on = aa.sample_ms(first, ends)
+        press = [t for _, ctl, k, _, t in log if ctl == key and k == PRESS and t / TICKS_PER_MS < on]
+        ev = on - press[-1] / TICKS_PER_MS if press else None
+        lats.append(on - down)
+        if ev is not None:
+            evs.append(ev)
+        lines.append("  note %3d (%s): %.4f Hz (%+.4f cents), %.3f dBFS (MASTER %d: %.3f), THD+N %.1f dB, "
+                     "sound %.3f ms after the key, %s after its event"
+                     % (note, CONTROL_NAMES[key], fit["frequency"], c, lvl, pot, want_lvl, aa.thd_n_db(fit),
+                        on - down, "%.3f ms" % ev if ev is not None else "?"))
+        if abs(c) > NOTE_CENTS:
+            problems.append("notes: note %d at %.4f Hz, %+.3f cents from %.4f (at most %s)"
+                            % (note, fit["frequency"], c, want, NOTE_CENTS))
+        if abs(lvl - want_lvl) > LEVEL_DB:
+            problems.append("notes: note %d at %.3f dBFS, not within %s dB of %.3f"
+                            % (note, lvl, LEVEL_DB, want_lvl))
+        if aa.thd_n_db(fit) > NOTE_THDN_DB:
+            problems.append("notes: note %d's THD+N %.1f dB, above %s" % (note, aa.thd_n_db(fit), NOTE_THDN_DB))
+        if not SOUND_FROM_KEY[0] <= on - down <= SOUND_FROM_KEY[1]:
+            problems.append("notes: note %d sounded %.3f ms after its key, not within %s"
+                            % (note, on - down, SOUND_FROM_KEY))
+        if ev is None or not 0 < ev <= SOUND_FROM_EVENT + START_SLACK / TICKS_PER_MS:
+            problems.append("notes: note %d sounded %s after its press event, not within %.3f ms"
+                            % (note, "?" if ev is None else "%.3f ms" % ev, SOUND_FROM_EVENT))
+        problems += check_clicks("notes", x, first, last, fit)
+    lines.append("  latency: key to sound %.3f to %.3f ms, press event to sound %.3f to %.3f ms; "
+                 "every sample between the notes 0" % (min(lats), max(lats), min(evs or [0]), max(evs or [0])))
+    return problems, lines
+
+
+def check_audioload(case_dir):
+    """The heaviest input with every voice and the test tone for 10 s
+    (tests/fw/scripts/audioload.txt): no underrun, every tick on time,
+    every event to the engine."""
+    problems, lines, a, console, _ = check_audio_common("audioload", case_dir)
+    head, _, _ = input_record(os.path.join(case_dir, input_name("end")))
+    more, tl = check_ticks_under_load("audioload", case_dir)
+    problems += more
+    lines += tl
+    seconds = a["blocks"] * BLOCK_TICKS / 24e6
+    lines.append("  %.2f s of audio under load: %d notes (%d took a sounding voice), %d events to the engine,"
+                 " %d to main; longest fill %.1f us of a %.1f us block"
+                 % (seconds, a["notes"], a["stolen"], a["taken"], head["taken"], a["fill_max"] / 24.0,
+                    BLOCK_TICKS / 24.0))
+    if seconds < 10:
+        problems.append("audioload: only %.2f s of audio" % seconds)
+    if a["taken"] != head["events"]:
+        problems.append("audioload: the engine took %d events of %d" % (a["taken"], head["events"]))
+    if not a["stolen"] or a["notes"] < 100:
+        problems.append("audioload: %d notes, %d took a sounding voice" % (a["notes"], a["stolen"]))
+    if console != HELLO:
+        problems.append("audioload: the console has more than the start line")
+    return problems, lines
+
+
+def check_audiogold(case_dir):
+    problems, lines, _, _, _ = check_audio_common("audiogold", case_dir)
+    return problems, lines
+
+
+UNDERRUN_LINE = re.compile(r"^AUDIO UNDERRUN ([0-9a-f]{4})$")
+
+
+def check_underrun(case_dir):
+    """A test build whose engine is late for one block in 64: each late
+    block counted once and reported on the console, and the output goes on
+    (R-AUD-3)."""
+    a = audio_record(os.path.join(case_dir, audio_name()))
+    late = (a["blocks"] - 32 + 63) // 64 if a["blocks"] > 32 else 0
+    problems, lines, _, console, _ = check_audio_common("underrun", case_dir, underruns=late)
+    reports = console[len(HELLO):].splitlines()
+    nums = [int(m.group(1), 16) for m in map(UNDERRUN_LINE.match, reports) if m]
+    lines.append("  %d blocks late on purpose: %d underruns counted, %d reported (%s)"
+                 % (late, a["underruns"], len(nums), ", ".join(reports[:3]) + (", ..." if len(reports) > 3 else "")))
+    if late < 4 or nums != list(range(1, late + 1)) or len(reports) != late:
+        problems.append("underrun: %d late blocks, reports %s" % (late, reports[:8]))
+    return problems, lines
+
+
+AUDIO_CHECKS = {"tone": check_tone, "notes": check_notes, "audioload": check_audioload,
+                "audiogold": check_audiogold, "underrun": check_underrun}
+
+
 INPUT_CHECKS = {"keys": check_keys, "chords": check_chords, "encoders": check_encoders, "pot": check_pot,
                 "leds": check_leds, "ledshow": check_ledshow}
 
@@ -904,6 +1159,11 @@ def main():
             more, lines = check_halt(name, case_dir, HALT_STRAY, 127)
         elif name in INPUT_CHECKS and run.get("outcome") == EXPECT[name]:
             more, lines = INPUT_CHECKS[name](case_dir)
+        elif name in AUDIO_CHECKS and run.get("outcome") == EXPECT[name]:
+            try:
+                more, lines = AUDIO_CHECKS[name](case_dir)
+            except (OSError, ValueError) as e:
+                more, lines = ["%s: %s" % (name, e)], []
         problems += more
         if lines:
             print("\n".join(lines))

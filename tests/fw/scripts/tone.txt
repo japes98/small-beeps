@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# tone (tests/fw/boot.suite): silence at rest, then the test tone (PLAY):
+# 1 kHz at -6 dBFS whatever MASTER says, stopped by PLAY again, then
+# silence. tools/fw-suite.py measures its frequency, level and THD+N,
+# that it starts and stops without a click, and that the rest is silent.
+#
+# time   event
+100      key 12 tap 50
+2300     key 12 tap 50

@@ -44,6 +44,18 @@
 # leds (R-LED-2): a test build sets each LED to its own brightness.
 # ledshow (R-LED-3): the keys script on a test build whose scan times when
 #   it first drives an LED main has just set.
+# Since M4, audio (--wav, --ipb; the audio record at 0x01c00550; our own
+# analysis, tools/audio_analysis.py):
+# tone (R-AUD-1, R-AUD-4): the test tone's frequency, level and THD+N, a
+#   clean start and stop, and silence at rest around it.
+# notes (R-AUD-2, R-AUD-5, R-AUD-6): single notes' pitch, level (MASTER),
+#   latency from the key and from its event, no clicks, silence between.
+# audioload (R-AUD-1, R-AUD-3, R-INPUT-3): 10 s of the heaviest input with
+#   every voice and the tone: no underrun, every tick on time.
+# audiogold (R-AUD-7): a note and the tone, the whole output against a
+#   golden WAV, exact.
+# underrun (R-AUD-3): a test build late for one block in 64: each counted
+#   and reported on the console, and the output goes on.
 #
 # NAME      EXPECT     IMAGE                          run options
 boot        completed  ../../out/fw/app.bin           --ms 5 --console --ram 0x01c00000:0x60@end --ram 0x01c00000:4@end --ram 0x01c7fc00:0x200@end --ram 0x01c7fe00:0x200@end --golden golden/boot
@@ -60,3 +72,8 @@ encoders    completed  ../../out/fw/app.bin           --ms 2300 --script scripts
 pot         completed  ../../out/fw/app.bin           --ms 1300 --script scripts/pot.txt --ram 0x01c00060:0x4f0@960 --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end
 leds        completed  ../../out/fw/test-leds.bin     --ms 1000 --leds-every 96 --ram 0x01c00000:0x60@end
 ledshow     completed  ../../out/fw/test-ledshow.bin  --ms 2400 --script scripts/keys.txt --ram 0x01c00060:0x4f0@end
+tone        completed  ../../out/fw/app.bin           --ms 2600 --script scripts/tone.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end
+notes       completed  ../../out/fw/app.bin           --ms 3900 --script scripts/notes.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end
+audioload   completed  ../../out/fw/app.bin           --ms 11000 --script scripts/audioload.txt --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end
+audiogold   completed  ../../out/fw/app.bin           --ms 500 --script scripts/audiogold.txt --wav --ipb --console --ram 0x01c00550:0x40@end --golden golden/audiogold
+underrun    completed  ../../out/fw/test-underrun.bin --ms 500 --console --ipb --ram 0x01c00550:0x40@end

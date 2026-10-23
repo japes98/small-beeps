@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# notes (tests/fw/boot.suite): single notes across the keyboard and the
+# octave buttons, each held 250 ms, with MASTER at its default (900), at
+# full and at half travel. tools/fw-suite.py measures each note's pitch
+# and level, its latency from the key, that it starts and stops without
+# a click, and the silence between notes.
+#
+# time   event
+100      key 21 tap 250     # KEY8, C4
+500      key 30 tap 250     # KEY17, A4
+900      key 14 tap 250     # KEY1, F3
+1300     key 40 tap 250     # KEY27, G5
+1650     pot 1023
+1700     key 30 tap 250     # A4, MASTER full
+2050     pot 512
+2100     key 30 tap 250     # A4, MASTER at 512
+2450     key 1 tap 50       # OCT+
+2550     key 1 tap 50       # OCT+
+2700     key 40 tap 250     # KEY27 two octaves up, G7
+3050     key 0 tap 50       # OCT- four times: two octaves down
+3150     key 0 tap 50
+3250     key 0 tap 50
+3350     key 0 tap 50
+3500     key 14 tap 250     # KEY1 two octaves down, F1

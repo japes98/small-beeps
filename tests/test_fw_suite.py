@@ -118,7 +118,7 @@ class FwSuiteBootTest(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()
         self.syms = {"sb_irq_stubs": 0x0200004C, "sb_tick": 0x020002BC, "lcd_spi_done": 0x0200060E,
-                     "input_scan": 0x0200047E}
+                     "input_scan": 0x0200047E, "audio_block": 0x02000700}
 
     def tearDown(self):
         shutil.rmtree(self.dir)
@@ -131,6 +131,7 @@ class FwSuiteBootTest(unittest.TestCase):
             table[4] = self.syms["sb_tick"]
             table[16] = self.syms["lcd_spi_done"]
             table[5] = self.syms["input_scan"]
+            table[11] = self.syms["audio_block"]
         with open(os.path.join(self.dir, fw.VECTORS), "wb") as f:
             f.write(struct.pack("<128I", *table))
         return table
@@ -348,3 +349,68 @@ class FwSuiteInputTest(unittest.TestCase):
         finally:
             fw.ROOT = old
             shutil.rmtree(case)
+
+
+class FwSuiteAudioTest(unittest.TestCase):
+    """Requirements: R-AUD-1, R-AUD-3, R-AUD-5"""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.dir)
+
+    def test_the_record_fields_follow_audio_h(self):
+        import re
+        with open(os.path.join(ROOT, "firmware", "src", "audio.h")) as f:
+            text = f.read()
+        body = text[text.index("struct sb_audio_record {"):text.index("u32 engine[")]
+        fields = re.findall(r"^\s*u32 (\w+);", body, re.M)
+        slots = sorted((int(n), name) for name, n in re.findall(r"#define SYNTH_(\w+)\s+(\d+)", text))
+        self.assertEqual(tuple(fields) + tuple(n.lower() for _, n in slots),
+                         fw.AUDIO_FIELDS[:len(fields)] + ("voices_on", "notes", "tone", "master", "events",
+                                                           "stolen", "octave", "first_on", "last_off"))
+        self.assertEqual([i for i, _ in slots], list(range(9)))
+        self.assertEqual(4 * len(fw.AUDIO_FIELDS), fw.AUDIO_LEN)
+        self.assertIn("u32 engine[9];", text)
+
+    def test_sounds_are_split_by_silence(self):
+        x = [0] * 10 + [1, -1, 0, 2] + [0] * (fw.SILENCE_RUN + 5) + [3] + [0] * 3
+        self.assertEqual(fw.sounds(x), [(10, 13), (10 + 4 + fw.SILENCE_RUN + 5, 10 + 4 + fw.SILENCE_RUN + 5)])
+        self.assertEqual(fw.sounds([0] * 50), [])
+
+    def test_master_follows_synth_c(self):
+        self.assertEqual(fw.master_gain(1023), 1.0)
+        self.assertEqual(fw.master_gain(512), 0.25)
+        self.assertAlmostEqual(fw.master_gain(900), 900 * 900 * 16 / 2.0 ** 24)
+
+    def write_case(self, blocks, underruns=0, console=None, marker=None):
+        rec = dict.fromkeys(fw.AUDIO_FIELDS, 0)
+        rec.update(marker=fw.AUDIO_MARKER if marker is None else marker, blocks=blocks, underruns=underruns)
+        with open(os.path.join(self.dir, fw.audio_name()), "wb") as f:
+            f.write(struct.pack("<%dI" % len(fw.AUDIO_FIELDS), *[rec[k] for k in fw.AUDIO_FIELDS]))
+        with open(os.path.join(self.dir, "ipb.csv"), "w") as f:
+            f.write("block,end_ms,core0,core1\n")
+            for b in range(blocks):
+                f.write("%d,%.3f,100,0\n" % (b, 1.451 * (b + 1)))
+        with open(os.path.join(self.dir, "console.txt"), "w") as f:
+            f.write(fw.HELLO if console is None else console)
+
+    def test_underruns_must_be_counted_and_reported_once_each(self):
+        lines = "".join("AUDIO UNDERRUN %04x\n" % n for n in range(1, 6))
+        self.write_case(344, underruns=5, console=fw.HELLO + lines)
+        self.assertEqual(fw.check_underrun(self.dir)[0], [])
+        self.write_case(344, underruns=5, console=fw.HELLO + lines[:-20])     # one not reported
+        self.assertTrue(fw.check_underrun(self.dir)[0])
+        self.write_case(344, underruns=4, console=fw.HELLO + lines)           # one not counted
+        self.assertTrue(fw.check_underrun(self.dir)[0])
+
+    def test_every_case_checks_the_output_ran_and_kept_up(self):
+        self.write_case(100)
+        self.assertEqual(fw.check_audio_common("x", self.dir)[0], [])
+        self.write_case(100, marker=0)
+        self.assertTrue(fw.check_audio_common("x", self.dir)[0])
+        self.write_case(100, underruns=1)
+        self.assertTrue(fw.check_audio_common("x", self.dir)[0])
+        self.write_case(100, console="hello\n")
+        self.assertTrue(fw.check_audio_common("x", self.dir)[0])
