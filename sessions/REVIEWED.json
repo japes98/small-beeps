@@ -611,6 +611,335 @@
       "rule": "spec-side session transcripts",
       "reason": "An edit of a scratch toy test that builds a throwaway repository with dummy files named harness/x, vendor/emulator/y and sessions/spec/z, then runs it to probe whether their blobs arrive. Only those dummy files were touched; nothing of this repository's folders.",
       "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01JTeVCc35eJKpXVmEkkf7LL",
+      "rule": "Felucca and firmwares built on it",
+      "reason": "A Python heredoc adding M2's reviewed entries to sessions/REVIEWED.json (the attempt the safety classifier denied, before the owner approved). Its text holds the check's rule labels and the entries' reasons; it opened only that file.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01JTeVCc35eJKpXVmEkkf7LL",
+      "rule": "hugelton (Felucca's author)",
+      "reason": "A Python heredoc adding M2's reviewed entries to sessions/REVIEWED.json (the attempt the safety classifier denied, before the owner approved). Its text holds the check's rule labels and the entries' reasons; it opened only that file.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01JTeVCc35eJKpXVmEkkf7LL",
+      "rule": "dinghy",
+      "reason": "A Python heredoc adding M2's reviewed entries to sessions/REVIEWED.json (the attempt the safety classifier denied, before the owner approved). Its text holds the check's rule labels and the entries' reasons; it opened only that file.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01JTeVCc35eJKpXVmEkkf7LL",
+      "rule": "FM-1-RE firmware images or disassembly",
+      "reason": "A Python heredoc adding M2's reviewed entries to sessions/REVIEWED.json (the attempt the safety classifier denied, before the owner approved). Its text holds the check's rule labels and the entries' reasons; it opened only that file.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_013pL97Wwf3tEGrsNDnmp3va",
+      "rule": "Felucca and firmwares built on it",
+      "reason": "The same Python heredoc, run after the owner approved: it added M2's reviewed entries to sessions/REVIEWED.json. Its text holds the check's rule labels; it opened only that file.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_013pL97Wwf3tEGrsNDnmp3va",
+      "rule": "hugelton (Felucca's author)",
+      "reason": "The same Python heredoc, run after the owner approved: it added M2's reviewed entries to sessions/REVIEWED.json. Its text holds the check's rule labels; it opened only that file.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_013pL97Wwf3tEGrsNDnmp3va",
+      "rule": "dinghy",
+      "reason": "The same Python heredoc, run after the owner approved: it added M2's reviewed entries to sessions/REVIEWED.json. Its text holds the check's rule labels; it opened only that file.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_013pL97Wwf3tEGrsNDnmp3va",
+      "rule": "FM-1-RE firmware images or disassembly",
+      "reason": "The same Python heredoc, run after the owner approved: it added M2's reviewed entries to sessions/REVIEWED.json. Its text holds the check's rule labels; it opened only that file.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01Qs46kHFTJb2sWBNSjLoitj",
+      "rule": "Felucca and firmwares built on it",
+      "reason": "Wrote the M3 start pull request's body to a scratch file and opened the pull request; the body lists the reviewed calls with their rule IDs. Nothing forbidden was opened, fetched or searched.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01Qs46kHFTJb2sWBNSjLoitj",
+      "rule": "hugelton (Felucca's author)",
+      "reason": "Wrote the M3 start pull request's body to a scratch file and opened the pull request; the body lists the reviewed calls with their rule IDs. Nothing forbidden was opened, fetched or searched.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01Qs46kHFTJb2sWBNSjLoitj",
+      "rule": "dinghy",
+      "reason": "Wrote the M3 start pull request's body to a scratch file and opened the pull request; the body lists the reviewed calls with their rule IDs. Nothing forbidden was opened, fetched or searched.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_017harVBLhLDKwnYXr6F7Hdn",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A `git grep` of tracked files in tools/, tests/, config/ and .github/ for the folder names, counting the files that name them (for the shared folder list, #43). The folders are not in those paths; nothing under them was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_017harVBLhLDKwnYXr6F7Hdn",
+      "rule": "harness/ source (spec side)",
+      "reason": "A `git grep` of tracked files in tools/, tests/, config/ and .github/ for the folder names, counting the files that name them (for the shared folder list, #43). The folders are not in those paths; nothing under them was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_017harVBLhLDKwnYXr6F7Hdn",
+      "rule": "spec-side session transcripts",
+      "reason": "A `git grep` of tracked files in tools/, tests/, config/ and .github/ for the folder names, counting the files that name them (for the shared folder list, #43). The folders are not in those paths; nothing under them was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01EY9DGdXew1LV9CazbhTzXM",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A `git grep` of ten named barrier tools for the lines that spell out the folder names (#43). Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01EY9DGdXew1LV9CazbhTzXM",
+      "rule": "harness/ source (spec side)",
+      "reason": "A `git grep` of ten named barrier tools for the lines that spell out the folder names (#43). Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01EY9DGdXew1LV9CazbhTzXM",
+      "rule": "spec-side session transcripts",
+      "reason": "A `git grep` of ten named barrier tools for the lines that spell out the folder names (#43). Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_017jQ2PqLm4Hak2BGNx2FgtL",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A branch created from main, then a `git grep` of four named test files for the folder names (#43). Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_017jQ2PqLm4Hak2BGNx2FgtL",
+      "rule": "harness/ source (spec side)",
+      "reason": "A branch created from main, then a `git grep` of four named test files for the folder names (#43). Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_017jQ2PqLm4Hak2BGNx2FgtL",
+      "rule": "spec-side session transcripts",
+      "reason": "A branch created from main, then a `git grep` of four named test files for the folder names (#43). Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01RJzwYJpecQaQKaGu9VWxoH",
+      "rule": "thefirmwarehub.com",
+      "reason": "A Python edit of tools/check-transcripts.py that rebuilt its rule table; the table's text includes that site's rule pattern. Nothing was fetched.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01K42ngKPCWrkLyaVBAq8qiv",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A Python edit of tools/archive-session.py and tools/check-private.py replacing their spelled-out folder tuple with one read from config/spec-side-folders, then a hash check of the result. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01K42ngKPCWrkLyaVBAq8qiv",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python edit of tools/archive-session.py and tools/check-private.py replacing their spelled-out folder tuple with one read from config/spec-side-folders, then a hash check of the result. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01K42ngKPCWrkLyaVBAq8qiv",
+      "rule": "spec-side session transcripts",
+      "reason": "A Python edit of tools/archive-session.py and tools/check-private.py replacing their spelled-out folder tuple with one read from config/spec-side-folders, then a hash check of the result. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01Q58dydbE9fUXE1miuhP46W",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A Python edit of tools/setup-folder.sh, tools/reproduce and tools/clean-update.sh replacing spelled-out folder names with ones read from config/spec-side-folders. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01Q58dydbE9fUXE1miuhP46W",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python edit of tools/setup-folder.sh, tools/reproduce and tools/clean-update.sh replacing spelled-out folder names with ones read from config/spec-side-folders. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01Q58dydbE9fUXE1miuhP46W",
+      "rule": "spec-side session transcripts",
+      "reason": "A Python edit of tools/setup-folder.sh, tools/reproduce and tools/clean-update.sh replacing spelled-out folder names with ones read from config/spec-side-folders. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01EG6YrszZjuNvF7X2n2cbEY",
+      "rule": "harness/ source (spec side)",
+      "reason": "An `awk` filter tested on made-up tree lines printed with printf (paths named after the folders, no real files), then tools/clean-update.sh. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01EG6YrszZjuNvF7X2n2cbEY",
+      "rule": "spec-side session transcripts",
+      "reason": "An `awk` filter tested on made-up tree lines printed with printf (paths named after the folders, no real files), then tools/clean-update.sh. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01M1Ya49e14wbLJVW2vzVoWL",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python edit of tools/clean-update.sh's pattern, then the same made-up tree lines tested under sh. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01M1Ya49e14wbLJVW2vzVoWL",
+      "rule": "spec-side session transcripts",
+      "reason": "A Python edit of tools/clean-update.sh's pattern, then the same made-up tree lines tested under sh. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01Wdau7qb5GjmviEqyRGmei4",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A Python edit of tools/check-clean-folder.sh replacing spelled-out folder names and deny rules with ones built from config/spec-side-folders. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01Wdau7qb5GjmviEqyRGmei4",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python edit of tools/check-clean-folder.sh replacing spelled-out folder names and deny rules with ones built from config/spec-side-folders. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01Wdau7qb5GjmviEqyRGmei4",
+      "rule": "spec-side session transcripts",
+      "reason": "A Python edit of tools/check-clean-folder.sh replacing spelled-out folder names and deny rules with ones built from config/spec-side-folders. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01VFqkaKMwWiGLeBbqNe2P3a",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "Appended made-up folder names to tests/helpers.py and switched tests/test_transcripts.py's vectors from the real names to them (a text replace). Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01VFqkaKMwWiGLeBbqNe2P3a",
+      "rule": "harness/ source (spec side)",
+      "reason": "Appended made-up folder names to tests/helpers.py and switched tests/test_transcripts.py's vectors from the real names to them (a text replace). Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01VFqkaKMwWiGLeBbqNe2P3a",
+      "rule": "spec-side session transcripts",
+      "reason": "Appended made-up folder names to tests/helpers.py and switched tests/test_transcripts.py's vectors from the real names to them (a text replace). Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01KpaJQd3cgvVb7e3hBc5WBj",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A Python edit switching tests/test_archive.py and tests/test_private.py from the real folder names to made-up ones. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01KpaJQd3cgvVb7e3hBc5WBj",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python edit switching tests/test_archive.py and tests/test_private.py from the real folder names to made-up ones. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01KpaJQd3cgvVb7e3hBc5WBj",
+      "rule": "spec-side session transcripts",
+      "reason": "A Python edit switching tests/test_archive.py and tests/test_private.py from the real folder names to made-up ones. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_0154vv3BhpxHNeJpHTfiuvCA",
+      "rule": "harness/ source (spec side)",
+      "reason": "A `sed` edit of a comment in tools/clean-update.sh, then writing tests/test_folder_list.py, whose text names the folders' kind of tool. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01EjrWCGDVDBnk6yscWuHSC1",
+      "rule": "harness/ source (spec side)",
+      "reason": "Wrote the shared-folder-list pull request's body to a scratch file and opened the pull request; the body describes the change and names a folder as text. Nothing forbidden was opened.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01PMkqEHqh9toDPPUjtu3gUD",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python edit of docs/EXPOSURE.md adding M3's later notes, whose text names the folders. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01JWZhQs2e9dtLFfxTZUHBRs",
+      "rule": "harness/ source (spec side)",
+      "reason": "A `sed` edit of docs/EXPOSURE.md, then a commit, a push and the wrap-up pull request, whose texts name a folder as a word. Nothing under the folders was opened or listed.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01JTeVCc35eJKpXVmEkkf7LL",
+      "rule": "FM-1 SID firmware",
+      "reason": "A Python heredoc adding M2's reviewed entries to sessions/REVIEWED.json (the attempt the safety classifier denied, before the owner approved). Its text holds the check's rule labels and the entries' reasons; it opened only that file.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_013pL97Wwf3tEGrsNDnmp3va",
+      "rule": "FM-1 SID firmware",
+      "reason": "The same Python heredoc, run after the owner approved: it added M2's reviewed entries to sessions/REVIEWED.json. Its text holds the check's rule labels; it opened only that file.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "9f197bbc-a080-4f00-a1b8-6b6e48d827ea",
+      "tool_use_id": "toolu_01Qs46kHFTJb2sWBNSjLoitj",
+      "rule": "FM-1 SID firmware",
+      "reason": "Wrote the M3 start pull request's body to a scratch file and opened the pull request; the body lists the reviewed calls with their rule IDs. Nothing forbidden was opened, fetched or searched.",
+      "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
     }
   ]
 }
