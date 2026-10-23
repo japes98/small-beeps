@@ -22,7 +22,8 @@ job flags a pair, only an **auditor** may look (below).
 - **Ours:** the C files under `firmware/` (`.c`, `.h`, and C++ suffixes if
   we ever have any). Assembly (`.S`) and linker scripts (`.ld`) are not
   compared: JPlag's C front end doesn't read them. `vendor/` is not ours
-  and is never compared.
+  and is never compared. A file of ours that JPlag cannot score at all is
+  compared as text instead (below, "Files JPlag cannot score").
 - **Base code:** the vendored JieLi SDK headers
   (`vendor/jieli-sdk/include_lib`). JPlag drops matches with base code, so
   code that both sides took from the SDK doesn't count against us.
@@ -205,15 +206,85 @@ the control shares a 107-token run, because TinyUSB's own Raspberry Pi port
 overlaps pico-examples' USB examples. One target like that would otherwise
 have lifted the threshold for all of them.
 
+### Files JPlag cannot score: the text check
+
+JPlag drops a submission it cannot score: one with fewer tokens than its
+minimum match (`TOO_SMALL`), or one it cannot parse (`CANNOT_PARSE`). A
+file of ours dropped like that is never compared by the gate above. Since
+M2 one is: `src/font.c`, our font, is a single constant table whose rows
+are macro calls on string literals, and JPlag's C front end makes 5 tokens
+of its 116 lines. Such a file is not left out:
+
+- the report lists it under "Our files" as **not scorable by JPlag**, with
+  JPlag's reason;
+- the **text check** (C-AUDIT-TEXT) compares it with every target file, one
+  copy per blob, and reports two scores per pair:
+  - **exact:** the same bytes;
+  - **containment:** the share of our file's distinct 24-character pieces
+    that occur in the target file, both sides normalised first: comments
+    removed (the SPDX header included), then all whitespace. String and
+    character literals are kept. Containment, not a symmetric ratio,
+    because a copy may sit inside a larger target file.
+- The check **fails** on an exact copy, or at a containment of **0.5** or
+  more. Like the gate, it fails whatever the target's licence, and only
+  an auditor looks at a flagged pair.
+
+Only files JPlag dropped go to the text check. A file JPlag scored that
+matched nothing (`no match`) was compared by the gate; it is not sent
+here. Which files go is decided by each run's JPlag output, so a new file
+that JPlag cannot score is covered without a change here. Its rows hold
+names and numbers only, and the leak check reads them like the rest of the
+report.
+
+**Why 24 characters and 0.5.** Before choosing, the spec side ran the
+check on the same calibration pair as the gate: every pico-examples file
+against every TinyUSB `src/` file (the commits above; 244 × 190 = 46,170
+pairs, all permissive).
+
+| Piece length | Median | 99th percentile | 99.9th percentile | Highest |
+|--------------|--------|-----------------|-------------------|---------|
+| 16 characters | 0 | 0.020 | 0.091 | 0.376 |
+| **24 characters** | 0 | 0.005 | 0.053 | 0.286 |
+| 32 characters | 0 | 0 | 0.018 | 0.247 |
+| 48 characters | 0 | 0 | 0 | 0.219 |
+
+- The highest pairs are not chance: a pico-examples USB example's
+  configuration header against TinyUSB's options header, and USB
+  descriptor types against TinyUSB's own. Both follow the USB standard and
+  TinyUSB's conventions, a common source.
+- Even that stays below 0.3 at 24 characters, while a copy, verbatim or
+  reformatted, scores 1.0. A threshold of 0.5 lies well above the common
+  source and well below a copy: half of our file found in one target
+  file.
+- For `src/font.c` that is about 1,770 of its 3,540 pieces, roughly half
+  its glyphs' rows. Against the same 434 files it scored 0 at every piece
+  length.
+- 24 characters is also the leak check's line length: a piece about as
+  long as one C statement, or three rows of a glyph.
+
+Its limits:
+- **Re-encoded data.** It compares text, so the same glyphs stored another
+  way (hex bytes, or by column) would not be found. That is a rewrite, as
+  with reordered code below.
+- **Tiny files.** A file whose normalised text is shorter than 24
+  characters is one piece; any target file holding it scores 1.0. No such
+  file exists today. If one fails the check, the auditor's finding says
+  so.
+- **No acceptance yet.** `audit/accepted.json` accepts gate pairs only. If
+  the text check ever flags a pair, the pull request with the auditor's
+  finding also adds acceptance for it.
+
 ### What the gate cannot see
 
 - **Small files.** A pair can fail only if its longest match is above the
-  threshold. A verbatim copy of a file shorter than the threshold therefore
-  can't fail the job. Today our files are 54, 20 and 16 tokens long, so an
-  exact copy of one of them would show as a top pair with `max` 1.0 but
-  would not fail the job. The report lists each of our files' token counts,
-  and its top pairs with `max`, so a reader can see this. The gate gets
-  stronger as the firmware grows.
+  threshold. A verbatim copy of a file that JPlag scores but that is
+  shorter than the threshold therefore can't fail the job. On 2026-10-23,
+  `src/start.c` (20 tokens) was such a file. An exact copy of it would show
+  as a top pair with `max` 1.0, but would not fail the job. The report
+  lists each of our files' token counts, and its top pairs with `max`, so
+  a reader can see this. The gate gets stronger as the firmware grows. A
+  file too small for JPlag to score at all goes to the text check
+  (above).
 - **Drift.** The control is fixed and the firmware grows. Larger files have
   more chances to share a run by accident. The control's score, measured
   against the same targets in the same run, is the yardstick. If the
@@ -258,11 +329,18 @@ its first run is the push that merges it.
   That is one change to `audit.yml`'s triggers, by pull request, and this
   page then says so.
 - **Self-test first.** Each run starts with `tools/audit.py selftest`. It
-  builds a made-up local target that holds verbatim copies of our files,
-  runs the whole pipeline on it, and checks that each of our files is found
-  and that the leak check passes (C-AUDIT-SELFTEST). No GPL code is
-  involved. If the self-test fails, the audit still runs and is recorded,
-  and the job fails at the end.
+  builds a made-up local target that holds a verbatim copy of each of our
+  files and a reformatted one (comments removed, lines re-indented). It
+  runs the whole pipeline on that target and checks that every one of our
+  files is found, and that the leak check passes (C-AUDIT-SELFTEST):
+  - a file JPlag scores, by a match covering at least 90% of its tokens;
+  - a file JPlag cannot score, by the text check: as an exact copy (the
+    verbatim one), and at or above its threshold without being exact (the
+    reformatted one);
+  - a file JPlag scored that matched nothing fails it.
+
+  No GPL code is involved. If the self-test fails, the audit still runs
+  and is recorded, and the job fails at the end.
 - **Job `audit`** has read-only permissions, no environment and no
   secrets. For each target in turn it:
   1. fetches the pinned commit into a temporary folder: depth 1, blob-less,
@@ -301,8 +379,8 @@ its first run is the push that merges it.
 - the pinned JPlag, Java image and control, the control's highest longest
   match with an unrelated target, the threshold and the margin, and the
   control-related targets;
-- the checks (C-AUDIT-JPLAG, -PIN, -CONTROL, -SCORE, -LEAK) and their
-  traceability to R-AUDIT-*;
+- the checks (C-AUDIT-JPLAG, -PIN, -CONTROL, -SCORE, -TEXT, -LEAK) and
+  their traceability to R-AUDIT-*;
 - **our top 20 file pairs**: our file, the target repositories and paths
   holding the matched file (the first ten of them, and how many there are),
   each with its licence class, and the longest match, max and avg;
@@ -310,7 +388,12 @@ its first run is the push that merges it.
 - each of our files' token counts. A file that matched nothing anywhere
   (no run of 12 tokens) shows `no match` with no count: JPlag leaves such a
   file out of its index. It was still parsed and compared; the self-test,
-  which fails unless every one of our files is found, shows that it parses;
+  which fails unless JPlag finds every such file in its copy, shows that it
+  parses. A file JPlag could not score shows **not scorable by JPlag**,
+  with the reason;
+- the text check for those files: their pairs' containment and whether
+  each is exact, the best per file, and any flagged pair, every place
+  listed;
 - every target: its pinned commit, licence class, files fetched (and how
   many were new to the pool), our longest and the control's longest match
   with it, and how many of its files JPlag could not parse or found too
@@ -334,6 +417,15 @@ set. Its report is in `records/362480c8…/audit/39814921515-1/`.
   nothing.
 - Every check passed: C-AUDIT-JPLAG, -PIN, -CONTROL, -SCORE, -LEAK and
   -SELFTEST.
+
+### The self-test gap (M2 to the text check)
+
+From the merge of #35 (M2's firmware, which added `src/font.c`) until the
+text check, every push's self-test failed: "8 of our 9 files found". The
+file not found was `src/font.c`, which JPlag drops as `TOO_SMALL` (above).
+The gate's own checks passed in each of those runs, but `src/font.c` was
+compared with nothing. Those runs stay red in the records; docs/PLAN.md
+lists them.
 
 ## When the audit fails
 
@@ -384,7 +476,7 @@ hold GPL source. The owner's decision of 2026-10-22:
 |------|------------|
 | `audit/discover.json` | Seeds, search queries, the mention rule, unresolved names. |
 | `audit/targets.json` | Every target, pinned: commit, tree, licence class, status. Written by `tools/audit-discover.py`. |
-| `audit/audit.json` | JPlag and the Java image (pinned), the control (pinned), base code, the margin, the ceiling, the fast set. |
+| `audit/audit.json` | JPlag and the Java image (pinned), the control (pinned), base code, the margin, the ceiling, the text check's piece length and threshold, the fast set. |
 | `audit/accepted.json` | Pairs accepted by an auditor's finding. |
 | `audit/findings/` | Auditors' findings (none yet). |
 | `tools/audit.py` | The audit, its self-test, and the artifact check. |
