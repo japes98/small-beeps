@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 564792ab8a4c30bcd1ae6ee91edd5d803489df70..24a73ba3339f103267b284e111974df3c28409c9
+OK     6a24b55c2b9c tools: the transcript check tells an access from a mention
+EXEMPT 24a73ba3339f (merge) Merge pull request #51 from japes98/m4/transcripts-access
+2 commit(s) checked: PASS
+
+exit status 0
