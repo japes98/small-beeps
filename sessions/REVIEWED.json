@@ -520,6 +520,97 @@
       "rule": "spec-side session transcripts",
       "reason": "A `sed -i` on one line of docs/EXPOSURE.md, then commit messages written with `cat > $T/g1 <<EOF` naming the folders the new guard checks, commits, the tests and a push. Nothing under the folders was opened or listed.",
       "added_by": "session M2 (firmware side, claude-opus-5-5), 2026-10-22, listed for the owner's approval"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_01QRKyfWSt5sdxRFTxqEPfoW",
+      "rule": "hugelton (Felucca's author)",
+      "reason": "An `awk` over a scratch list of M2's own flagged tool calls, whose pattern is the list of forbidden names it looked for. It read only that scratch file; nothing forbidden was opened, fetched or searched.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_01QRKyfWSt5sdxRFTxqEPfoW",
+      "rule": "FM-1 SID firmware",
+      "reason": "An `awk` over a scratch list of M2's own flagged tool calls, whose pattern is the list of forbidden names it looked for. It read only that scratch file; nothing forbidden was opened, fetched or searched.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_01QRKyfWSt5sdxRFTxqEPfoW",
+      "rule": "harness/ source (spec side)",
+      "reason": "An `awk` over a scratch list of M2's own flagged tool calls, whose pattern is the list of forbidden names it looked for. It read only that scratch file; nothing forbidden was opened, fetched or searched.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_01QRKyfWSt5sdxRFTxqEPfoW",
+      "rule": "FM-1-RE firmware images or disassembly",
+      "reason": "An `awk` over a scratch list of M2's own flagged tool calls, whose pattern is the list of forbidden names it looked for. It read only that scratch file; nothing forbidden was opened, fetched or searched.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_01JUs7XUXsnu7gGcrkhHSVqk",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "A Python edit of tools/check-transcripts.py widening its folder rules' regexes (the folder names are in the patterns), then a `grep` of that file. Nothing under the folders was opened or listed.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_01JUs7XUXsnu7gGcrkhHSVqk",
+      "rule": "harness/ source (spec side)",
+      "reason": "A Python edit of tools/check-transcripts.py widening its folder rules' regexes (the folder names are in the patterns), then a `grep` of that file. Nothing under the folders was opened or listed.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_01JUs7XUXsnu7gGcrkhHSVqk",
+      "rule": "spec-side session transcripts",
+      "reason": "A Python edit of tools/check-transcripts.py widening its folder rules' regexes (the folder names are in the patterns), then a `grep` of that file. Nothing under the folders was opened or listed.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_01AtaLn687wnQLjJjoJ2ni1m",
+      "rule": "spec-side session transcripts",
+      "reason": "A `grep` of tools/check-transcripts.py for its own rule names, then a run of the check into a scratch log and a `grep` of that log. Nothing under the folder was opened or listed.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_016T2upTryfaNEEBoYatFhpG",
+      "rule": "Felucca and firmwares built on it",
+      "reason": "A `grep` of the check's scratch log for two rule IDs, then printing one archived clean-side tool call by ID. Nothing forbidden was opened, fetched or searched.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_016T2upTryfaNEEBoYatFhpG",
+      "rule": "dinghy",
+      "reason": "A `grep` of the check's scratch log for two rule IDs, then printing one archived clean-side tool call by ID. Nothing forbidden was opened, fetched or searched.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_01ALKQZfNmTNu3j298Y4zt2e",
+      "rule": "vendor/emulator/ (spec side)",
+      "reason": "An edit of a scratch toy test that builds a throwaway repository with dummy files named harness/x, vendor/emulator/y and sessions/spec/z, then runs it to probe whether their blobs arrive. Only those dummy files were touched; nothing of this repository's folders.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_01ALKQZfNmTNu3j298Y4zt2e",
+      "rule": "harness/ source (spec side)",
+      "reason": "An edit of a scratch toy test that builds a throwaway repository with dummy files named harness/x, vendor/emulator/y and sessions/spec/z, then runs it to probe whether their blobs arrive. Only those dummy files were touched; nothing of this repository's folders.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "d0aa28c2-493e-48cb-b0fd-be2a2d41a714",
+      "tool_use_id": "toolu_01ALKQZfNmTNu3j298Y4zt2e",
+      "rule": "spec-side session transcripts",
+      "reason": "An edit of a scratch toy test that builds a throwaway repository with dummy files named harness/x, vendor/emulator/y and sessions/spec/z, then runs it to probe whether their blobs arrive. Only those dummy files were touched; nothing of this repository's folders.",
+      "added_by": "session M3 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
     }
   ]
 }
