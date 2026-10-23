@@ -1,0 +1,6 @@
+code 4180
+data 4
+bss 115336
+image 4184
+stack 4096
+irq_stack 2048

@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 7f0dd93a2846035fb21dc7ab51bcc0b5a924b7a3..78ba31bc2e72c515c91b6be9f260606fc57506cc
+OK     7fab56ec8b9e docs: SR-3, the panel's wiring and SPI1's set-up on the chip
+EXEMPT 78ba31bc2e72 (merge) Merge pull request #36 from japes98/m2/sr3
+2 commit(s) checked: PASS
+
+exit status 0
