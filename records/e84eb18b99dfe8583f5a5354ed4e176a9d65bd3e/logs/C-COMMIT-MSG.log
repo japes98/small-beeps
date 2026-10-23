@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range ce4ffcfa52fe51b9648c774eb27aa803aafec4ce..e84eb18b99dfe8583f5a5354ed4e176a9d65bd3e
+OK     e83c84f4a8f6 docs: SR-3's missing exposure entry; the hardware layer's repository and licence
+EXEMPT 74ab717b45f6 (merge) docs: merge main into record-fixes-1; both sessions' exposure entries kept
+EXEMPT bea29b053794 (merge) docs: merge main into record-fixes-1 again, after #42
+EXEMPT e84eb18b99df (merge) Merge pull request #47 from japes98/spec/record-fixes-1
+4 commit(s) checked: PASS
+
+exit status 0

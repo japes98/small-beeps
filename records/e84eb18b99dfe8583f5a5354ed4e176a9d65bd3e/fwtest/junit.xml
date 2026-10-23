@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="14" failures="0">
+  <testsuite name="boot" tests="14" failures="0">
+    <testcase classname="boot" name="boot"/>
+    <testcase classname="boot" name="heartbeat"/>
+    <testcase classname="boot" name="heartbeat2"/>
+    <testcase classname="boot" name="screen"/>
+    <testcase classname="boot" name="flood"/>
+    <testcase classname="boot" name="fault"/>
+    <testcase classname="boot" name="stray"/>
+    <testcase classname="boot" name="badinsn"/>
+    <testcase classname="boot" name="keys"/>
+    <testcase classname="boot" name="chords"/>
+    <testcase classname="boot" name="encoders"/>
+    <testcase classname="boot" name="pot"/>
+    <testcase classname="boot" name="leds"/>
+    <testcase classname="boot" name="ledshow"/>
+  </testsuite>
+</testsuites>
