@@ -1005,8 +1005,8 @@ Format for each entry:
   24-bit), each step linearly interpolated with 15 bits of a 32-bit phase
   (interpolation error about -106 dB). The table is computed at startup
   from sin's series to x^11 in 2^-29 fixed point, a quarter cycle and
-  the rest by symmetry, using the core's 32 x 32 to 64-bit multiply (seen
-  in our own disassembly: `r1_r0 = r1 * r0 (s)`): no table copied from
+  the rest by symmetry, using the core's 32 x 32 to 64-bit multiply (one
+  instruction, in our own disassembly): no table copied from
   anywhere and no maths library. Phase increments: the twelve notes of
   the top octave, round(440 * 2^((n - 69) / 12) / rate * 2^32), computed
   offline in double precision; lower octaves halve them, rounded.
