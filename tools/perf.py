@@ -12,18 +12,21 @@ C-PERF and C-PERF-PROBES; R-PERF-1 to R-PERF-5).
       measures that record's own app.bin the same way, and applies the
       gates. Writes OUT/perf.json. Exit status 1 if a gate failed.
   perf.py probes --build DIR --out DIR
-      Builds the firmware with SB_PROBE_SLOW and with SB_PROBE_BIG
-      (firmware/src/probe.c), measures each, and checks that the gates
-      fail each one for its own reason, measured against DIR/app.bin: the
-      slower build its speed and its steady-state budget, the bigger build
-      each size budget and its startup budget, with the unmodified build's
-      measurements as those budgets. Builds it also with SB_PROBE_STACK
+      Builds the firmware with SB_PROBE_SLOW, SB_PROBE_BIG and (since
+      M4b) SB_PROBE_LOADED (firmware/src/probe.c), measures each, and
+      checks that the gates fail each one for its own reason, measured
+      against DIR/app.bin: the slower build its speed and its steady-state
+      budget, the bigger build each size budget and its startup budget,
+      the loaded build its loaded speed and loaded budget, with the
+      unmodified build's measurements as those budgets. Builds it also with SB_PROBE_STACK
       and checks the stack's high-water mark shows at least the 1 KiB that
       build is known to use.
       Exit status 1 if any gate did not fail as it should.
-  perf.py history --record REPORT.json --csv FILE
-      Appends the record's line to perf-history.csv (records workflow).
-      Never rewrites the file; a commit that already has a line is left.
+  perf.py history --record REPORT.json --csv FILE [--measures FILE]
+      Appends the record's line to perf-history.csv (records workflow),
+      and since M4b its rows to perf-measures.csv, one per measure. Never
+      rewrites either file; a commit (and measure) that already has a
+      line is left.
   perf.py summary --record REPORT.json
       Prints the record's performance as Markdown (for the CI summary).
 
@@ -54,7 +57,13 @@ What is measured (docs/DESIGN-NOTES.md, M0e):
     steady-state rate, the one-off work before the firmware settles.
   The stack's high-water mark is read at the end of the longer run.
   Until M2 speed was the instructions of one one-second run divided by
-  its beats, startup included.
+  its beats, startup included;
+- loaded (since M4b, R-PERF-2): the same two runs again, with the fixed
+  input script LOAD_SCRIPT, which drives the firmware to its heaviest
+  steady load (every voice sounding, every control moving), and its
+  steady state per period worked out the same way. Its budget
+  (`loaded_per_period`) is optional: a milestone without one has the
+  measure recorded and reported, not gated.
 
 The gates: each budget in config/budgets.json for the current milestone
 must hold: code, static RAM, stack high-water, startup instructions and
@@ -72,10 +81,18 @@ allowance. The baseline is re-measured with this checkout's fwtest, runs
 and options, so a change of fwtest or of the method never shows up as a
 change of the firmware.
 
+The loaded measure is gated the same way, on its own (since M4b): within
+its budget, and by at most `speed_rise_percent` against a baseline found
+by the same rule keyed on the loaded budget, so it may be another
+record than the steady state's. Its baseline is re-measured with this
+checkout's LOAD_SCRIPT too.
+
 perf-history.csv keeps its columns: since M2 its `instructions`,
 `periods` and `instructions_per_period` are the steady state's window,
 and its `period` says `heartbeat-steady` (since M4 `audio-block-steady`).
-Startup is in each record.
+Startup is in each record. Since M4b, perf-measures.csv beside it holds
+one row per commit per measure (MEASURE_FIELDS), so a new measure needs
+no new column; it starts with the loaded measure.
 """
 import argparse
 import csv
@@ -107,27 +124,40 @@ MARKER = 0x44304253          # "SB0D"
 STACK_FILL = 0x4B415453      # "STAK", firmware/src/crt0.S
 STACK_TOP = 0x01C7FC00       # firmware/app.ld asserts it
 BUDGETED = ("code", "static_ram", "stack_high_water", "startup_instructions", "steady_per_period")
+# Since M4b: the loaded measure (the docstring), its fixed input, and its
+# budget, which a milestone may leave out (then it is not gated).
+LOAD_SCRIPT = "tests/fw/scripts/perfload.txt"
+LOADED = "loaded_per_period"
+OPTIONAL = (LOADED,)
 # What the record shows, in order (here and tools/record.py).
 MEASURES = ("code", "data", "bss", "image", "static_ram", "stack_reserved", "stack_high_water",
             "stack_method", "startup_instructions", "instructions", "periods", "instructions_per_period",
             "frame_update_us", "render_us", "heartbeat_update_us")
 UNIT = {"code": "bytes", "static_ram": "bytes", "stack_high_water": "bytes",
-        "startup_instructions": "instructions", "steady_per_period": "instructions per period"}
+        "startup_instructions": "instructions", "steady_per_period": "instructions per period",
+        LOADED: "instructions per period"}
 SIZES = ("code", "data", "bss", "image", "stack")
 
 HISTORY_FIELDS = ["commit", "record_utc", "overall", "milestone", "period",
                   "instructions", "periods", "instructions_per_period",
                   "speed_change_percent", "code", "data", "bss", "image",
                   "static_ram", "stack_reserved", "stack_high_water", "fwtest_image"]
+# perf-measures.csv (since M4b): one row per commit per measure. `gated`
+# says whether the change against the baseline was gated (yes) or only
+# reported (no).
+MEASURE_FIELDS = ["commit", "record_utc", "milestone", "measure", "value", "unit", "budget",
+                  "change_percent", "gated"]
 
 
-def options(stack, ms=RUN_MS[-1]):
+def options(stack, ms=RUN_MS[-1], script=None):
     """A perf run's fwtest options: the instrument. Kept fixed and minimal
     (no watchdog, no captures but these two), because captures change when
-    a waiting core 0 is looked at, and with it the count."""
+    a waiting core 0 is looked at, and with it the count. The loaded runs
+    add their input script."""
     return ["--ms", str(ms), "--ipb",
             "--ram", "0x%08x:0x%x@end" % (BEACON, BEACON_LEN),
-            "--ram", "0x%08x:0x%x@end" % (STACK_TOP - stack, stack)]
+            "--ram", "0x%08x:0x%x@end" % (STACK_TOP - stack, stack)] + \
+        (["--script", script] if script else [])
 
 
 def capture_name(addr, length):
@@ -198,15 +228,42 @@ def run_fwtest(image_bytes, size, out, label):
     return m
 
 
-def run_once(image_bytes, size, out, label, ms):
-    """One perf run of ms emulated milliseconds."""
+def run_loaded(image_bytes, size, out, label):
+    """The loaded measure (since M4b): the two perf runs with LOAD_SCRIPT,
+    and the steady state per period between them, as run_fwtest works it
+    out. Returns {instructions, periods, instructions_per_period, runs,
+    options, script, script_sha256}, or with `error`."""
+    with open(os.path.join(ROOT, LOAD_SCRIPT), "rb") as f:
+        script_sha = hashlib.sha256(f.read()).hexdigest()
+    runs = [run_once(image_bytes, size, os.path.join(out, "loaded-%dms" % ms), label + "-loaded", ms,
+                     LOAD_SCRIPT) for ms in RUN_MS]
+    m = {"label": label + " loaded", "script": LOAD_SCRIPT, "script_sha256": script_sha,
+         "runs": [{k: r.get(k) for k in ("ms", "outcome", "emulated_ms", "instructions", "periods", "error")
+                   if r.get(k) is not None} for r in runs],
+         "options": [r["options"] for r in runs]}
+    bad = [r for r in runs if r.get("error")]
+    if bad:
+        m["error"] = "the loaded %d ms run: %s" % (bad[0]["ms"], bad[0]["error"])
+        return m
+    short, long_ = runs[0], runs[-1]
+    di, dp = long_["instructions"] - short["instructions"], long_["periods"] - short["periods"]
+    if dp <= 0 or di < 0:
+        m["error"] = "the longer loaded run gained %d audio blocks and %d instructions over the shorter" % (dp, di)
+        return m
+    m.update({"instructions": di, "periods": dp, "instructions_per_period": round(di / dp, 3)})
+    return m
+
+
+def run_once(image_bytes, size, out, label, ms, script=None):
+    """One perf run of ms emulated milliseconds (with an input script, for
+    the loaded measure)."""
     # tools/fwtest takes inputs from inside the working folder only.
     work = os.path.join(ROOT, "out", "perf-run")
     os.makedirs(work, exist_ok=True)
     img = os.path.join(work, label + ".bin")
     with open(img, "wb") as f:
         f.write(image_bytes)
-    opts = options(size["stack"], ms)
+    opts = options(size["stack"], ms, script)
     p = subprocess.run(["sh", "tools/fwtest", "run", os.path.relpath(img, ROOT), "--out", out] + opts,
                        cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     log = p.stdout.decode("utf-8", "replace")
@@ -266,11 +323,14 @@ def read_run(out, size, m, log=""):
 
 
 def measure_build(build, out, label):
+    """A build's measurement, with its loaded measure in `loaded`."""
     with open(os.path.join(build, "app.bin"), "rb") as f:
         image = f.read()
     with open(os.path.join(build, "app.size")) as f:
         size = read_size(f.read())
-    return run_fwtest(image, size, out, label)
+    m = run_fwtest(image, size, out, label)
+    m["loaded"] = run_loaded(image, size, out, label)
+    return m
 
 
 def git(*args, binary=False):
@@ -283,11 +343,13 @@ def git(*args, binary=False):
     return p.stdout if binary else p.stdout.decode("utf-8", "replace").strip()
 
 
-def recorded_steady(files):
-    """The steady-state budget a record was made under (its report.json's
-    perf.budgets), or None."""
+def recorded_budget(files, key="steady_per_period"):
+    """The budget `key` a record was made under (its report.json's
+    perf.budgets; steady state, or since M4b the loaded measure's), or
+    None."""
     try:
-        return steady_budget((json.loads(files["report.json"].decode()).get("perf") or {}).get("budgets"))
+        budgets = (json.loads(files["report.json"].decode()).get("perf") or {}).get("budgets")
+        return ((budgets or {}).get("limits") or {}).get(key)
     except (AttributeError, KeyError, ValueError):
         return None
 
@@ -314,12 +376,13 @@ def choose_baseline(records, steady):
     return None, skipped, records[pre][0] if pre is not None else None
 
 
-def find_baseline(base_ref, records_ref, head=None, steady=None):
+def find_baseline(base_ref, records_ref, head=None, steady=None, key="steady_per_period"):
     """(commit, {app.bin, app.size, report.json}, note) for the newest record
     of a commit on base_ref's first-parent history, other than head itself,
     that may be a speed baseline (choose_baseline, when steady, the current
-    steady-state budget, is given); commit is None (and note says why) when
-    there is none. The note names any record skipped."""
+    budget `key`, is given: the steady state's, or since M4b the loaded
+    measure's); commit is None (and note says why) when there is none. The
+    note names any record skipped."""
     if git("rev-parse", "--verify", "-q", records_ref + "^{commit}") is None:
         return None, None, "no records here (%s is not available)" % records_ref
     shas = git("rev-list", "--first-parent", "--max-count=200", base_ref)
@@ -342,9 +405,10 @@ def find_baseline(base_ref, records_ref, head=None, steady=None):
             return None, None, "the record of %s has no image here (not in the record, or not " \
                                "fetched)" % sha[:12]
         found.append((sha, files))
-        if steady is None or recorded_steady(files) != steady:
+        if steady is None or recorded_budget(files, key) != steady:
             break
-    records = [(sha, recorded_steady(f), hashlib.sha256(f["outputs/app.bin"]).hexdigest()) for sha, f in found]
+    records = [(sha, recorded_budget(f, key), hashlib.sha256(f["outputs/app.bin"]).hexdigest())
+               for sha, f in found]
     i, skipped, pre = choose_baseline(records, steady)
     why = ""
     if skipped:
@@ -364,7 +428,10 @@ def load_budgets(path=BUDGETS):
     for k in BUDGETED:
         if not isinstance(limits.get(k), int):
             raise ValueError("%s: budget %s for %s is missing" % (path, k, milestone))
-    return {"milestone": milestone, "limits": {k: limits[k] for k in BUDGETED},
+    for k in OPTIONAL:
+        if k in limits and not isinstance(limits[k], int):
+            raise ValueError("%s: budget %s for %s is not a whole number" % (path, k, milestone))
+    return {"milestone": milestone, "limits": {k: limits.get(k) for k in BUDGETED + OPTIONAL},
             "speed_rise_percent": b["speed_rise_percent"]}
 
 
@@ -373,70 +440,97 @@ def per_period(m):
 
 
 def budget_value(m, k):
-    """The measured value a budget limits (steady state exactly, as a
-    fraction), or None."""
-    if k == "steady_per_period":
+    """The measured value a budget limits (steady state and loaded exactly,
+    as a fraction), or None."""
+    if k == LOADED:
+        m = m.get("loaded") or {}
+    if k in ("steady_per_period", LOADED):
         return per_period(m) if m.get("instructions") is not None and m.get("periods") else None
     return m.get(k)
 
 
-def steady_budget(budgets):
-    return ((budgets or {}).get("limits") or {}).get("steady_per_period")
+def steady_budget(budgets, key="steady_per_period"):
+    return ((budgets or {}).get("limits") or {}).get(key)
 
 
-def comparable(budgets, base_budgets):
-    """Whether the baseline's record was made under the same steady-state
-    budget (since M2): the only case the 3% comparison is made. Records
-    that still hold the image from before a raise are never baselines
-    (choose_baseline, since M3)."""
-    if not base_budgets:
+def comparable(budgets, base_budgets, key="steady_per_period"):
+    """Whether the baseline's record was made under the same budget `key`
+    (steady state since M2, loaded since M4b): the only case the 3%
+    comparison is made. Records that still hold the image from before a
+    raise are never baselines (choose_baseline, since M3). A measure with
+    no budget now is never compared."""
+    if not base_budgets or steady_budget(budgets, key) is None:
         return False
-    return steady_budget(base_budgets) == budgets["limits"]["steady_per_period"]
+    return steady_budget(base_budgets, key) == steady_budget(budgets, key)
 
 
-def gate(cur, base, budgets, base_budgets=None):
+# The two speed comparisons: (gate, budget, what the detail calls it).
+SPEEDS = (("speed", "steady_per_period", "steady-state"), ("loaded_speed", LOADED, "loaded"))
+
+
+def compare(name, key, what, cur, base, budgets, base_budgets):
+    """One speed comparison's verdict (gate below)."""
+    pct = budgets["speed_rise_percent"]
+    if base is None or base.get("error"):
+        why = "no baseline" if base is None else "the baseline: " + base["error"]
+        return {"gate": name, "result": "NOT COMPARED", "detail": why}
+    c, b = per_period(cur), per_period(base)
+    if not comparable(budgets, base_budgets, key):
+        was, now = steady_budget(base_budgets, key), steady_budget(budgets, key)
+        if now is None:
+            under = "there is no %s budget for %s" % (what, budgets["milestone"])
+        else:
+            under = "the baseline's record was made under %s, not this %s budget of %d" % (
+                "no %s budget" % what if was is None else "a %s budget of %s" % (what, was),
+                budgets["milestone"], now)
+        return {"gate": name, "result": "NOT COMPARED", "detail":
+                "%.3f %s instructions per period, %.3f before (%+.2f%%), but %s"
+                % (float(c), what, float(b), float((c - b) * 100 / b), under)}
+    change = float((c - b) * 100 / b)
+    text = "%.3f %s instructions per period, %.3f before: %+.2f%%" % (float(c), what, float(b), change)
+    if c * 100 > b * (100 + pct):
+        return {"gate": name, "result": "FAIL", "detail": text + ", a rise of more than %s%%" % pct}
+    if c * 100 < b * (100 - pct):
+        return {"gate": name, "result": "IMPROVED", "detail": text + ", a fall of more than %s%%" % pct}
+    return {"gate": name, "result": "PASS", "detail": text + ", within %s%%" % pct}
+
+
+def gate(cur, base, budgets, base_budgets=None, loaded_base=None, loaded_base_budgets=None):
     """The gates' verdicts: a list of {gate, result, detail}, result one of
-    PASS, FAIL, IMPROVED (passes) and NOT COMPARED (passes). base_budgets
-    are the budgets the baseline's record was made under."""
+    PASS, FAIL, IMPROVED (passes), NOT COMPARED (passes) and NOT GATED (a
+    measure with no budget: passes). base_budgets are the budgets the
+    baseline's record was made under. Since M4b the loaded measure
+    (cur["loaded"]) is gated too, when it was measured: against
+    loaded_base (by default the baseline's own) and the budgets its record
+    was made under (by default base_budgets; give {} for none, and then
+    no loaded_base means no baseline)."""
     out = []
     if cur.get("error"):
         out.append({"gate": "measurement", "result": "FAIL", "detail": cur["error"]})
-    for k in BUDGETED:
-        limit, value = budgets["limits"][k], budget_value(cur, k)
+    loaded = cur.get("loaded")
+    if loaded is not None and loaded.get("error"):
+        out.append({"gate": "loaded measurement", "result": "FAIL", "detail": loaded["error"]})
+    for k in BUDGETED + OPTIONAL:
+        limit, value = budgets["limits"].get(k), budget_value(cur, k)
         if value is None:
             continue
         shown = "%.3f" % float(value) if isinstance(value, Fraction) else "%d" % value
-        if value > limit:
+        if limit is None:
+            out.append({"gate": k, "result": "NOT GATED", "detail": "%s %s; there is no %s budget for %s"
+                        % (shown, UNIT[k], k, budgets["milestone"])})
+        elif value > limit:
             out.append({"gate": k, "result": "FAIL", "detail": "%s %s, over the %s budget of %d"
                         % (shown, UNIT[k], budgets["milestone"], limit)})
         else:
             out.append({"gate": k, "result": "PASS", "detail": "%s of %d %s (%s budget)"
                         % (shown, limit, UNIT[k], budgets["milestone"])})
-    pct = budgets["speed_rise_percent"]
-    if cur.get("error"):
-        pass
-    elif base is None or base.get("error"):
-        why = "no baseline" if base is None else "the baseline: " + base["error"]
-        out.append({"gate": "speed", "result": "NOT COMPARED", "detail": why})
-    elif not comparable(budgets, base_budgets):
-        c, b = per_period(cur), per_period(base)
-        was = steady_budget(base_budgets)
-        out.append({"gate": "speed", "result": "NOT COMPARED", "detail":
-                    "%.3f steady-state instructions per period, %.3f before (%+.2f%%), but the baseline's "
-                    "record was made under %s, not this %s budget of %d"
-                    % (float(c), float(b), float((c - b) * 100 / b),
-                       "no steady-state budget" if was is None else "a steady-state budget of %s" % was,
-                       budgets["milestone"], budgets["limits"]["steady_per_period"])})
-    else:
-        c, b = per_period(cur), per_period(base)
-        change = float((c - b) * 100 / b)
-        text = "%.3f steady-state instructions per period, %.3f before: %+.2f%%" % (float(c), float(b), change)
-        if c * 100 > b * (100 + pct):
-            out.append({"gate": "speed", "result": "FAIL", "detail": text + ", a rise of more than %s%%" % pct})
-        elif c * 100 < b * (100 - pct):
-            out.append({"gate": "speed", "result": "IMPROVED", "detail": text + ", a fall of more than %s%%" % pct})
-        else:
-            out.append({"gate": "speed", "result": "PASS", "detail": text + ", within %s%%" % pct})
+    if not cur.get("error"):
+        out.append(compare("speed", "steady_per_period", "steady-state", cur, base, budgets, base_budgets))
+    if loaded is not None and not loaded.get("error"):
+        if loaded_base is None and loaded_base_budgets is None and base is not None:
+            loaded_base = base.get("loaded") or {"error": base.get("error") or "it has no loaded measure"}
+        out.append(compare("loaded_speed", LOADED, "loaded", loaded, loaded_base, budgets,
+                           base_budgets if loaded_base_budgets is None else loaded_base_budgets))
     return out
 
 
@@ -445,7 +539,7 @@ def failed(verdicts):
 
 
 def speed_change(cur, base):
-    if cur.get("error") or base is None or base.get("error"):
+    if cur is None or cur.get("error") or base is None or base.get("error"):
         return None
     c, b = per_period(cur), per_period(base)
     return round(float((c - b) * 100 / b), 3)
@@ -458,7 +552,11 @@ def print_verdicts(verdicts):
 
 def describe(m):
     if m.get("error"):
-        return "%s: %s" % (m["label"], m["error"])
+        return "%s: %s" % (m.get("label"), m["error"])
+    if "script" in m:
+        return ("%s: %d instructions for %d audio blocks (%.3f per block) between the %s ms runs with %s"
+                % (m["label"], m["instructions"], m["periods"], m["instructions_per_period"],
+                   " and ".join("%s" % r.get("emulated_ms") for r in m.get("runs", [])), m["script"]))
     return ("%s: code %d, data %d, bss %d, image %d bytes; static RAM %d; stack %d of %d bytes used; "
             "startup %d instructions; steady state %d instructions for %d audio blocks (%.3f per "
             "block) between the %s ms runs"
@@ -468,14 +566,42 @@ def describe(m):
                " and ".join("%s" % r.get("emulated_ms") for r in m.get("runs", []))))
 
 
+def recorded_perf(files):
+    """A record's own perf section (report.json), or {}."""
+    if files.get("report.json"):
+        try:
+            return json.loads(files["report.json"].decode()).get("perf") or {}
+        except ValueError:
+            pass
+    return {}
+
+
+def measure_record(sha, files, out, label, loaded_only=False):
+    """Re-measures a record's own image with this checkout's runs: the
+    whole measurement, or (loaded_only) the loaded measure alone."""
+    try:
+        size = read_size(files["outputs/app.size"].decode())
+    except ValueError as e:
+        return {"label": label, "error": str(e), "commit": sha}
+    image = files["outputs/app.bin"]
+    if loaded_only:
+        m = run_loaded(image, size, out, label)
+    else:
+        m = run_fwtest(image, size, out, label)
+        m["loaded"] = run_loaded(image, size, out, label)
+    m["commit"] = sha
+    return m
+
+
 def cmd_check(a):
     out = os.path.abspath(a.out)
     os.makedirs(out, exist_ok=True)
     budgets = load_budgets()
     cur = measure_build(a.build, os.path.join(out, "current"), "current")
     print(describe(cur))
+    print(describe(cur["loaded"]))
     sha, files, note = find_baseline(a.base_ref, a.records_ref, steady=budgets["limits"]["steady_per_period"])
-    base, base_recorded = None, None
+    base, base_recorded = None, {}
     if sha is None:
         print("baseline: none (%s)" % note)
         if a.require_records and not git("rev-parse", "--verify", "-q", a.records_ref + "^{commit}"):
@@ -483,25 +609,36 @@ def cmd_check(a):
             cur.setdefault("error", "the records branch (%s) is not available" % a.records_ref)
     else:
         print("baseline: %s" % note)
-        try:
-            size = read_size(files["outputs/app.size"].decode())
-            base = run_fwtest(files["outputs/app.bin"], size, os.path.join(out, "baseline"), "baseline")
-        except ValueError as e:
-            base = {"label": "baseline", "error": str(e)}
-        base["commit"] = sha
+        base = measure_record(sha, files, os.path.join(out, "baseline"), "baseline")
         print(describe(base))
-        if files.get("report.json"):
-            try:
-                base_recorded = json.loads(files["report.json"].decode()).get("perf")
-            except ValueError:
-                pass
-    verdicts = gate(cur, base, budgets, (base_recorded or {}).get("budgets"))
+        base_recorded = recorded_perf(files)
+    # Since M4b the loaded measure's baseline, by the same rule keyed on
+    # its own budget: re-measured only when it is another record.
+    lsha, lfiles, lnote = find_baseline(a.base_ref, a.records_ref, steady=budgets["limits"][LOADED], key=LOADED)
+    lbase, lrecorded = None, {}
+    if lsha is not None and lsha == sha:
+        lbase, lrecorded = (base or {}).get("loaded"), base_recorded
+    elif lsha is not None:
+        lbase = measure_record(lsha, lfiles, os.path.join(out, "loaded-baseline"), "loaded-baseline", True)
+        lrecorded = recorded_perf(lfiles)
+    if lbase is not None:
+        lbase = dict(lbase, commit=lsha)
+        print(describe(lbase))
+    print("loaded baseline: %s" % (lnote if lsha else "none (%s)" % lnote))
+    verdicts = gate(cur, base, budgets, base_recorded.get("budgets"), lbase, lrecorded.get("budgets") or {})
     print_verdicts(verdicts)
     result = "FAIL" if failed(verdicts) else "PASS"
     perf = {"period": PERIOD, "runs_ms": list(RUN_MS), "budgets": budgets, "current": cur, "baseline": base,
-            "baseline_note": note, "baseline_recorded": (base_recorded or {}).get("current"),
-            "baseline_budgets": (base_recorded or {}).get("budgets"),
-            "speed_change_percent": speed_change(cur, base), "gates": verdicts, "result": result}
+            "baseline_note": note, "baseline_recorded": base_recorded.get("current"),
+            "baseline_budgets": base_recorded.get("budgets"),
+            "speed_change_percent": speed_change(cur, base),
+            "loaded": {"script": LOAD_SCRIPT, "script_sha256": cur["loaded"].get("script_sha256"),
+                       "baseline": lbase, "baseline_note": lnote,
+                       "baseline_budgets": lrecorded.get("budgets"),
+                       "change_percent": speed_change(cur["loaded"], lbase),
+                       "gated": comparable(budgets, lrecorded.get("budgets"), LOADED) and lbase is not None
+                       and not lbase.get("error") and not cur["loaded"].get("error")},
+            "gates": verdicts, "result": result}
     with open(os.path.join(out, "perf.json"), "w") as f:
         json.dump(perf, f, indent=2, sort_keys=True)
         f.write("\n")
@@ -519,6 +656,9 @@ PROBES = [
     ("SB_PROBE_SLOW", {"speed", "steady_per_period"}, {"steady_per_period"}),
     ("SB_PROBE_BIG", SIZE_BUDGETS | {"startup_instructions"}, SIZE_BUDGETS | {"startup_instructions"}),
     ("SB_PROBE_STACK", set(), set()),
+    # Since M4b: work for each voice sounding, so it shows under load and
+    # not at rest (firmware/src/synth.c).
+    ("SB_PROBE_LOADED", {"loaded_speed", LOADED}, {LOADED}),
 ]
 # The stack the STACK probe is known to use (a 1 KiB frame written with
 # zeros, firmware/src/probe.c): the measured mark must be at least this.
@@ -533,10 +673,10 @@ def probe_budgets(ref, probe, budgets, from_ref):
     rounded up (it stays within)."""
     def limit(k):
         v = budget_value(ref if k in from_ref else probe, k)
-        if k == "steady_per_period":
+        if v is not None and k in ("steady_per_period", LOADED):
             return v.numerator // v.denominator if k in from_ref else -(-v.numerator // v.denominator)
         return v
-    return {"milestone": "probe", "limits": {k: limit(k) for k in BUDGETED},
+    return {"milestone": "probe", "limits": {k: limit(k) for k in BUDGETED + OPTIONAL},
             "speed_rise_percent": budgets["speed_rise_percent"]}
 
 
@@ -548,8 +688,9 @@ def check_probe(define, verdicts, must_fail):
              if res.get(g) != "FAIL"]
     probs += ["%s: %s failed, but this probe should not touch it" % (define, g) for g in sorted(res)
               if g not in must_fail and res[g] == "FAIL"]
-    if "measurement" in res:
-        probs.append("%s: the measurement failed" % define)
+    for g in ("measurement", "loaded measurement"):
+        if g in res:
+            probs.append("%s: the %s failed" % (define, g))
     return probs
 
 
@@ -571,6 +712,7 @@ def cmd_probes(a):
     budgets = load_budgets()
     ref = measure_build(a.build, os.path.join(out, "reference"), "reference")
     print(describe(ref))
+    print(describe(ref["loaded"]))
     problems = []
     control = gate(ref, ref, budgets, budgets)
     print("control (the build against itself):")
@@ -587,6 +729,7 @@ def cmd_probes(a):
             continue
         m = measure_build(build, os.path.join(out, define.lower(), "fwtest"), define)
         print(describe(m))
+        print(describe(m["loaded"]))
         if m.get("error"):
             problems.append("%s: %s" % (define, m["error"]))
             continue
@@ -621,32 +764,66 @@ def history_row(report):
     return row
 
 
+def measure_rows(report):
+    """A record's rows for perf-measures.csv (since M4b): one per measure
+    it has beyond perf-history.csv's, so far the loaded measure."""
+    perf = report.get("perf") or {}
+    loaded = (perf.get("current") or {}).get("loaded") or {}
+    if loaded.get("instructions_per_period") is None:
+        return []
+    info = perf.get("loaded") or {}
+    budget = ((perf.get("budgets") or {}).get("limits") or {}).get(LOADED)
+    return [{"commit": report["commit"], "record_utc": report.get("created_utc", ""),
+             "milestone": perf["budgets"]["milestone"], "measure": LOADED,
+             "value": loaded["instructions_per_period"], "unit": "instructions per audio block",
+             "budget": "" if budget is None else budget,
+             "change_percent": "" if info.get("change_percent") is None else "%.3f" % info["change_percent"],
+             "gated": "yes" if info.get("gated") else "no"}]
+
+
+def append_rows(path, fields, rows, key):
+    """Appends rows to an append-only CSV with header fields, skipping a
+    row whose key (a tuple of fields) is already there (a re-run). Returns
+    1 if the file's header isn't fields, else 0."""
+    if os.path.exists(path) and os.path.getsize(path):
+        with open(path, newline="") as f:
+            old = list(csv.reader(f))
+        if old[0] != fields:
+            print("%s: unexpected header %s" % (path, old[0]))
+            return 1
+        have = {tuple(r[fields.index(k)] for k in key) for r in old[1:] if len(r) == len(fields)}
+        new = False
+    else:
+        have, new = set(), True
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=fields, lineterminator="\n")
+    if new:
+        w.writeheader()
+    added = []
+    for row in rows:
+        k = tuple(str(row[x]) for x in key)
+        if k in have:
+            print("%s already has a line for %s (a re-run): left as it is" % (path, " ".join(k)))
+            continue
+        w.writerow(row)
+        have.add(k)
+        added.append(k)
+    if added:
+        # Append only: earlier lines are never rewritten.
+        with open(path, "a", newline="") as f:
+            f.write(buf.getvalue())
+        for line in buf.getvalue().strip().splitlines()[-len(added):]:
+            print("appended to %s: %s" % (path, line))
+    return 0
+
+
 def cmd_history(a):
     with open(a.record) as f:
         report = json.load(f)
-    row = history_row(report)
-    if os.path.exists(a.csv) and os.path.getsize(a.csv):
-        with open(a.csv, newline="") as f:
-            rows = list(csv.reader(f))
-        if rows[0] != HISTORY_FIELDS:
-            print("%s: unexpected header %s" % (a.csv, rows[0]))
-            return 1
-        if any(r and r[0] == row["commit"] for r in rows[1:]):
-            print("%s already has a line for %s (a re-run): left as it is" % (a.csv, row["commit"]))
-            return 0
-        new = False
-    else:
-        new = True
-    buf = io.StringIO()
-    w = csv.DictWriter(buf, fieldnames=HISTORY_FIELDS, lineterminator="\n")
-    if new:
-        w.writeheader()
-    w.writerow(row)
-    # Append only: earlier lines are never rewritten.
-    with open(a.csv, "a", newline="") as f:
-        f.write(buf.getvalue())
-    print("appended to %s: %s" % (a.csv, buf.getvalue().strip().splitlines()[-1]))
-    return 0
+    status = append_rows(a.csv, HISTORY_FIELDS, [history_row(report)], ("commit",))
+    if getattr(a, "measures", None):
+        status |= append_rows(a.measures, MEASURE_FIELDS, measure_rows(report), ("commit", "measure"))
+    return status
 
 
 def summary(perf):
@@ -662,7 +839,14 @@ def summary(perf):
               % (r.get("ms"), r.get("instructions"), r.get("periods"), r.get("emulated_ms"))
               for r in cur.get("runs", [])]
         L.append("")
+    loaded = cur.get("loaded") or {}
+    if loaded and not loaded.get("error"):
+        L += ["Loaded (%s): %s instructions for %s audio blocks, %s a block." % (
+            loaded.get("script"), loaded.get("instructions"), loaded.get("periods"),
+            loaded.get("instructions_per_period")), ""]
     L.append("Baseline: %s." % perf["baseline_note"])
+    if perf.get("loaded"):
+        L.append("Loaded baseline: %s." % perf["loaded"].get("baseline_note"))
     L += ["", "| Gate | Result | Detail |", "|---|---|---|"]
     L += ["| %s | %s | %s |" % (v["gate"], v["result"], v["detail"]) for v in perf["gates"]]
     if any(v["result"] == "IMPROVED" for v in perf["gates"]):
@@ -692,6 +876,7 @@ def main():
     h = sub.add_parser("history")
     h.add_argument("--record", required=True)
     h.add_argument("--csv", required=True)
+    h.add_argument("--measures", help="perf-measures.csv (since M4b)")
     s = sub.add_parser("summary")
     s.add_argument("--record", required=True)
     a = ap.parse_args()
