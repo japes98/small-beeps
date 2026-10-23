@@ -909,3 +909,22 @@ Format for each entry:
 - Tests: an unrelated merge between the raise and the firmware, records
   written out of order, and the firmware's record as the next baseline,
   in a made-up repository and records branch.
+
+### 2026-10-23 M4: the polled transfer's interrupt path removed
+- Facts: HW-59 (from fwtest 0.2.0, a transfer that finishes while SPI1's
+  `CON` bit 13 is clear raises nothing), Q-15 (the chip, open).
+- What was there: M2 found fwtest raising source 16 at the end of every
+  transfer, bit 13 or not, so `lcd_spi_done` also acknowledged a polled
+  transfer it hadn't chained (M2, "the frame buffer and sending it").
+  fwtest 0.2.0 fixed that (SR-3), and the firmware no longer gets that
+  interrupt.
+- Evidence that the path is unused: a build whose path halted instead
+  (`HALT stray 010`) passed the whole fw suite, every case with the
+  outcome expected, the flood test (whole frames back to back for a
+  second, polled and chained transfers), the keys, chords, encoders and
+  pot scripts with the panel screen's partial updates, and the screen
+  cases. So the branch is gone, and the handler only chains.
+- On the chip, too: every polled transfer starts with a `CON` write that
+  clears bit 13 and acknowledges anything pending, and every chain
+  starts with one that acknowledges before setting bit 13, so whichever
+  way Q-15 is answered, no polled transfer raises source 16.

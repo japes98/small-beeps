@@ -98,20 +98,14 @@ static void start_chunk(void)
     JL_SPI1->CNT = n;
 }
 
-/* Source 16: a chunk is done. Send the next, or end the frame. fwtest
- * also raises source 16 at the end of a transfer started with bit 13
- * clear (our experiment, P-20; HW-29 says bit 13 enables it; SR-3): with
- * no chain under way that is the polled transfer ending, so it is only
- * acknowledged, and lcd_wait sees it is over. */
+/* Source 16: a chunk of a chained frame is done. Send the next, or end
+ * the frame. Only chained chunks raise it: a polled transfer starts with
+ * bit 13 clear, which raises nothing (HW-59; before fwtest 0.2.0 it did,
+ * and this handler acknowledged it: DESIGN-NOTES.md, M4). */
 void lcd_spi_done(void)
 {
     u32 n = dma_left < CHUNK ? dma_left : CHUNK;
 
-    if (!n) {
-        JL_SPI1->CON = SPI_CON | SPI_CLEAR;
-        dma_polled = 0;
-        return;
-    }
     dma_left -= n;
     if (dma_left) {
         JL_SPI1->CON = SPI_CON | SPI_CLEAR | SPI_IRQ;
