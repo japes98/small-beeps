@@ -8,7 +8,8 @@
       C++ files only) into a temporary folder, with the control, and runs
       JPlag (pinned by hash, in a Java image pinned by digest, with no
       network) on our firmware and the control against them, the JieLi SDK
-      as base code. Writes DIR/report.json and DIR/report.md: scores and
+      and (since SR-4) the vendored Plaits, checksum-verified, as base
+      code. Writes DIR/report.json and DIR/report.md: scores and
       file names only. Deletes everything it fetched, whatever happens.
       Exit status 1 if a check failed (the report says which).
   audit.py selftest [--out DIR] [--jar FILE]
@@ -29,7 +30,9 @@ of at least `leak_line_chars` characters is looked for in the report
 
 A file of ours that JPlag cannot score (too few tokens, or not parsed) is
 reported as such and compared as text instead: exact copies, and the share
-of its normalised text found in each target file (C-AUDIT-TEXT).
+of its normalised text found in each target file (C-AUDIT-TEXT). Like
+JPlag, the text check leaves out what is in the base code (since SR-4):
+pieces of our text found in a base file, and exact copies of one.
 """
 import argparse
 import hashlib
@@ -45,6 +48,9 @@ import urllib.request
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sha256sums  # noqa: E402  (tools/, our own)
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCHEMA = 1
 REQS = {
@@ -55,6 +61,7 @@ REQS = {
     "C-AUDIT-LEAK": ["R-AUDIT-1", "R-AUDIT-3"],
     "C-AUDIT-TEXT": ["R-AUDIT-1", "R-AUDIT-5"],
     "C-AUDIT-SELFTEST": ["R-AUDIT-5"],
+    "C-AUDIT-BASE": ["R-AUDIT-4"],
 }
 GIT_ENV = dict(os.environ, GIT_TERMINAL_PROMPT="0", GIT_ADVICE="0")
 SUB = re.compile(r"^(?:new_|pool_)?([ocp]\d{5}\.[A-Za-z]+)$")
@@ -171,14 +178,16 @@ def get_jar(cfg, work, jar=None):
     return dest, sha256_file(dest)
 
 
-def run_jplag(cfg, work):
-    """JPlag in the pinned Java image, no network; its output goes only to a log in work."""
+def run_jplag(cfg, work, sub="."):
+    """JPlag in the pinned Java image, no network, on work/sub's new/ and
+    base/ against work/pool/; its output goes only to a log in work/sub,
+    its report to work/sub/result.jplag."""
     cmd = ["docker", "run", "--rm", "--network", "none", "--user", "%d:%d" % (os.getuid(), os.getgid()),
            "-e", "HOME=/w", "-v", "%s:/w" % work, "-w", "/w", cfg["java_image"],
-           "java", "-jar", "/w/jplag.jar", "-l", "c", "-new", "/w/new", "-old", "/w/pool", "-bc", "/w/base",
-           "-p", ",".join(cfg["suffixes"]), "-t", str(cfg["min_tokens"]), "-M", "RUN", "-r", "/w/result",
+           "java", "-jar", "/w/jplag.jar", "-l", "c", "-new", "/w/%s/new" % sub, "-old", "/w/pool", "-bc", "/w/%s/base" % sub,
+           "-p", ",".join(cfg["suffixes"]), "-t", str(cfg["min_tokens"]), "-M", "RUN", "-r", "/w/%s/result" % sub,
            "-n", "-1", "-m", "0.000001", "--cluster-skip", "--overwrite"]
-    with open(os.path.join(work, "jplag.log"), "wb") as log:
+    with open(os.path.join(work, sub, "jplag.log"), "wb") as log:
         return subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT).returncode
 
 
@@ -296,6 +305,86 @@ def leak(texts, folder, min_chars):
     return None
 
 
+def base_trees(cfg):
+    """The base code: [(entry, {path in the tree: bytes})] for each tree in
+    cfg["base_code"], files with our suffixes only. A tree with
+    "sha256sums" gives only the files its SHA256SUMS lists, each matching
+    its hash (tools/sha256sums.py), or ValueError; a tree without gives its
+    files. A tree with "only_for" is base code only for our files under
+    that folder (since SR-4)."""
+    out = []
+    for b in cfg["base_code"]:
+        top = os.path.join(ROOT, b["path"])
+        if not os.path.isdir(top):
+            raise ValueError("base code %s is not on disk" % b["path"])
+        if b.get("sha256sums"):
+            try:
+                files = sha256sums.verified(top)
+            except (OSError, ValueError) as e:
+                raise ValueError("base code %s: %s" % (b["path"], e))
+        else:
+            files = {}
+            for dirpath, dirs, names in os.walk(top):
+                dirs.sort()
+                for n in sorted(names):
+                    rel = os.path.relpath(os.path.join(dirpath, n), top).replace(os.sep, "/")
+                    with open(os.path.join(dirpath, n), "rb") as f:
+                        files[rel] = f.read()
+        out.append((b, {rel: data for rel, data in files.items() if wanted(rel, cfg["suffixes"])}))
+    return out
+
+
+INCLUDE = re.compile(rb'^\s*#\s*include\s*[<"]([^>"]+)[>"]', re.M)
+
+
+def includes_from(data, files):
+    """The first #include in data (C text) that names one of files (paths in
+    a base tree), or None. Only an include with a folder in it counts
+    ("plaits/dsp/voice.h", not "voice.h"), matched against the end of a
+    listed path, either way round ("../vendor/plaits/eurorack/plaits/x.h")."""
+    for m in INCLUDE.finditer(data):
+        inc = m.group(1).decode("utf-8", "replace").replace("\\", "/")
+        if "/" not in inc:
+            continue
+        bare = inc.lstrip("./")
+        for path in files:
+            if path == bare or path.endswith("/" + bare) or bare.endswith("/" + path):
+                return inc
+    return None
+
+
+def groups(cfg, ours, read, trees):
+    """Splits our files (name -> path under cfg["ours"]) into JPlag passes,
+    each with its own base code (since SR-4): first our files outside every
+    "only_for" folder, with the base trees that have none; then, for each
+    tree with one, our files under it, with the general trees plus that one
+    (a pass with no files is left out). A file outside a tree's folder that
+    includes one of its files fails (ValueError): it doesn't get that base
+    code silently, the owner decides. read(name) gives a file's bytes.
+    Returns [(label, {name: path}, [(entry, files)])]."""
+    general = [t for t in trees if not t[0].get("only_for")]
+    scoped = [t for t in trees if t[0].get("only_for")]
+
+    def under(path, folder):
+        return (cfg["ours"] + "/" + path).startswith(folder.rstrip("/") + "/")
+
+    core = {n: p for n, p in ours.items() if not any(under(p, t[0]["only_for"]) for t in scoped)}
+    for n, p in sorted(core.items()):
+        for entry, files in scoped:
+            inc = includes_from(read(n), files)
+            if inc:
+                raise ValueError("%s/%s includes %s from %s, which is base code only under %s/; it is not given "
+                                 "that base code silently: the owner decides (docs/AUDIT.md, \"Base code\")"
+                                 % (cfg["ours"], p, inc, entry["path"], entry["only_for"].rstrip("/")))
+    out = [("all of our files" if not scoped else "our files outside %s" %
+            ", ".join(t[0]["only_for"].rstrip("/") + "/" for t in scoped), core, general)]
+    for t in scoped:
+        mine = {n: p for n, p in ours.items() if under(p, t[0]["only_for"])}
+        if mine:
+            out.append(("our files under %s/" % t[0]["only_for"].rstrip("/"), mine, general + [t]))
+    return out
+
+
 def normalise(text):
     """C text without comments or whitespace, for the text check: string and
     character literals are kept, so a comment marker inside one stays."""
@@ -307,16 +396,27 @@ def grams(text, k):
     return {text[i:i + k] for i in range(len(text) - k + 1)} or ({text} if text else set())
 
 
-def text_scores(ours, folder, k):
+def text_scores(ours, folder, k, base=()):
     """The text check: for each of our files (name -> bytes), every file in
     folder (one per target blob) it is near: (ours, target, containment,
     exact), where containment is the share of our normalised text's
     k-character pieces found in the target file's, and exact means the same
-    bytes. Pairs sharing nothing are left out."""
+    bytes. Pieces found in a base file (base: an iterable of bytes) don't
+    count, and a file of ours that is a base file's bytes is never exact,
+    as JPlag drops matches with base code. Pairs sharing nothing are left
+    out."""
     mine = {}
     for n, data in ours.items():
         text = normalise(data.decode("utf-8", "replace"))
         mine[n] = (data, text, grams(text, k))
+    in_base, base_bytes = set(), set()
+    wanted_pieces = set().union(*(g for _, _, g in mine.values())) if mine else set()
+    for data in base:
+        base_bytes.add(data)
+        if wanted_pieces:
+            in_base |= wanted_pieces & grams(normalise(data.decode("utf-8", "replace")), k)
+    if in_base or base_bytes:
+        mine = {n: (ob if ob not in base_bytes else None, ot, og - in_base) for n, (ob, ot, og) in mine.items()}
     out = []
     for name in sorted(os.listdir(folder)):
         with open(os.path.join(folder, name), "rb") as f:
@@ -376,8 +476,7 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
               "java_image": cfg["java_image"], "margin_tokens": cfg["margin_tokens"],
               "control_ceiling_tokens": cfg["control_ceiling_tokens"], "min_tokens": cfg["min_tokens"]}
     try:
-        for d in ("new", "base"):
-            os.makedirs(os.path.join(work, d))
+        os.makedirs(os.path.join(work, "new"))
         jar_path, got = get_jar(cfg, work, jar)
         jar_ok = got == cfg["jplag"]["sha256"] and "@sha256:" in cfg["java_image"]
         checks["C-AUDIT-JPLAG"] = ("PASS" if jar_ok else "FAIL",
@@ -385,11 +484,22 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
         if not jar_ok:
             raise RuntimeError("JPlag is not the pinned jar")
         ours = copy_tree_files(os.path.join(ROOT, cfg["ours"]), cfg["suffixes"], os.path.join(work, "new"), "o")
-        for dirpath, _, files in os.walk(os.path.join(ROOT, cfg["base_code"])):
-            for f in files:
-                rel = os.path.relpath(os.path.join(dirpath, f), os.path.join(ROOT, cfg["base_code"]))
-                os.makedirs(os.path.dirname(os.path.join(work, "base", rel)), exist_ok=True)
-                shutil.copyfile(os.path.join(dirpath, f), os.path.join(work, "base", rel))
+        trees = base_trees(cfg)
+        report["base_code"] = [dict({"path": b["path"], "checksums": bool(b.get("sha256sums")), "files": len(f)},
+                                    **({"only_for": b["only_for"]} if b.get("only_for") else {})) for b, f in trees]
+
+        def read_ours(n):
+            with open(os.path.join(work, "new", n), "rb") as fh:
+                return fh.read()
+        try:
+            passes = groups(cfg, ours, read_ours, trees)
+        except ValueError as e:
+            checks["C-AUDIT-BASE"] = ("FAIL", str(e))
+            raise
+        checks["C-AUDIT-BASE"] = ("PASS", "; ".join(
+            "%s (%d): base code %s" % (label, len(mine), " and ".join(
+                "%s (%d files%s)" % (b["path"], len(f), ", checksums verified" if b.get("sha256sums") else "")
+                for b, f in tr)) for label, mine, tr in passes))
         c = cfg["control"]
         ctl_dir = os.path.join(work, "control")
         problems = []
@@ -449,31 +559,59 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
 
         if not pool.where:
             raise RuntimeError("no target files were fetched")
-        code = run_jplag(cfg, work)
-        result = os.path.join(work, "result.jplag")
-        if code or not os.path.exists(result):
-            raise RuntimeError("JPlag failed (exit %d); its log is not shown, as it can quote the files" % code)
-        pairs, failed, tokens = read_results(result)
-        os.remove(result)
-        s = score(pairs, cfg, pool.where)
+        # One JPlag pass per group of our files, each with its own base code
+        # and the control scored again under it (since SR-4).
+        tc = cfg["text_check"]
+        failed, tokens, text, s, report["passes"] = {}, {}, [], None, []
+        for i, (label, mine, tr) in enumerate(passes):
+            sub = "g%d" % i
+            for d in ("new", "base"):
+                os.makedirs(os.path.join(work, sub, d))
+            for n in list(mine) + list(control):
+                shutil.copyfile(os.path.join(work, "new", n), os.path.join(work, sub, "new", n))
+            for j, (b, files) in enumerate(tr, 1):
+                for rel, data in files.items():
+                    os.makedirs(os.path.dirname(os.path.join(work, sub, "base", "b%d" % j, rel)), exist_ok=True)
+                    with open(os.path.join(work, sub, "base", "b%d" % j, rel), "wb") as fh:
+                        fh.write(data)
+            code = run_jplag(cfg, work, sub)
+            result = os.path.join(work, sub, "result.jplag")
+            if code or not os.path.exists(result):
+                raise RuntimeError("JPlag failed (exit %d); its log is not shown, as it can quote the files" % code)
+            pairs, f_i, t_i = read_results(result)
+            os.remove(result)
+            s_i = score(pairs, cfg, pool.where)
+            failed.update({n: v for n, v in f_i.items() if n in mine or (i == 0 and n in control)})
+            tokens.update({n: v for n, v in t_i.items() if n in mine or (i == 0 and n in control)})
+            # A file JPlag could not score at all goes to the text check
+            # instead, with the same base code; a file it scored that matched
+            # nothing ("no match") does not.
+            unscorable_i = {n: read_ours(n) for n in sorted(mine) if n in f_i}
+            if unscorable_i:
+                text += text_scores(unscorable_i, pool.dir, tc["k"], [d for _, f in tr for d in f.values()])
+            report["passes"].append({"files": label, "count": len(mine), "base_code": [b["path"] for b, _ in tr],
+                                     "control_max_tokens": s_i["control_max"], "threshold_tokens": s_i["threshold"],
+                                     "control_related": s_i["related"]})
+            if s is None:
+                s = s_i
+            else:
+                s["ours"] = sorted(s["ours"] + s_i["ours"], key=lambda x: (-x[2], -x[3], x[0], x[1]))
+                s["ours_control"] = sorted(s["ours_control"] + s_i["ours_control"],
+                                           key=lambda x: (-x[2], -x[3], x[0], x[1]))
+                s["flagged"] = sorted(s["flagged"] + s_i["flagged"], key=lambda x: (-x[2], -x[3], x[0], x[1]))
+                s["related_extra"] = s.get("related_extra", []) + [s_i["related"]]
+            shutil.rmtree(os.path.join(work, sub), ignore_errors=True)
+        text.sort(key=lambda x: (-x[3], -x[2], x[0], x[1]))
         names = dict(ours)
         names.update(control)
         # JPlag leaves a file that matched nothing (no run of min_tokens) out
         # of its index, so its token count is unknown; it was still compared.
         report["ours_files"] = [{"file": p, "tokens": tokens.get(n), "state": failed.get(n, "scored" if n in tokens else "no match")}
                                 for n, p in sorted(ours.items())]
-        # A file JPlag could not score at all goes to the text check instead;
-        # a file it scored that matched nothing ("no match") does not.
         unscorable = sorted(n for n in ours if n in failed)
         for f, n in zip(report["ours_files"], sorted(ours)):
             if n in failed:
                 f["not_scorable"] = not_scorable(failed[n], cfg)
-        tc = cfg["text_check"]
-        mine = {}
-        for n in unscorable:
-            with open(os.path.join(work, "new", n), "rb") as fh:
-                mine[n] = fh.read()
-        text = text_scores(mine, pool.dir, tc["k"]) if mine else []
         text_flagged = [x for x in text if x[3] or x[2] >= tc["threshold"]]
         best_text = {}
         for x in text:
@@ -518,7 +656,8 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
         report["accepted"] = accepted
         report["control_related"] = s["related"]
         fetched = sum(r["fetched"] for r in rows)
-        ctl_ok = bool(control) and len(s["related"]) <= cfg["control_related_share"] * max(fetched, 1)
+        ctl_ok = bool(control) and all(len(r) <= cfg["control_related_share"] * max(fetched, 1)
+                                       for r in [s["related"]] + s.get("related_extra", []))
         checks["C-AUDIT-CONTROL"] = ("PASS" if ctl_ok else "FAIL",
                                      "%d control files; its longest match with an unrelated target %d tokens; "
                                      "%d of %d targets control-related (above %d tokens; at most %d%% allowed)"
@@ -529,7 +668,10 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
                                    "control-related target, its own score plus %d)%s"
                                    % (len(s["flagged"]), s["threshold"], s["control_max"], cfg["margin_tokens"],
                                       cfg["margin_tokens"],
-                                      "; %d more accepted by an auditor's finding" % len(accepted) if accepted else ""))
+                                      "; %d more accepted by an auditor's finding" % len(accepted) if accepted else "")
+                                   + "".join("; %s: above %d tokens (the control's %d under that base code plus %d)"
+                                             % (q["files"], q["threshold_tokens"], q["control_max_tokens"],
+                                                cfg["margin_tokens"]) for q in report["passes"][1:]))
         checks["C-AUDIT-TEXT"] = text_check
         if selftest is not None:
             report["selftest"] = {"ours_best": [[ours.get(x[0], x[0])] + list(x[1:]) for x in s["ours"]],
@@ -594,7 +736,15 @@ def markdown(r):
               "- Control-related targets (the control matches them above %d tokens; each judged against the "
               "control's own score there plus the margin): %s" % (r["control_ceiling_tokens"],
                                                                   ", ".join(r.get("control_related", [])) or "none"),
-              "- Target files scored: %d (one copy per blob)" % r.get("pool_files", 0), ""]
+              "- Target files scored: %d (one copy per blob)" % r.get("pool_files", 0)]
+        L += ["- Base code (JPlag and the text check leave out what is in it): %s"
+              % "; ".join("`%s`, %d files%s%s" % (b["path"], b["files"], ", checksums verified" if b["checksums"] else "",
+                                                 ", only for `%s/`" % b["only_for"] if b.get("only_for") else "")
+                          for b in r.get("base_code", []))]
+        for q in r.get("passes", [])[1:]:
+            L.append("- A pass of its own for %s (%d): the control's longest match there %d tokens, so a pair fails "
+                     "above **%d tokens**" % (q["files"], q["count"], q["control_max_tokens"], q["threshold_tokens"]))
+        L.append("")
     if r.get("error"):
         L += ["**Not scored:** %s" % r["error"], ""]
     L += ["## Checks", "", "| Check | Result | Detail |", "|---|---|---|"]

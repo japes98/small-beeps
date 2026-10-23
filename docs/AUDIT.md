@@ -25,14 +25,51 @@ job flags a pair, only an **auditor** may look (below).
   and is never compared. A file of ours that JPlag cannot score at all is
   compared as text instead (below, "Files JPlag cannot score").
 - **Base code:** the vendored JieLi SDK headers
-  (`vendor/jieli-sdk/include_lib`). JPlag drops matches with base code, so
-  code that both sides took from the SDK doesn't count against us.
+  (`vendor/jieli-sdk/include_lib`), for all our files; and (since SR-4) the
+  vendored Plaits (`vendor/plaits/`), only for our files under
+  `firmware/demos/plaits/` (below, "Base code"). JPlag drops matches with
+  base code, and the text check leaves out what is in it, so code that both
+  sides took from the SDK or Plaits doesn't count against us.
 - **Targets:** the C and C++ files of every target (below), at its pinned
   commit. `audit/targets.json` lists the targets; `paths` limits a target
   to some of its folders.
 - **The control:** the C files of `raspberrypi/pico-examples` at tag
   `sdk-2.2.0`, commit `4c3a3dc0196dd426fddd709616d0da984e027bab`
   (BSD-3-Clause; `audit/audit.json`).
+
+## Base code
+
+`audit/audit.json`'s `base_code` lists the trees (since SR-4, after
+spec request SR-4). Each is given to JPlag as base code (`-bc`), and to
+the text check, which leaves out every piece of our text found in a base
+file and never counts a file of ours that is a base file's bytes as an
+exact copy. Only files with the audit's suffixes are used.
+
+- **The JieLi SDK** (`vendor/jieli-sdk/include_lib`): for all our files.
+- **Plaits** (`vendor/plaits/`, MIT, pinned upstream, R-REPRO-7): only the
+  files its `SHA256SUMS` lists, each checked against its hash; a changed,
+  missing or unlisted file fails the audit. It is base code **only for our
+  files under `firmware/demos/plaits/`** (`only_for`), which get a JPlag
+  pass of their own: with the SDK and Plaits as base code, and the control
+  scored again in that pass, so their threshold is the control's longest
+  match under the same base code plus the margin. The report gives each
+  pass's files, base code and threshold.
+
+**Why not Plaits for every file.** Given as base code to all our files,
+Plaits shortened the longest match the self-test found for core files that
+don't use it, because short runs of their tokens also occur in Plaits'
+code. On 2026-10-23, against copies of our files: `src/synth.c` 262 to
+134 tokens, `src/panel.c` 230 to 145, `src/input.c` 383 to 335 and
+`src/audio.c` 51 to 39, so 11 of 15 files were found instead of 15. A
+target that copied those files would score lower in the gate by as much.
+The owner chose to keep Plaits to the demo's files.
+
+**A core file that uses Plaits** fails the audit (C-AUDIT-BASE), rather
+than getting Plaits as base code silently: a file outside
+`firmware/demos/plaits/` with an `#include` that names a Plaits file
+(a path with a folder in it, matched against the end of a listed path).
+The owner then decides: move the file, or change `only_for` by pull
+request.
 
 ## The targets, from metadata only
 
@@ -386,8 +423,10 @@ its first run is the push that merges it.
 - the pinned JPlag, Java image and control, the control's highest longest
   match with an unrelated target, the threshold and the margin, and the
   control-related targets;
-- the checks (C-AUDIT-JPLAG, -PIN, -CONTROL, -SCORE, -TEXT, -LEAK) and
-  their traceability to R-AUDIT-*;
+- the base code, and each JPlag pass's files, base code and threshold
+  (since SR-4);
+- the checks (C-AUDIT-JPLAG, -PIN, -BASE, -CONTROL, -SCORE, -TEXT, -LEAK)
+  and their traceability to R-AUDIT-*;
 - **our top 20 file pairs**: our file, the target repositories and paths
   holding the matched file (the first ten of them, and how many there are),
   each with its licence class, and the longest match, max and avg;
@@ -483,7 +522,7 @@ hold GPL source. The owner's decision of 2026-10-22:
 |------|------------|
 | `audit/discover.json` | Seeds, search queries, the mention rule, unresolved names. |
 | `audit/targets.json` | Every target, pinned: commit, tree, licence class, status. Written by `tools/audit-discover.py`. |
-| `audit/audit.json` | JPlag and the Java image (pinned), the control (pinned), base code, the margin, the ceiling, the text check's piece length and threshold, the fast set. |
+| `audit/audit.json` | JPlag and the Java image (pinned), the control (pinned), base code (and which of our files each tree is for), the margin, the ceiling, the text check's piece length and threshold, the fast set. |
 | `audit/accepted.json` | Pairs accepted by an auditor's finding. |
 | `audit/findings/` | Auditors' findings (none yet). |
 | `tools/audit.py` | The audit, its self-test, and the artifact check. |

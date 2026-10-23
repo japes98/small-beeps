@@ -796,6 +796,33 @@ SR-3 wrote only its barrier-log row.*
   tools, tests, docs and firmware. It does not open anything on the
   forbidden list or anything under the three spec-side folders.
 
+### Session SR-4-6 (spec requests SR-4, SR-5 and SR-6)
+- Date: 2026-10-23
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.309 (banner), Remote Control from the owner's
+  phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `d647e20d-4ce1-46cc-a18d-143dabc25c5a`,
+  started by `/clear` at 03:13:26Z (banner `source: clear`,
+  `status: OK`); its first prompt arrived at 12:25:19Z.
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+- What it archived: record-fixes-1's transcript (`da964365`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS. Clean sessions
+  are left to the clean side.
+- Exposure: none beyond the spec side's. It reads the spec side's usual
+  material (the vendored emulator, `harness/`, the JieLi SDK, public
+  datasheets), this repository's tools, tests and docs, the vendored
+  Plaits tree (`vendor/plaits/`, MIT) and pull request #59's branch. It
+  never opens or fetches an audit target.
+- Later in the session: it ran the separation check on #61's branch
+  (places and hashes only) and read SDK files at the pinned commit
+  (PROVENANCE P-31). The audit's self-test ran locally against copies of
+  our own files only. The owner approved deleting the session's scratch
+  files when the Mac's disk filled; the container runtime then stopped
+  responding, so no new spec experiment was built.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
@@ -872,6 +899,7 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-23T02:52:56Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session record-fixes-1 starts; banner `status: OK`. 02:53:13Z: `tools/spec-setup.sh`, banner `status: OK`; audit-selftest's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-23T03:15:52Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M4 starts; banner `status: OK`; `tools/clean-update.sh` found main at `c36ae5f` and passed; M3 archived; `tools/check-transcripts.py` PASS with the 47 reviewed entries the owner approved in the session |
 | 2026-10-23T09:37:34Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M4b starts; banner `status: OK`; `tools/clean-update.sh` found main at `e742f15` and passed; M4 archived; `tools/check-transcripts.py` PASS with the 3 reviewed entries the owner approved in the session |
+| 2026-10-23T03:13:26Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-4-6 starts; banner `status: OK`. 12:25:40Z: `tools/spec-setup.sh`, banner `status: OK`; record-fixes-1's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 
 ## Model cutoffs
 

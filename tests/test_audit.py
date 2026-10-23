@@ -169,7 +169,9 @@ class SettingsTest(unittest.TestCase):
         self.assertRegex(cfg["java_image"], r"@sha256:[0-9a-f]{64}$")
         self.assertRegex(cfg["control"]["commit"], r"^[0-9a-f]{40}$")
         self.assertRegex(cfg["control"]["tree"], r"^[0-9a-f]{40}$")
-        self.assertEqual(cfg["base_code"], "vendor/jieli-sdk/include_lib")
+        self.assertEqual(cfg["base_code"], [{"path": "vendor/jieli-sdk/include_lib"},
+                                            {"path": "vendor/plaits", "sha256sums": True,
+                                             "only_for": "firmware/demos/plaits"}])
         self.assertFalse(cfg["ours"].startswith("vendor"))
 
     def test_the_workflow_keeps_targets_away_from_secrets(self):
@@ -297,6 +299,105 @@ class TextCheckTest(unittest.TestCase):
     def test_committed_settings(self):
         cfg = audit.load_json(os.path.join(ROOT, "audit", "audit.json"))
         self.assertEqual(cfg["text_check"], {"k": 24, "threshold": 0.5})
+
+
+class BaseCodeTest(unittest.TestCase):
+    """The base code is a list of trees (since SR-4): the JieLi SDK for all
+    our files, and the vendored Plaits, only as its SHA256SUMS pins it, for
+    our files under firmware/demos/plaits/ only, in a JPlag pass of their
+    own; the text check uses the same base code. A file outside that folder
+    that includes Plaits fails the audit, so the owner decides.
+    Requirements: R-AUDIT-4, R-AUDIT-5"""
+
+    SHARED = b"float shared_dsp_step(float x, float y) { return x * 0.5f + y * 0.25f - x * y; }\n"
+    OWN = b"int our_own_glue(int voice) { return voice * 17 + 3; }\nint more_of_ours(void) { return 42; }\n"
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.saved = audit.ROOT
+        audit.ROOT = self.dir
+        self.put("sdk/a/x.h", b"#define SDK_THING 1\n")
+        self.put("sdk/notes.txt", b"not code\n")
+        self.put("pl/up/plaits/dsp/x.h", self.SHARED)
+        self.put("pl/SOURCE.md", b"ours\n")
+        self.sums()
+        self.cfg = {"suffixes": [".c", ".h", ".cc"], "ours": "fw",
+                    "base_code": [{"path": "sdk"}, {"path": "pl", "sha256sums": True, "only_for": "fw/demo"}]}
+
+    def tearDown(self):
+        audit.ROOT = self.saved
+        shutil.rmtree(self.dir)
+
+    def put(self, rel, data):
+        os.makedirs(os.path.dirname(os.path.join(self.dir, rel)), exist_ok=True)
+        with open(os.path.join(self.dir, rel), "wb") as f:
+            f.write(data)
+
+    def sums(self):
+        import hashlib
+        with open(os.path.join(self.dir, "pl/up/plaits/dsp/x.h"), "rb") as f:
+            h = hashlib.sha256(f.read()).hexdigest()
+        self.put("pl/SHA256SUMS", ("%s up/plaits/dsp/x.h\n" % h).encode())
+
+    def groups(self, files):
+        ours = {"o%05d.c" % i: p for i, p in enumerate(sorted(files), 1)}
+        return audit.groups(self.cfg, ours, lambda n: files[ours[n]], audit.base_trees(self.cfg))
+
+    def test_each_tree_with_our_suffixes(self):
+        got = [(b["path"], sorted(f)) for b, f in audit.base_trees(self.cfg)]
+        self.assertEqual(got, [("sdk", ["a/x.h"]), ("pl", ["up/plaits/dsp/x.h"])])
+
+    def test_a_tree_that_does_not_match_its_checksums_fails(self):
+        self.put("pl/up/plaits/dsp/x.h", self.SHARED + b"// changed\n")
+        with self.assertRaisesRegex(ValueError, "pl: up/plaits/dsp/x.h does not match its SHA-256"):
+            audit.base_trees(self.cfg)
+        self.sums()
+        self.put("pl/up/extra.cc", b"int extra;\n")
+        with self.assertRaisesRegex(ValueError, "up/extra.cc is not in SHA256SUMS"):
+            audit.base_trees(self.cfg)
+
+    def test_a_missing_tree_fails(self):
+        shutil.rmtree(os.path.join(self.dir, "pl"))
+        with self.assertRaisesRegex(ValueError, "base code pl is not on disk"):
+            audit.base_trees(self.cfg)
+
+    def test_plaits_is_base_code_only_for_the_demo(self):
+        got = self.groups({"src/main.c": b"int main(void) { return 0; }\n",
+                           "demo/glue.cc": b'#include "plaits/dsp/x.h"\n'})
+        self.assertEqual([(label, sorted(mine.values()), [b["path"] for b, _ in tr]) for label, mine, tr in got],
+                         [("our files outside fw/demo/", ["src/main.c"], ["sdk"]),
+                          ("our files under fw/demo/", ["demo/glue.cc"], ["sdk", "pl"])])
+
+    def test_no_demo_files_one_pass(self):
+        got = self.groups({"src/main.c": b"int main(void) { return 0; }\n"})
+        self.assertEqual(len(got), 1)
+
+    def test_a_core_file_that_includes_plaits_fails(self):
+        for inc in (b'#include "plaits/dsp/x.h"\n', b'  #  include <dsp/x.h>\n',
+                    b'#include "../../pl/up/plaits/dsp/x.h"\n'):
+            with self.assertRaisesRegex(ValueError, r"fw/src/synth.c includes .* from pl, which is base code only "
+                                                    r"under fw/demo/; .* the owner decides"):
+                self.groups({"src/synth.c": inc})
+        # a flat include, or one naming no Plaits file, is not taken for Plaits
+        self.assertEqual(len(self.groups({"src/a.c": b'#include "x.h"\n#include "dsp/y.h"\n'})), 1)
+
+    def test_the_text_check_leaves_out_base_pieces(self):
+        pool = os.path.join(self.dir, "pool")
+        os.makedirs(pool)
+        with open(os.path.join(pool, "p00001.cc"), "wb") as f:
+            f.write(self.SHARED)  # a target that took the same base code
+        with open(os.path.join(pool, "p00002.c"), "wb") as f:
+            f.write(self.OWN)  # a target that copied our own code
+        ours = {"o00001.c": self.SHARED + self.OWN, "o00002.c": self.SHARED}
+        base = [d for _, f in audit.base_trees(self.cfg) for d in f.values()]
+        without = {(o, p): c for o, p, c, _ in audit.text_scores(ours, pool, 24)}
+        self.assertGreater(without[("o00001.c", "p00001.cc")], 0, "without base code, the shared code counts")
+        got = {(o, p): (round(c, 3), e) for o, p, c, e in audit.text_scores(ours, pool, 24, base)}
+        self.assertNotIn(("o00001.c", "p00001.cc"), got, "with it, the base code alone matches nothing")
+        c, exact = got[("o00001.c", "p00002.c")]
+        self.assertGreater(c, without[("o00001.c", "p00002.c")], "our own code weighs more without the base")
+        self.assertGreaterEqual(c, 0.5, "and is still found, above the threshold")
+        self.assertFalse([k for k in got if k[0] == "o00002.c"], "a copy of a base file is not flagged")
 
 
 class AcceptedTest(unittest.TestCase):

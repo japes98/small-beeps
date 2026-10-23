@@ -158,7 +158,39 @@ an issue or a pull request against docs/HARNESS.md.
   include its headers. `base_code` takes one path today, so this needs a
   change to the audit tool or its settings, which are spec side. Read:
   docs/AUDIT.md, `audit/audit.json`.
-- Status: open
+- Status: answered (docs/AUDIT.md, "Base code"; R-AUDIT-4, R-SEP-1), in
+  #63, which follows #59; merge #59 first.
+  - (1) The audit: `audit/audit.json`'s `base_code` is a list. The JieLi
+    SDK is base code for all our files. The vendored Plaits, only the
+    files `vendor/plaits/SHA256SUMS` lists and each matching its hash (or
+    the audit fails), is base code **only for files under
+    `firmware/demos/plaits/`**. Those files get a JPlag pass of their own,
+    with the control scored again under the same base code, and the text
+    check leaves out base-code pieces the same way. Given to every file,
+    Plaits cut the self-test's longest matches in core files that don't
+    use it (11 of 15 files found), so the owner chose the demo-only scope.
+    A file outside `firmware/demos/plaits/` that includes a Plaits header
+    fails the audit (C-AUDIT-BASE): don't include Plaits from the core
+    firmware without asking the owner. The self-test finds all 15 of our
+    files today; with a trial glue file under `firmware/demos/plaits/`, 16
+    of 16, in two passes.
+  - (2) The separation check: keep #59's version. It meets the owner's
+    four conditions, and the spec side's review found one gap, which #63
+    closes: `vendor/plaits/SOURCE.md`, which we
+    write, was not scanned; now it is (it has no hit). The checksum code
+    moved to `tools/sha256sums.py`, which the audit shares.
+  - (3) #59's branch at `247ddfa`, its commits and pull request text:
+    C-SEP-TERMS PASS, no hit; the Plaits list takes off 4 terms.
+  - Note (the owner's request, 2026-10-23): C-SEP-TERMS never counts
+    universal constants as emulator terms: powers of two (sign-bit masks
+    among them), 2^n-1, 2^n+1, and IEEE 754's standard single and double
+    patterns (infinities, quiet NaNs, one, 2^±23, 2^±52), defined by rule
+    in the check (R-SEP-1). #61's branch at `52fa29b`, its commits and
+    pull request text: under #61's own copy of the check, 25 hits, its
+    only failing check in CI; under the new rule, PASS, no hit (the Plaits
+    list takes off 3 terms). So #61 passes once #63 has merged and
+    #61 has merged main.
+- Answered: 2026-10-23, session SR-4-6 (spec side)
 
 ### SR-5: Hardware single-precision floating point on the chip and in fwtest
 - Asked: 2026-10-23, session M4b (firmware side)
@@ -182,7 +214,17 @@ an issue or a pull request against docs/HARNESS.md.
   (fixed or floating point, how many operators) depends on it. Read:
   HARDWARE-SPEC.md (HW-50's float exception bits), the toolchain's
   feature list, the SDK's Makefiles.
-- Status: open
+- Status: answered in part (HARDWARE-SPEC.md, "14. Floating point and the
+  second core (SR-5, SR-6)"): (a) in HW-62: the SDK builds its AC791N
+  code for `r3` with `fprev1`, so build for the chip the same way; what
+  `r1` to `r5` differ in is open. (b) in HW-63: what fwtest computes,
+  including the edge cases (rounding, subnormals, NaNs, conversions,
+  multiply-add rounded twice); it sets no float flag and raises nothing,
+  and every float instruction costs one cycle there, like any other. The
+  chip's cycle costs and edge behaviour are open (Q-16). No fwtest change:
+  no source establishes different behaviour. Plan M5 for either outcome:
+  fwtest's float timings are a lower bound, not a measurement.
+- Answered: 2026-10-23, session SR-4-6 (spec side)
 
 ### SR-6: Running both cores on the chip
 - Asked: 2026-10-23, session M4b (firmware side)
@@ -203,4 +245,19 @@ an issue or a pull request against docs/HARNESS.md.
   needs to know how much of that holds on the chip. Read: HARDWARE-SPEC.md
   HW-8 to HW-11, HW-18 to HW-23, Q-11; docs/HARNESS.md ("Time": core 1's
   timer reads).
-- Status: open
+- Status: answered in part (HARDWARE-SPEC.md, section 14): (a) in fwtest,
+  HW-64: both cores at one instruction a cycle, no caches or contention,
+  so the 0.50 to 0.55 measured is fwtest's best case; on the chip, open
+  (Q-17), including core 1's clock. (b) Core 1's own interrupt words and
+  gates are in HW-17, HW-20, HW-21 and HW-23 (confirmed, SDK). In fwtest
+  core 1 takes the sources its own words enable; the tick timer and
+  software-interrupt words are core 0's only, and a source pending there
+  goes to every core that enables it, so enable each source on one core
+  (HW-64). What core 1 needs before it runs on the chip stays open (Q-11,
+  Q-17). (c) In fwtest a store is seen by the other core within one turn
+  of 1024 cycles (HW-64). On the chip, HW-65 gives the SDK's practice:
+  `testset` for locks and `csync` around shared accesses, which you
+  should follow; whether a plain store is seen without it, and whether
+  main RAM is cached, is open (Q-18). No fwtest change: no source
+  establishes different behaviour.
+- Answered: 2026-10-23, session SR-4-6 (spec side)
