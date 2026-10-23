@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 2da4effd468263b087e56b56e769c94ffa6f8057..d93317d0813e4a69207c7fdfe23e44577b98d795
+OK     1931a802ae59 tools: the barrier tools build the spec-side folders from one list
+EXEMPT d93317d0813e (merge) Merge pull request #43 from japes98/m3/folder-list
+2 commit(s) checked: PASS
+
+exit status 0
