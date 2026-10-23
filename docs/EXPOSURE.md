@@ -828,10 +828,22 @@ SR-3 wrote only its barrier-log row.*
   - **Measurement-only edits:** two switches added to `firmware/src/panel.c`
     for the loaded measure's breakdown, then restored from a copy; not
     committed.
-  - **Commands the next clean session may see.** Two `grep`s whose
-    patterns spell old rule IDs, run over our own tools and tests (the
-    access rule clears a grep pattern over our own files; logged as
-    mentions). No other is expected.
+  - **Commands the next clean session will see flagged.** A preview of the
+    transcript check on a scratch copy of this session's transcript (not
+    archived) flags four calls; none opened, listed, fetched or searched
+    anything forbidden:
+    - `toolu_01SijxKBzKrZqyFaC3SaXHQ2` (rule F-11): a `git log` whose
+      pathspec leaves out the three spec-side folders, as CONTRIBUTING.md
+      says to;
+    - `toolu_01Mto7TBePEeHiwvJDzzp33q` (F-1, F-2, F-3, F-4, F-9, F-11): a
+      `git grep` for the old rule IDs (which spelled forbidden names),
+      with the same exclusions, for #56;
+    - `toolu_019N5AsNFNTysKrLrpz6nhbv` (F-8): a Python heredoc editing
+      NOTICE, REUSE.toml, tools/record.py and REQUIREMENTS.md for #59,
+      whose text names the vendored emulator's REUSE block as an anchor;
+    - `toolu_01DoGqqdewBty2B6xA9yRz4J` (F-8): `git commit -F -` with a
+      message about C-SEP-TERMS, which names the emulator's folder.
+    Ten more calls are logged as mentions only.
 
 ## Corrections
 
