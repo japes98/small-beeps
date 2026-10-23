@@ -402,8 +402,9 @@ impl Soc {
                 if value & 0x4000 != 0 {
                     self.periph.spi1_pending = false;
                 }
-                let stored = self.sfr_get(addr);
-                self.sfr_set(addr, (stored & !0x4000) | (value & !0x4000));
+                // a write replaces CON (bit 14 is a strobe, not stored): merging it into the
+                // stored value kept bit 13 set once any write had set it
+                self.sfr_set(addr, value & !0x4000);
             }
             0x11d04 => self.sfr_set(addr, value), // BAUD
             0x11d08 => {

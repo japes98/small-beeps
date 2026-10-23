@@ -13,7 +13,9 @@
       Exit status 1 if a check failed (the report says which).
   audit.py selftest [--out DIR] [--jar FILE]
       The same run against one made-up local target that holds verbatim
-      copies of our files: each must be found (C-AUDIT-SELFTEST).
+      copies of our files, and reformatted copies: each must be found, by
+      JPlag or, for a file JPlag cannot score, by the text check
+      (C-AUDIT-SELFTEST).
   audit.py check-artifact DIR
       Checks that DIR holds only a report this tool wrote (for the job that
       writes it into the record, which never sees the targets).
@@ -24,6 +26,10 @@ report archive (which embeds the sources) is read for names and numbers
 only and then deleted, and before writing, every line of every target file
 of at least `leak_line_chars` characters is looked for in the report
 (C-AUDIT-LEAK).
+
+A file of ours that JPlag cannot score (too few tokens, or not parsed) is
+reported as such and compared as text instead: exact copies, and the share
+of its normalised text found in each target file (C-AUDIT-TEXT).
 """
 import argparse
 import hashlib
@@ -47,10 +53,13 @@ REQS = {
     "C-AUDIT-CONTROL": ["R-AUDIT-4"],
     "C-AUDIT-SCORE": ["R-AUDIT-1", "R-AUDIT-5"],
     "C-AUDIT-LEAK": ["R-AUDIT-1", "R-AUDIT-3"],
+    "C-AUDIT-TEXT": ["R-AUDIT-1", "R-AUDIT-5"],
     "C-AUDIT-SELFTEST": ["R-AUDIT-5"],
 }
 GIT_ENV = dict(os.environ, GIT_TERMINAL_PROMPT="0", GIT_ADVICE="0")
 SUB = re.compile(r"^(?:new_|pool_)?([ocp]\d{5}\.[A-Za-z]+)$")
+# a string or character literal (kept), or a comment (dropped), for normalise()
+LITERAL_OR_COMMENT = re.compile(r'"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|/\*.*?\*/|//[^\n]*', re.S)
 
 
 def load_json(path):
@@ -287,6 +296,63 @@ def leak(texts, folder, min_chars):
     return None
 
 
+def normalise(text):
+    """C text without comments or whitespace, for the text check: string and
+    character literals are kept, so a comment marker inside one stays."""
+    return re.sub(r"\s+", "", LITERAL_OR_COMMENT.sub(lambda m: m.group(0) if m.group(0)[0] in "\"'" else " ", text))
+
+
+def grams(text, k):
+    """The distinct k-character pieces of text (the whole text if shorter)."""
+    return {text[i:i + k] for i in range(len(text) - k + 1)} or ({text} if text else set())
+
+
+def text_scores(ours, folder, k):
+    """The text check: for each of our files (name -> bytes), every file in
+    folder (one per target blob) it is near: (ours, target, containment,
+    exact), where containment is the share of our normalised text's
+    k-character pieces found in the target file's, and exact means the same
+    bytes. Pairs sharing nothing are left out."""
+    mine = {}
+    for n, data in ours.items():
+        text = normalise(data.decode("utf-8", "replace"))
+        mine[n] = (data, text, grams(text, k))
+    out = []
+    for name in sorted(os.listdir(folder)):
+        with open(os.path.join(folder, name), "rb") as f:
+            data = f.read()
+        text = normalise(data.decode("utf-8", "replace"))
+        theirs = None
+        for n, (ob, ot, og) in mine.items():
+            if not og:
+                continue
+            if ot in text:
+                c = 1.0
+            else:
+                if theirs is None:
+                    theirs = grams(text, k)
+                c = len(og & theirs) / len(og)
+            if c > 0 or data == ob:
+                out.append((n, name, c, data == ob))
+    return sorted(out, key=lambda x: (-x[3], -x[2], x[0], x[1]))
+
+
+def not_scorable(state, cfg):
+    """Why JPlag could not score a file of ours, for the report."""
+    why = {"TOO_SMALL": "fewer tokens than JPlag's minimum match of %d" % cfg["min_tokens"],
+           "CANNOT_PARSE": "JPlag's C front end could not parse it"}.get(state, "JPlag reports it as %s" % state)
+    return "not scorable by JPlag: %s (%s); compared by the text check instead" % (why, state)
+
+
+def text_row(x, ours_names, where, licences, limit=10):
+    """A text-check pair for the report: our file, the scores and the target
+    files (repository and path) holding that blob."""
+    o, p, c, exact = x
+    places = [{"repo": r, "path": path, "licence_class": licences.get(r, "none")} for r, path in where.get(p, [])]
+    return {"ours": ours_names.get(o, o), "containment": round(c, 4), "exact": exact,
+            "target_files": places[:limit] if limit else places, "target_places": len(places)}
+
+
 def pair_row(x, ours_names, where, licences, limit=10):
     """A pair for the report: our file's path, the scores, and the target files
     (repository and path) holding that blob, the first `limit` of them."""
@@ -396,6 +462,34 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
         # of its index, so its token count is unknown; it was still compared.
         report["ours_files"] = [{"file": p, "tokens": tokens.get(n), "state": failed.get(n, "scored" if n in tokens else "no match")}
                                 for n, p in sorted(ours.items())]
+        # A file JPlag could not score at all goes to the text check instead;
+        # a file it scored that matched nothing ("no match") does not.
+        unscorable = sorted(n for n in ours if n in failed)
+        for f, n in zip(report["ours_files"], sorted(ours)):
+            if n in failed:
+                f["not_scorable"] = not_scorable(failed[n], cfg)
+        tc = cfg["text_check"]
+        mine = {}
+        for n in unscorable:
+            with open(os.path.join(work, "new", n), "rb") as fh:
+                mine[n] = fh.read()
+        text = text_scores(mine, pool.dir, tc["k"]) if mine else []
+        text_flagged = [x for x in text if x[3] or x[2] >= tc["threshold"]]
+        best_text = {}
+        for x in text:
+            best_text.setdefault(x[0], x)
+        report["text_check"] = {"k": tc["k"], "threshold": tc["threshold"], "files": [ours[n] for n in unscorable],
+                                "best": [text_row(best_text[n], ours, pool.where, licences) if n in best_text else
+                                         {"ours": ours[n], "containment": 0.0, "exact": False, "target_files": [],
+                                          "target_places": 0} for n in unscorable],
+                                "top_pairs": [text_row(x, ours, pool.where, licences) for x in text[:cfg["top_pairs"]]],
+                                "flagged": [text_row(x, ours, pool.where, licences, limit=None) for x in text_flagged]}
+        text_check = ("FAIL" if text_flagged else "PASS",
+                                  ("%d of our files not scorable by JPlag (%s), compared as text with %d target files; "
+                                   "%d pairs an exact copy or at or above %.2f of %d-character pieces"
+                                   % (len(unscorable), ", ".join(ours[n] for n in unscorable), len(pool.where),
+                                      len(text_flagged), tc["threshold"], tc["k"])) if unscorable else
+                                  "every file of ours was scored by JPlag; none needed the text check")
         report["control_max_tokens"] = s["control_max"]
         report["threshold_tokens"] = s["threshold"]
         report["top_pairs"] = [pair_row(x, ours, pool.where, licences) for x in s["ours"][:cfg["top_pairs"]]]
@@ -436,8 +530,10 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
                                    % (len(s["flagged"]), s["threshold"], s["control_max"], cfg["margin_tokens"],
                                       cfg["margin_tokens"],
                                       "; %d more accepted by an auditor's finding" % len(accepted) if accepted else ""))
+        checks["C-AUDIT-TEXT"] = text_check
         if selftest is not None:
-            report["selftest"] = {"ours_best": [[ours.get(x[0], x[0])] + list(x[1:]) for x in s["ours"]]}
+            report["selftest"] = {"ours_best": [[ours.get(x[0], x[0])] + list(x[1:]) for x in s["ours"]],
+                                  "text": [[ours.get(x[0], x[0]), pool.where[x[1]][0][1], x[2], x[3]] for x in text]}
         report["seconds"] = round(time.time() - t0, 1)
         write_report(report, checks, out, pool.dir, cfg)
     except Exception as e:  # the report says what failed; nothing from the targets is printed
@@ -524,7 +620,27 @@ def markdown(r):
     if r.get("ours_files"):
         L += ["", "## Our files", "", "| File | Tokens | State |", "|---|---|---|"]
         for f in r["ours_files"]:
-            L.append("| %s | %s | %s |" % (f["file"], f["tokens"] if f["tokens"] is not None else "-", f["state"]))
+            L.append("| %s | %s | %s |" % (f["file"], f["tokens"] if f["tokens"] is not None else "-",
+                                           f.get("not_scorable", f["state"])))
+    tc = r.get("text_check")
+    if tc and tc["files"]:
+        L += ["", "## The text check (our files JPlag cannot score)", "",
+              "Each is compared with every target file, one per blob: the share of its normalised text's "
+              "%d-character pieces found in the target file (containment), and whether the bytes are the same "
+              "(exact). A pair fails at %.2f or above, or when exact." % (tc["k"], tc["threshold"]), "",
+              "| Our file | Target (places with this file) | Path | Licence | Containment | Exact |", "|---|---|---|---|---|---|"]
+        for p in tc["top_pairs"] or tc["best"]:
+            t = p["target_files"][0] if p["target_files"] else {"repo": "-", "path": "-", "licence_class": "-"}
+            L.append("| %s | %s (%d) | %s | %s | %.3f | %s |" % (p["ours"], t["repo"], p["target_places"], t["path"],
+                                                               t["licence_class"], p["containment"],
+                                                               "yes" if p["exact"] else "no"))
+        if tc["flagged"]:
+            L += ["", "Flagged by the text check (an auditor compares these; nobody else opens them):", "",
+                  "| Our file | Target | Path | Licence | Containment | Exact |", "|---|---|---|---|---|---|"]
+            for p in tc["flagged"]:
+                for t in p["target_files"]:
+                    L.append("| %s | %s | %s | %s | %.3f | %s |" % (p["ours"], t["repo"], t["path"], t["licence_class"],
+                                                                  p["containment"], "yes" if p["exact"] else "no"))
     if r.get("targets"):
         L += ["", "## Targets", "", "| Target | Commit | Licence | Files (new) | Ours longest | Control longest | Not parsed |",
               "|---|---|---|---|---|---|---|"]
@@ -546,9 +662,19 @@ def markdown(r):
     return "\n".join(L)
 
 
+def reformat(text):
+    """A near-exact copy for the self-test: no comments, each line
+    re-indented, and a comment of its own at the top, so the bytes differ."""
+    text = LITERAL_OR_COMMENT.sub(lambda m: m.group(0) if m.group(0)[0] in "\"'" else " ", text)
+    lines = ["\t" + line.strip() if not line.lstrip().startswith("#") else line.strip()
+             for line in text.splitlines() if line.strip()]
+    return "/* reformatted */\n" + "\n".join(lines) + "\n"
+
+
 def selftest_target(work_parent, cfg):
-    """A made-up local target: verbatim copies of our files and one unrelated
-    file, in a git repository served by path. Returns (target dict, its folder)."""
+    """A made-up local target: verbatim and reformatted copies of our files
+    and one unrelated file, in a git repository served by path. Returns
+    (target dict, its folder)."""
     d = tempfile.mkdtemp(prefix="audit-selftest-", dir=work_parent)
     src = os.path.join(ROOT, cfg["ours"])
     for dirpath, _, files in os.walk(src):
@@ -557,6 +683,10 @@ def selftest_target(work_parent, cfg):
                 rel = os.path.relpath(os.path.join(dirpath, f), src)
                 os.makedirs(os.path.join(d, "copied", os.path.dirname(rel)), exist_ok=True)
                 shutil.copyfile(os.path.join(dirpath, f), os.path.join(d, "copied", rel))
+                os.makedirs(os.path.join(d, "reformatted", os.path.dirname(rel)), exist_ok=True)
+                with open(os.path.join(dirpath, f), encoding="utf-8") as fin, \
+                        open(os.path.join(d, "reformatted", rel), "w", encoding="utf-8") as fout:
+                    fout.write(reformat(fin.read()))
     with open(os.path.join(d, "unrelated.c"), "w") as f:
         f.write("int unrelated(int a) { return a * 3 + 1; }\n")
     env = dict(GIT_ENV, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.com",
@@ -570,19 +700,30 @@ def selftest_target(work_parent, cfg):
             "status": "scored", "licence_class": "none"}, d
 
 
-def selftest_verdict(report):
-    """Every one of our files must be scored and found in the made-up target
-    with a match covering at least 90% of its tokens, and the report written."""
+def selftest_verdict(report, cfg):
+    """Every one of our files must be found in the made-up target, and the
+    report written. A file JPlag scored: by a match covering at least 90% of
+    its tokens. A file JPlag cannot score: by the text check, as an exact copy
+    (the verbatim one) and at or above its threshold without being exact (the
+    reformatted one). A file JPlag scored but matched nowhere fails."""
     files = report.get("ours_files", [])
     tokens = {f["file"]: f["tokens"] for f in files if f["state"] == "scored"}
     best = {}
     for o, p, l, m, v in report.get("selftest", {}).get("ours_best", []):
         best[o] = max(best.get(o, 0), l)
-    found = [f for f, t in tokens.items() if best.get(f, 0) >= 0.9 * t]
+    by_jplag = [f for f, t in tokens.items() if best.get(f, 0) >= 0.9 * t]
+    exact, near = set(), set()
+    for o, path, c, is_exact in report.get("selftest", {}).get("text", []):
+        if is_exact:
+            exact.add(o)
+        elif c >= cfg["text_check"]["threshold"]:
+            near.add(o)
+    by_text = [f["file"] for f in files if "not_scorable" in f and f["file"] in exact & near]
     leak_ok = any(c["id"] == "C-AUDIT-LEAK" and c["result"] == "PASS" for c in report.get("checks", []))
-    ok = bool(files) and len(found) == len(files) and leak_ok
-    return ok, "%d of our %d files found in a target holding copies of them; leak check %s" % (
-        len(found), len(files), "PASS" if leak_ok else "not passed")
+    found = len(by_jplag) + len(by_text)
+    ok = bool(files) and found == len(files) and leak_ok
+    return ok, "%d of our %d files found in a target holding copies of them (%d by JPlag, %d by the text check); " \
+        "leak check %s" % (found, len(files), len(by_jplag), len(by_text), "PASS" if leak_ok else "not passed")
 
 
 def check_artifact(folder):
@@ -622,7 +763,7 @@ def main(argv=None):
             report, checks = run(cfg, None, "selftest", a.out, a.jar, selftest=[t])
         finally:
             shutil.rmtree(d, ignore_errors=True)
-        ok, detail = selftest_verdict(report)
+        ok, detail = selftest_verdict(report, cfg)
         print("C-AUDIT-SELFTEST: %s (%s)" % ("PASS" if ok else "FAIL", detail))
         for c in report.get("checks", []):
             print("  %s %s: %s" % (c["id"], c["result"], c["detail"]))

@@ -31,6 +31,10 @@
   "control_ceiling_tokens": 100,
   "control_related_share": 0.1,
   "leak_line_chars": 24,
+  "text_check": {
+    "k": 24,
+    "threshold": 0.5
+  },
   "top_pairs": 20,
   "fast": [
     "hugelton/Felucca",

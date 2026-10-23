@@ -11,7 +11,8 @@ from tests.helpers import ROOT, load_tool
 
 audit = load_tool("audit.py")
 disc = load_tool("audit-discover.py")
-CFG = {"margin_tokens": 24, "control_ceiling_tokens": 100, "control_related_share": 0.1, "leak_line_chars": 24}
+CFG = {"margin_tokens": 24, "control_ceiling_tokens": 100, "control_related_share": 0.1, "leak_line_chars": 24,
+       "min_tokens": 12, "text_check": {"k": 24, "threshold": 0.5}}
 
 
 class DiscoverTest(unittest.TestCase):
@@ -198,23 +199,104 @@ class SettingsTest(unittest.TestCase):
 
 class SelftestVerdictTest(unittest.TestCase):
     """A file JPlag leaves out of its index (no match) fails the self-test
-    rather than being skipped. Requirements: R-AUDIT-5"""
+    rather than being skipped; a file JPlag cannot score must be found by the
+    text check, both as an exact and as a reformatted copy.
+    Requirements: R-AUDIT-5"""
 
-    def report(self, states):
+    def report(self, states, text=()):
         files = [{"file": f, "tokens": 20 if st == "scored" else None, "state": st} for f, st in states]
+        for f in files:
+            if f["state"] == "TOO_SMALL":
+                f["not_scorable"] = audit.not_scorable("TOO_SMALL", CFG)
         best = [[f, "copy/" + f, 20, 1.0, 1.0] for f, st in states if st == "scored"]
-        return {"ours_files": files, "selftest": {"ours_best": best},
+        return {"ours_files": files, "selftest": {"ours_best": best, "text": [list(t) for t in text]},
                 "checks": [{"id": "C-AUDIT-LEAK", "result": "PASS"}]}
 
     def test_all_found(self):
-        ok, detail = audit.selftest_verdict(self.report([("src/a.c", "scored"), ("src/b.h", "scored")]))
+        ok, detail = audit.selftest_verdict(self.report([("src/a.c", "scored"), ("src/b.h", "scored")]), CFG)
         self.assertTrue(ok, detail)
         self.assertIn("2 of our 2 files", detail)
 
     def test_a_file_without_a_match_fails(self):
-        ok, detail = audit.selftest_verdict(self.report([("src/a.c", "scored"), ("src/b.h", "no match")]))
+        ok, detail = audit.selftest_verdict(self.report([("src/a.c", "scored"), ("src/b.h", "no match")]), CFG)
         self.assertFalse(ok)
         self.assertIn("1 of our 2 files", detail)
+
+    def test_a_file_too_small_for_jplag_is_found_by_the_text_check(self):
+        text = [("src/font.c", "copied/src/font.c", 1.0, True), ("src/font.c", "reformatted/src/font.c", 1.0, False)]
+        ok, detail = audit.selftest_verdict(self.report([("src/a.c", "scored"), ("src/font.c", "TOO_SMALL")], text), CFG)
+        self.assertTrue(ok, detail)
+        self.assertIn("2 of our 2 files found in a target holding copies of them (1 by JPlag, 1 by the text check)", detail)
+
+    def test_a_file_too_small_for_jplag_the_text_check_misses_fails(self):
+        for text in ((), [("src/font.c", "copied/src/font.c", 1.0, True)],
+                     [("src/font.c", "copied/src/font.c", 1.0, True), ("src/font.c", "reformatted/src/font.c", 0.4, False)]):
+            ok, detail = audit.selftest_verdict(self.report([("src/a.c", "scored"), ("src/font.c", "TOO_SMALL")], text),
+                                                CFG)
+            self.assertFalse(ok, text)
+            self.assertIn("1 of our 2 files", detail)
+
+
+class TextCheckTest(unittest.TestCase):
+    """Our files JPlag cannot score are compared as text: exact copies, and
+    the share of their normalised text in each target file.
+    Requirements: R-AUDIT-1, R-AUDIT-5"""
+
+    OURS = (b"/* our glyphs, a made-up font */\n#include \"sb.h\"\n"
+            b"#define G(a, b) { ROW(a), ROW(b) }\n"
+            b"const u8 glyphs[4][2] = {\n"
+            b"    /* 'a' */ G(\".#.#.\", \"#...#\"),\n"
+            b"    /* 'b' */ G(\"##...\", \"..#..\"),\n"
+            b"    /* 'c' */ G(\"...##\", \".###.\"),\n"
+            b"    /* 'd' */ G(\"#####\", \".....\"),\n};\n")
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.dir)
+
+    def put(self, name, data):
+        with open(os.path.join(self.dir, name), "wb") as f:
+            f.write(data)
+
+    def scores(self):
+        return {p: (round(c, 3), exact) for o, p, c, exact in audit.text_scores({"o00001.c": self.OURS}, self.dir, 24)}
+
+    def test_normalise_drops_comments_and_whitespace_but_not_literals(self):
+        self.assertEqual(audit.normalise('int a = 1; /* c */ // x\nchar *s = "a /* b */ c";\n'),
+                         'inta=1;char*s="a/*b*/c";')
+
+    def test_copies_are_found_and_unrelated_code_is_not(self):
+        text = self.OURS.decode()
+        self.put("p00001.c", self.OURS)
+        self.put("p00002.c", audit.reformat(text).encode())
+        self.put("p00003.c", b"static int before(int x) { return x + 1; }\n" + self.OURS +
+                 b"int after(void) { return before(2); }\n")
+        self.put("p00004.c", b"int unrelated(int a) { return a * 3 + 1; }\n")
+        half = "\n".join(l for l in text.splitlines() if "'c'" not in l and "'d'" not in l)
+        self.put("p00005.c", half.encode())
+        got = self.scores()
+        self.assertEqual(got["p00001.c"], (1.0, True), "a verbatim copy is exact")
+        self.assertEqual(got["p00002.c"], (1.0, False), "a reformatted copy is found, but not as exact")
+        self.assertEqual(got["p00003.c"], (1.0, False), "a copy inside a larger file is found")
+        self.assertNotIn("p00004.c", got, "unrelated code shares nothing")
+        self.assertTrue(0 < got["p00005.c"][0] < 1, got["p00005.c"])
+
+    def test_the_reformatted_copy_differs_in_bytes_only(self):
+        text = self.OURS.decode()
+        self.assertNotEqual(audit.reformat(text), text)
+        self.assertEqual(audit.normalise(audit.reformat(text)), audit.normalise(text))
+
+    def test_the_report_says_why_a_file_is_not_scorable(self):
+        self.assertEqual(audit.not_scorable("TOO_SMALL", CFG),
+                         "not scorable by JPlag: fewer tokens than JPlag's minimum match of 12 (TOO_SMALL); "
+                         "compared by the text check instead")
+        self.assertIn("could not parse", audit.not_scorable("CANNOT_PARSE", CFG))
+
+    def test_committed_settings(self):
+        cfg = audit.load_json(os.path.join(ROOT, "audit", "audit.json"))
+        self.assertEqual(cfg["text_check"], {"k": 24, "threshold": 0.5})
 
 
 class AcceptedTest(unittest.TestCase):

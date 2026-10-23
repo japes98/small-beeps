@@ -126,4 +126,17 @@ an issue or a pull request against docs/HARNESS.md.
   which is right under either behaviour, but the spec and fwtest disagree.
   Read: HARDWARE-SPEC.md sections 5 and 3, Q-6, the ST7789V datasheet
   (P-11, P-22), and `WL82.h`'s `JL_SPI_TypeDef` and port registers.
-- Status: open
+- Status: answered in part (HARDWARE-SPEC.md, "12. The LCD on the chip,
+  and SPI1 in fwtest (SR-3)"): (a) in HW-55 and HW-56 (SPI1's pin groups,
+  the group select, the port set-up registers, `CON`'s named bits, FM-1's
+  own `CON` and `BAUD` values) and HW-57 (the panel's clock limit); (b)
+  open, the panel's reset timing in HW-57; (c) open; (d) in HW-58; (e) in
+  HW-59: the spec is right and fwtest was wrong. fwtest kept every `CON`
+  bit once written, so after any write with bit 13 set, every transfer
+  raised source 16 whatever `CON` was written to later. Fixed in fwtest
+  0.2.0, which `config/fwtest-image` pins from the pull request that
+  follows this answer: a `CON` write sets and clears bits as written,
+  single bytes in `BUF` follow the same rule as DMA transfers, and a write
+  of bit 14 alone also clears bit 13, so acknowledge by setting bit 14
+  and keeping the other bits. Open: Q-6, Q-15.
+- Answered: 2026-10-23, session SR-3 (spec side)
