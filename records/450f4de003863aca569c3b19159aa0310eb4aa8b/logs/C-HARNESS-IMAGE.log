@@ -1,0 +1,97 @@
+$ sh harness/ci.sh image
+#0 building with "default" instance using docker driver
+
+#1 [internal] load remote build context
+#1 DONE 0.0s
+
+#2 copy /context /
+#2 DONE 0.0s
+
+#3 resolve image config for docker-image://docker.io/docker/dockerfile:1.10@sha256:865e5dd094beca432e8c0a1d5e1c465db5f998dca4e439981029b3b81fb39ed5
+#3 DONE 0.0s
+
+#4 docker-image://docker.io/docker/dockerfile:1.10@sha256:865e5dd094beca432e8c0a1d5e1c465db5f998dca4e439981029b3b81fb39ed5
+#4 CACHED
+
+#5 [internal] load metadata for docker.io/library/debian:bookworm-slim@sha256:ec31d744f83f4a73447ba045aaab9409997efe5cc706eca4890c1be36cc1606a
+#5 DONE 0.0s
+
+#6 [auth] library/rust:pull token for registry-1.docker.io
+#6 DONE 0.0s
+
+#7 [internal] load metadata for docker.io/library/rust:1.99.0-slim-bookworm@sha256:ba81bc3eaa4422af576c0262515d96b0111a628a6ccc2c86557cf55c9a4bbee0
+#7 DONE 0.6s
+
+#8 [runtime 1/6] FROM docker.io/library/debian:bookworm-slim@sha256:ec31d744f83f4a73447ba045aaab9409997efe5cc706eca4890c1be36cc1606a
+#8 CACHED
+
+#9 [build 1/5] FROM docker.io/library/rust:1.99.0-slim-bookworm@sha256:ba81bc3eaa4422af576c0262515d96b0111a628a6ccc2c86557cf55c9a4bbee0
+#9 resolve docker.io/library/rust:1.99.0-slim-bookworm@sha256:ba81bc3eaa4422af576c0262515d96b0111a628a6ccc2c86557cf55c9a4bbee0 done
+#9 sha256:1f11614736720de4f1cc350da79cf55e714382eb9bc4d399b2932f35b8bcd80c 0B / 292.38MB 0.1s
+#9 sha256:ba81bc3eaa4422af576c0262515d96b0111a628a6ccc2c86557cf55c9a4bbee0 1.37kB / 1.37kB done
+#9 sha256:80aa908ca5b1f3f0a2c177e855c86caf970f169618089348371122e0d1a56793 3.11kB / 3.11kB done
+#9 sha256:7fd1ebe418b5079d4aa36f416af9b143d127bc75b0155d71cb5fd559b5e04d39 0B / 28.25MB 0.1s
+#9 sha256:7fd1ebe418b5079d4aa36f416af9b143d127bc75b0155d71cb5fd559b5e04d39 15.73MB / 28.25MB 0.3s
+#9 sha256:7fd1ebe418b5079d4aa36f416af9b143d127bc75b0155d71cb5fd559b5e04d39 28.25MB / 28.25MB 0.3s done
+#9 extracting sha256:7fd1ebe418b5079d4aa36f416af9b143d127bc75b0155d71cb5fd559b5e04d39 0.1s
+#9 sha256:1f11614736720de4f1cc350da79cf55e714382eb9bc4d399b2932f35b8bcd80c 42.99MB / 292.38MB 0.5s
+#9 sha256:1f11614736720de4f1cc350da79cf55e714382eb9bc4d399b2932f35b8bcd80c 78.64MB / 292.38MB 0.6s
+#9 sha256:1f11614736720de4f1cc350da79cf55e714382eb9bc4d399b2932f35b8bcd80c 112.20MB / 292.38MB 0.7s
+#9 sha256:1f11614736720de4f1cc350da79cf55e714382eb9bc4d399b2932f35b8bcd80c 136.31MB / 292.38MB 0.8s
+#9 sha256:1f11614736720de4f1cc350da79cf55e714382eb9bc4d399b2932f35b8bcd80c 202.38MB / 292.38MB 1.0s
+#9 sha256:1f11614736720de4f1cc350da79cf55e714382eb9bc4d399b2932f35b8bcd80c 240.12MB / 292.38MB 1.1s
+#9 sha256:1f11614736720de4f1cc350da79cf55e714382eb9bc4d399b2932f35b8bcd80c 292.38MB / 292.38MB 1.3s
+#9 extracting sha256:7fd1ebe418b5079d4aa36f416af9b143d127bc75b0155d71cb5fd559b5e04d39 1.1s done
+#9 sha256:1f11614736720de4f1cc350da79cf55e714382eb9bc4d399b2932f35b8bcd80c 292.38MB / 292.38MB 1.7s done
+#9 extracting sha256:1f11614736720de4f1cc350da79cf55e714382eb9bc4d399b2932f35b8bcd80c 0.1s
+#9 extracting sha256:1f11614736720de4f1cc350da79cf55e714382eb9bc4d399b2932f35b8bcd80c 4.3s done
+#9 DONE 8.0s
+
+#10 [build 2/5] WORKDIR /src
+#10 DONE 0.0s
+
+#11 [build 3/5] COPY vendor/emulator vendor/emulator
+#11 DONE 0.0s
+
+#12 [build 4/5] COPY harness harness
+#12 DONE 0.0s
+
+#13 [build 5/5] RUN --network=none cd harness && cargo build --release --locked --offline  && sha256sum target/release/fwtest
+#13 0.091    Compiling fm1-core v0.2.0 (/src/vendor/emulator/crates/fm1-core)
+#13 0.091    Compiling fm1-isa v0.2.0 (/src/vendor/emulator/crates/fm1-isa)
+#13 1.843    Compiling fm1-soc v0.2.0 (/src/vendor/emulator/crates/fm1-soc)
+#13 2.190    Compiling fwtest v0.1.0 (/src/harness)
+#13 6.905     Finished `release` profile [optimized] target(s) in 6.85s
+#13 6.919 19fd4e07d2860d683abf5db1c4aa64e710b425e57df52fb76d0af8a72992dd3f  target/release/fwtest
+#13 DONE 6.9s
+
+#14 [runtime 2/6] COPY --from=build /src/harness/target/release/fwtest /usr/local/bin/fwtest
+#14 DONE 0.0s
+
+#15 [runtime 3/6] COPY LICENSE /usr/share/doc/fwtest/LICENSE
+#15 DONE 0.0s
+
+#16 [runtime 4/6] COPY NOTICE /usr/share/doc/fwtest/NOTICE
+#16 DONE 0.0s
+
+#17 [runtime 5/6] COPY vendor/emulator/LICENSE /usr/share/doc/fwtest/LICENSE.emulator
+#17 DONE 0.0s
+
+#18 [runtime 6/6] WORKDIR /work
+#18 DONE 0.0s
+
+#19 exporting to image
+#19 exporting layers
+#19 exporting layers 0.3s done
+#19 writing image sha256:8d44d4543c98f9e9c8081f64214886163cd90ad1d54075c6e04d45c1aff840ab done
+#19 naming to docker.io/library/small-beeps-fwtest:d15aac19e84dacbc done
+#19 DONE 0.3s
+
+ [33m2 warnings found (use docker --debug to expand):
+[0m - FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 20)
+ - FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 35)
+image sha256:8d44d4543c98f9e9c8081f64214886163cd90ad1d54075c6e04d45c1aff840ab
+19fd4e07d2860d683abf5db1c4aa64e710b425e57df52fb76d0af8a72992dd3f  /usr/local/bin/fwtest
+fwtest 0.1.0 (emulator 43ed55800648)
+
+exit status 0

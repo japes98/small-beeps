@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 8231f0129b6a5476f5c1eef9741cad49f4f9e890..450f4de003863aca569c3b19159aa0310eb4aa8b
+OK     8905fffd0f6a config: M2 budgets for the screen
+EXEMPT 450f4de00386 (merge) Merge pull request #33 from japes98/m2/budgets
+2 commit(s) checked: PASS
+
+exit status 0

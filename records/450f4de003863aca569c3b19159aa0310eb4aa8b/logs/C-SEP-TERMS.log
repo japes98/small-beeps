@@ -1,0 +1,65 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-emulator-terms.py
+doors accepted as on origin/main (450f4de00386): 39 terms
+REVIEWED audit/targets.json:1638 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:2630 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:2631 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:2795 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:2796 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:2798 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:2804 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5184 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5185 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5187 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5927 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5928 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5930 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5936 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:6174 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:6175 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:6177 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:6183 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:7432 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:7433 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:7435 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:7441 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:8367 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:8368 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:8370 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+DOOR docs/DESIGN-NOTES.md:37 term 90ab76327b632b83: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:39 term 99657bb7826921ed: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:43 term 744ecd8ac4b5da96: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:92 term 8d3094fa2e9da0b5: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:95 term 99657bb7826921ed: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:156 term 99657bb7826921ed: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:170 term 99657bb7826921ed: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:339 term 744ecd8ac4b5da96: in the reviewed doors on main
+DOOR docs/HARDWARE-SPEC.md:392 term eab5cb44eb7b01be: in the reviewed doors on main
+DOOR docs/HARDWARE-SPEC.md:395 term 52660849a75e5520: in the reviewed doors on main
+DOOR docs/HARDWARE-SPEC.md:396 term eab5cb44eb7b01be: in the reviewed doors on main
+DOOR docs/HARDWARE-SPEC.md:590 term cec236a1fa64b323: in the reviewed doors on main
+DOOR docs/HARNESS.md:236 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR docs/PLAN.md:141 term 99657bb7826921ed: in the reviewed doors on main
+DOOR docs/REQUIREMENTS.md:71 term 744ecd8ac4b5da96: in the reviewed doors on main
+DOOR docs/reviews/M0c-spec-review.md:39 term cec236a1fa64b323: in the reviewed doors on main
+DOOR docs/reviews/M0c-spec-review.md:58 term eab5cb44eb7b01be: in the reviewed doors on main
+DOOR firmware/app.ld:10 term 99657bb7826921ed: in the reviewed doors on main
+DOOR firmware/app.ld:13 term 744ecd8ac4b5da96: in the reviewed doors on main
+DOOR firmware/app.ld:26 term 90ab76327b632b83: in the reviewed doors on main
+REVIEWED firmware/app.ld:26 term f897aded4c2954ad: The largest raw image's length (1 MiB less 16 KiB) written in hex, from docs/HARDWARE-SPEC.md (HW-5) and docs/HARNESS.md ('The raw image'), used as the image region's length in the firmware's linker script.
+DOOR firmware/app.ld:27 term 99657bb7826921ed: in the reviewed doors on main
+DOOR firmware/app.ld:67 term 744ecd8ac4b5da96: in the reviewed doors on main
+DOOR firmware/app.ld:69 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:27 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:27 term 744ecd8ac4b5da96: in the reviewed doors on main
+DOOR tests/fw/boot.suite:28 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:29 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:30 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/test_fw_suite.py:83 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tests/test_fw_suite.py:87 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tests/test_perf.py:228 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tools/fw-suite.py:116 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tools/perf.py:88 term 99657bb7826921ed: in the reviewed doors on main
+4449 emulator-only terms; 113 files, 2 commit messages, 0 pull request texts scanned
+emulator terms: PASS
+
+exit status 0
