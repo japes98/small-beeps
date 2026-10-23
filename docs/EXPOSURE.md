@@ -479,6 +479,27 @@ training cutoff (see "Model cutoffs" below).
     above, and a Python edit of the made-up test script in the scratch
     folder. None opened, listed or fetched anything under them. From then
     on the session kept those names out of shell commands.
+  - **More reads.** The ST7789V datasheet (P-22: fetched into a scratch
+    folder from the spec's URL, its SHA-256 checked against the spec's,
+    text extracted in a throwaway container; pages 42, 43, 162, 163, 184,
+    196, 215 and 224 read). `docs/HARDWARE-SPEC.md` as changed by the spec
+    side's SR-1 and SR-2 answers (#32), read as a diff. The vendored SDK's
+    `WL82.h` (`JL_SPI_TypeDef`, the port registers). Its own images'
+    fwtest outputs. M1's image, rebuilt from the release's exported tree,
+    and both disassembled to compare their idle loops.
+  - **A second barrier gap, found and closed.** Merging main into the
+    firmware branch staged files that main has under the spec-side folders
+    (the sparse checkout keeps them off disk). The session's own
+    `git diff --cached --name-only` listed them, and the pre-commit
+    private-terms hook tried to read them. Lazy fetching was off, so it
+    failed, printing "bad object" with each path. So the session saw the
+    names of the spec side's new experiment files and of one spec
+    transcript, never their contents. A barrier check (disk, index and
+    every branch, counting only) found no spec-side contents in `.git`,
+    before and after. The hook now never fetches (#34). Merges in a
+    clean folder can stage spec-side paths, so their names can show in
+    `git status` and `git diff --cached`.
+  - **Exposure:** still none.
 
 ### Session SR-1-SR-2 (spec requests SR-1 and SR-2, M1's observations)
 - Date: 2026-10-22
@@ -525,6 +546,7 @@ training cutoff (see "Model cutoffs" below).
 | 2026-10-22, before 22:55Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M1: `tools/clean-update.sh` printed STOP (17 spec-side experiment outputs in `.git`, brought in with the records branch); the session stopped and told the owner, opening nothing |
 | 2026-10-22T22:55:06Z | same | `aa535102…9f25ab` | The folder's `.git` replaced by a fresh blob-less sparse clone, the old one and the session's scratch extractions of records deleted unread; `tools/clean-setup.sh` re-run, banner `status: OK`; `tools/clean-update.sh` passed, then gained the all-branches check |
 | 2026-10-22T23:04:37Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M2 starts; banner `status: OK`; `tools/clean-update.sh` found main at `9fe07f8` and passed; M1 archived; `tools/check-transcripts.py` PASS with the reviewed entries listed for the owner's approval |
+| 2026-10-23, about 00:30Z | `~/<top>/clean` | `aa535102…9f25ab` | Session M2: merging main into a branch staged spec-side paths; `git diff --cached` and the pre-commit hook showed their names, the hook's reads failed (lazy fetching off); a barrier check (disk, index, every branch) found no spec-side contents in `.git`, before and after the merge commit |
 | 2026-10-22T23:04:40Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-1-SR-2 starts; banner `status: OK`. 23:05:19Z: `tools/spec-setup.sh`, banner `status: OK`; M0e-spec's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 
 ## Model cutoffs

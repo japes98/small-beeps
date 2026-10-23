@@ -415,9 +415,73 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     - The clock set-up on the chip waits for SR-2.
   - **Next: M2, the screen.**
 
+### M2: the screen (firmware side)
+- Drive the LCD from our own code: bring-up, a frame buffer sent by DMA,
+  drawing, our own font, a test screen with the heartbeat on it
+  (docs/prompts/M2.md).
+- Requirements: R-LCD-1 to R-LCD-5; R-IRQ-1, R-IRQ-2, R-BOOT-3 and
+  R-PERF-1 to R-PERF-5 amended.
+- Status 2026-10-22 (session M2, firmware side, on the owner's Mac):
+  - **Start** (#30): `tools/clean-update.sh` passed. M1's transcript was
+    archived. The transcript check's gap was closed: a folder name ended
+    by `;` or another shell operator is now matched. 22 flagged calls were
+    listed in `sessions/REVIEWED.json` with the owner's approval.
+    The M1 release was made from the signed tag `m1`: the image and ELF,
+    rebuilt bit for bit, an SBOM and checksums, with the record linked by
+    tree hash and SHA256SUMS hash.
+  - **Two barrier gaps closed:**
+    - `tools/reproduce` used `git archive`, which with lazy fetching on
+      downloads spec-side files into a clean folder's `.git` (#30).
+    - The pre-commit private-terms scan read staged spec-side files after
+      a merge, which with lazy fetching on would fetch them (#34).
+    - Neither fetched anything here: lazy fetching was off, and the
+      barrier checks passed before and after.
+  - **The speed gate, by the owner's decision** (#31): perf measures
+    startup and steady state apart, from two runs (1.25 and 2.25 s). Each
+    has a budget per milestone. The 3% gate applies to steady state
+    between records under the same budget. M1 re-measured: startup 5 193
+    instructions, steady state exactly 64.000 a period.
+  - **M2 budgets** (#33): code 8 192, static RAM 122 880, stack 512,
+    startup 1 572 864, steady state 72 a period (unchanged).
+  - **Firmware** (#35; docs/DESIGN-NOTES.md, M2):
+    - **Bring-up:** software reset, 120 ms, sleep out, 5 ms (waited on the
+      tick), 16-bit pixels, `MADCTL` 0, the first frame with the display
+      off, display on.
+    - **Frame buffer:** 240 × 240 RGB565, high byte first (115 200
+      bytes). Sent by DMA straight from the buffer: a whole frame is 15
+      chunks of 16 rows, chained by SPI1's interrupt, below the tick in
+      priority.
+    - **Drawing and font:** fill, frames, lines, text, and our own font
+      (printable ASCII, 5 × 8, drawn as `#`/`.` rows).
+    - **Screens:** an address pattern, in which each pixel's colour
+      encodes its address, then a test screen (border, corner colours,
+      ramps, lines, every glyph). The heartbeat's seconds are drawn once a
+      second, and only their rows sent.
+    - **Found on the way:**
+      - fwtest raises source 16 at the end of every DMA transfer, even with
+        `CON` bit 13 clear (reported in SR-3).
+      - An idle wait for a chained frame's end could sleep until the next
+        tick; it now spins.
+      - Startup's clearing of the frame buffer delays the time base by
+        0.24 ms, so the end check's slack follows bss.
+  - **Results** (local runs; the records of the merges are authoritative):
+    - Every one of the 57 600 pattern pixels is right; the test screen's
+      border, corners and ramps are right; the golden images match.
+    - With whole frames back to back for 1 s (233 809 frames), every tick
+      interval stays 24 001 or 24 002 (±24 allowed).
+    - **A whole frame: 6.3 µs of the core in fwtest**, where a transfer
+      finishes at once; on the chip at least 60.8 ms of transfer (the
+      datasheet's 66 ns a bit), with the core free.
+    - **Steady state 65.415 instructions a period, +2.2%** on M1.
+      Startup 1 036 288. Code 4 180, static RAM 115 340, stack 188 bytes.
+  - **Spec request** (#36): SR-3, the panel's wiring, SPI1's set-up,
+    offset, orientation and inversion on the chip (Q-6), the longest
+    transfer, and source 16 in fwtest. M2 doesn't depend on it.
+  - **Next: M3, keys, encoders, the pot and LEDs.**
+
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer (done; above).
-- **M2** screen.
+- **M2** screen (done; above).
 - **M3** keys, encoders, pot, LEDs.
 - **M4** audio.
 - **M5** the FM engine.
