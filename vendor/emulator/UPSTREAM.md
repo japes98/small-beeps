@@ -20,7 +20,7 @@ SPDX-FileCopyrightText: 2026 japes98
   sparse checkout of exactly those paths) and checked by
   `tools/fetch-emulator.sh --verify` (C-EMU-PIN): every file against
   `SHA256SUMS`, whose own SHA-256 (the tree hash) is
-  `3027510f8282be30861fc22978a8f556b4b0a9ce208e4d816d5e53448d9738e8`.
+  `a802e553b0acd89077bdcf564d07ca0283697c691d90b0ef6d467fb364e76a3d`.
 - Provenance: PROVENANCE.md P-7. Exposure: docs/EXPOSURE.md (session M0b).
 
 ## Patches
@@ -39,8 +39,8 @@ Applied in file-name order by the fetch script, after checkout:
   13 every SPI1 transfer raised IRQ 16. With the patch a write replaces
   `CON` (bit 14 stays a strobe that clears the pending flag, not stored).
   The harness test `spi1_interrupt_follows_con_bit_13` fails without it.
-  Reported upstream by the owner from `harness/upstream/fm1-emu-spi1-con.md`;
-  drop the patch when the pinned commit has the fix.
+  To be reported upstream by the owner from
+  `harness/upstream/fm1-emu-spi1-con.md`; drop the patch when the pinned commit has the fix.
 
 ## Not used
 

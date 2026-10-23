@@ -25,4 +25,4 @@ b93bc4859d59089a2dc293c52c079a13e11d59b6f5a0213ad815a0a2fc1e12a3  crates/fm1-soc
 9077aa2cb10b3f055a385a35b125126c7001191a0664954703ddfee6d4388b15  crates/fm1-soc/src/smk.rs
 35d22f57b59b8ada4e0e52f17b644d6443edae81519f82ac9d8a737602a558f2  crates/fm1-soc/src/spiflash.rs
 b5a4ff1a576a757cade273b95702955d4dcea560237098f8f36965f57f8c7966  patches/0001-workspace-members.patch
-e4a0a8f4391fb75f46839b25fa6cf705dbef8e67563dab405adfcaa7ff35fb50  patches/0002-spi1-con-writes-replace.patch
+2663cbe5f0d06734764c8a7b8a6bf9133c44cf67a491dcdc4bde70b8dd58afbe  patches/0002-spi1-con-writes-replace.patch

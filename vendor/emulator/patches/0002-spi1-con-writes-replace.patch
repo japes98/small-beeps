@@ -4,7 +4,7 @@ any write with bit 13 (the transfer-done interrupt enable), every later
 transfer raised interrupt 16, even after CON was written with bit 13 clear.
 The JieLi SDK clears CON bits with ordinary writes, so on the chip CON reads
 back as last written. Bit 14 (clear pending) is still a strobe, not stored.
-Reported upstream by the owner (harness/upstream/fm1-emu-spi1-con.md).
+To be reported upstream by the owner (harness/upstream/fm1-emu-spi1-con.md).
 
 --- a/crates/fm1-soc/src/lib.rs
 +++ b/crates/fm1-soc/src/lib.rs

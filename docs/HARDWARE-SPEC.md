@@ -884,8 +884,8 @@ requests.
   SDK names: bit 0 turns SPI on; bit 12 set is receive mode; bit 13 makes a
   finished transfer raise interrupt source 16; bit 14 clears the pending
   flag (the SDK's handler sets it, keeping the other bits); bits 2, 10 and
-  11 are cleared for its one-bit mode (one data line each way). `BAUD` is
-  one byte wide. When FM-1's own firmware sets up the panel it writes
+  11 are cleared for what the SDK calls one-bit mode. `BAUD` is one byte
+  wide. When FM-1's own firmware sets up the panel it writes
   `CON` = `0x4020` and `BAUD` = 4. The sources don't give the meaning of
   `CON` bit 5 or of the other mode bits, how `BAUD` sets the clock, or what
   state SPI1 is in when an installed app starts (Q-6).
@@ -904,20 +904,23 @@ requests.
   data in PB5; B, clock PC9, data out PC10, data in PC8. Neither has a
   chip select pin of its own: a chip select is an ordinary port pin.
   `JL_IOMAP->CON1` (`0x00051020`; `JL_IOMAP` is at `0x0005101C`) bit 4
-  picks the group: clear A, set B. On the FM-1 the panel is on group B:
-  PC8 is the panel's data/command line (HW-30), used as a port pin, not
-  as data in; FM-1's own firmware makes PC8, PC9 and PC10 outputs, driven
-  low, when it sets up the panel, and PC7 an input (FM-1-RE names them
-  GPIO 39 to 42, which the SDK numbers PC7 to PC10). That the FM-1 uses
-  group B is inferred from these sources together; none of them states
-  it. Each port's registers (`JL_PORTC` at `0x00050080`) are `OUT` +0,
-  `IN` +4, `DIR` +8, `DIE` +12, `PU` +16, `PD` +20, `HD0` +24, `HD` +28,
-  one bit per pin: `DIR` bit 0 makes the pin an output, 1 an input; `PU`
-  and `PD` turn on its pull-up and pull-down; `HD0` and `HD` its two
-  strong-drive settings; `DIE` its digital input. Which pin is the panel's
-  chip select (FM-1-RE sees PC7 toggled with PC8, HW-30, but also set up
-  as an input), and whether the clock and data pins need strong drive, is
-  Q-6. fwtest needs none of this set-up (HW-29).
+  picks the group: clear A, set B. On the FM-1 the panel is probably on
+  group B: PC8 is the panel's data/command line (HW-30), used as a port
+  pin, not as data in; and during the panel's set-up FM-1's own firmware
+  makes GPIO 39 an input and GPIO 40 to 42 outputs driven low (FM-1-RE,
+  which suggests they may be the panel's reset and backlight). If those
+  numbers follow the SDK's numbering, 16 pins a port, they are PC7, and
+  PC8 to PC10, the group B pins. That the FM-1 uses group B is inferred
+  from these sources together; none of them states it. Each port's
+  registers (`JL_PORTC` at `0x00050080`) are `OUT` +0, `IN` +4, `DIR` +8,
+  `DIE` +12, `PU` +16, `PD` +20, `HD0` +24, `HD` +28, one bit per pin:
+  `DIR` bit 0 makes the pin an output, 1 an input; `PU` and `PD` turn on
+  its pull-up and pull-down; `HD0` and `HD` its two strong-drive
+  settings; `DIE` its digital input. Which pin is the panel's chip select
+  (FM-1-RE sees PC7 toggled with PC8, HW-30; if the numbering above
+  holds, it is also set up as an input), and whether the clock and data
+  pins need strong drive, is Q-6. fwtest needs none of this set-up
+  (HW-29).
 - Sources: SDK `include_lib/driver/cpu/wl82/asm/spi.h` lines 212-243
   (SPI1's two pin groups, no chip select, `JL_IOMAP->CON1` bit 4); SDK
   `WL82.h` lines 12, 16, 251-270 (the port registers, `JL_PORTC`), 307-320
@@ -936,13 +939,16 @@ requests.
   (a clock of at most about 15 MHz), high and low each at least 15 ns,
   with its 4-line serial interface (a data/command line, as on the FM-1).
   Its reset input `RESX` is active low: a low pulse of at least 10 µs
-  resets it, and it needs up to 5 ms after the pulse ends before the next
-  command (120 ms if it was out of sleep). Whether the board wires `RESX`
-  to a port pin, or the backlight to one, and which, is Q-6. fwtest needs
-  neither (HW-29).
+  resets it. After the pulse ends it needs 5 ms before the next command,
+  and 120 ms before a sleep out command; a reset in sleep out mode blanks
+  the display for up to 120 ms. Whether the board wires `RESX` to a port
+  pin, or the backlight to one, and which, is Q-6. fwtest needs neither
+  (HW-29).
 - Sources: DS page 44 (4-line serial interface timing: `TSCYCW` 66 ns,
-  `TSHW` and `TSLW` 15 ns), page 48 (reset timing: `TRW` 10 µs, `TRT` 5 ms
-  and 120 ms).
+  `TSHW` and `TSLW` 15 ns), pages 48 and 49 (reset timing, table 9 and
+  its notes 3 and 5 to 7: `TRW` 10 µs, `TRT` 5 ms in sleep in mode and
+  120 ms in sleep out mode; 5 ms before commands, 120 ms before sleep
+  out).
 - Standing: confirmed (DS)
 - Needed by: real hardware (Level 2)
 
