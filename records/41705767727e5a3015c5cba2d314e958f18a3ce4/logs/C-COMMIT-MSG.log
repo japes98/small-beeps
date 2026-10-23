@@ -1,0 +1,13 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range d93317d0813e4a69207c7fdfe23e44577b98d795..41705767727e5a3015c5cba2d314e958f18a3ce4
+OK     2809dceaefa8 firmware: the input layer: keys, encoders, the pot and LEDs, and the panel screen
+OK     9a3bbf2f723f tests: the panel's keys, encoders, pot and LEDs in fwtest
+OK     1d1e68054850 docs: M3's requirements, design notes and provenance
+EXEMPT 3c1d75b209d9 (merge) ci: merge m3/perf-first into the M3 firmware branch
+EXEMPT 27a64abce9d0 (merge) ci: merge m3/budgets into the M3 firmware branch
+OK     b3db41aa9a9b tests: the time from input_led to the LED driven, measured
+EXEMPT e74dbf7c7861 (merge) docs: merge main into the M3 firmware; our provenance IDs renumbered
+EXEMPT a63d2f236e4e (merge) ci: merge main into the M3 firmware again, after #38, #39, #41, #43
+EXEMPT 41705767727e (merge) Merge pull request #42 from japes98/m3/firmware
+9 commit(s) checked: PASS
+
+exit status 0
