@@ -961,6 +961,69 @@
       "rule": "FM-1 SID firmware",
       "reason": "A python3 -c that printed which of the session's own calls a preview of the check flagged, by searching a scratch copy of the session's own transcript for the rule's text. Nothing forbidden was opened, fetched or searched.",
       "added_by": "session M4b (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "50aec508-1493-4c23-82a2-bcba20250bc4",
+      "tool_use_id": "toolu_01SijxKBzKrZqyFaC3SaXHQ2",
+      "rule": "F-11",
+      "reason": "`git log --oneline` with pathspecs that leave the three spec-side folders out (':!...'), as CONTRIBUTING.md asks for history commands. It names the folders only to exclude them; nothing was opened, listed or fetched.",
+      "added_by": "session M5 (clean side, claude-opus-5-5), 2026-10-23"
+    },
+    {
+      "session": "50aec508-1493-4c23-82a2-bcba20250bc4",
+      "tool_use_id": "toolu_01Mto7TBePEeHiwvJDzzp33q",
+      "rule": "F-1",
+      "reason": "`git grep` over our own files for the transcript check's old rule IDs (the M4b renaming to F-1 to F-13), with pathspecs excluding the spec-side folders, sessions/ and docs/prompts. The IDs are only the search pattern; nothing forbidden was opened, listed or fetched.",
+      "added_by": "session M5 (clean side, claude-opus-5-5), 2026-10-23"
+    },
+    {
+      "session": "50aec508-1493-4c23-82a2-bcba20250bc4",
+      "tool_use_id": "toolu_01Mto7TBePEeHiwvJDzzp33q",
+      "rule": "F-2",
+      "reason": "`git grep` over our own files for the transcript check's old rule IDs (the M4b renaming to F-1 to F-13), with pathspecs excluding the spec-side folders, sessions/ and docs/prompts. The IDs are only the search pattern; nothing forbidden was opened, listed or fetched.",
+      "added_by": "session M5 (clean side, claude-opus-5-5), 2026-10-23"
+    },
+    {
+      "session": "50aec508-1493-4c23-82a2-bcba20250bc4",
+      "tool_use_id": "toolu_01Mto7TBePEeHiwvJDzzp33q",
+      "rule": "F-3",
+      "reason": "`git grep` over our own files for the transcript check's old rule IDs (the M4b renaming to F-1 to F-13), with pathspecs excluding the spec-side folders, sessions/ and docs/prompts. The IDs are only the search pattern; nothing forbidden was opened, listed or fetched.",
+      "added_by": "session M5 (clean side, claude-opus-5-5), 2026-10-23"
+    },
+    {
+      "session": "50aec508-1493-4c23-82a2-bcba20250bc4",
+      "tool_use_id": "toolu_01Mto7TBePEeHiwvJDzzp33q",
+      "rule": "F-4",
+      "reason": "`git grep` over our own files for the transcript check's old rule IDs (the M4b renaming to F-1 to F-13), with pathspecs excluding the spec-side folders, sessions/ and docs/prompts. The IDs are only the search pattern; nothing forbidden was opened, listed or fetched.",
+      "added_by": "session M5 (clean side, claude-opus-5-5), 2026-10-23"
+    },
+    {
+      "session": "50aec508-1493-4c23-82a2-bcba20250bc4",
+      "tool_use_id": "toolu_01Mto7TBePEeHiwvJDzzp33q",
+      "rule": "F-9",
+      "reason": "`git grep` over our own files for the transcript check's old rule IDs (the M4b renaming to F-1 to F-13), with pathspecs excluding the spec-side folders, sessions/ and docs/prompts. The IDs are only the search pattern; nothing forbidden was opened, listed or fetched.",
+      "added_by": "session M5 (clean side, claude-opus-5-5), 2026-10-23"
+    },
+    {
+      "session": "50aec508-1493-4c23-82a2-bcba20250bc4",
+      "tool_use_id": "toolu_01Mto7TBePEeHiwvJDzzp33q",
+      "rule": "F-11",
+      "reason": "`git grep` over our own files for the transcript check's old rule IDs (the M4b renaming to F-1 to F-13), with pathspecs excluding the spec-side folders, sessions/ and docs/prompts. The IDs are only the search pattern; nothing forbidden was opened, listed or fetched.",
+      "added_by": "session M5 (clean side, claude-opus-5-5), 2026-10-23"
+    },
+    {
+      "session": "50aec508-1493-4c23-82a2-bcba20250bc4",
+      "tool_use_id": "toolu_019N5AsNFNTysKrLrpz6nhbv",
+      "rule": "F-8",
+      "reason": "A python3 heredoc that edited NOTICE, REUSE.toml and tools/record.py to add the vendored Plaits' licence notes. It names the vendored emulator crates only as text anchors already in those files; nothing under vendor/emulator/ was opened or listed.",
+      "added_by": "session M5 (clean side, claude-opus-5-5), 2026-10-23"
+    },
+    {
+      "session": "50aec508-1493-4c23-82a2-bcba20250bc4",
+      "tool_use_id": "toolu_01DoGqqdewBty2B6xA9yRz4J",
+      "rule": "F-8",
+      "reason": "`git add` of our own files and `git commit -F -` from a heredoc: the commit message describes the separation check (its emulator-term list, and that it skips in a clean folder with no vendor/emulator/). Text only; nothing was opened or listed.",
+      "added_by": "session M5 (clean side, claude-opus-5-5), 2026-10-23"
     }
   ]
 }

@@ -879,6 +879,42 @@ SR-3 wrote only its barrier-log row.*
   files when the Mac's disk filled; the container runtime then stopped
   responding, so no new spec experiment was built.
 
+### Session M5 (the FM engine)
+- Date: 2026-10-23
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.309 (banner), Remote Control from the owner's phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `22963a4d-60e7-4c81-8b7c-1a7d8155032a`,
+  started by a `/clear` at 13:09:08Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh` found main at
+  `bdc77c8`, then at `6db115d` once the owner merged #63, and ended "no
+  spec-side files on disk or in .git" both times;
+  `tools/private-terms.local` exists (not opened). The Mac had 5.6 GB
+  free; the owner chose to carry on, rechecking before builds. It archived
+  M4b (`50aec508`) into `sessions/clean/`; no other clean session was left
+  unarchived (M0d's `b7ed6c1a` again only gained closing metadata).
+  `tools/check-transcripts.py` flagged four of M4b's calls; the session
+  printed only those commands from the redacted archive. Each names
+  forbidden material as text only (pathspec exclusions, a search pattern
+  of rule IDs, licence-note anchors, a commit message); nine
+  `REVIEWED.json` entries clear them, for the owner to approve in the pull
+  request, and the check then passed.
+- Privacy: tool output showed the local username and top folder in paths
+  (Claude Code's project folder, the disk check); they were never written
+  to the repository, and the archiver redacts them from this transcript.
+- Reads: CONTRIBUTING.md, this file, sessions/README.md,
+  sessions/REVIEWED.json, docs/HARDWARE-SPEC.md (HW-62 to HW-65 first),
+  the redacted archive of `50aec508` (the four flagged commands only), and
+  this repository's tools, tests, docs and firmware. For the FM engine:
+  public literature only (PROVENANCE). It does not open anything on the
+  forbidden list, anything under the three spec-side folders, any other
+  synthesizer's firmware or any FM engine's source.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
