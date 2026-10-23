@@ -56,10 +56,12 @@ The gates: each budget in config/budgets.json for the current milestone
 must hold: code, static RAM, stack high-water, startup instructions and
 steady-state instructions per period. Steady-state instructions per period
 may also rise by at most `speed_rise_percent` against the baseline, when
-the baseline's record was made under the same steady-state budget and was
-not the first record made under it (since M3: that record is the raise's
-own merge, which still holds the firmware from before the raise);
-otherwise that comparison is not made, and the record says why. A fall of
+the baseline's record was made under the same steady-state budget;
+otherwise that comparison is not made, and the record says why. Since M3
+a record under the current budget that still holds the image of the last
+record before that budget was raised (the raise's own merge, or any merge
+after it that changed no firmware) is never the baseline: it is skipped,
+and the baseline note names it (choose_baseline). A fall of
 more than that is reported as an improvement. Startup has its budget but
 no such comparison. The count is deterministic, so there is no noise
 allowance. The baseline is re-measured with this checkout's fwtest, runs
@@ -72,6 +74,7 @@ and its `period` says `heartbeat-steady`. Startup is in each record.
 """
 import argparse
 import csv
+import hashlib
 import io
 import json
 import os
@@ -257,10 +260,43 @@ def git(*args, binary=False):
     return p.stdout if binary else p.stdout.decode("utf-8", "replace").strip()
 
 
-def find_baseline(base_ref, records_ref, head=None):
+def recorded_steady(files):
+    """The steady-state budget a record was made under (its report.json's
+    perf.budgets), or None."""
+    try:
+        return steady_budget((json.loads(files["report.json"].decode()).get("perf") or {}).get("budgets"))
+    except (AttributeError, KeyError, ValueError):
+        return None
+
+
+def choose_baseline(records, steady):
+    """Since M3 (the owner's rule): records, newest first, as (commit,
+    steady-state budget it was made under, SHA-256 of its image). The
+    pre-raise record is the newest made under another budget (or none):
+    the last before the current budget was raised. A record under the
+    current budget whose image is the pre-raise record's still runs the
+    firmware from before the raise (the raise's own merge, or any merge
+    after it that changed no firmware), so it is skipped and reported.
+    Returns (index of the baseline or None, skipped commits, the pre-raise
+    commit or None). Only each record's own budget and image count, so the
+    order the records were written in doesn't matter."""
+    pre = next((i for i, r in enumerate(records) if r[1] != steady), None)
+    image = records[pre][2] if pre is not None else None
+    skipped = []
+    for i, (sha, budget, img) in enumerate(records):
+        if steady is not None and budget == steady and image is not None and img == image:
+            skipped.append(sha)
+            continue
+        return i, skipped, records[pre][0] if pre is not None else None
+    return None, skipped, records[pre][0] if pre is not None else None
+
+
+def find_baseline(base_ref, records_ref, head=None, steady=None):
     """(commit, {app.bin, app.size, report.json}, note) for the newest record
-    of a commit on base_ref's first-parent history, other than head itself;
-    commit is None (and note says why) when there is none."""
+    of a commit on base_ref's first-parent history, other than head itself,
+    that may be a speed baseline (choose_baseline, when steady, the current
+    steady-state budget, is given); commit is None (and note says why) when
+    there is none. The note names any record skipped."""
     if git("rev-parse", "--verify", "-q", records_ref + "^{commit}") is None:
         return None, None, "no records here (%s is not available)" % records_ref
     shas = git("rev-list", "--first-parent", "--max-count=200", base_ref)
@@ -268,6 +304,7 @@ def find_baseline(base_ref, records_ref, head=None):
         return None, None, "no history for %s" % base_ref
     listed = set((git("ls-tree", "--name-only", records_ref, "records/") or "").split())
     head = head if head is not None else git("rev-parse", "HEAD")
+    found = []      # (commit, files), newest first, down to the pre-raise record
     for sha in shas.split():
         if sha == head or "records/" + sha not in listed:
             continue
@@ -281,8 +318,19 @@ def find_baseline(base_ref, records_ref, head=None):
         if files["outputs/app.bin"] is None or files["outputs/app.size"] is None:
             return None, None, "the record of %s has no image here (not in the record, or not " \
                                "fetched)" % sha[:12]
-        return sha, files, "the record of %s, the latest of %s on %s" % (sha[:12], base_ref, records_ref)
-    return None, None, "no record of a commit on %s" % base_ref
+        found.append((sha, files))
+        if steady is None or recorded_steady(files) != steady:
+            break
+    records = [(sha, recorded_steady(f), hashlib.sha256(f["outputs/app.bin"]).hexdigest()) for sha, f in found]
+    i, skipped, pre = choose_baseline(records, steady)
+    why = ""
+    if skipped:
+        why = "; skipped %s, made under this budget but still holding the image of %s, the last record " \
+              "before it was raised" % (", ".join(c[:12] for c in skipped), pre[:12] if pre else "?")
+    if i is None:
+        return None, None, "no record of a commit on %s%s" % (base_ref, why)
+    sha, files = found[i]
+    return sha, files, "the record of %s, the latest of %s on %s%s" % (sha[:12], base_ref, records_ref, why)
 
 
 def load_budgets(path=BUDGETS):
@@ -313,30 +361,20 @@ def steady_budget(budgets):
     return ((budgets or {}).get("limits") or {}).get("steady_per_period")
 
 
-def first_under_budget(recorded):
-    """Whether a record's perf section (report.json's `perf`) was the first
-    made under its steady-state budget: its own baseline's record was made
-    under another budget, or none. That record is the merge of the pull
-    request that raised the budget, so it still holds the firmware from
-    before the raise (since M3)."""
-    recorded = recorded or {}
-    return steady_budget(recorded.get("baseline_budgets")) != steady_budget(recorded.get("budgets"))
-
-
-def comparable(budgets, base_budgets, base_first=False):
+def comparable(budgets, base_budgets):
     """Whether the baseline's record was made under the same steady-state
-    budget (since M2), and was not the first made under it (since M3): the
-    only case the 3% comparison is made."""
-    if not base_budgets or base_first:
+    budget (since M2): the only case the 3% comparison is made. Records
+    that still hold the image from before a raise are never baselines
+    (choose_baseline, since M3)."""
+    if not base_budgets:
         return False
     return steady_budget(base_budgets) == budgets["limits"]["steady_per_period"]
 
 
-def gate(cur, base, budgets, base_budgets=None, base_first=False):
+def gate(cur, base, budgets, base_budgets=None):
     """The gates' verdicts: a list of {gate, result, detail}, result one of
     PASS, FAIL, IMPROVED (passes) and NOT COMPARED (passes). base_budgets
-    are the budgets the baseline's record was made under; base_first says
-    it was the first record made under them (first_under_budget)."""
+    are the budgets the baseline's record was made under."""
     out = []
     if cur.get("error"):
         out.append({"gate": "measurement", "result": "FAIL", "detail": cur["error"]})
@@ -357,14 +395,6 @@ def gate(cur, base, budgets, base_budgets=None, base_first=False):
     elif base is None or base.get("error"):
         why = "no baseline" if base is None else "the baseline: " + base["error"]
         out.append({"gate": "speed", "result": "NOT COMPARED", "detail": why})
-    elif base_first and steady_budget(base_budgets) == budgets["limits"]["steady_per_period"]:
-        c, b = per_period(cur), per_period(base)
-        out.append({"gate": "speed", "result": "NOT COMPARED", "detail":
-                    "%.3f steady-state instructions per period, %.3f before (%+.2f%%), but the baseline's "
-                    "record was the first made under this %s budget of %d (the raise's own merge, which "
-                    "still holds the firmware from before it)"
-                    % (float(c), float(b), float((c - b) * 100 / b),
-                       budgets["milestone"], budgets["limits"]["steady_per_period"])})
     elif not comparable(budgets, base_budgets):
         c, b = per_period(cur), per_period(base)
         was = steady_budget(base_budgets)
@@ -421,7 +451,7 @@ def cmd_check(a):
     budgets = load_budgets()
     cur = measure_build(a.build, os.path.join(out, "current"), "current")
     print(describe(cur))
-    sha, files, note = find_baseline(a.base_ref, a.records_ref)
+    sha, files, note = find_baseline(a.base_ref, a.records_ref, steady=budgets["limits"]["steady_per_period"])
     base, base_recorded = None, None
     if sha is None:
         print("baseline: none (%s)" % note)
@@ -442,8 +472,7 @@ def cmd_check(a):
                 base_recorded = json.loads(files["report.json"].decode()).get("perf")
             except ValueError:
                 pass
-    verdicts = gate(cur, base, budgets, (base_recorded or {}).get("budgets"),
-                    base_recorded is not None and first_under_budget(base_recorded))
+    verdicts = gate(cur, base, budgets, (base_recorded or {}).get("budgets"))
     print_verdicts(verdicts)
     result = "FAIL" if failed(verdicts) else "PASS"
     perf = {"period": PERIOD, "runs_ms": list(RUN_MS), "budgets": budgets, "current": cur, "baseline": base,
