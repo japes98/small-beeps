@@ -42,6 +42,8 @@
 #   seven at once with a chord and a pot sweep; every tick still on time.
 # pot (R-POT-1, R-POT-2): steps, the ends, noise at rest, a sweep.
 # leds (R-LED-2): a test build sets each LED to its own brightness.
+# ledshow (R-LED-3): the keys script on a test build whose scan times when
+#   it first drives an LED main has just set.
 #
 # NAME      EXPECT     IMAGE                          run options
 boot        completed  ../../out/fw/app.bin           --ms 5 --console --ram 0x01c00000:0x60@end --ram 0x01c00000:4@end --ram 0x01c7fc00:0x200@end --ram 0x01c7fe00:0x200@end --golden golden/boot
@@ -57,3 +59,4 @@ chords      completed  ../../out/fw/app.bin           --ms 1300 --script scripts
 encoders    completed  ../../out/fw/app.bin           --ms 2300 --script scripts/encoders.txt --ram 0x01c00060:0x4f0@1000 --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end
 pot         completed  ../../out/fw/app.bin           --ms 1300 --script scripts/pot.txt --ram 0x01c00060:0x4f0@960 --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end
 leds        completed  ../../out/fw/test-leds.bin     --ms 1000 --leds-every 96 --ram 0x01c00000:0x60@end
+ledshow     completed  ../../out/fw/test-ledshow.bin  --ms 2400 --script scripts/keys.txt --ram 0x01c00060:0x4f0@end

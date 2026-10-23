@@ -115,6 +115,11 @@ static struct input_event queue[INPUT_QUEUE];
 static volatile u32 queue_in, queue_out;
 /* The time of the last event input_read() handed out. */
 static u32 taken_time;
+#if defined(SB_TEST_LED_SHOW)
+/* The column of the last input_led() call, until the scan drives it, and
+ * when the call was (R-LED-3's test build). */
+static volatile u32 show_column = NONE, show_from;
+#endif
 
 /* Queues an event (and logs it), and tells main. Interrupt context. */
 static void emit(u32 control, u32 kind, int value)
@@ -254,6 +259,14 @@ void input_scan(void)
     JL_PORTA->OUT = base;
 #endif
     slot = s == SLOTS - 1 ? 0 : s + 1;
+#if defined(SB_TEST_LED_SHOW)
+    if (s == show_column) {
+        u32 d = sb_ticks() - show_from;
+        if (d > sb_input.led_show_max)
+            sb_input.led_show_max = d;
+        show_column = NONE;
+    }
+#endif
 
     if (!s) {
         sb_input.cycles++;
@@ -321,6 +334,10 @@ void input_led(u32 control, u32 level)
     sb_input.led_calls++;
     sb_input.led_time = t;
     sb_input.led_control = control << 8 | level;
+#if defined(SB_TEST_LED_SHOW)
+    show_from = t;
+    show_column = c;
+#endif
 }
 
 void input_start(void)

@@ -118,7 +118,10 @@ struct sb_input_record {
     u32 led_lag_max;  /* the longest from an event's time to an input_led()
                        * call after input_read() handed it out, in ticks */
     u32 pot_raw;      /* the pot's last raw reading */
-    int values[INPUT_CONTROLS + 2];   /* input_value(), padded to 8 bytes */
+    u32 led_show_max; /* test build SB_TEST_LED_SHOW only (else 0): the
+                       * longest from an input_led() call to the scan first
+                       * driving that LED's column, in ticks */
+    int values[INPUT_CONTROLS + 1];   /* input_value(), padded to 8 bytes */
     struct input_event log[INPUT_LOG];
 };
 extern volatile struct sb_input_record sb_input;

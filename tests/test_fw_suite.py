@@ -6,7 +6,7 @@ import struct
 import tempfile
 import unittest
 
-from tests.helpers import load_tool
+from tests.helpers import ROOT, load_tool
 
 fw = load_tool("fw-suite.py")
 
@@ -311,6 +311,16 @@ class FwSuiteInputTest(unittest.TestCase):
         self.assertEqual(fw.event_lines(pot), ["0 MASTER move 750", "1 MASTER move 600"])
         apart = [(0, 40, 1, 1, 100 * t), (1, 14, 1, 1, 102 * t)]
         self.assertEqual(fw.event_lines(apart), ["0 KEY27 press 1", "1 KEY1 press 1"])
+
+    def test_the_record_fields_follow_input_h(self):
+        # the counters' order in firmware/src/input.h's sb_input_record
+        import re
+        with open(os.path.join(ROOT, "firmware", "src", "input.h")) as f:
+            text = f.read()
+        body = text[text.index("struct sb_input_record {"):text.index("int values[")]
+        self.assertEqual(tuple(re.findall(r"^\s*u32 (\w+);", body, re.M)), fw.INPUT_FIELDS)
+        self.assertIn("int values[INPUT_CONTROLS + 1];", text)
+        self.assertEqual(fw.INPUT_VALUES, 50)
 
     def test_latency_allows_for_the_time_base_start(self):
         lo, hi = fw.latency(103 * fw.TICKS_PER_MS, 100)

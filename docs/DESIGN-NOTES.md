@@ -680,10 +680,12 @@ Format for each entry:
   2 ms apart in fwtest (HW-38), and each encoder's two contacts are in
   neighbouring columns, so a whole scan must come well inside 2 ms; 1 ms
   sees every state twice.
-- Priorities: the tick stays at 1, the scan is at 0 with SPI1. The tick
-  may preempt the scan (HW-22), so the scan's longest slot never delays
-  the heartbeat: with all seven encoders turning, a chord and a pot sweep,
-  every tick interval stayed 24 001 or 24 002 time base ticks. Nothing
+- Priorities: the tick stays at 1, the scan is at 0 with SPI1, so by
+  HW-22 (emulator-only) the tick may preempt the scan. What was measured:
+  with all seven encoders turning, a chord and a pot sweep, every tick
+  interval stayed 24 001 or 24 002 time base ticks. That doesn't tell
+  preemption from slots short enough not to matter; either way the tick
+  kept its timing. Nothing
   the tick and the scan share needs a lock: both only add to `sb_work`,
   and main reacts to any change of it.
 - No pin is set up (directions, pull-ups, drive): fwtest needs none and
@@ -802,8 +804,13 @@ Format for each entry:
   drawing.
 - Each event lights or darkens its LED first, then redraws only what it
   changed and sends only those rows: a button's 13 rows, a knob's 8, the
-  keyboard's 52 as a chain, and the event line's 8. Main set every LED
-  within 1.1 µs of its event's time.
+  keyboard's 52 as a chain, and the event line's 8.
+- From an event to its LED: main set every LED within 1.0 µs of its
+  event's time stamp. A test build (`SB_TEST_LED_SHOW`), whose scan stamps
+  when it first drives an LED just set, measured at most 0.916 ms more
+  over the keys script. The event is decided in the slot after its
+  column's, so its LED waits about 11 slots for that column to come round
+  again: 0.917 ms from event to LED at most, within one scan.
 
 ### 2026-10-23 M3: which fwtest number is which control, confirmed
 - The keys case presses each of fwtest's keys 0 to 40 alone. Each gave

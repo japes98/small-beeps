@@ -66,14 +66,16 @@ the suite through tools/fwtest (the pinned image), and then checks:
   base starting anywhere within START_SLACK. keys: every key and button
   alone gives control n for fwtest key n, press and release, within
   KEY_LATENCY; its LED lit while held and dark otherwise (leds.csv), set
-  within LED_LAG_MS of its event. chords: no ghost, chatter and a glitch
+  within LED_LAG_MS of its event (the firmware's own measure). chords: no ghost, chatter and a glitch
   debounced, encoders exact with keys held in their columns, the panel
   screen against its golden image. encoders: slow detents within
   ENC_LATENCY, exact positions after fast, shared-column and all-at-once
   turns, and every tick interval within INTERVAL_TOL meanwhile. pot:
   steps within POT_FIRST and POT_SETTLED, one way each, no events at rest
   with noise, a rising sweep to 1023. leds (a test build): every LED at its
-  brightness step within LED_STEP_TOL.
+  brightness step within LED_STEP_TOL. ledshow (a test build, the keys
+  script): from input_led to the scan first driving that LED, within
+  LED_SHOW_MS (one scan).
 
 Prints what it saw for the record, and exits 1 if anything failed.
 """
@@ -93,12 +95,12 @@ IMAGE = os.path.join("out", "fw", "app.bin")
 # Test images: name -> define (firmware/src/probe.c).
 TEST_BUILDS = {"test-fault": "SB_TEST_FAULT", "test-stray": "SB_TEST_STRAY",
                "test-badinsn": "SB_TEST_BADINSN", "test-flood": "SB_TEST_FLOOD",
-               "test-leds": "SB_TEST_LEDS"}
+               "test-leds": "SB_TEST_LEDS", "test-ledshow": "SB_TEST_LED_SHOW"}
 # Each case's expected outcome (the suite says the same; checked twice).
 EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "completed",
           "screen": "completed", "flood": "completed", "fault": "halt", "stray": "halt",
           "badinsn": "fault", "keys": "completed", "chords": "completed", "encoders": "completed",
-          "pot": "completed", "leds": "completed"}
+          "pot": "completed", "leds": "completed", "ledshow": "completed"}
 
 MARKER = 0x44304253        # "SB0D", firmware/src/sb.h
 TICKS_PER_MS = 24000       # HW-13
@@ -508,8 +510,8 @@ def check_flood(case_dir, result, screen_dir):
 # Since M3: the panel's controls and LEDs (firmware/src/input.h).
 INPUT_ADDR, INPUT_LEN = 0x01c00060, 0x4f0
 INPUT_FIELDS = ("cycles", "events", "dropped", "taken", "led_calls", "led_time", "led_control",
-                "led_lag_max", "pot_raw")
-INPUT_VALUES = 51          # input_value() for 49 controls, padded
+                "led_lag_max", "pot_raw", "led_show_max")   # input.h's order
+INPUT_VALUES = 50          # input_value() for 49 controls, padded
 INPUT_LOG = 128
 PRESS, RELEASE, TURN, MOVE = 1, 2, 3, 4
 KINDS = {PRESS: "press", RELEASE: "release", TURN: "turn", MOVE: "move"}
@@ -539,6 +541,7 @@ KEY_LATENCY = (2.5, 4.5)   # ms: four scans in a row, 1 ms apart
 ENC_LATENCY = 1.5          # ms after a detent's last contact change
 POT_FIRST, POT_SETTLED = 1.5, 4.5
 LED_LAG_MS = 1.0           # from an event to its LED set by main
+LED_SHOW_MS = 1.01         # from input_led to the scan driving it: one scan
 LED_FULL_DUTY = (75, 92)   # thousandths: lit in 1 of 12 scan slots (83.3)
 LED_STEP = 1000.0 / 96     # one eighth of that
 LED_STEP_TOL = 2
@@ -800,8 +803,23 @@ def check_leds(case_dir):
     return problems[:20], lines
 
 
+def check_ledshow(case_dir):
+    """The keys script on the test build that times, in the scan, when an
+    LED just set is first driven: from the event to main's input_led, and
+    from there to the scan's slot for that LED's column (R-LED-3)."""
+    head, _, _ = input_record(os.path.join(case_dir, input_name("end")))
+    lag, show = head["led_lag_max"] / TICKS_PER_MS, head["led_show_max"] / TICKS_PER_MS
+    lines = ["  82 LED changes: set by main at most %.4f ms after their event, then driven by the scan"
+             " at most %.4f ms later: %.4f ms from event to LED at most" % (lag, show, lag + show)]
+    if head["led_calls"] != 82 or not 0 < show <= LED_SHOW_MS or lag > LED_LAG_MS:
+        return ["ledshow: %d LED calls (82 expected); event to input_led %.4f ms (at most %s), input_led to"
+                " the scan %.4f ms (more than 0, at most %s)"
+                % (head["led_calls"], lag, LED_LAG_MS, show, LED_SHOW_MS)], lines
+    return [], lines
+
+
 INPUT_CHECKS = {"keys": check_keys, "chords": check_chords, "encoders": check_encoders, "pot": check_pot,
-                "leds": check_leds}
+                "leds": check_leds, "ledshow": check_ledshow}
 
 
 def build_tests(build):

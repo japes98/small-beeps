@@ -8,8 +8,10 @@
  * mark sees the third (R-PERF-3, R-PERF-5). tools/fw-suite.py builds it
  * with each of SB_TEST_FAULT, SB_TEST_STRAY and SB_TEST_BADINSN, which go
  * wrong on purpose once interrupts are on (R-IRQ-3, R-IRQ-4), and with
- * SB_TEST_FLOOD, which keeps the panel busy (R-LCD-5), and SB_TEST_LEDS,
- * which sets every LED to its own brightness (R-LED-2). The firmware itself
+ * SB_TEST_FLOOD, which keeps the panel busy (R-LCD-5), SB_TEST_LEDS,
+ * which sets every LED to its own brightness (R-LED-2), and
+ * SB_TEST_LED_SHOW, whose scan times when it first drives an LED just set
+ * (input.c; R-LED-3). The firmware itself
  * is built with none, and then nothing here is compiled.
  */
 
