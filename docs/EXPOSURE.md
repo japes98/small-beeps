@@ -763,6 +763,39 @@ SR-3 wrote only its barrier-log row.*
     - without #51, also the Python heredoc that drafted the reviewed
       entries and the heredoc that wrote their reasons to a scratch file.
 
+### Session M4b (platform load test, the loaded-case budget)
+- Date: 2026-10-23
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.309 (banner), Remote Control from the owner's phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `50aec508-1493-4c23-82a2-bcba20250bc4`,
+  started by a `/clear` at 09:37:34Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh` found main at
+  `e742f15` and ended "no spec-side files on disk or in .git";
+  `tools/private-terms.local` exists (not opened). It archived M4
+  (`7e415aa7`) into `sessions/clean/`; no other clean session was left
+  unarchived (M0d's `b7ed6c1a` only gained Claude Code's closing metadata
+  lines after its archive, as before). `tools/check-transcripts.py`
+  flagged the three calls M4 predicted (with #51 merged); the session
+  printed only those commands from the redacted archive. Each names a rule
+  ID as text; the owner approved all three in the session, and the check
+  passed. The owner also asked for the check's rule IDs to stop spelling
+  out forbidden names.
+- Privacy: tool output showed the local username and top folder in paths
+  (Claude Code's project folder, the archiver's messages); they were never
+  written to the repository, and the archiver redacts them from this
+  transcript.
+- Reads: CONTRIBUTING.md, this file, sessions/README.md,
+  sessions/REVIEWED.json, docs/prompts/M4.md, the redacted archive of
+  `7e415aa7` (the three flagged commands only), and this repository's
+  tools, tests, docs and firmware. It does not open anything on the
+  forbidden list or anything under the three spec-side folders.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
@@ -838,6 +871,7 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-23T02:10:46Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session audit-selftest starts; banner `status: OK`. 02:11:08Z: `tools/spec-setup.sh`, banner `status: OK`; SR-3's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-23T02:52:56Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session record-fixes-1 starts; banner `status: OK`. 02:53:13Z: `tools/spec-setup.sh`, banner `status: OK`; audit-selftest's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-23T03:15:52Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M4 starts; banner `status: OK`; `tools/clean-update.sh` found main at `c36ae5f` and passed; M3 archived; `tools/check-transcripts.py` PASS with the 47 reviewed entries the owner approved in the session |
+| 2026-10-23T09:37:34Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M4b starts; banner `status: OK`; `tools/clean-update.sh` found main at `e742f15` and passed; M4 archived; `tools/check-transcripts.py` PASS with the 3 reviewed entries the owner approved in the session |
 
 ## Model cutoffs
 

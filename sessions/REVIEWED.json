@@ -940,6 +940,27 @@
       "rule": "FM-1 SID firmware",
       "reason": "Wrote the M3 start pull request's body to a scratch file and opened the pull request; the body lists the reviewed calls with their rule IDs. Nothing forbidden was opened, fetched or searched.",
       "added_by": "session M4 (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "7e415aa7-2f39-4b77-b660-6461b541a9cb",
+      "tool_use_id": "toolu_01Rd1nsRVzGziwMeA3JRHqsW",
+      "rule": "FM-1 SID firmware",
+      "reason": "A python3 -c that added M3's first three reviewed entries to sessions/REVIEWED.json, then ran the transcript check. Its text holds a rule's ID as a dictionary key; it opened only that file and scratch files.",
+      "added_by": "session M4b (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "7e415aa7-2f39-4b77-b660-6461b541a9cb",
+      "tool_use_id": "toolu_01KdhFeFyBU9J8hkX7tYkSMA",
+      "rule": "FM-1 SID firmware",
+      "reason": "The same kind of python3 -c, run after the owner approved: it re-marked M4's entries as approved and added the last three to sessions/REVIEWED.json. A rule's ID appears as a dictionary key; it opened only that file and scratch files.",
+      "added_by": "session M4b (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
+    },
+    {
+      "session": "7e415aa7-2f39-4b77-b660-6461b541a9cb",
+      "tool_use_id": "toolu_019mL64ZwkmMw66aGeR8hgkC",
+      "rule": "FM-1 SID firmware",
+      "reason": "A python3 -c that printed which of the session's own calls a preview of the check flagged, by searching a scratch copy of the session's own transcript for the rule's text. Nothing forbidden was opened, fetched or searched.",
+      "added_by": "session M4b (firmware side, claude-opus-5-5), 2026-10-23, approved by the owner in the session"
     }
   ]
 }
