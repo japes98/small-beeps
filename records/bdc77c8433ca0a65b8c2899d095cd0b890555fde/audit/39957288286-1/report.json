@@ -1,0 +1,7949 @@
+{
+ "schema": 1,
+ "set": "full",
+ "commit": "bdc77c8433ca0a65b8c2899d095cd0b890555fde",
+ "run": "https://github.com/japes98/small-beeps/actions/runs/39957288286",
+ "jplag": {
+  "version": "6.3.0",
+  "sha256": "5f2c21e8b88ed77134effcb3a5a3ab13d188f6a3e16d401387f7479e92db9aa2"
+ },
+ "java_image": "eclipse-temurin@sha256:dbb43d81099eec91e0800226ed2296d03146ee7857165b95112372ad0d67e87f",
+ "margin_tokens": 24,
+ "control_ceiling_tokens": 100,
+ "min_tokens": 12,
+ "control": {
+  "repo": "raspberrypi/pico-examples",
+  "commit": "4c3a3dc0196dd426fddd709616d0da984e027bab",
+  "licence": "BSD-3-Clause",
+  "files": 244
+ },
+ "targets": [
+  {
+   "repo": "2bbb/fm1-firmware-collection",
+   "commit": "ba2b078cd5cce039c15da23031ff1f40b1a8fdad",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "7oi/sloop-fm1",
+   "commit": "bb6e53f67bec7b618aefbbe09966b1b7314b4abe",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 124,
+   "new_files": 124,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "aaasss01061997-bot/Fm-Music-",
+   "commit": "cf01ef464cbb98897c079982681d98291c7f8a1e",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "abcdaniel/Felucca",
+   "commit": "ac6bfcbd76ee3de79eb461719e8d123b5512aa3c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 142,
+   "new_files": 134,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "abcdaniel/fm1-custom-fw",
+   "commit": "51a35ccb5d623ebf6def8d530e13a298c8c354d2",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "abcdaniel/fm1-x0x",
+   "commit": "201e5c5c1ac056a028a006bd1eabb23ac1bb174d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 85,
+   "new_files": 77,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "abcdaniel/lunar-modulator",
+   "commit": "64209e3c08222ada0eb61afcaef89e909ae07955",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 465,
+   "new_files": 455,
+   "ours_longest_tokens": 28,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 18,
+    "cannot_parse": 8
+   }
+  },
+  {
+   "repo": "abcdaniel/sloop-fm1",
+   "commit": "a1c5d68767ae10fafb6821dc63b9b1fc490342d2",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 101,
+   "new_files": 72,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "aceyprime/zen-1",
+   "commit": "ec9295233ea64ddac224b58b4d07216706c1b8ee",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 79,
+   "new_files": 48,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 4,
+    "too_small": 5
+   }
+  },
+  {
+   "repo": "actuallysparky/FM-1-Unholy-Union-generative-drone-firmware",
+   "commit": "273e9b511f1fb36d6e93296e87b5a9a8ad79281c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 176,
+   "new_files": 115,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "adamcharleswilsonmusic-code/Fart-Machine-One",
+   "commit": "aa95a031915189416c6229846f80c37eac61499a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 58,
+   "new_files": 25,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "adamcharleswilsonmusic-code/RAMBEAVER",
+   "commit": "a13eb60137ac7b6f43c79fc8f20c7d74b97a1436",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "adamcharleswilsonmusic-code/Trumpagotchi",
+   "commit": "976b6e65dc968a6f9bfa946e6d300e61aa69ebb6",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 71,
+   "new_files": 28,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "adriandomc/dino-synth",
+   "commit": "8c13a1edd096133f51182bb32d342e4715fd150b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 126,
+   "new_files": 34,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "AETHER-ENGINEERS/fm1-emu",
+   "commit": "84d3c3b460d982549c220c77e91c298470cab90a",
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 32,
+   "new_files": 32,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "afta8/fm1-emu",
+   "commit": "7196a9f45bb19677b31d258a23a23dd09e0db9de",
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 31,
+   "new_files": 0,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "ajsoriar/Felucca",
+   "commit": "1727537624390cc3f9c7dff2456b43b3a8edb005",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 166,
+   "new_files": 65,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "AL-255/FM-1-RE",
+   "commit": "ec832f281ca165a7d5e0722985f3acb1465046d5",
+   "licence": "WTFPL",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 3,
+   "new_files": 3,
+   "ours_longest_tokens": 13,
+   "control_longest_tokens": 22,
+   "not_parsed": {}
+  },
+  {
+   "repo": "AlexanderSeel/TheReFmB1rth",
+   "commit": "5e2cc6fa89cb34241e40241054abc3433d4743e0",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 63,
+   "new_files": 63,
+   "ours_longest_tokens": 20,
+   "control_longest_tokens": 27,
+   "not_parsed": {
+    "too_small": 6
+   }
+  },
+  {
+   "repo": "AlexPavAi/Felucca-m-vave-fm1-firmware-",
+   "commit": "1e838e17e170b20ff09b9660c9a7171aadfc5dca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 67,
+   "new_files": 44,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "AlexPavAi/sloop-fm1",
+   "commit": "d691ba7b2d922f1a1f41a3622cffe29ce41c5506",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 93,
+   "new_files": 38,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "amacias/octo-vave",
+   "commit": "f97ccd4eef25c0c779e3514a3e4f23b28c0a5271",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "amalahama/sloop-SMK37",
+   "commit": "f2b44c219b8a4ac00bc06dca756cdae8a259dd1a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 91,
+   "new_files": 17,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "ambientsoundartist/Felucca",
+   "commit": "5738617968a22b5d4c0d3470cfcc95559052f446",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 163,
+   "new_files": 43,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "amineferjani/Back_FM",
+   "commit": "0af0e78f0820e7ae0e6480cfb599f7ca8e6bb908",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "andreahaku/Felucca",
+   "commit": "727f272015da26eb2d0291bd652eba28ff57cb37",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 123,
+   "new_files": 75,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "andreahaku/fm1-chord",
+   "commit": "377235d9f39a362e673f8fd60a26f0b1748218e7",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 139,
+   "new_files": 46,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "andrerezemini/sloop-lab",
+   "commit": "3b83f31020f5579f226e12aec58aacd70486e536",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 118,
+   "new_files": 36,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "andrixb/OPQuencer",
+   "commit": "b992291caa6e7a30832da3502902580fa32fba25",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 161,
+   "new_files": 32,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "anonymousacademe/FM-1-GrooveDeck",
+   "commit": "20bf2de4a687ebb3b20efdb4ff1ceb11099989e5",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 31,
+   "new_files": 10,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "anonymousacademe/FM-1-TripDeck",
+   "commit": "a977f53558b7106d594f03654d4beba9d2ff7477",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 36,
+   "new_files": 9,
+   "ours_longest_tokens": 34,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "ant25fr/JIANT",
+   "commit": "5300f79a2e3d0658ba606a394d7ac7895a937557",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 187,
+   "new_files": 156,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 8,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "AntonioAltea/fmel-1",
+   "commit": "3a4de21bf0151d8f494e8836b34beb13166e36c2",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 37,
+   "new_files": 14,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "apiel/fm1-tribe",
+   "commit": "fd7ae3ea5968e8cc914cf693c5eb295884edd880",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 129,
+   "new_files": 75,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 5
+   }
+  },
+  {
+   "repo": "arksat/melodee",
+   "commit": "1a71d999dcf4925f4cd46bf62c851599e3ff41c7",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 217,
+   "new_files": 199,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "arksat/sloop-fm1",
+   "commit": "d3a8385f56ce873578330651685491afbce7c8af",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 115,
+   "new_files": 19,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "aroum/fm1-custom-fw",
+   "commit": "9b7e9b5cfd9b425e842d3390382472eb44ffb2c2",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "artqcid/fm1_open",
+   "commit": "24beff707163f65f39a2a8f4e0e6b656115d6aec",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 124,
+   "new_files": 124,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 24,
+   "not_parsed": {
+    "too_small": 34
+   }
+  },
+  {
+   "repo": "atachh/sloop-fm1",
+   "commit": "8fad1a15ff59d5c3ed0bfe2d7a9ae90962cf4d5e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 114,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "awolace/IVee",
+   "commit": "ba06586414040230d802da5c03ad34152611c793",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "babage/fm1_open",
+   "commit": "5d3eac2573dbd054254fabda6fde099adc594348",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 120,
+   "new_files": 35,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 24,
+   "not_parsed": {
+    "too_small": 34
+   }
+  },
+  {
+   "repo": "balancechiang/fm1_alt",
+   "commit": "b178ac43c25f010c60a878056fb5331fe693fd62",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 122,
+   "new_files": 13,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 24,
+   "not_parsed": {
+    "too_small": 35
+   }
+  },
+  {
+   "repo": "barrule/fm1-emu",
+   "commit": "7ca5b96c9e828dea5176fc60f0b945abbf442895",
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 32,
+   "new_files": 0,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "Batora07/ChoralRootFM1",
+   "commit": "aa5875af20e3046ee161f988c5d91d3ae66d0c74",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 213,
+   "new_files": 142,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 12,
+    "too_small": 6
+   }
+  },
+  {
+   "repo": "bbmusichun/fm1_open",
+   "commit": "4d266850f8a46bd5154a0d495c1f60317156c9f7",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 124,
+   "new_files": 0,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 24,
+   "not_parsed": {
+    "too_small": 34
+   }
+  },
+  {
+   "repo": "beashoko/april-os",
+   "commit": "6b65734fad087a114773fae5f7e6c11410b00f6c",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "bedwards/sloop-fm1",
+   "commit": "e421e4362e41c45d5c9949b37ac96ce45585accd",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 88,
+   "new_files": 25,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "beingsane/Felucca",
+   "commit": "20c275e39f75fa820978032efaceddfc5283c8cb",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 123,
+   "new_files": 5,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "beingsane/fm1-firmware-patcher",
+   "commit": "4cfab602455168d0670fdf2ccf6979ef3b0bea3b",
+   "licence": "Unlicense",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "benbadio/hera-fm1",
+   "commit": "76b7ee8484d24163587cfbca759f7b19f7457105",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 85,
+   "new_files": 53,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "benny-sparra/fm1-dx7-patch-importer",
+   "commit": "c11ab28cbc1ecec045122f338c1ee327b36a5752",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 4,
+   "new_files": 4,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "birkmann/Ravel_FM1",
+   "commit": "8d89317f92bb71c2431ade0d3c7f65934f4282fe",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 69,
+   "new_files": 50,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "bonszaimusic/caravel",
+   "commit": "97022acaa6fcd6622799669c13a9066df5556071",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 209,
+   "new_files": 115,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "bratta/fm1-manager",
+   "commit": "64cad0932ae2c1b97320d3dab4eb1e40893eb647",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "briwil/Felucca",
+   "commit": "44abc098d5f6d11d776aa40a0a435b89d38411c8",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 137,
+   "new_files": 70,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "bunglesociety/modular-one",
+   "commit": "bd6e6d0566563719bab3aad8c1e445452a7a177c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 78,
+   "new_files": 37,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "carlosshawplatino/Felucca",
+   "commit": "2da8ee0f3e8a9262d54f3f39e66fbc7deb09875e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 163,
+   "new_files": 3,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "cartesive/fumi-1",
+   "commit": "9de99261fc3c41717336c2eb87ef51801aa52ca3",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 67,
+   "new_files": 17,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 3,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "catacombius/NoteSorcery",
+   "commit": "73d6cdd6d2a006fad9df4f2227757b8131fe6ef6",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 138,
+   "new_files": 89,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 5
+   }
+  },
+  {
+   "repo": "cdodd/felucca-vst",
+   "commit": "91addeeb989b64b8fc5d61bb35a73c8618ef6e16",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 14,
+   "new_files": 14,
+   "ours_longest_tokens": 25,
+   "control_longest_tokens": 18,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "ChanceTheMaker/doom-fm1-smk",
+   "commit": "b705a7b06e01e74363d6ad556af1570349bc79a4",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 103,
+   "new_files": 87,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 10
+   }
+  },
+  {
+   "repo": "ChanceTheMaker/Felucca",
+   "commit": "1a345338f6eb8fadc239a043cb96c8a34e8a6c69",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 83,
+   "new_files": 44,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "ChanceTheMaker/felucca-smk",
+   "commit": "9a73145a6ed631cae8431367b77d2bfb6b3ac52f",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 281,
+   "new_files": 131,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "ChanceTheMaker/gamedude-fm1-smk",
+   "commit": "47d83306d7b61068415eb727a1479e71f7446b15",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 125,
+   "new_files": 71,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 9
+   }
+  },
+  {
+   "repo": "ChanceTheMaker/NESynth-FM1-SMK",
+   "commit": "3fdbe3e6bab8cd4277627c8e9b879f7ab3c81a5c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 148,
+   "new_files": 119,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 10
+   }
+  },
+  {
+   "repo": "ChanceTheMaker/sloop-fm1-sim",
+   "commit": "3dbf5707741048f099120794660aa41b1b65e810",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "charlesvestal/fm1-amb",
+   "commit": "188b0a42f20a547864e732ae5ea1339d0fbcf395",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 9,
+   "new_files": 9,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 19,
+   "not_parsed": {}
+  },
+  {
+   "repo": "charlesvestal/fm1-base",
+   "commit": "865bc2f416813e0f9cd64c762f1399f44a51cd09",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 48,
+   "new_files": 48,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 1,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "charlesvestal/fm1-ctl",
+   "commit": "e181b4a1ac1510ce18ebf6e271a143c2fe364ccd",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 94,
+   "new_files": 94,
+   "ours_longest_tokens": 23,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 38
+   }
+  },
+  {
+   "repo": "charlesvestal/fm1-fomni",
+   "commit": "7e7547f384fe70b7e89cfd725b0a211bcc60db05",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 50,
+   "new_files": 11,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "charlesvestal/fm1-loom",
+   "commit": "e88f2e00ec60d299b623c28b038db54409fdeff1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 44,
+   "new_files": 44,
+   "ours_longest_tokens": 44,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 4,
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "charlesvestal/fm1-mocky",
+   "commit": "facab5da0add2ceac845d3ff117c1d350d88b26b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 40,
+   "new_files": 11,
+   "ours_longest_tokens": 18,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "charlesvestal/fm1-monk",
+   "commit": "793710689adbd6327c99771d9f274030a9530cc1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 53,
+   "new_files": 21,
+   "ours_longest_tokens": 32,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "charlesvestal/fm1-polly",
+   "commit": "62cd07ea7c95c30021c31e957cea8be448415fa7",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 137,
+   "new_files": 63,
+   "ours_longest_tokens": 25,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 40,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "charlesvestal/fm1-radio",
+   "commit": "66d62558bc715eb7b1244d7f5febc799d78e5e7f",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 661,
+   "new_files": 661,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 35,
+   "not_parsed": {
+    "too_small": 187,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "charlesvestal/fm1-reader",
+   "commit": "2f49d91c142b1304fc5654496b35d40607d8511e",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 3,
+   "new_files": 2,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 14,
+   "not_parsed": {}
+  },
+  {
+   "repo": "charlesvestal/fm1-velocity",
+   "commit": "8f62ce0d968c91ce8bfdafbb908f81d15351650a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 47,
+   "new_files": 13,
+   "ours_longest_tokens": 18,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "charlesvestal/fm1-x0x",
+   "commit": "54194c54bb01e9d9b3fe9d641b3ddfa512ac04a3",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 91,
+   "new_files": 19,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "charlesvestal/melodee",
+   "commit": "6a30eba1a7893239f455a92bf2789b42c59560e9",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 178,
+   "new_files": 98,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 6
+   }
+  },
+  {
+   "repo": "chinotto1/unibox",
+   "commit": "bd184eba685754634ded832b27f493246c3998c6",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 70,
+   "new_files": 38,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "cicloid/awesome-fm-1",
+   "commit": "a7be23a05a2a7691c3f3c39fa4b5a9b20595c6f4",
+   "licence": "CC0-1.0",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "claudehenchoz/orbit",
+   "commit": "dc3cd08482fa12fa31789471add49bbb54b304d0",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 134,
+   "new_files": 118,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "cmlarsen/fm1-rocket-os",
+   "commit": "d269df962a6d023f47e7f31e0dec64b05bb742ab",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 166,
+   "new_files": 113,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 9,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "cmlarsen/fm1-zed",
+   "commit": "218b8fd736fd80449718339963a7917b6e7ba8a8",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 159,
+   "new_files": 16,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "Co-oscillator/Loom-FM-1",
+   "commit": "a11bc8ce6ce779f037ab39cbbc7e9f05119f28ce",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 176,
+   "new_files": 49,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "codeine4563-netizen/fm1-pico-recovery-guia-en-espa-ol-para-uso-de-raspberry-pi-pico-rp2040-",
+   "commit": "066f5eb1f9312c10bd7f77242bbfd07b0af48d98",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "colofonbrigade/hortator",
+   "commit": "ea643d42fc2f08d3005e3aa8bdff59ce21f945c0",
+   "licence": "Apache-2.0",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "cotrino/fm1-betis-mode",
+   "commit": "84d6ad4e8b6acf88117ec865b1f22725562413ee",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 134,
+   "new_files": 14,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 24,
+   "not_parsed": {
+    "too_small": 37
+   }
+  },
+  {
+   "repo": "CoydeLau/sloop-fm1",
+   "commit": "fa9ce5742f4aea9484e7c129dd81079d07e7321f",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 109,
+   "new_files": 21,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "curist/fm1-clk320-probe",
+   "commit": "e1c6d99af110efb59a976ff86fc7334c36e94045",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 90,
+   "new_files": 13,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "czietz/fm1-dx7-patch-importer",
+   "commit": "3b69028a51f01420d75fb1906cf2e0f3eaa4a0a1",
+   "licence": null,
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 3,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "czietz/fm1-firmware-patcher",
+   "commit": "58569017a4f9de0925250beb9af0f90bcf8b62bf",
+   "licence": "Unlicense",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "czietz/fm1-read-voice",
+   "commit": "b7c539f2ca4a492d5ee8afdfb39ad9b3ca89a30e",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "d0pe1/md-one",
+   "commit": "70528bfb9887d242a495c780cde18223e4e8a5ef",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 101,
+   "new_files": 60,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 10
+   }
+  },
+  {
+   "repo": "danilokosky/fm1_VA_Moog",
+   "commit": "5238cfab4061286f2f020da428fa41a953ec4fea",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 126,
+   "new_files": 3,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 24,
+   "not_parsed": {
+    "too_small": 34
+   }
+  },
+  {
+   "repo": "davidozz0/clipper-smk",
+   "commit": "42cb76ed6a4942ce3b471cd6cb0801dfa3b3e817",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 167,
+   "new_files": 118,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "davidpryan/generativefm1",
+   "commit": "f0d3dcdbb7d718b656072110fd271015fd0adf8e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 166,
+   "new_files": 20,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "davidpryan/haunted-fm1",
+   "commit": "bd031d3722c5e3432392b6e60979379ad2bead1c",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 22,
+   "new_files": 22,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 29,
+   "not_parsed": {}
+  },
+  {
+   "repo": "davidpryan/witchbox",
+   "commit": "4c58958716c882389c5a0374175df33c88dd7775",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 42,
+   "new_files": 16,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "De-Pattern/Ravel_FM1",
+   "commit": "9e676aed0bdf90028faaa8a4487628ec380cd6b0",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 69,
+   "new_files": 11,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "deabrewcontato-code/Selva1",
+   "commit": "68ea6cd9897c1c1aa09c2d7a5eab491dcf9c64bb",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 138,
+   "new_files": 30,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "DeadActive/Felucca",
+   "commit": "6ebf8fe6546d4eb854e113ccd4a796561d8ff656",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 206,
+   "new_files": 56,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 6,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "DeadActive/FMDj",
+   "commit": "10f98c0cc24677f3bdf0f89570bffdb033d3a68b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 178,
+   "new_files": 75,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 6,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "DeadActive/hortator",
+   "commit": "7330f69475f08f9099a8a4acbc9f860f18003b48",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 192,
+   "new_files": 156,
+   "ours_longest_tokens": 31,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 7,
+    "too_small": 7
+   }
+  },
+  {
+   "repo": "Derfisfred/fm1-dx7-patch-importer",
+   "commit": "585dd3c471fff86a57e329afae6ab61b6dfeb9ed",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 4,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "devrvega/BOP-1",
+   "commit": "2bb0d6b74574332d9fa4d61373fbd56a48c63dc1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 61,
+   "new_files": 33,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "devrvega/CRT-4",
+   "commit": "f302c434999ef69a7521c71f0c887b21611bb24a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 71,
+   "new_files": 41,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 28,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "devrvega/IND-1",
+   "commit": "fa09b621d6f465a329dfc6e0ccb1e87687e635be",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 48,
+   "new_files": 16,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "devrvega/LCD-4",
+   "commit": "9676218821be9fd65600dc74fcc68bd8ff5ba2b2",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 53,
+   "new_files": 21,
+   "ours_longest_tokens": 25,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "devrvega/ROM-1",
+   "commit": "3ffaac77790f2b4ae9a2b0aa8dd00b6c70dc5185",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 52,
+   "new_files": 25,
+   "ours_longest_tokens": 25,
+   "control_longest_tokens": 31,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "devrvega/SEQ-4",
+   "commit": "97c813564c3ef453f519419cdcfac102375146bf",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 57,
+   "new_files": 28,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 28,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "DimmKirr/core-fm1",
+   "commit": "eea1d0aca5fef8bf35770d34d98493e3ddc37800",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 239,
+   "new_files": 67,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 18,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "DimmKirr/setup-fm1-emulator",
+   "commit": "94ac4ae52af028e8bff1f2a932727a22af55b9ef",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "Discodave-Glitch/eight-bells",
+   "commit": "5a67521c2b6de9dd53102b3574c9ac52d6aa67f2",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "Discodave-Glitch/slipway",
+   "commit": "34d1a6630db11742140121ebfdf860dbb6b1d572",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "djStrombo/ChoralRootFM1-backup",
+   "commit": "77c892bdc34be5a2ef363ad74a333b007641aab5",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 137,
+   "new_files": 26,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "djStrombo/felucca-smk",
+   "commit": "00197c1761d060546d07e658c17088477e472482",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 270,
+   "new_files": 30,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 7
+   }
+  },
+  {
+   "repo": "djStrombo/FM1-to-SMK37",
+   "commit": "dffe5d757c5cc8e2e6ecedd158cbd8949db51195",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 93,
+   "new_files": 2,
+   "ours_longest_tokens": 28,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "djStrombo/SMK-dee",
+   "commit": "28ab1099dc388a521b2937d392cafd3a8487eb49",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 251,
+   "new_files": 226,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 9,
+    "cannot_parse": 6
+   }
+  },
+  {
+   "repo": "djStrombo/SMK-zp12",
+   "commit": "587a8316287ecc2c6f98f3686e201c64d6cfeb07",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 62,
+   "new_files": 39,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 29,
+   "not_parsed": {
+    "too_small": 7,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "DLSR-S/Financial-Modelling-V1",
+   "commit": "a59580c4d29a5acf63eb2ab2ccd368972955b087",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "DocAtPrompt/awesome-fm-1",
+   "commit": "644524686b74474405db8211b782fcf0ff7eb2a3",
+   "licence": "CC0-1.0",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "dolceglobalize/Felucca",
+   "commit": "9cbab8c1e2d331b05726ab2c8e05c449911f24ab",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 123,
+   "new_files": 30,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "domesticmouse/Felucca",
+   "commit": "96f228c07ba7ca8446a75470290f5c0945669693",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 163,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "doofywilsons-rgb/Tall-Horse-Firmware-Hub-Website",
+   "commit": "c4ef43a7f2ce1e1670e28cd981eeabc03f3ee290",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "doohinkus/Felucca",
+   "commit": "863773419cad68f3d048a3684bbe53974b6d1b69",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 166,
+   "new_files": 15,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "dpwe/fm1-amy",
+   "commit": "5244e5ef51da8f93d18650054031a5732068258a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 94,
+   "new_files": 6,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "drhl88/fm1-amb",
+   "commit": "60dfbec4602497616d6a196be78e9288dc7c615a",
+   "licence": "GPL-3.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 48,
+   "new_files": 16,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "drok123/FM-Tracker",
+   "commit": "51922dc71328b8a1470e7251306af09c0fd36fb9",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "dsablic/sidou",
+   "commit": "540b4f6088fc053e5f683c0874e2db779fa5d832",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 274,
+   "new_files": 255,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 24
+   }
+  },
+  {
+   "repo": "dspaudio/mc-1",
+   "commit": "10a2240d7f3c63e3ed551774a8e17fb24ed002b8",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 97,
+   "new_files": 85,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "dspaudio/orbit",
+   "commit": "c07bd1d87dcb1e90180d1765d96b834c3dc68479",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 134,
+   "new_files": 14,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "dspaudio/orbit-web-emu",
+   "commit": "533f6ca9a97110249577427752475fb3381fbf40",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 2,
+   "new_files": 2,
+   "ours_longest_tokens": 16,
+   "control_longest_tokens": 14,
+   "not_parsed": {}
+  },
+  {
+   "repo": "duncanwadsworth/fmini-1",
+   "commit": "f4204df32e09e0553a1d557956ee9f5a5a4841b3",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 171,
+   "new_files": 36,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "durutti320/fm1-base",
+   "commit": "71128a31acaff598f48191c2aaee2eb9c83fb8f3",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 48,
+   "new_files": 0,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 1,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "dzwerg/analogBEAST",
+   "commit": "1b578d927aac1c9fd54c3c4ff001f54d28c63451",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 202,
+   "new_files": 65,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "echoe/Felucca_seq_per_track",
+   "commit": "21fc592dab76907b6bea34d97950dfe129ad9fd8",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 175,
+   "new_files": 41,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "effdst/FOF",
+   "commit": "30aa882bad0af978e11fa10d6f2dfab18a0f92fe",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 64,
+   "new_files": 44,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 29,
+   "not_parsed": {
+    "cannot_parse": 3,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "ehn96/Falua",
+   "commit": "73fc26cf0a6c3116decd5c337d83650782db3d7a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 98,
+   "new_files": 54,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 5,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "ejtb76/FMLarynx",
+   "commit": "63c086013bfed23d1187930f2a32e9ae20c21bbb",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 29,
+   "new_files": 4,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "eldontyrellcorp/Mini-Tone",
+   "commit": "ed463887e5773930978b2b7f6baa81d115dfd56c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 170,
+   "new_files": 89,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "Electro-Dig/function-acid-fw",
+   "commit": "ffc9fa6f0eb6aadd1ea9f2b304e5d4ddda03ba1a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 37,
+   "new_files": 11,
+   "ours_longest_tokens": 28,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "ELI7VH/Felucca",
+   "commit": "66f1d2702f73e4de2319b9b0c7143519f794004e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 140,
+   "new_files": 57,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "ELI7VH/melodee",
+   "commit": "16daf99ea797f2e4f6b5e40065942df3648d08b9",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 216,
+   "new_files": 138,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 3,
+    "too_small": 7
+   }
+  },
+  {
+   "repo": "Erbubar23/bubba-machine",
+   "commit": "50a33749aa623fce2655010a5933188b8dc11d7f",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 124,
+   "new_files": 105,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 8
+   }
+  },
+  {
+   "repo": "EremanSim/ChoralRootj-6",
+   "commit": "5b9104bc97115b71e54c28aa77c20aac4042f7cd",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 203,
+   "new_files": 58,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 6,
+    "cannot_parse": 9
+   }
+  },
+  {
+   "repo": "erikdevos/glitchbox",
+   "commit": "902868510b307e1ed31c43eedd29991e16e42700",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 161,
+   "new_files": 27,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "EthanJantz/fm1_open",
+   "commit": "98ce13430c99e1254d6975b152d6fa3f4714f51c",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 122,
+   "new_files": 0,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 24,
+   "not_parsed": {
+    "too_small": 35
+   }
+  },
+  {
+   "repo": "etyrnal/ChoralRootFM1",
+   "commit": "13b0adba62b98f95478992cdb16bec956f8cbeb2",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 253,
+   "new_files": 139,
+   "ours_longest_tokens": 40,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "cannot_parse": 23,
+    "too_small": 8
+   }
+  },
+  {
+   "repo": "etyrnal/fm1-amb",
+   "commit": "d9ef0a35823bbad8edc7cc0feb2eae59539e4081",
+   "licence": "GPL-3.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 49,
+   "new_files": 6,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "etyrnal/fm1-custom-fw",
+   "commit": "add92d4237e2ef876651f71ebd2aeb18c9315eb4",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "etyrnal/MvaveFM1-Designer",
+   "commit": "10e580eb1b2f98a08adbf6a258affe53a5bd44fd",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "etyrnal/skiff",
+   "commit": "c4bb2b4e9015cf6244f98db1d319874e15eb0767",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 177,
+   "new_files": 123,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "etyrnal/sloop-fm1",
+   "commit": "4ec1ac829fd2bdf2c571ea215fb3d62477d01220",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 124,
+   "new_files": 1,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "evanyerburgh/niagara-drift",
+   "commit": "fe6d5e612c0db4c8c563ba097c1f0d46fc392a0e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 53,
+   "new_files": 21,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 3,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "feiyunwill/sloop-fm1",
+   "commit": "ba54ba5f0e7f6e0a1a3499497809e1e6c1ad7e8c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 124,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "felipesuarez-dev/april-os",
+   "commit": "f2356c2f9030d69c7ae1261b86639b1fa6bf79f4",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "fenderberg/fm1-nc-companion",
+   "commit": "3b455ff449dd1f324ed6f56bb1d907e5829c00bd",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 173,
+   "new_files": 23,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "FicusFicusov/CoralFlower",
+   "commit": "f7a85eebbacfc658008f6c27a83a765c28d504ec",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 185,
+   "new_files": 65,
+   "ours_longest_tokens": 36,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 13,
+    "too_small": 7
+   }
+  },
+  {
+   "repo": "fl164/fm1-fomni",
+   "commit": "405ef41aef75f7e70afd6decc01505df07c708e9",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 49,
+   "new_files": 5,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "franalgaba/felucca-package-template",
+   "commit": "8f18b9eca833fada4fa10ecac03e1d169e6e009c",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "fred-tio/melodee",
+   "commit": "ff56c867788c77dd83d45a7c446fc00e140cc8ea",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 219,
+   "new_files": 2,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "fredster90001/sloop-fm1",
+   "commit": "bad8e822a6f4d844b03b04f5b5944df422e2d011",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 116,
+   "new_files": 20,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "fuleo/Felucca-WebApp",
+   "commit": "05c901d802d14832fd1aedb1a91f661b9d4a329a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "fuleo/fm1-guide",
+   "commit": "161d57e1ac92d30648659f255ded9a58447ce390",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "fuleo/fm1-linux-update",
+   "commit": "fa850941dbd69f9172ed78dea5a1d01178a5fa2d",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "fvalente/GammaWave-FM1",
+   "commit": "d420b39cff02d8340969381c11884102e72767e4",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 157,
+   "new_files": 99,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 6,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "Gadlele/Fantasma",
+   "commit": "5351257efe55ebeb474ff49d90cb33c98580d8b8",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 168,
+   "new_files": 61,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "gaumondp/patricktronics",
+   "commit": "a6e5e28472fd770d4cced99e32978ce9f8e6e276",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 178,
+   "new_files": 29,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 6
+   }
+  },
+  {
+   "repo": "genkigenki/fm1-custom-fw",
+   "commit": "9acc15ec0b1b146694017b864d657473f993f8ea",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "genkigenki/fm1-dub",
+   "commit": "6a6b30786d363513d499d363f5959290281cffc2",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 50,
+   "new_files": 14,
+   "ours_longest_tokens": 28,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "genkigenki/fm1-fomni",
+   "commit": "d05ba744279c05c93fcdbec2938b9e46345a0d5b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 52,
+   "new_files": 23,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "genkigenki/fm1-polly",
+   "commit": "2e8a2bf9dd78491950b8536a404ec6341d546f2e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 179,
+   "new_files": 35,
+   "ours_longest_tokens": 25,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 43,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "genkigenki/fm1-to-smk37",
+   "commit": "54252ffa2219e3c9cd7eb70f4e99b361eaa048e1",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "genkigenki/fm1-tracker-ketch",
+   "commit": "87ff5794d4a560478c881d7d34ab2cf0d69609be",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 71,
+   "new_files": 25,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "genkigenki/fm1-x0x",
+   "commit": "8af3731713ba6062f17b403300f436aac50aaf30",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 91,
+   "new_files": 16,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 5,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "genkigenki/fmel-1",
+   "commit": "75ca839f6a17c2ab5d0b11527a05bd7afabac73e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 36,
+   "new_files": 8,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "genkigenki/frodhes",
+   "commit": "e49a49d29ac5344fbaa8d42bad6ceecca3d6ea6f",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 566,
+   "new_files": 380,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 14,
+    "cannot_parse": 8
+   }
+  },
+  {
+   "repo": "genkigenki/melodee",
+   "commit": "84e2d97e958eef0e6e7e1d2c09d10de7f160cff3",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 248,
+   "new_files": 31,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8,
+    "cannot_parse": 6
+   }
+  },
+  {
+   "repo": "genkigenki/orbit",
+   "commit": "07e3fed30e8e6757dbe3c6810276599987e4970e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 134,
+   "new_files": 1,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "genkigenki/sloop-fm1",
+   "commit": "b4b61f407b723dc0023c361e1302638578a87f58",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 154,
+   "new_files": 54,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 6
+   }
+  },
+  {
+   "repo": "genkigenki/Speak37",
+   "commit": "81fa061b40e6b6305e3672c671ead2552c9b8569",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 206,
+   "new_files": 74,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 7,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "genkigenki/winampFM",
+   "commit": "188124a1c7aa65737336b934346d67efb895a367",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 81,
+   "new_files": 27,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "genkigenki/zen-1",
+   "commit": "2b4c4ade052a6f26c21af5184fc8f5c9a02a5085",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 79,
+   "new_files": 9,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 4,
+    "too_small": 5
+   }
+  },
+  {
+   "repo": "glvno/matryoshka",
+   "commit": "4d9ebea892223392e0a7e2574c8831c8154a340e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 59,
+   "new_files": 39,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "gonziWeb/sloop-fm1",
+   "commit": "79dd32bce73fb0bb517992003bc7cb212aac0ea9",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 126,
+   "new_files": 9,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "gospodindilly-ops/fm1-x0x",
+   "commit": "47f8e4c4ad602591b81c21bc5480db7a94f6d6af",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 88,
+   "new_files": 3,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "gospodindilly-ops/jangada",
+   "commit": "07cce380aae0c6d61793fa1b80231dff49d3c7ee",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 124,
+   "new_files": 107,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "grant-vine/dabbl8",
+   "commit": "a152256f24b1a7d9727b921ddb34b03f2b390755",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 343,
+   "new_files": 263,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 17
+   }
+  },
+  {
+   "repo": "GraphicHealer/FeluccaSEQ",
+   "commit": "6e2977d58079718054f43b5c9d7465670239e80d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 162,
+   "new_files": 37,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "GRiMMBIENT/grimm",
+   "commit": "c597223c5c140002222bc36b67e4cbdb49c6c153",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 64,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 29,
+   "not_parsed": {
+    "cannot_parse": 3,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "groundstation1/melodee",
+   "commit": "1cccd6970e6e60f136862f3016de58617010c01e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 248,
+   "new_files": 0,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8,
+    "cannot_parse": 6
+   }
+  },
+  {
+   "repo": "groundstation1/take-taker",
+   "commit": "8afbf0e2319dae57402cad507d1aecfedd5c52dd",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 1,
+   "new_files": 1,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 12,
+   "not_parsed": {}
+  },
+  {
+   "repo": "Guizmoh/Kawa-Tracker-Fm1",
+   "commit": "047d21f6154ff6f86c7d3dc4b90f8d5e3320c300",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 55,
+   "new_files": 31,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "gybe808-dotcom/FeluccaWavetableOdeathMod",
+   "commit": "2a661dc1e9a2c137323a7f6c35cadb6091fda996",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "hericdk/fm1-quest",
+   "commit": "0996503bfe83c8c2217c63b29e1be75ebbcdddaf",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 107,
+   "new_files": 39,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "hericdk/nomanskyFM",
+   "commit": "32e7f4c14a5e9f468d7fde69c91d78b3e0424f61",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 85,
+   "new_files": 20,
+   "ours_longest_tokens": 28,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "hericdk/winampFM",
+   "commit": "54575a4bb81e2769bd3f4ae03d0af5e80785b7cf",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 81,
+   "new_files": 7,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "Hi-Fi-Hopes/Zen-Lite",
+   "commit": "e5112a6f05514441878289013108759d1c8541b0",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 42,
+   "new_files": 18,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "hirakos999/MODELAR",
+   "commit": "89475ca2586d6861cc35cd62ea2e1f23a574d9cc",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 8,
+   "new_files": 8,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "hiroikezawa/brutal-fm",
+   "commit": "d2081886152cc7fb716cdeb476ee56e9e4437cc0",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 47,
+   "new_files": 23,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "HolidayMan/fm1-ios",
+   "commit": "03b0ad3c5c504c9116960c05936ab11924bc2a8d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 9,
+   "new_files": 9,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 15,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "hugelton/Felucca",
+   "commit": "63f88ec18b71c6ed4371d03d6f04dd93f4193ad3",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 163,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "hugelton/felucca-bsp",
+   "commit": "33cac693903e753e8783baeed05c19cadfb04812",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 28,
+   "new_files": 28,
+   "ours_longest_tokens": 18,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "hugelton/Felucca-Engines",
+   "commit": "04ffe903eb87a752305d1e5b10da01b53e4ab004",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 11,
+   "new_files": 6,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 20,
+   "not_parsed": {}
+  },
+  {
+   "repo": "hugelton/felucca-mirror",
+   "commit": "fb9f11e6f6f5c65cb03e882d773113431a646fd7",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "hugelton/Felucca-WebApp",
+   "commit": "b7947ad1da2017d211368610b5e96deabef4849a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "hunterxiong2026/fm1-felucca-editor-2026",
+   "commit": "937d395f36f9e3ed035fe74fafcb7564ddd6f11e",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "hunterxiong2026/fm1-sloop-editor-2026",
+   "commit": "97a9d90e3a086a4d0edb315888752ea3aa97018e",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "HyruleanHero1988/FM-1-Swap",
+   "commit": "05250738fd9072d1d1aaaea9b351db852809fbaa",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "I-am-MaxPower/drift-fm1",
+   "commit": "6cfac70ac312811fd6418380a366cf4310ffb0cd",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 52,
+   "new_files": 9,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "ibrahim567gamal-hash/FluTour",
+   "commit": "496d47979a3632f7ba722a804ee47b0403826e7c",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "ignis32/midimonitor_fm1",
+   "commit": "5458e0a2063ecf68bb25bec0175db7ec33b95684",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 59,
+   "new_files": 14,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "ignis32/trireme_fm1",
+   "commit": "cc0a1efe46442d774dbd89fac025de1f564693fb",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 17,
+   "new_files": 16,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {}
+  },
+  {
+   "repo": "illuminus5/skiff",
+   "commit": "c01fa1ed619266d770ea6552b153612e1b77d0a9",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 189,
+   "new_files": 71,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "InigoHernandez/mono2k",
+   "commit": "030247212924ab7a6ab1a3cc14092bedc974a144",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 17,
+   "new_files": 17,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 32,
+   "not_parsed": {}
+  },
+  {
+   "repo": "ioneng/fumi-1-ext",
+   "commit": "7900e76d9fd1dc550767416d75db91c3912df68d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 67,
+   "new_files": 9,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "ip2k/FM-1-RE",
+   "commit": "c1a20d79f89269d053df6481140eac364dcc34a2",
+   "licence": "WTFPL",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 3,
+   "new_files": 0,
+   "ours_longest_tokens": 13,
+   "control_longest_tokens": 22,
+   "not_parsed": {}
+  },
+  {
+   "repo": "ip2k/lunar-modulator",
+   "commit": "659c3aa9b88df292d4771925f0cf431ce68f6759",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 486,
+   "new_files": 87,
+   "ours_longest_tokens": 28,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 18,
+    "cannot_parse": 8
+   }
+  },
+  {
+   "repo": "isod89/clipper-fm1",
+   "commit": "e69067211c4690f34e494b5b896e4585163dcc2b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 158,
+   "new_files": 19,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "isod89/sloop-fm1",
+   "commit": "ec9e53721cc576816a5750220391f2d0217c01cb",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 124,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "itoyohane/fm1-learning-web",
+   "commit": "eb0a5081cdf0ef1e758df4d48dc62e421f645088",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "izumoe/yanfei",
+   "commit": "876d6cb4d2d40564da5ea2c4ad50eb0c782419a2",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 200,
+   "new_files": 79,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "jadamsowers/fm1-fimba",
+   "commit": "0485ed0d387ce78216428c7b19f97d77bbe10b4d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 47,
+   "new_files": 14,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "jahlib/sloop-fm1-go",
+   "commit": "32946ed01d2906abfee2e51a0a54df83bbc514ef",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "JalopyMusic/fm1-cartesive-fumi-1",
+   "commit": "44e050dd2ced40495e83a8d9b089653dcc035a28",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 67,
+   "new_files": 10,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-catacombius-notesorcery",
+   "commit": "c13ac1b63f0d87cbbeb74dda91510946724c47eb",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 122,
+   "new_files": 33,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-chancethemaker-felucca",
+   "commit": "032758ad8e85eda061923bffa8031d1964538e2b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 83,
+   "new_files": 0,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-charlesvestal-fm1-x0x",
+   "commit": "00bff73d6f8c0d5e5cf8c44314d0531efe0e8e62",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 88,
+   "new_files": 6,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-deadactive-hortator",
+   "commit": "2c2847e182f6daf1bda7cf89321c36da67af9959",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 119,
+   "new_files": 56,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-dspaudio-orbit",
+   "commit": "4c119edd6081e1abe9d20a59d731455f8092c67e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 127,
+   "new_files": 37,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-eli7vh-felucca",
+   "commit": "84e8dc938a39d6cf256cf357eb8815b8d5b7bf30",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 140,
+   "new_files": 2,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-grant-vine-dabbl8",
+   "commit": "35266b6aaa932b94c57c8cc1854c27b7d33727b9",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 259,
+   "new_files": 63,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-hericdk-fm1-quest",
+   "commit": "477069010c3acc7f6fde31d119920da2c9dcdb69",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 97,
+   "new_files": 13,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-hugelton-felucca",
+   "commit": "a4d7ca2e5d52a4c35e2468401f00d883cadbda03",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 159,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-ip2k-lunar-modulator",
+   "commit": "40c94300428acfc5688a203c2c928723ed98270a",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 479,
+   "new_files": 12,
+   "ours_longest_tokens": 28,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 17,
+    "cannot_parse": 8
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-jadamsowers-fm1-fimba",
+   "commit": "b2b647b91bb3e9f0014529a468eeb6ac65f90ad9",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 47,
+   "new_files": 2,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-jasonpersinger-ghoulbox-fm1-dungeon-synth",
+   "commit": "7bc975e3e27262e370843ad3d3f3290a42755b68",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 140,
+   "new_files": 55,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-joshbartlettband-web-felucca-rainbow",
+   "commit": "ac2609eea2dc5304ad36f09718c321f1d77e4df1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 143,
+   "new_files": 12,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-juanjiant-bit-jiant",
+   "commit": "d3f42ae52e9e0c2c86710f163f02e880f306841d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 138,
+   "new_files": 46,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 5,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-milkboyg-ambii",
+   "commit": "0afdeee1413b956e9630f92f7dfc7d9ba6f2da6e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 252,
+   "new_files": 154,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 9
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-quixotic7-choralrootfm1",
+   "commit": "9814504f57e94fb48468a2c9f59269db40c7034f",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 194,
+   "new_files": 53,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 3,
+    "too_small": 7
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-w0ts-optimist",
+   "commit": "6aa01148828de7a8083b84fd5a7fd35b87af53e6",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 394,
+   "new_files": 380,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 35,
+   "not_parsed": {
+    "cannot_parse": 9,
+    "too_small": 18
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-zednaked-jangada",
+   "commit": "1accf9605283e4ca92875bca4a39f37faeea356e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 119,
+   "new_files": 40,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-zvenson-dinghy",
+   "commit": "929730019a9dc362c12a710c0b139cbfefb582e9",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 29,
+   "new_files": 1,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-zvenson-dxsloop",
+   "commit": "17e395b878f0e112d5192b9f0250dcaa11808674",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 91,
+   "new_files": 52,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "JalopyMusic/fm1-zvenson-zp12",
+   "commit": "036ae8bd5d2e9965c47cd64ef6c65f8ad1c7877d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 40,
+   "new_files": 11,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 29,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "jamesusmusic/fm1-studio-tess",
+   "commit": "3a764d619c5f7bd51ff76cc40f7ab7f5b843a44e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 268,
+   "new_files": 55,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8,
+    "cannot_parse": 6
+   }
+  },
+  {
+   "repo": "jartificer/fm1-gm",
+   "commit": "1bf76346b26f96037f591bae53a9a7069cb10647",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 53,
+   "new_files": 21,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "jasonpersinger/ghoulbox-fm1-dungeon-synth",
+   "commit": "f23fbc593f8af29dfa01174278f08ee79155ed27",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 177,
+   "new_files": 90,
+   "ours_longest_tokens": 34,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 4,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "jazzfolderPARLA/VintageS",
+   "commit": "bb37ebe2769a26a2b116239e2129b49c9d447997",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 231,
+   "new_files": 83,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8,
+    "cannot_parse": 4
+   }
+  },
+  {
+   "repo": "JB-Interactive/Felucca-Meow",
+   "commit": "f21d6d69e88e2e70908beaa97179fa8818ccae4e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 151,
+   "new_files": 37,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "jbschooley/Virtual-FM-1",
+   "commit": "c52668953231655046ee142d2b3ab4fd2c8ca0b4",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 1100,
+   "new_files": 252,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 57,
+    "cannot_parse": 24
+   }
+  },
+  {
+   "repo": "jean80it2/fm1-x0x",
+   "commit": "80b7d40cc9463653554eaf1eb9c24d47162785b7",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 81,
+   "new_files": 21,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 5
+   }
+  },
+  {
+   "repo": "jean80it2/Virtual-FM-1",
+   "commit": "9ff1ec6f985ab5da02220b704594cb2acb072b57",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 198,
+   "new_files": 46,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 6
+   }
+  },
+  {
+   "repo": "jeymadcat-ops/SLICE64-FM-web",
+   "commit": "c53210933fda0fa684cc1278711c35cab5f09224",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "jmcn99/JIANT",
+   "commit": "e2f60b3b472a5a37da1a4120c7fcd47fe6ffce37",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 154,
+   "new_files": 57,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 6,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "joakimeriksson/fm1-emu",
+   "commit": "db8d472e62f35d18e392e3abc66474daed65ffe9",
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 32,
+   "new_files": 0,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "jogo-jpn/sloop-fm1",
+   "commit": "d315ad88c5fbaad232ce9426b06db66395bd87db",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 114,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "johnskiller/driftseq",
+   "commit": "9827a13d884cbb0e708b821fca627aeea7d13092",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 64,
+   "new_files": 42,
+   "ours_longest_tokens": 18,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 11
+   }
+  },
+  {
+   "repo": "johnskiller/Felucca",
+   "commit": "c8eab234beb24b0bd22ffedaec390ffd1ae90f72",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 159,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "johnskiller/fm1-ctrl",
+   "commit": "b429dd0e617a09dae782431ec90217f11359f45d",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 49,
+   "new_files": 17,
+   "ours_longest_tokens": 18,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 6
+   }
+  },
+  {
+   "repo": "johnskiller/fm1-emulator",
+   "commit": "952c500855434273c48407f801c611ec3a6ec546",
+   "licence": "GPL-2.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 62,
+   "new_files": 59,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 23,
+   "not_parsed": {
+    "too_small": 17,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "johnskiller/sloop-fm1",
+   "commit": "d2f3204f8a1cf6ece7010182deeee31cb4525e53",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 114,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "Jonbenderr/fm1-p6",
+   "commit": "8e7108bce690107f99b218f8cfa829e1417c0bf4",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "joshbartlettband-web/Double-Rainbow",
+   "commit": "3caf73c4cc5a470159f52f8a4d706f48cb70a90c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 183,
+   "new_files": 14,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 6
+   }
+  },
+  {
+   "repo": "joshbartlettband-web/felucca-rainbow",
+   "commit": "0053aa8ac8ea314d2e219ee28ea666bfd92bb774",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 149,
+   "new_files": 24,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "jpurcallas/fm1-emu",
+   "commit": "61b51596d5756d09902fc16cc5e0ecd550d4501e",
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 32,
+   "new_files": 0,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "jrdntnnr/DAKHMEH-FM-1",
+   "commit": "4db0f91b1690ec45408e0aa1589e5793887ca432",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 78,
+   "new_files": 41,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 30,
+   "not_parsed": {
+    "cannot_parse": 4,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "jrdntnnr/sardab",
+   "commit": "830bb5831fe8451f30ba895e347411832e7a5f39",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 216,
+   "new_files": 137,
+   "ours_longest_tokens": 34,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "jsmith13/fm_lab",
+   "commit": "cf35dc26709ede9c974654dfc2135f8c25a00082",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 36,
+   "new_files": 10,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "juanjiant-bit/JIANT",
+   "commit": "dc8d025526eecdd89d0bdf0cc3669c22cbde1b71",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 187,
+   "new_files": 10,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 8,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "jukejutsu/FM2000",
+   "commit": "10787e18359aef9cfa9dae1fcbc3e95c93a7e579",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 34,
+   "new_files": 9,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "julesdg6/sloop-fm1",
+   "commit": "226ba29f671756d39aa382bb15afca456cec0990",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 91,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "justynroberts/fm1-finton",
+   "commit": "8dc9edee324ef3aa8cd83dc5b8601d96506dd766",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 45,
+   "new_files": 20,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "jvitkauskas/fm1-backup",
+   "commit": "0796a7009fc6a26dab15e33728394c5d3e6cf7ea",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "jvitkauskas/m-bootloader",
+   "commit": "64b74d009e6d21fe85ca60754b7c01d438214804",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 29,
+   "new_files": 29,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 21,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "karlalex732-dotcom/RED-MASS-VAMPIRE-OS-FOR-M-VAVE-FM1",
+   "commit": "0fafe85aadb0174e6ac442002641a17c7ee5798d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 162,
+   "new_files": 95,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "kdorland/Fantasma",
+   "commit": "69acd429e06292e920fb0f1fd2061a9e1fab7287",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 168,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "Keitark/fm1-doom",
+   "commit": "3d8a093ddadd7e93a210c3847db6d57ce99202c0",
+   "licence": "GPL-2.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 63,
+   "new_files": 63,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 24,
+   "not_parsed": {
+    "too_small": 7
+   }
+  },
+  {
+   "repo": "Keitark/fm1-mdx",
+   "commit": "9762d417d6f3464647e8cdca4e3d9d3a4df38538",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 61,
+   "new_files": 61,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 27,
+   "not_parsed": {
+    "too_small": 7
+   }
+  },
+  {
+   "repo": "Keitark/fm1-nes",
+   "commit": "90d41c5e48073af2d4f7ff94df7496004d4b6627",
+   "licence": "Apache-2.0",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 102,
+   "new_files": 79,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 16
+   }
+  },
+  {
+   "repo": "KelvinTTTT/Felucca",
+   "commit": "129a4cf4e98e6ef06a4a89e97b65092247d69412",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 158,
+   "new_files": 14,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "KemstheSage/reggae-os",
+   "commit": "89f0c8c0e8586a4cadbb22dc656d90a671b315d1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 171,
+   "new_files": 23,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "Kenneth-Rakentine/Ravel-FM1",
+   "commit": "cc816dc9c97e2265a741e6d5b4c90f828d98a6aa",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 61,
+   "new_files": 22,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "keremimo/melodee",
+   "commit": "398ada1e09d864c12f3b778a43e45c7c2a8031b8",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 280,
+   "new_files": 107,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 9,
+    "cannot_parse": 6
+   }
+  },
+  {
+   "repo": "keyboy250/fm1-x0x-acultur8",
+   "commit": "7bca4df442bd3191e95c4dc06444dccbdf303607",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 135,
+   "new_files": 74,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 5
+   }
+  },
+  {
+   "repo": "kidbee85-beep/AMB-1-Evolved",
+   "commit": "b8f0eb7f209843a5d8fc0341d1514472c85ecd84",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 55,
+   "new_files": 15,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "kidbee85-beep/bunker-evolved",
+   "commit": "c9bb0b1ac4a7dbb420a3f452fc75b705981ab0f4",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 182,
+   "new_files": 29,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "kidbee85-beep/cut-a-dor-release",
+   "commit": "d9799abb84fef0cc59deb05e2f6a4c41032c32f1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 60,
+   "new_files": 35,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "kidbee85-beep/mutable-dreams",
+   "commit": "52687d82c53bae8124963705fba1e8e25a1ce60e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "Kiwi3p/fm1-deal-or-no-deal",
+   "commit": "a8ffcf7989671a6a9d07944c523e1a4c8fc2c457",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 52,
+   "new_files": 14,
+   "ours_longest_tokens": 18,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "klonecom/M-VAVE-FM1-LOADER---",
+   "commit": "7e4609784952629d3e77f6679f3c37c1d28e400c",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "kmplngj/Felucca",
+   "commit": "126da9dc2d9472dd49b500958ea95231f2075804",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 238,
+   "new_files": 161,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "kmplngj/Felucca-Engines",
+   "commit": "7cf364f6c2ce0130be4fe8bf436ffe62077cb175",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 13,
+   "new_files": 6,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 20,
+   "not_parsed": {}
+  },
+  {
+   "repo": "kmplngj/Felucca-WebApp",
+   "commit": "a7a9dbbb95bb9d54eaa7ddb5f84dd2a4f658908d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 1,
+   "new_files": 1,
+   "ours_longest_tokens": 16,
+   "control_longest_tokens": 14,
+   "not_parsed": {}
+  },
+  {
+   "repo": "kmplngj/m-bootloader",
+   "commit": "df15966a4bcf49b8a2d95ffd9c8395186de14314",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 27,
+   "new_files": 4,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 21,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "kmplngj/m-flasher-legacy",
+   "commit": "aeb061a03b7b25a4ed042b08a6360248acd426db",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 15,
+   "new_files": 15,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 20,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "konsumer/fm1-emu",
+   "commit": "7856393bc82f2821a2ac70c0c9a93dd743465dcb",
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 32,
+   "new_files": 0,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "konsumer/foma",
+   "commit": "f39b49c492f3f0998ac3cbdcbed3fbda4c545574",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 32,
+   "new_files": 9,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "konsumer/fomajam",
+   "commit": "6b788427e4a2abf269ac1b45374b7d2c63c70b62",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 57,
+   "new_files": 19,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "kpalaniuk/gnomad-firmware",
+   "commit": "3675315d9962464b2eccbb0da7f2ec48fe15e3a9",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 185,
+   "new_files": 104,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 11,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "KrisGelero/fm1-loom",
+   "commit": "c37c07af653c9504de296f7c25dbb2ac7548bdaf",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 44,
+   "new_files": 10,
+   "ours_longest_tokens": 44,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 4,
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "Leeman1982/sloop-fm1",
+   "commit": "b77bf55e3bf804665b8f5dffb5955bd8443311f0",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 124,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "leomaimoni/fm1-bank-sender",
+   "commit": "16b1b75fa2516e4ae952607e0615f3ae5154af3b",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "leonardoMirabal/frodhes",
+   "commit": "a8320e860c2307a6faa7266b9f59763dc3acb786",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 579,
+   "new_files": 28,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 14,
+    "cannot_parse": 10
+   }
+  },
+  {
+   "repo": "Leonidas0710/Felucca",
+   "commit": "a53ecf428c29c780108fd70a31b71a32a6b5c313",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 163,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "LexLongcoding/ghoulbox-vst3",
+   "commit": "31a1d736dcb1de5397f982324ee81deb35f1aa9b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 10,
+   "new_files": 10,
+   "ours_longest_tokens": 25,
+   "control_longest_tokens": 19,
+   "not_parsed": {}
+  },
+  {
+   "repo": "limiemohon-stack/ChoralRootFM1",
+   "commit": "198fc493f541f4677854680512e7c00939784cab",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 216,
+   "new_files": 7,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 12,
+    "too_small": 6
+   }
+  },
+  {
+   "repo": "llozd/bytemania",
+   "commit": "e670b35369f8556ee82683f35c6b8bfbcb366155",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 35,
+   "new_files": 9,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "luchak/fm1-x0x",
+   "commit": "2e31c517ded3732c58b845eb0c800fe018004b8d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 91,
+   "new_files": 0,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "luginf/fm1-emu",
+   "commit": "43044b417fe154de31d92e1069caf5ef0a2230d8",
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 31,
+   "new_files": 0,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "m-vave/fm1_open",
+   "commit": "4c7496daac04a95ff10d1afdcc8f9ead2dbabc41",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 124,
+   "new_files": 2,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 24,
+   "not_parsed": {
+    "too_small": 34
+   }
+  },
+  {
+   "repo": "majica99/mvave--fm11-genmus",
+   "commit": "68e1b7cd0384b6be7f202fa5d3d22b5bbc97910c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 186,
+   "new_files": 46,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 8,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "majica99/mvave-fm1-rebirth",
+   "commit": "fbc8768327e4076fe2a6b0542edd0642d73c0a4c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 123,
+   "new_files": 13,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 5
+   }
+  },
+  {
+   "repo": "manuelerdoes/oergelfm1",
+   "commit": "f5a4148f4a8c30c067a75a148f3a441c6345aa24",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 164,
+   "new_files": 21,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "Marcel-B/Felucca",
+   "commit": "ac468ff327761d3ea2e17993e4bd8bbb14c8fbfd",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 160,
+   "new_files": 15,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "markterm/harbor",
+   "commit": "7fd7b2810a115a40c2b8025d1ff106f8ef668073",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "math0ne/fm1-chord",
+   "commit": "5117c27f094f9aa028dc663abaa2b3d61a3dbaa5",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 143,
+   "new_files": 7,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "mauricecalhoun/skiff",
+   "commit": "a5d648132160f1757a0eb54a93571e4cd11f0ec1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 177,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "mauricecyril/fm1-to-smk37",
+   "commit": "d23bd32169c957b45b02524985ae0cdd514096af",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "maykerache/felucca-bsp",
+   "commit": "c4624a5b538f1db5de2f3522e1a744cef5022c1c",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 30,
+   "new_files": 14,
+   "ours_longest_tokens": 20,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "maykerache/Felucca-WebApp",
+   "commit": "f35951a365f95ba985f1e8a7c0d97de17ad49f91",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "mediaworkbench/Felucca",
+   "commit": "9be30a5f2c1a2376fc49f83e05b14777ea21e01b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 182,
+   "new_files": 44,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 4
+   }
+  },
+  {
+   "repo": "megagott/launchparty-fm1",
+   "commit": "efa6e4e24687042bf4cc053f70601313788c3a61",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "megagott/mycelium-fm1",
+   "commit": "750eb125e2850acc62a8391cb742246a7c437745",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "Mello-D/JIANT",
+   "commit": "2f0d6f50c1029e195ae8ee6404e1fe9195bf4959",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 187,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 8,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "mene311/Felucca",
+   "commit": "d3038ca962045fca3e4b48f12a7e6e6486d17d62",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 149,
+   "new_files": 17,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "mene311/fm1-banks",
+   "commit": "f47b11b9035be0dfe7f899aec90798dccbcde9ee",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "mene311/fm1-pulses-felucca",
+   "commit": "1c09071e2019f24234c2a78810bb6f1ad8d42aa1",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "mentalcells/ambwave",
+   "commit": "c1932a5788b2293444e2c1cb698e7daca53c051e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 159,
+   "new_files": 52,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "merthsoft/flipper-fm1-recovery",
+   "commit": "df88b862a4794855f792fed529629a255cba0a0e",
+   "licence": "Unlicense",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 3,
+   "new_files": 3,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 16,
+   "not_parsed": {}
+  },
+  {
+   "repo": "merthsoft/sloop-fm1",
+   "commit": "1ce6a8949a241d4111fe2ffa1f260e9ecd8745c6",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 184,
+   "new_files": 123,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "michaeljsmalley/synthesthetic",
+   "commit": "aa186aa866f57ac5273eb561fd499237b654a171",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 138,
+   "new_files": 44,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "MikeTsak/Evanders-Music-Box--FM-1-LARP-firmware",
+   "commit": "53c32342efb4b06c7f40ae4758279c5c361c5535",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 10,
+   "new_files": 10,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 31,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "millette/Felucca",
+   "commit": "7414269c4392cde8f4a4351c5f566314903b9116",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 131,
+   "new_files": 0,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "millette/fm1-fomni",
+   "commit": "378dfacbf476c8d7c181eed83c58c019667133d6",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 49,
+   "new_files": 5,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "millette/fm1-x0x",
+   "commit": "9ae360b64af9782e309557d1a5e077209f8d30b8",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 85,
+   "new_files": 5,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "MohammadMahdiYazdanshad/FM1-PROJECT",
+   "commit": "96f808ec51b0033418492c10a9b2b77fc394933a",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "monch1962/felucca-engines",
+   "commit": "65fe10466365b3fbd77487a197eeb50a27762928",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 8,
+   "new_files": 1,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 20,
+   "not_parsed": {}
+  },
+  {
+   "repo": "monch1962/mvave-fm1-mpe",
+   "commit": "715d1ca97df392cb4246ac191e6345720769c795",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 163,
+   "new_files": 34,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "mosurabeats/FM1--Sp12-Turbo-Build",
+   "commit": "f4bb214451b1732c682142abd216a8b0b82081c8",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 42,
+   "new_files": 7,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 29,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "Motheraudio/TheCove",
+   "commit": "f3f41a79ccdaf6635c0f58a42c3ec3dbaa625209",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 159,
+   "new_files": 3,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "mpereira/felucca-server",
+   "commit": "a5ffc0272b9b217550f6b17f703675ecb42073c4",
+   "licence": "EPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "mr-devboy/fm1-dx7-patch-importer",
+   "commit": "581b5a5489b20b7407fe5d30bca5c91b0c79abbb",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 4,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "Mr-Roboto/fm1-x0x-rmx",
+   "commit": "c7a633d01dca5faf714b436b92a1bf9a87729cee",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 111,
+   "new_files": 48,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 7
+   }
+  },
+  {
+   "repo": "mrsheez/Felucca",
+   "commit": "13dd66517d2f8973c2f3fcefdeb7ac7b0d948e4f",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 148,
+   "new_files": 59,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "muffintopmusic/fm1_openknob",
+   "commit": "c9513f6cfa73e0cd967513e6c11897e1fa0ce71c",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 122,
+   "new_files": 1,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 24,
+   "not_parsed": {
+    "too_small": 35
+   }
+  },
+  {
+   "repo": "MXMP1/x-seq",
+   "commit": "635d1534f90f4f01cd2ce482af76c0264ece876f",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "myldy20/BRKLOOP",
+   "commit": "a1c88d1b26e5c608babb396e0d47b17005ea82dd",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 125,
+   "new_files": 1,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "Nacsez/FMER",
+   "commit": "2c7fe329ed98db8875f65f4dcae0e77e20e989c2",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 210,
+   "new_files": 169,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 30
+   }
+  },
+  {
+   "repo": "Narti-Live/fm1-fm-plaits",
+   "commit": "2884f45c043cdf28739a4e6b50d780f77b1a20f6",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "NicholasPratt/Prysm",
+   "commit": "f4f0bb458b45afaff4f7c843623f226d4dc62b92",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 52,
+   "new_files": 28,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "Nicodesy06/FM1-MOVE",
+   "commit": "42fc1af2a2ab6174331d2a4953f7628d6f11b7f8",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 126,
+   "new_files": 43,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "nilselathome/sloop-fm1-editor-regex",
+   "commit": "31b47acb5164289327e2ed3a8b762774cfdfd776",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 114,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "NoodleSushi/dinghy",
+   "commit": "706403b816820c27378915c3fd37d8e7d9d80f07",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 31,
+   "new_files": 4,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "NOVALENTI/fm1-polyseq",
+   "commit": "b028d3f8ebb76df2505c258ce7bb2e0f63901056",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 98,
+   "new_files": 86,
+   "ours_longest_tokens": 15,
+   "control_longest_tokens": 28,
+   "not_parsed": {
+    "too_small": 23
+   }
+  },
+  {
+   "repo": "npi3pak/fm1-gator",
+   "commit": "92f923e0b9fe6101d5cd422cffa5946ce20d785a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 171,
+   "new_files": 25,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 27,
+   "not_parsed": {
+    "too_small": 5
+   }
+  },
+  {
+   "repo": "nullbeing/fm1-amb",
+   "commit": "d4a211c7f45096d8e9af6f72297695fd9da6c463",
+   "licence": "GPL-3.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 48,
+   "new_files": 0,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "nullbeing/fm1-custom-fw",
+   "commit": "cb5796c24e2e1549dc681ed1f770d590af3f67ce",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "nzimas/bigorna",
+   "commit": "cd6bd4b784cfc266ea5ddb9cb4ac22c3ed3c4e16",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 51,
+   "new_files": 37,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "nzimas/tonitor",
+   "commit": "a240bc182b55e17fadc004d17e0b64c9eb42185f",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 56,
+   "new_files": 31,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 5
+   }
+  },
+  {
+   "repo": "obbymaul-mp3/3IS",
+   "commit": "9575631bd8f036463c4d16fdc84f632815b8fb74",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 188,
+   "new_files": 37,
+   "ours_longest_tokens": 36,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 12,
+    "too_small": 9
+   }
+  },
+  {
+   "repo": "ocean/estampie",
+   "commit": "b12a484005d10359c3cd55eba4669c1b3259418a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 206,
+   "new_files": 96,
+   "ours_longest_tokens": 34,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 4
+   }
+  },
+  {
+   "repo": "ocean/FM-SWITCH",
+   "commit": "93d20704821fbc3c9a25972c87c0a7b54f59b3ea",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "ocean/fm1-site",
+   "commit": "f876bad3ae8d51fbb9a6eec7e453326e83e8462e",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "ocean/FM1Kit",
+   "commit": "806af62318e153bffc1047ee0af71c35d79019a7",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "okumurari2/maku",
+   "commit": "fa6d95aa4c28941d06c724385ed8bb96a880e8c9",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 142,
+   "new_files": 50,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "ordenador/Felucca-Engines",
+   "commit": "c46e0086f69bdc26df1cd144dca9e683cc4531dd",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 8,
+   "new_files": 0,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 20,
+   "not_parsed": {}
+  },
+  {
+   "repo": "oscillr/DUELL",
+   "commit": "3133625de68efaaf495729a4323df8cdd19c0c3d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 296,
+   "new_files": 268,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8,
+    "cannot_parse": 7
+   }
+  },
+  {
+   "repo": "osmaav/melodee",
+   "commit": "fe0cca6c7d633ab12ca2cdd25d9575b81c66187a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": false,
+   "why": "could not fetch the pinned commit",
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "OwenKirby/carnac-os",
+   "commit": "6387a21932aab0f00fe46b4c0920b76830f9962e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 102,
+   "new_files": 102,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 10,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "p-orlov/Ecolucca",
+   "commit": "ec4f12e2a5e8c7c207011e6a86f6b3adc37c9b2b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 61,
+   "new_files": 21,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "PatttF/fm-106",
+   "commit": "db39e046e3efc817dc547b0ba9905a3afe9a4b37",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 81,
+   "new_files": 39,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 6,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "pbarilla/fm1-x0x",
+   "commit": "397c8a8a21423b5c8a8efb63af13ccb9c4812f4e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 85,
+   "new_files": 5,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "pbarilla/fumi-1",
+   "commit": "ec7537fc87ccfe653f93b7d979eef4c5b7a49f69",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 67,
+   "new_files": 2,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 29,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "pbarilla/ghoulbox-fm1-dungeon-synth",
+   "commit": "3e642b33e34205de4a643203f6d8513149ca64a7",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 174,
+   "new_files": 15,
+   "ours_longest_tokens": 34,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 4,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "pbarilla/orbit",
+   "commit": "4d85cf8ae8b54059cd3b5c013561bb0d92592c23",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 112,
+   "new_files": 43,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "pfkellogg/fm1-bonus-box",
+   "commit": "069d0234d13220e862a08e84a2da6b828f9c24c7",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 7,
+   "new_files": 7,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "pfkellogg/fm1-sustain-footswitch",
+   "commit": "9a5f89f040875bbab9bf5105ab6c588423e3ddd7",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "phc101/fm1-emu",
+   "commit": "ecd2b0b1a865172e2ddbb040bf9cdb9b67633707",
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 32,
+   "new_files": 0,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "pianomansam/fm1-vnl",
+   "commit": "be0653869d04394d0d4b9386f056cc092f398259",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 2,
+   "new_files": 1,
+   "ours_longest_tokens": 12,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "PierreArnaudGUYOT/FM1-Oktowave-Firmware",
+   "commit": "60619dbb28e57e953b9cb0c929612a1a3d01c168",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 169,
+   "new_files": 27,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "pingywon/fm1-easy-guide",
+   "commit": "d711151ea14c02fcc040f86d24eec91f57939851",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "PistolPineapple/skiff",
+   "commit": "69b05f618f70322e7950c3948b3a88aaccba47dc",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 175,
+   "new_files": 14,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "pomegnechristianfrank-gif/site-web-FM1",
+   "commit": "d5f85c2f3219e2426dfbb0257a2490ada47ac78a",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "Pongtrometer/jangada",
+   "commit": "4ed8411dd681946acc6b7013b9e830614e794149",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 122,
+   "new_files": 7,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "probonopd/fm1-emulator",
+   "commit": "23f424d2303b4fe4a274050920580c1c0959c31c",
+   "licence": "GPL-2.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 62,
+   "new_files": 23,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 31,
+   "not_parsed": {
+    "too_small": 18
+   }
+  },
+  {
+   "repo": "pwalsh/felucca-bsp",
+   "commit": "6eee4bf97346d3c8b3995c0a35f49a46cd049c52",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 30,
+   "new_files": 6,
+   "ours_longest_tokens": 20,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "Qubestar/Saibertin-S-FM",
+   "commit": "9c3f5a89f3d8c2bb4ff96fcee575a6e6e11c689e",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "Quixotic7/ChoralRootFM1",
+   "commit": "7d97982a7db3dad2da456a3e4d4478548b6571d9",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 253,
+   "new_files": 11,
+   "ours_longest_tokens": 40,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "cannot_parse": 24,
+    "too_small": 8
+   }
+  },
+  {
+   "repo": "Quixotic7/FM1VST",
+   "commit": "a528812d238a03a151de2ca1abc052552da90ebe",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 209,
+   "new_files": 209,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 21,
+   "not_parsed": {
+    "too_small": 75
+   }
+  },
+  {
+   "repo": "Quixotic7/MvaveFM1-Designer",
+   "commit": "0ecd189b7b3a2ef8d147cda6cbf13f2ac73f3fa6",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "Quixotic7/PurpleMonkeyFM1",
+   "commit": "b574e75dd1dcf3283c3eb5d286fd7c6d21d95517",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 204,
+   "new_files": 69,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 3,
+    "too_small": 8
+   }
+  },
+  {
+   "repo": "Rastapopolix/melodee-tess",
+   "commit": "7e1a9570bcfbe88553bf1e82d2accf9f0037da7c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 219,
+   "new_files": 14,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "RayDNoper/fm1-fomnium",
+   "commit": "d0f66357c557c076fc2ac13836c9aaee1191f0c1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 51,
+   "new_files": 17,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "relyt29/melodee",
+   "commit": "01a78bdf0fb0e1a9d953567e36a59d80dea54a8a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 223,
+   "new_files": 4,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "Reytian/fm1-luogu",
+   "commit": "94a2eea78d0925ac889eda849e64f6be95c496a4",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 25,
+   "new_files": 25,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 17,
+   "not_parsed": {
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "Reytian/fm1-min1",
+   "commit": "14d8ddf6390c9639c27ceb7c738353840a7cdb04",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 49,
+   "new_files": 17,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "Reytian/fm1-trio",
+   "commit": "7c92b7a18184367e3ceaa99e51daed81b1c98abf",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 18,
+   "new_files": 18,
+   "ours_longest_tokens": 18,
+   "control_longest_tokens": 15,
+   "not_parsed": {}
+  },
+  {
+   "repo": "rgrvmusic/fluyt-logue",
+   "commit": "5f47c1687ebfc0d27f62b6b3499c9464c528ae0f",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 19,
+   "new_files": 19,
+   "ours_longest_tokens": 46,
+   "control_longest_tokens": 18,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "rgrvmusic/fluyt-web",
+   "commit": "2639ed65c5a32d86a05115871b3b36fc37f485ee",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 5,
+   "new_files": 5,
+   "ours_longest_tokens": 12,
+   "control_longest_tokens": 0,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "rgrvmusic/harbor",
+   "commit": "80f9724a9fb5b36247843ee05167b711f48dd0e8",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "risseraka/fm1-tracker-ketch",
+   "commit": "d8ebe8641f4faa80ad7919092aef810511ae1883",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 75,
+   "new_files": 37,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 4,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "ristiisa/sloop-fm1",
+   "commit": "e2a9a2f72533cbb63ad70df667edb4f54a2961fc",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 117,
+   "new_files": 60,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "rocketlaunch-io/Felucca",
+   "commit": "27f87d10fd9022a4650de45b8757bc7d98d4226f",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 130,
+   "new_files": 19,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "rondlite/felucca-rainbow-dutch",
+   "commit": "c893b18909c75e29f2452c626b7220df92e7a307",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 149,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "ruppert/fmini-1",
+   "commit": "ab0f5c83d9c3b8cf10fd2f9ef3dc760a06c3abb3",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 177,
+   "new_files": 40,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "ruppert/organvave-1",
+   "commit": "2432096ca97277b022feeda74095927756a2b73c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 99,
+   "new_files": 73,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "RustyPawz/fm1-HYP1",
+   "commit": "2c6c476503496d911afbde1a111f9f849b894294",
+   "licence": "GPL-3.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 281,
+   "new_files": 76,
+   "ours_longest_tokens": 42,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 5,
+    "too_small": 15
+   }
+  },
+  {
+   "repo": "s0fx2/YamahaDX7_to_FM-1",
+   "commit": "21e3e26c0add9b3eeb8432600138c7d6e86bac91",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "Sab0tenb0y/Felucca",
+   "commit": "df4498e8d95966853ac38643c146919268e68aa1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 163,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "sabliran/sloop-web-emu",
+   "commit": "bbfd8e5b3bfc452520f61afb0d94e2fdfe93fd9d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 2,
+   "new_files": 1,
+   "ours_longest_tokens": 16,
+   "control_longest_tokens": 14,
+   "not_parsed": {}
+  },
+  {
+   "repo": "Sanderat/Blight-",
+   "commit": "08ed4a7d5c8c5cfc16b622593d7800a20a1b7140",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "sbegueria/fm1-dub",
+   "commit": "ed490917895803fa160bd53b21ad848cd7bbe04a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 50,
+   "new_files": 6,
+   "ours_longest_tokens": 28,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "sceic/fm1-felucca-editor-2026",
+   "commit": "4ec3fe2f426ae229c5ce41559f2007ef15f3737b",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "schwartzworld/shifl",
+   "commit": "79fe37dff4701a4c920ef14db4effc962e94abc7",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 111,
+   "new_files": 61,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "seajaysec/386-DX-FM1-KaraokeBot",
+   "commit": "87b2e8b2b1579d511bfaf59f5d6462aff3c3d060",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 67,
+   "new_files": 47,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "seajaysec/fm-static",
+   "commit": "0fa627434b7aa549af94dc819540be41f6c4dcbc",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "seajaysec/fm1-dx7-patch-importer",
+   "commit": "ba4593ed88f080ebde1c28e6a506745ca80e3033",
+   "licence": null,
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "seanohollaren/fm1-doom",
+   "commit": "bde88936a14e50276edebf684e60458f05926da8",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 19,
+   "new_files": 19,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 21,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "SeattleUser0/OrangeCat",
+   "commit": "f95dcc2871f0a87fa5438f91a02719bdad98d73b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 346,
+   "new_files": 127,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 7,
+    "too_small": 10
+   }
+  },
+  {
+   "repo": "SeattleUser0/skiff",
+   "commit": "2b350ac2bd887f3dd3538d4e5a1b049c1a0bd039",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 179,
+   "new_files": 21,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "seclorum/lunar-modulator.seclorum",
+   "commit": "a5a096ffe77c67d99723d66cb9b201cf97573c43",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 297,
+   "new_files": 92,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8
+   }
+  },
+  {
+   "repo": "severak/wolfware",
+   "commit": "84b8cbee8aa27d3aa02c7bc09fa716ffe8f07b1f",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "shinobi/ChoralRootFM1-DOREMI",
+   "commit": "51efe2414486665f82d5971e8e77380b7eeb38f4",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 213,
+   "new_files": 17,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 12,
+    "too_small": 6
+   }
+  },
+  {
+   "repo": "SikkenWorks/B1-Drawbar-Organ",
+   "commit": "0a37b92e2d32a1f93c4556bbc3af3a6cee7ac4f4",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 112,
+   "new_files": 93,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 8
+   }
+  },
+  {
+   "repo": "SikkenWorks/BEETLE",
+   "commit": "e8586b3bdddbd24f5a68ef18aecafa1387b3419d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 311,
+   "new_files": 291,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 17
+   }
+  },
+  {
+   "repo": "SikkenWorks/ETCH",
+   "commit": "a00ec8684c38f5d0ed819777e6279f09da9d842a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 305,
+   "new_files": 235,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 13
+   }
+  },
+  {
+   "repo": "Simant49/lunar-modulator-looper",
+   "commit": "6c030732a0609af283914e1d126269b566f849fc",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 227,
+   "new_files": 30,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 7
+   }
+  },
+  {
+   "repo": "simonjohansson/fm1-emulator",
+   "commit": "519a13b879d744f5c05bfe3c4e5d4e04d8d4ae34",
+   "licence": "GPL-2.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 62,
+   "new_files": 0,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 31,
+   "not_parsed": {
+    "too_small": 18
+   }
+  },
+  {
+   "repo": "sinscum/DIRGE-darksynth",
+   "commit": "d83a4886e06466069c16c46ec78365970cb4d75c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 180,
+   "new_files": 15,
+   "ours_longest_tokens": 34,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 5,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "sirpearson/fm-1-monomachine",
+   "commit": "527da33beb3dde611836cff376aee1b9a324949b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 47,
+   "new_files": 15,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 35,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "smememe/fm1-macropad-patch",
+   "commit": "0e6b52c247d4cbde3dce11e99eb9adf31f572118",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "smhgzll/sloopy-sloop-32",
+   "commit": "a0c1cfc8562ca6c85c773e7ea7147eaaff3aae1d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 59,
+   "new_files": 59,
+   "ours_longest_tokens": 25,
+   "control_longest_tokens": 28,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 5
+   }
+  },
+  {
+   "repo": "smhulme/sloop-ios-8trk",
+   "commit": "ec3cfc53af710da0542a41c77ac4002b3a644ddd",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "smhulme/sloop-web-8trk",
+   "commit": "9974f8f67fc645c2683565697d84a6be14c70e71",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "SpeakingColors/mwave-fm1-linux-vst",
+   "commit": "3aac65ebb6365f657acacb414c10cb001dcff54a",
+   "licence": "AGPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "SPIKE-the-Percussionist/noiz_demons",
+   "commit": "4fe0f1afb4d97f56dfb763c176679fe6e059ecec",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 171,
+   "new_files": 12,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "spinkham/Felucca",
+   "commit": "7392d9c8f0fc7f46bf6829756698b785cde2521a",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 142,
+   "new_files": 10,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "spinkham/felucca-try",
+   "commit": "ac3ba1b58c5b7e8b53ebc15ae9e8420de59c7f79",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "spinkham/Felucca-WebApp",
+   "commit": "2e4d39178bdf8df3616a233a030e7a49a11d822e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "spinkham/fm1-emulator",
+   "commit": "18a8ccec50e5a317c5fb9017a7d36c8b76990d8c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 28,
+   "new_files": 6,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "Spiralfractalplugins/spiralfm1",
+   "commit": "6e0fd2b824fde7ad3c3673c7b661d79a7bbc840c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 116,
+   "new_files": 110,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "stanleygurvich/FeluccaMPE",
+   "commit": "817f5b8f3fd91f127ff345ae857b9845bd9186e6",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 163,
+   "new_files": 12,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "StephanBeutel/Virtual-FM-1",
+   "commit": "21605e266775ab773f0538f7a2c42dc598fbf2f6",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 678,
+   "new_files": 38,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 27,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "stevensnasdell-cmd/dock",
+   "commit": "11db45adc55bd263df7b5c6f034f06c8dd248cd6",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 272,
+   "new_files": 68,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 9,
+    "cannot_parse": 7
+   }
+  },
+  {
+   "repo": "styvesgoupil/frasil",
+   "commit": "a7313f27221f02d0d9b46b39c532118ca0223544",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 15,
+   "new_files": 15,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 32,
+   "not_parsed": {}
+  },
+  {
+   "repo": "swe24-phon/fm1-mod-ref",
+   "commit": "134bcc46f11d8bf0f4cc0e1e58cc9d102b3a40bf",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "SylarPu-X/nightfall-fm1",
+   "commit": "3861e7a5e4fe0f4e79c5e2385847986171cfe8c1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 18,
+   "new_files": 18,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "synthi/fm1-1971",
+   "commit": "d422a998f2d9d30562b8af1830fa3d2aa8cba8fa",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 220,
+   "new_files": 54,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 3,
+    "too_small": 8
+   }
+  },
+  {
+   "repo": "synthi/fm1-ctl",
+   "commit": "298b637e961bc90fcacdd768e38fd8a9b12eb55c",
+   "licence": "GPL-3.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 139,
+   "new_files": 32,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 40,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "synthi/grimm",
+   "commit": "43e710d7a004c3d01df2a08ee9d8b2eecbcffc8d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 64,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 29,
+   "not_parsed": {
+    "cannot_parse": 3,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "synthi/jangada",
+   "commit": "6dfbc5a68e77b114acc12ec083bd37f9f59fc034",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 124,
+   "new_files": 6,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "synthi/melodee-tess",
+   "commit": "3e125e7836b00f18ce33e471935012ef9bfb447e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 219,
+   "new_files": 0,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 8,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "synthi/niagara-drift",
+   "commit": "a319c5a558c21129496fdf3c79084eede3a5f735",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 53,
+   "new_files": 10,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 3,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "synthi/tonitor",
+   "commit": "964e3ec1e078191f3356bf5b0f7e764a357e9219",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 47,
+   "new_files": 10,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "tank12123/FM1",
+   "commit": "3e5f912dc007896ecdff02a89efdf75e55332915",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "teekesti/harbour-hortator",
+   "commit": "57bb903c54aea39a0bad2a87b99a32ff91961202",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 26,
+   "new_files": 26,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 14,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "tensor-programming/fm1-t1",
+   "commit": "bea0fd38fbebe48758059828a7ba107c6248304c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 181,
+   "new_files": 18,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "TerkWerX/Crepuscular_Homunculus",
+   "commit": "c55a1a5db541de9f1691d3bc93169ca05c945315",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 80,
+   "new_files": 57,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "thebrodi/fm1-haave",
+   "commit": "24e75c83e52c203df542e9e7b14703fee8bbd971",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 170,
+   "new_files": 15,
+   "ours_longest_tokens": 30,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "thefriendlyhedgehog/FM-Cat1",
+   "commit": "820251d823eb4d6af1172487d72c0f4862de6215",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 58,
+   "new_files": 21,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "thegiantsnail/fm1-workbench-public",
+   "commit": "e35315b7ea814b99387840a4fc66754f6a7f59d5",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "theNoisery/fN-1",
+   "commit": "1505d777590fe2207600e8678de95f998830f8f9",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 126,
+   "new_files": 6,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 24,
+   "not_parsed": {
+    "too_small": 34
+   }
+  },
+  {
+   "repo": "TheShrimpBlimp/pigeon",
+   "commit": "b18b4cbcbdbbfc935277d7d557659c98eb9cd830",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 261,
+   "new_files": 161,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 11,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "thingsapart/fm1-studio",
+   "commit": "76372746ca8579bb04eeaf67748adbb7c0b76d6d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 37,
+   "new_files": 37,
+   "ours_longest_tokens": 13,
+   "control_longest_tokens": 28,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "thingsapart/sloop-fm1",
+   "commit": "cb6dedcec2578411c7cb16fd24c1c8d3b300a72b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 112,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "thomasgregorymarsden-code/Felucca-opx",
+   "commit": "1ef13fed6d7055d2c865515c20e48c2971bae75f",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 170,
+   "new_files": 42,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "TonyMilton/frodhes",
+   "commit": "159333d6e185fa78e9d90a8590af1783353f484b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 579,
+   "new_files": 13,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 10,
+    "too_small": 14
+   }
+  },
+  {
+   "repo": "trustcoinmining/FM1-DDR3MIG-ug586",
+   "commit": "6318218dcdff83e10b69107353381d68165bbf39",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "trustcoinmining/TCM-FMx",
+   "commit": "d7e423cd12ef294a25676c3351a41d82f36b82b4",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "twaroshinto/AEther",
+   "commit": "a8802a6ca4c85505fb3213a21e185e3bd0ff3e90",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 8,
+   "new_files": 8,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 30,
+   "not_parsed": {}
+  },
+  {
+   "repo": "Vaayaa/rift-fw",
+   "commit": "52562e73956448d8eb3c71995b88908fe051498e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 33,
+   "new_files": 11,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "vikramrojo/maqam-dev",
+   "commit": "8bd7db8492ccf13b5e9e63d421653894ae9cbbb2",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 119,
+   "new_files": 34,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "vrcvs/Felucca",
+   "commit": "3a91058d4a40f35a4c78f2c4af7a47ee41a09f6b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 163,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "w0ts/fm1-emulator",
+   "commit": "6ce95ec7b3d24cf49678072b560167686f060f2b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 28,
+   "new_files": 0,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "w0ts/optimist",
+   "commit": "8c392850ef67f244d07008a2168ff9d1d221a18f",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 600,
+   "new_files": 521,
+   "ours_longest_tokens": 34,
+   "control_longest_tokens": 35,
+   "not_parsed": {
+    "cannot_parse": 25,
+    "too_small": 27
+   }
+  },
+  {
+   "repo": "weavejam/Felucca",
+   "commit": "ebdb3935ad75d3aa273a70b4ad2b9328236c29d4",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 164,
+   "new_files": 8,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 2,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "weavejam/sloop-fm1",
+   "commit": "1bbdc6e0bc6f476709b28993fde6565628b327a5",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 125,
+   "new_files": 9,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "Wesleyx88/mvave-fm1-drone",
+   "commit": "891da07cdfe4fe2c5d008ea80df08615fab12d51",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 208,
+   "new_files": 2,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "Wesleyx88/mvave-fm1-drum",
+   "commit": "98cb90a118ee78dc095c527a8bdd348bdd3d68d0",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 55,
+   "new_files": 2,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 29,
+   "not_parsed": {
+    "too_small": 5,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "Wesleyx88/mvave-fm1-emu",
+   "commit": "dc50f04ce0d7c954b86cfbbffa2e758151c2821c",
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 32,
+   "new_files": 0,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "Wesleyx88/mvave-fm1-gen",
+   "commit": "0945f5ba447ba9f836ac4759e4ebcb7772e47c16",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 50,
+   "new_files": 6,
+   "ours_longest_tokens": 28,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "Wesleyx88/mvave-fm1-legosythn",
+   "commit": "ef98611549ace012b7e0488d62efde9988162226",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 650,
+   "new_files": 161,
+   "ours_longest_tokens": 34,
+   "control_longest_tokens": 35,
+   "not_parsed": {
+    "cannot_parse": 25,
+    "too_small": 29
+   }
+  },
+  {
+   "repo": "Wesleyx88/mvave-fm1-mooge",
+   "commit": "fcfaceeebb8ef0c652348b03f7095089004e8c98",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 171,
+   "new_files": 5,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "wesmattison/snoop37",
+   "commit": "655458d8a5c87f7d5c5cbedc52164193b2b53c06",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 154,
+   "new_files": 0,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 34,
+   "not_parsed": {
+    "too_small": 6
+   }
+  },
+  {
+   "repo": "wicked-wix/felucca-bsp",
+   "commit": "b899449bbf3a6e21336c46faa07777cedb649e94",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 30,
+   "new_files": 0,
+   "ours_longest_tokens": 20,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "WillCMcC/kidboy-firmware",
+   "commit": "2e400c2dfcf3a95904e64656e373fe93f532216b",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 208,
+   "new_files": 49,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 11,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "wochende/FM-1-Felucca-Tutor",
+   "commit": "20c73515f99c3a09673c0131e503d21e1a5eebe0",
+   "licence": null,
+   "licence_class": "none",
+   "fetched": true,
+   "files": 3,
+   "new_files": 3,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "wonky-roger/fm1-emu",
+   "commit": "0a59fb93570896b69a9ad94431ea205ae5fb0fc1",
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 32,
+   "new_files": 0,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "workeffortwaste/JIANT",
+   "commit": "ade4e8940f746dc4c7d183a3ab6dec06d8c28edb",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 146,
+   "new_files": 42,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 6,
+    "too_small": 4
+   }
+  },
+  {
+   "repo": "Wulgaren/Araminta",
+   "commit": "fc2b68d377bfea0554869d52a1c9046bfa5e73be",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 173,
+   "new_files": 120,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 3,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "wzkxh/fork_dinghy",
+   "commit": "91c9a78035b06973ff79cbe765d09d4deb9c31d8",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 29,
+   "new_files": 0,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "xerydian/Felucca",
+   "commit": "9c143148830f895ec50d4f6bd9bdd30225c8ce7e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 163,
+   "new_files": 8,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "xerydian/felucca-smk",
+   "commit": "cc13e146f11d93328b4fc13ec92c4d69f6bc6e76",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 269,
+   "new_files": 14,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 1,
+    "too_small": 7
+   }
+  },
+  {
+   "repo": "xerydian/fm1-emu",
+   "commit": "19177bd79914fcdf527ac423f6689946a0557273",
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 32,
+   "new_files": 0,
+   "ours_longest_tokens": 19,
+   "control_longest_tokens": 32,
+   "not_parsed": {
+    "too_small": 1
+   }
+  },
+  {
+   "repo": "xerydian/fm1-to-smk37",
+   "commit": "6af085f17156bf3ce7fb43eb52539e7331b8b6ab",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "xerydian/hortator",
+   "commit": "7e3415971c5800b4a3ad0146a7d95615883d7d96",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 158,
+   "new_files": 46,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 7,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "xerydian/lunar-modulator",
+   "commit": "7cc70572490e6469a4d4bf5e9f143dcb8b4b143d",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 227,
+   "new_files": 2,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 7
+   }
+  },
+  {
+   "repo": "xerydian/orbit",
+   "commit": "b50203206a6ab2bbdb5ab4099577bb69453b6e67",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 112,
+   "new_files": 17,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "xerydian/skiff",
+   "commit": "eec4c1011a9d96b104f161fb4351bfc5201e545c",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 165,
+   "new_files": 50,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "cannot_parse": 3,
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "xerydian/zp12",
+   "commit": "f90efac6bb96ef9d7b2de8e39981e9633dd62e32",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 40,
+   "new_files": 6,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 29,
+   "not_parsed": {
+    "too_small": 2,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "y6zkcqnf5r-hue/fm1-fm80s",
+   "commit": "171c51fae0c433f32b1185b79d0e3d6df86ea849",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 110,
+   "new_files": 7,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "y6zkcqnf5r-hue/fm1-trawler",
+   "commit": "153f4f4433f15ef5bf3576035cff61f7d009ecc2",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 55,
+   "new_files": 55,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 20,
+   "not_parsed": {
+    "too_small": 15
+   }
+  },
+  {
+   "repo": "zakariachowdhury/flowstate-fm1",
+   "commit": "39625601f0308e744d930d2e773100632166c4c9",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 130,
+   "new_files": 66,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 6,
+    "cannot_parse": 2
+   }
+  },
+  {
+   "repo": "zednaked/jangada",
+   "commit": "249eb434b81050bf0b9129185234d58ff2dbbba3",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 126,
+   "new_files": 4,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "zisonzishen/crate-fm1",
+   "commit": "27c13ea309388fb1f8f8706fbf1a604287e5705d",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 53,
+   "new_files": 32,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 3
+   }
+  },
+  {
+   "repo": "zisonzishen/sloop-consort",
+   "commit": "8b24360e827803bf17336c581f764d5ef7009507",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "zisonzishen0415-stack/sloop-consort",
+   "commit": "af74b1bf6bed6d915c37a574b06ccf31a582d6a6",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 0,
+   "new_files": 0,
+   "ours_longest_tokens": 0,
+   "control_longest_tokens": 0,
+   "not_parsed": {}
+  },
+  {
+   "repo": "zreese/felucca-rainbow",
+   "commit": "65ee5090220d4fa25a59e889ee46d35c7d867e06",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 149,
+   "new_files": 2,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 3
+   }
+  },
+  {
+   "repo": "zvenson/dinghy",
+   "commit": "d44df7db09b98ccad2f1233b8f83f5f09c04829e",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 29,
+   "new_files": 0,
+   "ours_longest_tokens": 26,
+   "control_longest_tokens": 26,
+   "not_parsed": {
+    "too_small": 2
+   }
+  },
+  {
+   "repo": "zvenson/dxsloop",
+   "commit": "eeec0a6c1c7f9a93865983a8c7f7cc42102e7472",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 101,
+   "new_files": 38,
+   "ours_longest_tokens": 29,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 4,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "zvenson/fm1doom",
+   "commit": "640bc2dbdc69bcaf045afb9ef3695274f49fed4c",
+   "licence": "GPL-2.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 213,
+   "new_files": 189,
+   "ours_longest_tokens": 40,
+   "control_longest_tokens": 33,
+   "not_parsed": {
+    "too_small": 45,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "zvenson/zp12",
+   "commit": "6dc9c5cfa84192b36eb1bc23a7f660babdd86462",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "fetched": true,
+   "files": 58,
+   "new_files": 1,
+   "ours_longest_tokens": 24,
+   "control_longest_tokens": 29,
+   "not_parsed": {
+    "too_small": 5,
+    "cannot_parse": 1
+   }
+  },
+  {
+   "repo": "ZzpsS/M1n1Le55",
+   "commit": "36ef0a3600ff32378a92952e32dae1dd45ce2c2c",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "fetched": true,
+   "files": 55,
+   "new_files": 55,
+   "ours_longest_tokens": 27,
+   "control_longest_tokens": 21,
+   "not_parsed": {
+    "too_small": 6
+   }
+  }
+ ],
+ "unresolved": [
+  "Felucca Salt",
+  "Felucca 8 Patterns"
+ ],
+ "not_scored": {
+  "duplicate": 262,
+  "empty": 2,
+  "unreachable": 0
+ },
+ "pool_files": 18458,
+ "ours_files": [
+  {
+   "file": "src/audio.c",
+   "tokens": 52,
+   "state": "scored"
+  },
+  {
+   "file": "src/audio.h",
+   "tokens": null,
+   "state": "no match"
+  },
+  {
+   "file": "src/font.c",
+   "tokens": null,
+   "state": "TOO_SMALL",
+   "not_scorable": "not scorable by JPlag: fewer tokens than JPlag's minimum match of 12 (TOO_SMALL); compared by the text check instead"
+  },
+  {
+   "file": "src/gfx.c",
+   "tokens": 145,
+   "state": "scored"
+  },
+  {
+   "file": "src/input.c",
+   "tokens": 384,
+   "state": "scored"
+  },
+  {
+   "file": "src/input.h",
+   "tokens": null,
+   "state": "no match"
+  },
+  {
+   "file": "src/irq.c",
+   "tokens": 75,
+   "state": "scored"
+  },
+  {
+   "file": "src/lcd.c",
+   "tokens": 109,
+   "state": "scored"
+  },
+  {
+   "file": "src/main.c",
+   "tokens": 140,
+   "state": "scored"
+  },
+  {
+   "file": "src/panel.c",
+   "tokens": 231,
+   "state": "scored"
+  },
+  {
+   "file": "src/probe.c",
+   "tokens": 113,
+   "state": "scored"
+  },
+  {
+   "file": "src/sb.h",
+   "tokens": 104,
+   "state": "scored"
+  },
+  {
+   "file": "src/screen.c",
+   "tokens": 75,
+   "state": "scored"
+  },
+  {
+   "file": "src/start.c",
+   "tokens": null,
+   "state": "no match"
+  },
+  {
+   "file": "src/synth.c",
+   "tokens": 263,
+   "state": "scored"
+  }
+ ],
+ "text_check": {
+  "k": 24,
+  "threshold": 0.5,
+  "files": [
+   "src/font.c"
+  ],
+  "best": [
+   {
+    "ours": "src/font.c",
+    "containment": 0.0153,
+    "exact": false,
+    "target_files": [
+     {
+      "repo": "duncanwadsworth/fmini-1",
+      "path": "firmware/src/fmug_app.c",
+      "licence_class": "gpl"
+     }
+    ],
+    "target_places": 1
+   }
+  ],
+  "top_pairs": [
+   {
+    "ours": "src/font.c",
+    "containment": 0.0153,
+    "exact": false,
+    "target_files": [
+     {
+      "repo": "duncanwadsworth/fmini-1",
+      "path": "firmware/src/fmug_app.c",
+      "licence_class": "gpl"
+     }
+    ],
+    "target_places": 1
+   },
+   {
+    "ours": "src/font.c",
+    "containment": 0.0153,
+    "exact": false,
+    "target_files": [
+     {
+      "repo": "ruppert/fmini-1",
+      "path": "firmware/src/fmini_app.c",
+      "licence_class": "gpl"
+     }
+    ],
+    "target_places": 1
+   },
+   {
+    "ours": "src/font.c",
+    "containment": 0.0153,
+    "exact": false,
+    "target_files": [
+     {
+      "repo": "Wesleyx88/mvave-fm1-mooge",
+      "path": "firmware/src/fmug_app.c",
+      "licence_class": "gpl"
+     }
+    ],
+    "target_places": 1
+   },
+   {
+    "ours": "src/font.c",
+    "containment": 0.0079,
+    "exact": false,
+    "target_files": [
+     {
+      "repo": "SPIKE-the-Percussionist/noiz_demons",
+      "path": "firmware/src/ui_splash.c",
+      "licence_class": "gpl"
+     }
+    ],
+    "target_places": 1
+   },
+   {
+    "ours": "src/font.c",
+    "containment": 0.0048,
+    "exact": false,
+    "target_files": [
+     {
+      "repo": "devrvega/LCD-4",
+      "path": "firmware/src/app/scenes.c",
+      "licence_class": "gpl"
+     }
+    ],
+    "target_places": 1
+   }
+  ],
+  "flagged": []
+ },
+ "control_max_tokens": 35,
+ "threshold_tokens": 59,
+ "top_pairs": [
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 46,
+   "max": 0.1201,
+   "avg": 0.1159,
+   "target_files": [
+    {
+     "repo": "rgrvmusic/fluyt-logue",
+     "path": "tools/check_rows_microkorg2.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 44,
+   "max": 0.1149,
+   "avg": 0.1144,
+   "target_files": [
+    {
+     "repo": "charlesvestal/fm1-loom",
+     "path": "app/midicc.c",
+     "licence_class": "gpl"
+    },
+    {
+     "repo": "KrisGelero/fm1-loom",
+     "path": "app/midicc.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 2
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 42,
+   "max": 0.1097,
+   "avg": 0.0294,
+   "target_files": [
+    {
+     "repo": "RustyPawz/fm1-HYP1",
+     "path": "firmware/src/app/ui.c",
+     "licence_class": "other"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 40,
+   "max": 0.1723,
+   "avg": 0.0419,
+   "target_files": [
+    {
+     "repo": "etyrnal/ChoralRootFM1",
+     "path": "tests/cr_quad_test.c",
+     "licence_class": "gpl"
+    },
+    {
+     "repo": "Quixotic7/ChoralRootFM1",
+     "path": "tests/cr_quad_test.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 2
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 40,
+   "max": 0.1044,
+   "avg": 0.0818,
+   "target_files": [
+    {
+     "repo": "zvenson/fm1doom",
+     "path": "firmware/src/doom_glue.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 36,
+   "max": 0.1332,
+   "avg": 0.0868,
+   "target_files": [
+    {
+     "repo": "FicusFicusov/CoralFlower",
+     "path": "firmware/src/cf_fx.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 36,
+   "max": 0.1332,
+   "avg": 0.0876,
+   "target_files": [
+    {
+     "repo": "obbymaul-mp3/3IS",
+     "path": "firmware/src/cf_fx.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 34,
+   "max": 0.2464,
+   "avg": 0.1305,
+   "target_files": [
+    {
+     "repo": "w0ts/optimist",
+     "path": "firmware/hal/fm1_supply.h",
+     "licence_class": "gpl"
+    },
+    {
+     "repo": "Wesleyx88/mvave-fm1-legosythn",
+     "path": "firmware/hal/fm1_supply.h",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 2
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 34,
+   "max": 0.2245,
+   "avg": 0.0709,
+   "target_files": [
+    {
+     "repo": "anonymousacademe/FM-1-TripDeck",
+     "path": "firmware/src/tripdeck.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 34,
+   "max": 0.1697,
+   "avg": 0.0128,
+   "target_files": [
+    {
+     "repo": "jasonpersinger/ghoulbox-fm1-dungeon-synth",
+     "path": "tests/ui_test.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 34,
+   "max": 0.1697,
+   "avg": 0.0126,
+   "target_files": [
+    {
+     "repo": "jrdntnnr/sardab",
+     "path": "tests/ui_test.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 34,
+   "max": 0.1697,
+   "avg": 0.0122,
+   "target_files": [
+    {
+     "repo": "ocean/estampie",
+     "path": "tests/ui_test.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 34,
+   "max": 0.1697,
+   "avg": 0.0128,
+   "target_files": [
+    {
+     "repo": "pbarilla/ghoulbox-fm1-dungeon-synth",
+     "path": "tests/ui_test.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 34,
+   "max": 0.1697,
+   "avg": 0.0128,
+   "target_files": [
+    {
+     "repo": "sinscum/DIRGE-darksynth",
+     "path": "tests/ui_test.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 32,
+   "max": 0.1201,
+   "avg": 0.0555,
+   "target_files": [
+    {
+     "repo": "charlesvestal/fm1-monk",
+     "path": "firmware/src/app/ui.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 31,
+   "max": 0.1593,
+   "avg": 0.0892,
+   "target_files": [
+    {
+     "repo": "DeadActive/hortator",
+     "path": "tests/efmmetal_test.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 30,
+   "max": 0.1253,
+   "avg": 0.0526,
+   "target_files": [
+    {
+     "repo": "thebrodi/fm1-haave",
+     "path": "firmware/src/haave_ui.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 29,
+   "max": 0.9062,
+   "avg": 0.1398,
+   "target_files": [
+    {
+     "repo": "SPIKE-the-Percussionist/noiz_demons",
+     "path": "build/gen/ui_palettes.h",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 29,
+   "max": 0.4681,
+   "avg": 0.1845,
+   "target_files": [
+    {
+     "repo": "genkigenki/fm1-tracker-ketch",
+     "path": "firmware/gen/felucca_samples.h",
+     "licence_class": "gpl"
+    },
+    {
+     "repo": "jbschooley/Virtual-FM-1",
+     "path": "engines/felucca/generated/felucca_samples.h",
+     "licence_class": "gpl"
+    },
+    {
+     "repo": "SPIKE-the-Percussionist/noiz_demons",
+     "path": "build/gen/felucca_samples.h",
+     "licence_class": "gpl"
+    },
+    {
+     "repo": "StephanBeutel/Virtual-FM-1",
+     "path": "engines/felucca/generated/felucca_samples.h",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 4
+  },
+  {
+   "ours": "src/input.c",
+   "longest_tokens": 29,
+   "max": 0.4681,
+   "avg": 0.1845,
+   "target_files": [
+    {
+     "repo": "jbschooley/Virtual-FM-1",
+     "path": "engines/felucca103/generated/felucca_samples.h",
+     "licence_class": "gpl"
+    },
+    {
+     "repo": "jean80it2/Virtual-FM-1",
+     "path": "engines/felucca/generated/felucca_samples.h",
+     "licence_class": "gpl"
+    },
+    {
+     "repo": "StephanBeutel/Virtual-FM-1",
+     "path": "engines/felucca103/generated/felucca_samples.h",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 3
+  }
+ ],
+ "control_top_pairs": [
+  {
+   "ours": "pico_w/wifi/access_point/dnsserver/dnsserver.c",
+   "longest_tokens": 35,
+   "max": 0.2059,
+   "avg": 0.1923,
+   "target_files": [
+    {
+     "repo": "charlesvestal/fm1-radio",
+     "path": "app/third_party/pvaac/calc_sbr_anafilterbank.c",
+     "licence_class": "other"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "pico_w/wifi/access_point/dnsserver/dnsserver.c",
+   "longest_tokens": 35,
+   "max": 0.1804,
+   "avg": 0.157,
+   "target_files": [
+    {
+     "repo": "charlesvestal/fm1-radio",
+     "path": "app/third_party/bearssl/src/symcipher/aes_ct.c",
+     "licence_class": "other"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "pico_w/wifi/access_point/dnsserver/dnsserver.c",
+   "longest_tokens": 35,
+   "max": 0.1804,
+   "avg": 0.1443,
+   "target_files": [
+    {
+     "repo": "charlesvestal/fm1-radio",
+     "path": "app/third_party/bearssl/src/symcipher/aes_ct64.c",
+     "licence_class": "other"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "pico_w/wifi/access_point/dnsserver/dnsserver.c",
+   "longest_tokens": 35,
+   "max": 0.1804,
+   "avg": 0.0454,
+   "target_files": [
+    {
+     "repo": "JalopyMusic/fm1-w0ts-optimist",
+     "path": "firmware/src/engines/acid/bass303.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  },
+  {
+   "ours": "pico_w/wifi/access_point/dnsserver/dnsserver.c",
+   "longest_tokens": 35,
+   "max": 0.1804,
+   "avg": 0.0156,
+   "target_files": [
+    {
+     "repo": "sirpearson/fm-1-monomachine",
+     "path": "firmware/src/dsp/mnm.c",
+     "licence_class": "gpl"
+    }
+   ],
+   "target_places": 1
+  }
+ ],
+ "ours_vs_control_best": [
+  {
+   "ours": "src/input.c",
+   "control": "dma/control_blocks/control_blocks.c",
+   "longest_tokens": 16,
+   "max": 0.2963
+  },
+  {
+   "ours": "src/lcd.c",
+   "control": "pico_w/bt/btstack_audio_pico.c",
+   "longest_tokens": 14,
+   "max": 0.1296
+  },
+  {
+   "ours": "src/audio.c",
+   "control": "spi/bme280_spi/bme280_spi.c",
+   "longest_tokens": 12,
+   "max": 0.2353
+  }
+ ],
+ "flagged": [],
+ "accepted": [],
+ "control_related": [],
+ "seconds": 294.6,
+ "checks": [
+  {
+   "id": "C-AUDIT-JPLAG",
+   "result": "PASS",
+   "detail": "jar sha256 matches; Java image pinned by digest",
+   "reqs": [
+    "R-AUDIT-4"
+   ]
+  },
+  {
+   "id": "C-AUDIT-PIN",
+   "result": "PASS",
+   "detail": "515 targets fetched at their pinned commit and tree; 1 unavailable",
+   "reqs": [
+    "R-AUDIT-2"
+   ]
+  },
+  {
+   "id": "C-AUDIT-CONTROL",
+   "result": "PASS",
+   "detail": "244 control files; its longest match with an unrelated target 35 tokens; 0 of 515 targets control-related (above 100 tokens; at most 10% allowed)",
+   "reqs": [
+    "R-AUDIT-4"
+   ]
+  },
+  {
+   "id": "C-AUDIT-SCORE",
+   "result": "PASS",
+   "detail": "0 of our file pairs above 59 tokens (the control's 35 plus 24; for a control-related target, its own score plus 24)",
+   "reqs": [
+    "R-AUDIT-1",
+    "R-AUDIT-5"
+   ]
+  },
+  {
+   "id": "C-AUDIT-TEXT",
+   "result": "PASS",
+   "detail": "1 of our files not scorable by JPlag (src/font.c), compared as text with 18458 target files; 0 pairs an exact copy or at or above 0.50 of 24-character pieces",
+   "reqs": [
+    "R-AUDIT-1",
+    "R-AUDIT-5"
+   ]
+  },
+  {
+   "id": "C-AUDIT-LEAK",
+   "result": "PASS",
+   "reqs": [
+    "R-AUDIT-1",
+    "R-AUDIT-3"
+   ],
+   "detail": "no line of a target file (24 characters or more) in the report"
+  }
+ ],
+ "traceability": [
+  {
+   "requirement": "R-AUDIT-1",
+   "checks": [
+    "C-AUDIT-SCORE",
+    "C-AUDIT-LEAK",
+    "C-AUDIT-TEXT"
+   ],
+   "result": "PASS"
+  },
+  {
+   "requirement": "R-AUDIT-2",
+   "checks": [
+    "C-AUDIT-PIN"
+   ],
+   "result": "PASS"
+  },
+  {
+   "requirement": "R-AUDIT-3",
+   "checks": [
+    "C-AUDIT-LEAK"
+   ],
+   "result": "PASS"
+  },
+  {
+   "requirement": "R-AUDIT-4",
+   "checks": [
+    "C-AUDIT-JPLAG",
+    "C-AUDIT-CONTROL"
+   ],
+   "result": "PASS"
+  },
+  {
+   "requirement": "R-AUDIT-5",
+   "checks": [
+    "C-AUDIT-SCORE",
+    "C-AUDIT-TEXT"
+   ],
+   "result": "PASS"
+  }
+ ]
+}
