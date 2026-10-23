@@ -805,7 +805,7 @@ SR-3 wrote only its barrier-log row.*
   knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
 - Session: Claude Code session `d647e20d-4ce1-46cc-a18d-143dabc25c5a`,
   started by `/clear` at 03:13:26Z (banner `source: clear`,
-  `status: OK`); its first prompt arrived at about 12:25Z.
+  `status: OK`); its first prompt arrived at 12:25:19Z.
 - Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
   banner `status: OK`; `tools/private-terms.local` exists (not opened).
 - What it archived: record-fixes-1's transcript (`da964365`) into
