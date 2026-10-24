@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 7b5144bbea8e61e5012c6f63d9d5f837db93d492..663f13528897267059bd1c48a5ce0c7d40121fca
+OK     57798d7f9b26 docs: M6a's open items and the owner's decisions in PLAN.md
+EXEMPT 663f13528897 (merge) Merge pull request #88 from japes98/m6a/open-items
+2 commit(s) checked: PASS
+
+exit status 0
