@@ -364,4 +364,6 @@ an issue or a pull request against docs/HARNESS.md.
   `JL_UART_TypeDef` names `CON0`, `CON1`, `BAUD`, `BUF`, `OTCNT`, `TXADR`,
   `TXCNT`, `RXSADR`, `RXEADR`, `RXCNT` and `HRXCNT` at UART0 to UART2's
   bases, but no bits.
-- Status: open
+- Status: answered in part (HARDWARE-SPEC.md, "16. MIDI input (SR-8)",
+  HW-67 to HW-71; open: Q-12).
+- Answered: 2026-10-24, session midi-in-out (spec side)

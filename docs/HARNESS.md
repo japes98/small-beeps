@@ -243,7 +243,7 @@ the order written.
 | `key N tap [HOLD]` | Pressed, then released HOLD ms later (default 50). |
 | `enc N +C`, `enc N -C` | Encoder N (0 to 6) turned C detents (1 to 1000); `+` is clockwise. Each detent is four contact changes, 2 ms apart, the first at the event's time. |
 | `pot V` | The pot's reading becomes V (0 to 1023). It reads 900 until a script sets it. |
-| `midi HH ...` | Bytes (two hex digits each) arrive at the MIDI input one after another, at the wire's pace: one byte every 320 µs, the first 320 µs after the event's time. |
+| `midi HH ...` | Bytes (two hex digits each) arrive at the MIDI input one after another, at the wire's pace: one byte every 320 µs, the first 320 µs after the event's time. The MIDI input is the FM-1's MIDI IN jack, received by UART1 (`HARDWARE-SPEC.md`, HW-67, HW-71); fwtest has no USB or Bluetooth MIDI. |
 
 Key, LED and encoder numbers are fwtest's own. `HARDWARE-SPEC.md` maps them
 to the panel and to the key matrix.
@@ -273,6 +273,10 @@ All in `--out`. A run writes only what it was asked for, plus
 
 - `midi_bytes_dropped`: bytes that arrived while the image had no MIDI
   receiver set up, or more than about a second's worth waiting.
+  `HARDWARE-SPEC.md`, HW-71, says what counts as set up: the receiver
+  takes bytes only by DMA into a ring, so a byte that arrives without one
+  is dropped and raises nothing. The bytes' pace doesn't depend on the
+  baud rate, the UART clock or the pins, which fwtest ignores.
 - `unmodelled_accesses`: addresses the image read or wrote that fwtest does
   not model (reads give 0, writes are dropped), with counts, up to 256.
   Usually a sign the image touched something unexpected; if the hardware

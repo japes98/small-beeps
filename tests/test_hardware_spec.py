@@ -69,6 +69,9 @@ class HardwareSpecLintTest(unittest.TestCase):
             bad = GOOD.replace('- Sources: HARNESS ("The raw image"); E-1.', "- Sources: " + weak)
             p = self.problems(bad, exps=None)
             self.assertTrue(any("HW-1: confirmed, but" in x for x in p), (weak, p))
+        for strong in ("SDK `WL82.h`.", "MAN (the FM-1's manual, p. 10).", "PANEL.", "E-1."):
+            ok = GOOD.replace('- Sources: HARNESS ("The raw image"); E-1.', "- Sources: " + strong)
+            self.assertEqual(self.problems(ok), [], strong)
 
     def test_unknown_experiment(self):
         p = self.problems(GOOD, exps={"2"})

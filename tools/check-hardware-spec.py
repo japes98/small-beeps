@@ -13,7 +13,7 @@ It fails on:
   - a standing that isn't `confirmed ...`, `emulator-only ...` or
     `superseded by HW-n` (an entry that exists);
   - a confirmed entry whose sources name nothing independent: it must cite
-    SDK, RE, DS, PANEL or an experiment E-n (HARNESS, the spec side's own
+    SDK, RE, DS, PANEL, MAN or an experiment E-n (HARNESS, the spec side's own
     description of fwtest, and the emulator model don't count);
   - an experiment E-n cited but not listed in
     harness/spec-experiments/README.md (checked only where harness/ is on
@@ -35,7 +35,7 @@ EXPERIMENTS = os.path.join(ROOT, "harness", "spec-experiments", "README.md")
 FIELDS = ("Fact", "Sources", "Standing", "Needed by")
 HEAD = re.compile(r"^### (HW-(\d+)): (\S.*)$")
 FIELD = re.compile(r"^- ([A-Z][a-z]+(?: by)?):\s*(.*)$")
-SOURCE_KEYS = re.compile(r"\b(SDK|RE|DS|PANEL|E-\d+)\b")
+SOURCE_KEYS = re.compile(r"\b(SDK|RE|DS|PANEL|MAN|E-\d+)\b")
 EXP = re.compile(r"\bE-(\d+)\b")
 
 
@@ -108,7 +108,7 @@ def lint(text, base_text=None, known_exps=None):
                 problems.append("%s: superseded by %s, which isn't another entry" % (eid, m.group(1)))
         elif st.startswith("confirmed"):
             if not SOURCE_KEYS.search(e.get("Sources", "")):
-                problems.append("%s: confirmed, but its sources name no independent source (SDK, RE, DS, PANEL, E-n)" % eid)
+                problems.append("%s: confirmed, but its sources name no independent source (SDK, RE, DS, PANEL, MAN, E-n)" % eid)
         elif not st.startswith("emulator-only"):
             problems.append("%s: standing '%s' is not confirmed, emulator-only or superseded by HW-n" % (eid, st))
         if known_exps is not None:
