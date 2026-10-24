@@ -1,0 +1,42 @@
+{
+  "fwtest": {
+    "version": "0.2.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "test-underrun.bin",
+    "bytes": 9156,
+    "sha256": "8d564529360e682b3c05110bc9edf532c2e9319002ac4ac08081fb9667f0e298"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "500.302",
+    "instructions": {
+      "core0": 3508655,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "console.txt",
+        "bytes": 116,
+        "sha256": "a9ef4b3c85da6cb4e6bcd9282dce1ce8ee5fe7410159b1bfab47b3d0297971a7"
+      },
+      {
+        "name": "ipb.csv",
+        "bytes": 6399,
+        "sha256": "2206f3aa45d57684732d20da7b448030ef3d997e594c7dcdbf73712e1d813340"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "9cc0d3df0831840dbeaea9c107d86e647c4d8320c914c5bd1dad919efa42453f"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

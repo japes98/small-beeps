@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range ba937db09c19b8c1e2817de59c5180a884ca4915..56040232c01ccee6c66efe270a8afbd26262bd76
+OK     9fca74e0e909 config: the M5 budgets, for the FM engine
+EXEMPT 4e46b33c7dd9 (merge) config: merge main into the M5 budgets, after #66
+EXEMPT 56040232c01c (merge) Merge pull request #69 from japes98/m5/budgets
+3 commit(s) checked: PASS
+
+exit status 0
