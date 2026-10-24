@@ -110,5 +110,41 @@ class AnalysisTest(unittest.TestCase):
             shutil.rmtree(d)
 
 
+class FmAnalysisTest(unittest.TestCase):
+    """Requirements: R-FM-1"""
+
+    def test_bessel_values(self):
+        # Abramowitz and Stegun, table 9.1: J0(1) 0.7651977, J1(1) 0.4400506,
+        # J2(1) 0.1149035; J0's first zero at 2.4048256.
+        for n, x, v in ((0, 1.0, 0.7651977), (1, 1.0, 0.4400506), (2, 1.0, 0.1149035)):
+            self.assertAlmostEqual(aa.bessel_j(n, x), v, places=6)
+        self.assertAlmostEqual(aa.bessel_j(0, 2.4048256), 0.0, places=6)
+
+    def test_amplitudes_at_known_frequencies(self):
+        f = [440.0 * k for k in (1, 2, 3)]
+        x = [sum(a * math.sin(2 * math.pi * fk * i / aa.RATE + 0.3 * k)
+                 for k, (a, fk) in enumerate(zip((1000.0, 300.0, 20.0), f))) for i in range(4410)]
+        got = aa.amplitudes_at(x, f)
+        for g, want in zip(got, (1000.0, 300.0, 20.0)):
+            self.assertAlmostEqual(g, want, places=6)
+
+    def test_an_fm_tone_has_bessel_sidebands(self):
+        # sin(wc t + I sin(wm t)): sideband n at J_n(I) (Chowning 1973).
+        fm, fc, index = 440.0, 2640.0, math.pi / 2
+        x = [math.sin(2 * math.pi * fc * i / aa.RATE + index * math.sin(2 * math.pi * fm * i / aa.RATE))
+             for i in range(8820)]
+        amp = aa.amplitudes_at(x, [fc + n * fm for n in range(-3, 4)])
+        for n, a in zip(range(-3, 4), amp):
+            self.assertAlmostEqual(a, abs(aa.bessel_j(abs(n), index)), places=4)
+
+    def test_block_amplitudes_and_pitch_track(self):
+        x = tone(440.0, 1000.0, 64 * 10)
+        for a in aa.block_amplitudes(x, 440.0):
+            self.assertAlmostEqual(a, 1000.0, places=3)
+        y = tone(440.0, 1000.0, 4410)
+        for _, f in aa.pitch_track(y, 0, len(y)):
+            self.assertAlmostEqual(f, 440.0, places=3)
+
+
 if __name__ == "__main__":
     unittest.main()

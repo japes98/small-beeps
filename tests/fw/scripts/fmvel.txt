@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# fmvel (R-FM-3; the test build SB_TEST_VELOCITY, whose keys KEY1 to
+# KEY5 play velocities 127, 100, 64, 32 and 1): test patch 8
+# ("Velocity", one carrier, its velocity sensitivity 7), each note held
+# 300 ms. Its level must fall as the sensitivity says.
+#
+# time   event
+50       enc 6 -1           # PRESETS: patch 8 (one back from 0)
+300      key 14 tap 300
+800      key 15 tap 300
+1300     key 16 tap 300
+1800     key 17 tap 300
+2300     key 18 tap 300

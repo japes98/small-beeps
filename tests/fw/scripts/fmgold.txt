@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# fmgold (R-FM-8): every test patch in turn, a note (two for the mono
+# patch, legato), the whole output against a golden WAV; fmgold2 runs
+# it again and must give the same bytes (R-FM-9).
+#
+# time   event
+100      key 30 tap 250
+490      enc 6 +1
+550      key 30 tap 250
+940      enc 6 +1
+1000     key 30 tap 250
+1390     enc 6 +1
+1450     key 30 tap 250
+1550     key 33 tap 100
+1840     enc 6 +1
+1900     key 30 tap 250
+2290     enc 6 +1
+2350     key 30 tap 250
+2740     enc 6 +1
+2800     key 30 tap 250
+3190     enc 6 +1
+3250     key 30 tap 250
+3640     enc 6 +1
+3700     key 30 tap 250

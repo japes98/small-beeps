@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# fmmono (R-FM-5): test patch 3 ("Glide lead", mono, a 181 ms glide). C4
+# held; E4 pressed while it is held (legato: a glide up, no new attack);
+# E4 released (back to C4, gliding); C4 released.
+#
+# time   event
+50       enc 6 +3           # PRESETS: patch 3
+300      key 21 down        # KEY8, C4
+700      key 25 down        # KEY12, E4
+1100     key 25 up
+1500     key 21 up

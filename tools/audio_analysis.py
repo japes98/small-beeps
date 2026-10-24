@@ -15,6 +15,12 @@ is written here (docs/DESIGN-NOTES.md, M4, "How the sound is measured").
   sine of that amplitude and frequency can give under the instrument's
   linear ramps. A step (a hard start or stop) gives a second difference
   of about the step itself, many times the bound.
+- Since M5, for the FM engine: amplitudes_at, a linear least-squares fit
+  of sines at frequencies known in advance (an FM spectrum's sidebands),
+  which has no leakage between them when they are resolved by the
+  window; bessel_j, the Bessel function of the first kind by its series
+  (Abramowitz and Stegun 9.1.10), the amplitude of FM's sidebands
+  (Chowning 1973); and pitch_track.
 """
 import math
 import struct
@@ -134,3 +140,57 @@ def click_bound(amplitude, f, ramp, rate=RATE, quantum=4):
     and a few steps of the WAV's rounding."""
     w = 2 * math.pi * f / rate
     return amplitude * ((2 * math.sin(w / 2)) ** 2 + (1 + 2 * w) / ramp) + quantum
+
+
+def amplitudes_at(x, freqs, rate=RATE):
+    """The amplitude of a sine at each frequency in freqs (and an offset),
+    fitted together to the samples x by linear least squares."""
+    n = len(x)
+    t0 = n / 2.0
+    cols = []
+    for f in freqs:
+        w = 2 * math.pi * f / rate
+        cols.append([math.cos(w * (i - t0)) for i in range(n)])
+        cols.append([math.sin(w * (i - t0)) for i in range(n)])
+    cols.append([1.0] * n)
+    m = [[sum(p * q for p, q in zip(ci, cj)) for cj in cols] for ci in cols]
+    v = [sum(p * q for p, q in zip(ci, x)) for ci in cols]
+    sol = solve(m, v)
+    return [math.hypot(sol[2 * k], sol[2 * k + 1]) for k in range(len(freqs))]
+
+
+def bessel_j(n, x, terms=40):
+    """J_n(x), n >= 0, by its series: the sum over m of (-1)^m (x/2)^(2m+n)
+    / (m! (m+n)!)."""
+    total, term = 0.0, (x / 2.0) ** n / math.factorial(n)
+    for m in range(terms):
+        total += term
+        term *= -(x / 2.0) ** 2 / ((m + 1) * (m + 1 + n))
+    return total
+
+
+def block_amplitudes(x, f, block=BLOCK, rate=RATE):
+    """The amplitude of the sine at frequency f in each block of samples
+    (a two-term least-squares fit per block)."""
+    w = 2 * math.pi * f / rate
+    out = []
+    for b in range(len(x) // block):
+        seg = x[b * block:(b + 1) * block]
+        cs = [math.cos(w * (b * block + i)) for i in range(block)]
+        sn = [math.sin(w * (b * block + i)) for i in range(block)]
+        m = [[sum(p * q for p, q in zip(ci, cj)) for cj in (cs, sn)] for ci in (cs, sn)]
+        v = [sum(p * q for p, q in zip(ci, seg)) for ci in (cs, sn)]
+        a, c = solve(m, v)
+        out.append(math.hypot(a, c))
+    return out
+
+
+def pitch_track(x, first, last, step_ms=10.0, window_ms=20.0, rate=RATE):
+    """[(ms from first, Hz)]: the frequency of a sine fitted to each window
+    from sample first to last."""
+    out, w, s = [], int(window_ms * rate / 1000), int(step_ms * rate / 1000)
+    i = first
+    while i + w <= last:
+        out.append(((i + w / 2.0 - first) * 1000.0 / rate, sine_fit(x[i:i + w])["frequency"]))
+        i += s
+    return out
