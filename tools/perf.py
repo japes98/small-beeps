@@ -32,7 +32,8 @@ C-PERF and C-PERF-PROBES; R-PERF-1 to R-PERF-5).
 
 What is measured (docs/DESIGN-NOTES.md, M0e):
 - size: code, data, bss, the raw image and the stack reserved, from
-  app.size; static RAM is data + bss;
+  app.size; static RAM is data + bss (since M7 + ram_code, the code run
+  from RAM);
 - the stack's high-water mark: the firmware fills its unused stack with
   STACK_FILL once at startup (crt0.S, sb_stack_fill), so the deepest the
   stack went is the lowest word no longer holding it, in the stack
@@ -278,7 +279,8 @@ def read_run(out, size, m, log=""):
     for k in SIZES:
         m[k] = size[k]
     m["stack_reserved"] = size["stack"]
-    m["static_ram"] = size["data"] + size["bss"]
+    # Since M7 code run from RAM (app.size's ram_code) takes RAM too.
+    m["static_ram"] = size["data"] + size["bss"] + size.get("ram_code", 0)
     try:
         with open(os.path.join(out, "result.json")) as f:
             result = json.load(f)
