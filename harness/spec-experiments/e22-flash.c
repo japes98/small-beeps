@@ -1,7 +1,10 @@
 /* SPDX-License-Identifier: MIT */
 /* SPDX-FileCopyrightText: 2026 japes98 */
 /* E-22: the flash chip on SPI0 (spiflash.rs; JL_SPI0 CON +0, BUF +8 from
-   WL82.h; chip select PD0, bit 0 of JL_PORTD OUT). Results in OUT(n):
+   WL82.h; chip select PD0, bit 0 of JL_PORTD OUT). Every routine that
+   works the chip runs in RAM (image-ram.ld) and returns once it is no
+   longer busy: since fwtest 0.6.0 code in the window ends the run while
+   the chip is busy. Results in OUT(n):
     0-2  JEDEC ID (9F)
     3-5  status (05) before WREN, after WREN, after a 4 KiB erase
     6    TIMER4 ticks for 64 BUF writes (the bus's pace)
@@ -21,14 +24,23 @@
    18    end marker */
 #include "exp.h"
 
+#define RAMCODE __attribute__((section(".ramtext"), noinline))
 #define SPI0_CON REG(0x11c00u)
 #define SPI0_BUF REG(0x11c08u)
 #define PD_OUT REG(0x500c0u)
 
-static void sel(void) { PD_OUT = 0u; }
-static void desel(void) { PD_OUT = 1u; }
+extern unsigned char __ramtext_load[], __ramtext_start[], __ramtext_end[];
 
-static u32 xfer(u32 b)
+static inline void ram_init(void)
+{
+    for (unsigned char *s = __ramtext_load, *d = __ramtext_start; d < __ramtext_end;)
+        *(volatile unsigned char *)d++ = *s++;
+}
+
+static inline __attribute__((always_inline)) void sel(void) { PD_OUT = 0u; }
+static inline __attribute__((always_inline)) void desel(void) { PD_OUT = 1u; }
+
+static inline __attribute__((always_inline)) u32 xfer(u32 b)
 {
     SPI0_BUF = b;
     while (!(SPI0_CON & 0x8000u)) {
@@ -37,14 +49,14 @@ static u32 xfer(u32 b)
     return SPI0_BUF & 0xffu;
 }
 
-static void op(u32 cmd)
+static inline __attribute__((always_inline)) void op(u32 cmd)
 {
     sel();
     xfer(cmd);
     desel();
 }
 
-static u32 status(void)
+static inline __attribute__((always_inline)) u32 status(void)
 {
     sel();
     xfer(0x05u);
@@ -55,7 +67,7 @@ static u32 status(void)
     return s;
 }
 
-static void addr_cmd(u32 cmd, u32 a)
+static inline __attribute__((always_inline)) void addr_cmd(u32 cmd, u32 a)
 {
     xfer(cmd);
     xfer(a >> 16);
@@ -63,7 +75,7 @@ static void addr_cmd(u32 cmd, u32 a)
     xfer(a);
 }
 
-static void erase(u32 cmd, u32 a)
+static RAMCODE void erase(u32 cmd, u32 a)
 {
     op(0x06u);
     sel();
@@ -73,7 +85,7 @@ static void erase(u32 cmd, u32 a)
     }
 }
 
-static void program(u32 a, u32 word, u32 wren)
+static RAMCODE void program(u32 a, u32 word, u32 wren)
 {
     if (wren)
         op(0x06u);
@@ -86,7 +98,7 @@ static void program(u32 a, u32 word, u32 wren)
     }
 }
 
-static u32 read4(u32 a)
+static RAMCODE u32 read4(u32 a)
 {
     u32 w = 0;
     sel();
@@ -99,11 +111,8 @@ static u32 read4(u32 a)
     return w;
 }
 
-int main(void)
+static RAMCODE void id_and_status(void)
 {
-    TMR_CON(4) = 1u;
-    desel();
-
     sel();
     xfer(0x9fu);
     SPI0_CON |= 0x1000u;
@@ -134,6 +143,14 @@ int main(void)
     OUT(7) = TMR_CNT(4) - t0;
     OUT(8) = polls;
     OUT(5) = status();
+}
+
+int main(void)
+{
+    ram_init();
+    TMR_CON(4) = 1u;
+    desel();
+    id_and_status();
 
     program(0x80000u, 0xffaa0ff0u, 1);
     program(0x80000u, 0x3c3c3c3cu, 1);

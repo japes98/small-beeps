@@ -374,7 +374,8 @@ fn led_capture() {
 fn flash_capture() {
     let mut chip = vec![0xffu8; 0x100000];
     chip[0x5000..0x5010].copy_from_slice(b"flash file bytes");
-    let mut o = opts(5);
+    // (an erase and a program, each waited for: 15 ms)
+    let mut o = opts(50);
     o.flash_in = Some(chip);
     o.flash_out = true;
     o.halt_ok = true;
@@ -500,4 +501,129 @@ fn boot_state_matches_the_manual() {
     assert_eq!(b.cpu0.regs[0], 0x01c7_fc00);
     assert_eq!(b.cpu0.sp, 0);
     assert_eq!(b.soc.ram.len(), 1 << 20);
+}
+
+/// R-HARN-12: a dual-issue pair whose two halves write the same register
+/// keeps the head's result, as the vendor compiler's code expects (vendor
+/// patch 0011; fwtest 0.5.0 kept the second half's).
+#[test]
+fn pair_head_wins_over_its_second_half() {
+    let mut o = opts(1);
+    o.ram = vec![(OUT0, 16, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("pairwaw"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    assert_eq!(words(output(&r, "ram-01c00100-10-end.bin")), vec![0x0008_0300, 0x78, 0x56, 0x34]);
+}
+
+fn fault_text(r: &fwtest::run::Report) -> (u32, u32, String) {
+    match &r.outcome {
+        Outcome::Fault { core, pc, what } => (*core, *pc, what.clone()),
+        o => panic!("not a fault: {o:?}"),
+    }
+}
+
+/// R-HARN-3: while the flash chip is busy, running code in the window or
+/// reading it ends the run as a fault; code and handlers in RAM run on.
+#[test]
+fn flash_busy_and_the_window() {
+    let r = run(&image("flashcall"), &opts(20)).unwrap();
+    let (core, pc, what) = fault_text(&r);
+    assert_eq!(core, 0);
+    assert!((0x0200_0000..0x0210_0000).contains(&pc), "{pc:#x}");
+    assert!(what.starts_with("ran code in the code window while the flash chip was busy"), "{what}");
+    assert!(r.end_us < 1_000, "at once, not at the erase's end: {}", r.end_us);
+
+    let mut o = opts(20);
+    o.ram = vec![(OUT0, 8, When::End)];
+    let r = run(&image("flashload"), &o).unwrap();
+    let (core, pc, what) = fault_text(&r);
+    assert_eq!(core, 0);
+    assert!((0x01c4_0000..0x01c5_0000).contains(&pc), "the RAM routine: {pc:#x}");
+    assert_eq!(what, "read the code window at 0x02000000 while the flash chip was busy (an erase or program in progress)");
+    assert_eq!(words(output(&r, "ram-01c00100-8-end.bin"))[0], 0, "never ran past the read");
+
+    // a TIMER0 handler in RAM runs through a 12 ms erase and a 3 ms program;
+    // moved to the window, the next tick during an erase is a fault
+    let mut o = opts(60);
+    o.ram = vec![(OUT0, 32, When::End)];
+    let r = run(&image("flashirq"), &o).unwrap();
+    let w = words(output(&r, "ram-01c00100-20-end.bin"));
+    assert_eq!(w[0], 0x600d);
+    assert_eq!((w[2] / 24_000, w[3] / 24_000), (12, 3), "erase and program in ms of TIMER4: {:?}", &w[2..4]);
+    assert_eq!((w[4], w[5]), (12, 15), "ticks taken during them");
+    let (_, pc, what) = fault_text(&r);
+    assert!((0x0200_0000..0x0210_0000).contains(&pc) && what.starts_with("ran code in the code window"), "{pc:#x} {what}");
+    assert_eq!((w[6], w[7]), (0, 0));
+}
+
+/// R-HARN-3: the flash persists across runs through files, `--flash-log`
+/// lists the operations, and `--power-cut` keeps the part done of the
+/// operation it interrupts.
+#[test]
+fn flash_persists_and_power_cuts() {
+    let img = image("flashkeep");
+    let mut o = opts(80);
+    o.ram = vec![(OUT0, 8, When::End)];
+    o.flash_out = true;
+    o.flash_log = true;
+    o.halt_ok = true;
+    let first = run(&img, &o).unwrap();
+    assert_eq!(words(output(&first, "ram-01c00100-8-end.bin")), vec![0xffff_ffff, 0x600d]);
+    let chip = output(&first, "flash.bin").to_vec();
+    assert_eq!(&chip[0x80000..0x80004], &[1, 0, 0, 0]);
+    assert!(chip[0x80004..0x81000].iter().all(|&b| b == 0));
+    let log = String::from_utf8(output(&first, "flash-ops.csv").to_vec()).unwrap();
+    let rows: Vec<&str> = log.lines().collect();
+    assert_eq!(rows[0], "start_ms,end_ms,command,offset,bytes");
+    assert_eq!(rows.len(), 17, "16 page programs: {log}");
+    assert!(rows[1].ends_with(",02,0x080000,256") && rows[16].ends_with(",02,0x080f00,256"), "{log}");
+
+    // the second run reads 1, erases the sector and programs 2
+    o.flash_in = Some(chip.clone());
+    let second = run(&img, &o).unwrap();
+    assert_eq!(words(output(&second, "ram-01c00100-8-end.bin")), vec![1, 0x600d]);
+    assert_eq!(&output(&second, "flash.bin")[0x80000..0x80004], &[2, 0, 0, 0]);
+    let log = String::from_utf8(output(&second, "flash-ops.csv").to_vec()).unwrap();
+    let erase: Vec<&str> = log.lines().nth(1).unwrap().split(',').collect();
+    assert_eq!(&erase[2..], &["20", "0x080000", "4096"], "{log}");
+    let start_us = (erase[0].parse::<f64>().unwrap() * 1000.0).round() as u64;
+
+    // cut a quarter of the way through that erase: its first 1 KiB erased
+    let mut c = Options { ms_us: start_us + 3_000, flash_in: Some(chip), power_cut: true, ..Default::default() };
+    c.ram = vec![(OUT0, 8, When::End)];
+    let cut = run(&img, &c).unwrap();
+    let done = match cut.outcome {
+        Outcome::PowerCut { op: Some((0x20, 0x80000, 4096, done)) } => done,
+        ref o => panic!("{o:?}"),
+    };
+    assert!((1000..1100).contains(&done), "{done}");
+    let f = output(&cut, "flash.bin");
+    assert!(f[0x80000..0x80000 + done].iter().all(|&b| b == 0xff), "the part done");
+    assert!(f[0x80000 + done..0x81000].iter().all(|&b| b == 0), "the rest as before");
+    assert_eq!(words(output(&cut, "ram-01c00100-8-end.bin"))[1], 0, "the image never finished");
+
+    // a cut with nothing in progress, and the chip saved without --flash-out
+    let c = Options { ms_us: 5_000, power_cut: true, ..Default::default() };
+    let r = run(&image("heartbeat"), &c).unwrap();
+    assert_eq!(r.outcome, Outcome::PowerCut { op: None });
+    assert_eq!(output(&r, "flash.bin").len(), 0x100000);
+}
+
+/// R-HARN-3: `--power-cut` on the command line: exit 0, `power-cut` as a
+/// suite expectation, and not with `--ms`.
+#[test]
+fn power_cut_command_line() {
+    let d = scratch("powercut");
+    let img = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/images/flashkeep.bin");
+    let (code, text) = fwtest(&["run", img.to_str().unwrap(), "--power-cut", "20", "--out", d.join("a").to_str().unwrap()]);
+    assert_eq!(code, 0, "{text}");
+    assert!(d.join("a/flash.bin").exists());
+    let result = std::fs::read_to_string(d.join("a/result.json")).unwrap();
+    assert!(result.contains("\"outcome\": \"power-cut\""), "{result}");
+    let (code, text) = fwtest(&["run", img.to_str().unwrap(), "--ms", "5", "--power-cut", "20", "--out", d.join("b").to_str().unwrap()]);
+    assert_eq!(code, 2, "{text}");
+    let (code, text) = fwtest(&["run", img.to_str().unwrap(), "--ms", "5", "--ms", "6", "--out", d.join("c").to_str().unwrap()]);
+    assert_eq!(code, 2, "{text}");
+    assert!(text.contains("--ms given twice"), "{text}");
 }

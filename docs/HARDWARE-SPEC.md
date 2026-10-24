@@ -694,7 +694,7 @@ requests. Section 19 completes it (SR-9).
   ID, chip select, commands, timing); E-22 (the ID, the status bits, the
   commands and their timing in fwtest; HW-82). Chip select on the chip:
   Q-22.
-- Standing: confirmed (E-22)
+- Standing: superseded by HW-83
 - Needed by: M7
 
 ## 9. TIMER0 to TIMER3, corrected (M1)
@@ -1423,7 +1423,8 @@ requests. Section 19 completes it (SR-9).
 
 Completes section 8 for SR-9. HW-76 to HW-79 are the chip and its flash
 part, HW-80 and HW-81 the FM-1's flash layout and what the boot chain and
-the update path need, HW-82 fwtest as pinned (0.5.0). Open: Q-21 to Q-24.
+the update path need, HW-82 fwtest 0.5.0's flash, superseded by HW-83,
+fwtest 0.6.0's. Open: Q-21 to Q-24.
 
 ### HW-76: The flash part's identity
 - Fact: In fwtest the flash chip answers the JEDEC ID read (`0x9F`) with
@@ -1618,6 +1619,38 @@ the update path need, HW-82 fwtest as pinned (0.5.0). Open: Q-21 to Q-24.
   without WREN wrote; "ABCD" at `0x800FE` put "CD" at `0x80100`; the erase
   extents); HARNESS ("The flash chip", `--flash`, `--flash-out`); the
   emulator model (the commands not modelled).
+- Standing: superseded by HW-83
+- Needed by: M7
+
+### HW-83: The flash chip in fwtest 0.6.0
+- Fact: In fwtest from 0.6.0 the flash chip is a 1 MiB SPI NOR chip on
+  SPI0 (`JL_SPI0`, `0x00011C00`: `CON` +0, `BUF` +8), selected by PD0
+  (bit 0 of `JL_PORTD->OUT`, `0x000500C0`) low; a command is the bytes
+  sent while selected. A write to `BUF` sends one byte and takes no
+  emulated time of its own; with `CON` bit 12 set the byte received lands
+  in `BUF`; `CON` bit 15 reads 1 when a byte is done and writing bit 14
+  clears it. It answers JEDEC ID `0x85 0x60 0x14` and takes the
+  P25Q80H's commands as HW-78 gives them: read `0x03`, fast read `0x0B`,
+  status `0x05` (bit 0 busy, bit 1 write enable) and `0x35`, write enable
+  and disable `0x06` and `0x04`, erases of 256 bytes `0x81`, 4 KiB
+  `0x20`, 32 KiB `0x52`, 64 KiB `0xD8` and the whole chip `0x60`/`0xC7`,
+  page program `0x02`. An erase or program needs a write enable first
+  (otherwise nothing happens), starts when PD0 goes high, and keeps the
+  chip busy for the datasheet's maximum time, a program 3 ms and an erase
+  of any size 12 ms (HW-77); meanwhile status bits 0 and 1 read 1 and
+  every command but the status reads is ignored. A program wraps within
+  its 256-byte page and only clears bits. While the chip is busy, a core
+  that is about to run code in the code window, or reads it, ends the run
+  as a fault (HW-79 says why). The chip's contents show through the
+  window (HW-5). Not modelled: suspend and resume, block protection,
+  dual and quad reads. Supersedes HW-47 and HW-82 (fwtest 0.5.0: no busy
+  time, no write enable needed for a program, no wrap).
+- Sources: E-22 (with fwtest 0.6.0: a 4 KiB erase and its status reads
+  288 005 TIMER4 ticks, 12.0 ms; a program without write enable left the
+  bytes erased; "CD" programmed past the end of a page landed at the
+  page's start, ANDed with what was there; the ID, the status bits, the
+  erase extents as before); HARNESS ("The flash chip"); the emulator
+  model with vendor patch 0010 (the commands; the busy rule).
 - Standing: confirmed (E-22)
 - Needed by: M7
 

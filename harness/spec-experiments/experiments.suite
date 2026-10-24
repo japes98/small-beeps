@@ -26,4 +26,4 @@ e18-block-moves halt images/e18-block-moves.bin --ms 2 --ram 0x01c00100:0x54@end
 e19-midi-rx completed images/e19-midi-rx.bin --ms 20 --script scripts/e19-midi-rx.txt --ram 0x01c00100:0x38@end --ram 0x01c00200:0x10@end --ram 0x01c01000:0x80@end --golden golden/e19-midi-rx
 e20-midi-rx-cases completed images/e20-midi-rx-cases.bin --ms 12 --script scripts/e20-midi-rx-cases.txt --ram 0x01c00100:0x30@end --ram 0x01c00200:0x10@end --ram 0x01c00300:0x10@end --golden golden/e20-midi-rx-cases
 e21-midi-tx completed images/e21-midi-tx.bin --ms 8 --midi-out --ram 0x01c00100:0x24@end --golden golden/e21-midi-tx
-e22-flash  halt      images/e22-flash.bin --ms 2 --ram 0x01c00100:0x4c@end --golden golden/e22-flash
+e22-flash  halt      images/e22-flash.bin --ms 60 --ram 0x01c00100:0x4c@end --golden golden/e22-flash

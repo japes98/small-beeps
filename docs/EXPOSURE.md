@@ -1262,7 +1262,14 @@ SR-3 wrote only its barrier-log row.*
   `docs/SPEC-REQUESTS.md` (SR-9), `PROVENANCE.md`'s IDs and the list of
   its files, then merged that branch into SR-9's answer, so its files are
   in that branch; no other file of it was opened.
-- Later in the session: spec experiment E-22 (the flash chip in fwtest).
+- Later in the session: spec experiment E-22 (the flash chip in fwtest);
+  vendor patches 0010 and 0011 and fwtest 0.6.0, built and tested on the
+  Mac with the pinned Rust (the emulator's crates and the harness); the
+  firmware at main's `6ba587e` built in the build container and its suite
+  run on fwtest 0.5.0 (pinned) and 0.6.0 (local) to compare; the
+  toolchain's disassembly of that firmware, the harness's test images and
+  the spec experiments, scanned for dual-issue pairs. Docker's build
+  cache was pruned once to keep disk free (no image removed).
 
 ## Corrections
 

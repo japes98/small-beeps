@@ -14,14 +14,16 @@ set -eu
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../.." && pwd)
-IMAGES="heartbeat halt wild hang console lcd leds keys pot midi midiout audio flashrw spi1irq"
+IMAGES="heartbeat halt wild hang console lcd leds keys pot midi midiout audio spi1irq"
+# C with code in RAM (image-ram.ld, flash.h)
+RAM_IMAGES="flashrw flashcall flashload flashirq flashkeep"
 # built with the firmware's CPU flags (tools/build.sh, CPU), as the firmware is
 FW_IMAGES="blockc rotc"
 # assembly, linked after start.S like the C images
-ASM_IMAGES="blockmv pairhead rotr pushpop ramcode"
+ASM_IMAGES="blockmv pairhead rotr pushpop ramcode pairwaw"
 # assembly with its own _start, linked alone
 RAW_IMAGES="sr7"
-ALL="$IMAGES $FW_IMAGES $ASM_IMAGES $RAW_IMAGES"
+ALL="$IMAGES $RAM_IMAGES $FW_IMAGES $ASM_IMAGES $RAW_IMAGES"
 
 inside() {
     out=$1
@@ -33,6 +35,19 @@ inside() {
         clang $flags -c "$n.c" -o "$out/$n.o"
         ld -nostdlib -T image.ld -o "$out/$n.elf" "$out/start.o" "$out/$n.o"
         objcopy -O binary -j .text "$out/$n.elf" "$out/$n.bin"
+        rm "$out/$n.o" "$out/$n.elf"
+    done
+    for n in $RAM_IMAGES; do
+        # shellcheck disable=SC2086
+        clang $flags -c "$n.c" -o "$out/$n.o"
+        ld -nostdlib -T image-ram.ld -o "$out/$n.elf" "$out/start.o" "$out/$n.o"
+        # this objcopy takes one -j: the RAM code goes right after .text,
+        # where image-ram.ld puts its load address
+        objcopy -O binary -j .text "$out/$n.elf" "$out/$n.text"
+        objcopy -O binary -j .ramtext "$out/$n.elf" "$out/$n.ram"
+        objdump -d "$out/$n.elf" > "$out/$n.dis"
+        cat "$out/$n.text" "$out/$n.ram" > "$out/$n.bin"
+        rm "$out/$n.text" "$out/$n.ram"
         rm "$out/$n.o" "$out/$n.elf"
     done
     for n in $FW_IMAGES; do
@@ -53,7 +68,15 @@ inside() {
         echo "rotc: the compiler no longer emits rD = rS <> rT" >&2
         exit 1
     fi
-    for n in $FW_IMAGES; do rm "$out/$n.dis"; done
+    # pairwaw.S stands for a pair whose halves write one register, which the
+    # compiler emits in flashkeep.c (a head, then a load into the same register)
+    if ! awk -F '\t' '$NF ~ /^r[0-9]+ = .*# *$/ { h = $NF; sub(/ .*/, "", h); next }
+              h != "" { t = $NF; sub(/^ */, "", t); if (index(t, h " = [") == 1) found = 1; h = "" }
+              END { exit !found }' "$out/flashkeep.dis"; then
+        echo "flashkeep: the compiler no longer pairs a head and a load into one register" >&2
+        exit 1
+    fi
+    for n in $FW_IMAGES $RAM_IMAGES; do rm "$out/$n.dis"; done
     for n in $ASM_IMAGES; do
         clang -target pi32v2 -mcpu=r3 -c "$n.S" -o "$out/$n.o"
         ld -nostdlib -T image.ld -o "$out/$n.elf" "$out/start.o" "$out/$n.o"
