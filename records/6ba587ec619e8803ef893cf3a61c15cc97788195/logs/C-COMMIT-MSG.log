@@ -1,0 +1,11 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 0b2086bc588546886377f98153d3ce5d23c6864c..6ba587ec619e8803ef893cf3a61c15cc97788195
+OK     1d6c867105fa firmware: MIDI out: the sender, what the panel sends, thru, local control
+OK     22cc9f5c5516 tests: MIDI out's fwtest cases, golden captures and checks
+OK     690d4d59eaf7 docs: M6b's requirements, design notes, provenance and results; M7 next
+OK     b03928621a39 tests: midiburst's latency from the start bit; midiround's regeneration note
+EXEMPT b83aec47d931 (merge) firmware: merge main into MIDI out, after #89, #91 and #92
+EXEMPT aff5a23cad80 (merge) firmware: merge main into MIDI out, after #93
+EXEMPT 6ba587ec619e (merge) Merge pull request #94 from japes98/m6b/midi-out
+7 commit(s) checked: PASS
+
+exit status 0
