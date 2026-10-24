@@ -504,6 +504,8 @@ void fm_note_off(int note)
     }
 }
 
+static void held_changed(int note);
+
 /* Every voice released, and the pedal's notes let go (PRESETS, a program
  * change, a mode change). Keys still down keep their hold, so their
  * release later is a note off the engine no longer needs. */
@@ -518,7 +520,10 @@ static void all_off(void)
     }
     mono_held = 0;
     for (n = 0; n < 128; n++)
-        hold[n] &= (u8)~HOLD_PEDAL;
+        if (hold[n] & HOLD_PEDAL) {
+            hold[n] &= (u8)~HOLD_PEDAL;
+            held_changed((int)n);
+        }
 }
 
 /* --- Holding notes (M6a) ---------------------------------------------- */

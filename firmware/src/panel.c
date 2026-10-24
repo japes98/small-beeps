@@ -343,6 +343,9 @@ void panel_serve(void)
         }
         if (e.control < 14) {
             dirty |= 1u << e.control;
+            /* The octave moves the notes MIDI holds along the keys. */
+            if (e.control == INPUT_OCT_DOWN || e.control == INPUT_OCT_UP)
+                dirty |= ITEM_KEYS;
         } else if (e.control < INPUT_MASTER) {
             dirty |= ITEM_KEYS;
         } else {
