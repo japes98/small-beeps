@@ -1633,3 +1633,8 @@ docs/SPEC-REQUESTS.md), those copies go through `copy_words()`, a word at
 a time from a volatile pointer, and tools/build.sh fails any image whose
 disassembly holds the form, so a new one can't reach fwtest unnoticed.
 Both go once SR-7 is answered.
+
+*Since M6a:* fwtest 0.3.0 runs all eight block-move modes (HW-66), so
+`copy_words()` is gone and the copies are plain loops again. tools/build.sh
+now fails an image holding the one gap left that the compiler emits, a
+rotate by a register (docs/HARNESS.md, "Instructions", "Known gaps").

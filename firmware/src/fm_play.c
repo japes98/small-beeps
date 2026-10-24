@@ -254,15 +254,6 @@ u32 fm_patch_sum(const u8 *b)
 
 /* --- Notes ------------------------------------------------------------ */
 
-/* A word at a time: clang makes these copies with a two-register load
- * that moves its address down first, which fwtest doesn't run (it faults:
- * SR-7); tools/build.sh fails an image that holds one. */
-static void copy_words(s32 *dst, const volatile s32 *src, u32 n)
-{
-    while (n--)
-        *dst++ = *src++;
-}
-
 /* Starts note on voice n from the current patch. A free voice starts from
  * silence at phase 0; one still sounding (the same note again, or mono)
  * keeps its phases and starts its attacks from where its envelopes are,
@@ -272,7 +263,7 @@ static void voice_start(u32 n, int note, u32 velocity)
     struct fm_voice *v = &voice[n];
     struct control *c = &ctl[n];
     const struct patch *p = &patches[patch_now];
-    u32 i, fresh = v->state != VOICE_ON, carriers = 0;
+    u32 i, k, fresh = v->state != VOICE_ON, carriers = 0;
     /* Velocity: up to 8 octaves (48 dB) less at velocity 0, for a
      * sensitivity of 7, in proportion below (DESIGN-NOTES.md, M5). */
     s32 soft = (s32)(127u - velocity) * (8 * 65536 / 7) / 127;
@@ -301,8 +292,10 @@ static void voice_start(u32 n, int note, u32 velocity)
         o->freq = p->op[i].freq;
         o->detune = p->op[i].detune;
         o->fixed_att = p->op[i].level_att + soft * p->op[i].velocity;
-        copy_words(o->step, p->op[i].step, 4);
-        copy_words(o->target, p->op[i].target, 3);
+        for (k = 0; k < 4; k++)
+            o->step[k] = p->op[i].step[k];
+        for (k = 0; k < 3; k++)
+            o->target[k] = p->op[i].target[k];
         o->stage = p->op[i].off ? ENV_OFF : ENV_ATTACK;
         carriers += !p->op[i].off && fm_algorithms[algorithm_now].dest[i] == FM_TO_OUT;
     }
