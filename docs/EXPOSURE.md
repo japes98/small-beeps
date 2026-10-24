@@ -1073,6 +1073,46 @@ SR-3 wrote only its barrier-log row.*
   the outputs of the firmware suite, the spec experiments and the
   harness suite.
 
+### Session midi-in-out (SR-8, MIDI out, housekeeping)
+- Date: 2026-10-24 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.310 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `fbe11e0f-3e0f-4f6d-b9f2-e00ce09921b7`,
+  started by `/clear` at 05:45:26Z (banner `source: clear`,
+  `status: OK`), on main at `1537391`.
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+- What it archived: emulator-parity's transcript (`9d5d3a07`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS.
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository). New for this
+  session, all allowed sources: FM-1-RE's MIDI, USB, Bluetooth, hardware
+  map and subsystems documents (hardware facts only; P-41); single files
+  of the pinned JieLi SDK (P-41, P-45); M-VAVE's FM-1 manual and the
+  SMK-37 Pro's manual as ManualsLib shows it (P-41, P-42); retailer and
+  review pages found by web search, read only to find the manuals. It
+  did not fetch the SMK-37 board layer the emulator's comments name (a
+  firmware port, not an allowed source).
+- FM1 Open (`m-vave/fm1_open`), its terms only: at the owner's request it
+  listed the repository's file names (the root, `sdk/`, and a search of
+  the tree for licence and terms files) and read its two terms files,
+  `LICENSE.md` (SHA-256 `fe7344af68a6e65d0cf623e3eca1ff4a4d751ba538bffbc5248134b79d02f1fd`)
+  and `THIRD_PARTY.md` (`c10451a1c0b368ec926e86b9296eb0c96c790d4d4768ad07e91b09ca9ea4bfa5`),
+  at commit `4c7496daac04a95ff10d1afdcc8f9ead2dbabc41`, fetched by raw URL
+  into its scratch folder. No code, script, build file or other document
+  of it was opened. What they allow is in docs/PLAN.md, "Risks" ("FM1
+  Open's terms"): GPLv3-only app sources with a section 7 permission to
+  link M-VAVE's binary SDK; the binary engine copyable, linkable and
+  redistributable in binary form for M-VAVE FM1 devices only; the boot and
+  update resources and the FM-1's recovery image under Apache-2.0.
+- Later in the session: it ran fwtest (pinned and local builds), its own
+  spec experiments (E-19 to E-21), the firmware suite on fwtest 0.4.0 and
+  0.5.0 to compare, and the similarity audit's self-test locally (its
+  made-up target holds only copies of our files; no audit target was
+  fetched or opened).
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
@@ -1153,6 +1193,7 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-23T13:14:14Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-7 starts; banner `status: OK`. 14:22:19Z: `tools/spec-setup.sh`, banner `status: OK`; after #68, SR-4-6's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-24T02:54:30Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M6a starts; banner `status: OK`; `tools/clean-update.sh` found main at `cdfd067` and passed; M5 archived; `tools/check-transcripts.py` PASS with the 4 reviewed entries listed for the owner's approval |
 | 2026-10-24T04:03:28Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session emulator-parity starts; banner `status: OK`. 04:04:11Z: `tools/spec-setup.sh`, banner `status: OK`; SR-7's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-24T05:45:26Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session midi-in-out starts; banner `status: OK`. 05:45:47Z: `tools/spec-setup.sh`, banner `status: OK`; emulator-parity's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 
 ## Model cutoffs
 

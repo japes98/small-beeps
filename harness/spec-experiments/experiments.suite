@@ -23,3 +23,6 @@ e15-spi1-irq halt    images/e15-spi1-irq.bin --ms 2 --ram 0x01c00100:0x4c@end --
 e16-lcd-frame halt   images/e16-lcd-frame.bin --ms 10 --lcd end --golden golden/e16-lcd-frame
 e17-adc-irq halt     images/e17-adc-irq.bin --ms 2 --ram 0x01c00100:0x44@end --golden golden/e17-adc-irq
 e18-block-moves halt images/e18-block-moves.bin --ms 2 --ram 0x01c00100:0x54@end --ram 0x01c01200:0x100@end --golden golden/e18-block-moves
+e19-midi-rx completed images/e19-midi-rx.bin --ms 20 --script scripts/e19-midi-rx.txt --ram 0x01c00100:0x38@end --ram 0x01c00200:0x10@end --ram 0x01c01000:0x80@end --golden golden/e19-midi-rx
+e20-midi-rx-cases completed images/e20-midi-rx-cases.bin --ms 12 --script scripts/e20-midi-rx-cases.txt --ram 0x01c00100:0x30@end --ram 0x01c00200:0x10@end --ram 0x01c00300:0x10@end --golden golden/e20-midi-rx-cases
+e21-midi-tx completed images/e21-midi-tx.bin --ms 8 --midi-out --ram 0x01c00100:0x24@end --golden golden/e21-midi-tx

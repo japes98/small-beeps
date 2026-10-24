@@ -239,6 +239,34 @@ class SelftestVerdictTest(unittest.TestCase):
             self.assertIn("1 of our 2 files", detail)
 
 
+    def test_a_copy_split_by_base_code_is_found_by_its_similarity(self):
+        # JPlag leaves base code out, so a verbatim copy's match can come in
+        # pieces: the longest under 90% of the tokens, the similarity 1.0
+        r = self.report([("src/a.c", "scored"), ("demos/p/b.c", "scored")])
+        r["ours_files"][1]["tokens"] = 471
+        r["selftest"]["ours_best"][1] = ["demos/p/b.c", "p00011.c", 198, 1.0, 1.0, "copied/demos/p/b.c"]
+        ok, detail = audit.selftest_verdict(r, CFG)
+        self.assertTrue(ok, detail)
+        self.assertIn("2 of our 2 files", detail)
+        # the similarity counts only with a copy of the file itself
+        r["selftest"]["ours_best"][1] = ["demos/p/b.c", "p00012.c", 198, 1.0, 1.0, "copied/demos/p/c.c"]
+        ok, detail = audit.selftest_verdict(r, CFG)
+        self.assertFalse(ok, detail)
+        r["selftest"]["ours_best"][1] = ["demos/p/b.c", "p00011.c", 198, 0.8, 0.8, "reformatted/demos/p/b.c"]
+        self.assertFalse(audit.selftest_verdict(r, CFG)[0])
+
+    def test_a_file_without_a_match_is_found_by_the_text_check(self):
+        text = [("src/b.h", "copied/src/b.h", 1.0, True), ("src/b.h", "reformatted/src/b.h", 0.9, False)]
+        ok, detail = audit.selftest_verdict(self.report([("src/a.c", "scored"), ("src/b.h", "no match")], text), CFG)
+        self.assertTrue(ok, detail)
+        self.assertIn("(1 by JPlag, 1 by the text check)", detail)
+
+    def test_the_text_check_takes_what_jplag_does_not_cover(self):
+        mine = {"o1", "o2", "o3"}
+        self.assertEqual(audit.text_check_files(mine, {"o2": "TOO_SMALL"}, {"o1": 40}), {"o2", "o3"})
+        self.assertEqual(audit.text_check_files(mine, {}, {"o1": 40, "o2": 9, "o3": 30}), set())
+
+
 class TextCheckTest(unittest.TestCase):
     """Our files JPlag cannot score are compared as text: exact copies, and
     the share of their normalised text in each target file.

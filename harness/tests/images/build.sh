@@ -14,7 +14,7 @@ set -eu
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../.." && pwd)
-IMAGES="heartbeat halt wild hang console lcd leds keys pot midi audio flashrw spi1irq"
+IMAGES="heartbeat halt wild hang console lcd leds keys pot midi midiout audio flashrw spi1irq"
 # built with the firmware's CPU flags (tools/build.sh, CPU), as the firmware is
 FW_IMAGES="blockc rotc"
 # assembly, linked after start.S like the C images
