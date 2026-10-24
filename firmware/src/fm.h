@@ -67,6 +67,9 @@
 /* The key velocity the panel's keys play at (they sense none): MIDI's
  * 100 of 127. M6's MIDI notes bring their own. */
 #define FM_KEY_VELOCITY 100u
+/* KEY1 plays MIDI note 53 (F3) at octave 0, as M4's (fm_play.c; the
+ * panel's screen marks the notes MIDI holds by it, since M6a). */
+#define FM_KEY1_NOTE 53
 
 /* --- Rendering (fm.c) ------------------------------------------------ */
 
@@ -155,6 +158,9 @@ void fm_block(s32 *out, u32 frames);   /* the audio layer's engine callback */
  * velocity 1 to 127. */
 void fm_note_on(int note, u32 velocity);
 void fm_note_off(int note);
+/* The notes MIDI or the sustain pedal holds now, bit n % 32 of word
+ * n / 32 (since M6a; written by the engine, read by the screen). */
+extern volatile u32 fm_midi_notes[4];
 
 /* Core 1 (core1.S, fm_play.c). */
 void fm_core1_entry(void);

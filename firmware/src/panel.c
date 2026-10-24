@@ -7,7 +7,9 @@
  * so the whole panel can be tried by hand. It replaces the test screen at
  * the first event (docs/DESIGN-NOTES.md, M3, "The panel screen"); after
  * that only what events changed is redrawn and only those rows are sent,
- * since M5 in frames, within a drawing budget (below).
+ * since M5 in frames, within a drawing budget (below). Since M6a the
+ * keyboard also shows, in cyan, the notes MIDI holds, and the event line
+ * MIDI's notes as they come.
  * tools/fw-suite.py checks it against golden images; the layout here and
  * the goldens go together.
  */
@@ -15,6 +17,8 @@
 #include "sb.h"
 #include "input.h"
 #include "audio.h"
+#include "fm.h"
+#include "midi.h"
 
 #define BLACK   RGB565(0, 0, 0)
 #define WHITE   RGB565(31, 63, 31)
@@ -147,18 +151,35 @@ static void draw_keys(void)
     for (pass = 0; pass < 2; pass++) {
         for (k = 0; k < 27; k++) {
             u32 s = key_shape[k], down = (u32)input_value(INPUT_KEY1 + k);
+            int note = FM_KEY1_NOTE + (int)k + 12 * (s32)sb_audio.engine[SYNTH_OCTAVE];
+            u32 midi = note >= 0 && note < 128 && (fm_midi_notes[note >> 5] >> (note & 31) & 1);
             if (!(s & 0x80) && !pass)
-                gfx_fill(8 + 14 * s, KEYS_Y, 13, LOWER_H, down ? ORANGE : WHITE);
+                gfx_fill(8 + 14 * s, KEYS_Y, 13, LOWER_H, down ? ORANGE : midi ? CYAN : WHITE);
             else if ((s & 0x80) && pass)
-                gfx_fill(8 + 14 * ((s & 0x7F) + 1) - 5, KEYS_Y, 9, RAISED_H, down ? ORANGE : GREY);
+                gfx_fill(8 + 14 * ((s & 0x7F) + 1) - 5, KEYS_Y, 9, RAISED_H, down ? ORANGE : midi ? CYAN : GREY);
         }
     }
 }
 
-/* "<control> <kind> <value>" for the last event. */
-static void draw_event(const struct input_event *e)
+/* The event line: the last event or MIDI note, padded with spaces. */
+static char line[41];
+
+static void draw_line(void)
 {
-    char b[41];
+    gfx_text(4, EVENT_Y, line, WHITE, BLACK, 1);
+}
+
+static void pad(char *b, u32 n)
+{
+    while (n < 38)
+        b[n++] = ' ';
+    b[n] = 0;
+}
+
+/* "<control> <kind> <value>" for the last event. */
+static void event_line(const struct input_event *e)
+{
+    char *b = line;
     const char *name;
     u32 n = 0, i;
 
@@ -180,10 +201,27 @@ static void draw_event(const struct input_event *e)
         b[n++] = ' ';
         n += decimal(&b[n], e->value, e->kind == INPUT_TURN);
     }
-    while (n < 38)
-        b[n++] = ' ';
-    b[n] = 0;
-    gfx_text(4, EVENT_Y, b, WHITE, BLACK, 1);
+    pad(b, n);
+}
+
+/* "MIDI <channel> note <note> on <velocity>", or "... off" (since M6a). */
+static void midi_line(u32 m)
+{
+    static const char midi[] = "MIDI ", word[] = " note ", on[] = " on ", off[] = " off";
+    char *b = line;
+    u32 n = 0, i, velocity = m & 0x7Fu;
+
+    for (i = 0; midi[i]; i++)
+        b[n++] = midi[i];
+    n += decimal(&b[n], (int)(m >> 16 & 15u) + 1, 0);
+    for (i = 0; word[i]; i++)
+        b[n++] = word[i];
+    n += decimal(&b[n], (int)(m >> 8 & 0x7Fu), 0);
+    for (i = 0; velocity ? on[i] : off[i]; i++)
+        b[n++] = velocity ? on[i] : off[i];
+    if (velocity)
+        n += decimal(&b[n], (int)velocity, 0);
+    pad(b, n);
 }
 
 static void draw_all(void)
@@ -217,7 +255,6 @@ static void draw_all(void)
 #define ITEM_EVENT (1u << 23)
 
 static u32 dirty, in_frame, frame_beat, draw_block, spent;
-static struct input_event last;
 
 static void draw_item(u32 bit)
 {
@@ -235,7 +272,7 @@ static void draw_item(u32 bit)
         if (knob_order[bit - ITEM_KNOB0] == INPUT_MASTER)
             lcd_send_rows(BAR_Y, 6);
     } else {
-        draw_event(&last);
+        draw_line();
         lcd_send_rows(EVENT_Y, FONT_H);
     }
 }
@@ -280,24 +317,35 @@ static void draw_frame(void)
 
 /* Takes every queued event: its LED first (so it changes with the least
  * delay), then marks what it changed on the screen. */
+/* The first event or MIDI note: the whole panel, at once. */
+static void show(void)
+{
+    shown = 1;
+    draw_all();
+    draw_line();
+    lcd_send_rows(0, SCREEN_H);
+    sb_beacon.screen = SB_SCREEN_PANEL;
+    frame_beat = sb_beacon.beats;
+}
+
 void panel_serve(void)
 {
     struct input_event e;
+    u32 m;
 
     while (input_read(&e)) {
         if (e.control < INPUT_LEDS)
             input_led(e.control, e.kind == INPUT_PRESS ? INPUT_LED_FULL : 0);
         if (!shown) {
-            shown = 1;
-            draw_all();
-            draw_event(&e);
-            lcd_send_rows(0, SCREEN_H);
-            sb_beacon.screen = SB_SCREEN_PANEL;
-            frame_beat = sb_beacon.beats;
+            event_line(&e);
+            show();
             continue;
         }
         if (e.control < 14) {
             dirty |= 1u << e.control;
+            /* The octave moves the notes MIDI holds along the keys. */
+            if (e.control == INPUT_OCT_DOWN || e.control == INPUT_OCT_UP)
+                dirty |= ITEM_KEYS;
         } else if (e.control < INPUT_MASTER) {
             dirty |= ITEM_KEYS;
         } else {
@@ -306,8 +354,15 @@ void panel_serve(void)
                 i++;
             dirty |= 1u << (ITEM_KNOB0 + i);
         }
-        last = e;
+        event_line(&e);
         dirty |= ITEM_EVENT;
+    }
+    while (midi_screen_take(&m)) {
+        midi_line(m);
+        if (!shown)
+            show();
+        else
+            dirty |= ITEM_KEYS | ITEM_EVENT;
     }
     if (dirty)
         draw_frame();
