@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: 2026 japes98
 """Deny lists never drop an entry (R-CLEAN-4, check C-DENY-LISTS).
 
-Fails if config/claude/clean.json, spec.json or auditor.json lacks any deny rule that
+Fails if config/claude/clean.json, spec.json, auditor.json or porter.json lacks any deny rule that
   - config/claude/deny-baseline.json lists for it (entries may be added to
     the baseline, never removed), or
   - is in ORIGINAL below (the lists as first committed; a change to this
@@ -12,7 +12,7 @@ Fails if config/claude/clean.json, spec.json or auditor.json lacks any deny rule
     first set up a folder of that role (clean: config/claude/
     handmade-settings.json, M0a; spec: handmade-spec-settings.json, M0b),
     whose SHA-256 must stay the one in docs/EXPOSURE.md.
-(The auditor's config has no hand-made file.) Also checks that every config runs tools/session-banner.sh on every
+(The auditor's and the porter's configs have no hand-made file.) Also checks that every config runs tools/session-banner.sh on every
 SessionStart, and that the clean config turns git's lazy fetching off
 (GIT_NO_LAZY_FETCH=1), so no command in a clean session can download a file
 the clean folder leaves out (R-SEP-2).
@@ -76,6 +76,73 @@ ORIGINAL = {
         "Edit(./sessions/**)",
         "Write(./sessions/**)",
     ],
+    # first committed in session day-1024 (the porter role)
+    "porter": [
+        "Edit(./firmware/**)",
+        "Write(./firmware/**)",
+        "Edit(./docs/HARDWARE-SPEC.md)",
+        "Write(./docs/HARDWARE-SPEC.md)",
+        "Edit(./docs/HARNESS.md)",
+        "Write(./docs/HARNESS.md)",
+        "Edit(./docs/SPEC-REQUESTS.md)",
+        "Write(./docs/SPEC-REQUESTS.md)",
+        "Edit(./harness/**)",
+        "Write(./harness/**)",
+        "Edit(./vendor/**)",
+        "Write(./vendor/**)",
+        "Edit(./tools/**)",
+        "Write(./tools/**)",
+        "Edit(./tests/**)",
+        "Write(./tests/**)",
+        "Edit(./config/**)",
+        "Write(./config/**)",
+        "Edit(./.github/**)",
+        "Write(./.github/**)",
+        "Edit(./sessions/**)",
+        "Write(./sessions/**)",
+        "Edit(./docs/AUDIT.md)",
+        "Write(./docs/AUDIT.md)",
+        "Edit(./docs/PLAN.md)",
+        "Write(./docs/PLAN.md)",
+        "Edit(./docs/DESIGN-NOTES.md)",
+        "Write(./docs/DESIGN-NOTES.md)",
+        "Edit(./docs/REQUIREMENTS.md)",
+        "Write(./docs/REQUIREMENTS.md)",
+        "Edit(./docs/EMULATOR-PARITY.md)",
+        "Write(./docs/EMULATOR-PARITY.md)",
+        "Edit(./docs/PATCH-FORMAT.md)",
+        "Write(./docs/PATCH-FORMAT.md)",
+        "Edit(./docs/TOOLCHAIN.md)",
+        "Write(./docs/TOOLCHAIN.md)",
+        "Edit(./docs/GOING-PUBLIC.md)",
+        "Write(./docs/GOING-PUBLIC.md)",
+        "Edit(./docs/prompts/**)",
+        "Write(./docs/prompts/**)",
+        "Edit(./docs/reviews/**)",
+        "Write(./docs/reviews/**)",
+        "Edit(./docs/sources/**)",
+        "Write(./docs/sources/**)",
+        "Edit(./PROVENANCE.md)",
+        "Write(./PROVENANCE.md)",
+        "Edit(./CONTRIBUTING.md)",
+        "Write(./CONTRIBUTING.md)",
+        "Edit(./README.md)",
+        "Write(./README.md)",
+        "Edit(./LICENSE)",
+        "Write(./LICENSE)",
+        "Edit(./LICENSES/**)",
+        "Write(./LICENSES/**)",
+        "Edit(./NOTICE)",
+        "Write(./NOTICE)",
+        "Edit(./REUSE.toml)",
+        "Write(./REUSE.toml)",
+        "Edit(./audit/**)",
+        "Write(./audit/**)",
+        "Edit(./.gitignore)",
+        "Write(./.gitignore)",
+        "Edit(./.gitmessage)",
+        "Write(./.gitmessage)",
+    ],
 }
 
 
@@ -110,7 +177,7 @@ def check(config_dir):
             problems.append("%s changed (sha256 %s)" % (name, digest))
         handmade[role] = deny_of(load(path))
 
-    for role in ("clean", "spec", "auditor"):
+    for role in ("clean", "spec", "auditor", "porter"):
         cfg = load(os.path.join(config_dir, role + ".json"))
         deny = deny_of(cfg)
         required = list(ORIGINAL.get(role, [])) + list(baseline.get(role, []))

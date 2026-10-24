@@ -22,3 +22,6 @@ jieli-linux-toolchains-*/
 
 # Harness build output
 /harness/target/
+
+# A porter's GPL work, never committed here (CONTRIBUTING.md, "Roles")
+/port-work/

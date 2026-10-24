@@ -1,0 +1,89 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(./firmware/**)",
+      "Write(./firmware/**)",
+      "Edit(./docs/HARDWARE-SPEC.md)",
+      "Write(./docs/HARDWARE-SPEC.md)",
+      "Edit(./docs/HARNESS.md)",
+      "Write(./docs/HARNESS.md)",
+      "Edit(./docs/SPEC-REQUESTS.md)",
+      "Write(./docs/SPEC-REQUESTS.md)",
+      "Edit(./harness/**)",
+      "Write(./harness/**)",
+      "Edit(./vendor/**)",
+      "Write(./vendor/**)",
+      "Edit(./tools/**)",
+      "Write(./tools/**)",
+      "Edit(./tests/**)",
+      "Write(./tests/**)",
+      "Edit(./config/**)",
+      "Write(./config/**)",
+      "Edit(./.github/**)",
+      "Write(./.github/**)",
+      "Edit(./sessions/**)",
+      "Write(./sessions/**)",
+      "Edit(./docs/AUDIT.md)",
+      "Write(./docs/AUDIT.md)",
+      "Edit(./docs/PLAN.md)",
+      "Write(./docs/PLAN.md)",
+      "Edit(./docs/DESIGN-NOTES.md)",
+      "Write(./docs/DESIGN-NOTES.md)",
+      "Edit(./docs/REQUIREMENTS.md)",
+      "Write(./docs/REQUIREMENTS.md)",
+      "Edit(./docs/EMULATOR-PARITY.md)",
+      "Write(./docs/EMULATOR-PARITY.md)",
+      "Edit(./docs/PATCH-FORMAT.md)",
+      "Write(./docs/PATCH-FORMAT.md)",
+      "Edit(./docs/TOOLCHAIN.md)",
+      "Write(./docs/TOOLCHAIN.md)",
+      "Edit(./docs/GOING-PUBLIC.md)",
+      "Write(./docs/GOING-PUBLIC.md)",
+      "Edit(./docs/prompts/**)",
+      "Write(./docs/prompts/**)",
+      "Edit(./docs/reviews/**)",
+      "Write(./docs/reviews/**)",
+      "Edit(./docs/sources/**)",
+      "Write(./docs/sources/**)",
+      "Edit(./PROVENANCE.md)",
+      "Write(./PROVENANCE.md)",
+      "Edit(./CONTRIBUTING.md)",
+      "Write(./CONTRIBUTING.md)",
+      "Edit(./README.md)",
+      "Write(./README.md)",
+      "Edit(./LICENSE)",
+      "Write(./LICENSE)",
+      "Edit(./LICENSES/**)",
+      "Write(./LICENSES/**)",
+      "Edit(./NOTICE)",
+      "Write(./NOTICE)",
+      "Edit(./REUSE.toml)",
+      "Write(./REUSE.toml)",
+      "Edit(./audit/**)",
+      "Write(./audit/**)",
+      "Edit(./.gitignore)",
+      "Write(./.gitignore)",
+      "Edit(./.gitmessage)",
+      "Write(./.gitmessage)"
+    ],
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:codeload.github.com)",
+      "Bash(git clone *)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/tools/session-banner.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -113,6 +113,8 @@ FORBIDDEN = [
      r"fm-1-re.*(firmware-images|disasm|disassembl|ghidra|\.idb\b|\.i64\b|functions)"
      r"|firmware-images/"),
     ("F-13", "M-VAVE stock firmware", r"m-?vave.*\.(fwsc|bin|ufw|hex)\b"),
+    # since day-1024: the porter's GPL ports (CONTRIBUTING.md, "Roles")
+    ("F-14", "the port repository or a porter's workspace", r"small-beeps-ports|\bport-work\b"),
 ]
 TEMPLATE = FORBIDDEN
 OLD_IDS = {
@@ -120,6 +122,7 @@ OLD_IDS = {
     "F-PROBE": "F-5", "F-EMU-REPO": "F-6", "F-EMU-CRATES": "F-7", "F-VENDOR-EMU": "F-8",
     "F-HARNESS": "F-9", "F-FWHUB": "F-10", "F-SPEC-SESSIONS": "F-11",
     "F-RE-FIRMWARE": "F-12", "F-STOCK": "F-13",
+    "F-PORTS": "F-14",  # (new in day-1024, never used before: named so every rule has one)
 }
 
 FOLDERS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),

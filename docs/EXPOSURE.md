@@ -26,6 +26,17 @@ what, and when. Roles are defined in CONTRIBUTING.md.
   kept in the owner's private repository, not here; its entry records the
   session ID, the transcript's SHA-256 and that repository's commit
   (docs/AUDIT.md, "When the audit fails"). None has run yet.
+- **Porter (exposed to the GPL firmwares):** reads GPL FM-1 engines to port
+  them onto our base in the separate port repository `small-beeps-ports`
+  (CONTRIBUTING.md, "Roles"). Writes here only its own entry and reports in
+  `ports/` (measurements and API requests, no code). Never writes
+  firmware, spec or harness, and never takes another role. Its entry
+  follows the auditor's pattern, and adds what it read: each GPL engine or
+  firmware by repository URL, commit and licence, and the files or folders
+  opened; the port repository's commit at the session's end; the session
+  ID and its transcript's SHA-256, the transcript archived in the port
+  repository, never here; and the `ports/` reports it wrote. None has run
+  yet (since day-1024).
 
 Every session adds its own entry when it starts, and again whenever its
 exposure changes. Agent entries record the exact model ID and its published
@@ -1270,6 +1281,10 @@ SR-3 wrote only its barrier-log row.*
   toolchain's disassembly of that firmware, the harness's test images and
   the spec experiments, scanned for dual-issue pairs. Docker's build
   cache was pruned once to keep disk free (no image removed).
+- The porter role (CONTRIBUTING.md, `config/claude/porter.json`,
+  `tools/porter-setup.sh`, `ports/README.md`): written from this
+  repository's own rules; no GPL engine was opened for it, and no porter
+  session was started.
 
 ## Corrections
 

@@ -26,8 +26,8 @@ the people who write ours.
   source where one exists. Never writes firmware.
 - **Firmware side (clean).** Writes the firmware. Reads only
   `HARDWARE-SPEC.md`, the JieLi SDK (Apache-2.0), FM-1-RE's hardware
-  documents (WTFPL), public datasheets, and results of its own black-box
-  experiments. Uses the harness only as a command-line tool, and never opens
+  documents (WTFPL), public datasheets, results of its own black-box
+  experiments, and a porter's reports in `ports/`. Uses the harness only as a command-line tool, and never opens
   `vendor/emulator/` or `harness/` source.
 
 - **Auditor (exposed to the GPL firmwares).** A third role, only for a
@@ -43,6 +43,29 @@ the people who write ours.
   owner's approval, when the first auditor session runs), committed there
   with an OpenTimestamps proof, and docs/EXPOSURE.md records the session's
   ID, the transcript's SHA-256 and that repository's commit.
+
+- **Porter (exposed to the GPL firmwares).** A fourth role, since session
+  day-1024. It may read GPL FM-1 engines (the firmwares and engines on
+  the list below) to port them onto our base, and does that work in a
+  separate repository, `small-beeps-ports`, under the GPL (created with
+  the owner's approval when the first porter session runs). The owner
+  starts one; it works in a folder of its own set up with
+  `tools/porter-setup.sh` (settings `config/claude/porter.json`), a full
+  clone of this repository that it reads, with the port repository cloned
+  inside it as `port-work/` (gitignored here), where all its GPL work
+  goes. In this repository it writes only two things: its entry in
+  docs/EXPOSURE.md, and reports in `ports/` (`ports/README.md`): what a
+  port measured on our base (cycles, memory, voices, timings) and what it
+  needs from the base (API requests), in general terms, never code, code
+  structure or names from a GPL engine. It never writes into `firmware/`,
+  the spec, the harness or anything else here, then or in any later
+  session, and never becomes spec side or firmware side. Its transcripts
+  hold GPL source, so they are **never archived in this repository**:
+  they go to the port repository, and docs/EXPOSURE.md records each
+  session's ID, its transcript's SHA-256 and that repository's commit.
+  The firmware side reads a report as it reads a spec request's answer:
+  through the facts in it, logged in PROVENANCE.md, and answers an API
+  request with its own design.
 
 Every person and every session is recorded in docs/EXPOSURE.md with its role
 and exposure, before it does any work. A firmware-side person or session that
@@ -71,7 +94,9 @@ EXPOSURE.md at once, and stop writing firmware.
   pathspec that leaves the three folders out, and update the folder only
   with `tools/clean-update.sh`. People working in a clean folder by hand
   set `GIT_NO_LAZY_FETCH=1` in their shell too;
-- the sites hugelton.github.io and thefirmwarehub.com.
+- the sites hugelton.github.io and thefirmwarehub.com;
+- the port repository `small-beeps-ports` and a porter's `port-work/`
+  folder (the porter's GPL ports; since day-1024).
 
 `tools/check-transcripts.py` checks every archived clean-side session against
 this list (its `FORBIDDEN` table mirrors it; change both together). Since
@@ -95,7 +120,9 @@ was used) and name the ID in the commit's `Sources:` field:
 - our own experiments: test programs run in the emulator, observed only
   through the harness: `tools/fwtest`, whose manual is docs/HARNESS.md;
 - answers to spec requests (docs/SPEC-REQUESTS.md), which arrive as facts
-  in `HARDWARE-SPEC.md`.
+  in `HARDWARE-SPEC.md`;
+- a porter's reports in `ports/` (measurements and API requests, in
+  general terms; CONTRIBUTING.md, "Roles").
 
 ### Barriers
 
