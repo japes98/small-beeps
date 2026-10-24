@@ -1,0 +1,18 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 3c276e343f29ee4ae15cc31fd565a3b0169254a0..bd0ddafce2c861607231577efebb9ae7c2fa2d97
+OK     79973333b667 firmware: MIDI in's parser and the engine's side (no receiver yet)
+OK     f842b6ecb3c8 tools: a model of the MIDI parser, and M6a's MIDI test scripts
+EXEMPT 1559481a5ca4 (merge) firmware: merge main into MIDI in, after #77
+OK     fea1f71356a2 docs: M6a's design notes so far; PROVENANCE P-41, the MIDI spec
+EXEMPT c4497a4eb7fd (merge) firmware: merge main into MIDI in, after #78 (fwtest 0.4.0)
+EXEMPT 56b42f55ef5d (merge) firmware: merge main into MIDI in, after #79
+OK     2dad22d8448c tools: the fw suite's MIDI checks; R-MIDI-1 to R-MIDI-7
+OK     f8f122e6ab3b firmware: the pedal's notes let go by all_off update the held notes
+OK     e67acb328558 firmware: MIDI in's receiver, UART1 by DMA; the MIDI cases in the suite
+OK     02015abf44fe firmware: MIDI's cost at rest trimmed, under 2% of a block's
+OK     1bb20aa18171 docs: M6a's results: design notes, PLAN.md, exposure; P-43, P-44
+OK     19c7927612dd tools: the parser cases check their notes sound
+EXEMPT 40edb456d76e (merge) firmware: merge main into MIDI in, after #80 to #82, #84 and #85
+EXEMPT bd0ddafce2c8 (merge) Merge pull request #83 from japes98/m6a/midi-in
+14 commit(s) checked: PASS
+
+exit status 0
