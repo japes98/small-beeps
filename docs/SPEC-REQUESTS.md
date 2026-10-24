@@ -416,5 +416,8 @@ an issue or a pull request against docs/HARNESS.md.
   (read the store over SPI0), the cache itself Q-22; (f) HW-78's protect
   bits, the FM-1's state Q-23; (g) HW-82 (fwtest 0.5.0: no time per
   byte, bits only cleared, no wrap; fwtest's next version is to model the
-  busy times, the wrap and the write enable). Open: Q-21 to Q-24.
+  busy times, the wrap and the write enable). Also: fwtest 0.5.0 runs a
+  dual-issue pair whose two halves write one register differently from
+  the compiler's expectation, which a flash driver can meet (HARNESS.md,
+  "Instructions", the known gap). Open: Q-21 to Q-24.
 - Answered: 2026-10-24, session day-1024 (spec side)
