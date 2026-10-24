@@ -1549,14 +1549,18 @@ the update path need, HW-82 fwtest as pinned (0.5.0). Open: Q-21 to Q-24.
   own image, and out of the last 4 KiB, and should stay out of the
   Bluetooth sector. In particular "the chip's last 64 KiB" includes the
   last sector: end a store at `0xFEFFF` at the latest. Where our firmware
-  sits on the chip, and so what is free, is set when M9 packages it; until
-  then the stock layout's USR region, `0xEA000`-`0xFBFFF`, is the region
-  its owner's firmware already uses for user data and is the natural
-  place, kept in one definition. FM-1-RE adds that its free regions have
-  not been validated as safe for writes from outside the stock firmware,
-  and whether an update rewrites the USR or VM region is not known
-  (Q-24). In fwtest the whole chip past the image is erased and free
-  (HW-5, HW-82).
+  sits on the chip, and so what is free, is set when M9 packages it. Of
+  the stock layout's regions past the app area: the USR region,
+  `0xEA000`-`0xFBFFF` (72 KiB), holds the stock firmware's saved user
+  patches, so a store there erases them, and the stock firmware reads that
+  region back if the unit returns to it; `0xFC000`-`0xFEFFF` is unused
+  but only 12 KiB (three sectors); the VM region is the stock firmware's
+  settings and the update's staging area. Which one a store takes is a
+  product choice, for the owner; keep it in one definition. FM-1-RE adds
+  that its free regions have not been validated as safe for writes from
+  outside the stock firmware, and whether an update rewrites the USR or
+  VM region is not known (Q-24). In fwtest the whole chip past the image
+  is erased and free (HW-5, HW-82).
 - Sources: RE `docs/architecture.md` §2 ("Flash layout", from the update
   package's file table) and §3 (the mask ROM loads the loader from
   `0xA0`); RE `docs/io/01-boot.md` §3 (the loader reads the file table's
