@@ -367,3 +367,57 @@ an issue or a pull request against docs/HARNESS.md.
 - Status: answered in part (HARDWARE-SPEC.md, "16. MIDI input (SR-8)",
   HW-67 to HW-71; open: Q-12).
 - Answered: 2026-10-24, session midi-in-out (spec side)
+
+### SR-9: Flash storage: the region firmware may use, the part, and code while the flash is busy
+- Asked: 2026-10-24, session M7 (firmware side)
+- Question: (a) On an FM-1, which flash chip offsets our firmware may use
+  for its own data without harming the boot chain or the update path:
+  what lies below `0x4000`, whether anything past an installed image
+  (the chip's last sectors, say) is used by the boot chain or the update
+  path, and the chip's size on the FM-1. (b) The FM-1's flash part, and
+  from its datasheet: the 4 KiB erase's and the page program's times
+  (typical and maximum), the endurance (erase cycles a sector), and
+  whether it can suspend an erase or program. (c) On the chip, while an
+  erase or a program is in progress: what reads through the code window
+  do (wait until it ends, read wrong data, fault), for core 1 too.
+  (d) On the chip: whether firmware may drive SPI0 with HW-47's commands
+  while the code window is in use, or what must be idle or set up first
+  (SPI0's clock and mode on the chip, the code window's own controller),
+  and how the window is restored after. (e) Whether the code window
+  caches the flash on the chip, and what makes it see a change made
+  through SPI0. (f) Whether the chip starts with any write protection set
+  (the status register's protect bits) that must be cleared before an
+  erase or program. (g) In fwtest: SPI0's pace (emulated time per byte),
+  what a page program does to bytes that are not erased (clears bits
+  only, or overwrites), and to an address range past the end of a
+  256-byte page (wraps within the page, or not).
+- Why: M7 is flash storage: user patches, the patch selection and the
+  settings, written so a power cut at any instant keeps the previous good
+  copy, and so saving never makes the audio underrun. Without (a) the
+  store sits in the chip's last 64 KiB as an assumption, in one define,
+  and the image is kept clear of it. Without (c) to (e) the firmware runs
+  every instruction and reads every constant from RAM after start-up, and
+  reads its store through SPI0 only, so nothing touches the code window
+  while the flash may be busy; (c) says whether that is needed. (b) sets
+  the write limits each record kind gets, and the busy time the audio
+  tests must survive; (f) and (g) decide whether the driver works on the
+  chip and in fwtest alike. Read: HARDWARE-SPEC.md HW-5 and HW-47 (both
+  emulator-only or preliminary, "M7 should confirm the chip and its
+  timing"), the vendored SDK's `WL82.h` (`JL_SPI0`'s registers, no bits
+  beyond HW-47's); HARNESS.md ("The raw image", `--flash`,
+  `--flash-out`). Black-box runs in fwtest so far: none beyond a
+  `--flash-out` capture of an erased chip.
+- Status: answered in part (HARDWARE-SPEC.md, "19. Flash storage (SR-9,
+  M7)", HW-76 to HW-82, and HW-47's standing): (a) HW-80 (the layout; the
+  chip's last 64 KiB is not safe, its last sector is per-unit); (b) HW-76
+  and HW-77 (the P25Q80H, if that is the part: Q-21); (c) HW-78 and
+  HW-79 (nothing from the window while busy, either core); (d) open,
+  Q-22 (and the chip select pin may not be PD0 on the chip); (e) HW-81
+  (read the store over SPI0), the cache itself Q-22; (f) HW-78's protect
+  bits, the FM-1's state Q-23; (g) HW-82 (fwtest 0.5.0: no time per
+  byte, bits only cleared, no wrap; fwtest's next version is to model the
+  busy times, the wrap and the write enable). Also: fwtest 0.5.0 runs a
+  dual-issue pair whose two halves write one register differently from
+  the compiler's expectation, which a flash driver can meet (HARNESS.md,
+  "Instructions", the known gap). Open: Q-21 to Q-24.
+- Answered: 2026-10-24, session day-1024 (spec side)

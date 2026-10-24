@@ -420,6 +420,17 @@ and one more change makes dual-issue pairs behave as the compiler expects:
 
 None of the three changed any output of the firmware's suite at `cdfd067`.
 
+**A known gap in 0.5.0 (found 2026-10-24, SR-9).** When both halves of a
+dual-issue pair write the same register, fwtest 0.5.0 keeps the second
+half's value; the compiler's code expects the head's. Seen in a flash
+driver loop: `rA = rB + 0x80000 #` paired with `rA = [rC+8]`, a read of
+SPI0's `BUF` whose result is unused, then `rA` used as the address. The
+symptom: a value or address computed just before an unused volatile read
+becomes the read's value. Until a fixed fwtest is pinned, check the
+disassembly of such loops (a `#` pair whose halves name the same
+destination), or use the read's result (for example, accumulate it into
+a variable that is kept).
+
 ### Block moves with a register base
 
 Since 0.3.0 fwtest runs all eight modes of this 4-byte instruction (bytes

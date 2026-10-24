@@ -25,7 +25,8 @@ midi-in-out (spec side, 2026-10-24) added section 16 for SR-8, answered in
 part (open: Q-12), and section 17 for MIDI output (open: Q-20). Session
 pin-050 (spec side, 2026-10-24) added section 18, the UART as another
 JieLi chip's open driver sets it up (SDK63), for Q-12 and Q-20, which stay
-open.
+open. Session day-1024 (spec side, 2026-10-24) added section 19, flash
+storage, for SR-9 (open: Q-21 to Q-24).
 
 ## How to read it
 
@@ -63,8 +64,9 @@ least significant. Register names are the JieLi SDK's.
 |-----|--------|
 | SDK | JieLi AC79 SDK, `Jieli-Tech/fw-AC79_AIoT_SDK` (Gitee), commit `5fa84a9b2f723a5e9337ad79dc2ad741fc98fe2d`, Apache-2.0 (PROVENANCE P-2, P-10). `WL82.h` and `csfr.h` are vendored in `vendor/jieli-sdk/include_lib/driver/cpu/wl82/asm/`; the other files cited are at the same commit and path prefix. Line numbers refer to that commit. |
 | SDK63 | JieLi AC63 Bluetooth SDK, `https://github.com/Jieli-Tech/fw-AC63_BT_SDK`, commit `fdc018de81629e21e594d677cf05f87d288be0f0` (2025-03-18), Apache-2.0 (its `LICENSE`, SHA-256 `c71d239d…5d0ab4`) (PROVENANCE P-48). **Different chips:** its `cpu/br23/`, `cpu/br25/` and `cpu/bd29/` parts, not the FM-1's chip. Read file by file, not vendored; line numbers refer to that commit. |
-| RE | AL-255/FM-1-RE (GitHub, WTFPL), commit `ec832f281ca165a7d5e0722985f3acb1465046d5`: its hardware and boot documents `docs/reversing/01-hardware-map.md`, `docs/io/01-boot.md`, `docs/io/03-audio-dac.md`, `docs/io/08-display.md`, `docs/io/09-storage.md` (PROVENANCE P-9); since SR-8 also `docs/io/05-midi.md`, `docs/io/06-usb.md` and `docs/reversing/04-subsystems.md` (PROVENANCE P-41). Only their hardware facts are used here. |
+| RE | AL-255/FM-1-RE (GitHub, WTFPL), commit `ec832f281ca165a7d5e0722985f3acb1465046d5`: its hardware and boot documents `docs/reversing/01-hardware-map.md`, `docs/io/01-boot.md`, `docs/io/03-audio-dac.md`, `docs/io/08-display.md`, `docs/io/09-storage.md` (PROVENANCE P-9); since SR-8 also `docs/io/05-midi.md`, `docs/io/06-usb.md` and `docs/reversing/04-subsystems.md` (PROVENANCE P-41); since SR-9 also `docs/architecture.md`, `docs/io/11-ota-protocol.md`, `docs/io/12-v15-reflash-proof.md` and `docs/reversing/02-boot-and-runtime.md` (PROVENANCE P-51). Only their hardware facts are used here. |
 | DS | Sitronix ST7789V datasheet, version 1.3 (2014-03), 316 pages, from `https://www.newhavendisplay.com/appnotes/datasheets/LCDs/ST7789V.pdf`, SHA-256 `8ecf0e43…5d04ca1` (PROVENANCE P-11). Page numbers as printed. |
+| PUYA | Puya Semiconductor's P25Q80H datasheet ("Ultra Low Power, 8M-bit Serial Multi I/O Flash Memory"), Ver1.3, 2017-05-30, 71 pages, as LCSC serves it from `https://datasheet.lcsc.com/lcsc/PUYA-P25Q80H-SSH-IT_C194872.pdf`, accessed 2026-10-24, SHA-256 `d54401e9…bb12ea6c` (PROVENANCE P-53). Page numbers as printed. Not copied into this repository. It describes the part fwtest's chip identifies as (HW-76). |
 | PANEL | The FM-1's printed panel labels, from two sources that agree: the owner's screenshot of the F-Emulator app's panel with its default labels, `docs/sources/panel-app-default-labels.png` (secondary: the app's drawing of the panel); and M-VAVE's product photo of the FM-1, `https://www.m-vave.com/images/products/fm-1.webp` on `https://www.m-vave.com/product.html?id=fm-1`, accessed 2026-10-22, SHA-256 `e610a746…df14b95`, not copied into this repository (PROVENANCE P-12). Only the printed labels are taken from them. The owner chose these two sources. |
 | MAN | M-VAVE's user manuals: the FM-1's, the English part (pages 1-12) of `https://m.media-amazon.com/images/I/A1WOydif9HL.pdf`, SHA-256 `69bfea10…8b715da`, accessed 2026-10-24 (PROVENANCE P-41); the SMK-37 Pro's, as `https://www.manualslib.com/manual/4132288/M-Vave-Smk-37-Pro.html` shows it, accessed 2026-10-24 (PROVENANCE P-42). Neither copied into this repository. Only what they say about the connections is used. |
 | MPLUS | Manuals+'s "M-VAVE SMK-37 PRO MIDI Controller User Manual", `https://manuals.plus/asin/B0GQZP7C8G.pdf`, 13 pages, SHA-256 `77d9d537…3e3745`, accessed 2026-10-24, supplied by the owner and checked by the planning conversation, not fetched by a session here (PROVENANCE P-49). A third party's write-up, not M-VAVE's manual: secondary, it never confirms an entry on its own. Not copied into this repository. |
@@ -670,7 +672,7 @@ least significant. Register names are the JieLi SDK's.
 ## 8. Flash storage (M7, preliminary)
 
 Later: only what fwtest presents. M7 should ask for more through spec
-requests.
+requests. Section 19 completes it (SR-9).
 
 ### HW-47: The flash chip, in fwtest
 - Fact: In fwtest the flash chip is a 1 MiB SPI NOR chip on SPI0
@@ -689,8 +691,10 @@ requests.
 - Sources: SDK `WL82.h` lines 548-557, 272 (`JL_SPI0`, `JL_PORTD`); RE
   `docs/io/09-storage.md` §1 (the flash is on SPI0; `CON` bits 15 and 14);
   HARNESS ("The flash chip", "Past the image"); the emulator model (JEDEC
-  ID, chip select, commands, timing).
-- Standing: emulator-only
+  ID, chip select, commands, timing); E-22 (the ID, the status bits, the
+  commands and their timing in fwtest; HW-82). Chip select on the chip:
+  Q-22.
+- Standing: confirmed (E-22)
 - Needed by: M7
 
 ## 9. TIMER0 to TIMER3, corrected (M1)
@@ -1415,6 +1419,208 @@ requests.
 - Standing: other chip (SDK63)
 - Needed by: real hardware (Level 2); M6a and M6b (the UART's set-up)
 
+## 19. Flash storage (SR-9, M7)
+
+Completes section 8 for SR-9. HW-76 to HW-79 are the chip and its flash
+part, HW-80 and HW-81 the FM-1's flash layout and what the boot chain and
+the update path need, HW-82 fwtest as pinned (0.5.0). Open: Q-21 to Q-24.
+
+### HW-76: The flash part's identity
+- Fact: In fwtest the flash chip answers the JEDEC ID read (`0x9F`) with
+  `0x85 0x60 0x14`. The Puya P25Q80H datasheet gives exactly that ID for
+  that part (Puya's manufacturer ID `0x85`; `0x60 0x14`, 8 Mbit, so
+  1 MiB). Whether the FM-1 carries that part is known only from the
+  emulator, whose model says it answers as real units do; no allowed
+  source names the part, and FM-1-RE says only that the firmware reads the
+  ID and takes the capacity from it. Read the ID on the chip and, if it
+  differs, look up that part's datasheet before relying on HW-77's times
+  (Q-21). A firmware that reads the ID at start-up and checks it can
+  refuse to write to a part it doesn't know.
+- Sources: PUYA p. 54 (table "ID Definitions": RDID `85 60 14`); E-22
+  (fwtest's answer); RE `docs/io/09-storage.md` §1 (the ID read, capacity
+  as 2^n); the emulator model (the part on real units).
+- Standing: emulator-only
+- Needed by: M7
+
+### HW-77: The P25Q80H's sizes, times and endurance
+- Fact: The P25Q80H, from its datasheet: 1 MiB; programming only clears
+  bits (1 to 0), and only an erase sets them back to 1. Erase units: a
+  256-byte page (`0x81`), a 4 KiB sector (`0x20`), a 32 KiB block
+  (`0x52`), a 64 KiB block (`0xD8`), the whole chip (`0x60` or `0xC7`);
+  program: up to 256 bytes within one 256-byte page (`0x02`). Times,
+  typical / maximum: page program 2 / 3 ms; page, sector, 32 KiB, 64 KiB
+  and whole-chip erase each 8 / 12 ms; status register write 8 / 12 ms.
+  Endurance 100 000 program/erase cycles; data retention 20 years. An
+  erase or program can be suspended (`0x75` or `0xB0`) and resumed
+  (`0x7A` or `0x30`): the suspend takes effect within 30 µs, and an erase
+  makes progress only if at least 200 µs (a program 100 µs) pass between
+  a resume and the next suspend. While suspended, the array outside the
+  sector being erased or the page being programmed can be read. The
+  requirement: wait for the end of each operation by reading the status
+  register (HW-78), never by a fixed delay, and plan for the maximum
+  times.
+- Sources: PUYA p. 1 and p. 4 (100K cycles, 20-year retention), p. 11
+  (AC table: tPP, tPE, tSE, tBE1, tBE2, tCE, tW, tESL, tPSL, notes 4 and
+  5), p. 21-22 (command table), p. 40-43 (erase and page program), p. 55
+  (suspend and resume).
+- Standing: confirmed (PUYA)
+- Needed by: M7
+
+### HW-78: The P25Q80H's command rules and the busy state
+- Fact: From the datasheet: a write enable (`0x06`, which sets the status
+  register's WEL bit) must come before every program, erase and status
+  register write; without it the command is ignored, and WEL clears again
+  when the operation ends. A program or erase starts when chip select goes
+  high, and only if it goes high at a byte boundary (after the eighth bit
+  of a byte); otherwise the command is rejected. A page program whose
+  bytes run past the end of the 256-byte page wraps round to the page's
+  first byte (bytes before the start address are then written); of more
+  than 256 bytes only the last 256 are kept; fewer than 256 change only
+  the bytes sent. Status register 1 (`0x05`): bit 0 WIP (1 while a
+  program, erase or status write is in progress), bit 1 WEL, bits 2-6
+  block protect BP0-BP4 (non-volatile: an erase or program in a protected
+  area is not executed), bit 7 SRP0. While WIP is 1 the chip ignores
+  array reads (`0x03`, `0x0B` and the dual and quad reads) and the ID
+  reads; reading the status register works throughout.
+- Sources: PUYA p. 18 (chip select at a byte boundary; array access
+  ignored during a program, erase or status write), p. 25-26 (status
+  register bits, block protect), p. 31-32 (reads rejected while busy),
+  p. 40 (erase needs WEL, starts on chip select high), p. 43 (page
+  program, the wrap, the last 256 bytes), p. 54 (ID read not decoded
+  while busy).
+- Standing: confirmed (PUYA)
+- Needed by: M7
+
+### HW-79: Code, interrupts, core 1 and audio while the flash is busy
+- Fact: On the chip one SPI NOR flash holds everything, and the code
+  window reads it (FM-1-RE). While the firmware works the flash directly,
+  from its first command until the operation ends (WIP 0, HW-78), nothing
+  may be fetched or read from the code window: no code, no constant
+  tables or strings, no interrupt handler, nothing on core 1. The JieLi
+  SDK's example of direct flash access says so: everything between
+  entering and leaving that mode, code, data and constants, must be in
+  RAM, and nothing may be printed when the system runs from flash; and
+  the chip ignores array reads while busy (HW-78), so the window cannot be
+  served then. The stock firmware keeps its flash routines and several
+  interrupt handlers in RAM (FM-1-RE). So: put the routine that works the
+  flash, and everything it calls and reads, in RAM; for its whole length
+  either keep interrupts masked, or have every handler that can run, and
+  everything it reaches, in RAM; and keep core 1 off the window too
+  (stopped, or running from RAM). How the window's own controller hands
+  the flash over to SPI0 and back on the chip is Q-22. Audio: the output
+  plays its halves from RAM by itself (HW-44, HW-45), so it keeps playing
+  as long as each half is refilled in time. A 4 KiB erase can take 12 ms,
+  about 530 frames at 44 117.6 frames a second, more than a half lasts
+  unless `LEN` is over about 1 060 words. To keep the audio going through
+  an erase, either the refill handler and the synthesis it runs are in RAM
+  and interrupts stay on, or the erase is cut into pieces with suspend and
+  resume (HW-77) so the window can be used between them, or the output is
+  muted and the gap accepted. fwtest checks none of this today (HW-82).
+- Sources: SDK `apps/common/example/peripheral/flash/flash_register/main.c`
+  lines 9-22 and 39-46 (the comments around the direct-access section:
+  code, data and constants in RAM; no printing when running from flash);
+  PUYA p. 18, p. 31-32 (array reads ignored while busy); RE
+  `docs/io/09-storage.md` (one flash holds everything; the code window
+  reads it) and `docs/io/01-boot.md` §1 (flash routines and interrupt
+  handlers RAM-resident); HW-45 (the half's length).
+- Standing: confirmed (SDK, RE, PUYA)
+- Needed by: M7
+
+### HW-80: The FM-1's flash layout, and the region a firmware may use
+- Fact: On an FM-1 with M-VAVE's firmware, the 1 MiB flash is laid out
+  as follows (chip offsets):
+  - `0x00000`-`0x03FFF`: the boot area: a header, the second-stage loader
+    from `0x000A0` (which the mask ROM loads), the loader's configuration
+    from `0x038D0`. Never erase or write it: the chip boots from it.
+  - `0x04000`-`0x93FFF`: the app area: a file table, then the app and its
+    configuration, encrypted with the chip's key (HW-81). The update
+    package's flash image covers `0x00000`-`0x93FFF`.
+  - `0x94000`-`0xE8FFF` (340 KiB): the stock firmware's key-value store
+    ("VM"). The update path also stages its loader in "the VM/loader
+    flash area" (FM-1-RE; where in it, not stated).
+  - `0xE9000`-`0xE9FFF`: Bluetooth information ("BTIF").
+  - `0xEA000`-`0xFBFFF` (72 KiB, 18 sectors): the stock firmware's user
+    patch storage ("USR"); the update package carries a `USR` entry.
+  - `0xFC000`-`0xFEFFF` (12 KiB): unused.
+  - `0xFF000`-`0xFFFFF`: holds a per-unit key and address (`key_mac`).
+    Never erase it: nothing can restore it. The SDK's packaging tool also
+    reserves a flash's last 4 KiB by default.
+  So a firmware's own storage must stay out of the boot area, out of its
+  own image, and out of the last 4 KiB, and should stay out of the
+  Bluetooth sector. In particular "the chip's last 64 KiB" includes the
+  last sector: end a store at `0xFEFFF` at the latest. Where our firmware
+  sits on the chip, and so what is free, is set when M9 packages it; until
+  then the stock layout's USR region, `0xEA000`-`0xFBFFF`, is the region
+  its owner's firmware already uses for user data and is the natural
+  place, kept in one definition. FM-1-RE adds that its free regions have
+  not been validated as safe for writes from outside the stock firmware,
+  and whether an update rewrites the USR or VM region is not known
+  (Q-24). In fwtest the whole chip past the image is erased and free
+  (HW-5, HW-82).
+- Sources: RE `docs/architecture.md` §2 ("Flash layout", from the update
+  package's file table) and §3 (the mask ROM loads the loader from
+  `0xA0`); RE `docs/io/01-boot.md` §3 (the loader reads the file table's
+  section tags); RE `docs/io/09-storage.md` §3 and §6 (the VM store; the
+  free regions not validated); RE `docs/io/11-ota-protocol.md` (the
+  package's entries, among them `flash.bin` and `USR`; the loader staged
+  in the VM/loader area); SDK `cpu/wl82/tools/isd_config_rule.c` lines
+  106 and 306-334 (the last 4 KiB reserved; reserved regions and whether
+  a download erases, keeps or protects each).
+- Standing: confirmed (RE, SDK)
+- Needed by: M7, M9
+
+### HW-81: The code window on the chip differs from fwtest's
+- Fact: On the chip:
+  - The app area from `0x04000` is encrypted with the chip's key, and the
+    window shows it decrypted; the stock firmware scrambles data it
+    writes below its app area's end so that it reads back through the
+    window. Plain data written over SPI0 inside that area therefore
+    reads back changed through the window.
+  - The stock window starts at chip offset `0x04120` (the app's first
+    byte after the file table): window address `0x02000000 + n` is chip
+    offset `0x4120 + n`. In fwtest it is `0x4000 + n` (HW-5).
+  - The stock firmware synchronises the instruction cache after a
+    program, so the window may keep showing old bytes after a change
+    (Q-22).
+  The requirement: address the store by chip offset, and read it back with
+  the flash's read command (`0x03`) over SPI0, not through the code
+  window; then the same code reads the same bytes on the chip and in
+  fwtest.
+- Sources: RE `docs/architecture.md` §2 (the window as flash offset −
+  `0x4120` + `0x02000000`; the app area encrypted with the chip key from
+  `0x4000`); RE `docs/io/09-storage.md` §1 (the cache synchronised after a
+  program; writes below the encrypted region's end scrambled); HW-5.
+- Standing: confirmed (RE)
+- Needed by: M7
+
+### HW-82: The flash chip in fwtest 0.5.0
+- Fact: In fwtest as pinned (0.5.0), beyond HW-47: an SPI0 byte takes no
+  emulated time of its own (64 bytes cost only the instructions that send
+  them); an erase or program completes when its command does, and the
+  status register's WIP bit is never 1, so a firmware's wait for WIP ends
+  at its first read; a page program sent without a write enable still
+  writes (the chip ignores it, HW-78); bytes programmed past the end of a
+  256-byte page go on into the next page (the chip wraps them to the
+  page's start); programming clears bits only, as on the chip; a 4 KiB
+  erase clears its aligned sector and a 64 KiB erase its aligned block;
+  reading through the window during or after a flash operation always
+  works. Not modelled: the 32 KiB block erase (`0x52`), the page erase
+  (`0x81`), the chip erase, suspend and resume, block protection. The
+  flash persists between runs only through files: `--flash FILE` gives the
+  chip's starting bytes (the image is then written at `0x4000` again) and
+  `--flash-out` saves the whole chip at the end of the run, whatever its
+  outcome. A run that ends (`--ms`) stops with the flash as it is then;
+  with operations instantaneous, that can't fall inside one. fwtest's
+  next version is to model the busy times, the page wrap and the write
+  enable, and a power cut during an operation (HARNESS.md will say when).
+- Sources: E-22 (64 bytes in 45 TIMER4 ticks; erase, then one status read
+  with WIP 0; `F0 0F AA FF` then `3C` ×4 gave `30 0C 28 3C`; a program
+  without WREN wrote; "ABCD" at `0x800FE` put "CD" at `0x80100`; the erase
+  extents); HARNESS ("The flash chip", `--flash`, `--flash-out`); the
+  emulator model (the commands not modelled).
+- Standing: confirmed (E-22)
+- Needed by: M7
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -1563,3 +1769,33 @@ spec request can turn one into a fact.
   `TXCNT` does while a transfer is still going; how `BUF` and the DMA mix.
   Settled by a datasheet or a probe on real hardware (an SMK-37 and an
   FM-1).
+- **Q-21. The FM-1's flash part.** Which part the FM-1 carries: its
+  JEDEC ID read on a unit (fwtest answers `85 60 14`, the Puya P25Q80H,
+  HW-76), or the marking on the chip. If it differs, HW-77's times and
+  HW-78's rules need that part's datasheet. Settled by a probe on real
+  hardware or a photo of the board.
+- **Q-22. Working the flash directly on the chip.** How the code window's
+  controller hands the flash to SPI0 and takes it back (the SDK does it in
+  its prebuilt library's enter and leave calls); which pins the flash
+  uses: fwtest takes PD0 as its chip select (HW-47), but the SDK's loader
+  settings name PD0 as the flash's clock and PD3 (or PA13) as its chip
+  select (`cpu/wl82/tools/isd_config_rule.c` lines 120-128), so driving
+  PD0 as a chip select on the chip may be wrong; SPI0's clock and mode
+  for those commands; whether the window caches the flash and what makes
+  it see a change (the stock firmware synchronises the instruction cache
+  after a program, HW-81); whether core 1 must be stopped (the emulator's
+  model says the stock firmware pauses it around flash work). Settled by
+  a probe on real hardware, or a datasheet for the chip.
+- **Q-23. Write protection on the FM-1's flash.** Whether the status
+  register's block-protect bits (HW-78) are set on a shipped unit or by
+  the loader, which would make erases and programs in the protected range
+  silently do nothing. Read status register 1 on a unit; the SDK's own
+  write-protect switch is off by default. Settled by a probe on real
+  hardware.
+- **Q-24. What an update rewrites.** Which regions a stock-style update
+  erases or writes beyond its flash image (`0x00000`-`0x93FFF`, HW-80):
+  where in the VM region it stages its loader, whether its `USR` entry
+  rewrites `0xEA000`-`0xFBFFF`, and whether our own packaging (M9) can
+  mark a region to be kept. Decides whether stored patches survive an
+  update. Settled in M9, from FM-1-RE's update documents and the SDK's
+  packaging settings (HW-80's sources), or by a test on real hardware.
