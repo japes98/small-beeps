@@ -1245,6 +1245,14 @@ SR-3 wrote only its barrier-log row.*
     #95's) and the count of lines it adds to PROVENANCE.md (three, so
     P-51 to P-53), to number P-54. No content of any other file was
     fetched or shown, and nothing under the spec-side folders.
+  - **CI artifacts:** to find C-SEP-TERMS' hit on #98 and the build's
+    hash on #106, the session downloaded those two runs' report
+    artifacts whole into its scratch folder and opened only
+    `logs/C-SEP-TERMS.log`, `outputs/SHA256SUMS` and the artifact's
+    top-level listing. Each artifact also held the record's `harness/`
+    folder (the harness's own test results, which records keep); nothing
+    in it was opened, and both artifacts were deleted at 16:10Z.
+    Next time, take only the named files.
   - **The toolchain** built the firmware and its test images in the
     build container, as before. Disk stayed between 3 and 4 GB free.
 
