@@ -903,6 +903,19 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   For us: our firmware links nothing of FM1 Open, so none of its
   conditions applies to our code; the engine grant names FM1 devices only,
   so it would not cover the SMK-37.
+- **The owner's answers to session day-1024's questions (2026-10-24):**
+  - fwtest 0.6.0 (#99) is pinned only after M7's store (#106) merges,
+    and the firmware side re-runs its suite on the pin's pull request
+    first.
+  - Vendor patch 0011 stays in #99.
+  - M7's store: the unused `0xFC000`-`0xFEFFF` is preferred, if the
+    firmware side shows it meets the store's capacity and wear needs
+    (HW-77, HW-80); never the chip's last 4 KiB.
+  - M9 may vendor FM1 Open's loader binaries in principle (Risks,
+    "Vendoring FM1 Open's boot and update files"); the details are
+    decided then.
+  - `config/claude/clean.json` and `spec.json` get a deny rule against
+    cloning the port repository, at the start of the next sessions.
 - **The emulator doesn't model USB**, so M11 is hardware-only.
 - **Merge signatures are GitHub's.** Since 2026-10-22 the owner merges with
   GitHub's button, so merge commits are signed by GitHub (`web-flow`) and the
