@@ -856,6 +856,7 @@ static void events(void)
             algorithm_now = (algorithm_now + FM_ALGORITHMS * 16 + (u32)(int)e.value) % FM_ALGORITHMS;
         }
     }
+    midi_poll();
     while (midi_read(&m))
         any |= midi_message(&m);
     if (any)
@@ -1046,6 +1047,7 @@ void fm_init(void)
     midi_settings.channel = 10;   /* the channel test build (tools/fw-suite.py) */
 #endif
     sb_midi.program = 0xFFFFFFFFu;
+    midi_start();
     knobs();
     sb_fm.marker = FM_MARKER;
     sb_midi.marker = MIDI_MARKER;

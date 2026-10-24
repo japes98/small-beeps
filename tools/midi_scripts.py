@@ -202,12 +202,13 @@ def midipanel():
     s = Script("midipanel", "midipanel (R-MIDI-6): MIDI and the panel together. KEY1 (note 53)\n"
                "and MIDI note 53 overlap, each released while the other holds; MIDI\n"
                "notes in the keyboard's range shown in cyan (screen at 900 ms, MIDI\n"
-               "holding 60 and 64, KEY5 down); nothing left sounding.")
+               "holding 60 and 64, KEY5 down, the event line MIDI's last note);\n"
+               "nothing left sounding.")
     s.at(100).event("key 14 down").wait(50).midi(on(53, 100)).wait(100).event("key 14 up")
     s.wait(100).midi(off(53))
     s.wait(100).midi(on(53, 100)).wait(50).event("key 14 down").wait(100).midi(off(53))
     s.wait(100).event("key 14 up")
-    s.at(800).midi(on(60, 100), on(64, 100)).wait(5).event("key 18 down")
+    s.at(800).event("key 18 down").wait(20).midi(on(60, 100), on(64, 100))
     s.at(1000).midi(off(60), off(64)).wait(5).event("key 18 up")
     return s
 

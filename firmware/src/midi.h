@@ -7,7 +7,8 @@
  * receive channel, the pitch bend range, the controller map), kept in one
  * struct that M7 can save as it is.
  *
- * - The receiver calls midi_rx_byte() for each byte, from its interrupt.
+ * - The receiver, UART1's receive DMA (HW-67 to HW-71), is read once a
+ *   block by midi_poll(), which hands each byte to midi_rx_byte().
  * - The engine takes whole messages with midi_read(), from its block
  *   callback (audio.h), so MIDI and the panel's events reach it in the
  *   same place; fm_play.c acts on them.
@@ -52,7 +53,12 @@ struct midi_msg {
  * data bytes it is counted as too long (the bytes are still skipped). */
 #define MIDI_SYSEX_LIMIT 4096u
 
-/* Called by the receiver's interrupt for each byte it takes. */
+/* Starts the receiver (UART1, by DMA; HW-67 to HW-71). */
+void midi_start(void);
+/* Takes the bytes the receiver has written since the last call, through
+ * midi_rx_byte(); once a block, from the engine's callback. */
+void midi_poll(void);
+/* Puts one received byte into the ring. */
 void midi_rx_byte(u8 b);
 /* Parses the bytes received so far into *m, one message at a time: 1, or
  * 0 when no whole message is waiting. Engine callback only (one reader). */

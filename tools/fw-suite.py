@@ -116,7 +116,8 @@ IMAGE = os.path.join("out", "fw", "app.bin")
 TEST_BUILDS = {"test-fault": "SB_TEST_FAULT", "test-stray": "SB_TEST_STRAY",
                "test-badinsn": "SB_TEST_BADINSN", "test-flood": "SB_TEST_FLOOD",
                "test-leds": "SB_TEST_LEDS", "test-ledshow": "SB_TEST_LED_SHOW",
-               "test-underrun": "SB_TEST_UNDERRUN", "test-velocity": "SB_TEST_VELOCITY"}
+               "test-underrun": "SB_TEST_UNDERRUN", "test-velocity": "SB_TEST_VELOCITY",
+               "test-midich": "SB_TEST_MIDI_CHANNEL"}
 # Each case's expected outcome (the suite says the same; checked twice).
 EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "completed",
           "screen": "completed", "flood": "completed", "fault": "halt", "stray": "halt",
@@ -125,7 +126,10 @@ EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "complete
           "tone": "completed", "notes": "completed", "audioload": "completed",
           "audiogold": "completed", "underrun": "completed",
           "fmbessel": "completed", "fmenv": "completed", "fmmono": "completed", "fmsteal": "completed",
-          "fmvel": "completed", "fmgold": "completed", "fmgold2": "completed"}
+          "fmvel": "completed", "fmgold": "completed", "fmgold2": "completed",
+          "midimsg": "completed", "midirun": "completed", "midisysex": "completed",
+          "midijunk": "completed", "mididense": "completed", "midisustain": "completed",
+          "midichan": "completed", "midipanel": "completed", "midilat": "completed"}
 
 MARKER = 0x44304253        # "SB0D", firmware/src/sb.h
 TICKS_PER_MS = 24000       # HW-13

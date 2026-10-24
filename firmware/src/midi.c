@@ -5,17 +5,20 @@
  * MIDI in (M6a): the receive ring and our own MIDI 1.0 byte parser,
  * written from the MIDI 1.0 specification's rules for status, running
  * status, realtime and System Exclusive bytes (docs/DESIGN-NOTES.md,
- * M6a, "The parser"; PROVENANCE P-41). The engine side is in fm_play.c.
+ * M6a, "The parser"; PROVENANCE P-41), and the receiver: UART1's
+ * receive DMA (HW-67 to HW-71). The engine side is in fm_play.c.
  */
 
 #include "midi.h"
+#include "WL82.h"
 
 volatile struct sb_midi_record sb_midi __attribute__((section(".beacon.midi")));
 
 struct midi_settings midi_settings;
 
-/* The ring: the receiver's interrupt writes at head, the engine's
- * callback reads at tail; each index is written by one side only. */
+/* The ring: midi_rx_byte() writes at head, midi_read() reads at tail;
+ * each index is written by one side only, so a receiver in an interrupt
+ * could write it too. */
 static volatile u8 ring[MIDI_RING];
 static volatile u32 head, tail;
 
@@ -30,6 +33,49 @@ void midi_rx_byte(u8 b)
     }
     ring[h % MIDI_RING] = b;
     head = h + 1;
+}
+
+/* --- The receiver (HW-67 to HW-71) ---------------------------------------
+ * The jack's bytes reach UART1, whose receive DMA writes them into a ring
+ * of our own (HW-70). Once a block the engine latches how many it wrote
+ * since the last time (CON0 bit 7 into HRXCNT, HW-69) and takes them, so
+ * no interrupt is needed: the engine acts on MIDI once a block anyway. In
+ * fwtest no baud rate, UART clock or pin needs setting (HW-71); on the
+ * chip they are still open (Q-12), so this sets none yet. */
+#define UART_ON     (1u << 0)   /* HW-70 */
+#define UART_RX_DMA (1u << 6)   /* HW-70 */
+#define UART_LATCH  (1u << 7)   /* HW-69: the count since the last latch into HRXCNT */
+#define MIDI_DMA    256u        /* the DMA's ring: 82 ms of the wire */
+
+static volatile u8 dma_ring[MIDI_DMA] __attribute__((aligned(4)));
+static u32 dma_at;
+
+void midi_start(void)
+{
+    JL_UART1->RXCNT = 0;                         /* no receive pending (HW-70) */
+    JL_UART1->RXEADR = (u32)(dma_ring + MIDI_DMA);
+    JL_UART1->RXSADR = (u32)dma_ring;            /* starts the DMA at the ring's start */
+    JL_UART1->CON0 = UART_ON | UART_RX_DMA;
+}
+
+void midi_poll(void)
+{
+    u32 n;
+
+    JL_UART1->CON0 = UART_ON | UART_RX_DMA | UART_LATCH;
+    n = JL_UART1->HRXCNT;
+    if (n > MIDI_DMA) {
+        /* More than the ring since the last block: the oldest were
+         * written over (HW-71); count them lost. */
+        sb_midi.bytes += n - MIDI_DMA;
+        sb_midi.ring_dropped += n - MIDI_DMA;
+        dma_at = (dma_at + n - MIDI_DMA) % MIDI_DMA;
+        n = MIDI_DMA;
+    }
+    while (n--) {
+        midi_rx_byte(dma_ring[dma_at]);
+        dma_at = (dma_at + 1) % MIDI_DMA;
+    }
 }
 
 /* The screen's queue: the engine writes at shead, main reads at stail. */
