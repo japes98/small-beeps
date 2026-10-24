@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 8f80b875b420812eb4be33415d6f19029736df98..96544f02c61d737a02a8d7bc352e4440fce75eed
+OK     001b7a785c1d docs: answer SR-8, MIDI input (HW-67 to HW-71; E-19, E-20)
+EXEMPT 96544f02c61d (merge) Merge pull request #81 from japes98/spec/sr-8
+2 commit(s) checked: PASS
+
+exit status 0
