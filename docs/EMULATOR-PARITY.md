@@ -1,0 +1,79 @@
+<!--
+SPDX-License-Identifier: MIT
+SPDX-FileCopyrightText: 2026 japes98
+-->
+
+# Emulator parity: fwtest and the F-Emulator app
+
+fwtest (this repository's harness) and the owner's F-Emulator app both run
+the public emulator upstream, `joakimeriksson/fm1-emu`, with patches of
+their own. This file lists every patch and which of the two has it, so
+that a firmware behaves the same in both. Written by the spec side
+(session emulator-parity, 2026-10-24); kept in general terms, as every file
+outside `harness/` and `vendor/emulator/` is (CONTRIBUTING.md).
+
+## The upstream commit
+
+Both build on `43ed5580064885e93bc8d20be931ae950d10cd4f` (main on
+2026-10-22; vendor/emulator/UPSTREAM.md), the same three crates.
+
+## Every patch
+
+fwtest's patches are `vendor/emulator/patches/`, applied in order by
+`tools/fetch-emulator.sh`. The app's are its own branch, numbered as its
+patch notes (`emulator-patches.md`, from the owner; PROVENANCE P-37) number
+them, against upstream with fwtest's 0001 and 0002.
+
+| fwtest | App | What | Kind | fwtest | App |
+|--------|-----|------|------|--------|-----|
+| 0001 | none | The workspace manifest lists only the three vendored crates | build | yes | not needed: only for fwtest's three-crate copy |
+| 0002 | B | A write to the LCD's SPI port's control register replaces it, so its interrupt enable can be cleared (SR-3) | bug fix | yes (0.2.0) | yes (its base) |
+| 0003 | none | The block moves with a register base run in all eight modes (SR-7) | bug fix | yes (0.3.0) | no: to apply (harness/upstream/fm1-emu-block-moves.md) |
+| 0004 | 0003 (A) | A dual-issue pair's head among the 4-byte ALU forms with no table class holds its result until after the pair | bug fix | yes (0.4.0) | yes |
+| 0005 | none | The rotate right by a register runs, as a pair's head too | gap | yes (0.4.0) | no: to apply (harness/upstream/fm1-emu-undecoded-forms.md) |
+| 0006 | none | The 4-byte push and pop of any register list run, not only lists from r0 | gap | yes (0.4.0) | no: to apply (same note) |
+| 0007 | 0004 (C) | Peripheral addresses looked up before the memories | speed only | yes (0.4.0) | yes |
+| 0008 | 0005 (D) | Code blocks in RAM found current by a count of writes to code, on every build | speed only | yes (0.4.0) | yes |
+| none | 0006 (E) | Boot a raw image | the app's loader | no: fwtest has its own (in `harness/`, docs/HARNESS.md "The raw image") | yes |
+| none | not a patch | Two pattern guards rewritten so the crates build on an older Rust | build | no: fwtest builds on Rust 1.99 | yes |
+
+fwtest 0004, 0007 and 0008 are the app's 0003, 0004 and 0005 as they
+stand: their added and removed lines are byte for byte the app's, only the
+line offsets refreshed for fwtest's 0003. With the app's raw-image loader
+aside, the two trees are then the same source, file for file, once the app
+applies fwtest's 0003, 0005 and 0006 (checked: they apply to the app's
+tree with line offsets only, and the crates' own tests pass there).
+
+## How each was checked
+
+- **0004 (the pair heads).** From the vendor toolchain (PROVENANCE P-38):
+  its disassembler prints the second twin of each of these forms (byte 1
+  `f0` / `f1`) as a pair's head, and the compiler's own code for our
+  firmware relies on a pair's second half seeing the registers as they
+  were before the head. fwtest's harness test runs one word of every
+  family, plain and as a pair's head, and fails without the patch. The
+  app's own test comes with it.
+- **0005 and 0006 (the two gaps SR-7 found).** Encodings from the vendor
+  assembler and disassembler; the rotate's behaviour from the compiler's
+  rotate idioms, including one built with the firmware's flags in a test
+  image; the lists' from the lists from r0 the compiler emits. Each has a
+  harness test that fails without it (docs/HARNESS.md, "Instructions").
+- **0007 and 0008 (speed only).** Taken because a test shows they change
+  no behaviour. The app's test for 0007 compares the new address lookup
+  with the old one at every address up to the end of the memories and a
+  sweep above. For 0008 every way RAM can be written was checked to count
+  as a write to code, and a harness test runs RAM code changed by stores,
+  with and without the patch. Then the firmware's suite (at `cdfd067`), the
+  spec experiments and the harness's own suite were run on fwtest built
+  with and without 0007 and 0008: all 284 output files are byte for byte
+  the same.
+- **The firmware.** The same comparison between fwtest 0.3.0's emulator
+  and 0.4.0's (0004 to 0008): no output of the three suites changed.
+
+## Keeping them together
+
+A patch that changes what the emulator does goes into both: in fwtest as a
+numbered patch with a harness test that fails without it, in the app from
+the note in `harness/upstream/`; this table gets a row. A speed-only patch
+goes into fwtest only with a test that shows it changes nothing. When the
+pinned upstream commit has a fix, both drop the patch.

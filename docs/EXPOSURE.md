@@ -1002,9 +1002,20 @@ SR-3 wrote only its barrier-log row.*
   pair-head bug. That is the only community-firmware content in them: no
   source and no other code. The session takes that fragment only as a bug
   report, confirms the behaviour from the vendor toolchain and our own
-  firmware's compiled code instead, and names no community firmware
-  outside this file and its transcript. It opens nothing else of the
-  app's, and never opens or fetches an audit target.
+  firmware's compiled code instead. It names no community firmware
+  outside this file and its transcript, except in two code comments of
+  the app's that its patches carry unchanged into `vendor/emulator/`
+  (spec side only; a firmware's name and what the app saw it do, no
+  code). It opens nothing else of the app's, and never opens or fetches
+  an audit target.
+- Later in the session: it fetched the emulator upstream at the pinned
+  commit (the fetch script's sparse paths only) to re-vendor with the new
+  patches; ran the pinned toolchain's assembler, disassembler and
+  compiler (PROVENANCE P-38) on our firmware's sources and on code of its
+  own; and built fwtest natively three times in its scratch folder (the
+  0.3.0 emulator, with the three fixes, with all five patches) to compare
+  the outputs of the firmware suite, the spec experiments and the
+  harness suite.
 
 ## Corrections
 
