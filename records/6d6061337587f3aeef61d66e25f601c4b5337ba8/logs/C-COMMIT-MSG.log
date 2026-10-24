@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 5b43e29b98d50e234e50c945cfb7637a0628190c..6d6061337587f3aeef61d66e25f601c4b5337ba8
+OK     bb3be6b52810 firmware: drop SR-7's copy_words workaround now fwtest runs the form
+OK     fae3285b5c0f docs: PROVENANCE P-37 for SR-7's cleanup and the rotate check
+EXEMPT 6d6061337587 (merge) Merge pull request #75 from japes98/m6a/sr7-cleanup
+3 commit(s) checked: PASS
+
+exit status 0

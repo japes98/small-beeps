@@ -1,0 +1,101 @@
+$ sh harness/ci.sh test
+#0 building with "default" instance using docker driver
+
+#1 [internal] load remote build context
+#1 CACHED
+
+#2 copy /context /
+#2 CACHED
+
+#3 resolve image config for docker-image://docker.io/docker/dockerfile:1.10@sha256:865e5dd094beca432e8c0a1d5e1c465db5f998dca4e439981029b3b81fb39ed5
+#3 DONE 0.0s
+
+#4 docker-image://docker.io/docker/dockerfile:1.10@sha256:865e5dd094beca432e8c0a1d5e1c465db5f998dca4e439981029b3b81fb39ed5
+#4 CACHED
+
+#5 [internal] load metadata for docker.io/library/rust:1.99.0-slim-bookworm@sha256:ba81bc3eaa4422af576c0262515d96b0111a628a6ccc2c86557cf55c9a4bbee0
+#5 DONE 0.0s
+
+#6 [build 1/5] FROM docker.io/library/rust:1.99.0-slim-bookworm@sha256:ba81bc3eaa4422af576c0262515d96b0111a628a6ccc2c86557cf55c9a4bbee0
+#6 DONE 0.0s
+
+#7 [build 3/5] COPY vendor/emulator vendor/emulator
+#7 CACHED
+
+#8 [build 4/5] COPY harness harness
+#8 CACHED
+
+#9 [build 2/5] WORKDIR /src
+#9 CACHED
+
+#10 [build 5/5] RUN --network=none cd harness && cargo build --release --locked --offline  && sha256sum target/release/fwtest
+#10 CACHED
+
+#11 [test 1/1] RUN --network=none cd harness && cargo test --release --locked --offline
+#11 0.050    Compiling fwtest v0.3.0 (/src/harness)
+#11 0.974     Finished `release` profile [optimized] target(s) in 0.93s
+#11 0.974      Running unittests src/lib.rs (target/release/deps/fwtest-320669d1143f7357)
+#11 0.975 
+#11 0.975 running 12 tests
+#11 0.975 test formats::tests::crc32_known_value ... ok
+#11 0.975 test formats::tests::json_is_stable_and_escaped ... ok
+#11 0.975 test formats::tests::sha256_known_values ... ok
+#11 0.975 test formats::tests::wav_round_trips ... ok
+#11 0.975 test golden::tests::csv_relative_tolerance ... ok
+#11 0.975 test golden::tests::exact_by_default ... ok
+#11 0.975 test golden::tests::png_and_wav_tolerances ... ok
+#11 0.975 test golden::tests::tolerance_must_fit_the_file_type ... ok
+#11 0.976 test script::tests::parses_every_event_kind_in_time_order ... ok
+#11 0.976 test script::tests::rejects_bad_lines_with_their_number ... ok
+#11 0.976 test script::tests::times_take_three_decimals ... ok
+#11 0.977 test formats::tests::png_round_trips ... ok
+#11 0.977 
+#11 0.977 test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+#11 0.977 
+#11 0.977      Running unittests src/main.rs (target/release/deps/fwtest-65c90ca4f0bae4d3)
+#11 0.978 
+#11 0.978 running 0 tests
+#11 0.978 
+#11 0.978 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+#11 0.978 
+#11 0.978      Running tests/fwtest.rs (target/release/deps/fwtest-a917c19d290dbf2e)
+#11 0.979 
+#11 0.979 running 15 tests
+#11 0.996 test block_move_below_the_base_sr7 ... ok
+#11 0.997 test block_moves_from_the_compiler ... ok
+#11 0.998 test block_moves_every_mode ... ok
+#11 0.998 test boot_state_matches_the_manual ... ok
+#11 1.008 test audio_ipb_and_console ... ok
+#11 1.019 test flash_capture ... ok
+#11 1.044 test boots_and_runs_for_the_time_asked ... ok
+#11 1.098 test halts_faults_and_hangs ... ok
+#11 1.116 test lcd_capture ... ok
+#11 1.129 test cli_exit_codes_golden_and_results ... ok
+#11 1.130 test refuses_empty_and_oversized_images ... ok
+#11 1.140 test spi1_interrupt_follows_con_bit_13 ... ok
+#11 1.140 test led_capture ... ok
+#11 1.240 test inputs_from_a_script ... ok
+#11 1.300 test deterministic ... ok
+#11 1.300 
+#11 1.300 test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+#11 1.300 
+#11 1.301    Doc-tests fwtest
+#11 1.330 
+#11 1.330 running 0 tests
+#11 1.330 
+#11 1.330 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+#11 1.330 
+#11 DONE 1.4s
+
+#12 exporting to image
+#12 exporting layers
+#12 exporting layers 0.3s done
+#12 writing image sha256:5c0a950af82e9f5258743183a6f873d7d00fd240fe330ce0897451f228e7988a done
+#12 naming to docker.io/library/small-beeps-fwtest:d80447e47f12ea53-test done
+#12 DONE 0.3s
+
+ [33m2 warnings found (use docker --debug to expand):
+[0m - FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 20)
+ - FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 35)
+
+exit status 0
