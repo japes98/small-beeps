@@ -1249,8 +1249,20 @@ SR-3 wrote only its barrier-log row.*
 - What it archived: pin-050's transcript (`9406e046`) into
   `sessions/spec/`; `tools/check-transcripts.py` PASS.
 - Exposure: the spec side's usual material (the vendored emulator and
-  `harness/`, the pinned toolchain, this repository). Anything new is
-  added below as the session goes.
+  `harness/`, the pinned toolchain, this repository). New for this
+  session, all allowed sources: FM-1-RE's architecture, boot, storage,
+  update-protocol and reflash documents and its two reversing overviews
+  of the hardware map and boot (hardware and layout facts only; P-51);
+  single files of the pinned JieLi SDK (P-52); Puya's P25Q80H datasheet
+  and, found while searching for it, the datasheets of four other Puya
+  parts, not used (P-53); web search results. A Python virtual
+  environment with `pypdf` in its scratch folder, to read the
+  datasheets' text.
+- From the firmware side's open pull request #95 it read only
+  `docs/SPEC-REQUESTS.md` (SR-9), `PROVENANCE.md`'s IDs and the list of
+  its files, then merged that branch into SR-9's answer, so its files are
+  in that branch; no other file of it was opened.
+- Later in the session: spec experiment E-22 (the flash chip in fwtest).
 
 ## Corrections
 

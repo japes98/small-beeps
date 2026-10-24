@@ -15,7 +15,7 @@ It fails on:
   - an `other chip` entry whose sources don't cite SDK63 (another JieLi
     chip's SDK; such an entry is never confirmed for the FM-1's chip);
   - a confirmed entry whose sources name nothing independent: it must cite
-    SDK, RE, DS, PANEL, MAN or an experiment E-n (HARNESS, the spec side's own
+    SDK, RE, DS, PUYA, PANEL, MAN or an experiment E-n (HARNESS, the spec side's own
     description of fwtest, and the emulator model don't count);
   - an experiment E-n cited but not listed in
     harness/spec-experiments/README.md (checked only where harness/ is on
@@ -37,7 +37,7 @@ EXPERIMENTS = os.path.join(ROOT, "harness", "spec-experiments", "README.md")
 FIELDS = ("Fact", "Sources", "Standing", "Needed by")
 HEAD = re.compile(r"^### (HW-(\d+)): (\S.*)$")
 FIELD = re.compile(r"^- ([A-Z][a-z]+(?: by)?):\s*(.*)$")
-SOURCE_KEYS = re.compile(r"\b(SDK|RE|DS|PANEL|MAN|E-\d+)\b")
+SOURCE_KEYS = re.compile(r"\b(SDK|RE|DS|PUYA|PANEL|MAN|E-\d+)\b")
 # Another chip's SDK: a source, but never an independent one for this chip.
 OTHER_CHIP = re.compile(r"\bSDK63\b")
 EXP = re.compile(r"\bE-(\d+)\b")

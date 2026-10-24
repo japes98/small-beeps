@@ -407,4 +407,14 @@ an issue or a pull request against docs/HARNESS.md.
   beyond HW-47's); HARNESS.md ("The raw image", `--flash`,
   `--flash-out`). Black-box runs in fwtest so far: none beyond a
   `--flash-out` capture of an erased chip.
-- Status: open
+- Status: answered in part (HARDWARE-SPEC.md, "19. Flash storage (SR-9,
+  M7)", HW-76 to HW-82, and HW-47's standing): (a) HW-80 (the layout; the
+  chip's last 64 KiB is not safe, its last sector is per-unit); (b) HW-76
+  and HW-77 (the P25Q80H, if that is the part: Q-21); (c) HW-78 and
+  HW-79 (nothing from the window while busy, either core); (d) open,
+  Q-22 (and the chip select pin may not be PD0 on the chip); (e) HW-81
+  (read the store over SPI0), the cache itself Q-22; (f) HW-78's protect
+  bits, the FM-1's state Q-23; (g) HW-82 (fwtest 0.5.0: no time per
+  byte, bits only cleared, no wrap; fwtest's next version is to model the
+  busy times, the wrap and the write enable). Open: Q-21 to Q-24.
+- Answered: 2026-10-24, session day-1024 (spec side)
