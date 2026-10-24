@@ -12,8 +12,8 @@ SPDX-FileCopyrightText: 2026 japes98
 - Licence: MIT, copyright 2026 Joakim Eriksson (`LICENSE` here, copied
   unmodified).
 - What: `crates/fm1-isa`, `crates/fm1-core` and `crates/fm1-soc`, at the
-  same paths, unmodified but for the patches below (0002 to 0008: bug
-  fixes and two speed-only changes) and the workspace manifest
+  same paths, unmodified but for the patches below (0002 to 0009: bug
+  fixes, two speed-only changes and MIDI out) and the workspace manifest
   `Cargo.toml` (patched, 0001). docs/EMULATOR-PARITY.md compares them with
   the F-Emulator app's.
   Nothing else from that repository: no other crates, no `fm1-sid/`, no
@@ -22,7 +22,7 @@ SPDX-FileCopyrightText: 2026 japes98
   sparse checkout of exactly those paths) and checked by
   `tools/fetch-emulator.sh --verify` (C-EMU-PIN): every file against
   `SHA256SUMS`, whose own SHA-256 (the tree hash) is
-  `bed3ada67b045ea669041dc6195878fa3554cea6054a0566af07d17ea1d3bf4d`.
+  `9b3e9a17577c416aa8f2f58d3dc1f8fa81e3b8f77752efc0f656439f4b2b8d8e`.
 - Provenance: PROVENANCE.md P-7. Exposure: docs/EXPOSURE.md (session M0b).
 
 ## Patches
@@ -97,7 +97,22 @@ Applied in file-name order by the fetch script, after checkout:
   inline stores, which check the code flags first (AArch64 and x86-64
   `store`); a block marks exactly the bytes it snapshots. fwtest runs with
   `jit_on` false. Its crate test `ram_block_sees_patched_code`; the harness
-  test `ram_code_runs_as_written` passes with and without it.
+  test `ram_code_runs_as_written` passes with and without it. Session
+  pin-050 took the app's fix to that crate test (the test only): as first
+  taken its JIT half never ran compiled code (3 entries a run; the JIT
+  compiles on the 32nd). Now each run enters the block 40 times, checks
+  `r0` every pass and, where `build.rs` turns the native JIT on, that
+  compiled code ran with the JIT only and again after the patch; with the
+  count in `Ram::wrote` switched off the JIT half fails on its own.
+- `patches/0009-midi-out-transmit-side.patch` (session midi-in-out,
+  2026-10-24; our own, PROVENANCE P-46): `crates/fm1-soc/src/lib.rs`,
+  UART1's transmit side for MIDI out: a TX DMA or a `BUF` write puts bytes
+  on the wire one per 320 us, after any still going, with the TX pending
+  (and its interrupt) when the last has gone; nothing is sent with the
+  UART off. The bytes are kept until the runner drains them
+  (`Periph::midi_take_sent`), for fwtest's `--midi-out` and the app's
+  MIDI output (`harness/upstream/fm1-emu-midi-out.md`). The harness test
+  `transmits_midi` and the suite case `midiout` check it.
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
 and the harness suite gave byte-identical outputs (284 files) from fwtest

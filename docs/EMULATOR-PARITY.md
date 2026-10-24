@@ -72,6 +72,21 @@ three need nothing newer than the Rust the app builds with.
   spec experiments and the harness's own suite were run on fwtest built
   with and without 0007 and 0008: all 284 output files are byte for byte
   the same.
+- **0008's own test (session pin-050).** The crate test that came with
+  0008 runs RAM code changed by a store with the JIT off and on, but its
+  JIT half never ran compiled code: each run entered the block too few
+  times for the JIT to compile it, so both halves checked the same path.
+  The app found this and fixed the test (F-Emulator, 2026-10-24); fwtest's
+  0008 takes that fix unchanged, the test only. Each run now enters the
+  block 40 times and checks the result every time, and on the hosts where
+  the JIT is built in it checks that compiled code ran with the JIT on
+  and not with it off, and ran again after the store. On an Apple silicon
+  Mac the fixed test passes; with the count of writes to code switched
+  off it fails, and its JIT half fails on its own. The old test, by the
+  same count, ran no compiled code in either half. The patch's code is
+  unchanged, so fwtest stays at 0.5.0 and no new image is pinned. Not run
+  on an x86-64 host: fwtest's CI runs the harness's tests, not the
+  crates'.
 - **0009 (the MIDI output, session midi-in-out).** The transmit side's
   registers from the SDK's register map and FM-1-RE's MIDI document; its
   timing from the MIDI wire format. A harness test and a suite case run a
