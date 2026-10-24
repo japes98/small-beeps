@@ -857,18 +857,25 @@ static void events(void)
         }
     }
     midi_poll();
-    while (midi_read(&m))
-        any |= midi_message(&m);
+    if (midi_read(&m)) {
+        do
+            any |= midi_message(&m);
+        while (midi_read(&m));
+        sb_midi.bend = bend;
+        sb_midi.mod = mod_wheel;
+        sb_midi.volume = volume;
+        sb_midi.expression = expression;
+        sb_midi.pedal = pedal;
+    }
     if (any)
         knobs();
     /* Vibrato: a 5.5 Hz sine, up to half a semitone at the wheel's top. */
-    lfo_phase += LFO_INC;
-    vibrato = mod_wheel ? (s32)(((s64)fm_sine(lfo_phase) * (s32)(mod_wheel * 2048u / 127u)) >> 23) : 0;
-    sb_midi.bend = bend;
-    sb_midi.mod = mod_wheel;
-    sb_midi.volume = volume;
-    sb_midi.expression = expression;
-    sb_midi.pedal = pedal;
+    if (mod_wheel) {
+        lfo_phase += LFO_INC;
+        vibrato = (s32)(((s64)fm_sine(lfo_phase) * (s32)(mod_wheel * 2048u / 127u)) >> 23);
+    } else {
+        vibrato = 0;
+    }
 }
 
 /* --- Each block ------------------------------------------------------- */
@@ -1047,6 +1054,8 @@ void fm_init(void)
     midi_settings.channel = 10;   /* the channel test build (tools/fw-suite.py) */
 #endif
     sb_midi.program = 0xFFFFFFFFu;
+    sb_midi.volume = volume;
+    sb_midi.expression = expression;
     midi_start();
     knobs();
     sb_fm.marker = FM_MARKER;
