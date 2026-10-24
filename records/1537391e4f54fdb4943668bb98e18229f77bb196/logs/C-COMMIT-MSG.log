@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 3c1aeb895620ff5515f2926dfa88f3e201d4a868..1537391e4f54fdb4943668bb98e18229f77bb196
+OK     68e299a71868 config: pin fwtest 0.4.0 (the app's emulator patches; SR-7's two gaps)
+EXEMPT 1537391e4f54 (merge) Merge pull request #78 from japes98/spec/emulator-parity-pin
+2 commit(s) checked: PASS
+
+exit status 0
