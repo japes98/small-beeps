@@ -914,6 +914,32 @@ SR-3 wrote only its barrier-log row.*
   public literature only (PROVENANCE). It does not open anything on the
   forbidden list, anything under the three spec-side folders, any other
   synthesizer's firmware or any FM engine's source.
+- Later in the session:
+  - **The container runtime** didn't answer at first (the disk was
+    nearly full); with the owner's approval the session quit and
+    restarted it. No image or container was deleted.
+  - **A push that wanted an object this folder didn't have**, as in M4b:
+    after #64 merged, `git push` of #65's branch asked for a missing
+    blob. Before running `tools/clean-update.sh` (which then fixed it),
+    the session ran a `git ls-tree -r` of main filtered by `grep` for the
+    missing object's ID (it printed nothing: no path was shown) and a
+    loop of `git rev-list --objects --missing=print` over local branches
+    that printed only branch names. Neither showed a spec-side path or
+    content; per M4b's note, ref-wide tree listings are not to be
+    repeated, and the session didn't again.
+  - **The SDK**: one header, `include_lib/driver/cpu/wl82/asm/cpu.h` at
+    the pinned commit, fetched by URL into a scratch folder for the
+    lock's syntax HW-65 describes (PROVENANCE P-33).
+  - **CI artifacts**: the separation check's log of #67's and #69's runs
+    (places and hashes only) and their perf logs; the similarity audit's
+    run logs (scores and file names only). No record or target was
+    fetched.
+  - **The engine** was designed from public literature (PROVENANCE P-34)
+    and our own experiments (P-35). `vendor/` was left out of every
+    search: it holds Plaits, which has an FM engine, and the session
+    opened nothing in it (the Plaits demo's builds, in C-PLAITS-BENCH and
+    the local record run, compile it as before; their output shows only
+    pass or fail and numbers).
 
 ### Session SR-7 (spec request SR-7, a two-register load fwtest lacks)
 - Date: 2026-10-23 (UTC; work ran into 2026-10-24)

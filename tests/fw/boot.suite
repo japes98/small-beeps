@@ -52,8 +52,10 @@
 #   clean start and stop, and silence at rest around it.
 # notes (R-AUD-2, R-AUD-5, R-AUD-6): single notes' pitch, level (MASTER),
 #   latency from the key and from its event, no clicks, silence between.
-# audioload (R-AUD-1, R-AUD-3, R-INPUT-3): 10 s of the heaviest input with
-#   every voice and the tone: no underrun, every tick on time.
+# audioload (R-AUD-1, R-AUD-3, R-INPUT-3, R-FM-6): 10.9 s of the heaviest
+#   input (since M5 the FM engine's: test patch 6 on all 16 voices, 20 keys
+#   struck again in turn, six encoders, MASTER, the tone): no underrun,
+#   every tick on time, both cores rendering.
 # audiogold (R-AUD-7): a note and the tone, the whole output against a
 #   golden WAV, exact. It moves whenever startup or the scan's timing
 #   moves a note by a block (later milestones will): run the suite, check
@@ -61,6 +63,16 @@
 #   over golden/audiogold/audio.wav in the same commit.
 # underrun (R-AUD-3): a test build late for one block in 64: each counted
 #   and reported on the console, and the output goes on.
+# Since M5, the FM engine (scripts fm*.txt; the engine's record at
+# 0x01c00590; tools/fw-suite.py's checks, the test patches' values from
+# tools/fm_patch.py). The notes case plays its test patch 0 since M5.
+# fmbessel (R-FM-1): test patch 1's sidebands against Bessel functions.
+# fmenv (R-FM-3): test patch 2's envelope stages, rates and levels.
+# fmmono (R-FM-5): mono, legato and glide on test patch 3.
+# fmsteal (R-FM-4): 17 notes held on 16 voices, one stolen, no click.
+# fmvel (R-FM-3): a test build whose keys play five velocities.
+# fmgold, fmgold2 (R-FM-8, R-FM-9): every test patch against a golden WAV,
+#   twice: the same bytes both times. Regenerate it as audiogold's.
 #
 # NAME      EXPECT     IMAGE                          run options
 boot        completed  ../../out/fw/app.bin           --ms 5 --console --ram 0x01c00000:0x60@end --ram 0x01c00000:4@end --ram 0x01c7fc00:0x200@end --ram 0x01c7fe00:0x200@end --golden golden/boot
@@ -77,8 +89,15 @@ encoders    completed  ../../out/fw/app.bin           --ms 2300 --script scripts
 pot         completed  ../../out/fw/app.bin           --ms 1300 --script scripts/pot.txt --ram 0x01c00060:0x4f0@960 --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end
 leds        completed  ../../out/fw/test-leds.bin     --ms 1000 --leds-every 96 --ram 0x01c00000:0x60@end
 ledshow     completed  ../../out/fw/test-ledshow.bin  --ms 2400 --script scripts/keys.txt --ram 0x01c00060:0x4f0@end
-tone        completed  ../../out/fw/app.bin           --ms 2600 --script scripts/tone.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end
-notes       completed  ../../out/fw/app.bin           --ms 3900 --script scripts/notes.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end
-audioload   completed  ../../out/fw/app.bin           --ms 11000 --script scripts/audioload.txt --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end
+tone        completed  ../../out/fw/app.bin           --ms 2600 --script scripts/tone.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@end
+notes       completed  ../../out/fw/app.bin           --ms 3900 --script scripts/notes.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@end
+audioload   completed  ../../out/fw/app.bin           --ms 11000 --script scripts/audioload.txt --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@end
 audiogold   completed  ../../out/fw/app.bin           --ms 500 --script scripts/audiogold.txt --wav --ipb --console --ram 0x01c00550:0x40@end --golden golden/audiogold
 underrun    completed  ../../out/fw/test-underrun.bin --ms 500 --console --ipb --ram 0x01c00550:0x40@end
+fmbessel    completed  ../../out/fw/app.bin           --ms 1600 --script scripts/fmbessel.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
+fmenv       completed  ../../out/fw/app.bin           --ms 1400 --script scripts/fmenv.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
+fmmono      completed  ../../out/fw/app.bin           --ms 2000 --script scripts/fmmono.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
+fmsteal     completed  ../../out/fw/app.bin           --ms 1700 --script scripts/fmsteal.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
+fmvel       completed  ../../out/fw/test-velocity.bin --ms 2800 --script scripts/fmvel.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
+fmgold      completed  ../../out/fw/app.bin           --ms 4200 --script scripts/fmgold.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end --golden golden/fmgold
+fmgold2     completed  ../../out/fw/app.bin           --ms 4200 --script scripts/fmgold.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end --golden golden/fmgold

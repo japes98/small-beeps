@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# fmbessel (tests/fw/boot.suite, R-FM-1): test patch 1 ("Two-op": a
+# modulator at the note's frequency into a carrier at 6 times it, index
+# pi/2), A4 held for a second. tools/fw-suite.py measures the sidebands.
+#
+# time   event
+50       enc 6 +1           # PRESETS: patch 1
+300      key 30 down        # KEY17, A4
+1300     key 30 up

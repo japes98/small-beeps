@@ -683,14 +683,53 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   - **Next: M5, the FM engine.** Fixed point needs no answer from SR-5;
     floats would. The demo is not shipped in releases.
 
+### M5: the FM engine (firmware side)
+- Status 2026-10-23 (session M5, firmware side, on the owner's Mac): done,
+  in pull requests #64 (start), #65 (build flags), #66 (screen), #68
+  (SR-7), #69 (budgets) and #70 (the engine).
+  - **Build flags** (#65): `-mcpu=r3 -mfprev1` as SR-5's answer says
+    (HW-62); the image didn't change. `-mcpu=r3` alone turns the float
+    instructions on, so the Plaits demo's own C keeps its old flags.
+  - **The screen** (#66): drawn in frames of 16 ms, within a drawing
+    budget of an eighth of each audio block (R-LCD-6). **Loaded measure
+    114 173 to 15 522 instructions a block, 86% less**; LEDs still set as
+    each event comes.
+  - **The engine** (#70; docs/DESIGN-NOTES.md, M5): six operators a
+    voice, our own sine and ten algorithms, envelopes per operator and
+    for pitch, velocity, an index limit against aliasing; 16 voices, 8 on
+    each core, allocation and click-free stealing; mono with legato and
+    glide; a versioned patch format (docs/PATCH-FORMAT.md) and nine test
+    patches of our own; minimal controls (PRESETS, ALGORITHM, KNOB1 to
+    KNOB4, SEL with MONO/POLY). R-FM-1 to R-FM-9.
+  - **Tests**: FM sidebands within 0.002 dB of the Bessel functions;
+    envelope stages within 0.9 ms; glides within 0.05 semitones; velocity
+    within 0.03 dB; stealing without a click; 11 s of the heaviest input on
+    all 16 voices without an underrun; identical output on two runs;
+    golden WAVs for every test patch.
+  - **Figures** (fwtest): about 24 instructions an operator-sample; at
+    rest 1 803 a block; loaded 84 918 (24% of core 0; core 1 about 22%);
+    about 37 six-operator voices a core would fit, 16 ship, a margin of
+    four times for the chip. Code 15 696 bytes, static RAM 142 008, stack
+    388 (the M5 budgets, #69).
+  - **Spec request SR-7** (#68): fwtest doesn't run a two-register load
+    the compiler emits; a short, documented workaround until it does.
+  - **The similarity audit** passes on #70's commit (no pair flagged,
+    no text match). Its self-test has failed on every main commit since
+    #61 (it finds 25 of our 30 files in its made-up copy; the Plaits
+    demo's small files are the likely misses): the owner decides who fixes
+    it (the audit's tooling is the spec side's, SR-4).
+  - **Next: M6, MIDI in.** The engine already takes notes with velocity
+    (`fm_note_on`); M6 needs UART1 and the MIDI jack from the spec side
+    (Q-12).
+
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer (done; above).
 - **M2** screen (done; above).
 - **M3** keys, encoders, pot, LEDs (done; above).
 - **M4** audio (done; above). **M4b** a platform test: Plaits (MIT) as
   a demo build, and the loaded-case budget (done; above).
-- **M5** the FM engine (next).
-- **M6** MIDI in.
+- **M5** the FM engine (done; above).
+- **M6** MIDI in (next).
 - **M7** flash storage.
 - **M8** UI and original presets (no Yamaha factory voices).
 - **M9** packaging, and a raw-image boot path in the app.

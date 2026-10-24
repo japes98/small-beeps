@@ -75,7 +75,7 @@ CHECKS = [
     {"id": "C-UNIT", "title": "Unit tests of the tools",
      "reqs": ["R-PROC-1", "R-PROC-4", "R-REC-1", "R-CLEAN-3", "R-CLEAN-4", "R-PUB-1",
               "R-SEP-2", "R-SPEC-1", "R-SPEC-3", "R-AUDIT-1", "R-AUDIT-2", "R-AUDIT-3", "R-AUDIT-4",
-              "R-AUDIT-5", "R-PERF-4", "R-BUILD-1"],
+              "R-AUDIT-5", "R-PERF-4", "R-BUILD-1", "R-FM-1", "R-FM-7"],
      "cmd": [PY, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"]},
     {"id": "C-REUSE", "title": "reuse lint (SPDX licence and copyright on every file)",
      "reqs": ["R-LIC-1", "R-LIC-2"], "cmd": ["reuse", "lint"]},
@@ -129,7 +129,8 @@ CHECKS = [
               "R-LCD-1", "R-LCD-2", "R-LCD-3", "R-LCD-4", "R-LCD-5", "R-LCD-6",
               "R-KEY-1", "R-KEY-2", "R-KEY-3", "R-ENC-1", "R-ENC-2", "R-POT-1", "R-POT-2",
               "R-LED-1", "R-LED-2", "R-LED-3", "R-INPUT-1", "R-INPUT-2", "R-INPUT-3",
-              "R-AUD-1", "R-AUD-2", "R-AUD-3", "R-AUD-4", "R-AUD-5", "R-AUD-6", "R-AUD-7"],
+              "R-AUD-1", "R-AUD-2", "R-AUD-3", "R-AUD-4", "R-AUD-5", "R-AUD-6", "R-AUD-7",
+              "R-FM-1", "R-FM-3", "R-FM-4", "R-FM-5", "R-FM-6", "R-FM-8", "R-FM-9"],
      "cmd": lambda: [PY, "-I", "tools/fw-suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "fwtest")]},
     # Performance (M0e): size, RAM, stack high-water and speed, gated.

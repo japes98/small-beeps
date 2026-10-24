@@ -765,7 +765,7 @@ class ProbeSourceTest(unittest.TestCase):
     def test_probes_are_compiled_only_on_request(self):
         # every probe's code is under its define, so the firmware itself
         # carries none of it
-        for name in ("main.c", "probe.c", "sb.h", "synth.c"):
+        for name in ("main.c", "probe.c", "sb.h", "fm_play.c"):
             with open(os.path.join(ROOT, "firmware", "src", name)) as f:
                 text = f.read()
             guard = []
