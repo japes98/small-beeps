@@ -915,6 +915,30 @@ SR-3 wrote only its barrier-log row.*
   forbidden list, anything under the three spec-side folders, any other
   synthesizer's firmware or any FM engine's source.
 
+### Session SR-7 (spec request SR-7, a two-register load fwtest lacks)
+- Date: 2026-10-23 (UTC; work ran into 2026-10-24)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.309 (banner), Remote Control from the owner's
+  phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `a45f3eee-c28c-4d35-8d9d-45e71d04b1e4`,
+  started by `/clear` at 13:14:14Z (banner `source: clear`,
+  `status: OK`). Its first prompt named no request; the owner then
+  pointed it at SR-7 (#68), merged into main at `18d9459`.
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+- What it archived: SR-4-6's transcript (`d647e20d`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS. Clean sessions
+  (M5's `22963a4d`) are left to the clean side.
+- Exposure: none beyond the spec side's. It reads the spec side's usual
+  material (the vendored emulator, `harness/`, the pinned toolchain's
+  assembler, disassembler and documents, the JieLi SDK, FM-1-RE's
+  documents), this repository's tools, tests and docs. While looking for
+  the request before #68 existed it listed the clean folder's git status
+  and changed file names (no file contents). It never opens or fetches an
+  audit target.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
@@ -992,6 +1016,7 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-23T03:15:52Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M4 starts; banner `status: OK`; `tools/clean-update.sh` found main at `c36ae5f` and passed; M3 archived; `tools/check-transcripts.py` PASS with the 47 reviewed entries the owner approved in the session |
 | 2026-10-23T09:37:34Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M4b starts; banner `status: OK`; `tools/clean-update.sh` found main at `e742f15` and passed; M4 archived; `tools/check-transcripts.py` PASS with the 3 reviewed entries the owner approved in the session |
 | 2026-10-23T03:13:26Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-4-6 starts; banner `status: OK`. 12:25:40Z: `tools/spec-setup.sh`, banner `status: OK`; record-fixes-1's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-23T13:14:14Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-7 starts; banner `status: OK`. 14:22:19Z: `tools/spec-setup.sh`, banner `status: OK`; after #68, SR-4-6's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 
 ## Model cutoffs
 
