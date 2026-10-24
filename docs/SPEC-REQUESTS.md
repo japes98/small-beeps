@@ -327,7 +327,41 @@ an issue or a pull request against docs/HARNESS.md.
   across registers and immediates, found two more forms fwtest doesn't
   run: a rotate by a register, which the compiler emits, and a 4-byte push
   or pop of a list not starting at r0, which it was not seen to emit
-  (HARNESS.md, "Instructions", "Known gaps").
+  (HARNESS.md, "Instructions", "Known gaps"). Since fwtest 0.4.0
+  (2026-10-24, session emulator-parity) both run (HARNESS.md,
+  "Instructions").
   fwtest 0.3.0 reaches `tools/fwtest` when the pull request after this
   one pins its image; then `copy_words` and build.sh's check can go.
 - Answered: 2026-10-24, session SR-7 (spec side)
+
+### SR-8: MIDI input: the UART the jack reaches, its receive set-up, and fwtest's model
+- Asked: 2026-10-24, session M6a (firmware side)
+- Question: (a) Which UART receives the FM-1's MIDI input jack, on which
+  pin, and the `JL_IOMAP` selection and port set-up (direction, pull-up)
+  for that pin. Whether any other MIDI input path exists on the FM-1
+  (USB, say), and which path fwtest's `midi` script event feeds. (b) The
+  receive set-up for 31 250 baud, 8 data bits, no parity, one stop bit:
+  the `CON0` / `CON1` bits that turn the receiver and its interrupt on,
+  the flag that says a byte is waiting and how to acknowledge it, any
+  error flags (framing, overrun) and how they clear, and the `BAUD` value
+  for 31 250 baud from each `CLK_CON1` UART clock choice (HW-53), or the
+  formula. (c) The receive interrupt's source number. (d) Whether the
+  receiver can be read a byte at a time from `BUF` with an interrupt per
+  byte, or only through the DMA window (`RXSADR`, `RXEADR`, `RXCNT`,
+  `HRXCNT`, with `OTCNT` as a timeout), how the window wraps, and which of
+  the two fwtest models. (e) In fwtest: what set-up counts as "a MIDI
+  receiver set up" for `midi_bytes_dropped` (HARNESS.md, "Outputs"), and
+  what happens to a byte that arrives before the previous one was read
+  (lost, kept, an overrun flag).
+- Why: M6a is MIDI in: a byte parser, note and controller messages to the
+  FM engine, a receive channel. The parser and the engine's side don't
+  depend on the answer and are being built meanwhile; the receiver and
+  every fwtest MIDI test do. MIDI out is M6b and not asked here.
+  Read: HARDWARE-SPEC.md Q-12 ("UART1 and the MIDI jack are not covered
+  here"), HW-53 (the UART clock field), the interrupt and port sections;
+  HARNESS.md's `midi` event (a byte every 320 µs) and
+  `midi_bytes_dropped`; the vendored SDK's `WL82.h`, whose
+  `JL_UART_TypeDef` names `CON0`, `CON1`, `BAUD`, `BUF`, `OTCNT`, `TXADR`,
+  `TXCNT`, `RXSADR`, `RXEADR`, `RXCNT` and `HRXCNT` at UART0 to UART2's
+  bases, but no bits.
+- Status: open

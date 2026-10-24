@@ -60,6 +60,7 @@ pub struct UnknownAccess {
     pub value: u32,
 }
 
+#[derive(Debug, Clone, Copy)]
 enum Region {
     Xip,
     Ram,
@@ -351,6 +352,11 @@ impl Soc {
     }
 
     fn region(&self, addr: u32) -> Region {
+        // (the peripherals but the interrupt controller's sit below 16 MB, the memories above: a
+        // register access needn't try the memories first)
+        if addr < 0x0100_0000 {
+            return self.region_low(addr);
+        }
         match addr {
             a if a >= XIP_BASE && (a - XIP_BASE) < self.xip.len() as u32 => Region::Xip,
             // past the loaded image the XIP window still shows the flash chip (the stock
@@ -361,6 +367,14 @@ impl Soc {
             a if a >= SRAM2_BASE && (a - SRAM2_BASE) < self.sram2.len() as u32 => Region::Sram2,
             0x1eee000..=0x1eee0ff => Region::Irqc,
             0x1eef000..=0x1eef3ff => Region::Irqc2,
+            0x1eee240..=0x1eee24f => Region::Dbg,
+            _ => Region::Unknown,
+        }
+    }
+
+    /// `region` below 16 MB: the peripherals.
+    fn region_low(&self, addr: u32) -> Region {
+        match addr {
             0x12e00..=0x12e3f => Region::Alnk,
             0x50000..=0x501ff => Region::Gpio,
             0x51000..=0x5103f => Region::Iomap,
@@ -381,7 +395,6 @@ impl Soc {
             0x11900..=0x119ff => Region::Ana,
             0x13e08..=0x13e0f => Region::P33,
             0x20000..=0x2ffff => Region::Bt,
-            0x1eee240..=0x1eee24f => Region::Dbg,
             _ => Region::Unknown,
         }
     }
@@ -944,6 +957,93 @@ pub fn write_boot_info(soc: &mut Soc, at: u32, flash: &[u8]) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    /// A block over RAM re-entered after a store patched its code runs the new code, interpreted
+    /// and with the JIT (blocks over RAM skip their byte compare while the bus's count of
+    /// code-word writes is unchanged, so every store to a code word must be counted).
+    #[test]
+    fn ram_block_sees_patched_code() {
+        use fm1_core::Cpu;
+        for jit in [false, true] {
+            let mut soc = Soc::new(0x8000, vec![]);
+            // `r0 = 0x11111111`, then a jump to itself
+            let prog = [0xc0, 0xff, 0x11, 0x11, 0x11, 0x11, 0xf7, 0x9f];
+            for (i, b) in prog.iter().enumerate() {
+                soc.write8(RAM_BASE + i as u32, *b);
+            }
+            let mut cpu = Cpu::new(RAM_BASE);
+            cpu.jit_on = jit;
+            let run = |soc: &mut Soc, cpu: &mut Cpu| {
+                for _ in 0..3 {
+                    cpu.pc = RAM_BASE;
+                    cpu.regs[0] = 0;
+                    cpu.run_fast(soc, 200).unwrap();
+                }
+                cpu.regs[0]
+            };
+            assert_eq!(run(&mut soc, &mut cpu), 0x1111_1111, "jit {jit}");
+            // the immediate's bytes 2..6, patched by a store as the firmware's would be
+            soc.write16(RAM_BASE + 2, 0x2222);
+            soc.write16(RAM_BASE + 4, 0x2222);
+            assert_eq!(run(&mut soc, &mut cpu), 0x2222_2222, "jit {jit}: the patched code ran");
+        }
+    }
+
+    /// `Soc::region` as upstream has it (one match, the memories first), for the test below.
+    fn region_before(soc: &Soc, addr: u32) -> Region {
+        match addr {
+            a if a >= XIP_BASE && (a - XIP_BASE) < soc.xip.len() as u32 => Region::Xip,
+            // past the loaded image the XIP window still shows the flash chip (the stock
+            // firmware reads its USR preset area, which it writes over SPI, through XIP)
+            a if soc.xip_flash && a >= XIP_BASE && (a - XIP_BASE) as usize + XIP_FLASH_OFFSET < spiflash::FLASH_SIZE => Region::XipFlash,
+            a if a >= RAM_BASE && (a - RAM_BASE) < soc.ram.len() as u32 => Region::Ram,
+            a if a >= OVL_BASE && (a - OVL_BASE) < soc.ovl.len() as u32 => Region::Ovl,
+            a if a >= SRAM2_BASE && (a - SRAM2_BASE) < soc.sram2.len() as u32 => Region::Sram2,
+            0x1eee000..=0x1eee0ff => Region::Irqc,
+            0x1eef000..=0x1eef3ff => Region::Irqc2,
+            0x12e00..=0x12e3f => Region::Alnk,
+            0x50000..=0x501ff => Region::Gpio,
+            0x51000..=0x5103f => Region::Iomap,
+            0x10000..=0x1001f => Region::Clk,
+            0x10400..=0x1091f => Region::Timer,
+            0x11c00..=0x11c1f => Region::Spi0,
+            0x11d00..=0x11d1f => Region::Spi1,
+            0x11e00..=0x11e1f => Region::Spi2,
+            0x11800..=0x1183f => Region::Usb,
+            // the second USB PHY (the SMK-37's LED commons at 0x16A0C, its pads used as GPIO; its
+            // stock firmware powers the PHY up at boot and waits for 0x16800 bit 4). The FM-1's
+            // stock firmware touches the block too, as before: unknown.
+            0x16800..=0x16a1f if soc.board == Board::Smk37 => Region::Usb,
+            0x12100..=0x1212f => Region::Uart1,
+            0x13100..=0x1311f => Region::Adc,
+            0x13500..=0x1350f => Region::Crc,
+            0x13b00..=0x13b07 => Region::Rand,
+            0x11900..=0x119ff => Region::Ana,
+            0x13e08..=0x13e0f => Region::P33,
+            0x20000..=0x2ffff => Region::Bt,
+            0x1eee240..=0x1eee24f => Region::Dbg,
+            _ => Region::Unknown,
+        }
+    }
+
+    #[test]
+    fn region_is_what_it_was() {
+        let same = |a: Region, b: Region| std::mem::discriminant(&a) == std::mem::discriminant(&b);
+        for board in [Board::Fm1, Board::Smk37] {
+            for xip_flash in [false, true] {
+                let mut soc = Soc::new(1 << 20, vec![0; 0x80000]);
+                soc.board = board;
+                soc.xip_flash = xip_flash;
+                let check = |a: u32| {
+                    let (now, then) = (soc.region(a), region_before(&soc, a));
+                    assert!(same(now, then), "{a:#x}: {now:?}, was {then:?}");
+                };
+                // every address below 16 MB and up to the overlay's, then a sweep of the rest
+                (0..0x0420_0000).for_each(check);
+                (0x0420_0000..=u32::MAX).step_by(4093).for_each(check);
+            }
+        }
+    }
+
 
     #[test]
     fn flash_writes_show_through_xip() {

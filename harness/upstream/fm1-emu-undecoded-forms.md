@@ -9,9 +9,12 @@ For the owner to file with `joakimeriksson/fm1-emu` and, if wanted, to
 apply in the F-Emulator app. Spec side only; not filed by a session. Found
 in session SR-7 (2026-10-24) against commit
 `43ed5580064885e93bc8d20be931ae950d10cd4f`, after the block-move fix
-(`fm1-emu-block-moves.md`). Not patched in our copy: fwtest 0.3.0 still
-stops on both, and docs/HARNESS.md ("Instructions") lists them as known
-gaps.
+(`fm1-emu-block-moves.md`). fwtest 0.3.0 stopped on both; since 0.4.0
+(session emulator-parity, 2026-10-24) our copy carries the fixes below,
+`vendor/emulator/patches/0005-rotate-by-a-register.patch` and
+`0006-push-pop-any-register-list.patch`. They apply to upstream with our
+0003 under them, and to the F-Emulator app's tree with line offsets only
+(`fm1-emu-app-parity.md`).
 
 How they were found: a corpus of C and C++ (our firmware, Mutable
 Instruments' Plaits, generated C) built with the vendor compiler (clang
@@ -64,4 +67,30 @@ cover every mask.
 
 Raw image at `0x02000000`: set the registers (and sp to RAM), then the
 bytes above, then a halt. The run stops at the start of that code,
-"cannot decode".
+"cannot decode". Our harness's test images are fuller ones:
+`harness/tests/images/rotr.S`, `rotc.c` and `pushpop.S`.
+
+## The fixes (our 0005 and 0006)
+
+1. **Rotate.** In `decode_any`, after the constant rotate's arm: `cc e1` /
+   `cc f1` with byte 2's low nibble 0 decode as `ROTR_CRAW` /
+   `ROTR_PAIR_CRAW` (syntax `R = R <> R`, the second with `#`: a
+   dual-issue pair's head, as `cc f1` disassembles). Fields, from the
+   vendor objdump: d bits 28-31, s bits 20-23, t bits 24-27, the `c8 e1`
+   shifts' layout; nibble 1, 2, 3 are `<c>`, `><`, `>< (sat)` (not
+   touched), 4 to f no instruction. `exec_syntax` runs it beside the
+   constant rotate: `rD = rS.rotate_right(rT & 31)`, reading both sources
+   first. The compiler's masked rotate `(x << (s & 31)) | (x >> (-s & 31))`
+   is `r1 = 0 - r1; r1 &= 31; r0 = r0 <> r1`, so a rotate by 0 leaves the
+   value; 32 and over, mod 32, is by analogy.
+2. **Push and pop.** In `decode_any`, beside the `d9 e8` / `d1 e8` / `d5 e8`
+   arms: `d8 e8` and `d4 e8` decode as `LIST_PUSH_MASK_CRAW` /
+   `LIST_POP_MASK_CRAW` (syntax `[--sp] = {R*4}` / `{R*4} = [sp++]`) for
+   every mask, `{}` too (all print as instructions), and the existing block
+   push / pop arm of `exec_syntax`, which already took the mask from the raw
+   word for the 4-byte forms, runs them. Masks the table's classes fit
+   still decode through them, as before.
+
+Tests (in our harness): `rotate_by_a_register`, `rotates_from_the_compiler`
+(built with the firmware's flags) and `push_pop_any_register_list` fail
+without the patches.

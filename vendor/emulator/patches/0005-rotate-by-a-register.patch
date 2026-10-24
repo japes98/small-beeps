@@ -1,0 +1,76 @@
+The rotate right by a register, `rD = rS <> rT` (cc e1 S0 DT, and cc f1,
+a dual-issue pair's head), had no decoder: no table class, so every
+register combination ended the run as an instruction the emulated CPU
+cannot decode. The vendor compiler emits it for any rotate by a
+variable amount: `(x << s) | (x >> (32 - s))` is `r1 = 0x20 - r1;
+r0 = r0 <> r1`.
+
+Fields from the vendor assembler and objdump: d bits 28-31, s bits
+20-23, t bits 24-27, the `c8 e1` register shifts' layout; byte 2's low
+nibble 0 is `<>`, 1 to 3 are `<c>`, `><` and `>< (sat)` (not taken
+here), 4 to f no instruction. Behaviour from the compiler's code: it
+rotates right (`(x >> 7) | (x << 25)` is `<> 7`, and the idiom above
+rotates left by s through `<> (32 - s)`), and by 0 it leaves the value
+(the masked idiom `(x << (s & 31)) | (x >> (-s & 31))` is `r1 = 0x0 -
+r1; r1 = r1 & 0x1F; r0 = r0 <> r1`). An amount of 32 or more: taken
+mod 32, by analogy (a rotate repeats every 32; the compiler masks such
+amounts itself).
+
+Decoded from the raw bits beside the rotate by a constant; executed on
+the slow path, as that one is. The harness tests rotate_by_a_register
+(tests/images/rotr.S) and rotates_from_the_compiler (rotc.c, built with
+the firmware's CPU flags) fail without it. Session emulator-parity,
+2026-10-24.
+
+diff --git a/crates/fm1-core/src/lib.rs b/crates/fm1-core/src/lib.rs
+index ed6c6ba..2578460 100644
+--- a/crates/fm1-core/src/lib.rs
++++ b/crates/fm1-core/src/lib.rs
+@@ -1669,6 +1669,18 @@ impl Cpu {
+             return Ok(Some(None));
+         }
+ 
++        // ---- rotate right by a register `R = R <> R` (cc e1): d = bits(28,31), s =
++        // bits(20,23), t = bits(24,27). The compiler's rotate idioms show the direction (`(x >>
++        // 7) | (x << 25)` is `<> 7`; `(x << s) | (x >> (32 - s))` is `<> (32 - s)`), not what an
++        // amount of 32 or more does: taken mod 32, as a rotate repeats every 32.
++        if s == "R = R <> R" && insn.entry.len == 4 {
++            let raw = insn.raw;
++            let src = self.regs[((raw >> 20) & 0xf) as usize];
++            let n = self.regs[((raw >> 24) & 0xf) as usize];
++            self.regs[((raw >> 28) & 0xf) as usize] = src.rotate_right(n & 31);
++            return Ok(Some(None));
++        }
++
+         // ---- push/pop of named special registers ----------------------------
+         // `[--sp] = {psr, rets, reti}` / `{psr, rets, reti} = [sp++]` (interrupt
+         // prologues, context switches): same convention as the register
+@@ -3016,6 +3028,13 @@ fn decode_any(win: u64, pc: u32) -> Result<fm1_isa::Instruction, fm1_isa::Decode
+         Err(_) if matches!(win & 0xffff, 0xe1c4 | 0xf1c4) && win & 0x0e00_0000 == 0 => {
+             raw(if win & 0xffff == 0xf1c4 { &ROT_PAIR_CRAW } else { &ROT_CRAW })
+         }
++        // `cc e1 S0 DT` / `cc f1` (a dual-issue pair's head): rD = rS <> rT, the rotate right by
++        // a register, in the `c8 e1` shifts' layout (vendor assembler and objdump: byte 2's low
++        // nibble 1, 2, 3 are `<c>`, `><`, `>< (sat)`, not taken here; 4..f are no
++        // instruction). No table class: the compiler's `(x << s) | (x >> (32 - s))`
++        Err(_) if matches!(win & 0xffff, 0xe1cc | 0xf1cc) && (win >> 16) & 0xf == 0 => {
++            raw(if win & 0xffff == 0xf1cc { &ROTR_PAIR_CRAW } else { &ROTR_CRAW })
++        }
+         Err(e) => Err(e),
+     }
+ }
+@@ -3107,6 +3126,14 @@ static ROT_PAIR_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+     name: "rot_pair_craw", syntax: "R = R <> #i  #", len: 4, count: 0, mask: 0, match_: 0,
+     group: "alu", alt: &[], samples: &[], slots: &[],
+ };
++static ROTR_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
++    name: "rotr_craw", syntax: "R = R <> R", len: 4, count: 0, mask: 0, match_: 0,
++    group: "alu", alt: &[], samples: &[], slots: &[],
++};
++static ROTR_PAIR_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
++    name: "rotr_pair_craw", syntax: "R = R <> R  #", len: 4, count: 0, mask: 0, match_: 0,
++    group: "alu", alt: &[], samples: &[], slots: &[],
++};
+ static SAT16_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+     name: "sat16_craw", syntax: "R = sat16(R) (raw)", len: 4, count: 0, mask: 0, match_: 0,
+     group: "alu", alt: &[], samples: &[], slots: &[],
