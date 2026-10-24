@@ -1638,3 +1638,5 @@ Both go once SR-7 is answered.
 `copy_words()` is gone and the copies are plain loops again. tools/build.sh
 now fails an image holding the one gap left that the compiler emits, a
 rotate by a register (docs/HARNESS.md, "Instructions", "Known gaps").
+*Since fwtest 0.4.0* (#78) that runs too and HARNESS.md lists no known
+gaps, so the build's check is gone.
