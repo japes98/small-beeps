@@ -28,7 +28,12 @@ with `git apply`. Every hunk applies, none needs its context refreshed,
 only line offsets move (0003: -1 to +25 lines; 0005 and 0006: -1). The
 crates' own tests pass after (73: 44, 7 and 22). `crates/fm1-core` is then
 byte for byte fwtest 0.4.0's; `crates/fm1-soc` differs only by the app's
-raw-image loader (its 0006), 61 added lines.
+raw-image loader (its 0006), 61 added lines. That is the dropped patches,
+not the app's branch (not opened here): there `decode_any` also has the
+branch's nested-match rewrite of the two `if let` guards (`cb85332`), so
+fm1-core will differ by that, and a hunk of our 0003 or 0005 near those
+arms may need its context refreshed. None of our three patches uses an
+`if let` guard, so they build on Rust 1.94.
 
 The app's notes say SR-7's form "faults" in fwtest and that the two
 patches meet only in `decode_any`: true of fwtest 0.2.0. fwtest 0.3.0's

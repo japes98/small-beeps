@@ -327,7 +327,9 @@ an issue or a pull request against docs/HARNESS.md.
   across registers and immediates, found two more forms fwtest doesn't
   run: a rotate by a register, which the compiler emits, and a 4-byte push
   or pop of a list not starting at r0, which it was not seen to emit
-  (HARNESS.md, "Instructions", "Known gaps").
+  (HARNESS.md, "Instructions", "Known gaps"). Since fwtest 0.4.0
+  (2026-10-24, session emulator-parity) both run (HARNESS.md,
+  "Instructions").
   fwtest 0.3.0 reaches `tools/fwtest` when the pull request after this
   one pins its image; then `copy_words` and build.sh's check can go.
 - Answered: 2026-10-24, session SR-7 (spec side)

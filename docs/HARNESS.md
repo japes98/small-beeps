@@ -342,7 +342,7 @@ computes what the chip does. An instruction neither check held can still
 end a run as a fault ("Outcomes and exit codes"): report it as SR-7 was,
 with its bytes and the smallest image that shows it.
 
-No known gaps since fwtest 0.4.0. Until 0.3.0 two forms ended the run as
+No known gaps since fwtest 0.4.0. In 0.3.0 and earlier two forms ended the run as
 a fault, "an instruction the emulated CPU cannot decode"; 0.4.0 runs them,
 and one more change makes dual-issue pairs behave as the compiler expects:
 
@@ -367,12 +367,11 @@ and one more change makes dual-issue pairs behave as the compiler expects:
   prints them): the pair's second half sees the registers as they were
   before the head, and the head's result is there after the pair. The
   compiler relies on this (in our firmware, a pair whose second half
-  stores a byte back through the base register the head changes). Until
-  0.3.0 some 4-byte ALU forms as a pair's head wrote their result at
+  stores a byte back through the base register the head changes). In
+  0.3.0 and earlier some 4-byte ALU forms as a pair's head wrote their result at
   once, so the second half saw the new value: which ones depended on the
   operation and the registers (of one of each family with the same
-  registers, two: `r6 = r5 ^ (1 << r3) #` and `r6 = r5 >>> r3 #`; also,
-  for example, `r0 = r8 | (1 << r12) #`).
+  registers, two: `r6 = r5 ^ (1 << r3) #` and `r6 = r5 >>> r3 #`).
 
 None of the three changed any output of the firmware's suite at `cdfd067`.
 

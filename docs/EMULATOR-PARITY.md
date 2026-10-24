@@ -39,10 +39,14 @@ them, against upstream with fwtest's 0001 and 0002.
 
 fwtest 0004, 0007 and 0008 are the app's 0003, 0004 and 0005 as they
 stand: their added and removed lines are byte for byte the app's, only the
-line offsets refreshed for fwtest's 0003. With the app's raw-image loader
-aside, the two trees are then the same source, file for file, once the app
-applies fwtest's 0003, 0005 and 0006 (checked: they apply to the app's
-tree with line offsets only, and the crates' own tests pass there).
+line offsets refreshed for fwtest's 0003. Once the app applies fwtest's
+0003, 0005 and 0006, the two are the same source but for the app's
+raw-image loader and its Rust 1.94 rewrite (which, its notes say, changes
+nothing that decodes). That was checked on the app's patches as the owner
+dropped them, not on its branch, which this side doesn't open: on upstream
+with them, fwtest's three apply with line offsets only, the crates' own
+tests pass, and the core crate is then byte for byte fwtest's. fwtest's
+three need nothing newer than the Rust the app builds with.
 
 ## How each was checked
 
