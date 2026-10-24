@@ -1642,10 +1642,11 @@ rotate by a register (docs/HARNESS.md, "Instructions", "Known gaps").
 gaps, so the build's check is gone.
 
 ### 2026-10-24 M6a: MIDI in
-- Facts: none of the receiver's yet (SR-8, open when this was written);
+- Facts: HW-67 to HW-71 (SR-8's answer: the jack reaches UART1, received
+  by DMA into a ring; the count latch; what fwtest counts as a receiver);
   HARNESS.md's `midi` script event (a byte every 320 us). PROVENANCE P-38
-  (what the spec and the SDK's header say so far), P-41 (the MIDI 1.0
-  specification, as public literature).
+  (the request), P-43 (the MIDI 1.0 specification, as public literature),
+  P-44 (SR-8's answer, read from its pull request, #81, before it merged).
 - Sources: the MIDI 1.0 Detailed Specification's rules for status and
   data bytes, running status, realtime and System Exclusive messages, the
   channel mode messages (120 to 127), registered parameter 0 (pitch bend
@@ -1662,6 +1663,20 @@ the engine at one place and time, between blocks, and the voices never
 change during one. At the wire's pace a block (1.45 ms) brings at most 5
 bytes; the ring holds 256 (about 80 ms), so only a stalled engine could
 fill it, and a full ring drops the newest bytes and counts them.
+
+#### The receiver
+UART1's receive DMA writes the jack's bytes into a 256-byte ring of ours
+(HW-70); `midi_start()` sets the ring and turns the UART and its DMA on
+(`CON0` bits 0 and 6), which is what fwtest counts as a receiver set up
+(HW-71). Once a block, before the engine reads MIDI, `midi_poll()`
+latches the count written since the last time (`CON0` bit 7 into
+`HRXCNT`, HW-69) and hands those bytes on. No interrupt: the engine acts
+on MIDI once a block in any case, so one per byte would not lower the
+latency, and polling keeps every MIDI change between blocks. More than
+256 bytes between two polls (82 ms of the wire) would have overwritten
+the oldest (HW-71); they are counted as dropped. Not set, because fwtest
+needs none and the chip's are still open (Q-12): the baud rate, the
+UART's clock, its pin and the port set-up. They come with real hardware.
 
 #### The parser
 Our own, from the specification's rules (tools/midi_model.py is the same
@@ -1752,3 +1767,20 @@ the panel stays orange), and the event line shows each MIDI note as it
 comes ("MIDI 1 note 60 on 100", "... off"). The engine posts each note to
 a 16-entry queue main reads; a MIDI note before any panel event brings
 up the panel screen, as a first event does.
+
+#### Figures (fwtest 0.4.0, the branch at `02015ab`)
+- **Latency**, from a note on's last byte to its first sample, 20 notes:
+  1.718 to 2.897 ms, mean 2.308. By design at most two blocks (2.90 ms):
+  up to a block until the engine's next callback takes the byte, then
+  the block it renders plays after the one already playing.
+- **The dense stream** (6 s of a full wire, 18 794 bytes, 3 272 note ons
+  and as many offs on 16 voices): no byte dropped, no underrun, 48 571
+  instructions a block on core 0 on average (the loaded measure's input
+  takes 85 755). Its heaviest blocks are the panel screen's first whole
+  drawing and the once-a-second heartbeat, both main's, as before M6a.
+- **Cost at rest:** 1 838.6 instructions a block, 36 more than main's
+  1 802.7 (+2.0%): the poll, its latch and the empty parse. Loaded:
+  85 754.6, +1.0%. Code 18 408 bytes (+2 660), static RAM 143 256
+  (+1 248: the two rings, the settings, the record, the hold table).
+- **Every MIDI case's stream** gives the model's counters and messages
+  exactly, junk and the SysEx flood included.

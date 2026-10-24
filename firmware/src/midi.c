@@ -5,7 +5,7 @@
  * MIDI in (M6a): the receive ring and our own MIDI 1.0 byte parser,
  * written from the MIDI 1.0 specification's rules for status, running
  * status, realtime and System Exclusive bytes (docs/DESIGN-NOTES.md,
- * M6a, "The parser"; PROVENANCE P-41), and the receiver: UART1's
+ * M6a, "The parser"; PROVENANCE P-43), and the receiver: UART1's
  * receive DMA (HW-67 to HW-71). The engine side is in fm_play.c.
  */
 
