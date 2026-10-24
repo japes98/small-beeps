@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range b098b30050ef110d9697a40fc7b59aeb5243c15f..b8d39c610f20bc8dd444365f54cc545d77332a42
+OK     fbfc53068323 config: pin fwtest 0.5.0 (MIDI out, the UART's transmit side)
+EXEMPT b8d39c610f20 (merge) Merge pull request #91 from japes98/spec/pin-fwtest-050
+2 commit(s) checked: PASS
+
+exit status 0
