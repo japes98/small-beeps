@@ -7,7 +7,8 @@ after its suite: runs that need the flash another run left (fwtest's
 time, rather than from tests/fw/boot.suite. Every input file (scripts,
 flash images) is made under out/fw/store/, inside the repository, as
 tools/fwtest needs; the outputs go to the suite's output folder, one
-folder a run, named store-<case>-<run>.
+folder a run, named store-<case>-<run>, each with its flash image only as
+its SHA-256 (flash.bin.sha256): the checks read the image in memory.
 
 Each flash image is read by tools/store.py, which follows store.c's rules
 (docs/STORE-FORMAT.md). Where a case starts from an image tools/store.py
@@ -30,24 +31,30 @@ command for command, and the two are compared byte for byte.
   leaves what the model predicts.
 - reset (R-STORE-9): SAVE and HOME held 2.4 s empty the store (a reset
   record) and the next start finds nothing; held 1 s, nothing happens.
+  The screen says "factory defaults" (golden image).
 - corrupt (R-STORE-5): a record's payload and another's CRC damaged, a
   garbage block, a record of a kind this firmware doesn't know: the older
-  copy is read, the damaged one ignored, the counts as tools/store.py's.
+  copy is read, the damaged one ignored, the counts as tools/store.py's;
+  a save after it, "saved to slot 4" on the screen (golden image).
 - full (R-STORE-4): every sector in use and the sector after the head
   holding a live record that the head has no room for: the save is
-  refused, reported, and nothing is written.
+  refused, "SAVE FAILED, slot 2" on the screen (golden image), and nothing
+  is written.
 - wear (R-STORE-4, R-STORE-8): 36 saves on the wrapped ring, two or more
   new heads: the model's image exactly, the sectors erased in ring order; the
   selection, turned every 250 ms for 6 s, written at most once in 2 s.
 - migrate (R-STORE-6): settings saved as version 1 (M6a's) are taken as
   version 2, with its defaults; a change then writes version 2.
-- busy, wipe (R-STORE-7): saves under the heaviest load the panel can
-  give, on a test build whose chip takes the part's longest times, 12 ms
+- busy, wipe (R-STORE-7): saves under audioload's input (the heaviest the
+  panel gives: test patch 6 on all 16 voices), SAVE held three times so
+  the keys it strikes meanwhile save to their slots, on a test build whose chip takes the part's longest times, 12 ms
   an erase and 3 ms a page program (HW-77; busy), and on one that has erased its own image (wipe): no
   underrun, every tick on time, every save written.
 """
 
 import concurrent.futures
+import hashlib
+import json
 import os
 import random
 import struct
@@ -120,11 +127,18 @@ class Run:
         p = subprocess.run(self.args, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         self.exit, self.log = p.returncode, p.stdout.decode("utf-8", "replace")
         try:
-            import json
             with open(os.path.join(self.dir, "result.json")) as f:
                 self.result = json.load(f)
-            with open(os.path.join(self.dir, "flash.bin"), "rb") as f:
+            path = os.path.join(self.dir, "flash.bin")
+            with open(path, "rb") as f:
                 self.flash = f.read()
+            # The 1 MiB image stays in memory for the checks; the run's
+            # folder keeps only its SHA-256 (a test record would otherwise
+            # carry some 250 MiB of them; tools/record.py does the same
+            # for the audio).
+            with open(path + ".sha256", "w") as f:
+                f.write("%s  flash.bin\n" % hashlib.sha256(self.flash).hexdigest())
+            os.remove(path)
         except (OSError, ValueError):
             self.result, self.flash = None, None
         return self
@@ -145,6 +159,12 @@ class Run:
         if name == "store":
             d["trace"] = list(struct.unpack_from("<32I", b, 4 * len(fields)))
         return d
+
+
+def screen(when, name):
+    """The screen at `when` against its golden image (the event line says
+    what the store did; R-STORE-4, R-STORE-9)."""
+    return ("--lcd", str(when), "--golden", "tests/fw/golden/" + name)
 
 
 def run_all(runs):
@@ -249,6 +269,9 @@ def common(run, image_len, outcome="completed"):
     if run.outcome() != outcome:
         p.append("%s: %s, expected %s (%s)" % (run.name, run.outcome(), outcome,
                                                run.result["run"].get("detail")))
+    for g in run.result.get("golden") or []:
+        if g.get("result") != "match":
+            p.append("%s: golden %s: %s" % (run.name, g.get("name"), g.get("detail")))
     if run.result["run"].get("unmodelled_accesses"):
         p.append("%s: unmodelled accesses %s" % (run.name, run.result["run"]["unmodelled_accesses"][:4]))
     if run.rec("store")["marker"] != STORE_MARKER:
@@ -468,7 +491,8 @@ def case_reset(out, image_len):
     chip = s.chip()
     held = Run(out, "store-reset-held", "app", 3000, flash=chip,
                script=["300 key %d down" % KEY_SAVE, "350 key %d down" % KEY_HOME,
-                       "2750 key %d up" % KEY_HOME, "2800 key %d up" % KEY_SAVE], at=(("fm", 250),)).go()
+                       "2750 key %d up" % KEY_HOME, "2800 key %d up" % KEY_SAVE], at=(("fm", 250),),
+               extra=screen(2600, "store-reset")).go()
     short = Run(out, "store-reset-short", "app", 2000, flash=chip,
                 script=["300 key %d down" % KEY_SAVE, "350 key %d down" % KEY_HOME,
                         "1350 key %d up" % KEY_HOME, "1400 key %d up" % KEY_SAVE]).go()
@@ -512,7 +536,8 @@ def case_corrupt(out, image_len):
     s2.raw_record(img.head, img.append + 16, 9, 0, 1, b"from later", s2.next_seq)
     chip = s2.chip()
     want = st.Image(chip)
-    run = Run(out, "store-corrupt", "app", 900, flash=chip, script=save_script(150, 4)).go()
+    run = Run(out, "store-corrupt", "app", 900, flash=chip, script=save_script(150, 4),
+              extra=screen(880, "store-corrupt")).go()
     p += common(run, image_len) + agrees(run, chip)
     if p:
         return p, lines
@@ -543,7 +568,8 @@ def case_full(out, image_len):
             off += 32
             seq += 1
     chip = s.chip()
-    run = Run(out, "store-full", "app", 900, flash=chip, script=save_script(150, 2)).go()
+    run = Run(out, "store-full", "app", 900, flash=chip, script=save_script(150, 2),
+              extra=screen(880, "store-full")).go()
     p += common(run, image_len) + agrees(run, chip)
     if p:
         return p, lines
@@ -619,45 +645,36 @@ def case_migrate(out, image_len):
     return p, lines
 
 
+def ring_for_load():
+    """A ring that has wrapped, holding only the selection (program 0, as
+    audioload expects to start from), its head too full for a patch: the
+    first save under load takes a new head and erases it."""
+    s = st.Store()
+    while not (s.head_seq >= st.SECTORS + 2 and s.append + st.record_size(112) > st.SECTOR):
+        s.put(st.SELECTION, 0, 1, bytes([0, 0, 0, 0]))
+    return s.chip()
+
+
 def load_script(ms, saves):
-    """The heaviest input the panel gives with KEY1 to KEY10 free: test
-    patch 6 on 16 voices held on KEY11 to KEY26, each struck again in turn
-    every 12.5 ms but while SAVE is held, the test tone, SELECT, ALGORITHM and KNOB1 to KNOB4
-    turned 15 detents one way and back every 250 ms, MASTER swept; and the
-    saves."""
-    ev = [(50, "enc %d +6" % ENC_PRESETS), (100, "key 12 tap 50")]
-    held = [key(n) for n in range(11, 27)]
-    ev += [(110, "key %d down" % k) for k in held]
-    t, i = 300.0, 0
-    while t < ms - 100:
-        k = held[i % len(held)]
-        # None while SAVE is held: KEY11 to KEY16 would save to their slots.
-        if not any(at - 20 <= t <= at + 170 for at, _ in saves):
-            ev += [(t, "key %d up" % k), (t + 10, "key %d down" % k)]
-        i, t = i + 1, t + 12.5
-    for n, start in enumerate(range(300, int(ms) - 300, 250)):
-        for e in range(6):
-            ev.append((start, "enc %d %s15" % (e, "+" if (e + n) % 2 == 0 else "-")))
-    v, d, t = 1023, -1, 300
-    while t < ms - 50:
-        ev.append((t, "pot %d" % v))
-        v += 20 * d
-        if v <= 0:
-            v, d = 0, 1
-        elif v >= 1023:
-            v, d = 1023, -1
-        t += 5
-    for at, slot in saves:
-        ev += [(int(x.split()[0]), x.split(None, 1)[1]) for x in save_script(at, slot)]
+    """audioload's script (the heaviest input, tests/fw/scripts/audioload.txt)
+    up to ms, with SAVE held for 150 ms at each time in saves: the keys it
+    strikes again meanwhile save to their slots (KEY1 to KEY16)."""
+    ev = []
+    with open(os.path.join(ROOT, "tests", "fw", "scripts", "audioload.txt")) as f:
+        for line in f:
+            line = line.split("#")[0].strip()
+            if line and float(line.split()[0]) < ms - 100:
+                ev.append((float(line.split()[0]), line.split(None, 1)[1]))
+    for at in saves:
+        ev += [(at, "key %d down" % KEY_SAVE), (at + 150, "key %d up" % KEY_SAVE)]
     ev.sort(key=lambda e: e[0])
-    return ["%.1f %s" % e for e in ev]
+    return ["%.3f %s" % e for e in ev]
 
 
 def case_load(fw, out, image_len, image):
     p, lines = [], []
-    saves = [(1000, 1), (2000, 2), (3000, 3)]
-    s0 = ring_before_advance()
-    run = Run(out, "store-" + image, image, 5000, flash=s0, script=load_script(5000, saves),
+    saves = (1000, 2000, 3000)
+    run = Run(out, "store-" + image, image, 5000, flash=ring_for_load(), script=load_script(5000, saves),
               extra=("--ipb",)).go()
     p += common(run, image_len)
     if run.result is None:
@@ -668,15 +685,22 @@ def case_load(fw, out, image_len, image):
     more, ln = fw.check_ticks_under_load("store-" + image, run.dir)
     p += more
     lines += ln
-    r = run.rec("store")
-    if r["saves"] != 3 or r["save_fail"] or not r["erases"]:
+    r, f = run.rec("store"), run.rec("fm")
+    if r["saves"] < len(saves) or r["save_fail"] or not r["erases"]:
         p.append("%s: %d saves, %d failed, %d erases" % (image, r["saves"], r["save_fail"], r["erases"]))
+    if f["patch"] != 6 or f["voices_max"] != 16:
+        p.append("%s: program %d, %d voices at most: not audioload's load" % (image, f["patch"], f["voices_max"]))
+    with open(os.path.join(run.dir, "ipb.csv")) as fi:
+        rows = [x.split(",") for x in list(fi)[1:] if x.strip()]
+    core0 = [int(x[2]) for x in rows if 1000 <= float(x[1]) <= 4900]
     if image == "wipe":
-        image_end = IMAGE_AT + image_len
+        image_end = IMAGE_AT + os.path.getsize(os.path.join(ROOT, IMAGES[image]))
         if any(x != 0xFF for x in run.flash[IMAGE_AT:image_end]):
             p.append("wipe: the image's own flash was not erased")
-    lines.append("  %s: 3 saves under load (%d erases, %d page programs), the longest %.1f ms; %d underruns"
-                 % (image, r["erases"], r["programs"], r["put_max"] / 24000.0, a["underruns"]))
+    lines.append("  %s: audioload's input with SAVE held 3 times: %d saves (%d erases, %d page programs), the"
+                 " longest %.1f ms; %d underruns; core 0 %d instructions a block on average, %d at most"
+                 % (image, r["saves"], r["erases"], r["programs"], r["put_max"] / 24000.0, a["underruns"],
+                    sum(core0) // len(core0), max(core0)))
     return p, lines
 
 
