@@ -1,0 +1,11 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 9e2c0100e0eed50e767b88f79489d2728d255a81..3c1aeb895620ff5515f2926dfa88f3e201d4a868
+OK     53a94218cbc5 sessions: archive SR-7; emulator-parity's prompt and exposure entry
+OK     de8876dae7f5 vendor: the app's three emulator patches and the two gaps (0004 to 0008)
+OK     02c8de22d3a7 harness: tests for the pair heads, the rotate and the lists; fwtest 0.4.0
+OK     6a8af2040ffe docs: EMULATOR-PARITY.md, the app's notes in harness/upstream/
+OK     79e7e85d69e5 docs: parity claims qualified; HARNESS.md's examples our own; SR-7's gaps
+EXEMPT 6797bca0e140 (merge) docs: merge main into emulator-parity, after #76; its sources are P-39, P-40
+EXEMPT 3c1aeb895620 (merge) Merge pull request #77 from japes98/spec/emulator-parity
+7 commit(s) checked: PASS
+
+exit status 0
