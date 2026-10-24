@@ -1185,6 +1185,54 @@ SR-3 wrote only its barrier-log row.*
   - **The toolchain** built the firmware and its test images in the
     build container, as before. Disk stayed between 4.5 and 4.8 GB free.
 
+### Session M7 (flash storage, then the M8 proposal)
+- Date: 2026-10-24
+- Role: firmware side (clean).
+- Exposure: none to GPL material. One FM-1-RE document that describes the
+  stock firmware's internals was read; see "Reads" (for the owner to
+  rule on).
+- Tool: Claude Code 2.1.310 (banner), unattended (the owner away for the
+  day).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `cd82f4be-e875-4959-b383-d66813d290ce`,
+  started by a `/clear` at 14:13:39Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `6ba587e` and ended "no spec-side files on disk or
+  in .git"; `tools/private-terms.local` exists (not opened). The Mac had
+  4 GB free. It archived M6b (`89fcb09b`) into `sessions/clean/`; every
+  other clean session was already archived. `tools/check-transcripts.py`
+  flagged two of M6b's calls; the session printed only those commands
+  from the redacted archive. Each names a spec-side folder only as a
+  pathspec exclusion; two `REVIEWED.json` entries clear them, for the
+  owner to approve in the pull request, and the check then passed.
+- Reads: CONTRIBUTING.md, this file, sessions/REVIEWED.json, the redacted
+  archive of `89fcb09b` (the two flagged commands only),
+  docs/HARDWARE-SPEC.md, docs/HARNESS.md, docs/SPEC-REQUESTS.md, and this
+  repository's tools, tests, docs and firmware. Also, at about 14:20Z, FM-1-RE's
+  `docs/io/09-storage.md` at commit `ec832f28` (the commit P-9 names),
+  fetched alone by raw URL into the session's scratch folder, SHA-256
+  `8f11adc0673ac00bbdd6bcd2186874aafbadd69c7f9462a73a94a9113b0155ff`. It is
+  one of the documents CONTRIBUTING.md allows and the spec side cited (P-9),
+  but most of it describes the stock firmware's own code (its routines'
+  addresses and names, and how its own record store and patch storage
+  work), which CONTRIBUTING.md also forbids ("any disassembly or function
+  database of it"). The session read it once, deleted its copy at
+  14:23:18Z, and uses nothing from it: no fact, no layout, no design; the
+  questions it touches went to the spec side as SR-9. The store's design
+  (a ring of 16 sectors with sequence numbers, records with a CRC-32, the
+  newest valid copy winning, live records copied forward before the
+  oldest sector is erased, a reset record) was written down in this
+  session's transcript before the document was opened, and differs from
+  what the document describes. Whether reading it changes this session's
+  role is the owner's call (the session's Questions); meanwhile it works
+  as firmware side. It does not open anything on the forbidden list's
+  other entries, anything under the three spec-side folders, or any other
+  synthesizer's firmware.
+
 ### Session day-1024 (flash facts for M7, spec requests, the porter role)
 - Date: 2026-10-24 (UTC)
 - Role: **spec side (exposed).** Never writes firmware.
@@ -1287,6 +1335,7 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-24T05:45:26Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session midi-in-out starts; banner `status: OK`. 05:45:47Z: `tools/spec-setup.sh`, banner `status: OK`; emulator-parity's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-24T12:56:38Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session pin-050 starts; banner `status: OK`. 12:57:24Z: `tools/spec-setup.sh`, banner `status: OK`; midi-in-out's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-24T13:01:56Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M6b starts; banner `status: OK`; `tools/clean-update.sh` found main at `663f135` and passed; M6a archived; `tools/check-transcripts.py` PASS with the 5 reviewed entries listed for the owner's approval |
+| 2026-10-24T14:13:39Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M7 starts; banner `status: OK`; `tools/clean-update.sh` found main at `6ba587e` and passed; M6b archived; `tools/check-transcripts.py` PASS with the 2 reviewed entries listed for the owner's approval |
 
 ## Model cutoffs
 
