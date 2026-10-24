@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 18d945944f2988286d71c6b31c31a57809abeba5..3f74bfb2b334c9ebf385ad923766d079246e3740
+OK     93bda4d69781 firmware: the FM engine, on both cores
+OK     ec6ed8ea966e tests: the FM engine's suite cases, golden WAVs and unit tests
+OK     5679e73a79f9 docs: the FM engine's design, patch format, requirements, provenance
+EXEMPT 5ab122fd1327 (merge) firmware: merge main into the FM engine, after #69 and #68
+OK     16af387c87a3 docs: the FM engine's figures as merged with main
+EXEMPT 3f74bfb2b334 (merge) Merge pull request #70 from japes98/m5/fm-engine
+6 commit(s) checked: PASS
+
+exit status 0
