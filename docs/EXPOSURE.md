@@ -974,6 +974,38 @@ SR-3 wrote only its barrier-log row.*
   requirements from PyPI into a scratch environment (`reuse` did not
   install; nothing else was used from it).
 
+### Session emulator-parity (fwtest and the F-Emulator app on one emulator)
+- Date: 2026-10-24 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.310 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `9d5d3a07-eba7-4567-8198-f0382f4ba9b0`,
+  started by `/clear` at 04:03:28Z (banner `source: clear`,
+  `status: OK`), on main at `cdfd067`.
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+- What it archived: SR-7's transcript (`a45f3eee`) into `sessions/spec/`;
+  `tools/check-transcripts.py` PASS.
+- Exposure: none beyond the spec side's. It reads the spec side's usual
+  material (the vendored emulator and `harness/`), the pinned toolchain
+  (run in the build container: its assembler, disassembler and compiler),
+  and this repository's tools, tests and docs. New for this session: the
+  F-Emulator app's emulator patch notes and patch files, which the owner
+  put in a drop folder outside the repository
+  (`~/<top>/drop/emulator-patches/`) and has the right to license MIT
+  here. They are patches to the same emulator the spec side already
+  reads. The notes also name community firmwares the app was run on (as
+  test subjects, with their results: which changed, which halted) and
+  quote one of them: a two-instruction fragment, the four bytes of one
+  instruction and the instruction after it, that showed the app's
+  pair-head bug. That is the only community-firmware content in them: no
+  source and no other code. The session takes that fragment only as a bug
+  report, confirms the behaviour from the vendor toolchain and our own
+  firmware's compiled code instead, and names no community firmware
+  outside this file and its transcript. It opens nothing else of the
+  app's, and never opens or fetches an audit target.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
@@ -1052,6 +1084,7 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-23T09:37:34Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M4b starts; banner `status: OK`; `tools/clean-update.sh` found main at `e742f15` and passed; M4 archived; `tools/check-transcripts.py` PASS with the 3 reviewed entries the owner approved in the session |
 | 2026-10-23T03:13:26Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-4-6 starts; banner `status: OK`. 12:25:40Z: `tools/spec-setup.sh`, banner `status: OK`; record-fixes-1's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-23T13:14:14Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-7 starts; banner `status: OK`. 14:22:19Z: `tools/spec-setup.sh`, banner `status: OK`; after #68, SR-4-6's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-24T04:03:28Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session emulator-parity starts; banner `status: OK`. 04:04:11Z: `tools/spec-setup.sh`, banner `status: OK`; SR-7's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 
 ## Model cutoffs
 
