@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 4cd474d475c5fc9b449e6596fdfefd05f7aa3f32..0b2086bc588546886377f98153d3ce5d23c6864c
+OK     00e913f6274a docs: session M6b starts; M6a's transcript archived
+EXEMPT 018a59a2bc29 (merge) docs: merge main into M6b's start, after #89, #91 and #92
+EXEMPT 993ad7f7d844 (merge) docs: merge main into M6b's start, after #93
+EXEMPT 0b2086bc5885 (merge) Merge pull request #90 from japes98/m6b/start
+4 commit(s) checked: PASS
+
+exit status 0
