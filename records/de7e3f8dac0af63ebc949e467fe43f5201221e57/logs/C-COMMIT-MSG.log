@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 1537391e4f54fdb4943668bb98e18229f77bb196..de7e3f8dac0af63ebc949e467fe43f5201221e57
+OK     7fc386c5103e tools: drop build.sh's rotate-by-register guard, fwtest 0.4.0 runs it
+EXEMPT de7e3f8dac0a (merge) Merge pull request #79 from japes98/m6a/rotate-check
+2 commit(s) checked: PASS
+
+exit status 0
