@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range bd0ddafce2c861607231577efebb9ae7c2fa2d97..115a4c7f1c09b2bb606c51c5c304ee30711655d7
+OK     2ed348a81311 config: M6 budgets: the loaded measure's budget raised to 131 072
+EXEMPT 115a4c7f1c09 (merge) Merge pull request #86 from japes98/m6a/budgets
+2 commit(s) checked: PASS
+
+exit status 0
