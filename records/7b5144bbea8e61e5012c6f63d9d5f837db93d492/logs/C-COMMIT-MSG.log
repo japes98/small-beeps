@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 115a4c7f1c09b2bb606c51c5c304ee30711655d7..7b5144bbea8e61e5012c6f63d9d5f837db93d492
+OK     230b5a4c1271 tools: the loaded measure's input gains a full MIDI wire
+EXEMPT d77081c4ce32 (merge) config: merge the M6 budgets (#86) into the loaded measure's MIDI part
+OK     034642ee39bc tools: the loaded measure's MIDI repeats every 250 ms, as its panel part
+EXEMPT eab758b32d78 (merge) tools: merge the MIDI branch (#83, after main) into the loaded measure's
+EXEMPT 4759a6055c5c (merge) tools: merge main into the loaded measure's MIDI part, after #83 and #86
+EXEMPT 7b5144bbea8e (merge) Merge pull request #87 from japes98/m6a/perfload-midi
+6 commit(s) checked: PASS
+
+exit status 0
