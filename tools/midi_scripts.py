@@ -229,21 +229,26 @@ PERFLOAD_MARK = "# --- MIDI, since M6a (written by tools/midi_scripts.py; don't 
 
 
 def perfload_midi():
-    """From 1 000 ms to past 2 300 ms (the perf runs' window is 1 250 to
-    2 250 ms): 16 notes held, each struck again in turn in running status
-    (note on, then off at velocity 0), the mod wheel and pitch bend moving
-    every eighth note; the wire never rests."""
+    """16 notes at 950 ms, then from 1 000 ms to 2 500 ms (the perf runs'
+    window is 1 250 to 2 250 ms) a pattern that repeats every 250 ms, as
+    the panel's part does: a message every 2 ms, each a note struck
+    again in turn (note on, off at velocity 0, on again) or, every ninth,
+    the mod wheel and pitch bend moving: 80% of the wire. Times on a 2 ms
+    grid, exact in binary, so each repeat is the same."""
     s = Script("perfload", "")
     notes = list(range(48, 80, 2))
-    s.at(1000).midi(0x90, [x for n in notes for x in (n, 100)])
-    i = 0
-    while s.t < 2300:
-        n = notes[i % 16]
-        s.midi(0x90, n, 0, n, 60 + i % 60)
-        if i % 8 == 7:
-            s.midi(cc(1, i % 128), bend((i * 997) % 16384))
-        i += 1
-    s.midi(bend(8192), cc(1, 0), 0x80, [x for n in notes for x in (n, 0)])
+    s.at(950).midi(0x90, [x for n in notes for x in (n, 100)])
+    for base in range(1000, 2500, 250):
+        k = 0
+        for j in range(125):
+            s.t = base + 2 * j
+            if j % 9 == 8:
+                s.midi(cc(1, j), bend(j * 131))
+            else:
+                n = notes[k % 16]
+                s.midi(0x90, n, 0, n, 60 + k % 60)
+                k += 1
+    s.at(2500).midi(bend(8192), cc(1, 0), 0x80, [x for n in notes for x in (n, 0)])
     return s
 
 

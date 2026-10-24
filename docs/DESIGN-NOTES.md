@@ -1785,9 +1785,11 @@ up the panel screen, as a first event does.
 - **Every MIDI case's stream** gives the model's counters and messages
   exactly, junk and the SysEx flood included.
 - **The loaded measure with MIDI** (since the pull request after the MIDI
-  one): `tests/fw/scripts/perfload.txt` now ends with a full MIDI wire
-  through the perf runs' window (16 notes struck again in turn, the mod
-  wheel and pitch bend moving), so the heaviest steady input has the
-  panel and MIDI together: 116 386 instructions a block, against 85 755
-  without MIDI. The M6 budgets (their own pull request) raise the loaded
-  budget to 131 072 for it; the rest is M5's.
+  one): `tests/fw/scripts/perfload.txt` now ends with MIDI through the
+  perf runs' window: 16 notes held, then a message every 2 ms (a note
+  struck again, or the mod wheel and pitch bend moving), repeating every
+  250 ms as the panel's part does, 80% of the wire. The heaviest steady
+  input is the panel and MIDI together: 109 899 instructions a block,
+  against 85 755 without MIDI (a wire filled to the last byte took 116 420
+  in a one-off run). The M6 budgets (their own pull request) raise the
+  loaded budget to 131 072 for it; the rest is M5's.
