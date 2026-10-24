@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range cdfd06781c3f5ce84e921da970386672efece303..5b43e29b98d50e234e50c945cfb7637a0628190c
+OK     34b739851496 sessions: archive M5; M6a's exposure entry and prompt
+EXEMPT 5b43e29b98d5 (merge) Merge pull request #74 from japes98/m6a/start
+2 commit(s) checked: PASS
+
+exit status 0
