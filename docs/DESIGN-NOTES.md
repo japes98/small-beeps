@@ -1422,3 +1422,214 @@ Format for each entry:
 - Alternatives: drawing on core 1 (it is worth a whole core of voices,
   M4b); a fixed frame timer (wakes main every frame even at rest); a
   budget in instructions (fwtest counts them, the chip can't).
+
+### 2026-10-23 M5: the FM engine
+- Facts: HW-9 and HW-10 (releasing core 1, its state), HW-62 and HW-63
+  (the float instructions, used per block only), HW-64 (the cores in
+  fwtest), HW-65 (`testset` and `csync`, the SDK's lock and shared
+  loads), HW-43 to HW-46 (the output), HW-36 and HW-39 (the panel's
+  keys and knobs). PROVENANCE P-33 (the SDK's `cpu.h`, for the lock's
+  syntax), P-34 (the literature below), P-35 (our experiments).
+- Sources, all public literature, none of it code: John M. Chowning,
+  "The Synthesis of Complex Audio Spectra by Means of Frequency
+  Modulation", J. Audio Eng. Soc. 21(7), 1973 (a sine's phase modulated
+  by another sine gives sidebands at fc ± n fm with amplitudes J_n(I));
+  J. R. Carson's rule for an FM signal's bandwidth, about 2 (I + 1) fm
+  (Proc. IRE, 1922); M. Abramowitz and I. Stegun, Handbook of
+  Mathematical Functions (1964), 9.1.10, the Bessel functions' series
+  (for the tests). Everything else is from first principles. No FM-1
+  firmware, no other synthesizer's firmware and no FM engine's source was
+  looked at; `vendor/` was left out of every search (it holds Plaits,
+  which has an FM engine, and was not opened).
+
+#### The operators
+- **Phase modulation, in fixed point.** An operator is a 32-bit phase
+  accumulator (2^-32 of a cycle) stepped once a sample; its output is
+  sin(phase + modulation) x gain. A modulator's output (24-bit) is added
+  to its carrier's phase shifted left by 10, so full scale moves the
+  phase two cycles: index 4 pi at most. The 32-bit addition wraps exactly
+  as the phase does, so large indices need no care. Gains are in 2^-30
+  and multiply in one 32 x 32 to 64-bit instruction (M4, P-27).
+- **The sine, our own method.** A 1 024-step table (4 KiB) from the
+  series of sin x to x^11 on a quarter cycle (M4's), read with linear
+  interpolation on 15 bits of the phase: at most 4.7e-6 of full scale
+  off, about -106 dB, below the 16-bit capture. Measured: THD+N -74 to
+  -86 dB at -12 to -24 dBFS in 16 bits (the capture's floor).
+- **Frequency.** The note's phase step comes from its pitch in 1/4096
+  semitone: 2^(pitch / 12) by a 257-entry table of 2^(i/256) (from the
+  exponential's series, interpolated) times the step of MIDI note 0;
+  within 0.012 cents across F1 to G7 (measured). A ratio (x 1/256, so
+  1.0 is 256 and 3.5 is 896) multiplies it, or a fixed frequency in
+  quarter hertz replaces it; a detune in cents multiplies the result.
+- **Feedback.** One operator per algorithm feeds the mean of its own last
+  two outputs back into its phase (up to pi). The mean is a zero at half
+  the rate, which damps the sample-to-sample oscillation feedback falls
+  into at high amounts.
+- **Aliasing, our strategy.** (1) An operator whose step reaches half the
+  rate is silent (its gain ramps to 0), never folded. (2) The index
+  limit: by Carson's rule a modulator fm at index I spreads its carrier
+  fc over about fc ± (I + 1) fm, so each block a modulator's gain is held
+  to the index that keeps fc + (I + 1) fm below half the rate
+  (I <= (fs/2 - fc) / fm - 1). It works on gains, per block, with one
+  float division a modulator: no per-sample cost. Low and middle notes
+  never meet it (the Bessel test's index pi/2 at A4 is 43 times below
+  it); high notes with bright patches do, and lose brightness instead of
+  folding. (3) Feedback's mean, above. (4) The sine is interpolated, not
+  stepped, so the oscillator adds no images of its own.
+
+#### The algorithms
+Our own ten, in our own order and encoding: each operator's output goes
+to one lower-numbered operator or to the output (so a voice is rendered
+in one pass from operator 6 down, a block at a time), with the feedback
+on the operator marked `*`. Arrows point from modulator to carrier; the
+bottom row is what sounds.
+
+```
+ 1  6*>5>4>3>2>1        one stack
+ 2  6*>5>4   3>2>1      two stacks of three
+ 3  6*>5  4>3  2>1      three pairs
+ 4  6*>5>2  4>3>2  2>1  two stacks into 2, 2 into 1
+ 5  6*,5,4,3,2 > 1      five modulators into one carrier
+ 6  6*>5>4>3   2   1    a stack of four, and two carriers alone
+ 7  6*,5 > 4   3,2 > 1  two branches
+ 8  6* 5 4 3 2 1        six carriers (additive)
+ 9  6*>5>4   3   2>1    a stack of three, a carrier alone, a pair
+10  6>5  5,4>3  3,2*>1  a tree, the feedback on 2
+```
+
+Stacks give the deep, many-sideband spectra (modulators of modulators),
+pairs and parallel carriers keep several simple spectra apart, branches
+(several modulators into one carrier) add their sidebands. The carriers'
+sum is divided by how many sound (log2 n octaves of attenuation), so an
+algorithm change keeps the level about the same. ALGORITHM changes the
+algorithm for new notes only: a sounding note keeps its routing, so the
+change never clicks.
+
+#### The envelopes
+- **Shape.** Each operator: attack, decay 1, decay 2 (to a held level),
+  release. The attack rises linearly in gain: it reaches the ear at once
+  and, being a ramp, can't click above about a millisecond. The decays
+  and the release move linearly in attenuation, so they fall
+  exponentially, as struck and plucked things do, and they sound even
+  (loudness is close to logarithmic). Pitch has its own: P0 at note on,
+  to P1, to P2 (held), and to P3 on release, linear in pitch.
+- **Rates and levels.** A time code t is 2^(t/8) ms for a stage's whole
+  range (1 ms to 60 s, eight steps an octave of time); a level step is
+  2^(1/8) in gain (0.753 dB), 127 being 0 dB and an operator's own level
+  using the same steps. Rates, not times, so a stage that moves part of
+  its range takes that part of its time, and a release from any level
+  falls at the same speed.
+- **Per block, without steps.** Envelopes move once a block (64 samples);
+  the gain an operator reaches is then interpolated a sample at a time
+  across the next block, so no change is a step (no zipper). A stage that
+  ends within a block hands the rest of that block to the next stage,
+  so no stage loses time to the blocks: measured, every stage ends
+  within 0.9 ms of its nominal time (a block is 1.45 ms) and falls
+  within 0.5% of its rate.
+- **Velocity.** Each operator has a sensitivity 0 to 7: at 7, velocity 0
+  is 8 octaves (48.2 dB) quieter than 127, linear in velocity between, as
+  attenuation. On a carrier it is loudness; on a modulator, brightness.
+  The panel's keys sense no velocity and play 100 (M6's MIDI brings real
+  ones); the velocity test build plays 127, 100, 64, 32 and 1 from KEY1
+  to KEY5, measured within 0.03 dB of the formula.
+- **Found on the way:** the first velocity test measured a patch's
+  overall level (Brass) and expected phase modulation to leave the
+  carrier's power alone. That holds only while no sidebands fold onto
+  each other; with all ratios 1 the lower sidebands land on the upper
+  ones and interfere, and the power moves with the index (0.5 to 0.75 dB
+  here). The test now uses a carrier alone (test patch 8).
+
+#### Voices
+- **16 voices, 8 a core**: voice n belongs to core n mod 2. A note takes,
+  in order: the voice already playing its own note (so a key struck again
+  doesn't double), a free voice on the core with fewer sounding (the
+  cores stay balanced), the quietest released voice, the oldest. A voice
+  taken while it sounds fades out linearly over one block, and the new
+  note starts the block after: one block more latency for a stolen note,
+  and no click (measured: the largest second difference 7 where the bound
+  for the notes sounding is 110). A note that starts on a voice still
+  sounding (the same note again, or mono) keeps its phases and starts its
+  attacks from where its envelopes are.
+- **Mono** (a patch's flag, or SEL held with the MONO and POLY keys): one
+  voice, last-note priority over a stack of the keys held. A note while
+  another is held is legato: no new note, no new attack, the pitch
+  glides to it; releasing it glides back to the one still held; the last
+  key up releases the voice. The glide is linear in pitch over a fixed
+  time (the patch's glide time code plus four steps for each detent of
+  KNOB2), whatever the interval, which is easier to play than a fixed
+  rate. Poly mode doesn't glide.
+
+#### Two cores
+- **Start.** fm_init (core 0, before interrupts) puts core 1's entry in
+  the word at `0x01C7FFF8`, sets `C1_CON` bit 3 (HW-9), waits for core 1
+  to say it runs, then gives that word (source 126's vector) its stub
+  back. Core 1 sets its own stacks (HW-10, `core1.S`) and loops in
+  fm_core1_main. If it never answers, core 0 plays the even voices alone
+  (8 voices).
+- **Each block** (core 0, in the audio interrupt): it takes the events
+  and changes voices (only now: core 1 is waiting), sets every voice's
+  pitch and phase steps, posts the block to core 1 if any odd voice
+  sounds (a sequence number, under the lock), renders the even voices,
+  waits for core 1's answer, and mixes. Core 1 renders the odd voices
+  into its own buffer with its own scratch, then answers. At rest nothing
+  is posted, so core 1 stays in its waiting loop and core 0's count stays
+  low.
+- **Synchronisation, as SR-6's answer says** (HW-65): every load of a
+  shared word follows `csync`; the sequence numbers change under a
+  `testset` lock (the SDK's: test-and-set the byte until it was clear,
+  `csync` before and after; release with `csync` and a plain store of 0).
+  Each voice has one writer at a time (core 0 between blocks, its own
+  core during one), so the lock guards only the hand-over. In fwtest the
+  answer comes within a turn of 1 024 cycles (HW-64): core 0 waited at
+  most 10.3 µs a block under the heaviest load. Deterministic: the same
+  run twice gives the same output, byte for byte (fmgold2).
+
+#### Patches and the controls
+- **The format**: docs/PATCH-FORMAT.md, 112 bytes, versioned, a check sum.
+  Nine test patches of our own, defined once in tools/fm_patch.py, each
+  for a test or a kind of sound (Sine, Two-op, Env test, Glide lead,
+  Bell, Bass, Organ, Brass, Velocity); none is any synthesizer's preset.
+- **Reaching the engine from the panel** (enough to test, until M8's
+  editing): the keys play (OCT- and OCT+ as M4); MASTER is the volume
+  (M4's law, ramped over a block); PRESETS selects the patch for new
+  notes (and its algorithm and mode); ALGORITHM changes the algorithm for
+  new notes; KNOB1 transposes by semitones (-24 to 24, sounding notes
+  too, phase-continuous); KNOB2 adds to the glide time; KNOB3 adds to
+  every modulator's level, a level step a detent (brightness); KNOB4 adds
+  to the feedback (0 to 7). SEL held with the MONO or POLY key switches
+  the mode. PLAY still starts and stops M4's test tone. KNOB3 and KNOB4
+  apply to sounding notes and move smoothly (gains and the feedback
+  amount are interpolated a sample at a time).
+
+#### Figures (fwtest, main at `7eb74e8` with #65 and #66)
+- **Instructions per operator-sample: about 24**, envelopes, pitch and
+  index limit included: core 1 renders 8 voices of test patch 6 (six
+  operators each, 3 072 operator-samples a block) in 74 200 a block.
+  Plaits' six-op engine was about 40 with hardware float (M4b).
+- **Voices a core**: a core has 348 160 cycles a block. At rest core 0
+  uses 1 802 (0.5%), so about 37 six-operator voices would fit on it;
+  under the heaviest input core 0 has about 10 300 of its own work
+  (events, the screen within its budget, control), so about 36. Core 1
+  has nothing else: about 37.
+- **We ship 16 (8 a core)**: under the heaviest input core 0 is at
+  84 539 a block (24%) and core 1 at about 75 000 (22%), a margin of four
+  times. fwtest is a best case (one instruction a cycle, no caches,
+  no flash or RAM wait states, no cost between the cores: HW-64, Q-16,
+  Q-17); M4b's advice was to plan for half, and this leaves more for
+  the chip's unknowns and for M6 to M8.
+- **Sizes**: code 15.4 KB (6.3 KB more than before the engine, the test
+  patches' 1 KB among it), static RAM 141.6 KB (17.7 KB more: the voices
+  7.9 KB, the mixes and scratch 4.1 KB, the sine and exp2 tables 5.1 KB,
+  the parsed patches 3.3 KB, core 0's notes on the voices 0.8 KB, core
+  1's stack 1 KiB; M4's instrument's 4.5 KB gone), stack 388 bytes.
+  Startup 1 031 642 instructions.
+
+#### Workaround: SR-7
+fwtest doesn't run the two-register load that moves its address down
+first (`{r3, r0} = [-r4]`), which clang made of seven consecutive word
+copies in `voice_start()` (fm_play.c), with or without `-mcpu=r3
+-mfprev1`; the image faulted there. Until fwtest runs it (SR-7,
+docs/SPEC-REQUESTS.md), those copies go through `copy_words()`, a word at
+a time from a volatile pointer, and tools/build.sh fails any image whose
+disassembly holds the form, so a new one can't reach fwtest unnoticed.
+Both go once SR-7 is answered.
