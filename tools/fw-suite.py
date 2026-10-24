@@ -13,8 +13,8 @@ the test images (TEST_BUILDS: the same source with one SB_TEST_* define
 each) to out/fw/<name>.bin, where tests/fw/boot.suite expects them, runs
 the suite through tools/fwtest (the pinned image), and then checks:
 
-- every case: the outcome the suite expects, no unmodelled accesses, core
-  1 never ran;
+- every case: the outcome the suite expects, no unmodelled accesses
+  (until M5 also that core 1 never ran: since M5 it runs the FM engine);
 - boot: the marker; the vector table, every slot (HW-18): source 4 is
   sb_tick, source 16 lcd_spi_done, source 5 input_scan (since M3), every
   other source its own stub in crt0.S, by the ELF's
@@ -77,6 +77,19 @@ the suite through tools/fwtest (the pinned image), and then checks:
   script): from input_led to the scan first driving that LED, within
   LED_SHOW_MS (one scan).
 
+- since M5, the FM engine (tests/fw/scripts/fm*.txt; R-FM-*; the engine's
+  record follows the audio record; the test patches' values come from
+  tools/fm_patch.py): fmbessel, test patch 1's sidebands against
+  |J_n(pi/2)| by a least-squares fit at the known frequencies; fmenv,
+  test patch 2's stages (each end where its fitted line meets its level,
+  its rate, the held level, the attack's linearity, no click); fmmono,
+  legato and glide (one sound, one note, the pitch along the glide, no
+  new attack); fmsteal, 17 notes on 16 voices, one stolen with no click;
+  fmvel, the velocity test build's levels; fmgold and fmgold2, every test
+  patch against a golden WAV, twice, the same bytes. audioload is the
+  heaviest input on all 16 voices, and checks that core 1 renders. The
+  notes case plays test patch 0.
+
 Prints what it saw for the record, and exits 1 if anything failed.
 """
 import argparse
@@ -92,6 +105,7 @@ import zlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import audio_analysis as aa  # noqa: E402  (tools/, our own)
+import fm_patch  # noqa: E402  (tools/, our own, since M5)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SUITE = "tests/fw/boot.suite"
@@ -100,14 +114,16 @@ IMAGE = os.path.join("out", "fw", "app.bin")
 TEST_BUILDS = {"test-fault": "SB_TEST_FAULT", "test-stray": "SB_TEST_STRAY",
                "test-badinsn": "SB_TEST_BADINSN", "test-flood": "SB_TEST_FLOOD",
                "test-leds": "SB_TEST_LEDS", "test-ledshow": "SB_TEST_LED_SHOW",
-               "test-underrun": "SB_TEST_UNDERRUN"}
+               "test-underrun": "SB_TEST_UNDERRUN", "test-velocity": "SB_TEST_VELOCITY"}
 # Each case's expected outcome (the suite says the same; checked twice).
 EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "completed",
           "screen": "completed", "flood": "completed", "fault": "halt", "stray": "halt",
           "badinsn": "fault", "keys": "completed", "chords": "completed", "encoders": "completed",
           "pot": "completed", "leds": "completed", "ledshow": "completed",
           "tone": "completed", "notes": "completed", "audioload": "completed",
-          "audiogold": "completed", "underrun": "completed"}
+          "audiogold": "completed", "underrun": "completed",
+          "fmbessel": "completed", "fmenv": "completed", "fmmono": "completed", "fmsteal": "completed",
+          "fmvel": "completed", "fmgold": "completed", "fmgold2": "completed"}
 
 MARKER = 0x44304253        # "SB0D", firmware/src/sb.h
 TICKS_PER_MS = 24000       # HW-13
@@ -175,8 +191,6 @@ def check_case(name, result):
                                                          run.get("detail")))
     if run.get("unmodelled_accesses"):
         problems.append("%s: unmodelled accesses %s" % (name, run["unmodelled_accesses"]))
-    if run.get("instructions", {}).get("core1", 0) != 0:
-        problems.append("%s: core 1 ran" % name)
     return problems
 
 
@@ -839,7 +853,7 @@ AUDIO_FIELDS = ("marker", "start", "blocks", "underruns", "fill_last", "fill_max
 AUDIO_MARKER = 0x34445541  # "AUD4"
 SRC_AUDIO = 11             # the audio link (HW-19, HW-43)
 BLOCK_TICKS = aa.BLOCK * 544   # time base ticks a block (HW-45): 1.451 ms
-HELLO = "small-beeps M4 \n"
+HELLO = "small-beeps M5 \n"
 # Limits (docs/REQUIREMENTS.md, R-AUD-4 to R-AUD-6).
 TONE_HZ, TONE_DBFS = 1000.0, 20 * math.log10(0.5)
 TONE_CENTS, NOTE_CENTS = 0.05, 0.1
@@ -849,6 +863,7 @@ ATTACK_SAMPLES, RELEASE_SAMPLES = 221, 882   # the instrument's ramps (synth.c)
 SOUND_FROM_KEY = (2.5, 7.5)     # ms from the key's contact to its first sample
 SOUND_FROM_EVENT = 2 * BLOCK_TICKS / TICKS_PER_MS + 0.2   # ms: two blocks, and 0.2
 SILENCE_RUN = 200               # zero samples in a row that end a sound
+NOTES_SILENCE = 2000            # in the notes case (since M5's releases)
 
 
 def audio_record(path):
@@ -900,9 +915,9 @@ def check_audio_common(name, case_dir, underruns=0):
     return problems, lines, a, console, wav
 
 
-def sounds(x):
+def sounds(x, run=SILENCE_RUN):
     """[(first, last)] sample of each sound: from a non-zero sample to the
-    last before SILENCE_RUN zeros."""
+    last before run zeros (SILENCE_RUN unless a check says otherwise)."""
     out, i, n = [], 0, len(x)
     while i < n:
         while i < n and not x[i]:
@@ -910,7 +925,7 @@ def sounds(x):
         if i >= n:
             break
         first, zeros, j = i, 0, i
-        while j < n and zeros < SILENCE_RUN:
+        while j < n and zeros < run:
             zeros = zeros + 1 if not x[j] else 0
             j += 1
         out.append((first, j - zeros - 1))
@@ -980,7 +995,10 @@ def check_notes(case_dir):
         return problems + ["notes: no audio.wav"], lines
     x, ends = wav
     _, _, log = input_record(os.path.join(case_dir, input_name("end")))
-    s = sounds(x)
+    # Since M5 a release falls exponentially, so its last samples flicker
+    # between 0 and 1 for a while: a low note's zeros run longer than
+    # SILENCE_RUN (NOTES_SILENCE, 45 ms, is still less than any gap).
+    s = sounds(x, NOTES_SILENCE)
     if len(s) != len(NOTES):
         return problems + ["notes: %d sounds, expected %d" % (len(s), len(NOTES))], lines
     # Where fwtest's time and the time base's meet: the output started one
@@ -1019,7 +1037,11 @@ def check_notes(case_dir):
         if ev is None or not 0 < ev <= SOUND_FROM_EVENT:
             problems.append("notes: note %d sounded %s after its press event, not within %.3f ms"
                             % (note, "?" if ev is None else "%.3f ms" % ev, SOUND_FROM_EVENT))
-        problems += check_clicks("notes", x, first, last, fit)
+        # Test patch 0's attack is linear over its time code's time; its
+        # release falls more slowly than that (R-FM-3).
+        problems += check_clicks_fm("notes", x[:last + 50], first, last + 50, [fit["frequency"]], fit["amplitude"],
+                                    1000.0 / (fm_patch.time_ms(fm_patch.TEST_PATCHES[0]["ops"][0]["rates"][0])
+                                              * aa.RATE))
     lines.append("  latency: key to sound %.3f to %.3f ms, press event to sound %.3f to %.3f ms; "
                  "every sample between the notes 0" % (min(lats), max(lats), min(evs or [0]), max(evs or [0])))
     return problems, lines
@@ -1047,6 +1069,16 @@ def check_audioload(case_dir):
         problems.append("audioload: %d notes, %d took a sounding voice" % (a["notes"], a["stolen"]))
     if console != HELLO:
         problems.append("audioload: the console has more than the start line")
+    # Since M5: the heaviest patch on all 16 voices, on both cores.
+    more, f = fm_common("audioload", case_dir, 6)
+    problems += more
+    with open(os.path.join(case_dir, "ipb.csv")) as fi:
+        core1 = sum(int(r.split(",")[3]) for r in list(fi)[1:] if r.strip())
+    lines.append("  FM: %d voices at most, %d stolen; core 1 rendered %d blocks (%d instructions); core 0 waited"
+                 " for it at most %.1f us" % (f["voices_max"], f["stolen"], f["core1_blocks"], core1,
+                                              f["wait_max"] / 24.0))
+    if f["voices_max"] != FM_VOICES or f["core1_blocks"] <= 0 or core1 <= 0:
+        problems.append("audioload: %d voices at most, core 1 rendered %d blocks" % (f["voices_max"], f["core1_blocks"]))
     return problems, lines
 
 
@@ -1074,8 +1106,347 @@ def check_underrun(case_dir):
     return problems, lines
 
 
+# Since M5: the FM engine (firmware/src/fm.h, fm.c, fm_play.c; R-FM-*).
+# Its record follows the audio record; the test patches' values come from
+# tools/fm_patch.py, the same definitions patches.c is generated from.
+
+FM_ADDR, FM_LEN = 0x01c00590, 0x40
+FM_FIELDS = ("marker", "core1", "core1_blocks", "patch", "algorithm", "mono", "voices0", "voices1",
+             "voices_max", "stolen", "notes", "wait_max", "pitch_knob", "glide", "depth", "feedback")
+FM_MARKER = 0x354D4653     # "SFM5"
+FM_VOICES = 16
+# Limits (docs/REQUIREMENTS.md, R-FM-1 to R-FM-9).
+BESSEL_DB = (0.05, 0.5)    # sidebands -4 to 4; -5 and 5 (near the folded -7)
+BESSEL_LEVEL_DB = 0.01     # the sidebands' total against the carrier's level
+ENV_LATE_MS = BLOCK_TICKS / TICKS_PER_MS   # a stage ends within a block (the measurement's own)
+ENV_RATE = 0.03            # a stage's slope within 3%
+ENV_LEVEL_DB = 0.1
+GLIDE_SEMI = 0.15          # semitones from the straight line, during the glide
+HELD_SEMI = 0.02           # and from the note, outside it
+LEGATO_DB = 0.5            # the level across a legato note (no new attack)
+VELOCITY_DB = 0.05
+
+
+def fm_record(path):
+    with open(path, "rb") as f:
+        return dict(zip(FM_FIELDS, struct.unpack("<%di" % len(FM_FIELDS), f.read()[:FM_LEN])))
+
+
+def fm_name(when="end"):
+    return "ram-%08x-%x-%s.bin" % (FM_ADDR, FM_LEN, when)
+
+
+def fm_common(name, case_dir, patch):
+    """Every FM case: the engine's record is there, the patch the script
+    chose is in force, and core 1 runs the engine's loop."""
+    f = fm_record(os.path.join(case_dir, fm_name()))
+    problems = []
+    if f["marker"] != FM_MARKER:
+        problems.append("%s: the FM record's marker is 0x%08x" % (name, f["marker"] & 0xFFFFFFFF))
+    if f["patch"] != patch:
+        problems.append("%s: patch %d in force, not %d" % (name, f["patch"], patch))
+    if f["core1"] != 1:
+        problems.append("%s: core 1 doesn't run the engine" % name)
+    return problems, f
+
+
+def note_start(x):
+    s = sounds(x)
+    return s[0] if s else (None, None)
+
+
+def check_fmbessel(case_dir):
+    """Test patch 1 (R-FM-1): a modulator at the note's frequency into a
+    carrier at 6 times it, at index pi/2: each sideband (6 + n) f for n
+    from -5 to 5 against |J_n(pi/2)| of the whole, and the whole against
+    the carrier's level."""
+    problems, lines, a, _, wav = check_audio_common("fmbessel", case_dir)
+    more, _ = fm_common("fmbessel", case_dir, 1)
+    problems += more
+    if wav is None:
+        return problems + ["fmbessel: no audio.wav"], lines
+    x, ends = wav
+    first, _ = note_start(x)
+    if first is None:
+        return problems + ["fmbessel: no sound"], lines
+    p = fm_patch.TEST_PATCHES[1]
+    f0 = aa.note_hz(69)
+    index = fm_patch.level_gain(p["ops"][1]["level"]) * 4 * math.pi
+    seg = x[first + int(0.2 * aa.RATE):first + int(0.45 * aa.RATE)]
+    ns = list(range(-5, 6))
+    amp = aa.amplitudes_at(seg, [(p["ops"][0]["freq"] + n) * f0 for n in ns])
+    total = math.sqrt(sum(v * v for v in amp))
+    want = aa.FULL / 4.0 * master_gain(900)
+    worst = 0.0
+    for n, v in zip(ns, amp):
+        j = abs(aa.bessel_j(abs(n), index))
+        d = 20 * math.log10(v / total / j)
+        tol = BESSEL_DB[0] if abs(n) <= 4 else BESSEL_DB[1]
+        worst = max(worst, abs(d)) if abs(n) <= 4 else worst
+        if abs(d) > tol:
+            problems.append("fmbessel: sideband %+d at %.5f of the whole, |J_%d(%.4f)| %.5f: %+.3f dB (at most %s)"
+                            % (n, v / total, abs(n), index, j, d, tol))
+    lvl = 20 * math.log10(total / want)
+    lines.append("  index %.5f (pi/2): sidebands -4 to 4 within %.4f dB of |J_n|, -5 %+.3f dB, +5 %+.3f dB;"
+                 " their total %.2f (%+.4f dB of the carrier's level)"
+                 % (index, worst, 20 * math.log10(amp[0] / total / aa.bessel_j(5, index)),
+                    20 * math.log10(amp[-1] / total / aa.bessel_j(5, index)), total, lvl))
+    if abs(lvl) > BESSEL_LEVEL_DB:
+        problems.append("fmbessel: the sidebands' total %+.4f dB from the carrier's level" % lvl)
+    return problems, lines
+
+
+def line(points):
+    """The least-squares line through [(x, y)]: (slope, y at x = 0)."""
+    n = float(len(points))
+    mx = sum(p[0] for p in points) / n
+    my = sum(p[1] for p in points) / n
+    k = sum((p[0] - mx) * (p[1] - my) for p in points) / sum((p[0] - mx) ** 2 for p in points)
+    return k, my - k * mx
+
+
+def check_fmenv(case_dir):
+    """Test patch 2 (R-FM-3): the attack (linear in gain), decay 1 and
+    decay 2 (linear in dB) at their rates and levels, the held level, and
+    the release's rate, each stage ending within ENV_LATE_MS."""
+    problems, lines, a, _, wav = check_audio_common("fmenv", case_dir)
+    more, _ = fm_common("fmenv", case_dir, 2)
+    problems += more
+    if wav is None:
+        return problems + ["fmenv: no audio.wav"], lines
+    x, ends = wav
+    first, _ = note_start(x)
+    if first is None:
+        return problems + ["fmenv: no sound"], lines
+    o = fm_patch.TEST_PATCHES[2]["ops"][0]
+    t_ms = [fm_patch.time_ms(r) for r in o["rates"]]
+    full_db = 16 * 20 * math.log10(2)             # a stage's whole range: 16 octaves
+    lv = [20 * math.log10(fm_patch.level_gain(v)) for v in o["levels"]]
+    amp = aa.block_amplitudes(x, aa.note_hz(69))
+    peak = aa.FULL / 4.0 * master_gain(900)       # the patch's full level, at 0 dB
+    db = [20 * math.log10(v / peak) if v > 0 else -200.0 for v in amp]
+    b0 = first // aa.BLOCK
+
+    def ms(b):
+        return (b * aa.BLOCK + aa.BLOCK / 2.0 - first) * 1000.0 / aa.RATE
+
+    def reach(level, start):
+        """The first block at or below level, and when the level was
+        crossed (interpolated between block centres), in ms."""
+        for b in range(start + 1, len(db)):
+            if db[b] <= level + 0.01:
+                lo, hi = db[b - 1], db[b]
+                return b, ms(b - 1) + (ms(b) - ms(b - 1)) * ((lo - level) / (lo - hi) if lo != hi else 1)
+        return None, None
+    # The attack ends in the loudest block (the peak lies within it).
+    bp = max(range(b0, b0 + int(2 * t_ms[0] * aa.RATE / 1000 / aa.BLOCK) + 2), key=lambda b: db[b])
+    b1, _ = reach(lv[1], bp)
+    b2, _ = reach(lv[2], b1 or bp)
+    if None in (b1, b2):
+        return problems + ["fmenv: the envelope never reached its levels"], lines
+    want = [t_ms[0], t_ms[0] + t_ms[1] * (lv[0] - lv[1]) / full_db,
+            t_ms[0] + (t_ms[1] * (lv[0] - lv[1]) + t_ms[2] * (lv[1] - lv[2])) / full_db]
+    # A decay ends where the line through its blocks meets its level.
+    got = [ms(bp)]
+    held = sum(db[b2 + 5:b2 + 200]) / 195.0
+    half = amp[b0 + int(round(t_ms[0] / 2 * aa.RATE / 1000 / aa.BLOCK))] / peak
+    rates = []
+    for name, lo, hi, t, start, end_at in (("decay 1", lv[0] - 2, lv[1] + 2, t_ms[1], bp, lv[1]),
+                                           ("decay 2", lv[1] - 1, lv[2] + 1, t_ms[2], b1, lv[2]),
+                                           ("release", lv[2] - 2, lv[2] - 26, t_ms[3], b2 + 20, None)):
+        pts = [(ms(b), db[b]) for b in range(start, len(db)) if hi <= db[b] <= lo and ms(b) < 1000]
+        if len(pts) < 3:
+            problems.append("fmenv: too few points to time the %s" % name)
+            continue
+        k, c = line(pts)
+        r, w = -k * 1000, full_db / t * 1000
+        rates.append("%s %.1f dB/s (%.1f)" % (name, r, w))
+        if end_at is not None:
+            got.append((end_at - c) / k)
+        if abs(r / w - 1) > ENV_RATE:
+            problems.append("fmenv: the %s falls %.1f dB/s, not within %d%% of %.1f" % (name, r, ENV_RATE * 100, w))
+    lines.append("  stages end at %s ms (nominal %s); halfway through the attack %.4f of the peak; held %.3f dB"
+                 " (%.3f); %s" % (", ".join("%.2f" % g for g in got), ", ".join("%.2f" % w for w in want),
+                                  half, held, lv[2], "; ".join(rates)))
+    for g, w, what in zip(got, want, ("the attack", "decay 1", "decay 2")):
+        if abs(g - w) > ENV_LATE_MS:
+            problems.append("fmenv: %s ended at %.2f ms, not within %.2f ms of %.2f" % (what, g, ENV_LATE_MS, w))
+    if abs(held - lv[2]) > ENV_LEVEL_DB:
+        problems.append("fmenv: held at %.3f dB, not %.3f" % (held, lv[2]))
+    if abs(half - 0.5) > 0.03:
+        problems.append("fmenv: halfway through the attack at %.4f of the peak, not 0.5 (linear)" % half)
+    # The fastest stage bounds how fast the level may move: the attack's
+    # gain a sample, or a decay's or the release's fraction a sample.
+    fastest = max([1000.0 / (t_ms[0] * aa.RATE)] +
+                  [full_db / t / (20 / math.log(10)) * 1000.0 / aa.RATE for t in t_ms[1:]])
+    problems += check_clicks_fm("fmenv", x, first, len(x), [aa.note_hz(69)], peak, fastest)
+    return problems, lines
+
+
+def click_bound_fm(amplitudes, freqs, ramp_per_sample, rate=aa.RATE, quantum=4):
+    """The largest second difference a sum of sines can show when each
+    amplitude moves by at most ramp_per_sample of itself a sample: their
+    curvature, and the ramp's corners and slope against them."""
+    return sum(a * ((2 * math.sin(math.pi * f / rate)) ** 2 + ramp_per_sample * (1 + 4 * math.pi * f / rate))
+               for a, f in zip(amplitudes, freqs)) + quantum
+
+
+def check_clicks_fm(name, x, first, last, freqs, amplitude, ramp_per_sample):
+    d2 = aa.max_second_difference(x[max(0, first - 50):last])
+    bound = click_bound_fm([amplitude] * len(freqs), freqs, ramp_per_sample)
+    if d2 > bound:
+        return ["%s: a click: second difference %d, more than %.1f" % (name, d2, bound)]
+    return []
+
+
+def rms_db(x):
+    return 10 * math.log10(sum(v * v for v in x) / float(len(x)) + 1e-12)
+
+
+def check_fmmono(case_dir):
+    """Test patch 3 (R-FM-5): mono, legato and glide. C4 held, then E4:
+    one voice, no new note and no new attack (its level goes on), a glide
+    up over the patch's glide time; E4 released: a glide back to C4."""
+    problems, lines, a, _, wav = check_audio_common("fmmono", case_dir)
+    more, f = fm_common("fmmono", case_dir, 3)
+    problems += more
+    if wav is None:
+        return problems + ["fmmono: no audio.wav"], lines
+    x, ends = wav
+    s = sounds(x)
+    if len(s) != 1:
+        return problems + ["fmmono: %d sounds, expected one" % len(s)], lines
+    first, last = s[0]
+    _, _, log = input_record(os.path.join(case_dir, input_name("end")))
+    base_ms = ends[0] - BLOCK_TICKS / TICKS_PER_MS - a["start"] / TICKS_PER_MS
+
+    def event_ms(key, kind):
+        t = [e[4] for e in log if e[1] == key and e[2] == kind]
+        return base_ms + t[0] / TICKS_PER_MS if t else None
+    up, back, rel = event_ms(25, PRESS), event_ms(25, RELEASE), event_ms(21, RELEASE)
+    glide = fm_patch.time_ms(fm_patch.TEST_PATCHES[3]["glide"])
+    blk = BLOCK_TICKS / TICKS_PER_MS
+    track = [(t + aa.sample_ms(first, ends), 69 + 12 * math.log2(hz / 440.0))
+             for t, hz in aa.pitch_track(x, first, last)]
+    worst_held = worst_glide = 0.0
+
+    def expect(t):
+        """The pitch the script asks for at t (ms), allowing for when the
+        engine takes each event (within two blocks of it)."""
+        for start, frm, to in ((up, 60, 64), (back, 64, 60)):
+            if start + 2 * blk + 10 <= t <= start + glide - 10:
+                return frm + (to - frm) * (t - start) / glide, 2 * blk / glide * 4 + GLIDE_SEMI
+        if aa.sample_ms(first, ends) + 40 <= t <= up - 10 or back + glide + 2 * blk + 10 <= t <= rel - 10:
+            return 60, HELD_SEMI
+        if up + glide + 2 * blk + 10 <= t <= back - 10:
+            return 64, HELD_SEMI
+        return None, None
+    for t, semi in track:
+        want, tol = expect(t)
+        if want is None:
+            continue
+        d = abs(semi - want)
+        if tol == HELD_SEMI:
+            worst_held = max(worst_held, d)
+        else:
+            worst_glide = max(worst_glide, d)
+        if d > tol:
+            problems.append("fmmono: at %.1f ms the pitch is note %.3f, not %.3f (within %.3f)" % (t, semi, want, tol))
+            break
+    w = int(0.02 * aa.RATE)
+    at = lambda ms: first + int((ms - aa.sample_ms(first, ends)) * aa.RATE / 1000)
+    before, after = rms_db(x[at(up - 30):at(up - 30) + w]), max(rms_db(x[at(up + d):at(up + d) + w]) for d in (0, 10, 20, 40))
+    lines.append("  one sound, %d note started; held notes within %.4f semitones, the glides (%.1f ms) within %.3f"
+                 " of a straight line; level %+.3f dB across the legato note"
+                 % (a["notes"], worst_held, glide, worst_glide, after - before))
+    if a["notes"] != 1 or f["mono"] != 1:
+        problems.append("fmmono: %d notes started (mono %d), expected 1: legato starts no note" % (a["notes"], f["mono"]))
+    if after - before > LEGATO_DB:
+        problems.append("fmmono: the level rose %.2f dB at the legato note: a new attack" % (after - before))
+    return problems, lines
+
+
+def check_fmsteal(case_dir):
+    """Test patch 0, 17 notes held on 16 voices (R-FM-4): the 17th takes
+    the oldest voice, which fades over a block first; no click anywhere,
+    all 16 voices sound, half of them on core 1."""
+    problems, lines, a, _, wav = check_audio_common("fmsteal", case_dir)
+    more, f = fm_common("fmsteal", case_dir, 0)
+    problems += more
+    if wav is None:
+        return problems + ["fmsteal: no audio.wav"], lines
+    x, ends = wav
+    first, last = note_start(x)
+    notes = list(range(53, 70))
+    amp = aa.FULL / 4.0 * master_gain(200)
+    attack = fm_patch.time_ms(fm_patch.TEST_PATCHES[0]["ops"][0]["rates"][0]) * aa.RATE / 1000
+    d2 = aa.max_second_difference(x[max(0, first - 50):last + 50])
+    bound = click_bound_fm([amp] * len(notes), [aa.note_hz(n) for n in notes], 1.0 / aa.BLOCK) + \
+        click_bound_fm([amp], [aa.note_hz(69)], 1.0 / attack)
+    lines.append("  %d notes, %d took a sounding voice, at most %d voices at once (%d and %d on the cores at the end"
+                 " of the last block with notes); largest second difference %d (bound %.1f)"
+                 % (a["notes"], f["stolen"], f["voices_max"], f["voices0"], f["voices1"], d2, bound))
+    if a["notes"] != 17 or f["stolen"] != 1 or f["voices_max"] != FM_VOICES:
+        problems.append("fmsteal: %d notes, %d stolen, %d voices at most; expected 17, 1, %d"
+                        % (a["notes"], f["stolen"], f["voices_max"], FM_VOICES))
+    if d2 > bound:
+        problems.append("fmsteal: a click: second difference %d, more than %.1f" % (d2, bound))
+    if f["core1_blocks"] <= 0:
+        problems.append("fmsteal: core 1 rendered no block")
+    return problems, lines
+
+
+VELOCITIES = (127, 100, 64, 32, 1)    # the test build's KEY1 to KEY5 (fm_play.c)
+
+
+def check_fmvel(case_dir):
+    """The velocity test build, test patch 8 (R-FM-3): each note's level
+    (its RMS: the patch is one sine carrier) against its velocity
+    sensitivity: 8 octaves (48.2 dB) at
+    velocity 0 for a sensitivity of 7, in proportion."""
+    problems, lines, a, _, wav = check_audio_common("fmvel", case_dir)
+    more, _ = fm_common("fmvel", case_dir, 8)
+    problems += more
+    if wav is None:
+        return problems + ["fmvel: no audio.wav"], lines
+    x, ends = wav
+    s = sounds(x)
+    if len(s) != len(VELOCITIES):
+        return problems + ["fmvel: %d sounds, expected %d" % (len(s), len(VELOCITIES))], lines
+    sens = fm_patch.TEST_PATCHES[8]["ops"][0]["velocity"]
+    lv = [rms_db(x[f + int(0.1 * aa.RATE):f + int(0.25 * aa.RATE)]) for f, _ in s]
+    got = []
+    for v, l in zip(VELOCITIES, lv):
+        soft = (127 - v) * (8 * 65536 // 7) // 127 * sens
+        want = -20 * math.log10(2) * soft / 65536.0
+        d = l - lv[0]
+        got.append("%d: %+.3f (%+.3f)" % (v, d, want))
+        if abs(d - want) > VELOCITY_DB:
+            problems.append("fmvel: velocity %d is %+.3f dB from velocity 127, not %+.3f" % (v, d, want))
+    lines.append("  level against velocity 127, dB (expected): " + ", ".join(got))
+    return problems, lines
+
+
+def check_fmgold(case_dir):
+    """Every test patch against the golden WAV (R-FM-8); and fmgold2,
+    the same run again, gives the same bytes (R-FM-9)."""
+    problems, lines, _, _, _ = check_audio_common(os.path.basename(case_dir), case_dir)
+    more, _ = fm_common(os.path.basename(case_dir), case_dir, 8)
+    problems += more
+    other = os.path.join(os.path.dirname(case_dir), "fmgold")
+    if os.path.basename(case_dir) == "fmgold2":
+        with open(os.path.join(case_dir, "audio.wav"), "rb") as f1, open(os.path.join(other, "audio.wav"), "rb") as f2:
+            same = f1.read() == f2.read()
+        lines.append("  the second run's audio.wav is %s the first's" % ("byte for byte" if same else "NOT"))
+        if not same:
+            problems.append("fmgold2: the output differs from fmgold's")
+    return problems, lines
+
+
 AUDIO_CHECKS = {"tone": check_tone, "notes": check_notes, "audioload": check_audioload,
-                "audiogold": check_audiogold, "underrun": check_underrun}
+                "audiogold": check_audiogold, "underrun": check_underrun,
+                "fmbessel": check_fmbessel, "fmenv": check_fmenv, "fmmono": check_fmmono,
+                "fmsteal": check_fmsteal, "fmvel": check_fmvel, "fmgold": check_fmgold, "fmgold2": check_fmgold}
 
 
 INPUT_CHECKS = {"keys": check_keys, "chords": check_chords, "encoders": check_encoders, "pot": check_pot,

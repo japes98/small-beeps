@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# fmenv (R-FM-3): test patch 2 ("Env test"), A4 held 600 ms: its attack,
+# both decays, the held level and the release are timed.
+#
+# time   event
+50       enc 6 +2           # PRESETS: patch 2
+300      key 30 down        # A4
+900      key 30 up

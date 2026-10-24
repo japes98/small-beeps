@@ -15,6 +15,7 @@
 #include "sb.h"
 #include "input.h"
 #include "audio.h"
+#include "fm.h"
 #include "WL82.h"
 
 /* HW-25: in fwtest each word written here is appended to the console. The
@@ -169,7 +170,7 @@ void plaits_bench(void) __attribute__((noreturn));
 
 int main(void)
 {
-    static const char hello[16] = "small-beeps M4 \n";
+    static const char hello[16] = "small-beeps M5 \n";
 
     sb_beacon.period = TICKS_PER_MS;
     if (data_probe == 0x5EED0001u && bss_probe == 0) {
@@ -199,20 +200,24 @@ int main(void)
     JL_TIMER0->PRD = TICK_PRD;
     JL_TIMER0->CON = TICK_CON;
     input_start();
-    synth_init();
+#if !defined(SB_DEMO_PLAITS)
+    /* The FM engine (M5); it starts core 1. The Plaits demo, which drives
+     * core 1 itself, leaves it out. */
+    fm_init();
+#endif
 #if defined(SB_DEMO_PLAITS) && defined(PLAITS_BENCH)
     plaits_bench();
 #elif defined(SB_DEMO_PLAITS)
     plaits_demo_init();
     audio_start(plaits_demo_block);
 #elif defined(SB_COST_NO_AUDIO)
-    (void)synth_block;
+    (void)fm_block;
 #elif defined(SB_COST_SILENT_ENGINE)
     audio_start(sb_silent_block);
 #elif defined(SB_TEST_UNDERRUN)
     audio_start(sb_test_late_block);
 #else
-    audio_start(synth_block);
+    audio_start(fm_block);
 #endif
 #if defined(SB_TEST_LEDS)
     sb_test_leds();

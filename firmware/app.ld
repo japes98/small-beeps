@@ -47,6 +47,7 @@ SECTIONS
         KEEP(*(.beacon))
         KEEP(*(.beacon.input))
         KEEP(*(.beacon.audio))
+        KEEP(*(.beacon.fm))
     } > RAM
 
     .bss (NOLOAD) : {
@@ -73,6 +74,7 @@ SECTIONS
     ASSERT(ADDR(.beacon) == 0x01C00000, "the beacon must start main RAM")
     ASSERT(sb_input == 0x01C00060, "the input record must follow the beacon (M3)")
     ASSERT(sb_audio == 0x01C00550, "the audio record must follow the input record (M4)")
+    ASSERT(sb_fm == 0x01C00590, "the FM engine's record must follow the audio record (M5)")
     ASSERT(__data_end <= __stack_limit, "data and bss run into the stack")
     ASSERT(__stack_top == 0x01C7FC00, "the stack must end below the reserved top of RAM")
     ASSERT(__stack_top % 8 == 0, "the stack must be 8-byte aligned")

@@ -102,10 +102,12 @@ class FwSuiteCheckTest(unittest.TestCase):
                         "instructions": {"core0": 5, "core1": 0}}}
         self.assertEqual(fw.check_case("boot", good), [])
         for run in ({"outcome": "halt"}, {"outcome": "fault"}, {"outcome": "hang"},
-                    {"unmodelled_accesses": [{"address": "0x1"}]},
-                    {"instructions": {"core0": 5, "core1": 3}}):
+                    {"unmodelled_accesses": [{"address": "0x1"}]}):
             bad = {"run": dict(good["run"], **run)}
             self.assertTrue(fw.check_case("boot", bad), run)
+        # Since M5 core 1 runs the FM engine's loop in every case.
+        both = {"run": dict(good["run"], instructions={"core0": 5, "core1": 3})}
+        self.assertEqual(fw.check_case("boot", both), [])
         halted = {"run": dict(good["run"], outcome="halt")}
         self.assertEqual(fw.check_case("stray", halted), [])
         self.assertTrue(fw.check_case("stray", good))
