@@ -943,7 +943,7 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     them at all is the owner's call (Questions, day-1024).
   - **The licence and notices.** `LICENSES/Apache-2.0.txt` (already here, for the SDK), and
     `REUSE.toml` entries for the vendored files with
-    `SPDX-License-Identifier: Apache-2.0` and the copyright as
+    the Apache-2.0 licence identifier and the copyright as
     `THIRD_PARTY.md` gives it: M-VAVE's (珠海笙科智能科技有限公司,
     2026) for the loaders it distributes, and Zhuhai Jieli Technology
     Co., Ltd. (2024-2026) for JieLi material. Our `NOTICE` names the
