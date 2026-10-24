@@ -320,8 +320,8 @@ values):
 ## Instructions
 
 fwtest runs the code the pinned toolchain's compiler emits for the
-firmware's flags (`-target pi32v2 -mcpu=r3 -mfprev1`, tools/build.sh),
-with the known gaps below. That was checked on a corpus, not proven for
+firmware's flags (`-target pi32v2 -mcpu=r3 -mfprev1`, tools/build.sh);
+the two gaps the checks below found run since 0.4.0. That was checked on a corpus, not proven for
 every instruction (SR-7). The corpus: the firmware at `18d9459`, the
 vendored Plaits and the demo's C++ built with the firmware's CPU flags,
 and several hundred small C functions written to vary types, operations
@@ -342,23 +342,39 @@ computes what the chip does. An instruction neither check held can still
 end a run as a fault ("Outcomes and exit codes"): report it as SR-7 was,
 with its bytes and the smallest image that shows it.
 
-Known gaps (fwtest 0.3.0). Each ends the run as a fault, "an instruction
-the emulated CPU cannot decode":
+No known gaps since fwtest 0.4.0. Until 0.3.0 two forms ended the run as
+a fault, "an instruction the emulated CPU cannot decode"; 0.4.0 runs them,
+and one more change makes dual-issue pairs behave as the compiler expects:
 
 - **Rotate by a register.** `rD = rS <> rT` (bytes `cc e1`, then two
-  bytes naming the registers), for every register. The compiler emits it,
-  at `-Os` too, for a rotate by an amount it doesn't know at compile time,
-  such as `(x << s) | (x >> (32 - s))`. A rotate by a constant
-  (`rD = rS <> n`, bytes `c4 e1`) runs. Until fwtest runs it, keep rotate
-  amounts constant, or hide the amount from the compiler (a `volatile`
-  shift count, for example).
-- **A 4-byte push or pop of a register list whose lowest register is
-  above r0.** `[--sp] = {list}` (bytes `d8 e8`, then the 16-bit mask) and
-  `{list} = [sp++]` (`d4 e8`, then the mask), without `rets` or `pc`: for
-  example `[--sp] = {r5-r1}` or `{r11-r6} = [sp++]`. Lists that start at
-  r0 run, and so do the 2-byte forms and the forms with `rets` or `pc`.
-  The compiler was not seen to emit the failing lists (an interrupt
-  handler saves a list from r0); hand-written assembly can.
+  bytes naming the registers; `cc f1` as a pair's head), for every
+  register. It rotates right by rT: the compiler emits
+  `(x << s) | (x >> (32 - s))` as `rT = 32 - rT` then this, and
+  `(x >> 7) | (x << 25)` as the rotate by a constant `rD = rS <> 7`. By
+  0 it leaves the value (the compiler's masked rotate relies on that). An
+  amount of 32 or more is taken mod 32, which the compiler's code doesn't
+  show (it masks such amounts itself): don't rely on it.
+- **A 4-byte push or pop of any register list.** `[--sp] = {list}` (bytes
+  `d8 e8`, then the 16-bit mask, bit k for rk) and `{list} = [sp++]`
+  (`d4 e8`, then the mask), without `rets` or `pc`: every list, for
+  example `[--sp] = {r5-r1}`, `{r11-r6} = [sp++]` or `{r15} = [sp++]`, as
+  the lists from r0 already ran. A push moves sp down by 4 a register and
+  the lowest register takes the lowest address; a pop reads them back the
+  same way. The compiler emits only lists from r0 (in interrupt
+  handlers); lists above r0 behave the same by analogy, not checked
+  against the chip.
+- **Dual-issue pairs** (`A #` then `B`, as the toolchain's disassembler
+  prints them): the pair's second half sees the registers as they were
+  before the head, and the head's result is there after the pair. The
+  compiler relies on this (in our firmware, a pair whose second half
+  stores a byte back through the base register the head changes). Until
+  0.3.0 some 4-byte ALU forms as a pair's head wrote their result at
+  once, so the second half saw the new value: which ones depended on the
+  operation and the registers (of one of each family with the same
+  registers, two: `r6 = r5 ^ (1 << r3) #` and `r6 = r5 >>> r3 #`; also,
+  for example, `r0 = r8 | (1 << r12) #`).
+
+None of the three changed any output of the firmware's suite at `cdfd067`.
 
 ### Block moves with a register base
 
@@ -447,6 +463,11 @@ differ, that is a bug in fwtest: report it.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.4.0: the rotate by a register and the 4-byte push and pop of any
+  register list run; a dual-issue pair's head among the 4-byte ALU forms
+  holds its result until after the pair ("Instructions"). The emulator is
+  the F-Emulator app's but for its own raw-image loader
+  (docs/EMULATOR-PARITY.md).
 - 0.3.0: the block moves below a base register run, all eight modes
   of the block moves are listed (SR-7; "Instructions").
 - 0.2.0: SPI1's `CON` writes set and clear bits as written ("The LCD").

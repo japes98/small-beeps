@@ -219,6 +219,113 @@ fn block_moves_from_the_compiler() {
     assert_eq!(words(output(&r, "ram-01c01218-18-end.bin")), [0x71, 0x51, 0x31, 0x71, 0x51, 0x31]);
 }
 
+/// R-HARN-12: a dual-issue pair's head among the 4-byte ALU forms, one of
+/// each family: the pair's second half sees the destination as it was, and
+/// after the pair it holds what the plain form computes.
+#[test]
+fn alu_pair_heads_hold_their_result() {
+    const OLD: u32 = 0x0bad_f00d;
+    let mut o = opts(2);
+    o.ram = vec![(OUT0, 300, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("pairhead"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-12c-end.bin"));
+    for k in 0..25 {
+        let (plain, during, after) = (w[3 * k], w[3 * k + 1], w[3 * k + 2]);
+        assert_ne!(plain, OLD, "case {k}: the plain form changes the destination");
+        assert_eq!(during, OLD, "case {k}: the pair's second half sees the value before the head");
+        assert_eq!(after, plain, "case {k}: after the pair, the head's result");
+    }
+}
+
+/// R-HARN-12: the rotate right by a register, across registers and amounts
+/// (0 to 31 as the compiler's code shows; 32 and over taken mod 32), its
+/// pair head, and the rotate by a constant beside it.
+#[test]
+fn rotate_by_a_register() {
+    const X: u32 = 0x1234_5678;
+    let mut o = opts(2);
+    o.ram = vec![(OUT0, 44, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("rotr"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let d = 0xdead_beefu32;
+    assert_eq!(
+        words(output(&r, "ram-01c00100-2c-end.bin")),
+        [
+            X.rotate_right(8),
+            0xc000_0000,
+            X.rotate_right(31),
+            0x13u32.rotate_right(19),
+            d,
+            d,
+            d.rotate_right(1),
+            d.rotate_right(1),
+            X.rotate_right(7),
+            0x0bad_f00d,
+            X.rotate_right(4),
+        ]
+    );
+}
+
+/// R-HARN-12: the rotates as the compiler emits them, built with the
+/// firmware's CPU flags (build.sh fails if the rotate by a register is
+/// gone): `(x << s) | (x >> (32 - s))`, its masked form, `(x >> 7) | (x << 25)`.
+#[test]
+fn rotates_from_the_compiler() {
+    const X: u32 = 0x1234_5678;
+    let mut o = opts(2);
+    o.ram = vec![(OUT0, 276, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("rotc"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-114-end.bin"));
+    assert_eq!(w[0], X);
+    for s in 1..32u32 {
+        assert_eq!(w[4 + s as usize], X.rotate_left(s), "rotl(x, {s})");
+    }
+    for s in 0..32u32 {
+        assert_eq!(w[36 + s as usize], X.rotate_left(s), "rotl_m(x, {s})");
+    }
+    assert_eq!(w[68], X.rotate_right(7), "rotr7(x)");
+}
+
+/// R-HARN-12: the 4-byte push and pop of a register list, lists above r0,
+/// alone, not contiguous, from r0, and empty: the lowest register at the
+/// lowest address, sp moved by 4 a register.
+#[test]
+fn push_pop_any_register_list() {
+    const SP: u32 = 0x01c7_d000;
+    let mut o = opts(2);
+    o.ram = vec![(OUT0, 168, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("pushpop"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-a8-end.bin"));
+    assert_eq!(&w[0..2], &[SP, SP - 20], "A [--sp] = {{r5-r1}}");
+    assert_eq!(&w[2..7], &[0xa1, 0xa2, 0xa3, 0xa4, 0xa5], "A: r1 at sp");
+    assert_eq!(&w[7..13], &[0xa1, 0xa2, 0xa3, 0xa4, 0xa5, SP], "A {{r11-r7}} = [sp++]");
+    assert_eq!(&w[13..15], &[0xf15, SP], "B {{r15}}, then {{r9}}");
+    assert_eq!(w[15], SP - 24, "C [--sp] = {{r14, r10, r8, r6, r4, r2}}");
+    assert_eq!(&w[16..23], &[0xb2, 0xb4, 0xb6, 0xb8, 0xba, 0xbe, SP], "C {{r15, r13, r11, r9, r7, r5}} = [sp++]");
+    assert_eq!(&w[23..31], &[0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7], "D {{r7-r0}}, then {{r15-r8}}");
+    assert_eq!(&w[31..40], &[0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf, SP], "D {{r15-r8}}, then {{r7-r0}}");
+    assert_eq!(&w[40..42], &[SP, SP], "E the empty list");
+}
+
+/// R-HARN-1: code the image writes into RAM runs as memory holds it, also
+/// after a halfword, byte or word store changes it between runs.
+#[test]
+fn ram_code_runs_as_written() {
+    let mut o = opts(2);
+    o.ram = vec![(OUT0, 16, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("ramcode"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    assert_eq!(words(output(&r, "ram-01c00100-10-end.bin")), [0x1234_5678, 0x1234_beef, 0x7734_beef, 0x5566_beef]);
+}
+
 /// R-HARN-3: LED duty per sample.
 #[test]
 fn led_capture() {
