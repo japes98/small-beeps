@@ -1,0 +1,16 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/plaits-bench.py run --out /home/runner/work/small-beeps/small-beeps/out/4cd474d475c5fc9b449e6596fdfefd05f7aa3f32/plaits --perf /home/runner/work/small-beeps/small-beeps/out/4cd474d475c5fc9b449e6596fdfefd05f7aa3f32/perf/perf.json
+  demo builds                        PASS  
+  demo build is deterministic        PASS  
+  live demo plays without underrun (soft) PASS  engine 7, 0 underruns while playing, peak 12656
+  live demo plays without underrun (hw) PASS  engine 0, 0 underruns while playing, peak 9865
+  soft-float bit for bit (soft image) PASS  15 operations, 20000 cases each
+  bench completes (soft)             PASS  
+  core 1 starts and renders (soft)   PASS  
+  soft-float bit for bit (hw image)  PASS  15 operations, 20000 cases each
+  bench completes (hw)               PASS  
+  core 1 starts and renders (hw)     PASS  
+  no NaN, infinity or bad conversion PASS  soft-float flags {'invalid': 0, 'overflow': 0, 'convert': 0}
+  hardware float sounds the same     PASS  24 of 24 engines' checksums equal
+plaits bench: PASS
+
+exit status 0

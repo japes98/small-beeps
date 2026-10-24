@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range de982055b516074aa6e927ccad685fba4ae6aac6..4cd474d475c5fc9b449e6596fdfefd05f7aa3f32
+EXEMPT 326a821bf386 (merge) docs: merge the session start (#89) into Q-12's branch
+OK     ea88450a33f9 docs: Q-12 from another JieLi SDK (HW-75); Manuals+ for HW-72
+OK     d0440599d760 docs: the owner's MIT grant for the app's emulator patches (P-47)
+EXEMPT 144a73d11e56 (merge) docs: merge main into Q-12's branch, after #88, #89, #91 and #92
+EXEMPT 4cd474d475c5 (merge) Merge pull request #93 from japes98/spec/q12-sdk63
+5 commit(s) checked: PASS
+
+exit status 0
