@@ -64,6 +64,19 @@ class HardwareSpecLintTest(unittest.TestCase):
         self.assertEqual(self.problems(GOOD.replace("- Standing: emulator-only",
                                                     "- Standing: superseded by HW-1")), [])
 
+    def test_other_chip(self):
+        other = GOOD.replace("- Sources: the emulator model.", "- Sources: SDK63 `cpu/br23/uart_dev.c`.").replace(
+            "- Standing: emulator-only", "- Standing: other chip (SDK63)")
+        self.assertEqual(self.problems(other), [])
+        p = self.problems(GOOD.replace("- Standing: emulator-only", "- Standing: other chip (SDK63)"))
+        self.assertTrue(any("HW-2: other chip, but" in x for x in p), p)
+        p = self.problems(other.replace("other chip (SDK63)", "other chip (br23)"))
+        self.assertTrue(any("HW-2: other chip, but" in x for x in p), p)
+        # another chip's SDK never counts as an independent source for this one
+        bad = GOOD.replace('- Sources: HARNESS ("The raw image"); E-1.', "- Sources: SDK63 `br23.h`.")
+        p = self.problems(bad, exps=None)
+        self.assertTrue(any("HW-1: confirmed, but" in x for x in p), p)
+
     def test_confirmed_needs_an_independent_source(self):
         for weak in ("the emulator model.", 'HARNESS ("The raw image").'):
             bad = GOOD.replace('- Sources: HARNESS ("The raw image"); E-1.', "- Sources: " + weak)
