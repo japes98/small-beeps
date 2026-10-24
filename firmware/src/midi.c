@@ -5,7 +5,7 @@
  * MIDI in (M6a): the receive ring and our own MIDI 1.0 byte parser,
  * written from the MIDI 1.0 specification's rules for status, running
  * status, realtime and System Exclusive bytes (docs/DESIGN-NOTES.md,
- * M6a, "The parser"; PROVENANCE P-39). The engine side is in fm_play.c.
+ * M6a, "The parser"; PROVENANCE P-41). The engine side is in fm_play.c.
  */
 
 #include "midi.h"
