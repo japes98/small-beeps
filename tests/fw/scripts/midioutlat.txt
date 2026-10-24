@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Written by tools/midi_scripts.py; don't edit by hand.
+#
+# midioutlat (R-MIDIOUT-8): 20 keys, one every 150 ms, alone, so the
+# time from each key going down to its note on's first byte on the wire
+# can be measured.
+#
+# time   event
+100      key 14 tap 60
+250      key 15 tap 60
+400      key 16 tap 60
+550      key 17 tap 60
+700      key 18 tap 60
+850      key 19 tap 60
+1000     key 20 tap 60
+1150     key 21 tap 60
+1300     key 22 tap 60
+1450     key 23 tap 60
+1600     key 24 tap 60
+1750     key 25 tap 60
+1900     key 26 tap 60
+2050     key 27 tap 60
+2200     key 28 tap 60
+2350     key 29 tap 60
+2500     key 30 tap 60
+2650     key 31 tap 60
+2800     key 32 tap 60
+2950     key 33 tap 60

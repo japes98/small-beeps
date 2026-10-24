@@ -784,6 +784,62 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   - **Next: M6b, MIDI out**, waiting on the spec side (which port the FM-1
     sends MIDI on; the spec side has #82 open on MIDI output).
 
+### M6b: MIDI out (firmware side)
+- Status 2026-10-24 (session M6b, firmware side, on the owner's Mac): done,
+  in pull requests #90 (start) and the MIDI out pull request (the sender,
+  what the panel sends, thru, local control, the settings on the screen,
+  the tests), which needs fwtest 0.5.0's pin (#91) on main first.
+  - **The sender** (HW-72 to HW-74): a 32-message queue that only the
+    engine's block callback writes and drains; UART1's transmit DMA,
+    started only when the last transfer has gone (`CON0` bit 15), whole
+    messages up to 12 bytes a transfer; no interrupt, no lock, nothing
+    waits for the wire. Running status while messages keep coming; the
+    first message after the wire goes quiet carries its status.
+  - **The policy:** controllers, bends, pressure and program changes merge
+    with a waiting one; 8 places kept for note offs; others dropped and
+    counted when full; a note on dropped takes its note off with it; a
+    note off that finds the queue full drops the newest message that ends
+    no notes. Nothing is left on at the far end.
+  - **What is sent**, on the out channel (1): the keys (velocity 100, the
+    off as velocity 0), KNOB1 to KNOB4 as controllers 16 to 19 (the
+    inverse of M6a's map, when the value changes), PRESETS as program
+    changes, SEL with MONO or POLY as the mode messages. The panel has no
+    other pitch control.
+  - **Thru** (off by default) passes on every message received but SysEx,
+    before the channel filter; **local control** (on by default, CC 122
+    too) off sends the panel to MIDI out only. The settings are in
+    `struct midi_settings` version 2 and on the screen's bottom line.
+  - **Tests** (fwtest 0.5.0, `--midi-out`): six cases, R-MIDIOUT-1 to
+    R-MIDIOUT-8. midiout's 60 messages exactly as its script implies
+    (golden); the round trip (midiout's golden capture into MIDI in) ends
+    with the same patch, mode and knobs and the same pitches; thru passes
+    on 18 messages in order and the panel's 4 once each (golden); local
+    control off plays nothing from the panel (golden screen); a burst of
+    94 messages in one block: 28 merged, 18 dropped with 16 note offs, none
+    lost, every note sent ended, the panel's keys out again after (golden);
+    the wire's timing and one run per transfer in every case.
+  - **Figures** (fwtest 0.5.0): latency from a key going down to its note
+    on's first start bit 3.26 to 5.29 ms (mean 4.20; debounce, then at most
+    a block); the wire carries about 88% of its rate under a stream (a
+    transfer starts only at a poll). At rest 1 863.9 instructions a block,
+    +25 (+1.4%); loaded 110 207.6, +0.3%; code 20 144 bytes (+1 736),
+    static RAM 143 776 (+520): the M6 budgets hold, none raised. audiogold
+    and fmgold unchanged; chords' and midipanel's screens moved only by
+    the settings line.
+  - **Open items:**
+    - **The transmitter on the chip.** Which pin, if any, carries UART1's
+      transmit side on the FM-1 is open (Q-20); the FM-1 has no MIDI OUT
+      jack, so on the device the bytes go nowhere; in the app they reach
+      other programs. What a `CON0` write during a transfer does on the
+      chip, beyond the acknowledge, is not known.
+    - **Throughput:** with polling once or twice a block, a full input
+      wire passed on by thru is about 12% more than the out wire carries;
+      the policy then merges or drops. A transmit interrupt (its enable is
+      known only from the emulator) would close the gap.
+    - **No UI for the settings yet:** they are set by test builds and CC
+      122; M8's UI changes them, M7 saves them.
+  - **Next: M7, flash storage.**
+
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer (done; above).
 - **M2** screen (done; above).
@@ -791,9 +847,8 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
 - **M4** audio (done; above). **M4b** a platform test: Plaits (MIT) as
   a demo build, and the loaded-case budget (done; above).
 - **M5** the FM engine (done; above).
-- **M6a** MIDI in (done; above). **M6b** MIDI out (next, waiting on the
-  spec side).
-- **M7** flash storage.
+- **M6a** MIDI in (done; above). **M6b** MIDI out (done; above).
+- **M7** flash storage (next).
 - **M8** UI and original presets (no Yamaha factory voices).
 - **M9** packaging, and a raw-image boot path in the app.
 

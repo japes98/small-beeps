@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Written by tools/midi_scripts.py; don't edit by hand.
+#
+# midilocal (R-MIDIOUT-5): local control off (CC 122 0, by MIDI in):
+# the panel's keys, KNOB1 and PRESETS go out but the engine neither
+# plays nor follows them, while a MIDI note still plays; local
+# control on again (CC 122 127): a key plays again.
+#
+# time   event
+100      midi b0 7a 00
+200      key 14 tap 100
+400      enc 2 +6
+500      enc 6 +3
+600      key 18 tap 100
+800      midi 90 43 64
+900.96   midi 80 43 40
+1000     midi b0 7a 7f
+1100     key 21 tap 100

@@ -1171,6 +1171,19 @@ SR-3 wrote only its barrier-log row.*
   specification as public literature (PROVENANCE). It does not open
   anything on the forbidden list, anything under the three spec-side
   folders, or any other synthesizer's firmware or MIDI code.
+- Later in the session:
+  - **fwtest 0.5.0 before its pin:** the published image of #84's merge
+    (digest from its fwtest-image run's log, already pulled), run as a
+    black box through `tools/fwtest` with `FWTEST_IMAGE`, as HARNESS.md
+    on main documents it (P-50); the pin is the spec side's (#91).
+  - **P-IDs:** to number its PROVENANCE entry, it read `PROVENANCE.md`
+    alone on the open spec branches of #92 and #93 through GitHub's
+    contents API (they take P-47 to P-49), and the file lists of #89,
+    #91, #92 and #93: file names only, among them a spec transcript's
+    and its redaction note's; no content shown or fetched, nothing under
+    the spec-side folders fetched.
+  - **The toolchain** built the firmware and its test images in the
+    build container, as before. Disk stayed between 4.5 and 4.8 GB free.
 
 ## Corrections
 

@@ -295,4 +295,8 @@ void midi_settings_default(struct midi_settings *s)
         s->cc[i].cc = i < n ? default_routes[i][0] : 0;
         s->cc[i].to = i < n ? default_routes[i][1] : MIDI_TO_NONE;
     }
+    s->out_channel = 1;
+    s->thru = 0;
+    s->local = 1;
+    s->reserved = 0;
 }

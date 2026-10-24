@@ -117,5 +117,33 @@ class MidiScriptsTest(unittest.TestCase):
         self.assertGreater(len(b) * ms.BYTE_MS / span, 0.99)
 
 
+class MidiOutTest(unittest.TestCase):
+    """Requirements: R-MIDIOUT-2, R-MIDIOUT-6"""
+
+    def test_knob_value_is_the_maps_inverse(self):
+        for k, (lo, hi) in enumerate(mm.KNOB_SPAN):
+            for p in range(lo, hi + 1):
+                v = mm.knob_value(k, p)
+                self.assertTrue(0 <= v <= 127)
+                self.assertEqual(mm.knob_offset(k, v), p, (k, p, v))
+            self.assertEqual((mm.knob_value(k, lo - 5), mm.knob_value(k, hi + 5)), (0, 127))
+            self.assertEqual(mm.knob_value(k, 0), 64)
+
+    def test_knob_spans_match_the_firmware(self):
+        with open(os.path.join(ROOT, "firmware", "src", "fm_play.c")) as f:
+            c = f.read()
+        spans = re.search(r"knob_span\[4\]\[2\] = \{(.*?)\};", c).group(1)
+        self.assertEqual(tuple(tuple(int(x) for x in re.findall(r"-?\d+", g)) for g in re.findall(r"\{([^{}]*)\}", spans)),
+                         mm.KNOB_SPAN)
+
+    def test_round_trip_script_is_midiouts_capture(self):
+        s = ms.midiround()
+        b = ms.stream(os.path.join(ms.SCRIPTS, "midiround.txt"))
+        with open(os.path.join(ROOT, "tests", "fw", "golden", "midiout", "midi-out.csv")) as f:
+            rows = [l.strip().split(",") for l in f][1:]
+        self.assertEqual([(round(float(t), 3), int(h, 16)) for t, h in rows], b)
+        self.assertTrue(s.lines)
+
+
 if __name__ == "__main__":
     unittest.main()

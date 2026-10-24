@@ -90,6 +90,16 @@ the suite through tools/fwtest (the pinned image), and then checks:
   heaviest input on all 16 voices, and checks that core 1 renders. The
   notes case plays test patch 0.
 
+- since M6b, MIDI out (R-MIDIOUT-*; the record at 0x01c00734, fwtest's
+  --midi-out): in every case the wire's timing, one run of bytes per
+  transfer of at most MIDI_OUT_CHUNK, whole messages, and a status after
+  the wire went quiet (midi_out_common); midiout's messages against its
+  script; midiround (midiout's golden capture into MIDI in) ends with
+  midiout's engine state and pitches; midithru passes on every message
+  but the SysEx, in order; midilocal plays nothing from the panel while
+  local control is off; midiburst's policy leaves no note on unended;
+  midioutlat's key-to-wire latency within MIDI_OUT_LATENCY_MS.
+
 Prints what it saw for the record, and exits 1 if anything failed.
 """
 import argparse
@@ -117,7 +127,8 @@ TEST_BUILDS = {"test-fault": "SB_TEST_FAULT", "test-stray": "SB_TEST_STRAY",
                "test-badinsn": "SB_TEST_BADINSN", "test-flood": "SB_TEST_FLOOD",
                "test-leds": "SB_TEST_LEDS", "test-ledshow": "SB_TEST_LED_SHOW",
                "test-underrun": "SB_TEST_UNDERRUN", "test-velocity": "SB_TEST_VELOCITY",
-               "test-midich": "SB_TEST_MIDI_CHANNEL"}
+               "test-midich": "SB_TEST_MIDI_CHANNEL", "test-midithru": "SB_TEST_MIDI_THRU",
+               "test-midiburst": "SB_TEST_MIDI_BURST"}
 # Each case's expected outcome (the suite says the same; checked twice).
 EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "completed",
           "screen": "completed", "flood": "completed", "fault": "halt", "stray": "halt",
@@ -129,7 +140,9 @@ EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "complete
           "fmvel": "completed", "fmgold": "completed", "fmgold2": "completed",
           "midimsg": "completed", "midirun": "completed", "midisysex": "completed",
           "midijunk": "completed", "mididense": "completed", "midisustain": "completed",
-          "midichan": "completed", "midipanel": "completed", "midilat": "completed"}
+          "midichan": "completed", "midipanel": "completed", "midilat": "completed",
+          "midiout": "completed", "midiround": "completed", "midithru": "completed",
+          "midilocal": "completed", "midiburst": "completed", "midioutlat": "completed"}
 
 MARKER = 0x44304253        # "SB0D", firmware/src/sb.h
 TICKS_PER_MS = 24000       # HW-13
@@ -1752,10 +1765,335 @@ def check_midilat(case_dir):
     return problems, lines
 
 
+# --- MIDI out (M6b; R-MIDIOUT-*) -----------------------------------------
+
+MIDI_OUT_ADDR, MIDI_OUT_LEN = 0x01c00734, 0x4c
+MIDI_OUT_FIELDS = ("marker", "queued", "merged", "dropped", "offs_dropped", "offs_lost", "waiting_max",
+                   "messages", "bytes", "running", "transfers", "polls_busy", "thru", "thru_sysex",
+                   "panel_notes", "panel_ccs", "panel_programs", "last_note_tick", "last_start_tick")
+MIDI_OUT_MARKER = 0x424F444D  # "MDOB", firmware/src/midi_out.h
+MIDI_OUT_CHUNK = 12           # the most bytes a transfer takes (midi_out.h)
+BYTE_MS = midi_scripts.BYTE_MS
+BLOCK_MS = 1000.0 * 64 * 544 / 24000000
+MIDI_OUT_LATENCY_MS = 6.5     # a panel key down to its note on's first start bit (R-MIDIOUT-8)
+ROUND_SEMI = 0.05             # a note's pitch, round trip against the panel's
+
+
+def midi_out_record(path):
+    with open(path, "rb") as f:
+        b = f.read()
+    return dict(zip(MIDI_OUT_FIELDS, struct.unpack("<%dI" % len(MIDI_OUT_FIELDS), b[:MIDI_OUT_LEN])))
+
+
+def midi_out_name(when="end"):
+    return "ram-%08x-%x-%s.bin" % (MIDI_OUT_ADDR, MIDI_OUT_LEN, when)
+
+
+def wire_bytes(path):
+    """midi-out.csv: [(ms, byte)], each byte's stop bit's end."""
+    with open(path) as f:
+        rows = [l.strip().split(",") for l in f][1:]
+    return [(float(ms), int(b, 16)) for ms, b in rows if ms]
+
+
+def wire_messages(wire):
+    """The messages on the wire, by the parser model's rules (running
+    status, realtime anywhere): [(ms of the last byte, (status, d1, d2,
+    length))], and the model."""
+    model = midi_model.Parser()
+    out = []
+    for t, b in wire:
+        n = len(model.log)
+        model.byte(b)
+        out += [(t, m) for m in model.log[n:]]
+    return out, model
+
+
+def wire_runs(wire):
+    """Bytes 320 us apart, one transfer each: [(first index, end index)]."""
+    runs, i = [], 0
+    while i < len(wire):
+        j = i + 1
+        while j < len(wire) and abs(wire[j][0] - wire[j - 1][0] - BYTE_MS) < 1e-6:
+            j += 1
+        runs.append((i, j))
+        i = j
+    return runs
+
+
+def midi_out_common(name, case_dir):
+    """Every MIDI out case (R-MIDIOUT-1, R-MIDIOUT-7): the wire's timing,
+    the transfers, running status and the record. Bytes never closer than
+    one byte time; each run of bytes back to back is one transfer of at
+    most MIDI_OUT_CHUNK bytes, as many runs as the firmware started
+    transfers (so it never started one while another ran: fwtest would
+    have sent it straight after, in the same run); the bytes it handed on
+    are those on the wire, none dropped; every byte makes whole messages
+    (no orphan, nothing cut short, no SysEx); and a message after a gap of
+    more than two blocks (the wire ran dry at a poll) carries its status.
+    Returns (problems, lines, record, [(ms, message)], wire)."""
+    problems, lines = [], []
+    with open(os.path.join(case_dir, "result.json")) as f:
+        run = json.load(f).get("run", {})
+    if run.get("midi_out_bytes_dropped"):
+        problems.append("%s: fwtest dropped %s MIDI out bytes (the UART was off)" % (name, run["midi_out_bytes_dropped"]))
+    r = midi_out_record(os.path.join(case_dir, midi_out_name()))
+    if r["marker"] != MIDI_OUT_MARKER:
+        return problems + ["%s: the MIDI out record's marker is 0x%08x" % (name, r["marker"])], lines, r, [], []
+    wire = wire_bytes(os.path.join(case_dir, "midi-out.csv"))
+    gaps = [b[0] - a[0] for a, b in zip(wire, wire[1:])]
+    if gaps and min(gaps) < BYTE_MS - 1e-6:
+        problems.append("%s: two bytes %.3f ms apart, under a byte's time" % (name, min(gaps)))
+    runs = wire_runs(wire)
+    longest = max([j - i for i, j in runs] or [0])
+    if longest > MIDI_OUT_CHUNK:
+        problems.append("%s: %d bytes back to back, more than one transfer takes (%d)" % (name, longest, MIDI_OUT_CHUNK))
+    if (len(runs), len(wire)) != (r["transfers"], r["bytes"]):
+        problems.append("%s: %d runs of %d bytes on the wire; the firmware started %d transfers of %d bytes"
+                        % (name, len(runs), len(wire), r["transfers"], r["bytes"]))
+    msgs, model = wire_messages(wire)
+    bad = {k: model.count[k] for k in ("orphans", "undefined", "cut", "sysex")}
+    if any(bad.values()) or model.status and model.data:
+        problems.append("%s: the wire holds broken messages: %s" % (name, bad))
+    if len(msgs) != r["messages"]:
+        problems.append("%s: %d messages on the wire, the firmware sent %d" % (name, len(msgs), r["messages"]))
+    quiet = [i for (i, _), (_, k) in zip(runs[1:], runs) if wire[i][0] - BYTE_MS - wire[k - 1][0] > 2 * BLOCK_MS]
+    stale = [wire[i][0] for i in quiet if wire[i][1] < 0x80]
+    if stale:
+        problems.append("%s: after the wire went quiet, a message without its status at %.3f ms" % (name, stale[0]))
+    lines.append("  midi out: %d bytes in %d transfers (longest %d), %d messages, %d status bytes left out, "
+                 "%d merged, %d dropped (%d note offs with them, %d lost), at most %d waiting"
+                 % (len(wire), len(runs), longest, len(msgs), r["running"], r["merged"], r["dropped"],
+                    r["offs_dropped"], r["offs_lost"], r["waiting_max"]))
+    return problems, lines, r, msgs, wire
+
+
+def out_notes(msgs):
+    """Note ons and offs on the wire as (ms, status's channel, note, velocity)."""
+    return [(t, m[0] & 15, m[1], m[2] if m[0] & 0xF0 == 0x90 else 0)
+            for t, m in msgs if m[0] & 0xF0 in (0x80, 0x90)]
+
+
+def notes_paired(name, msgs):
+    """Each note on has its note off after it, and no note off comes
+    without one: nothing left held at the far end."""
+    held, problems = set(), []
+    for _, ch, n, v in out_notes(msgs):
+        if v:
+            held.add((ch, n))
+        elif (ch, n) in held:
+            held.discard((ch, n))
+        else:
+            problems.append("%s: a note off for channel %d note %d, never on" % (name, ch + 1, n))
+    if held:
+        problems.append("%s: notes left on at the far end: %s" % (name, sorted(held)))
+    return problems
+
+
+def expect_messages(name, msgs, expected, lines):
+    """The messages on the wire, realtime left out, against expected (a
+    list of tuples, or of sets for messages whose order within a group is
+    the panel's scan order)."""
+    got = [m[:m[3] + 1] if m[3] else (m[0],) for _, m in msgs if m[0] < 0xF8]
+    i, problems = 0, []
+    for e in expected:
+        group = e if isinstance(e, set) else {e}
+        if sorted(got[i:i + len(group)]) != sorted(group):
+            problems.append("%s: message %d on the wire is %s, expected %s"
+                            % (name, i + 1, got[i:i + len(group)], sorted(group)))
+            return problems
+        i += len(group)
+    if i != len(got):
+        problems.append("%s: %d messages more than expected: %s" % (name, len(got) - i, got[i:i + 4]))
+    else:
+        lines.append("  the %d messages expected, in order" % len(got))
+    return problems
+
+
+def on_off(ch, note, vel=100):
+    return [(0x90 | ch, note, vel), (0x90 | ch, note, 0)]
+
+
+def knob_ccs(k, positions):
+    """Each knob position's controller value (the map's inverse,
+    midi_model.knob_value), only when it changes."""
+    out, last = [], None
+    for p in positions:
+        v = midi_model.knob_value(k, p)
+        if v != last:
+            out.append((0xB0, 16 + k, v))
+            last = v
+    return out
+
+
+def check_midiout(case_dir):
+    """What the panel sends (R-MIDIOUT-1 to R-MIDIOUT-3): the notes, the
+    knobs' controllers, program and mode changes, against what the script
+    does, and the capture against its golden files."""
+    problems, lines, a, _, _ = check_audio_common("midiout", case_dir)
+    more, l2, r, msgs, _ = midi_out_common("midiout", case_dir)
+    problems, lines = problems + more, lines + l2
+    expected = on_off(0, 53)
+    expected += [{(0x90, 60, 100), (0x90, 64, 100), (0x90, 67, 100)}, {(0x90, 60, 0), (0x90, 64, 0), (0x90, 67, 0)}]
+    expected += knob_ccs(0, range(1, 6)) + knob_ccs(1, range(-1, -4, -1)) + knob_ccs(2, range(-1, -11, -1))
+    expected += knob_ccs(3, range(1, 8)) + [(0xC0, 1), (0xC0, 2)] + on_off(0, 53 + 4 + 12)
+    expected += [(0xB0, 126, 1), (0xB0, 127, 0)] + knob_ccs(0, range(6, 36))[0:] + on_off(0, 53 + 2 + 12)
+    problems += expect_messages("midiout", msgs, expected, lines)
+    problems += notes_paired("midiout", msgs)
+    if r["running"] == 0:
+        problems.append("midiout: no status byte left out: the chord should use running status")
+    return problems, lines
+
+
+def check_midiround(case_dir):
+    """The round trip (R-MIDIOUT-6): midiout's golden MIDI out played into
+    MIDI in. Its script is that capture (tools/midi_scripts.py --check);
+    the parser takes every byte as the model does, and at the end the
+    engine has midiout's patch, mode and knobs; the notes played alone
+    have the pitch they had in midiout."""
+    problems, lines, a, _, wav = check_audio_common("midiround", case_dir)
+    more, l2, r, model = midi_common("midiround", case_dir)
+    problems, lines = problems + more, lines + l2
+    other = os.path.join(os.path.dirname(case_dir), "midiout")
+    fa, fb = fm_record(os.path.join(other, fm_name())), fm_record(os.path.join(case_dir, fm_name()))
+    keys = ("patch", "algorithm", "mono", "pitch_knob", "glide", "depth", "feedback", "notes")
+    diff = [k for k in keys if fa[k] != fb[k]]
+    if diff:
+        problems.append("midiround: the engine's %s differ from midiout's: %s against %s"
+                        % (", ".join(diff), [fb[k] for k in diff], [fa[k] for k in diff]))
+    else:
+        lines.append("  the engine at the end as midiout's: " + ", ".join("%s %d" % (k, fa[k]) for k in keys))
+    wa = None
+    if os.path.exists(os.path.join(other, "audio.wav")):
+        wa = (aa.read_wav(os.path.join(other, "audio.wav"))[1], aa.read_ipb(os.path.join(other, "ipb.csv")))
+    if wav is None or wa is None:
+        return problems + ["midiround: no audio.wav"], lines
+    ons = [t for t, d in midi_times("midiround", 0x90) if d[1]]
+    alone = [t for t in ons if all(abs(u - t) > 20 for u in ons if u != t)]
+    seen = []
+    for t in alone:
+        pa, _ = pitch_at(wa[0], wa[1], t + 10, t + 60)
+        pb, _ = pitch_at(wav[0], wav[1], t + 10, t + 60)
+        seen.append("%.2f/%.2f" % (pa or 0, pb or 0))
+        if pa is None or pb is None or abs(pa - pb) > ROUND_SEMI:
+            problems.append("midiround: the note at %.1f ms has pitch %s, midiout's %s" % (t, pb, pa))
+    lines.append("  notes alone, pitch midiout/midiround: " + ", ".join(seen))
+    return problems, lines
+
+
+def check_midithru(case_dir):
+    """MIDI thru (R-MIDIOUT-4): every message MIDI in received, but the
+    SysEx, goes out once and in order (the parser model's messages for
+    the script's bytes), the panel's on channel 2 once each, and nothing
+    else."""
+    problems, lines, a, _, _ = check_audio_common("midithru", case_dir)
+    more, l2, r, model = midi_common("midithru", case_dir)
+    problems, lines = problems + more, lines + l2
+    more, l2, o, msgs, _ = midi_out_common("midithru", case_dir)
+    problems, lines = problems + more, lines + l2
+    passed = [m for m in model.log if m[0] != 0xF0]
+    panel = [m for _, m in msgs if m[0] == 0x91]
+    thru = [m for _, m in msgs if m[0] != 0x91]
+    if thru != passed:
+        problems.append("midithru: %d messages passed on, %d received (SysEx left out); first difference at %s"
+                        % (len(thru), len(passed), next((i for i, (x, y) in enumerate(zip(thru, passed)) if x != y),
+                                                       min(len(thru), len(passed)))))
+    want = [(0x91, 53, 100, 2), (0x91, 53, 0, 2), (0x91, 55, 100, 2), (0x91, 55, 0, 2)]
+    if panel != want:
+        problems.append("midithru: the panel sent %s, expected %s" % (panel, want))
+    sysex = len(model.log) - len(passed)
+    if (o["thru"], o["thru_sysex"]) != (len(passed), sysex):
+        problems.append("midithru: the record says %d passed on and %d SysEx not; expected %d and %d"
+                        % (o["thru"], o["thru_sysex"], len(passed), sysex))
+    lines.append("  thru: %d messages passed on in order (%d realtime), %d SysEx not; the panel's %d once each"
+                 % (len(thru), sum(1 for m in thru if m[0] >= 0xF8), sysex, len(panel)))
+    return problems, lines
+
+
+def check_midilocal(case_dir):
+    """Local control (R-MIDIOUT-5): while off, the panel's keys, KNOB1 and
+    PRESETS go out but the engine plays no key and keeps its patch and
+    knobs (captured at 700 ms), while a MIDI note plays; on again, a key
+    plays with KNOB1's position taken up. The screen at 700 ms shows
+    "local off" (golden)."""
+    problems, lines, a, _, wav = check_audio_common("midilocal", case_dir)
+    more, l2, r, _ = midi_common("midilocal", case_dir)
+    problems, lines = problems + more, lines + l2
+    more, l2, o, msgs, _ = midi_out_common("midilocal", case_dir)
+    problems, lines = problems + more, lines + l2
+    expected = on_off(0, 53) + knob_ccs(0, range(1, 7)) + [(0xC0, 1), (0xC0, 2), (0xC0, 3)]
+    expected += on_off(0, 57) + on_off(0, 60)
+    problems += expect_messages("midilocal", msgs, expected, lines)
+    f = fm_record(os.path.join(case_dir, fm_name("700ms")))
+    if (f["patch"], f["pitch_knob"], f["notes"]) != (0, 0, 0):
+        problems.append("midilocal: with local control off the engine took patch %d, KNOB1 %d, %d notes"
+                        % (f["patch"], f["pitch_knob"], f["notes"]))
+    if wav is None:
+        return problems + ["midilocal: no audio.wav"], lines
+    x, ends = wav
+    starts = [aa.sample_ms(first, ends) for first, _ in sounds(x)]
+    if len(starts) != 2 or not 800 < starts[0] < 810 or not 1100 < starts[1] < 1110:
+        problems.append("midilocal: sounds start at %s ms; expected only the MIDI note (800) and the key (1100)"
+                        % ["%.1f" % u for u in starts])
+    p1, _ = pitch_at(x, ends, 820, 880)
+    p2, _ = pitch_at(x, ends, 1120, 1180)
+    lines.append("  sounds at %s ms; pitch %.2f (MIDI 67, KNOB1 not taken), %.2f (key 60 + KNOB1 6)"
+                 % (", ".join("%.1f" % u for u in starts), p1 or 0, p2 or 0))
+    if p1 is None or abs(p1 - 67) > ROUND_SEMI or p2 is None or abs(p2 - 66) > ROUND_SEMI:
+        problems.append("midilocal: pitches %s and %s, expected 67 and 66" % (p1, p2))
+    return problems, lines
+
+
+def check_midiburst(case_dir):
+    """A burst past the queue (R-MIDIOUT-7): the policy holds (the
+    controllers and bends merge, note ons past the room for them are
+    dropped with their note offs, no note off is lost), every note on the
+    wire ends, the wire's timing holds, and the panel's keys afterwards go
+    out within the latency bound: nothing wedged."""
+    problems, lines = [], []
+    more, l2, r, msgs, wire = midi_out_common("midiburst", case_dir)
+    problems, lines = problems + more, lines + l2
+    problems += notes_paired("midiburst", msgs)
+    ons = [n for _, ch, n, v in out_notes(msgs) if v and n >= 60]
+    if r["merged"] < 19 + 9 or r["offs_lost"] or not r["dropped"] or r["offs_dropped"] != 32 - len(ons):
+        problems.append("midiburst: %d merged, %d dropped, %d note offs dropped, %d lost, %d of 32 burst notes sent"
+                        % (r["merged"], r["dropped"], r["offs_dropped"], r["offs_lost"], len(ons)))
+    panel = [t for t, ch, n, v in out_notes(msgs) if v and n in (53, 55)]
+    keys = [1300, 1500]
+    late = [p - BYTE_MS * 3 - k for p, k in zip(panel, keys)]      # the note on's first start bit
+    if len(panel) != 2 or max(late) > MIDI_OUT_LATENCY_MS:
+        problems.append("midiburst: the panel's notes after the burst at %s ms" % panel)
+    lines.append("  burst: %d of its 32 notes sent, each ended; the panel's 2 keys after it sent" % len(ons))
+    return problems, lines
+
+
+def check_midioutlat(case_dir):
+    """Latency (R-MIDIOUT-8): from each key going down (the script's time)
+    to its note on's first byte starting on the wire (midi-out.csv's stop
+    bit time less one byte time), within MIDI_OUT_LATENCY_MS."""
+    problems, lines, a, _, _ = check_audio_common("midioutlat", case_dir)
+    more, l2, r, msgs, wire = midi_out_common("midioutlat", case_dir)
+    problems, lines = problems + more, lines + l2
+    keys = [100 + 150 * i for i in range(20)]
+    firsts = [t - BYTE_MS for t, b in wire if b == 0x90]
+    ons = [t for t, ch, n, v in out_notes(msgs) if v]
+    if len(ons) != 20 or len(firsts) < 20:
+        return problems + ["midioutlat: %d note ons on the wire for 20 keys" % len(ons)], lines
+    starts = [next(f for f in firsts if f >= k) for k in keys]
+    lat = [s - k for s, k in zip(starts, keys)]
+    lines.append("  latency, key down to the note on's first start bit: %.3f to %.3f ms, mean %.3f (bound %.1f)"
+                 % (min(lat), max(lat), sum(lat) / len(lat), MIDI_OUT_LATENCY_MS))
+    if max(lat) > MIDI_OUT_LATENCY_MS:
+        problems.append("midioutlat: latency up to %.3f ms, bound %.1f" % (max(lat), MIDI_OUT_LATENCY_MS))
+    return problems, lines
+
+
 MIDI_CHECKS = {"midimsg": check_midimsg, "midirun": midi_only("midirun"),
                "midisysex": midi_only("midisysex"), "midijunk": midi_only("midijunk", last_only=True),
                "mididense": check_mididense, "midisustain": check_midisustain,
-               "midichan": check_midichan, "midipanel": check_midipanel, "midilat": check_midilat}
+               "midichan": check_midichan, "midipanel": check_midipanel, "midilat": check_midilat,
+               "midiout": check_midiout, "midiround": check_midiround, "midithru": check_midithru,
+               "midilocal": check_midilocal, "midiburst": check_midiburst, "midioutlat": check_midioutlat}
 
 
 AUDIO_CHECKS = {"tone": check_tone, "notes": check_notes, "audioload": check_audioload,

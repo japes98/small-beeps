@@ -9,7 +9,8 @@
  * that only what events changed is redrawn and only those rows are sent,
  * since M5 in frames, within a drawing budget (below). Since M6a the
  * keyboard also shows, in cyan, the notes MIDI holds, and the event line
- * MIDI's notes as they come.
+ * MIDI's notes as they come. Since M6b the bottom line shows MIDI out's
+ * settings: the out channel, thru and local control.
  * tools/fw-suite.py checks it against golden images; the layout here and
  * the goldens go together.
  */
@@ -41,6 +42,7 @@
 #define LOWER_H  52u
 #define RAISED_H 30u
 #define EVENT_Y  190u
+#define MIDI_Y   222u   /* below the heartbeat (screen.c, rows 200 to 215) */
 
 static const char button_names[14][5] = {
     "OCT-", "OCT+", "FX", "SEL", "ENV", "LFO", "EDIT", "GLO",
@@ -224,6 +226,36 @@ static void midi_line(u32 m)
     pad(b, n);
 }
 
+/* "MIDI out ch <n>  thru <on|off>  local <on|off>" (since M6b), and
+ * what it showed, to see when the settings change. */
+static u32 settings_shown;
+
+static u32 settings_now(void)
+{
+    return midi_settings.out_channel | (u32)midi_settings.thru << 8 | (u32)midi_settings.local << 9;
+}
+
+static u32 put(char *b, u32 n, const char *t)
+{
+    while (*t)
+        b[n++] = *t++;
+    return n;
+}
+
+static void draw_settings(void)
+{
+    char b[41];
+    u32 n;
+
+    settings_shown = settings_now();
+    n = put(b, 0, "MIDI out ch ");
+    n += decimal(&b[n], midi_settings.out_channel, 0);
+    n = put(b, n, midi_settings.thru ? "  thru on" : "  thru off");
+    n = put(b, n, midi_settings.local ? "  local on" : "  local off");
+    pad(b, n);
+    gfx_text(4, MIDI_Y, b, WHITE, BLACK, 1);
+}
+
 static void draw_all(void)
 {
     u32 i;
@@ -237,6 +269,7 @@ static void draw_all(void)
         draw_knob(i);
     }
     draw_keys();
+    draw_settings();
     screen_beat_all();
 }
 
@@ -253,6 +286,7 @@ static void draw_all(void)
 #define ITEM_KEYS  (1u << 14)    /* bits 0 to 13: the buttons */
 #define ITEM_KNOB0 15u           /* bits 15 to 22: the knobs in screen order */
 #define ITEM_EVENT (1u << 23)
+#define ITEM_MIDI  (1u << 24)    /* MIDI out's settings (M6b) */
 
 static u32 dirty, in_frame, frame_beat, draw_block, spent;
 
@@ -271,9 +305,12 @@ static void draw_item(u32 bit)
         lcd_send_rows(y, FONT_H);
         if (knob_order[bit - ITEM_KNOB0] == INPUT_MASTER)
             lcd_send_rows(BAR_Y, 6);
-    } else {
+    } else if (bit == 23) {
         draw_line();
         lcd_send_rows(EVENT_Y, FONT_H);
+    } else {
+        draw_settings();
+        lcd_send_rows(MIDI_Y, FONT_H);
     }
 }
 
@@ -364,6 +401,8 @@ void panel_serve(void)
         else
             dirty |= ITEM_KEYS | ITEM_EVENT;
     }
+    if (shown && settings_now() != settings_shown)
+        dirty |= ITEM_MIDI;
     if (dirty)
         draw_frame();
 }

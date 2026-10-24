@@ -12,7 +12,8 @@
  * which sets every LED to its own brightness (R-LED-2), and
  * SB_TEST_LED_SHOW, whose scan times when it first drives an LED just set
  * (input.c; R-LED-3), and SB_TEST_UNDERRUN, whose engine is late for a
- * block on purpose (R-AUD-3). The firmware itself
+ * block on purpose (R-AUD-3), and SB_TEST_MIDI_BURST, which queues more
+ * MIDI out than the queue holds, in one block (R-MIDIOUT-4). The firmware itself
  * is built with none, and then nothing here is compiled.
  */
 
@@ -178,5 +179,35 @@ void sb_test_late_block(s32 *out, u32 frames)
     if (sb_audio.blocks % 64 == 32)
         for (i = 0; i < 105000; i++)
             ;
+}
+#endif
+
+#if defined(SB_TEST_MIDI_BURST)
+#include "midi.h"
+#include "midi_out.h"
+
+/* In one block, about a second in: 16 note ons, 20 moves of one
+ * controller and 10 pitch bends (which merge), 16 more note ons (past the
+ * queue's room for anything but note offs), then all 32 note offs (past
+ * even the reserve). tools/fw-suite.py checks that every note sent ends
+ * and that the panel's keys are sent again after. */
+#define BURST_BLOCK 700u
+
+void sb_test_midi_burst(void)
+{
+    u32 n;
+
+    if (sb_audio.blocks != BURST_BLOCK)
+        return;
+    for (n = 0; n < 16; n++)
+        midi_out_channel(MIDI_NOTE_ON, 60 + n, 100);
+    for (n = 0; n < 20; n++)
+        midi_out_channel(MIDI_CC, 16, n * 6);
+    for (n = 0; n < 10; n++)
+        midi_out_channel(MIDI_BEND, n * 1000 & 0x7Fu, n * 1000 >> 7);
+    for (n = 16; n < 32; n++)
+        midi_out_channel(MIDI_NOTE_ON, 60 + n, 100);
+    for (n = 0; n < 32; n++)
+        midi_out_channel(MIDI_NOTE_ON, 60 + n, 0);
 }
 #endif

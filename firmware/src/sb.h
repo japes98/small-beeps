@@ -186,5 +186,9 @@ void sb_test_leds(void);
 #if defined(SB_TEST_UNDERRUN)
 void sb_test_late_block(s32 *out, u32 frames);
 #endif
+#if defined(SB_TEST_MIDI_BURST)
+/* Queues a burst of MIDI out in one block (M6b). */
+void sb_test_midi_burst(void);
+#endif
 
 #endif
