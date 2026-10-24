@@ -38,7 +38,10 @@ whose halves write one register, and each uses the head's value next.
 ## What the patch does
 
 Both commit loops (`step` and `exec_fast_paired`) commit every register
-the head changed, over the second half's write. A head that leaves a
+the head changed, over the second half's write. The JIT needs nothing: the
+block builder glues a pair into compiled code only when the head's writes
+miss the second half's reads and writes, so a pair whose halves write one
+register always takes those two paths, with the JIT on or off. A head that leaves a
 register's value as it was can't be told from one that didn't write it;
 then the second half's value stays. Crate test
 `pair_head_wins_over_its_second_half`; fwtest's harness test of the same
