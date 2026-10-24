@@ -1629,11 +1629,27 @@ def check_midimsg(case_dir):
     return problems, lines
 
 
-def midi_only(name):
+def midi_only(name, last_only=False):
+    """A parser case: midi_common's checks, and the notes after the junk
+    sound: each note on (or, after random junk, only the last) has sound
+    within MIDI_LATENCY_MS of its last byte."""
     def check(case_dir):
-        problems, lines, a, _, _ = check_audio_common(name, case_dir)
+        problems, lines, a, _, wav = check_audio_common(name, case_dir)
         more, l2, r, model = midi_common(name, case_dir)
-        return problems + more, lines + l2
+        problems, lines = problems + more, lines + l2
+        if wav is None:
+            return problems + ["%s: no audio.wav" % name], lines
+        x, ends = wav
+        ons = [t for t, d in midi_times(name, 0x90) if d[1]]
+        if last_only:
+            ons = ons[-1:]
+        silent = [t for t in ons
+                  if not any(x[i] for i in range(len(x)) if t <= aa.sample_ms(i, ends) <= t + MIDI_LATENCY_MS)]
+        if silent:
+            problems.append("%s: no sound within %.1f ms of the note ons at %s ms"
+                            % (name, MIDI_LATENCY_MS, ", ".join("%.2f" % t for t in silent)))
+        lines.append("  %d note ons checked: each sounds within %.1f ms" % (len(ons), MIDI_LATENCY_MS))
+        return problems, lines
     return check
 
 
@@ -1737,7 +1753,7 @@ def check_midilat(case_dir):
 
 
 MIDI_CHECKS = {"midimsg": check_midimsg, "midirun": midi_only("midirun"),
-               "midisysex": midi_only("midisysex"), "midijunk": midi_only("midijunk"),
+               "midisysex": midi_only("midisysex"), "midijunk": midi_only("midijunk", last_only=True),
                "mididense": check_mididense, "midisustain": check_midisustain,
                "midichan": check_midichan, "midipanel": check_midipanel, "midilat": check_midilat}
 
