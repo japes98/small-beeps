@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range de7e3f8dac0af63ebc949e467fe43f5201221e57..8f80b875b420812eb4be33415d6f19029736df98
+OK     558efca3bbbb docs: session midi-in-out starts; emulator-parity's transcript archived
+EXEMPT 8f80b875b420 (merge) Merge pull request #80 from japes98/spec/session-start
+2 commit(s) checked: PASS
+
+exit status 0
