@@ -9,7 +9,7 @@ runs without the JIT.
 
 The F-Emulator app's patch (its 0005, emulator-patches.md section D),
 taken unchanged: the added and removed lines are the app's, byte for
-byte. Licensed MIT for this repository by the owner (PROVENANCE P-37).
+byte. Licensed MIT for this repository by the owner (PROVENANCE P-39).
 
 Its crate test ram_block_sees_patched_code re-enters a RAM block after a
 store patched it, interpreted and with the JIT. fwtest's outputs are

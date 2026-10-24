@@ -22,7 +22,7 @@ SPDX-FileCopyrightText: 2026 japes98
   sparse checkout of exactly those paths) and checked by
   `tools/fetch-emulator.sh --verify` (C-EMU-PIN): every file against
   `SHA256SUMS`, whose own SHA-256 (the tree hash) is
-  `0553473ab8b76fe289c0c4c7609ed3ade622a5f4510b185b099cfdcb7bfd4a29`.
+  `bed3ada67b045ea669041dc6195878fa3554cea6054a0566af07d17ea1d3bf4d`.
 - Provenance: PROVENANCE.md P-7. Exposure: docs/EXPOSURE.md (session M0b).
 
 ## Patches
@@ -61,7 +61,7 @@ Applied in file-name order by the fetch script, after checkout:
 - `patches/0004-pair-heads-without-a-table-class.patch` (session
   emulator-parity, 2026-10-24; the F-Emulator app's 0003, taken with its
   added and removed lines unchanged, licensed MIT here by the owner,
-  PROVENANCE P-37): `crates/fm1-core/src/lib.rs`. A 4-byte ALU word that no
+  PROVENANCE P-39): `crates/fm1-core/src/lib.rs`. A 4-byte ALU word that no
   table class fits and the fallback decoder takes (`decode_any`'s
   `decode_alu4` arm), with byte 1 `f0` / `f1`, a dual-issue pair's head,
   ran unpaired: the pair's second half saw the new value. It now decodes
@@ -83,13 +83,13 @@ Applied in file-name order by the fetch script, after checkout:
   `push_pop_any_register_list` fails without it. Upstream report:
   `harness/upstream/fm1-emu-undecoded-forms.md`.
 - `patches/0007-peripherals-before-memories.patch` (emulator-parity; the
-  app's 0004, unchanged, P-37): `crates/fm1-soc/src/lib.rs`, speed only:
+  app's 0004, unchanged, P-39): `crates/fm1-soc/src/lib.rs`, speed only:
   `Soc::region` sends addresses below 16 MB to `region_low` first. Its
   crate test `region_is_what_it_was` compares it with the old function
   (the test's copy is the old one exactly, whitespace aside) at every
   address below 0x04200000 and a sweep above.
 - `patches/0008-ram-blocks-by-write-count.patch` (emulator-parity; the
-  app's 0005, unchanged, P-37): `crates/fm1-core/src/lib.rs` and
+  app's 0005, unchanged, P-39): `crates/fm1-core/src/lib.rs` and
   `crates/fm1-soc/src/lib.rs`, speed only: `ram_block_ok` trusts the bus's
   `code_writes` count on every build, not only wasm. Checked: `Ram`'s bytes
   are private and all four of its write methods count; the only raw pointer

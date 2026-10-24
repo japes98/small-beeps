@@ -4,7 +4,7 @@ No address reaches anything different.
 
 The F-Emulator app's patch (its 0004, emulator-patches.md section C),
 taken unchanged: the added and removed lines are the app's, byte for
-byte. Licensed MIT for this repository by the owner (PROVENANCE P-37).
+byte. Licensed MIT for this repository by the owner (PROVENANCE P-39).
 
 Its crate test region_is_what_it_was compares the new lookup with the
 old one (copied into the test exactly as it is at our base, whitespace

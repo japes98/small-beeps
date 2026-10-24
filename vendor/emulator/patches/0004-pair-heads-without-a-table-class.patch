@@ -7,7 +7,7 @@ saw the new value, not the old. Such words now decode as a pair head
 The F-Emulator app's patch (its 0003, emulator-patches.md section A),
 taken unchanged: the added and removed lines are the app's, byte for
 byte, with only the line offsets refreshed for our 0003. Licensed MIT
-for this repository by the owner (PROVENANCE P-37).
+for this repository by the owner (PROVENANCE P-39).
 
 Behaviour from the vendor toolchain: its objdump prints every f0 / f1
 twin of these families with the trailing `#` that marks a pair's head,

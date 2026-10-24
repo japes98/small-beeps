@@ -21,7 +21,7 @@ Both build on `43ed5580064885e93bc8d20be931ae950d10cd4f` (main on
 
 fwtest's patches are `vendor/emulator/patches/`, applied in order by
 `tools/fetch-emulator.sh`. The app's are its own branch, numbered as its
-patch notes (`emulator-patches.md`, from the owner; PROVENANCE P-37) number
+patch notes (`emulator-patches.md`, from the owner; PROVENANCE P-39) number
 them, against upstream with fwtest's 0001 and 0002.
 
 | fwtest | App | What | Kind | fwtest | App |
@@ -50,7 +50,7 @@ three need nothing newer than the Rust the app builds with.
 
 ## How each was checked
 
-- **0004 (the pair heads).** From the vendor toolchain (PROVENANCE P-38):
+- **0004 (the pair heads).** From the vendor toolchain (PROVENANCE P-40):
   its disassembler prints the second twin of each of these forms (byte 1
   `f0` / `f1`) as a pair's head, and the compiler's own code for our
   firmware relies on a pair's second half seeing the registers as they

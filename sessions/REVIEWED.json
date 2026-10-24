@@ -1024,6 +1024,34 @@
       "rule": "F-8",
       "reason": "`git add` of our own files and `git commit -F -` from a heredoc: the commit message describes the separation check (its emulator-term list, and that it skips in a clean folder with no vendor/emulator/). Text only; nothing was opened or listed.",
       "added_by": "session M5 (clean side, claude-opus-5-5), 2026-10-23"
+    },
+    {
+      "session": "22963a4d-60e7-4c81-8b7c-1a7d8155032a",
+      "tool_use_id": "toolu_01XWvAKubawScEtnuTZwPvDc",
+      "rule": "F-11",
+      "reason": "A heredoc writing a pull request body to the job's temp folder (M5's start PR): it says sessions/spec/ was not opened and lists REVIEWED.json entries. Text only; nothing was opened, listed or fetched.",
+      "added_by": "session M6a (clean side, claude-opus-5-5), 2026-10-24"
+    },
+    {
+      "session": "22963a4d-60e7-4c81-8b7c-1a7d8155032a",
+      "tool_use_id": "toolu_016A9nRHJqyV17tq7ZPK19rL",
+      "rule": "F-9",
+      "reason": "`git stash`, `git checkout -b` from origin/main and a heredoc appending spec request SR-7 to docs/SPEC-REQUESTS.md; the text names fwtest, the harness, as the subject of the request. Text only; nothing under harness/ was opened or listed.",
+      "added_by": "session M6a (clean side, claude-opus-5-5), 2026-10-24"
+    },
+    {
+      "session": "22963a4d-60e7-4c81-8b7c-1a7d8155032a",
+      "tool_use_id": "toolu_0117tCNBAZrM1qbN5KEv321q",
+      "rule": "F-9",
+      "reason": "A heredoc writing SR-7's pull request body and `gh pr create`: the text describes a harness gap in general terms. Text only; nothing under harness/ was opened or listed.",
+      "added_by": "session M6a (clean side, claude-opus-5-5), 2026-10-24"
+    },
+    {
+      "session": "22963a4d-60e7-4c81-8b7c-1a7d8155032a",
+      "tool_use_id": "toolu_013dqTqyJpSDYLHatPWKov4d",
+      "rule": "F-9",
+      "reason": "A commit message heredoc for SR-7, `git add docs/SPEC-REQUESTS.md`, `git commit` and `git push`: the message calls it a harness gap. Text only; nothing under harness/ was opened or listed.",
+      "added_by": "session M6a (clean side, claude-opus-5-5), 2026-10-24"
     }
   ]
 }

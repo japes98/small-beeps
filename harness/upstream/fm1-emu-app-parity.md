@@ -7,7 +7,7 @@ SPDX-FileCopyrightText: 2026 japes98
 
 For the owner, to apply in the app (and, where marked, to file upstream).
 Spec side only. Session emulator-parity, 2026-10-24, against the app's
-patch notes as the owner dropped them (PROVENANCE P-37) and upstream
+patch notes as the owner dropped them (PROVENANCE P-39) and upstream
 `43ed5580064885e93bc8d20be931ae950d10cd4f`. docs/EMULATOR-PARITY.md has
 the whole table.
 
