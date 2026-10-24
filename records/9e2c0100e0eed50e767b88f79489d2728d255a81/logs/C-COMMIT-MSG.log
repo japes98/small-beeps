@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 6d6061337587f3aeef61d66e25f601c4b5337ba8..9e2c0100e0eed50e767b88f79489d2728d255a81
+OK     1334c27547c0 docs: spec request SR-8, the MIDI input's UART and fwtest's model
+EXEMPT 513ee8ea4b8e (merge) docs: merge main into SR-8, after #75
+EXEMPT 9e2c0100e0ee (merge) Merge pull request #76 from japes98/m6a/sr-8
+3 commit(s) checked: PASS
+
+exit status 0
