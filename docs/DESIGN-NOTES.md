@@ -2053,9 +2053,14 @@ erases half done (29 images). Every image holds the old patch or the new
 and nothing else changed, and the shipping image starts from each one,
 finds what `tools/store.py` finds, and saves again. The busy test build
 makes each erase take 12 ms and each page program 3 ms, the part's
-longest (HW-77; an earlier run at 400 ms an erase passed too); three
-saves under the heaviest panel load still leave no underrun and every
-tick within 2 time base ticks.
+longest (HW-77; an earlier run at 400 ms an erase passed too). Under
+audioload's input (test patch 6 on all 16 voices, core 0 at 82 000
+instructions a block on average), SAVE held three times makes the keys it
+strikes meanwhile save to their slots: 24 saves, one of them erasing a
+sector (18 ms), and still no underrun, the longest fill 419 us of a
+1 451 us block, and every tick within 2 time base ticks. The screen's
+event line after a save, a refused save and a reset is checked against
+golden images.
 
 #### Open (SR-9's open questions)
 - **Q-21, the part:** read on a unit; the ID check above refuses to write

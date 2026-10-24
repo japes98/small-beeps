@@ -872,11 +872,15 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     half done), each the store model's image exactly, each started from
     and saved again; a damaged record, garbage, an unknown kind; no
     free sector (refused, nothing written); 36 saves wearing the ring in
-    order; version 1 settings migrated; saves under the heaviest load
-    with the part's longest erase and program times, and with the
-    firmware's own image erased: no underrun, every tick on time.
-  - **Figures** (fwtest 0.5.0): a compacting save 0.6 ms in fwtest (its
-    chip is never busy), 95 ms with the part's longest times; start-up
+    order; version 1 settings migrated; 24 saves under audioload's input
+    (core 0 at 82 000 instructions a block on average), with the part's
+    longest erase and program times, and with the firmware's own image
+    erased: no underrun, every tick on time. The screen's message after a
+    save, a refused save and a reset: golden images.
+  - **Figures** (fwtest 0.5.0): a save that takes a new sector and copies
+    17 records 0.6 ms in fwtest (its chip is never busy), 95 ms with the
+    part's longest times; one that erases a sector and copies one record,
+    18 ms; start-up
     reads an empty store in 20 us, a full one in 5.8 ms. At rest
     1 877.1 instructions a block (+0.7%), loaded 107 136.9 (-2.8%);
     code 24 188 bytes (+4 044), static RAM 180 784 (with the 24 068
