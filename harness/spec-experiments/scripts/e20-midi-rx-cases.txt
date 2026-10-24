@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+# E-20: two bytes in each of phases A and B, six in C and in D.
+1   midi 90 3c
+2.5 midi 01 02
+4.5 midi 10 11 12 13 14 15
+8   midi a0 a1 a2 a3 a4 a5
