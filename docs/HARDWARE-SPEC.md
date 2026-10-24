@@ -22,7 +22,7 @@ fwtest part for M3. Session SR-4-6 (spec side, 2026-10-23) added section 14
 for SR-5 and SR-6, answered in part (open: Q-16 to Q-18). Session SR-7
 (spec side, 2026-10-24) added section 15 for SR-7 (open: Q-19). Session
 midi-in-out (spec side, 2026-10-24) added section 16 for SR-8, answered in
-part (open: Q-12).
+part (open: Q-12), and section 17 for MIDI output (open: Q-20).
 
 ## How to read it
 
@@ -58,7 +58,7 @@ least significant. Register names are the JieLi SDK's.
 | RE | AL-255/FM-1-RE (GitHub, WTFPL), commit `ec832f281ca165a7d5e0722985f3acb1465046d5`: its hardware and boot documents `docs/reversing/01-hardware-map.md`, `docs/io/01-boot.md`, `docs/io/03-audio-dac.md`, `docs/io/08-display.md`, `docs/io/09-storage.md` (PROVENANCE P-9); since SR-8 also `docs/io/05-midi.md`, `docs/io/06-usb.md` and `docs/reversing/04-subsystems.md` (PROVENANCE P-41). Only their hardware facts are used here. |
 | DS | Sitronix ST7789V datasheet, version 1.3 (2014-03), 316 pages, from `https://www.newhavendisplay.com/appnotes/datasheets/LCDs/ST7789V.pdf`, SHA-256 `8ecf0e43…5d04ca1` (PROVENANCE P-11). Page numbers as printed. |
 | PANEL | The FM-1's printed panel labels, from two sources that agree: the owner's screenshot of the F-Emulator app's panel with its default labels, `docs/sources/panel-app-default-labels.png` (secondary: the app's drawing of the panel); and M-VAVE's product photo of the FM-1, `https://www.m-vave.com/images/products/fm-1.webp` on `https://www.m-vave.com/product.html?id=fm-1`, accessed 2026-10-22, SHA-256 `e610a746…df14b95`, not copied into this repository (PROVENANCE P-12). Only the printed labels are taken from them. The owner chose these two sources. |
-| MAN | M-VAVE's user manual for the FM-1, the English part (pages 1-12) of `https://m.media-amazon.com/images/I/A1WOydif9HL.pdf`, SHA-256 `69bfea10…8b715da`, accessed 2026-10-24, not copied into this repository (PROVENANCE P-41). Only what it says about the connections is used. |
+| MAN | M-VAVE's user manuals: the FM-1's, the English part (pages 1-12) of `https://m.media-amazon.com/images/I/A1WOydif9HL.pdf`, SHA-256 `69bfea10…8b715da`, accessed 2026-10-24 (PROVENANCE P-41); the SMK-37 Pro's, as `https://www.manualslib.com/manual/4132288/M-Vave-Smk-37-Pro.html` shows it, accessed 2026-10-24 (PROVENANCE P-42). Neither copied into this repository. Only what they say about the connections is used. |
 | TC | The pinned JieLi toolchain (PROVENANCE P-1, P-36): its assembler and disassembler (clang's integrated assembler and `objdump`), and the code its compiler emits for C whose meaning is known. It is the vendor's compiler for this CPU, so how its code uses an instruction says what the instruction does; it carries no documents. |
 | HARNESS | docs/HARNESS.md, fwtest's manual. It is the spec side's own description of fwtest, so it never confirms an entry on its own. |
 | E-n | A spec-side black-box experiment: a small image run in fwtest (the pinned image, `config/fwtest-image`). Its result is stated in the entry. C-SPEC-EXPERIMENTS re-runs every one in CI, so a cited result that stops holding fails CI. |
@@ -1265,6 +1265,58 @@ requests.
 - Standing: confirmed (E-19, E-20)
 - Needed by: M6a (SR-8)
 
+## 17. MIDI output (M6b)
+
+### HW-72: The SMK-37's MIDI OUT, and the FM-1's
+- Fact: M-VAVE's SMK-37 Pro, the FM-1's sibling keyboard, has a 3.5 mm
+  MIDI OUT jack on its rear panel. It reaches an external device's MIDI IN
+  through a 3.5 mm-to-MIDI adapter, so it carries serial MIDI: the MIDI 1.0
+  wire format, a current loop at 31 250 baud, each byte one start bit,
+  eight data bits from the least significant, one stop bit, no parity. It
+  also sends MIDI over USB (a class-compliant device) and Bluetooth LE. So
+  its MIDI OUT is a UART's transmit side, not USB or Bluetooth. The FM-1
+  has no MIDI OUT jack (HW-67). Which UART and pin drive the SMK-37's jack,
+  and how its TRS socket is wired (type A or B), the sources don't say
+  (Q-20). Whether the SMK-37 has the FM-1's chip, the allowed sources don't
+  say either: the emulator runs the SMK-37's own firmware on the FM-1's
+  chip with a different panel, which is the emulator's view only.
+- Sources: MAN (the SMK-37 Pro's manual, English part p. 3, "MIDI OUT":
+  a 3.5 mm to MIDI adapter to an external device's MIDI In; Chinese part
+  p. 15, USB MIDI, class-compliant; p. 16, Bluetooth; p. 17, the rear
+  panel's MIDI output port); the MIDI 1.0 specification (the wire format);
+  the emulator model (the SMK-37 board).
+- Standing: confirmed (MAN)
+- Needed by: M6b (MIDI out)
+
+### HW-73: The UARTs' transmit side, and UART1's on the FM-1
+- Fact: Each UART (HW-68) transmits as well as receives, the two sides
+  independent: `BUF` for a byte at a time, and a transmit DMA from RAM,
+  `TXADR` the start address and `TXCNT` (write-only) the number of bytes,
+  written last. The SDK's example keeps a DMA transmit buffer 4-byte
+  aligned. The SDK's own byte-at-a-time output, on UART2, sends only while
+  `CON0` bit 0 (the UART on) is set: it clears the transmit pending by
+  writing `CON0` bit 13, writes the byte to `BUF`, and waits until `CON0`
+  bit 15 (transmit pending) is set, which means the byte has gone. On the
+  FM-1, FM-1's own firmware sends MIDI bytes through UART1's
+  transmit DMA (`TXADR` then `TXCNT`), the UART that receives the MIDI IN
+  jack, although the FM-1 has no MIDI OUT jack. So a MIDI output on UART1
+  shares the input's UART, its baud rate and its clock. UART1's transmit
+  pin is one of PH6, PC3, PB3 or a USB pin in its fixed pairs, or any pin
+  through an output channel of `JL_IOMAP` (HW-68); which, if any, the
+  FM-1's board connects, the sources don't say (Q-20).
+- Sources: SDK `WL82.h` lines 569-591 (`TXADR`, `TXCNT`, `BUF`); SDK
+  `include_lib/driver/device/uart.h` (transmit by DMA, the transmit
+  interrupt that can be left off, the transmit pin); SDK
+  `cpu/wl82/debug.c` lines 390-404 (`CON0` bits 0, 13 and 15, a byte by
+  `BUF`); SDK
+  `apps/common/example/peripheral/uart/uart_test.c` (the DMA transmit
+  buffer 4-byte aligned); SDK `include_lib/driver/cpu/wl82/asm/uart.h` (the
+  pin pairs, transmit first); RE `docs/io/05-midi.md` §1 and §2.1 (FM-1's
+  firmware writes UART1's transmit address and count to send MIDI; the
+  transmit pending acknowledged with `0x2000`).
+- Standing: confirmed (SDK, RE)
+- Needed by: M6b (MIDI out)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -1391,3 +1443,14 @@ spec request can turn one into a fact.
   in its list, and what an empty list does (HW-66). The toolchain's
   compiler was not seen to emit them. Settled by a probe on real
   hardware.
+- **Q-20. MIDI output on the chip.** Which UART and pin drive the
+  SMK-37's MIDI OUT jack, and its port set-up (fixed pin pair or an output
+  channel of `JL_IOMAP`; drive); how its TRS socket is wired (type A or B);
+  whether the SMK-37 has the FM-1's chip; whether the FM-1's board brings
+  UART1's transmit pin anywhere; which `CON0` bit enables the transmit
+  interrupt; whether, after a DMA, the pending means the transfer has been
+  read from RAM or the last stop bit has left the pin; whether the
+  transmit DMA needs a 4-byte aligned address or length; what writing
+  `TXCNT` does while a transfer is still going; how `BUF` and the DMA mix.
+  Settled by a datasheet or a probe on real hardware (an SMK-37 and an
+  FM-1).
