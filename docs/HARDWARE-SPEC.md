@@ -1293,8 +1293,11 @@ requests.
   independent: `BUF` for a byte at a time, and a transmit DMA from RAM,
   `TXADR` the start address and `TXCNT` (write-only) the number of bytes,
   written last. The SDK's example keeps a DMA transmit buffer 4-byte
-  aligned. A transmit pending flag in `CON0` is cleared by writing bit 13
-  (HW-69). On the FM-1, FM-1's own firmware sends MIDI bytes through UART1's
+  aligned. The SDK's own byte-at-a-time output, on UART2, sends only while
+  `CON0` bit 0 (the UART on) is set: it clears the transmit pending by
+  writing `CON0` bit 13, writes the byte to `BUF`, and waits until `CON0`
+  bit 15 (transmit pending) is set, which means the byte has gone. On the
+  FM-1, FM-1's own firmware sends MIDI bytes through UART1's
   transmit DMA (`TXADR` then `TXCNT`), the UART that receives the MIDI IN
   jack, although the FM-1 has no MIDI OUT jack. So a MIDI output on UART1
   shares the input's UART, its baud rate and its clock. UART1's transmit
@@ -1304,6 +1307,8 @@ requests.
 - Sources: SDK `WL82.h` lines 569-591 (`TXADR`, `TXCNT`, `BUF`); SDK
   `include_lib/driver/device/uart.h` (transmit by DMA, the transmit
   interrupt that can be left off, the transmit pin); SDK
+  `cpu/wl82/debug.c` lines 390-404 (`CON0` bits 0, 13 and 15, a byte by
+  `BUF`); SDK
   `apps/common/example/peripheral/uart/uart_test.c` (the DMA transmit
   buffer 4-byte aligned); SDK `include_lib/driver/cpu/wl82/asm/uart.h` (the
   pin pairs, transmit first); RE `docs/io/05-midi.md` §1 and §2.1 (FM-1's
@@ -1442,9 +1447,9 @@ spec request can turn one into a fact.
   SMK-37's MIDI OUT jack, and its port set-up (fixed pin pair or an output
   channel of `JL_IOMAP`; drive); how its TRS socket is wired (type A or B);
   whether the SMK-37 has the FM-1's chip; whether the FM-1's board brings
-  UART1's transmit pin anywhere; which `CON0` bit is the transmit pending
-  and which enables its interrupt; whether the pending means the transfer
-  has been read from RAM or the last stop bit has left the pin; whether the
+  UART1's transmit pin anywhere; which `CON0` bit enables the transmit
+  interrupt; whether, after a DMA, the pending means the transfer has been
+  read from RAM or the last stop bit has left the pin; whether the
   transmit DMA needs a 4-byte aligned address or length; what writing
   `TXCNT` does while a transfer is still going; how `BUF` and the DMA mix.
   Settled by a datasheet or a probe on real hardware (an SMK-37 and an
