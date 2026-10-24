@@ -151,6 +151,32 @@ extern const u8 fm_patches[FM_PATCHES][FM_PATCH_BYTES];
 int fm_patch_valid(const u8 *p);
 u32 fm_patch_sum(const u8 *p);
 
+/* --- The user slots (since M7) ---------------------------------------- */
+/* Programs: the test patches (0 to FM_PATCHES - 1), then the user slots;
+ * a slot is a program once it holds a patch. Main fills the slots from
+ * the store at start-up (fm_user_set, fm_program_set: before the audio
+ * starts); the engine takes the panel's save and reset and tells main
+ * through fm_saved_seq and fm_reset_seq, which main writes to the store
+ * (docs/DESIGN-NOTES.md, M7, "The panel"). */
+#define FM_USER_SLOTS 16u
+#define FM_PROGRAMS   (FM_PATCHES + FM_USER_SLOTS)
+/* SAVE held with KEY1 to KEY16: the patch playing now saved to that slot;
+ * SAVE and HOME held for FM_RESET_MS: the factory defaults. */
+#define FM_RESET_MS   2000u
+/* 1 if a valid patch was put in the slot. */
+int fm_user_set(u32 slot, const u8 *patch);
+/* Selects a program if it is one; 1 if it was. */
+int fm_program_set(u32 program);
+/* Saves from the panel: for each slot, the engine adds one to
+ * fm_saved_seq[slot] each time it saves there, and records in
+ * fm_saved_reset[slot] the number of resets so far (fm_reset_seq), so
+ * main writes every slot saved, and none a later reset voided; the
+ * patch is fm_user_patch(slot). */
+extern volatile u32 fm_saved_seq[FM_USER_SLOTS], fm_saved_reset[FM_USER_SLOTS];
+/* Added to by the engine at each factory reset from the panel. */
+extern volatile u32 fm_reset_seq;
+const u8 *fm_user_patch(u32 slot);
+
 /* --- The control side (fm_play.c) ------------------------------------ */
 void fm_init(void);
 void fm_block(s32 *out, u32 frames);   /* the audio layer's engine callback */
@@ -173,7 +199,7 @@ struct sb_fm_record {
     u32 marker;
     u32 core1;          /* 1 once core 1 runs the engine's loop */
     u32 core1_blocks;   /* blocks core 1 rendered */
-    u32 patch;          /* the patch new notes take, 0 to FM_PATCHES - 1 */
+    u32 patch;          /* the program new notes take, 0 to FM_PROGRAMS - 1 (since M7) */
     u32 algorithm;      /* its algorithm, 1 to FM_ALGORITHMS (ALGORITHM may change it) */
     u32 mono;           /* 1 in mono mode */
     u32 voices[2];      /* voices sounding on core 0 and core 1, the last block */

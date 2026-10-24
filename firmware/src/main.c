@@ -16,6 +16,7 @@
 #include "input.h"
 #include "audio.h"
 #include "fm.h"
+#include "store.h"
 #include "WL82.h"
 
 /* HW-25: in fwtest each word written here is appended to the console. The
@@ -159,6 +160,18 @@ void sb_tick(void)
         sb_halt(SB_HALT_STACK, 2, 0);
 }
 
+/* The store's work (M7), from main's loop: what the panel saved or
+ * reset, and the selection and settings once they settle. */
+static void serve_store(void)
+{
+#if !defined(SB_DEMO_PLAITS)
+    const char *said = store_serve();
+
+    if (said)
+        panel_message(said, store_message_slot);
+#endif
+}
+
 #if defined(SB_DEMO_PLAITS)
 /* The Plaits demo (firmware/demos/plaits/, M4b), built as its own image
  * by tools/build.sh build --demo plaits; with PLAITS_BENCH it tests its
@@ -204,6 +217,9 @@ int main(void)
     /* The FM engine (M5); it starts core 1. The Plaits demo, which drives
      * core 1 itself, leaves it out. */
     fm_init();
+    /* The store (M7): user slots, settings and selection, before the
+     * audio starts. */
+    store_boot();
 #endif
 #if defined(SB_DEMO_PLAITS) && defined(PLAITS_BENCH)
     plaits_bench();
@@ -251,6 +267,9 @@ int main(void)
     }
     lcd_send_rows(0, SCREEN_H);
     sb_beacon.screen = SB_SCREEN_TEST;
+#if defined(SB_TEST_STORE_WIPE)
+    sb_test_store_wipe();
+#endif
 #if defined(SB_TEST_FLOOD)
     sb_test_flood();
 #endif
@@ -272,6 +291,8 @@ int main(void)
         sb_beacon.loop_ticks = sb_beacon.tick_count;
         seen = sb_work;
         second = sb_seconds;
+        /* What the engine asked of the store before the loop began. */
+        serve_store();
         for (;;) {
             __asm__ volatile("idle");
             wakes++;
@@ -280,6 +301,7 @@ int main(void)
                 sb_beacon.wakes = wakes;
                 sb_beacon.wakes_ticks = sb_beacon.tick_count;
                 panel_serve();
+                serve_store();
                 while (second != sb_seconds) {
                     second++;
                     screen_beat();

@@ -365,6 +365,21 @@ static void show(void)
     frame_beat = sb_beacon.beats;
 }
 
+void panel_message(const char *text, u32 number)
+{
+    u32 n = put(line, 0, text);
+
+    if (number)
+        n += decimal(&line[n], (int)number, 0);
+    pad(line, n);
+    if (!shown)
+        show();
+    else
+        dirty |= ITEM_EVENT;
+    if (dirty)
+        draw_frame();
+}
+
 void panel_serve(void)
 {
     struct input_event e;
