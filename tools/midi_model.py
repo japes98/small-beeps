@@ -127,6 +127,33 @@ def parse(stream):
     return p
 
 
+# The four knobs' controllers (M6a's map, firmware/src/fm_play.c): a
+# controller's 64 is no offset, 0 and 127 the ends of each knob's span.
+KNOB_SPAN = ((-24, 24), (-32, 32), (-64, 32), (-7, 7))
+
+
+def _div(a, b):
+    """C's integer division: toward zero."""
+    q = abs(a) // abs(b)
+    return q if (a >= 0) == (b > 0) else -q
+
+
+def knob_offset(k, v):
+    """The knob offset MIDI in takes from controller value v."""
+    lo, hi = KNOB_SPAN[k]
+    return _div((v - 64) * hi, 63) if v >= 64 else _div((64 - v) * lo, 64)
+
+
+def knob_value(k, p):
+    """MIDI out's inverse (M6b): the smallest controller value whose
+    offset is the knob position p, held to the span. Written from the
+    rule, not the C: searched, not computed."""
+    lo, hi = KNOB_SPAN[k]
+    p = max(lo, min(hi, p))
+    cands = [v for v in range(128) if knob_offset(k, v) == p]
+    return min(cands, key=lambda v: abs(v - 64))
+
+
 def main(argv):
     p = parse(int(x, 16) for x in argv)
     for m in p.log:

@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Written by tools/midi_scripts.py; don't edit by hand.
+#
+# midiburst (R-MIDIOUT-7): the burst test build queues more than MIDI
+# out holds in one block (about 1 s in); later the panel's keys go
+# out as before: nothing wedged.
+#
+# time   event
+1300     key 14 tap 100
+1500     key 16 tap 100

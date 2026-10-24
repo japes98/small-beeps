@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Written by tools/midi_scripts.py; don't edit by hand.
+#
+# midithru (R-MIDIOUT-4): the thru test build (thru on, out on channel
+# 2). MIDI in brings notes on channels 1 and 5 in running status,
+# controllers, a bend, a program change, clock bytes inside messages,
+# a SysEx (not passed on), song position, while the panel plays on
+# channel 2. Every message received but the SysEx goes out once, in
+# order, and each of the panel's once; none of the panel's twice.
+#
+# time   event
+100      midi 90 3c 64 40 f8 64
+101.92   key 14 down
+106.92   midi b0 01 14 f8 b4 01 28 e4 60 5d
+130.12   midi f0 7d 01 02 03 f7 c4 03
+162.68   midi 94 48 5a f8 84 48 00
+164.92   key 14 up
+214.92   midi f2 10 01 fa 90 3c 00 40 00
+300      key 16 tap
+310      midi f8 f8 fc

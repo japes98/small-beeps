@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
 """Writes the fwtest scripts of M6a's MIDI cases (tests/fw/scripts/midi*.txt;
-R-MIDI-*), and reads their byte streams back for tools/fw-suite.py.
+R-MIDI-*) and, since M6b, of MIDI out's (R-MIDIOUT-*), and reads their
+byte streams back for tools/fw-suite.py.
 
   midi_scripts.py            writes every script, and perfload.txt's MIDI part
   midi_scripts.py --check    exits 1 if a committed script differs
@@ -10,6 +11,8 @@ R-MIDI-*), and reads their byte streams back for tools/fw-suite.py.
 A `midi` event's bytes arrive one every 320 us, the first 320 us after its
 time (docs/HARNESS.md, "Scripts"); the writer never lets two `midi`
 events overlap, so the bytes reach the firmware in the order written.
+midiround's script is MIDI out's golden capture of midiout played back
+into MIDI in: each byte arrives when midiout sent it (its stop bit's end).
 Streams that are long or random (a SysEx flood, garbage, the dense
 stream) come from a fixed seed, so the scripts are the same every time.
 """
@@ -222,6 +225,121 @@ def midilat():
     return s
 
 
+# --- MIDI out (M6b) ------------------------------------------------------
+# fwtest's keys and encoders (docs/HARNESS.md, "Input scripts"): key n is
+# control n (firmware/src/input.h: KEY1 is 14); encoders 2 to 5 are KNOB1
+# to KNOB4, 6 is PRESETS.
+KEY1, OCT_UP, SEL = 14, 1, 3
+KEY_MONO, KEY_POLY = KEY1 + 20, KEY1 + 22
+ENC_KNOB1, ENC_PRESETS = 2, 6
+
+
+def midiout():
+    s = Script("midiout", "midiout (R-MIDIOUT-1, R-MIDIOUT-2, R-MIDIOUT-3): what the panel sends,\n"
+               "on channel 1: a key alone (its note off carries its status: the wire\n"
+               "went quiet between), a chord struck and let go together (running\n"
+               "status), KNOB1 to KNOB4 (controllers 16 to 19, the map's inverse),\n"
+               "KNOB1 past its span, PRESETS (program changes 1, 2), OCT+ and a key,\n"
+               "SEL with MONO and POLY (mode messages 126 and 127). The capture is\n"
+               "golden, and midiround plays it back.")
+    s.at(100).event("key %d tap 100" % KEY1)
+    s.at(400).event("key %d down" % (KEY1 + 7)).event("key %d down" % (KEY1 + 11)).event("key %d down" % (KEY1 + 14))
+    s.at(600).event("key %d up" % (KEY1 + 7)).event("key %d up" % (KEY1 + 11)).event("key %d up" % (KEY1 + 14))
+    s.at(800).event("enc %d +5" % ENC_KNOB1)
+    s.at(900).event("enc %d -3" % (ENC_KNOB1 + 1))
+    s.at(1000).event("enc %d -10" % (ENC_KNOB1 + 2))
+    s.at(1200).event("enc %d +7" % (ENC_KNOB1 + 3))
+    s.at(1300).event("enc %d +2" % ENC_PRESETS)
+    s.at(1400).event("key %d tap" % OCT_UP)
+    s.at(1500).event("key %d tap 100" % (KEY1 + 4))
+    s.at(1700).event("key %d down" % SEL).wait(50).event("key %d tap" % KEY_MONO)
+    s.wait(100).event("key %d tap" % KEY_POLY).wait(100).event("key %d up" % SEL)
+    s.at(2100).event("enc %d +30" % ENC_KNOB1)
+    s.at(2500).event("key %d tap 100" % (KEY1 + 2))
+    return s
+
+
+def midiround_from(csv_path):
+    """midiout's golden capture as MIDI in: each run of bytes 320 us apart
+    becomes one `midi` event, 320 us before its first byte's time."""
+    rows = []
+    with open(csv_path) as f:
+        next(f)
+        for line in f:
+            ms, b = line.strip().split(",")
+            rows.append((float(ms), int(b, 16)))
+    s = Script("midiround", "midiround (R-MIDIOUT-6): the round trip. midiout's golden MIDI out\n"
+               "(tests/fw/golden/midiout/midi-out.csv), each byte arriving at MIDI\n"
+               "in when midiout sent it: the engine plays the same notes, patch and\n"
+               "knobs as midiout's panel did.")
+    i = 0
+    while i < len(rows):
+        j = i + 1
+        while j < len(rows) and abs(rows[j][0] - rows[j - 1][0] - BYTE_MS) < 1e-6:
+            j += 1
+        s.t = round(rows[i][0] - BYTE_MS, 3)
+        s.midi([b for _, b in rows[i:j]])
+        i = j
+    return s
+
+
+MIDIOUT_GOLDEN = os.path.join(ROOT, "tests", "fw", "golden", "midiout", "midi-out.csv")
+
+
+def midiround():
+    return midiround_from(MIDIOUT_GOLDEN)
+
+
+def midithru():
+    s = Script("midithru", "midithru (R-MIDIOUT-4): the thru test build (thru on, out on channel\n"
+               "2). MIDI in brings notes on channels 1 and 5 in running status,\n"
+               "controllers, a bend, a program change, clock bytes inside messages,\n"
+               "a SysEx (not passed on), song position, while the panel plays on\n"
+               "channel 2. Every message received but the SysEx goes out once, in\n"
+               "order, and each of the panel's once; none of the panel's twice.")
+    s.at(100).midi(0x90, 60, 100, 64, 0xF8, 100).event("key %d down" % KEY1)
+    s.wait(5).midi(cc(1, 20), 0xF8, cc(1, 40, 4), bend(12000, 4))
+    s.wait(20).midi(0xF0, 0x7D, 1, 2, 3, 0xF7, [0xC4, 3])
+    s.wait(30).midi(0x94, 72, 90, 0xF8, 0x84, 72, 0).event("key %d up" % KEY1)
+    s.wait(50).midi(0xF2, 0x10, 0x01, 0xFA, 0x90, 60, 0, 64, 0)
+    s.at(300).event("key %d tap" % (KEY1 + 2)).wait(10).midi(0xF8, 0xF8, 0xFC)
+    return s
+
+
+def midilocal():
+    s = Script("midilocal", "midilocal (R-MIDIOUT-5): local control off (CC 122 0, by MIDI in):\n"
+               "the panel's keys, KNOB1 and PRESETS go out but the engine neither\n"
+               "plays nor follows them, while a MIDI note still plays; local\n"
+               "control on again (CC 122 127): a key plays again.")
+    s.at(100).midi(cc(122, 0))
+    s.at(200).event("key %d tap 100" % KEY1)
+    s.at(400).event("enc %d +6" % ENC_KNOB1)
+    s.at(500).event("enc %d +3" % ENC_PRESETS)
+    s.at(600).event("key %d tap 100" % (KEY1 + 4))
+    s.at(800).midi(on(67, 100)).wait(100).midi(off(67))
+    s.at(1000).midi(cc(122, 127))
+    s.at(1100).event("key %d tap 100" % (KEY1 + 7))
+    return s
+
+
+def midiburst():
+    s = Script("midiburst", "midiburst (R-MIDIOUT-7): the burst test build queues more than MIDI\n"
+               "out holds in one block (about 1 s in); later the panel's keys go\n"
+               "out as before: nothing wedged.")
+    s.at(1300).event("key %d tap 100" % KEY1)
+    s.at(1500).event("key %d tap 100" % (KEY1 + 2))
+    return s
+
+
+def midioutlat():
+    s = Script("midioutlat", "midioutlat (R-MIDIOUT-8): 20 keys, one every 150 ms, alone, so the\n"
+               "time from each key going down to its note on's first byte on the wire\n"
+               "can be measured.")
+    for i in range(20):
+        s.at(100 + 150 * i).event("key %d tap 60" % (KEY1 + i % 27))
+    return s
+
+
 # The loaded measure's input (tools/perf.py) ends with a full MIDI wire
 # through its window (since M6a): written here, after this marker line.
 PERFLOAD = os.path.join(SCRIPTS, "perfload.txt")
@@ -257,7 +375,8 @@ def perfload_text(old):
     return head + PERFLOAD_MARK + "\n" + "\n".join(perfload_midi().lines) + "\n"
 
 
-CASES = (midimsg, midirun, midisysex, midijunk, mididense, midisustain, midichan, midipanel, midilat)
+CASES = (midimsg, midirun, midisysex, midijunk, mididense, midisustain, midichan, midipanel, midilat,
+         midiout, midiround, midithru, midilocal, midiburst, midioutlat)
 
 
 def stream(path):
@@ -278,6 +397,11 @@ def main(argv):
     check = "--check" in argv
     bad = 0
     for case in CASES:
+        if case is midiround and not os.path.exists(MIDIOUT_GOLDEN):
+            print("midiround: no golden capture of midiout yet (%s); run the suite and copy it first"
+                  % os.path.relpath(MIDIOUT_GOLDEN, ROOT))
+            bad = 1
+            continue
         s = case()
         path = os.path.join(SCRIPTS, s.name + ".txt")
         text = s.text()
