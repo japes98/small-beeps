@@ -1607,22 +1607,22 @@ change never clicks.
   operators each, 3 072 operator-samples a block) in 74 200 a block.
   Plaits' six-op engine was about 40 with hardware float (M4b).
 - **Voices a core**: a core has 348 160 cycles a block. At rest core 0
-  uses 1 802 (0.5%), so about 37 six-operator voices would fit on it;
+  uses 1 803 (0.5%), so about 37 six-operator voices would fit on it;
   under the heaviest input core 0 has about 10 300 of its own work
   (events, the screen within its budget, control), so about 36. Core 1
   has nothing else: about 37.
 - **We ship 16 (8 a core)**: under the heaviest input core 0 is at
-  84 539 a block (24%) and core 1 at about 75 000 (22%), a margin of four
+  84 918 a block (24%) and core 1 at about 75 000 (22%), a margin of four
   times. fwtest is a best case (one instruction a cycle, no caches,
   no flash or RAM wait states, no cost between the cores: HW-64, Q-16,
   Q-17); M4b's advice was to plan for half, and this leaves more for
   the chip's unknowns and for M6 to M8.
-- **Sizes**: code 15.4 KB (6.3 KB more than before the engine, the test
-  patches' 1 KB among it), static RAM 141.6 KB (17.7 KB more: the voices
+- **Sizes**: code 15.7 KB (6.6 KB more than before the engine, the test
+  patches' 1 KB among it), static RAM 142.0 KB (18.0 KB more: the voices
   7.9 KB, the mixes and scratch 4.1 KB, the sine and exp2 tables 5.1 KB,
-  the parsed patches 3.3 KB, core 0's notes on the voices 0.8 KB, core
+  the parsed patches 3.7 KB, core 0's notes on the voices 0.8 KB, core
   1's stack 1 KiB; M4's instrument's 4.5 KB gone), stack 388 bytes.
-  Startup 1 031 642 instructions.
+  Startup 1 032 624 instructions.
 
 #### Workaround: SR-7
 fwtest doesn't run the two-register load that moves its address down
