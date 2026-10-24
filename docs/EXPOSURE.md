@@ -974,6 +974,40 @@ SR-3 wrote only its barrier-log row.*
   requirements from PyPI into a scratch environment (`reuse` did not
   install; nothing else was used from it).
 
+### Session M6a (MIDI in)
+- Date: 2026-10-24
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.310 (banner), Remote Control from the owner's phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `75d8f387-ba4e-4745-971e-20f61025e67b`,
+  started by a `/clear` at 02:54:30Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh` found main at
+  `cdfd067` and ended "no spec-side files on disk or in .git";
+  `tools/private-terms.local` exists (not opened). The Mac had 4.1 GB
+  free. It archived M5 (`22963a4d`) into `sessions/clean/`; no other clean
+  session was left unarchived (M0d's `b7ed6c1a` has the same length as
+  its archive). `tools/check-transcripts.py` flagged four of M5's calls;
+  the session printed only those commands from the redacted archive. Each
+  names forbidden material as text only (pull request bodies and commit
+  messages about SR-7, a harness gap); four `REVIEWED.json` entries clear
+  them, for the owner to approve in the pull request, and the check then
+  passed.
+- Privacy: tool output showed the local username and top folder in paths
+  (Claude Code's project folder, the disk check); they were never written
+  to the repository, and the archiver redacts them from this transcript.
+- Reads: CONTRIBUTING.md, this file, sessions/README.md,
+  sessions/REVIEWED.json, the redacted archive of `22963a4d` (the four
+  flagged commands only), docs/HARDWARE-SPEC.md, docs/HARNESS.md, and this
+  repository's tools, tests, docs and firmware. For MIDI: the MIDI 1.0
+  specification as public literature (PROVENANCE). It does not open
+  anything on the forbidden list, anything under the three spec-side
+  folders, or any other synthesizer's firmware or MIDI code.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
@@ -1052,6 +1086,7 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-23T09:37:34Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M4b starts; banner `status: OK`; `tools/clean-update.sh` found main at `e742f15` and passed; M4 archived; `tools/check-transcripts.py` PASS with the 3 reviewed entries the owner approved in the session |
 | 2026-10-23T03:13:26Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-4-6 starts; banner `status: OK`. 12:25:40Z: `tools/spec-setup.sh`, banner `status: OK`; record-fixes-1's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-23T13:14:14Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-7 starts; banner `status: OK`. 14:22:19Z: `tools/spec-setup.sh`, banner `status: OK`; after #68, SR-4-6's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-24T02:54:30Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M6a starts; banner `status: OK`; `tools/clean-update.sh` found main at `cdfd067` and passed; M5 archived; `tools/check-transcripts.py` PASS with the 4 reviewed entries listed for the owner's approval |
 
 ## Model cutoffs
 
