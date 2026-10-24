@@ -1130,6 +1130,7 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-23T13:14:14Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session SR-7 starts; banner `status: OK`. 14:22:19Z: `tools/spec-setup.sh`, banner `status: OK`; after #68, SR-4-6's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-24T02:54:30Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M6a starts; banner `status: OK`; `tools/clean-update.sh` found main at `cdfd067` and passed; M5 archived; `tools/check-transcripts.py` PASS with the 4 reviewed entries listed for the owner's approval |
 | 2026-10-24T04:03:28Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session emulator-parity starts; banner `status: OK`. 04:04:11Z: `tools/spec-setup.sh`, banner `status: OK`; SR-7's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-24T05:45:26Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session midi-in-out starts; banner `status: OK`. 05:45:47Z: `tools/spec-setup.sh`, banner `status: OK`; emulator-parity's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 
 ## Model cutoffs
 
