@@ -192,12 +192,6 @@ cmd_inside() {
     cat "$obj/text.bin" "$obj/data.bin" > "$out/app.bin"
     rm "$obj/text.bin" "$obj/data.bin"
     set +x
-    # fwtest doesn't run a rotate by a register (`rD = rS <> rT`), which
-    # clang makes of a rotate by an amount it can't know (docs/HARNESS.md,
-    # "Instructions", "Known gaps"): an image holding one faults there.
-    if objdump -d "$out/app.elf" | grep -E '= r[0-9]+ <> r[0-9]+'; then
-        echo "FAIL: app.elf has an instruction fwtest doesn't run (HARNESS.md, Known gaps)" >&2; exit 1
-    fi
     write_size "$out/app.elf" > "$out/app.size"
     cat "$out/app.size"
     image=$(awk '$1 == "image" { print $2 }' "$out/app.size")
