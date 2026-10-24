@@ -37,6 +37,11 @@ what, and when. Roles are defined in CONTRIBUTING.md.
   ID and its transcript's SHA-256, the transcript archived in the port
   repository, never here; and the `ports/` reports it wrote. None has run
   yet (since day-1024).
+  The owner confirmed on 2026-10-24 that a Claude Code session once ran
+  in a folder named for the porter on the owner's Mac, for an unrelated
+  project (not small-beeps): no FM-1 firmware, emulator or small-beeps
+  material was involved. It was not a porter session; no porter session
+  has run.
 
 Every session adds its own entry when it starts, and again whenever its
 exposure changes. Agent entries record the exact model ID and its published
