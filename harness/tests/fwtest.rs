@@ -157,6 +157,68 @@ fn spi1_interrupt_follows_con_bit_13() {
     assert_eq!(&w[6..8], &[2, 0xa000], "a byte with bit 13 set: one");
 }
 
+/// R-HARN-11: the block moves with a register base, every mode (SR-7): the
+/// lowest register at the lowest address, `[-rN]` ending just below the
+/// base, the base kept unless `++` / `--` moves it past the block, and every
+/// address from the original base when the base is also loaded.
+#[test]
+fn block_moves_every_mode() {
+    const SRC: u32 = 0x01c0_1000;
+    const DST: u32 = 0x01c0_1200;
+    let s = |i: u32| 0xa500_0000 + i;
+    let mut o = opts(2);
+    o.ram = vec![(OUT0, 84, When::End), (DST, 256, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("blockmv"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-54-end.bin"));
+    assert_eq!(&w[0..4], &[s(4), s(5), s(6), SRC + 0x10], "A {{r3, r1, r0}} = [r6+]");
+    assert_eq!(&w[4..7], &[s(8), s(9), SRC + 0x28], "B {{r2, r1}} = [r7++]");
+    assert_eq!(&w[7..10], &[s(2), s(3), SRC + 0x10], "C {{r3, r0}} = [-r4]");
+    assert_eq!(&w[10..12], &[s(2), s(3)], "D {{r3, r0}} = [-r0]");
+    assert_eq!(&w[12..16], &[s(13), s(14), s(15), SRC + 0x34], "E {{r12, r11, r10}} = [--r9]");
+    assert_eq!(&w[16..21], &[DST + 0x10, DST + 0x24, DST + 0x40, DST + 0x5c, DST + 0x70], "F to J: the bases");
+    let d = words(output(&r, "ram-01c01200-100-end.bin"));
+    let mut want = vec![0u32; 64];
+    want[2..4].copy_from_slice(&[0xb2, 0xb5]); // F [-r8] = {r5, r2}
+    want[9..12].copy_from_slice(&[0xc0, 0xce, 0xcf]); // G [--r13] = {r15, r14, r0}
+    want[16..18].copy_from_slice(&[0xd3, 0xd6]); // H [r10+] = {r6, r3}
+    want[20..23].copy_from_slice(&[0xe1, 0xe2, 0xe4]); // I [r11++] = {r4, r2, r1}
+    want[26..28].copy_from_slice(&[0xf1, DST + 0x70]); // J [-r5] = {r5, r1}
+    for i in 0..15 {
+        want[32 + i] = s(16 + i as u32); // K {r14-r0} = [-r15], then [r15+] = {r14-r0}
+    }
+    assert_eq!(d, want);
+}
+
+/// R-HARN-11: SR-7's reproduction as the request gives it: r0 and r3 take
+/// the two words below r4, and r4 keeps its value.
+#[test]
+fn block_move_below_the_base_sr7() {
+    let mut o = opts(1);
+    o.ram = vec![(0x01c0_0020, 12, When::End)];
+    let r = run(&image("sr7"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    assert_eq!(words(output(&r, "ram-01c00020-c-end.bin")), [0x29f3_a1c5, 0x7e41_d60b, 0x01c0_0010]);
+}
+
+/// R-HARN-11: the forms below a base as the compiler emits them, built with
+/// the firmware's CPU flags (build.sh fails if they are gone).
+#[test]
+fn block_moves_from_the_compiler() {
+    const DST: u32 = 0x01c0_1200;
+    let s = |i: u32| 0xa500_0000 + i;
+    let mut o = opts(2);
+    o.ram = vec![(OUT0, 16, When::End), (DST + 24, 24, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("blockc"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-10-end.bin"));
+    let o0 = s(7).wrapping_mul(3) ^ s(6).wrapping_mul(5);
+    assert_eq!(w, [s(7) + 0x100, o0, s(6) + 0x100, DST + 24]);
+    assert_eq!(words(output(&r, "ram-01c01218-18-end.bin")), [0x71, 0x51, 0x31, 0x71, 0x51, 0x31]);
+}
+
 /// R-HARN-3: LED duty per sample.
 #[test]
 fn led_capture() {

@@ -15,6 +15,13 @@ set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../.." && pwd)
 IMAGES="heartbeat halt wild hang console lcd leds keys pot midi audio flashrw spi1irq"
+# built with the firmware's CPU flags (tools/build.sh, CPU), as the firmware is
+FW_IMAGES="blockc"
+# assembly, linked after start.S like the C images
+ASM_IMAGES="blockmv"
+# assembly with its own _start, linked alone
+RAW_IMAGES="sr7"
+ALL="$IMAGES $FW_IMAGES $ASM_IMAGES $RAW_IMAGES"
 
 inside() {
     out=$1
@@ -28,8 +35,34 @@ inside() {
         objcopy -O binary -j .text "$out/$n.elf" "$out/$n.bin"
         rm "$out/$n.o" "$out/$n.elf"
     done
+    for n in $FW_IMAGES; do
+        # shellcheck disable=SC2086
+        clang $flags -mcpu=r3 -mfprev1 -c "$n.c" -o "$out/$n.o"
+        ld -nostdlib -T image.ld -o "$out/$n.elf" "$out/start.o" "$out/$n.o"
+        objcopy -O binary -j .text "$out/$n.elf" "$out/$n.bin"
+        objdump -d "$out/$n.elf" > "$out/$n.dis"
+        rm "$out/$n.o" "$out/$n.elf"
+    done
+    # blockc exists for the two forms below a base the compiler emits (SR-7)
+    if ! grep -q '} = \[-r[0-9]*\]' "$out/blockc.dis" || ! grep -q '\[-r[0-9]*\] = {' "$out/blockc.dis"; then
+        echo "blockc: the compiler no longer emits {..} = [-rN] and [-rN] = {..}" >&2
+        exit 1
+    fi
+    for n in $FW_IMAGES; do rm "$out/$n.dis"; done
+    for n in $ASM_IMAGES; do
+        clang -target pi32v2 -mcpu=r3 -c "$n.S" -o "$out/$n.o"
+        ld -nostdlib -T image.ld -o "$out/$n.elf" "$out/start.o" "$out/$n.o"
+        objcopy -O binary -j .text "$out/$n.elf" "$out/$n.bin"
+        rm "$out/$n.o" "$out/$n.elf"
+    done
+    for n in $RAW_IMAGES; do
+        clang -target pi32v2 -mcpu=r3 -c "$n.S" -o "$out/$n.o"
+        ld -nostdlib -T image.ld -o "$out/$n.elf" "$out/$n.o"
+        objcopy -O binary -j .text "$out/$n.elf" "$out/$n.bin"
+        rm "$out/$n.o" "$out/$n.elf"
+    done
     rm "$out/start.o"
-    (cd "$out" && for n in $IMAGES; do sha256sum "$n.bin"; done > SHA256SUMS)
+    (cd "$out" && for n in $ALL; do sha256sum "$n.bin"; done > SHA256SUMS)
 }
 
 build() {

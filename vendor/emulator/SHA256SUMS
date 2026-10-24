@@ -7,7 +7,7 @@ c243be1f7b46c2225eb1c9dcf7e8472767ae1b835cf08bcc61d7d6050a39fab9  crates/fm1-cor
 8ff587b33d2d6403f96b2145ebe4be471b26704e5ba1d80af368e1a1ea7b6808  crates/fm1-core/src/jit_a64.rs
 f03f1546903a939ef8e0d774cb3c53126790411cd30a5ff01047726bba49eb66  crates/fm1-core/src/jit_wasm.rs
 dbe0d0a9daed044e060b620eb52924dfbba43a131d439907714bb2018e47be2e  crates/fm1-core/src/jit_x64.rs
-c0ac526551a04cbffddf4797c5059307bf0df905fe19b983628ca676d480c100  crates/fm1-core/src/lib.rs
+f846e3fd1288e87e2ec10c44100d8d01ebb3aec1c923fbdd51a27f1b0b85cb53  crates/fm1-core/src/lib.rs
 3889ecda35f93e62021b4e5330a39aa00e8648c43e3e4455c55bfbde1a631a73  crates/fm1-isa/Cargo.toml
 3ffd450a3a80aadecfbbee288aebf6792a6a1ddfdd3e601d2234fade80f3d477  crates/fm1-isa/src/fpu.rs
 42f5a32abc5223916387e31a90402a21b23d4a02ff288321251f499bbf5b2a3e  crates/fm1-isa/src/generated_isa.rs
@@ -26,3 +26,4 @@ b93bc4859d59089a2dc293c52c079a13e11d59b6f5a0213ad815a0a2fc1e12a3  crates/fm1-soc
 35d22f57b59b8ada4e0e52f17b644d6443edae81519f82ac9d8a737602a558f2  crates/fm1-soc/src/spiflash.rs
 b5a4ff1a576a757cade273b95702955d4dcea560237098f8f36965f57f8c7966  patches/0001-workspace-members.patch
 2663cbe5f0d06734764c8a7b8a6bf9133c44cf67a491dcdc4bde70b8dd58afbe  patches/0002-spi1-con-writes-replace.patch
+adb44e50e122ceae9cf9e5238444cf0fbbd6051ef98f9bf412d046710d66808c  patches/0003-block-moves-below-the-base.patch

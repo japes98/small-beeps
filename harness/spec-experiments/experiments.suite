@@ -22,3 +22,4 @@ e14-undefined-inline fault images/e14-undefined-inline.bin --ms 2 --ram 0x01c001
 e15-spi1-irq halt    images/e15-spi1-irq.bin --ms 2 --ram 0x01c00100:0x4c@end --golden golden/e15-spi1-irq
 e16-lcd-frame halt   images/e16-lcd-frame.bin --ms 10 --lcd end --golden golden/e16-lcd-frame
 e17-adc-irq halt     images/e17-adc-irq.bin --ms 2 --ram 0x01c00100:0x44@end --golden golden/e17-adc-irq
+e18-block-moves halt images/e18-block-moves.bin --ms 2 --ram 0x01c00100:0x54@end --ram 0x01c01200:0x100@end --golden golden/e18-block-moves
