@@ -1648,7 +1648,9 @@ fwtest 0.6.0's. Open: Q-21 to Q-24.
   as a fault (HW-79 says why). The chip's contents show through the
   window (HW-5). Not modelled: suspend and resume, block protection,
   dual and quad reads. Supersedes HW-47 and HW-82 (fwtest 0.5.0: no busy
-  time, no write enable needed for a program, no wrap).
+  time, no write enable needed for a program, no wrap). Until
+  `config/fwtest-image` pins 0.6.0, `tools/fwtest` runs 0.5.0, which
+  HW-82 describes.
 - Sources: E-22 (with fwtest 0.6.0: a 4 KiB erase and its status reads
   288 005 TIMER4 ticks, 12.0 ms; a program without write enable left the
   bytes erased; "CD" programmed past the end of a page landed at the

@@ -93,7 +93,10 @@ Since 0.6.0 fwtest's flash chip behaves as the P25Q80H's datasheet says
   program leaves those bytes undefined, so a firmware must be able to
   tell an interrupted write from a finished one (a check sum, or a marker
   written last). `--flash-log` lists every erase and program with its
-  times, to aim a cut.
+  times, to aim a cut. A run that ends any other way (`--ms`, a halt, a
+  fault) during an erase or program saves `flash.bin` (with
+  `--flash-out`) as if that operation had finished: the bytes change when
+  it starts. Use `--power-cut` for a cut.
 
 ## Time
 
@@ -432,7 +435,8 @@ computes what the chip does. An instruction neither check held can still
 end a run as a fault ("Outcomes and exit codes"): report it as SR-7 was,
 with its bytes and the smallest image that shows it.
 
-No known gaps since fwtest 0.4.0. In 0.3.0 and earlier two forms ended the run as
+No known gaps since fwtest 0.6.0 (0.5.0 and earlier: the pairs below,
+"Both halves writing one register"). In 0.3.0 and earlier two forms ended the run as
 a fault, "an instruction the emulated CPU cannot decode"; 0.4.0 runs them,
 and one more change makes dual-issue pairs behave as the compiler expects:
 
