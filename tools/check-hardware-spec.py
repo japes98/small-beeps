@@ -10,8 +10,10 @@ Every entry is a `### HW-n: title` heading followed by the fields
 It fails on:
   - a missing or empty field, or a field it doesn't know;
   - an ID used twice, or an open question (`**Q-n.`) numbered twice;
-  - a standing that isn't `confirmed ...`, `emulator-only ...` or
-    `superseded by HW-n` (an entry that exists);
+  - a standing that isn't `confirmed ...`, `emulator-only ...`,
+    `other chip (SDK63)` or `superseded by HW-n` (an entry that exists);
+  - an `other chip` entry whose sources don't cite SDK63 (another JieLi
+    chip's SDK; such an entry is never confirmed for the FM-1's chip);
   - a confirmed entry whose sources name nothing independent: it must cite
     SDK, RE, DS, PANEL, MAN or an experiment E-n (HARNESS, the spec side's own
     description of fwtest, and the emulator model don't count);
@@ -36,6 +38,8 @@ FIELDS = ("Fact", "Sources", "Standing", "Needed by")
 HEAD = re.compile(r"^### (HW-(\d+)): (\S.*)$")
 FIELD = re.compile(r"^- ([A-Z][a-z]+(?: by)?):\s*(.*)$")
 SOURCE_KEYS = re.compile(r"\b(SDK|RE|DS|PANEL|MAN|E-\d+)\b")
+# Another chip's SDK: a source, but never an independent one for this chip.
+OTHER_CHIP = re.compile(r"\bSDK63\b")
 EXP = re.compile(r"\bE-(\d+)\b")
 
 
@@ -109,8 +113,11 @@ def lint(text, base_text=None, known_exps=None):
         elif st.startswith("confirmed"):
             if not SOURCE_KEYS.search(e.get("Sources", "")):
                 problems.append("%s: confirmed, but its sources name no independent source (SDK, RE, DS, PANEL, MAN, E-n)" % eid)
+        elif st.startswith("other chip"):
+            if st != "other chip (SDK63)" or not OTHER_CHIP.search(e.get("Sources", "")):
+                problems.append("%s: other chip, but its standing isn't 'other chip (SDK63)' or its sources don't cite SDK63" % eid)
         elif not st.startswith("emulator-only"):
-            problems.append("%s: standing '%s' is not confirmed, emulator-only or superseded by HW-n" % (eid, st))
+            problems.append("%s: standing '%s' is not confirmed, emulator-only, other chip or superseded by HW-n" % (eid, st))
         if known_exps is not None:
             for x in EXP.findall(e.get("Sources", "") + " " + st):
                 if x not in known_exps:
@@ -157,8 +164,9 @@ def main(argv):
         print("FAIL " + p)
     n_conf = sum(1 for e in entries.values() if e.get("Standing", "").startswith("confirmed"))
     n_emu = sum(1 for e in entries.values() if e.get("Standing", "").startswith("emulator-only"))
-    print("%d entries (%d confirmed, %d emulator-only, %d other)"
-          % (len(entries), n_conf, n_emu, len(entries) - n_conf - n_emu))
+    n_chip = sum(1 for e in entries.values() if e.get("Standing", "").startswith("other chip"))
+    print("%d entries (%d confirmed, %d emulator-only, %d other chip, %d other)"
+          % (len(entries), n_conf, n_emu, n_chip, len(entries) - n_conf - n_emu - n_chip))
     print("history: %s" % ("checked against %s" % base[:12] if base_text is not None
                            else "no earlier version to compare with"))
     if known is None:
