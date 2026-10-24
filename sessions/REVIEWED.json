@@ -1087,6 +1087,20 @@
       "rule": "F-11",
       "reason": "clean-update.sh, then merging main into m6a/perfload-midi and showing conflicts and the staged diffstat. Its `git diff` takes a pathspec that leaves the three spec-side folders out (CONTRIBUTING.md's rule for history commands); the names occur only as exclusions. Nothing under them was opened, listed or fetched.",
       "added_by": "session M6b (clean side, claude-opus-5-5), 2026-10-24"
+    },
+    {
+      "session": "89fcb09b-f267-409b-b8c4-776025e3d530",
+      "tool_use_id": "toolu_01XRtz1Dn5SmZEMvk974d8Zf",
+      "rule": "F-11",
+      "reason": "`git show --stat` of the previous fwtest pin commit, to see which files it touched. It takes a pathspec that leaves the three spec-side folders out (CONTRIBUTING.md's rule for history commands); the names occur only as exclusions. Nothing under them was opened, listed or fetched.",
+      "added_by": "session M7 (clean side, claude-opus-5-5), 2026-10-24"
+    },
+    {
+      "session": "89fcb09b-f267-409b-b8c4-776025e3d530",
+      "tool_use_id": "toolu_01Vr1WDihFeroeqf5ciRv2v7",
+      "rule": "F-11",
+      "reason": "Resolving a PROVENANCE.md merge conflict, then listing the staged names. Its `git diff --cached --name-only` takes a pathspec that leaves the three spec-side folders out (CONTRIBUTING.md's rule for history commands); the names occur only as exclusions. Nothing under them was opened, listed or fetched.",
+      "added_by": "session M7 (clean side, claude-opus-5-5), 2026-10-24"
     }
   ]
 }
