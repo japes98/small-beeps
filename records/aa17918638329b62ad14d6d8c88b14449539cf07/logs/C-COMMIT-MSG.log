@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 60ab84aeac5d1e81a49e9e2a301aa769d7af5d95..aa17918638329b62ad14d6d8c88b14449539cf07
+OK     327b1e5a26c4 harness: MIDI out, the UART's transmit side and --midi-out (fwtest 0.5.0)
+EXEMPT aa1791863832 (merge) Merge pull request #84 from japes98/spec/midi-out-harness
+2 commit(s) checked: PASS
+
+exit status 0
