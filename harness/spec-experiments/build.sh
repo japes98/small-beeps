@@ -15,6 +15,8 @@ set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../.." && pwd)
 IMAGES="e2-console e3-timers e4-core1 e5-lcd e6-matrix e7-leds e8-adc e9-audio e10-faults e11-undefined e12-badjump e13-timer-ack e14-undefined-inline e15-spi1-irq e16-lcd-frame e17-adc-irq"
+# assembly, linked after start.S like the C ones
+ASM_IMAGES="e18-block-moves"
 
 inside() {
     out=$1
@@ -32,8 +34,13 @@ inside() {
         ld -nostdlib -T image.ld -o "$out/$n.elf" "$out/start.o" "$out/$n.o"
         objcopy -O binary -j .text "$out/$n.elf" "$out/$n.bin"
     done
+    for n in $ASM_IMAGES; do
+        clang -target pi32v2 -mcpu=r3 -c "$n.S" -o "$out/$n.o"
+        ld -nostdlib -T image.ld -o "$out/$n.elf" "$out/start.o" "$out/$n.o"
+        objcopy -O binary -j .text "$out/$n.elf" "$out/$n.bin"
+    done
     rm -f "$out"/*.o "$out"/*.elf
-    (cd "$out" && for n in e1-boot $IMAGES; do sha256sum "$n.bin"; done > SHA256SUMS)
+    (cd "$out" && for n in e1-boot $IMAGES $ASM_IMAGES; do sha256sum "$n.bin"; done > SHA256SUMS)
 }
 
 build() {

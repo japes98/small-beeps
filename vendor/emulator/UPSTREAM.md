@@ -12,15 +12,16 @@ SPDX-FileCopyrightText: 2026 japes98
 - Licence: MIT, copyright 2026 Joakim Eriksson (`LICENSE` here, copied
   unmodified).
 - What: `crates/fm1-isa`, `crates/fm1-core` and `crates/fm1-soc`, at the
-  same paths, unmodified but for one bug fix in `fm1-soc` (patch 0002,
-  below), and the workspace manifest `Cargo.toml` (patched, below).
+  same paths, unmodified but for two bug fixes, in `fm1-soc` (patch 0002)
+  and `fm1-core` (patch 0003), below, and the workspace manifest
+  `Cargo.toml` (patched, below).
   Nothing else from that repository: no other crates, no `fm1-sid/`, no
   probes, no firmware files.
 - Fetched by `tools/fetch-emulator.sh --fetch` (a blob-less clone with a
   sparse checkout of exactly those paths) and checked by
   `tools/fetch-emulator.sh --verify` (C-EMU-PIN): every file against
   `SHA256SUMS`, whose own SHA-256 (the tree hash) is
-  `a802e553b0acd89077bdcf564d07ca0283697c691d90b0ef6d467fb364e76a3d`.
+  `0553473ab8b76fe289c0c4c7609ed3ade622a5f4510b185b099cfdcb7bfd4a29`.
 - Provenance: PROVENANCE.md P-7. Exposure: docs/EXPOSURE.md (session M0b).
 
 ## Patches
@@ -41,6 +42,21 @@ Applied in file-name order by the fetch script, after checkout:
   The harness test `spi1_interrupt_follows_con_bit_13` fails without it.
   To be reported upstream by the owner from
   `harness/upstream/fm1-emu-spi1-con.md`; drop the patch when the pinned commit has the fix.
+- `patches/0003-block-moves-below-the-base.patch` (session SR-7,
+  2026-10-24, asked for by the firmware side's SR-7):
+  `crates/fm1-core/src/lib.rs`, the block moves with a register base
+  (`xm eb <mask>`, m < 8). Upstream ran only the four ascending modes,
+  chosen by the table's syntax; `{..} = [-rN]`, `[-rN] = {..}` and the
+  `[--rN]` forms ended the run as "an instruction the emulator does not
+  implement", and the vendor compiler emits the first two on its own. With
+  the patch the family is chosen on its raw bits and one helper runs all
+  eight modes, for the interpreter and the fast path; the ascending modes
+  behave as before. Behaviour from the vendor compiler's own code
+  (`harness/upstream/fm1-emu-block-moves.md`, docs/HARDWARE-SPEC.md HW-66).
+  The harness tests `block_moves_every_mode`,
+  `block_move_below_the_base_sr7` and `block_moves_from_the_compiler` fail
+  without it. To be reported upstream by the owner from that file; drop the
+  patch when the pinned commit has the fix.
 
 ## Not used
 

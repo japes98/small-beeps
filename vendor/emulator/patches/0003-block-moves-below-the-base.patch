@@ -1,0 +1,181 @@
+Block moves with a register base, all eight modes: `xm eb <mask>` with
+m < 8 (base in bits 0-3, register mask in bits 16-31). Mode bit 4 writes
+the base back, bit 5 stores, bit 6 places the block just below the base.
+Upstream ran only the four ascending modes (`[rN+]`, `[rN++]`), keyed on
+the table's syntax; the descending ones (`{..} = [-rN]`, `[-rN] = {..}`,
+`[--rN]` both ways) ended the run as "an instruction the emulator does not
+implement". The vendor compiler emits `{rA, rB} = [-rN]` and
+`[-rN] = {rA, rB}` on its own (seen in our firmware's struct copies), so
+an ordinary C build could not run.
+
+Behaviour, from the vendor compiler's own output (which uses these forms
+in code whose meaning is known; harness/upstream/fm1-emu-block-moves.md):
+the lowest-numbered register takes the lowest address; `[-rN]` covers the
+words from rN - 4n to rN - 4; the forms without `++`/`--` leave the base as
+it was; every address comes from the original base, so a base that is
+also in a loaded list ends with its loaded word. The write-back modes are
+taken by analogy (the compiler was not seen to emit them): `[--rN]` leaves
+rN - 4n in the base, `[rN++]` rN + 4n, as upstream already did.
+
+Decoded from the raw bits, as the other raw-decoded families are; one
+helper serves the interpreter and the fast path. Session SR-7, 2026-10-24.
+
+diff --git a/crates/fm1-core/src/lib.rs b/crates/fm1-core/src/lib.rs
+index fcf9281..e2da1e2 100644
+--- a/crates/fm1-core/src/lib.rs
++++ b/crates/fm1-core/src/lib.rs
+@@ -929,6 +929,29 @@ impl Cpu {
+         self.usp = v;
+     }
+ 
++    /// A block move with a register base (`block_move_raw`): the registers in `mask`, lowest
++    /// first, to or from consecutive words starting at the base, or ending just below it when
++    /// `down`. Every address comes from the base as it was; `post` then moves the base past the
++    /// block, up or down.
++    fn block_move<B: Bus>(&mut self, bus: &mut B, base: usize, mask: u16, store: bool, down: bool, post: bool) {
++        let size = 4 * mask.count_ones();
++        let start = if down { self.regs[base].wrapping_sub(size) } else { self.regs[base] };
++        let mut addr = start;
++        for i in 0..16usize {
++            if mask >> i & 1 != 0 {
++                if store {
++                    bus.write32(addr, self.regs[i]);
++                } else {
++                    self.regs[i] = bus.read32(addr);
++                }
++                addr = addr.wrapping_add(4);
++            }
++        }
++        if post {
++            self.regs[base] = if down { start } else { addr };
++        }
++    }
++
+     fn sreg_index(n: &str) -> usize {
+         match n { "icfg" => 0, "reti" => 1, "retx" => 2, "rete" => 3, "sspn" => 4, "sr4" => 6, _ => 5 }
+     }
+@@ -1211,23 +1234,7 @@ impl Cpu {
+                 self.sreg_store[0] = self.regs[(s & 15) as usize];
+                 bus.irq_window();
+             }
+-            Fast::BlockMove { base, mask, store, post } => {
+-                let base = (base & 15) as usize;
+-                let mut addr = self.regs[base];
+-                for i in 0..16usize {
+-                    if mask >> i & 1 != 0 {
+-                        if store {
+-                            bus.write32(addr, self.regs[i]);
+-                        } else {
+-                            self.regs[i] = bus.read32(addr);
+-                        }
+-                        addr = addr.wrapping_add(4);
+-                    }
+-                }
+-                if post {
+-                    self.regs[base] = addr;
+-                }
+-            }
++            Fast::BlockMove { base, mask, store, down, post } => self.block_move(bus, (base & 15) as usize, mask, store, down, post),
+             Fast::PushMask { mask } => {
+                 self.sp = self.sp.wrapping_sub(4);
+                 bus.write32(self.sp, self.rets);
+@@ -1632,30 +1639,20 @@ impl Cpu {
+         }
+ 
+         // ---- multi-register block moves with a register base -----------
+-        // `{rA, rB, ...} = [rN+]` / `[rN+] = {...}` (00 eb / 20 eb): base =
+-        // bits(0,3), 16-bit register mask at bits(16,31); the lowest register
+-        // takes the lowest address (same convention as the sp block pops).
+-        // `[rN++]` additionally advances the base past the block. Base
+-        // update for the plain `[rN+]` form assumed absent (probe item).
+-        if insn.entry.len == 4 && (insn.raw >> 8) & 0xff == 0xeb
+-            && ((s.starts_with("{") && has(s, "} = [R+")) || (s.starts_with("[R+") && has(s, "] = {")))
+-        {
+-            let raw = insn.raw;
+-            let base = (raw & 0xf) as usize;
+-            let regs: Vec<usize> = (0..16usize).filter(|&i| (raw >> (16 + i)) & 1 != 0).collect();
+-            let mut addr = self.regs[base];
+-            let store = s.starts_with("[");
+-            for &i in &regs {
+-                if store {
+-                    bus.write32(addr, self.regs[i]);
+-                } else {
+-                    self.regs[i] = bus.read32(addr);
+-                }
+-                addr = addr.wrapping_add(4);
+-            }
+-            if has(s, "[R++]") {
+-                self.regs[base] = addr;
+-            }
++        // `{rA, rB, ...} = [rN+]` / `[rN+] = {...}` and their kin, `xm eb
++        // <mask>` with m < 8: base = bits(0,3), 16-bit register mask at
++        // bits(16,31). Mode bits: 4 writes the base back (`[rN++]`,
++        // `[--rN]`), 5 stores, 6 takes the block below the base (`[-rN]`,
++        // `[--rN]`). The lowest register takes the lowest address (same
++        // convention as the sp block pops). Decoded from the raw bits: the
++        // table's classes for this family fit only the corpus masks, and had
++        // no executor for the descending modes. The vendor compiler emits
++        // `[rN+]` and `[-rN]` (loads and stores) and relies on the base being
++        // left as it was, and on every address coming from the original base
++        // when the base is also in a loaded list.
++        if insn.entry.len == 4 && (insn.raw >> 8) & 0xff == 0xeb && insn.raw & 0x80 == 0 {
++            let (base, mask, store, down, post) = block_move_raw(insn.raw);
++            self.block_move(bus, base, mask, store, down, post);
+             return Ok(Some(None));
+         }
+ 
+@@ -3393,6 +3390,12 @@ struct PairMem { pair: usize, store: bool, base: Option<usize>, off: i32, index:
+ /// `d[sp+1056] = r11_r10` to sp+32: its LED arrays kept the last frame's keys lit).
+ /// (Before 2026-10-10 the `5x ec` arm knew only `d[R+#]` with off >= 0: X0X's
+ /// `d[++r1=r0] = r5_r4` in drum909_init wrote the default voice over the BD's panel.)
++/// `xm eb <mask>` (m < 8), the block moves with a register base: (base, mask, store, down,
++/// post). Mode bit 4 writes the base back, 5 stores, 6 takes the block below the base.
++fn block_move_raw(raw: u64) -> (usize, u16, bool, bool, bool) {
++    ((raw & 0xf) as usize, (raw >> 16) as u16, raw & 0x20 != 0, raw & 0x40 != 0, raw & 0x10 != 0)
++}
++
+ fn decode_pair_mem(raw: u64) -> PairMem {
+     let pair = ((raw >> 29) & 7) as usize;
+     let store = (raw >> 16) & 1 != 0;
+@@ -4792,7 +4795,7 @@ impl Fast {
+             Fast::PopPc { n } => (0, range(n)),
+             Fast::PushMask { mask } => (mask, 0),
+             Fast::PopMask { mask } => (0, mask),
+-            Fast::BlockMove { base, mask, store, post } => {
++            Fast::BlockMove { base, mask, store, post, .. } => {
+                 let pb = if post { m(base) } else { 0 };
+                 if store { (mask | m(base), pb) } else { (m(base), mask | pb) }
+             }
+@@ -5046,8 +5049,9 @@ enum Fast {
+     /// `R = icfg` / `icfg = R`
+     IcfgRd { d: u8 },
+     IcfgWr { s: u8 },
+-    /// `{regs} = [R+]` / `[R+] = {regs}` (and `[R++]`: the base moves past the block)
+-    BlockMove { base: u8, mask: u16, store: bool, post: bool },
++    /// `{regs} = [R+]` / `[R+] = {regs}`, `[-R]` (the block ends just below the base), and
++    /// `[R++]` / `[--R]` (the base then moves past the block)
++    BlockMove { base: u8, mask: u16, store: bool, down: bool, post: bool },
+     // were slow path: the raw-decoded routes, and the hottest syntax-keyed shapes
+     /// execute's routes decoded from the raw word (pair loads / stores, pre / post-increment
+     /// accesses, 64-bit ops, rev8, rets pops): `exec_raw`
+@@ -5559,16 +5563,10 @@ fn fast_of(insn: &Instruction, s: &'static str) -> Option<Fast> {
+         "R = R >>> #i" if insn.entry.len == 4 && v(2).map_or(false, |n| (1..32).contains(&n)) => {
+             return Some(Fast::SarI { d: r(0)?, s: r(1)?, n: v(2)? as u8 });
+         }
+-        _ if insn.entry.len == 4 && (insn.raw >> 8) & 0xff == 0xeb
+-            && ((s.starts_with('{') && s.contains("} = [R+")) || (s.starts_with("[R+") && s.contains("] = {"))) =>
+-        {
+-            // block moves (exec_syntax's `00 eb` / `20 eb` arm): base bits 0-3, mask bits 16-31
+-            return Some(Fast::BlockMove {
+-                base: (insn.raw & 0xf) as u8,
+-                mask: (insn.raw >> 16) as u16,
+-                store: s.starts_with('['),
+-                post: s.contains("[R++]"),
+-            });
++        _ if insn.entry.len == 4 && (insn.raw >> 8) & 0xff == 0xeb && insn.raw & 0x80 == 0 => {
++            // block moves (exec_syntax's `xm eb` arm, m < 8): base bits 0-3, mask bits 16-31
++            let (base, mask, store, down, post) = block_move_raw(insn.raw);
++            return Some(Fast::BlockMove { base: base as u8, mask, store, down, post });
+         }
+         _ => {}
+     }
