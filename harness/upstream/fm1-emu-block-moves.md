@@ -127,5 +127,6 @@ reproduction above; and a C image built with `-mcpu=r3 -mfprev1` whose
 compiled code holds both descending forms), each of which fails without the
 fix; the crate's own tests; and every distinct instruction the compiler
 emitted for a corpus of C and C++ (our firmware, Mutable Instruments'
-Plaits, generated C) run on its own: with the fix, the only one that still
-stops the run is a rotate by a register (`fm1-emu-rotate-register.md`).
+Plaits, generated C) run on its own, and each form of the compiler's
+assembly across registers and immediates: with the fix, only two forms
+still stop the run (`fm1-emu-undecoded-forms.md`).

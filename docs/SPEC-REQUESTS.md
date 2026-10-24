@@ -323,9 +323,11 @@ an issue or a pull request against docs/HARNESS.md.
   `0x01C00010`, not `0x01C00008` (the compiler's own code relies on this).
   The compiler emits the forms without `++` / `--`; the others, and a base
   that is also in a write-back form's list, are open for the chip (Q-19).
-  A corpus check of what the compiler emits for the firmware's flags
-  found one more form fwtest doesn't run: a rotate by a register
-  (HARNESS.md, "Instructions", "Known gap"); nothing else in it faults.
+  A corpus check of what the compiler emits for the firmware's flags,
+  across registers and immediates, found two more forms fwtest doesn't
+  run: a rotate by a register, which the compiler emits, and a 4-byte push
+  or pop of a list not starting at r0, which it was not seen to emit
+  (HARNESS.md, "Instructions", "Known gaps").
   fwtest 0.3.0 reaches `tools/fwtest` when the pull request after this
   one pins its image; then `copy_words` and build.sh's check can go.
 - Answered: 2026-10-24, session SR-7 (spec side)

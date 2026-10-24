@@ -1152,8 +1152,7 @@ requests.
   built with `-mcpu=r3 -mfprev1` at `-Os`, `-O2` and `-O3` (the order, the
   block below the base, the base kept, the base in the list); E-18 (fwtest,
   all eight modes: the result above for each); HARNESS ("Instructions").
-- Standing: confirmed (E-18 for fwtest; TC for the order, the block below
-  the base and the base kept, on the chip)
+- Standing: confirmed (E-18)
 - Needed by: M5 (SR-7)
 
 ## Open questions

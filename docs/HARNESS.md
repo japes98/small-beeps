@@ -321,25 +321,44 @@ values):
 
 fwtest runs the code the pinned toolchain's compiler emits for the
 firmware's flags (`-target pi32v2 -mcpu=r3 -mfprev1`, tools/build.sh),
-with one known exception, below. That was checked on a corpus, not proven
-for every instruction: each of the 13 981 distinct instructions (dual-issue
-pairs as one) in the firmware at `18d9459`, the vendored Plaits and the
-demo's C++ built with the firmware's CPU flags, and several hundred small C
-functions written to vary types, operations and pointer patterns, each at
-`-Os` and `-O2`, was run on its own in fwtest 0.3.0 (SR-7). The check shows
-only that fwtest decodes and runs each one, not that it computes what the
-chip does. An instruction the corpus never held can still end a run as a
-fault ("Outcomes and exit codes"): report it as SR-7 was, with its bytes
-and the smallest image that shows it.
+with the known gaps below. That was checked on a corpus, not proven for
+every instruction (SR-7). The corpus: the firmware at `18d9459`, the
+vendored Plaits and the demo's C++ built with the firmware's CPU flags,
+and several hundred small C functions written to vary types, operations
+and pointer patterns, each at `-Os` and `-O2`. Two checks ran in fwtest
+0.3.0, each unit on its own:
 
-**Known gap: rotate by a register.** `rD = rS <> rT` (bytes `cc e1`, then
-two bytes naming the registers) ends the run as a fault, "an instruction
-the emulated CPU cannot decode", for every register tried. The compiler
-emits it, at `-Os` too, for a rotate by an amount it doesn't know at
-compile time, such as `(x << s) | (x >> (32 - s))`. A rotate by a
-constant (`rD = rS <> n`, bytes `c4 e1`) runs. Until fwtest runs it, keep
-rotate amounts constant, or write the rotate so the compiler can't see
-it (through a `volatile` shift count, for example).
+- every distinct disassembled unit of the corpus's objects (13 981; a
+  dual-issue pair is one unit; some are constants in the code, decoded
+  as if they were instructions);
+- every form in the compiler's assembly output (660, registers and numbers
+  abstracted), with each register slot set in turn to r0 to r15 (register
+  pairs to each even-odd pair) and each number to values from 0 and ±1 up
+  to the 32-bit limits, as far as the assembler accepts them: 34 437
+  distinct encodings.
+
+They show only that fwtest decodes and runs each one, not that it
+computes what the chip does. An instruction neither check held can still
+end a run as a fault ("Outcomes and exit codes"): report it as SR-7 was,
+with its bytes and the smallest image that shows it.
+
+Known gaps (fwtest 0.3.0). Each ends the run as a fault, "an instruction
+the emulated CPU cannot decode":
+
+- **Rotate by a register.** `rD = rS <> rT` (bytes `cc e1`, then two
+  bytes naming the registers), for every register. The compiler emits it,
+  at `-Os` too, for a rotate by an amount it doesn't know at compile time,
+  such as `(x << s) | (x >> (32 - s))`. A rotate by a constant
+  (`rD = rS <> n`, bytes `c4 e1`) runs. Until fwtest runs it, keep rotate
+  amounts constant, or hide the amount from the compiler (a `volatile`
+  shift count, for example).
+- **A 4-byte push or pop of a register list whose lowest register is
+  above r0.** `[--sp] = {list}` (bytes `d8 e8`, then the 16-bit mask) and
+  `{list} = [sp++]` (`d4 e8`, then the mask), without `rets` or `pc`: for
+  example `[--sp] = {r5-r1}` or `{r11-r6} = [sp++]`. Lists that start at
+  r0 run, and so do the 2-byte forms and the forms with `rets` or `pc`.
+  The compiler was not seen to emit the failing lists (an interrupt
+  handler saves a list from r0); hand-written assembly can.
 
 ### Block moves with a register base
 

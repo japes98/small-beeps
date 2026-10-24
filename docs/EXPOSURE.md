@@ -932,12 +932,21 @@ SR-3 wrote only its barrier-log row.*
   `sessions/spec/`; `tools/check-transcripts.py` PASS. Clean sessions
   (M5's `22963a4d`) are left to the clean side.
 - Exposure: none beyond the spec side's. It reads the spec side's usual
-  material (the vendored emulator, `harness/`, the pinned toolchain's
-  assembler, disassembler and documents, the JieLi SDK, FM-1-RE's
-  documents), this repository's tools, tests and docs. While looking for
-  the request before #68 existed it listed the clean folder's git status
-  and changed file names (no file contents). It never opens or fetches an
-  audit target.
+  material (the vendored emulator, its JIT back ends included, and
+  `harness/`), the pinned toolchain (run in the build container: its
+  assembler, disassembler and compiler; it carries no documents), the
+  vendored SDK folder's file list (no SDK document; FM-1-RE not opened),
+  the vendored Plaits tree, and this repository's firmware, tools, tests
+  and docs. While looking for the request before #68 existed it listed
+  the clean folder's git status and changed file names (no file
+  contents). It never opens or fetches an audit target.
+- Later in the session: it fetched the emulator upstream at the pinned
+  commit into its scratch folder (the fetch script's sparse paths only)
+  to make patch 0003 against an untouched tree; compiled a corpus (the
+  firmware, the vendored Plaits, its own C) with the firmware's flags and
+  ran every distinct unit in fwtest; and tried to install the CI's Python
+  requirements from PyPI into a scratch environment (`reuse` did not
+  install; nothing else was used from it).
 
 ## Corrections
 
