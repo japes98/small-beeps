@@ -4,7 +4,7 @@
 """Writes the fwtest scripts of M6a's MIDI cases (tests/fw/scripts/midi*.txt;
 R-MIDI-*), and reads their byte streams back for tools/fw-suite.py.
 
-  midi_scripts.py            writes every script
+  midi_scripts.py            writes every script, and perfload.txt's MIDI part
   midi_scripts.py --check    exits 1 if a committed script differs
 
 A `midi` event's bytes arrive one every 320 us, the first 320 us after its
@@ -222,6 +222,36 @@ def midilat():
     return s
 
 
+# The loaded measure's input (tools/perf.py) ends with a full MIDI wire
+# through its window (since M6a): written here, after this marker line.
+PERFLOAD = os.path.join(SCRIPTS, "perfload.txt")
+PERFLOAD_MARK = "# --- MIDI, since M6a (written by tools/midi_scripts.py; don't edit below) ---"
+
+
+def perfload_midi():
+    """From 1 000 ms to past 2 300 ms (the perf runs' window is 1 250 to
+    2 250 ms): 16 notes held, each struck again in turn in running status
+    (note on, then off at velocity 0), the mod wheel and pitch bend moving
+    every eighth note; the wire never rests."""
+    s = Script("perfload", "")
+    notes = list(range(48, 80, 2))
+    s.at(1000).midi(0x90, [x for n in notes for x in (n, 100)])
+    i = 0
+    while s.t < 2300:
+        n = notes[i % 16]
+        s.midi(0x90, n, 0, n, 60 + i % 60)
+        if i % 8 == 7:
+            s.midi(cc(1, i % 128), bend((i * 997) % 16384))
+        i += 1
+    s.midi(bend(8192), cc(1, 0), 0x80, [x for n in notes for x in (n, 0)])
+    return s
+
+
+def perfload_text(old):
+    head = old.split(PERFLOAD_MARK)[0].rstrip("\n") + "\n"
+    return head + PERFLOAD_MARK + "\n" + "\n".join(perfload_midi().lines) + "\n"
+
+
 CASES = (midimsg, midirun, midisysex, midijunk, mididense, midisustain, midichan, midipanel, midilat)
 
 
@@ -255,6 +285,16 @@ def main(argv):
             with open(path, "w") as f:
                 f.write(text)
             print("wrote %s (%d lines, ends %.1f ms)" % (os.path.relpath(path, ROOT), len(s.lines), s.t))
+    with open(PERFLOAD) as f:
+        old = f.read()
+    text = perfload_text(old)
+    if check and old != text:
+        print("%s's MIDI part differs from what tools/midi_scripts.py writes" % PERFLOAD)
+        bad = 1
+    elif not check:
+        with open(PERFLOAD, "w") as f:
+            f.write(text)
+        print("wrote the MIDI part of %s" % os.path.relpath(PERFLOAD, ROOT))
     return bad
 
 
