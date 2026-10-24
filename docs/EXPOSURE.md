@@ -1007,29 +1007,6 @@ SR-3 wrote only its barrier-log row.*
   specification as public literature (PROVENANCE). It does not open
   anything on the forbidden list, anything under the three spec-side
   folders, or any other synthesizer's firmware or MIDI code.
-- Later in the session:
-  - **A push that wanted an object this folder didn't have**, as in M4b
-    and M5: twice (#75's branch and the MIDI branch). Each time
-    `tools/clean-update.sh`, run from main, fixed it and ended "no
-    spec-side files on disk or in .git". Once it was first run on a
-    feature branch, where its fast-forward stopped before its checks; it
-    was run again from main at once. No tree listing was made.
-  - **Merging main into the MIDI branch after #77** put the spec-side
-    folders' changed paths into the index, and `git status` printed their
-    names (file names only: emulator patch and harness test file names, a
-    spec transcript's name), as in M2. A check found none of them on disk
-    and none of their blobs in `.git`. No content was shown or fetched.
-  - **SR-8's answer** was read from its open pull request (#81), at the
-    owner's direction: only `docs/HARDWARE-SPEC.md`, `docs/HARNESS.md`,
-    `docs/SPEC-REQUESTS.md` and `PROVENANCE.md`, each fetched by
-    GitHub's contents API at the PR's branch (and `PROVENANCE.md` of
-    #80 and #82, for the IDs they take). Nothing under the spec-side
-    folders was fetched.
-  - **The toolchain** compiled a two-function C file of ours in the build
-    container to check the build's rotate guard (P-37).
-  - **Disk**: free space fell to 2.1 GB; with the owner's choice the
-    session pruned Docker's stopped containers (1.0 GB), and it stayed
-    above 5 GB after.
 ### Session emulator-parity (fwtest and the F-Emulator app on one emulator)
 - Date: 2026-10-24 (UTC)
 - Role: **spec side (exposed).** Never writes firmware.

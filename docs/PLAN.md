@@ -734,39 +734,6 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     (`fm_note_on`); M6 needs UART1 and the MIDI jack from the spec side
     (Q-12).
 
-### M6a: MIDI in (firmware side)
-- Status 2026-10-24 (session M6a, firmware side, on the owner's Mac): done,
-  in pull requests #74 (start), #75 (SR-7's workaround removed), #76
-  (spec request SR-8), #79 (the build's last instruction guard removed,
-  fwtest 0.4.0) and the MIDI pull request (the parser, the engine's side,
-  the receiver and the tests), which builds on SR-8's answer (#81).
-  - **The receiver** (HW-67 to HW-71): the MIDI IN jack's UART1, by DMA
-    into a ring, read once a block from the engine's callback; no
-    interrupt. The chip's baud rate, clock and pin are still open (Q-12)
-    and set only with real hardware.
-  - **The parser** (our own, MIDI 1.0's rules; tools/midi_model.py is the
-    same rules again for the tests): running status, realtime anywhere,
-    SysEx skipped at any length, junk dropped and counted.
-  - **The engine's side**: notes held apart by the panel, MIDI and the
-    sustain pedal, so neither ends the other's; velocity, pitch bend (2
-    semitones, RPN 0 up to 24), vibrato on the mod wheel, volume and
-    expression, all notes off, all sound off, program change, mono and
-    poly; a receive channel (omni by default) and a controller map in a
-    versioned settings struct for M7 to save and M8 to extend; MIDI's
-    notes on the panel screen.
-  - **Tests**: nine fwtest MIDI cases from generated scripts, each byte
-    stream checked against the model; bends within 0.002 semitones,
-    vibrato ±0.49, volume and expression on their curve, all sound off
-    silent within 6 ms, sustain at five times, channel 10 only, panel and
-    MIDI together without stuck notes (golden screen), a full wire for
-    6 s without a drop or underrun. R-MIDI-1 to R-MIDI-7.
-  - **Figures** (fwtest): latency 1.7 to 2.9 ms from a note's last byte to
-    its first sample (at most two blocks); at rest +2.0% (36 instructions a
-    block), loaded +1.0%; code 18 408 bytes, static RAM 143 256: the M5
-    budgets hold, none raised.
-  - **Next: M6b, MIDI out**, waiting on the spec side (which port the FM-1
-    sends MIDI on; the spec side has #82 open on MIDI output).
-
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer (done; above).
 - **M2** screen (done; above).
@@ -774,8 +741,7 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
 - **M4** audio (done; above). **M4b** a platform test: Plaits (MIT) as
   a demo build, and the loaded-case budget (done; above).
 - **M5** the FM engine (done; above).
-- **M6a** MIDI in (done; above). **M6b** MIDI out (next, waiting on the
-  spec side).
+- **M6** MIDI in (next).
 - **M7** flash storage.
 - **M8** UI and original presets (no Yamaha factory voices).
 - **M9** packaging, and a raw-image boot path in the app.
