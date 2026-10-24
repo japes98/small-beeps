@@ -1,0 +1,6 @@
+code 18408
+data 44
+bss 143212
+image 18452
+stack 4096
+irq_stack 2048
