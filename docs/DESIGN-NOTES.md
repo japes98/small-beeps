@@ -1793,3 +1793,130 @@ up the panel screen, as a first event does.
   against 85 755 without MIDI (a wire filled to the last byte took 116 420
   in a one-off run). The M6 budgets (their own pull request) raise the
   loaded budget to 131 072 for it; the rest is M5's.
+
+### 2026-10-24 M6b: MIDI out
+- Facts: HW-72 to HW-74 (the SMK-37's MIDI OUT is a UART's transmit side;
+  UART1 transmits by DMA, `TXADR` then `TXCNT`, and sets `CON0` bit 15
+  when the last byte has gone, cleared by writing bit 13; the FM-1 has no
+  MIDI OUT jack, so its bytes reach no socket); HARNESS.md's "MIDI
+  output" (`--midi-out`, a byte every 320 us). PROVENANCE P-50, and P-43
+  (the MIDI 1.0 specification) for the wire format, running status and
+  local control.
+- Sources: as M6a's; no other synthesizer's firmware and no MIDI
+  library's source was looked at.
+
+#### The path
+One context does everything: the engine's block callback. It polls the
+transmitter at the start of its events, takes the panel's events (and
+queues what they send), takes MIDI in (and queues what thru passes on),
+then polls again, so a message queued in a block has its first byte on
+the wire in that block if the wire is free. Nothing else writes the
+queue or the UART's transmit side, so there is no lock, and nothing ever
+waits for the wire: a poll that finds a transfer still running returns.
+
+#### The transmitter
+A poll sends only when the last transfer has gone (`CON0` bit 15,
+acknowledged with bit 13, every write keeping the UART and the receive
+DMA on), never while one runs, and a running transfer's 16-byte buffer
+is never touched. A transfer takes whole messages, up to 12 bytes (3.8
+ms), so under a long stream a new message waits at most that plus a
+block. No interrupt: the transmit interrupt's enable bit is known only
+from the emulator (HW-74), the receive side is polled the same way
+(M6a), and the polls a block gives are enough: the chunk lets the wire
+stay busy across a block. Polling costs throughput, though: a transfer
+can only start at a poll, so the wire idles from a transfer's end to
+the next poll; under a stream the wire carries about 88% of its 31 250
+baud (midiburst: 65 bytes in 23.6 ms). A full input wire passed on by
+thru therefore builds the queue up slowly, and the policy (below)
+applies. On the chip, what writing `CON0` during a transfer does beyond
+the acknowledge, and whether a pin carries UART1's transmit side at all,
+are open (Q-20); nothing here depends on the pin.
+
+#### Running status
+A channel message leaves out its status byte when it is the status sent
+last, while messages keep coming; when a poll finds the transfer done and
+nothing waiting, the wire has gone quiet and the next message carries its
+status, so a receiver connected meanwhile is never left without one.
+System common messages end running status, realtime messages don't. The
+panel's note offs are note ons at velocity 0 (the receiver treats both
+the same, M6a), so a run of notes keeps one status.
+
+#### The policy when the wire can't keep up
+The queue holds 32 messages (at most 96 bytes, 31 ms of the wire):
+- **Merging:** a control change, pitch bend, pressure or program change
+  replaces a waiting one of the same kind, channel (and controller or
+  note), looking back from the newest over such messages only, so no
+  value moves past a note, a mode message or a parameter-number sequence.
+  Data entry (6, 38), the parameter numbers (96 to 101) and the mode
+  messages (120 to 127) never merge: their order is their meaning.
+- **The reserve:** 8 places are kept for note offs (and all notes off,
+  all sound off). Any other message that finds the other 24 full is
+  dropped and counted.
+- **Never a stuck note:** a note on dropped marks its note, and its note
+  off is dropped too. A note off that finds all 32 full drops the newest
+  waiting message that ends no notes (a note on so dropped marks its
+  note). Only a queue of 32 note offs alone could lose one; it is counted.
+
+#### What the panel sends
+On the out channel (1 by default):
+- **Keys:** a note on at velocity 100 (the keys have no velocity) and a
+  note on at velocity 0 when let go, for the note the key started, so an
+  octave change while it is held can't leave it on. OCT- and OCT+ only
+  move the notes sent.
+- **KNOB1 to KNOB4:** as the first controllers M6a's map routes to them
+  (16 to 19 by default; a changed map changes them), each value the
+  inverse of how MIDI in reads it: the value nearest 64 whose offset is
+  the panel knob's position, held to the knob's span. So a far end with
+  its own knob at rest takes the position the panel's knob has; a value
+  is sent only when it changes. tools/midi_model.py checks every
+  position.
+- **PRESETS:** a program change, the test patch's number.
+- **SEL with MONO or POLY:** the mode messages 126 (value 1) and 127,
+  which MIDI in takes as mono and poly.
+- **Pitch:** the panel has no bend or pitch wheel; KNOB1 transposes and
+  goes as its controller (a bend could not carry ±24 semitones at the
+  default range of 2). Not sent: MASTER (the device's own output level,
+  not in the map), ALGORITHM (no controller in the map yet; M8), PLAY's
+  test tone, SELECT.
+
+#### Thru and local control
+- **Thru** (off by default) passes on every message MIDI in parsed, on
+  every channel, before the receive channel's filter, realtime and system
+  common included, as messages merged with the panel's at message
+  boundaries (never bytes, which would break running status). A SysEx is
+  not passed on: the parser keeps none of its bytes (M6a); it is counted.
+  Only bytes received at MIDI in go through thru, never the firmware's
+  own messages. A cable from out to in with thru on would repeat
+  messages without end, as on any instrument with soft thru.
+- **Local control** (on by default; CC 122 sets it from MIDI, as the
+  specification has it): off, the panel's keys, knobs and PRESETS go to
+  MIDI out only. The engine keeps the knob positions it last took and
+  its patch, and a key let go still ends its note if it had started one
+  before. MIDI in still plays, so a sequencer can play the engine from
+  the panel's own notes. On again, the engine takes the panel's knobs
+  where they are.
+
+#### The settings and the screen
+`struct midi_settings` (version 2) adds the out channel (1 to 16), thru
+and local control after M6a's fields, all bytes, for M7 to save. The
+thru test build sets thru on and the out channel to 2. The panel
+screen's bottom line shows them ("MIDI out ch 1  thru off  local on"),
+redrawn when they change.
+
+#### Figures (fwtest 0.5.0, through `FWTEST_IMAGE` before its pin)
+- **Latency** from a key going down to its note on's first start bit, 20
+  keys: 3.260 to 5.286 ms, mean 4.196: the key's debounce (2.5 to 4.5 ms,
+  M3), then up to a block until the engine takes the event; the byte
+  starts in that block.
+- **The burst** (94 messages in one block): 28 merged, 18 dropped (the 10
+  note ons past the room, 6 more and the controller and bend to make room
+  for note offs), 16 note offs dropped with their note ons, none lost; 16
+  notes sent and each ended, 77 bytes in 10 transfers, 31 status bytes
+  left out.
+- **Cost at rest:** 1 863.9 instructions a block, 25 more than M6a's (the
+  two polls of an empty queue); loaded 110 207.6, +0.3% (the perf input's
+  keys and knobs now also go out). Code 20 144 bytes (+1 736), static RAM
+  143 776 (+520: the queue, the transfer buffer, the dropped-note bits,
+  the record).
+- **Never disturbs audio:** no underrun in any case, audiogold and fmgold
+  byte for byte as before.
