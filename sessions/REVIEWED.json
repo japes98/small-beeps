@@ -1052,6 +1052,41 @@
       "rule": "F-9",
       "reason": "A commit message heredoc for SR-7, `git add docs/SPEC-REQUESTS.md`, `git commit` and `git push`: the message calls it a harness gap. Text only; nothing under harness/ was opened or listed.",
       "added_by": "session M6a (clean side, claude-opus-5-5), 2026-10-24"
+    },
+    {
+      "session": "75d8f387-ba4e-4745-971e-20f61025e67b",
+      "tool_use_id": "toolu_01MrRdHQbbGLnLqZH77m9cN8",
+      "rule": "F-9",
+      "reason": "A heredoc writing M6a's start pull request body into the session's scratch folder: the text lists earlier REVIEWED.json entries, which name harness/ as a rule's subject. Text only; nothing under harness/ was opened or listed.",
+      "added_by": "session M6b (clean side, claude-opus-5-5), 2026-10-24"
+    },
+    {
+      "session": "75d8f387-ba4e-4745-971e-20f61025e67b",
+      "tool_use_id": "toolu_01MrRdHQbbGLnLqZH77m9cN8",
+      "rule": "F-11",
+      "reason": "The same heredoc: the text says sessions/spec/ was not opened, quoting an earlier entry. Text only; nothing under sessions/spec/ was opened or listed.",
+      "added_by": "session M6b (clean side, claude-opus-5-5), 2026-10-24"
+    },
+    {
+      "session": "75d8f387-ba4e-4745-971e-20f61025e67b",
+      "tool_use_id": "toolu_01JpL3kQnLmH9SQaKcCYSAxq",
+      "rule": "F-11",
+      "reason": "clean-update.sh, then merging main into m6a/midi-in and showing the staged diffstat. Its `git diff` takes a pathspec that leaves the three spec-side folders out (CONTRIBUTING.md's rule for history commands); the names occur only as exclusions. Nothing under them was opened, listed or fetched.",
+      "added_by": "session M6b (clean side, claude-opus-5-5), 2026-10-24"
+    },
+    {
+      "session": "75d8f387-ba4e-4745-971e-20f61025e67b",
+      "tool_use_id": "toolu_01DJiSRWGv81b4eAbpyggLVJ",
+      "rule": "F-11",
+      "reason": "clean-update.sh, merging main into m6a/midi-in and listing the staged names, then a commit-message heredoc. Its `git diff` takes a pathspec that leaves the three spec-side folders out (CONTRIBUTING.md's rule for history commands); the names occur only as exclusions. Nothing under them was opened, listed or fetched.",
+      "added_by": "session M6b (clean side, claude-opus-5-5), 2026-10-24"
+    },
+    {
+      "session": "75d8f387-ba4e-4745-971e-20f61025e67b",
+      "tool_use_id": "toolu_01DkqtTS8t2vRWbpR3NZoS5w",
+      "rule": "F-11",
+      "reason": "clean-update.sh, then merging main into m6a/perfload-midi and showing conflicts and the staged diffstat. Its `git diff` takes a pathspec that leaves the three spec-side folders out (CONTRIBUTING.md's rule for history commands); the names occur only as exclusions. Nothing under them was opened, listed or fetched.",
+      "added_by": "session M6b (clean side, claude-opus-5-5), 2026-10-24"
     }
   ]
 }

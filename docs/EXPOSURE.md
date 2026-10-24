@@ -1142,6 +1142,36 @@ SR-3 wrote only its barrier-log row.*
   0.5.0 (pinned), the `midiout` test image through the pinned fwtest, and
   the emulator crates' and harness's own tests.
 
+### Session M6b (MIDI out)
+- Date: 2026-10-24
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.310 (banner), Remote Control from the owner's phone.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `89fcb09b-f267-409b-b8c4-776025e3d530`,
+  started by a `/clear` at 13:01:56Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `663f135` and ended "no spec-side files on disk or
+  in .git"; `tools/private-terms.local` exists (not opened). The Mac had
+  4.8 GB free. It archived M6a (`75d8f387`) into `sessions/clean/`; every
+  other clean session was already archived. `tools/check-transcripts.py`
+  flagged five of M6a's calls; the session printed only those commands
+  from the redacted archive. Each names a spec-side folder as text only
+  (a pull request body, and `git diff` pathspecs that leave the folders
+  out); five `REVIEWED.json` entries clear them, for the owner to approve
+  in the pull request, and the check then passed.
+- Reads: CONTRIBUTING.md, this file, sessions/README.md,
+  sessions/REVIEWED.json, the redacted archive of `75d8f387` (the five
+  flagged commands only), docs/HARDWARE-SPEC.md, docs/HARNESS.md, and this
+  repository's tools, tests, docs and firmware. For MIDI: the MIDI 1.0
+  specification as public literature (PROVENANCE). It does not open
+  anything on the forbidden list, anything under the three spec-side
+  folders, or any other synthesizer's firmware or MIDI code.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
@@ -1224,6 +1254,7 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-24T04:03:28Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session emulator-parity starts; banner `status: OK`. 04:04:11Z: `tools/spec-setup.sh`, banner `status: OK`; SR-7's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-24T05:45:26Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session midi-in-out starts; banner `status: OK`. 05:45:47Z: `tools/spec-setup.sh`, banner `status: OK`; emulator-parity's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-24T12:56:38Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session pin-050 starts; banner `status: OK`. 12:57:24Z: `tools/spec-setup.sh`, banner `status: OK`; midi-in-out's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-24T13:01:56Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M6b starts; banner `status: OK`; `tools/clean-update.sh` found main at `663f135` and passed; M6a archived; `tools/check-transcripts.py` PASS with the 5 reviewed entries listed for the owner's approval |
 
 ## Model cutoffs
 
