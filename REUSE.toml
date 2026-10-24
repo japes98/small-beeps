@@ -70,7 +70,8 @@ path = [
   "vendor/emulator/patches/**",
 ]
 precedence = "override"
-SPDX-FileCopyrightText = "2026 Joakim Eriksson"
+# (and the owner's patches since SR-7, in the crates as patched)
+SPDX-FileCopyrightText = ["2026 Joakim Eriksson", "2026 japes98"]
 SPDX-License-Identifier = "MIT"
 
 [[annotations]]

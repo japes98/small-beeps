@@ -1,0 +1,121 @@
+Speed only: a block built from RAM code is found current by the bus's
+count of writes to code words, when the count hasn't changed, before
+its bytes are compared with memory; upstream did so only in its wasm
+build. Every write to a word a RAM block was built from is counted:
+RAM's bytes are reachable only through its write methods, which count,
+and the native JITs' inline stores, which send a store to a flagged word
+to the bus; a block marks exactly the bytes it keeps as code. fwtest
+runs without the JIT.
+
+The F-Emulator app's patch (its 0005, emulator-patches.md section D),
+taken unchanged: the added and removed lines are the app's, byte for
+byte. Licensed MIT for this repository by the owner (PROVENANCE P-37).
+
+Its crate test ram_block_sees_patched_code re-enters a RAM block after a
+store patched it, interpreted and with the JIT. fwtest's outputs are
+byte for byte the same with and without this patch and 0007
+(docs/EMULATOR-PARITY.md). Session emulator-parity, 2026-10-24.
+
+diff --git a/crates/fm1-core/src/lib.rs b/crates/fm1-core/src/lib.rs
+index 5e88c57..b670de2 100644
+--- a/crates/fm1-core/src/lib.rs
++++ b/crates/fm1-core/src/lib.rs
+@@ -217,9 +217,8 @@ pub struct Cpu {
+     /// The stock firmware's synth renders on cpu1 from RAM: without blocks it ran a step at
+     /// a time.
+     bbytes: Vec<Option<Box<[u8]>>>,
+-    /// Per block over RAM, in the wasm build: the bus's count of code-word writes when the block
+-    /// was last found current (`ram_block_ok`: the same count, no compare).
+-    #[cfg(target_arch = "wasm32")]
++    /// Per block over RAM: the bus's count of code-word writes when the block was last found
++    /// current (`ram_block_ok`: the same count, no compare).
+     bver: Vec<u64>,
+     /// FM1_NO_RAM_BLOCKS: RAM code a step at a time (the reference)
+     no_ram_blocks: bool,
+@@ -696,13 +695,17 @@ impl Cpu {
+         (q == end).then_some(then)
+     }
+ 
+-    /// Is RAM block `id` still built from what memory holds now? In the wasm build, by the bus's
+-    /// count of writes to code words when it keeps one: the same count as when the block was last
+-    /// found current, nothing has changed; else the bytes are compared. Native block lookup
+-    /// compares bytes; compiled RAM chain targets keep separate versioned snapshots.
++    /// Is RAM block `id` still built from what memory holds now? By the bus's count of writes to
++    /// code words when it keeps one: the same count as when the block was last found current,
++    /// nothing has changed; else the bytes are compared. Compiled RAM chain targets keep separate
++    /// versioned snapshots.
+     #[inline]
+     fn ram_block_ok<B: Bus>(&mut self, bus: &mut B, id: usize) -> bool {
+-        #[cfg(target_arch = "wasm32")]
++        // (every build, not only wasm: a block over RAM is entered on every pass of a loop in it,
++        // and comparing its bytes each time cost the stock firmware's synth, on cpu1 in RAM, and
++        // melodee, which waits in a one-instruction loop there, most of their time. Every store
++        // to a code word is counted: the interpreter's through the bus, both native JITs' inline
++        // stores fall back to the bus for a flagged word, bulk loads count themselves.)
+         if let Some(w) = bus.code_writes() {
+             if self.bver[id] == w {
+                 return true;
+@@ -751,7 +754,6 @@ impl Cpu {
+             self.bops.clear();
+             self.blocks.clear();
+             self.bbytes.clear();
+-            #[cfg(target_arch = "wasm32")]
+             self.bver.clear();
+             self.bmap.iter_mut().for_each(|x| *x = 0);
+             #[cfg(native_jit)]
+@@ -808,11 +810,8 @@ impl Cpu {
+         }
+         self.bbytes.resize(self.blocks.len() - 1, None);
+         self.bbytes.push(bytes);
+-        #[cfg(target_arch = "wasm32")]
+-        {
+-            self.bver.resize(self.blocks.len() - 1, u64::MAX);
+-            self.bver.push(bus.code_writes().unwrap_or(u64::MAX));
+-        }
++        self.bver.resize(self.blocks.len() - 1, u64::MAX);
++        self.bver.push(bus.code_writes().unwrap_or(u64::MAX));
+         let slot = (pc >> 1) as usize & ((1 << BITS) - 1);
+         self.bmap[slot] = self.blocks.len() as u32;
+         Ok(if len == 0 { None } else { Some((self.blocks.len() - 1, start, len)) })
+diff --git a/crates/fm1-soc/src/lib.rs b/crates/fm1-soc/src/lib.rs
+index 63e49c9..77d72db 100644
+--- a/crates/fm1-soc/src/lib.rs
++++ b/crates/fm1-soc/src/lib.rs
+@@ -957,6 +957,37 @@ pub fn write_boot_info(soc: &mut Soc, at: u32, flash: &[u8]) -> u32 {
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    /// A block over RAM re-entered after a store patched its code runs the new code, interpreted
++    /// and with the JIT (blocks over RAM skip their byte compare while the bus's count of
++    /// code-word writes is unchanged, so every store to a code word must be counted).
++    #[test]
++    fn ram_block_sees_patched_code() {
++        use fm1_core::Cpu;
++        for jit in [false, true] {
++            let mut soc = Soc::new(0x8000, vec![]);
++            // `r0 = 0x11111111`, then a jump to itself
++            let prog = [0xc0, 0xff, 0x11, 0x11, 0x11, 0x11, 0xf7, 0x9f];
++            for (i, b) in prog.iter().enumerate() {
++                soc.write8(RAM_BASE + i as u32, *b);
++            }
++            let mut cpu = Cpu::new(RAM_BASE);
++            cpu.jit_on = jit;
++            let run = |soc: &mut Soc, cpu: &mut Cpu| {
++                for _ in 0..3 {
++                    cpu.pc = RAM_BASE;
++                    cpu.regs[0] = 0;
++                    cpu.run_fast(soc, 200).unwrap();
++                }
++                cpu.regs[0]
++            };
++            assert_eq!(run(&mut soc, &mut cpu), 0x1111_1111, "jit {jit}");
++            // the immediate's bytes 2..6, patched by a store as the firmware's would be
++            soc.write16(RAM_BASE + 2, 0x2222);
++            soc.write16(RAM_BASE + 4, 0x2222);
++            assert_eq!(run(&mut soc, &mut cpu), 0x2222_2222, "jit {jit}: the patched code ran");
++        }
++    }
++
+     /// `Soc::region` as upstream has it (one match, the memories first), for the test below.
+     fn region_before(soc: &Soc, addr: u32) -> Region {
+         match addr {

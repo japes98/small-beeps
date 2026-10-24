@@ -217,9 +217,8 @@ pub struct Cpu {
     /// The stock firmware's synth renders on cpu1 from RAM: without blocks it ran a step at
     /// a time.
     bbytes: Vec<Option<Box<[u8]>>>,
-    /// Per block over RAM, in the wasm build: the bus's count of code-word writes when the block
-    /// was last found current (`ram_block_ok`: the same count, no compare).
-    #[cfg(target_arch = "wasm32")]
+    /// Per block over RAM: the bus's count of code-word writes when the block was last found
+    /// current (`ram_block_ok`: the same count, no compare).
     bver: Vec<u64>,
     /// FM1_NO_RAM_BLOCKS: RAM code a step at a time (the reference)
     no_ram_blocks: bool,
@@ -696,13 +695,17 @@ impl Cpu {
         (q == end).then_some(then)
     }
 
-    /// Is RAM block `id` still built from what memory holds now? In the wasm build, by the bus's
-    /// count of writes to code words when it keeps one: the same count as when the block was last
-    /// found current, nothing has changed; else the bytes are compared. Native block lookup
-    /// compares bytes; compiled RAM chain targets keep separate versioned snapshots.
+    /// Is RAM block `id` still built from what memory holds now? By the bus's count of writes to
+    /// code words when it keeps one: the same count as when the block was last found current,
+    /// nothing has changed; else the bytes are compared. Compiled RAM chain targets keep separate
+    /// versioned snapshots.
     #[inline]
     fn ram_block_ok<B: Bus>(&mut self, bus: &mut B, id: usize) -> bool {
-        #[cfg(target_arch = "wasm32")]
+        // (every build, not only wasm: a block over RAM is entered on every pass of a loop in it,
+        // and comparing its bytes each time cost the stock firmware's synth, on cpu1 in RAM, and
+        // melodee, which waits in a one-instruction loop there, most of their time. Every store
+        // to a code word is counted: the interpreter's through the bus, both native JITs' inline
+        // stores fall back to the bus for a flagged word, bulk loads count themselves.)
         if let Some(w) = bus.code_writes() {
             if self.bver[id] == w {
                 return true;
@@ -751,7 +754,6 @@ impl Cpu {
             self.bops.clear();
             self.blocks.clear();
             self.bbytes.clear();
-            #[cfg(target_arch = "wasm32")]
             self.bver.clear();
             self.bmap.iter_mut().for_each(|x| *x = 0);
             #[cfg(native_jit)]
@@ -808,11 +810,8 @@ impl Cpu {
         }
         self.bbytes.resize(self.blocks.len() - 1, None);
         self.bbytes.push(bytes);
-        #[cfg(target_arch = "wasm32")]
-        {
-            self.bver.resize(self.blocks.len() - 1, u64::MAX);
-            self.bver.push(bus.code_writes().unwrap_or(u64::MAX));
-        }
+        self.bver.resize(self.blocks.len() - 1, u64::MAX);
+        self.bver.push(bus.code_writes().unwrap_or(u64::MAX));
         let slot = (pc >> 1) as usize & ((1 << BITS) - 1);
         self.bmap[slot] = self.blocks.len() as u32;
         Ok(if len == 0 { None } else { Some((self.blocks.len() - 1, start, len)) })
@@ -1669,6 +1668,18 @@ impl Cpu {
             return Ok(Some(None));
         }
 
+        // ---- rotate right by a register `R = R <> R` (cc e1): d = bits(28,31), s =
+        // bits(20,23), t = bits(24,27). The compiler's rotate idioms show the direction (`(x >>
+        // 7) | (x << 25)` is `<> 7`; `(x << s) | (x >> (32 - s))` is `<> (32 - s)`), not what an
+        // amount of 32 or more does: taken mod 32, as a rotate repeats every 32.
+        if s == "R = R <> R" && insn.entry.len == 4 {
+            let raw = insn.raw;
+            let src = self.regs[((raw >> 20) & 0xf) as usize];
+            let n = self.regs[((raw >> 24) & 0xf) as usize];
+            self.regs[((raw >> 28) & 0xf) as usize] = src.rotate_right(n & 31);
+            return Ok(Some(None));
+        }
+
         // ---- push/pop of named special registers ----------------------------
         // `[--sp] = {psr, rets, reti}` / `{psr, rets, reti} = [sp++]` (interrupt
         // prologues, context switches): same convention as the register
@@ -1685,10 +1696,12 @@ impl Cpu {
                 let e = if s.starts_with("tbb") { bus.read8(next_pc.wrapping_add(idx)) as u32 } else { bus.read16(next_pc.wrapping_add(idx)) as u32 };
                 return Ok(Some(Some(next_pc.wrapping_add(2 * e))));
             }
-            "[--sp] = {R*2}" | "{R*2} = [sp++]" | "[--sp] = {R*1}" | "{R*1} = [sp++]" => {
+            "[--sp] = {R*2}" | "{R*2} = [sp++]" | "[--sp] = {R*1}" | "{R*1} = [sp++]"
+            | "[--sp] = {R*4}" | "{R*4} = [sp++]" => {
                 // block push/pop without rets: 2-byte `6n 04` / `4n 04` with
                 // the usual [max(n,3) .. min(n,4)] list; 4-byte `d8 e8` /
-                // `d4 e8` carry a 16-bit register mask at bits 16-31.
+                // `d4 e8` carry a 16-bit register mask at bits 16-31 (`{R*4}`:
+                // the raw decoder's, any mask).
                 let raw = insn.raw;
                 let regs: Vec<usize> = if insn.entry.len == 2 {
                     let n = (raw & 0xf) as usize;
@@ -2937,6 +2950,11 @@ fn decode_any(win: u64, pc: u32) -> Result<fm1_isa::Instruction, fm1_isa::Decode
         // all 54 corpus samples fit): the classes match only the corpus masks (Vector37's
         // `{pc, r11-r6, r4}`)
         Err(_) if win & 0xffff == 0xe8d5 => raw(&PC_POP_MASK_CRAW),
+        // `d8 e8 <mask>` / `d4 e8 <mask>`: `[--sp] = {mask}` / `{mask} = [sp++]`, no rets or pc
+        // (vendor assembler and objdump: every mask, `{}` too): the classes match only masks
+        // from r0 (the compiler's interrupt handlers' `{r7-r0}`), not `{r5-r1}` or `{r15}`
+        Err(_) if win & 0xffff == 0xe8d8 => raw(&LIST_PUSH_MASK_CRAW),
+        Err(_) if win & 0xffff == 0xe8d4 => raw(&LIST_POP_MASK_CRAW),
         // `d4 e9 <rrrr oooo oooo ooos>`: `rR = [sp+off]` / `[sp+off] = rR`, off = bits 1..11 (a
         // word offset), s = store (route 33; all 20620 corpus samples fit): the classes fit only
         // the corpus offsets (ObervaVe's `r3 = [sp+2384]`)
@@ -2961,7 +2979,11 @@ fn decode_any(win: u64, pc: u32) -> Result<fm1_isa::Instruction, fm1_isa::Decode
         // 4-byte ALU forms decode_alu4 knows the layout of (`6c e8` `[R+#i] <<= #n`, `64 e8`
         // `[R+#i] &= R`, ...): the table's classes fit only the offsets the corpora used
         // (m6502's `[r0+24] <<= 1`, `[r1+-4] &= r0`)
-        Err(_) if decode_alu4(win & 0xffff_ffff).is_some() => raw(&ALU4_CRAW),
+        // (byte1 `f0` / `f1`: a dual-issue pair's head, which decode_alu4 reads as e0 / e1; it
+        // must stay one, or the pair's second half sees the new value)
+        Err(_) if decode_alu4(win & 0xffff_ffff).is_some() => {
+            raw(if matches!((win >> 8) & 0xff, 0xf0 | 0xf1) { &ALU4_PAIR_CRAW } else { &ALU4_CRAW })
+        }
         // `d0..d7 ec`: word loads / stores at an offset or pre-incremented (route 18)
         Err(_) if matches!(win & 0xff, 0xd0..=0xd7) && (win >> 8) & 0xff == 0xec => raw(&WORD_MEM_CRAW),
         // post-increment loads / stores `[R++=#i]` (route 19 decodes the fields; the classes fit
@@ -3011,6 +3033,13 @@ fn decode_any(win: u64, pc: u32) -> Result<fm1_isa::Instruction, fm1_isa::Decode
         // registers (FM1 Open's sha256 `r6 = r7 <> 19`). Bit 27 set is `<c>`, through carry.
         Err(_) if matches!(win & 0xffff, 0xe1c4 | 0xf1c4) && win & 0x0e00_0000 == 0 => {
             raw(if win & 0xffff == 0xf1c4 { &ROT_PAIR_CRAW } else { &ROT_CRAW })
+        }
+        // `cc e1 S0 DT` / `cc f1` (a dual-issue pair's head): rD = rS <> rT, the rotate right by
+        // a register, in the `c8 e1` shifts' layout (vendor assembler and objdump: byte 2's low
+        // nibble 1, 2, 3 are `<c>`, `><`, `>< (sat)`, not taken here; 4..f are no
+        // instruction). No table class: the compiler's `(x << s) | (x >> (32 - s))`
+        Err(_) if matches!(win & 0xffff, 0xe1cc | 0xf1cc) && (win >> 16) & 0xf == 0 => {
+            raw(if win & 0xffff == 0xf1cc { &ROTR_PAIR_CRAW } else { &ROTR_CRAW })
         }
         Err(e) => Err(e),
     }
@@ -3101,6 +3130,14 @@ static ROT_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
 };
 static ROT_PAIR_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
     name: "rot_pair_craw", syntax: "R = R <> #i  #", len: 4, count: 0, mask: 0, match_: 0,
+    group: "alu", alt: &[], samples: &[], slots: &[],
+};
+static ROTR_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+    name: "rotr_craw", syntax: "R = R <> R", len: 4, count: 0, mask: 0, match_: 0,
+    group: "alu", alt: &[], samples: &[], slots: &[],
+};
+static ROTR_PAIR_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+    name: "rotr_pair_craw", syntax: "R = R <> R  #", len: 4, count: 0, mask: 0, match_: 0,
     group: "alu", alt: &[], samples: &[], slots: &[],
 };
 static SAT16_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
@@ -3253,6 +3290,11 @@ static ALU4_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
     name: "alu4_craw", syntax: "R op= (alu4 raw)", len: 4, count: 0, mask: 0, match_: 0,
     group: "alu", alt: &[], samples: &[], slots: &[],
 };
+/// ALU4_CRAW for a pair head (`f0` / `f1`): the trailing `#` makes it one
+static ALU4_PAIR_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+    name: "alu4_craw", syntax: "R op= (alu4 raw)  #", len: 4, count: 0, mask: 0, match_: 0,
+    group: "alu", alt: &[], samples: &[], slots: &[],
+};
 static POST_INC_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
     name: "post_inc_craw", syntax: "[R++=#i] = R (raw)", len: 4, count: 0, mask: 0, match_: 0,
     group: "load", alt: &[], samples: &[], slots: &[],
@@ -3307,6 +3349,14 @@ static SP_WORD_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
 };
 static RETS_POP_MASK_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
     name: "rets_mask_mov_sp_craw", syntax: "{rets, R*4} = [sp++]", len: 4, count: 0, mask: 0, match_: 0,
+    group: "stack", alt: &[], samples: &[], slots: &[],
+};
+static LIST_PUSH_MASK_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+    name: "sp_mov_mask_craw", syntax: "[--sp] = {R*4}", len: 4, count: 0, mask: 0, match_: 0,
+    group: "stack", alt: &[], samples: &[], slots: &[],
+};
+static LIST_POP_MASK_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+    name: "mask_mov_sp_craw", syntax: "{R*4} = [sp++]", len: 4, count: 0, mask: 0, match_: 0,
     group: "stack", alt: &[], samples: &[], slots: &[],
 };
 carry_entry!(ADC_PAIR_CRAW, "adc_pair_craw", "R = R + R + c #");
@@ -3798,6 +3848,23 @@ mod tests {
                 self.write8(addr + i as u32, *b);
             }
         }
+    }
+
+    #[test]
+    fn alu4_fallback_keeps_pair_head() {
+        // `94 f1 80 0c` r0 = r8 | (1 << r12) # (Rainbow's, then `[sp+16] = r0`): no table class
+        // fits it, and the fallback ran it unpaired, so the store saw the new r0, not the old
+        let mut mem = vec![0u8; 0x100];
+        mem[..4].copy_from_slice(&[0x94, 0xf1, 0x80, 0x0c]);
+        let mut ram = FlatRam::new(mem);
+        let mut cpu = Cpu::new(0);
+        cpu.regs[0] = 0x55;
+        cpu.regs[8] = 0x100;
+        cpu.regs[12] = 3;
+        cpu.step(&mut ram).unwrap();
+        let (_, after) = cpu.pair_pending.expect("a pair head");
+        assert_eq!(cpu.regs[0], 0x55, "held back until the pair's second half");
+        assert_eq!(after[0], 0x108);
     }
 
     #[test]

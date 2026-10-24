@@ -1,0 +1,76 @@
+A dual-issue pair's head among the 4-byte ALU forms no table class fits
+(byte 1 f0 / f1, the twins of e0 / e1 that the fallback decoder reads)
+ran unpaired: its result was written at once, so the pair's second half
+saw the new value, not the old. Such words now decode as a pair head
+(an entry whose syntax ends in `#`); the e0 / e1 words decode as before.
+
+The F-Emulator app's patch (its 0003, emulator-patches.md section A),
+taken unchanged: the added and removed lines are the app's, byte for
+byte, with only the line offsets refreshed for our 0003. Licensed MIT
+for this repository by the owner (PROVENANCE P-37).
+
+Behaviour from the vendor toolchain: its objdump prints every f0 / f1
+twin of these families with the trailing `#` that marks a pair's head,
+and the vendor compiler's own code relies on a pair's second half
+seeing the registers as they were before the head (our firmware's
+input.c at -O2: `r1 = 0x50000 #` paired with `b[r1+9] = r2`, a
+read-modify-write of the byte it had just loaded from [r1+9]).
+
+The app's crate test alu4_fallback_keeps_pair_head comes with it; the
+harness test alu_pair_heads_hold_their_result (every family, image
+tests/images/pairhead.S) fails without it. Session emulator-parity,
+2026-10-24.
+
+diff --git a/crates/fm1-core/src/lib.rs b/crates/fm1-core/src/lib.rs
+index e2da1e2..ed6c6ba 100644
+--- a/crates/fm1-core/src/lib.rs
++++ b/crates/fm1-core/src/lib.rs
+@@ -2961,7 +2961,11 @@ fn decode_any(win: u64, pc: u32) -> Result<fm1_isa::Instruction, fm1_isa::Decode
+         // 4-byte ALU forms decode_alu4 knows the layout of (`6c e8` `[R+#i] <<= #n`, `64 e8`
+         // `[R+#i] &= R`, ...): the table's classes fit only the offsets the corpora used
+         // (m6502's `[r0+24] <<= 1`, `[r1+-4] &= r0`)
+-        Err(_) if decode_alu4(win & 0xffff_ffff).is_some() => raw(&ALU4_CRAW),
++        // (byte1 `f0` / `f1`: a dual-issue pair's head, which decode_alu4 reads as e0 / e1; it
++        // must stay one, or the pair's second half sees the new value)
++        Err(_) if decode_alu4(win & 0xffff_ffff).is_some() => {
++            raw(if matches!((win >> 8) & 0xff, 0xf0 | 0xf1) { &ALU4_PAIR_CRAW } else { &ALU4_CRAW })
++        }
+         // `d0..d7 ec`: word loads / stores at an offset or pre-incremented (route 18)
+         Err(_) if matches!(win & 0xff, 0xd0..=0xd7) && (win >> 8) & 0xff == 0xec => raw(&WORD_MEM_CRAW),
+         // post-increment loads / stores `[R++=#i]` (route 19 decodes the fields; the classes fit
+@@ -3253,6 +3257,11 @@ static ALU4_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+     name: "alu4_craw", syntax: "R op= (alu4 raw)", len: 4, count: 0, mask: 0, match_: 0,
+     group: "alu", alt: &[], samples: &[], slots: &[],
+ };
++/// ALU4_CRAW for a pair head (`f0` / `f1`): the trailing `#` makes it one
++static ALU4_PAIR_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
++    name: "alu4_craw", syntax: "R op= (alu4 raw)  #", len: 4, count: 0, mask: 0, match_: 0,
++    group: "alu", alt: &[], samples: &[], slots: &[],
++};
+ static POST_INC_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+     name: "post_inc_craw", syntax: "[R++=#i] = R (raw)", len: 4, count: 0, mask: 0, match_: 0,
+     group: "load", alt: &[], samples: &[], slots: &[],
+@@ -3800,6 +3809,23 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn alu4_fallback_keeps_pair_head() {
++        // `94 f1 80 0c` r0 = r8 | (1 << r12) # (Rainbow's, then `[sp+16] = r0`): no table class
++        // fits it, and the fallback ran it unpaired, so the store saw the new r0, not the old
++        let mut mem = vec![0u8; 0x100];
++        mem[..4].copy_from_slice(&[0x94, 0xf1, 0x80, 0x0c]);
++        let mut ram = FlatRam::new(mem);
++        let mut cpu = Cpu::new(0);
++        cpu.regs[0] = 0x55;
++        cpu.regs[8] = 0x100;
++        cpu.regs[12] = 3;
++        cpu.step(&mut ram).unwrap();
++        let (_, after) = cpu.pair_pending.expect("a pair head");
++        assert_eq!(cpu.regs[0], 0x55, "held back until the pair's second half");
++        assert_eq!(after[0], 0x108);
++    }
++
+     #[test]
+     fn nop_runs_at_entry() {
+         let mut ram = FlatRam::new(vec![0u8; 16]);
