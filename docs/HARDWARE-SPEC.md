@@ -1317,6 +1317,31 @@ requests.
 - Standing: confirmed (SDK, RE)
 - Needed by: M6b (MIDI out)
 
+### HW-74: UART1's transmit in fwtest, and on a real FM-1
+- Fact: Since fwtest 0.5.0, UART1 transmits: writing `TXCNT` sends that
+  many bytes from `TXADR` (fwtest reads them from RAM at the write), and
+  writing `BUF` sends one byte. Bytes go out one every 320 µs (31 250
+  baud, whatever `BAUD`, `CON1`, `CLK_CON1` and the pins say), each after
+  any still going, so a `BUF` byte written during a transfer goes after
+  it. When the last byte has gone, `CON0` bit 15 (transmit pending) is set,
+  and source 20 is raised if `CON0` bit 2 is set; writing bit 13 clears it
+  (HW-69). With `CON0` bit 0 clear nothing is sent, and the bytes are
+  counted in `result.json`'s `midi_out_bytes_dropped`. `--midi-out` saves
+  every byte sent with the time its stop bit ended, and the MIDI messages
+  they make (HARNESS, "MIDI output"). Before 0.5.0 a `TXCNT` write set the
+  pending at once and sent nothing. On a real FM-1 these bytes reach no
+  socket: it has no MIDI OUT jack (HW-67), and which pin, if any, its
+  board gives UART1's transmit side is open (Q-20). `CON0` bits 0, 13 and
+  15 and a byte by `BUF` behave as the SDK's own output relies on (HW-73);
+  the interrupt enable (bit 2) and the DMA's pace are the emulator's
+  (HW-70). The SMK-37's MIDI OUT is a UART's transmit side (HW-72), which
+  this models for the FM-1's chip.
+- Sources: E-21 (the timing, the order, the pending and its interrupt,
+  nothing sent with the UART off); HARNESS ("MIDI output"); the emulator
+  model with vendor patch 0009.
+- Standing: confirmed (E-21)
+- Needed by: M6b (MIDI out)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A

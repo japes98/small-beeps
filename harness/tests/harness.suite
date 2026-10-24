@@ -15,5 +15,6 @@ leds      completed images/leds.bin --ms 30 --leds-every 5 --golden golden/leds
 keys      completed images/keys.bin --ms 40 --script scripts/keys.txt --ram 0x01c00100:44@3 --ram 0x01c00100:44@7 --ram 0x01c00140:4@end --golden golden/keys
 pot       completed images/pot.bin --ms 10 --script scripts/pot.txt --ram 0x01c00100:4@2 --ram 0x01c00100:4@end --golden golden/pot
 midi      completed images/midi.bin --ms 10 --script scripts/midi.txt --ram 0x01c00200:8@1.5 --ram 0x01c00200:8@2.5 --ram 0x01c00200:8@end --golden golden/midi
+midiout   completed images/midiout.bin --ms 8 --midi-out --ram 0x01c00100:0x24@end --golden golden/midiout
 audio     completed images/audio.bin --ms 20 --wav --ipb --golden golden/audio
 flashrw   halt      images/flashrw.bin --ms 5 --flash data/flash-in.bin --flash-out --ram 0x01c00200:16@end --golden golden/flashrw

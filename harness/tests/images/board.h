@@ -54,6 +54,16 @@ typedef int s32;
 #define UART1_CON0 REG(0x12100u)
 #define UART1_RXSADR REG(0x1211cu)
 #define UART1_RXEADR REG(0x12120u)
+/* Its transmit side (MIDI out): BUF one byte, TXADR / TXCNT a DMA; CON0 bit
+   2 the transmit interrupt, bit 15 pending, written bit 13 clears it. */
+#define UART1_BUF REG(0x1210cu)
+#define UART1_TXADR REG(0x12114u)
+#define UART1_TXCNT REG(0x12118u)
+#define IRQ_UART1 20u
+
+/* TIMER4, the 24 MHz time base (periph.rs): CON bit 0 runs it. */
+#define T4_CON REG(0x10800u)
+#define T4_CNT REG(0x10804u)
 
 /* ALNK0 audio out (periph.rs): CON0 bit 11 runs it, bit 15 reads the half
    playing; PEND bit 7 a half finished (written bit 3 clears it); ADR the
