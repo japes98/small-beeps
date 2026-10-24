@@ -1113,6 +1113,22 @@ SR-3 wrote only its barrier-log row.*
   made-up target holds only copies of our files; no audit target was
   fetched or opened).
 
+### Session pin-050 (fwtest 0.5.0's pin, the 0008 test fix, Q-12)
+- Date: 2026-10-24 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.310 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `9406e046-30cd-43f2-b1cd-9c0552cd63d0`,
+  started by `/clear` at 12:56:38Z (banner `source: clear`,
+  `status: OK`), on main at `7b5144b`.
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+- What it archived: midi-in-out's transcript (`fbe11e0f`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS.
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository).
+
 ### Session M6b (MIDI out)
 - Date: 2026-10-24
 - Role: firmware side (clean).
@@ -1224,6 +1240,7 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-24T02:54:30Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M6a starts; banner `status: OK`; `tools/clean-update.sh` found main at `cdfd067` and passed; M5 archived; `tools/check-transcripts.py` PASS with the 4 reviewed entries listed for the owner's approval |
 | 2026-10-24T04:03:28Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session emulator-parity starts; banner `status: OK`. 04:04:11Z: `tools/spec-setup.sh`, banner `status: OK`; SR-7's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-24T05:45:26Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session midi-in-out starts; banner `status: OK`. 05:45:47Z: `tools/spec-setup.sh`, banner `status: OK`; emulator-parity's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
+| 2026-10-24T12:56:38Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session pin-050 starts; banner `status: OK`. 12:57:24Z: `tools/spec-setup.sh`, banner `status: OK`; midi-in-out's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-24T13:01:56Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M6b starts; banner `status: OK`; `tools/clean-update.sh` found main at `663f135` and passed; M6a archived; `tools/check-transcripts.py` PASS with the 5 reviewed entries listed for the owner's approval |
 
 ## Model cutoffs

@@ -16,7 +16,7 @@ f28133c7c313de7d6c6132c14734810c08e1a3aac36bce70c2c38a7ac5446a55  crates/fm1-soc
 b54841a9de92bf1cc1ab9e73bd89a7689778a18908bd0e429743caa191b0a7d3  crates/fm1-soc/src/flaky.rs
 091c4189809ad24936572dfd2ae30ba305c856663f95f126410e214e52bb2302  crates/fm1-soc/src/fwsc.rs
 f50418d6a45da15da8cc0f5b514ee35889f65b780062f3d8deba6f0f5859521d  crates/fm1-soc/src/lcd.rs
-4d23b2b972df6a81b99167356d53449a03a05e407fb11a9cd3f763fd88a202e2  crates/fm1-soc/src/lib.rs
+ae9efd4880b759ec2af2f80c8b48dcff38c33a21e9b4731c262ae4dea4bb9a98  crates/fm1-soc/src/lib.rs
 881962867e6217afb03c354e19745b5916f5acfac66437e41ebe69b8eb5985fe  crates/fm1-soc/src/machine.rs
 87a8a619261966c8386df9e7c97599f9c18b40a1f4a0d4229be8be30b8ed3d5a  crates/fm1-soc/src/p33.rs
 06c401fa551dd40197477bead22bf0e6e659a7ab1fcadf6bf86c3f34552c8baa  crates/fm1-soc/src/periph.rs
@@ -31,5 +31,5 @@ adb44e50e122ceae9cf9e5238444cf0fbbd6051ef98f9bf412d046710d66808c  patches/0003-b
 e8289ecf8d0835c9479c25dd5471a41780304a43c270491d35a5048a0e1fd963  patches/0005-rotate-by-a-register.patch
 ac522d00e9778f2ef6753a47ba9784870b88ea2dd662fb1a95fdc7ca9b08606f  patches/0006-push-pop-any-register-list.patch
 8da07f4dc7a98718d27908a0d8461d0616c6208620541bc732d1b9bdc7ac597f  patches/0007-peripherals-before-memories.patch
-e36cc79e1914767a15f9907cc3f04da550db40965b6f0a1659c939639991e5f7  patches/0008-ram-blocks-by-write-count.patch
+beb37801c42a1e54882023f7ca8fdee65f886e19c1f861db3514803659462ab1  patches/0008-ram-blocks-by-write-count.patch
 d2bca936a5a550af2729fd8d6203ce158d408d00a67c96c32bf3ec82e5a23c94  patches/0009-midi-out-transmit-side.patch

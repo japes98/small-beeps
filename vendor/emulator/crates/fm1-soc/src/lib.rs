@@ -969,11 +969,13 @@ pub fn write_boot_info(soc: &mut Soc, at: u32, flash: &[u8]) -> u32 {
 mod tests {
     use super::*;
     /// A block over RAM re-entered after a store patched its code runs the new code, interpreted
-    /// and with the JIT (blocks over RAM skip their byte compare while the bus's count of
+    /// and compiled by the JIT (blocks over RAM skip their byte compare while the bus's count of
     /// code-word writes is unchanged, so every store to a code word must be counted).
     #[test]
     fn ram_block_sees_patched_code() {
         use fm1_core::Cpu;
+        // (where fm1-core's build.rs turns the native JIT on)
+        let native = cfg!(any(all(target_arch = "aarch64", any(target_os = "macos", target_os = "linux", target_os = "android")), all(target_arch = "x86_64", any(target_os = "linux", target_os = "windows"))));
         for jit in [false, true] {
             let mut soc = Soc::new(0x8000, vec![]);
             // `r0 = 0x11111111`, then a jump to itself
@@ -983,19 +985,30 @@ mod tests {
             }
             let mut cpu = Cpu::new(RAM_BASE);
             cpu.jit_on = jit;
+            cpu.profile = true;
+            // the block entered 40 times (the JIT compiles a block on its 32nd entry), r0 after each
             let run = |soc: &mut Soc, cpu: &mut Cpu| {
-                for _ in 0..3 {
-                    cpu.pc = RAM_BASE;
-                    cpu.regs[0] = 0;
-                    cpu.run_fast(soc, 200).unwrap();
-                }
-                cpu.regs[0]
+                (0..40)
+                    .map(|_| {
+                        cpu.pc = RAM_BASE;
+                        cpu.regs[0] = 0;
+                        cpu.run_fast(soc, 200).unwrap();
+                        cpu.regs[0]
+                    })
+                    .collect::<Vec<u32>>()
             };
-            assert_eq!(run(&mut soc, &mut cpu), 0x1111_1111, "jit {jit}");
+            assert!(run(&mut soc, &mut cpu).iter().all(|&r| r == 0x1111_1111), "jit {jit}");
+            let compiled = cpu.jit_entries;
+            if native {
+                assert_eq!(compiled > 0, jit, "compiled code ran, with the JIT only");
+            }
             // the immediate's bytes 2..6, patched by a store as the firmware's would be
             soc.write16(RAM_BASE + 2, 0x2222);
             soc.write16(RAM_BASE + 4, 0x2222);
-            assert_eq!(run(&mut soc, &mut cpu), 0x2222_2222, "jit {jit}: the patched code ran");
+            assert!(run(&mut soc, &mut cpu).iter().all(|&r| r == 0x2222_2222), "jit {jit}: the patched code ran");
+            if native && jit {
+                assert!(cpu.jit_entries > compiled, "the patched block compiled and ran too");
+            }
         }
     }
 
