@@ -7,6 +7,7 @@
 pub mod formats;
 pub mod golden;
 pub mod machine;
+pub mod midi;
 pub mod run;
 pub mod script;
 
@@ -42,6 +43,7 @@ run options:
   --wav                  save the audio output (audio.wav)
   --ipb                  instructions per audio block (ipb.csv)
   --console              save the debug console bytes (console.txt)
+  --midi-out             save the MIDI output (midi-out.csv, midi-out.txt)
   --watchdog ADDR:MS     a hang if the word at ADDR stays the same for MS
   --halt-ok              a halt counts as success
   --golden DIR           compare the outputs with the golden files in DIR
@@ -123,6 +125,7 @@ pub fn parse_run(args: &[String], base: &Path) -> Result<RunArgs, String> {
             "--wav" => opt.wav = true,
             "--ipb" => opt.ipb = true,
             "--console" => opt.console = true,
+            "--midi-out" => opt.midi_out = true,
             "--halt-ok" => opt.halt_ok = true,
             s if s.starts_with("--") => return Err(format!("unknown option {s}")),
             s if image.is_none() => image = Some(path(&s.to_string())),

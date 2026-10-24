@@ -42,6 +42,7 @@ pub struct Options {
     pub wav: bool,
     pub ipb: bool,
     pub console: bool,
+    pub midi_out: bool,
     pub watchdog: Option<(u32, u64)>,
     pub halt_ok: bool,
 }
@@ -86,6 +87,7 @@ pub struct Report {
     pub outputs: Vec<Output>,
     pub unmodelled: Vec<(u32, bool, u64)>,
     pub midi_dropped: u64,
+    pub midi_out_dropped: u64,
 }
 
 const LEDS: usize = script::KEYS as usize;
@@ -218,6 +220,12 @@ pub fn run(image: &[u8], opt: &Options) -> Result<Report, String> {
     if opt.console {
         outputs.push(Output { name: "console.txt".into(), data: board.soc.console.clone() });
     }
+    if opt.midi_out {
+        let us = CYCLES_PER_MS / 1000;
+        let sent: Vec<(u64, u8)> = board.soc.periph.midi_take_sent().into_iter().map(|(c, b)| (c / us, b)).collect();
+        outputs.push(Output { name: "midi-out.csv".into(), data: crate::midi::csv(&sent).into_bytes() });
+        outputs.push(Output { name: "midi-out.txt".into(), data: crate::midi::decode(&sent).into_bytes() });
+    }
     outputs.sort_by(|a, b| a.name.cmp(&b.name));
 
     let mut seen: BTreeMap<(u32, bool), u64> = BTreeMap::new();
@@ -232,6 +240,7 @@ pub fn run(image: &[u8], opt: &Options) -> Result<Report, String> {
         outputs,
         unmodelled: seen.into_iter().map(|((a, w), n)| (a, w, n)).collect(),
         midi_dropped: board.soc.periph.midi_dropped(),
+        midi_out_dropped: board.soc.periph.midi_out_dropped(),
     })
 }
 
@@ -280,6 +289,7 @@ pub fn report_json(r: &Report) -> Json {
         ("emulated_ms", Json::str(format!("{}.{:03}", r.end_us / 1000, r.end_us % 1000))),
         ("instructions", Json::obj(vec![("core0", Json::Int(r.instructions.0 as i64)), ("core1", Json::Int(r.instructions.1 as i64))])),
         ("midi_bytes_dropped", Json::Int(r.midi_dropped as i64)),
+        ("midi_out_bytes_dropped", Json::Int(r.midi_out_dropped as i64)),
         ("unmodelled_accesses", Json::Arr(unmod)),
         ("outputs", Json::Arr(outs)),
     ])
