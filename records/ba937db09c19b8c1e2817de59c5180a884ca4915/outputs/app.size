@@ -1,0 +1,6 @@
+code 9064
+data 32
+bss 123936
+image 9096
+stack 4096
+irq_stack 2048
