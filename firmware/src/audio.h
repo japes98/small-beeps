@@ -59,11 +59,12 @@ struct sb_audio_record {
     u32 fill_last;    /* the last block's fill: interrupt to engine done */
     u32 fill_max;     /* the longest */
     u32 dropped;      /* input events the engine's queue dropped (full) */
-    u32 engine[9];    /* the engine's own (synth.c: SYNTH_* below) */
+    u32 engine[9];    /* the engine's own (SYNTH_* below) */
 };
 extern volatile struct sb_audio_record sb_audio;
 
-/* What the test instrument (synth.c) keeps in sb_audio.engine. */
+/* What the engine keeps in sb_audio.engine: M4's test instrument's
+ * fields, kept by the FM engine since M5 (fm_play.c). */
 #define SYNTH_VOICES_ON  0   /* voices sounding */
 #define SYNTH_NOTES      1   /* notes started */
 #define SYNTH_TONE       2   /* 1 while the test tone plays */
@@ -74,8 +75,5 @@ extern volatile struct sb_audio_record sb_audio;
 #define SYNTH_FIRST_ON   7   /* sb_audio.blocks when the first note began */
 #define SYNTH_LAST_OFF   8   /* sb_audio.blocks when a voice last went silent */
 
-/* synth.c: the test instrument, the engine main starts. */
-void synth_block(s32 *out, u32 frames);
-void synth_init(void);
 
 #endif

@@ -16,12 +16,14 @@ typedef signed char s8;
 typedef short s16;
 typedef int s32;
 typedef long long s64;
+typedef unsigned long long u64;
 
 _Static_assert(sizeof(u16) == 2, "u16 is 16 bits");
 _Static_assert(sizeof(u32) == 4, "u32 is 32 bits");
 _Static_assert(sizeof(s16) == 2, "s16 is 16 bits");
 _Static_assert(sizeof(s32) == 4, "s32 is 32 bits");
 _Static_assert(sizeof(s64) == 8, "s64 is 64 bits");
+_Static_assert(sizeof(u64) == 8, "u64 is 64 bits");
 
 /* The beacon: words at the start of main RAM (firmware/app.ld) that
  * fwtest reads with --ram and --watchdog (HW-26). Tests depend on this

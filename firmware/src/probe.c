@@ -19,6 +19,7 @@
 #include "sb.h"
 #include "input.h"
 #include "audio.h"
+#include "fm.h"
 #include "WL82.h"
 
 #if defined(SB_PROBE_STACK)
@@ -37,7 +38,7 @@ void sb_probe_slow(void)
 #endif
 
 #if defined(SB_PROBE_LOADED)
-/* Extra work for each voice sounding, each audio block (synth.c): none
+/* Extra work for each voice core 0 renders, each audio block (fm_play.c): none
  * at rest, so only the loaded measure's gates must catch it. */
 void sb_probe_loaded(void)
 {
@@ -165,7 +166,7 @@ void sb_test_leds(void)
 #endif
 
 #if defined(SB_TEST_UNDERRUN)
-/* The test instrument, late on purpose for one block in 64: it runs on
+/* The engine, late on purpose for one block in 64: it runs on
  * for about 1.2 blocks (420 000 instructions at one a cycle) after
  * filling it, so the next half finishes first. Each must be counted and
  * reported once, "AUDIO UNDERRUN nnnn", and the output must go on. */
@@ -173,7 +174,7 @@ void sb_test_late_block(s32 *out, u32 frames)
 {
     volatile u32 i;
 
-    synth_block(out, frames);
+    fm_block(out, frames);
     if (sb_audio.blocks % 64 == 32)
         for (i = 0; i < 105000; i++)
             ;
