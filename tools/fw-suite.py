@@ -2060,7 +2060,7 @@ def check_midiburst(case_dir):
                         % (r["merged"], r["dropped"], r["offs_dropped"], r["offs_lost"], len(ons)))
     panel = [t for t, ch, n, v in out_notes(msgs) if v and n in (53, 55)]
     keys = [1300, 1500]
-    late = [p - BYTE_MS * 2 - k for p, k in zip(panel, keys)]
+    late = [p - BYTE_MS * 3 - k for p, k in zip(panel, keys)]      # the note on's first start bit
     if len(panel) != 2 or max(late) > MIDI_OUT_LATENCY_MS:
         problems.append("midiburst: the panel's notes after the burst at %s ms" % panel)
     lines.append("  burst: %d of its 32 notes sent, each ended; the panel's 2 keys after it sent" % len(ons))

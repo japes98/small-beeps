@@ -126,6 +126,10 @@ midilat     completed  ../../out/fw/app.bin           --ms 3300 --script scripts
 #   off by CC 122, then on again (screen at 700 ms, golden). midiburst: a
 #   test build that queues more than the queue holds in one block (golden).
 #   midioutlat: 20 keys, key down to the note on's first byte on the wire.
+#   midiout's golden capture and midiround's script move together: when
+#   midiout's output changes, check it by hand, copy midiout/midi-out.csv
+#   and .txt over golden/midiout/, then run tools/midi_scripts.py, in the
+#   same commit.
 midiout     completed  ../../out/fw/app.bin           --ms 2800 --script scripts/midiout.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --golden golden/midiout
 midiround   completed  ../../out/fw/app.bin           --ms 2800 --script scripts/midiround.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
 midithru    completed  ../../out/fw/test-midithru.bin --ms 600 --script scripts/midithru.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --golden golden/midithru

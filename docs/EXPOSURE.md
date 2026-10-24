@@ -1150,7 +1150,9 @@ SR-3 wrote only its barrier-log row.*
   - **P-IDs:** to number its PROVENANCE entry, it read `PROVENANCE.md`
     alone on the open spec branches of #92 and #93 through GitHub's
     contents API (they take P-47 to P-49), and the file lists of #89,
-    #91, #92 and #93. Nothing under the spec-side folders was fetched.
+    #91, #92 and #93: file names only, among them a spec transcript's
+    and its redaction note's; no content shown or fetched, nothing under
+    the spec-side folders fetched.
   - **The toolchain** built the firmware and its test images in the
     build container, as before. Disk stayed between 4.5 and 4.8 GB free.
 
