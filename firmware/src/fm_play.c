@@ -13,11 +13,15 @@
  * (docs/DESIGN-NOTES.md, M6a): notes from both, held apart so neither
  * ends the other's, the sustain pedal, pitch bend, vibrato, the
  * controller map, program changes and the channel modes.
+ * Since M6b the panel's notes, knobs and program changes go to MIDI out,
+ * MIDI thru passes on what MIDI in receives, and local control off keeps
+ * the panel from playing the engine (docs/DESIGN-NOTES.md, M6b).
  */
 
 #include "fm.h"
 #include "input.h"
 #include "midi.h"
+#include "midi_out.h"
 
 volatile struct sb_fm_record sb_fm __attribute__((section(".beacon.fm")));
 
@@ -151,6 +155,10 @@ volatile u32 fm_midi_notes[4];   /* notes MIDI or the pedal holds, for the scree
 static s32 bend, vibrato;
 static u32 mod_wheel, volume = 127, expression = 127, pedal;
 static int midi_knob[4];
+/* The panel's KNOB1 to KNOB4 as the engine last took them: frozen while
+ * local control is off (M6b). The program the panel's PRESETS last chose. */
+static int panel_knob[4];
+static u32 panel_program;
 static u32 lfo_phase, rpn = 0x3FFFu;
 
 #define OCTAVES   2
@@ -645,11 +653,15 @@ static void select_patch(u32 n)
  * controls"). */
 static void knobs(void)
 {
-    pitch_knob = clamp(input_value(INPUT_KNOB1) + midi_knob[0], -24, 24);
-    glide_code = (u32)clamp((int)patches[patch_now].glide + 4 * (input_value(INPUT_KNOB2) + midi_knob[1]),
-                            0, 127);
-    depth_att = -clamp(input_value(INPUT_KNOB3) + midi_knob[2], -64, 32) * 8192;
-    feedback_knob = input_value(INPUT_KNOB4) + midi_knob[3];
+    u32 k;
+
+    if (midi_settings.local)
+        for (k = 0; k < 4; k++)
+            panel_knob[k] = input_value(INPUT_KNOB1 + k);
+    pitch_knob = clamp(panel_knob[0] + midi_knob[0], -24, 24);
+    glide_code = (u32)clamp((int)patches[patch_now].glide + 4 * (panel_knob[1] + midi_knob[1]), 0, 127);
+    depth_att = -clamp(panel_knob[2] + midi_knob[2], -64, 32) * 8192;
+    feedback_knob = panel_knob[3] + midi_knob[3];
     sb_audio.engine[SYNTH_OCTAVE] = (u32)octave;
     sb_audio.engine[SYNTH_TONE] = tone_state != TONE_OFF && tone_state != TONE_RELEASE;
     sb_fm.algorithm = algorithm_now + 1;
@@ -670,6 +682,39 @@ static const s8 knob_span[4][2] = { { -24, 24 }, { -32, 32 }, { -64, 32 }, { -7,
 static int knob_offset(u32 k, u32 v)
 {
     return v >= 64 ? (int)(v - 64) * knob_span[k][1] / 63 : (int)(64 - v) * knob_span[k][0] / 64;
+}
+
+/* Its inverse (M6b): the controller value whose offset is the panel
+ * knob's position p (held to the span), so a far end with its own knob at
+ * rest takes the same position: the v nearest 64 with knob_offset(k, v)
+ * == p (tests/test_midi_model.py checks every p against the model's). */
+static u32 knob_value(u32 k, int p)
+{
+    int lo = knob_span[k][0], hi = knob_span[k][1];
+
+    p = clamp(p, lo, hi);
+    return p >= 0 ? 64u + (u32)((p * 63 + hi - 1) / hi) : 64u - (u32)((-p * 64 - lo - 1) / -lo);
+}
+
+/* A panel knob's move to MIDI out: as the first controller the map
+ * routes to it (DESIGN-NOTES.md, M6a), so the map's inverse; none if the
+ * map has none, and nothing while the value stays the same (a knob turned
+ * on past the end of its span). */
+static u8 knob_sent[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
+
+static void knob_out(u32 k)
+{
+    u32 i, v = knob_value(k, input_value(INPUT_KNOB1 + k));
+
+    if (v == knob_sent[k])
+        return;
+    for (i = 0; i < midi_settings.routes && i < MIDI_CC_ROUTES; i++)
+        if (midi_settings.cc[i].to == MIDI_TO_KNOB1 + k) {
+            midi_out_channel(MIDI_CC, midi_settings.cc[i].cc, v);
+            knob_sent[k] = (u8)v;
+            sb_midi_out.panel_ccs++;
+            return;
+        }
 }
 
 /* Controllers back to rest (CC 121; a reset also): pitch bend, the mod
@@ -703,6 +748,10 @@ static u32 controller(u32 cc, u32 v)
     case 120:
         sound_off();
         return 0;
+    case 122:                               /* local control (M6b) */
+        midi_settings.local = v >= 64;
+        sb_work++;                          /* the screen shows it */
+        return 1;
     case 121:
         reset_controllers();
         return 0;
@@ -816,16 +865,28 @@ static void events(void)
     struct midi_msg m;
     u32 any = 0;
 
+    /* MIDI out first: what waits goes on the wire if it is free. */
+    midi_out_poll();
+#if defined(SB_TEST_MIDI_BURST)
+    sb_test_midi_burst();
+#endif
     while (input_read_audio(&e)) {
+        u32 local = midi_settings.local;
+
         any = 1;
         sb_audio.engine[SYNTH_EVENTS]++;
         if (e.control >= INPUT_KEY1 && e.control <= INPUT_KEY27) {
-            u32 k = e.control - INPUT_KEY1;
+            u32 k = e.control - INPUT_KEY1, velocity = FM_KEY_VELOCITY;
             if (e.kind == INPUT_PRESS) {
-                /* SEL held: MONO and POLY switch the mode (and play no note). */
+                /* SEL held: MONO and POLY switch the mode (and play no
+                 * note); MIDI out sends the mode message (M6b). */
                 if (input_value(INPUT_SEL) && (e.control == INPUT_KEY_MONO || e.control == INPUT_KEY_POLY)) {
-                    all_off();
-                    mono = e.control == INPUT_KEY_MONO;
+                    if (local) {
+                        all_off();
+                        mono = e.control == INPUT_KEY_MONO;
+                    }
+                    midi_out_channel(MIDI_CC, e.control == INPUT_KEY_MONO ? 126 : 127,
+                                     e.control == INPUT_KEY_MONO);
                     key_note[k] = -1;
                     continue;
                 }
@@ -833,14 +894,21 @@ static void events(void)
 #if defined(SB_TEST_VELOCITY)
                 /* The velocity test build: KEY1 to KEY5 play these. */
                 {
-                    static const u8 velocity[5] = { 127, 100, 64, 32, 1 };
-                    note_press(key_note[k], k < 5 ? velocity[k] : FM_KEY_VELOCITY, HOLD_PANEL);
-                    continue;
+                    static const u8 velocities[5] = { 127, 100, 64, 32, 1 };
+                    if (k < 5)
+                        velocity = velocities[k];
                 }
 #endif
-                note_press(key_note[k], FM_KEY_VELOCITY, HOLD_PANEL);
+                if (local)
+                    note_press(key_note[k], velocity, HOLD_PANEL);
+                midi_out_channel(MIDI_NOTE_ON, (u32)key_note[k], velocity);
+                sb_midi_out.panel_notes++;
+                sb_midi_out.last_note_tick = sb_ticks();
             } else if (e.kind == INPUT_RELEASE && key_note[k] >= 0) {
+                /* A note off as a note on at velocity 0, so a run of
+                 * notes keeps running status (DESIGN-NOTES.md, M6b). */
                 note_release(key_note[k], HOLD_PANEL);
+                midi_out_channel(MIDI_NOTE_ON, (u32)key_note[k], 0);
                 key_note[k] = -1;
             }
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_OCT_DOWN) {
@@ -850,17 +918,36 @@ static void events(void)
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_PLAY) {
             tone_state = tone_state == TONE_OFF || tone_state == TONE_RELEASE ? TONE_ATTACK : TONE_RELEASE;
         } else if (e.kind == INPUT_TURN && e.control == INPUT_PRESETS) {
-            all_off();
-            select_patch((patch_now + FM_PATCHES * 16 + (u32)(int)e.value) % FM_PATCHES);
+            panel_program = ((local ? patch_now : panel_program) + FM_PATCHES * 16 + (u32)(int)e.value) % FM_PATCHES;
+            if (local) {
+                all_off();
+                select_patch(panel_program);
+            }
+            midi_out_channel(MIDI_PROGRAM, panel_program, 0);
+            sb_midi_out.panel_programs++;
         } else if (e.kind == INPUT_TURN && e.control == INPUT_ALGORITHM) {
-            algorithm_now = (algorithm_now + FM_ALGORITHMS * 16 + (u32)(int)e.value) % FM_ALGORITHMS;
+            if (local)
+                algorithm_now = (algorithm_now + FM_ALGORITHMS * 16 + (u32)(int)e.value) % FM_ALGORITHMS;
+        } else if (e.kind == INPUT_TURN && e.control >= INPUT_KNOB1 && e.control <= INPUT_KNOB4) {
+            knob_out(e.control - INPUT_KNOB1);
         }
     }
     midi_poll();
     if (midi_read(&m)) {
-        do
+        do {
+            /* MIDI thru (M6b): what MIDI in received, never what the
+             * firmware sends itself, before the receive channel's filter.
+             * A SysEx is only counted: the parser keeps none of its bytes. */
+            if (midi_settings.thru) {
+                if (m.status == MIDI_SYSEX) {
+                    sb_midi_out.thru_sysex++;
+                } else {
+                    midi_out_send(&m);
+                    sb_midi_out.thru++;
+                }
+            }
             any |= midi_message(&m);
-        while (midi_read(&m));
+        } while (midi_read(&m));
         sb_midi.bend = bend;
         sb_midi.mod = mod_wheel;
         sb_midi.volume = volume;
@@ -869,6 +956,8 @@ static void events(void)
     }
     if (any)
         knobs();
+    /* What this block queued goes out at once if the wire is free. */
+    midi_out_poll();
     /* Vibrato: a 5.5 Hz sine, up to half a semitone at the wheel's top. */
     if (mod_wheel) {
         lfo_phase += LFO_INC;
@@ -1053,6 +1142,10 @@ void fm_init(void)
 #if defined(SB_TEST_MIDI_CHANNEL)
     midi_settings.channel = 10;   /* the channel test build (tools/fw-suite.py) */
 #endif
+#if defined(SB_TEST_MIDI_THRU)
+    midi_settings.thru = 1;       /* the thru test build: thru on, out on channel 2 */
+    midi_settings.out_channel = 2;
+#endif
     sb_midi.program = 0xFFFFFFFFu;
     sb_midi.volume = volume;
     sb_midi.expression = expression;
@@ -1060,6 +1153,7 @@ void fm_init(void)
     knobs();
     sb_fm.marker = FM_MARKER;
     sb_midi.marker = MIDI_MARKER;
+    sb_midi_out.marker = MIDI_OUT_MARKER;
     /* Core 1 (HW-9): its start address in source 126's vector word, then
      * C1_CON bit 3; once it runs, the word gets its stub back. If it
      * never says it runs, core 0 renders every voice. */

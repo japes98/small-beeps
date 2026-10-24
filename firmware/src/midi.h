@@ -93,7 +93,7 @@ enum {
     MIDI_TARGETS
 };
 
-#define MIDI_SETTINGS_VERSION 1u
+#define MIDI_SETTINGS_VERSION 2u   /* 2 since M6b: MIDI out's three settings */
 #define MIDI_OMNI             0u     /* channel: receive on every channel */
 #define MIDI_CC_ROUTES        16u
 
@@ -106,11 +106,17 @@ struct midi_settings {
         u8 cc;            /* 0 to 119 */
         u8 to;            /* MIDI_TO_* */
     } cc[MIDI_CC_ROUTES];
+    /* Since M6b (midi_out.h): */
+    u8 out_channel;       /* the panel's messages go out on it: 1 to 16 */
+    u8 thru;              /* 1: what MIDI in receives is sent out again */
+    u8 local;             /* 1: the panel plays the engine; 0: MIDI out only */
+    u8 reserved;          /* 0 */
 };
-_Static_assert(sizeof(struct midi_settings) == 4 + 2 * MIDI_CC_ROUTES, "settings are bytes");
+_Static_assert(sizeof(struct midi_settings) == 8 + 2 * MIDI_CC_ROUTES, "settings are bytes");
 
 extern struct midi_settings midi_settings;
-/* The defaults: omni, a bend of 2 semitones, the default map. */
+/* The defaults: omni, a bend of 2 semitones, the default map; since M6b,
+ * out on channel 1, thru off, local control on. */
 void midi_settings_default(struct midi_settings *s);
 
 /* --- The MIDI record, after the engine's (firmware/app.ld) ------------ */
