@@ -16,9 +16,9 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../.." && pwd)
 IMAGES="heartbeat halt wild hang console lcd leds keys pot midi audio flashrw spi1irq"
 # built with the firmware's CPU flags (tools/build.sh, CPU), as the firmware is
-FW_IMAGES="blockc"
+FW_IMAGES="blockc rotc"
 # assembly, linked after start.S like the C images
-ASM_IMAGES="blockmv"
+ASM_IMAGES="blockmv pairhead rotr pushpop ramcode"
 # assembly with its own _start, linked alone
 RAW_IMAGES="sr7"
 ALL="$IMAGES $FW_IMAGES $ASM_IMAGES $RAW_IMAGES"
@@ -46,6 +46,11 @@ inside() {
     # blockc exists for the two forms below a base the compiler emits (SR-7)
     if ! grep -q '} = \[-r[0-9]*\]' "$out/blockc.dis" || ! grep -q '\[-r[0-9]*\] = {' "$out/blockc.dis"; then
         echo "blockc: the compiler no longer emits {..} = [-rN] and [-rN] = {..}" >&2
+        exit 1
+    fi
+    # rotc exists for the rotate by a register the compiler emits
+    if ! grep -q 'r[0-9]* = r[0-9]* <> r[0-9]*$' "$out/rotc.dis"; then
+        echo "rotc: the compiler no longer emits rD = rS <> rT" >&2
         exit 1
     fi
     for n in $FW_IMAGES; do rm "$out/$n.dis"; done

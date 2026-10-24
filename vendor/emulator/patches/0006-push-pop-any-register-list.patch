@@ -1,0 +1,65 @@
+The 4-byte push and pop of a register list without rets or pc,
+`[--sp] = {list}` (d8 e8 <mask>) and `{list} = [sp++]` (d4 e8 <mask>),
+decoded only for the masks the table's classes fit, lists from r0:
+`[--sp] = {r5-r1}`, `{r11-r6} = [sp++]` or `{r15} = [sp++]` ended the
+run as an instruction the emulated CPU cannot decode. A raw decoder now
+takes every mask, as the ones for the forms with rets or pc do, and the
+executor the table's entries already use runs it (the mask from the
+raw word).
+
+Encoding from the vendor assembler and objdump: mask bit k is rk, every
+mask is an instruction (`{}` too). Behaviour: the same as the lists
+from r0 the compiler emits in interrupt handlers (`[--sp] = {r1, r0}`,
+`{r7-r0} = [sp++]`): sp moves by 4 a register, the lowest register at
+the lowest address. The compiler was not seen to emit a list above r0,
+so that is by analogy.
+
+The harness test push_pop_any_register_list (tests/images/pushpop.S)
+fails without it. Session emulator-parity, 2026-10-24.
+
+diff --git a/crates/fm1-core/src/lib.rs b/crates/fm1-core/src/lib.rs
+index 2578460..5e88c57 100644
+--- a/crates/fm1-core/src/lib.rs
++++ b/crates/fm1-core/src/lib.rs
+@@ -1697,10 +1697,12 @@ impl Cpu {
+                 let e = if s.starts_with("tbb") { bus.read8(next_pc.wrapping_add(idx)) as u32 } else { bus.read16(next_pc.wrapping_add(idx)) as u32 };
+                 return Ok(Some(Some(next_pc.wrapping_add(2 * e))));
+             }
+-            "[--sp] = {R*2}" | "{R*2} = [sp++]" | "[--sp] = {R*1}" | "{R*1} = [sp++]" => {
++            "[--sp] = {R*2}" | "{R*2} = [sp++]" | "[--sp] = {R*1}" | "{R*1} = [sp++]"
++            | "[--sp] = {R*4}" | "{R*4} = [sp++]" => {
+                 // block push/pop without rets: 2-byte `6n 04` / `4n 04` with
+                 // the usual [max(n,3) .. min(n,4)] list; 4-byte `d8 e8` /
+-                // `d4 e8` carry a 16-bit register mask at bits 16-31.
++                // `d4 e8` carry a 16-bit register mask at bits 16-31 (`{R*4}`:
++                // the raw decoder's, any mask).
+                 let raw = insn.raw;
+                 let regs: Vec<usize> = if insn.entry.len == 2 {
+                     let n = (raw & 0xf) as usize;
+@@ -2949,6 +2951,11 @@ fn decode_any(win: u64, pc: u32) -> Result<fm1_isa::Instruction, fm1_isa::Decode
+         // all 54 corpus samples fit): the classes match only the corpus masks (Vector37's
+         // `{pc, r11-r6, r4}`)
+         Err(_) if win & 0xffff == 0xe8d5 => raw(&PC_POP_MASK_CRAW),
++        // `d8 e8 <mask>` / `d4 e8 <mask>`: `[--sp] = {mask}` / `{mask} = [sp++]`, no rets or pc
++        // (vendor assembler and objdump: every mask, `{}` too): the classes match only masks
++        // from r0 (the compiler's interrupt handlers' `{r7-r0}`), not `{r5-r1}` or `{r15}`
++        Err(_) if win & 0xffff == 0xe8d8 => raw(&LIST_PUSH_MASK_CRAW),
++        Err(_) if win & 0xffff == 0xe8d4 => raw(&LIST_POP_MASK_CRAW),
+         // `d4 e9 <rrrr oooo oooo ooos>`: `rR = [sp+off]` / `[sp+off] = rR`, off = bits 1..11 (a
+         // word offset), s = store (route 33; all 20620 corpus samples fit): the classes fit only
+         // the corpus offsets (ObervaVe's `r3 = [sp+2384]`)
+@@ -3345,6 +3352,14 @@ static RETS_POP_MASK_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+     name: "rets_mask_mov_sp_craw", syntax: "{rets, R*4} = [sp++]", len: 4, count: 0, mask: 0, match_: 0,
+     group: "stack", alt: &[], samples: &[], slots: &[],
+ };
++static LIST_PUSH_MASK_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
++    name: "sp_mov_mask_craw", syntax: "[--sp] = {R*4}", len: 4, count: 0, mask: 0, match_: 0,
++    group: "stack", alt: &[], samples: &[], slots: &[],
++};
++static LIST_POP_MASK_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
++    name: "mask_mov_sp_craw", syntax: "{R*4} = [sp++]", len: 4, count: 0, mask: 0, match_: 0,
++    group: "stack", alt: &[], samples: &[], slots: &[],
++};
+ carry_entry!(ADC_PAIR_CRAW, "adc_pair_craw", "R = R + R + c #");
+ carry_entry!(SBC_CRAW, "sbc_craw", "R = R - R - !c");
+ carry_entry!(SBC_PAIR_CRAW, "sbc_pair_craw", "R = R - R - !c #");
