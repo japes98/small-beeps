@@ -1230,7 +1230,27 @@ SR-3 wrote only its barrier-log row.*
   `docs/SPEC-REQUESTS.md` (SR-9), `PROVENANCE.md`'s IDs and the list of
   its files, then merged that branch into SR-9's answer, so its files are
   in that branch; no other file of it was opened.
-- Later in the session: spec experiment E-22 (the flash chip in fwtest).
+- Later in the session: spec experiment E-22 (the flash chip in fwtest);
+  vendor patches 0010 and 0011 and fwtest 0.6.0, built and tested on the
+  Mac with the pinned Rust (the emulator's crates and the harness); the
+  firmware at main's `6ba587e` built in the build container and its suite
+  run on fwtest 0.5.0 (pinned) and 0.6.0 (local) to compare; the
+  toolchain's disassembly of that firmware, the harness's test images and
+  the spec experiments, scanned for dual-issue pairs. Docker's build
+  cache was pruned once to keep disk free (no image removed).
+- The porter role (CONTRIBUTING.md, `config/claude/porter.json`,
+  `tools/porter-setup.sh`, `ports/README.md`): written from this
+  repository's own rules; no GPL engine was opened for it, and no porter
+  session was started.
+- FM1 Open (`m-vave/fm1_open`, commit
+  `4c7496daac04a95ff10d1afdcc8f9ead2dbabc41`, as session midi-in-out
+  read it), its terms only: its file list and git blob hashes (GitHub's
+  API), and its two terms files `LICENSE.md` and `THIRD_PARTY.md` (same
+  SHA-256 as midi-in-out recorded), by raw URL into the scratch folder.
+  No code, script, build file, binary or other document of it was opened.
+  The pinned AC79 SDK's file list and blob hashes were compared with them
+  (no SDK file opened for it). Result in docs/PLAN.md ("Vendoring FM1
+  Open's boot and update files for M9").
 
 ### Session M7 (flash storage, then the M8 proposal)
 - Date: 2026-10-24
@@ -1280,60 +1300,6 @@ SR-3 wrote only its barrier-log row.*
   other entries, anything under the three spec-side folders, or any other
   synthesizer's firmware.
 
-<<<<<<< HEAD
-### Session day-1024 (flash facts for M7, spec requests, the porter role)
-- Date: 2026-10-24 (UTC)
-- Role: **spec side (exposed).** Never writes firmware.
-- Tool: Claude Code 2.1.310 (banner).
-- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
-  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
-- Session: Claude Code session `4fc544d9-3a50-4ba0-9cb1-91fc187048df`,
-  started by `/clear` at 14:13:11Z (banner `source: clear`,
-  `status: OK`), on main at `6ba587e`. Unattended: the owner reviews on
-  return.
-- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
-  banner `status: OK`; `tools/private-terms.local` exists (not opened).
-  4.8 GB free at the start.
-- What it archived: pin-050's transcript (`9406e046`) into
-  `sessions/spec/`; `tools/check-transcripts.py` PASS.
-- Exposure: the spec side's usual material (the vendored emulator and
-  `harness/`, the pinned toolchain, this repository). New for this
-  session, all allowed sources: FM-1-RE's architecture, boot, storage,
-  update-protocol and reflash documents and its two reversing overviews
-  of the hardware map and boot (hardware and layout facts only; P-51);
-  single files of the pinned JieLi SDK (P-52); Puya's P25Q80H datasheet
-  and, found while searching for it, the datasheets of four other Puya
-  parts, not used (P-53); web search results. A Python virtual
-  environment with `pypdf` in its scratch folder, to read the
-  datasheets' text.
-- From the firmware side's open pull request #95 it read only
-  `docs/SPEC-REQUESTS.md` (SR-9), `PROVENANCE.md`'s IDs and the list of
-  its files, then merged that branch into SR-9's answer, so its files are
-  in that branch; no other file of it was opened.
-- Later in the session: spec experiment E-22 (the flash chip in fwtest);
-  vendor patches 0010 and 0011 and fwtest 0.6.0, built and tested on the
-  Mac with the pinned Rust (the emulator's crates and the harness); the
-  firmware at main's `6ba587e` built in the build container and its suite
-  run on fwtest 0.5.0 (pinned) and 0.6.0 (local) to compare; the
-  toolchain's disassembly of that firmware, the harness's test images and
-  the spec experiments, scanned for dual-issue pairs. Docker's build
-  cache was pruned once to keep disk free (no image removed).
-- The porter role (CONTRIBUTING.md, `config/claude/porter.json`,
-  `tools/porter-setup.sh`, `ports/README.md`): written from this
-  repository's own rules; no GPL engine was opened for it, and no porter
-  session was started.
-- FM1 Open (`m-vave/fm1_open`, commit
-  `4c7496daac04a95ff10d1afdcc8f9ead2dbabc41`, as session midi-in-out
-  read it), its terms only: its file list and git blob hashes (GitHub's
-  API), and its two terms files `LICENSE.md` and `THIRD_PARTY.md` (same
-  SHA-256 as midi-in-out recorded), by raw URL into the scratch folder.
-  No code, script, build file, binary or other document of it was opened.
-  The pinned AC79 SDK's file list and blob hashes were compared with them
-  (no SDK file opened for it). Result in docs/PLAN.md ("Vendoring FM1
-  Open's boot and update files for M9").
-
-=======
->>>>>>> spec/sr-9
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
