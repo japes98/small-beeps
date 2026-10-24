@@ -718,6 +718,18 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     #61 (it finds 25 of our 30 files in its made-up copy; the Plaits
     demo's small files are the likely misses): the owner decides who fixes
     it (the audit's tooling is the spec side's, SR-4).
+  - **The self-test fixed** (2026-10-24, session midi-in-out; docs/AUDIT.md,
+    "The second self-test gap"). The misses were four of the demo's files,
+    matched in full but split by the Plaits base code, and `src/audio.h`,
+    which JPlag matched with nothing. A copy is now also found by its
+    similarity, and a file JPlag matches with nothing goes to the text
+    check; the self-test finds 30 of 30. The merges that ran without a
+    passing self-test, the gate and the text check passing in each:
+    - #61, #64, #65, #66, #68 and #69: "23 of our 27 files";
+    - #70 to #79 (#70, #71, #72, #73, #74, #75, #76, #77, #78, #79): "25 of
+      our 30 files";
+    - #62: its audit run was cancelled while queued (no record); #64's
+      run covered its commit.
   - **Next: M6, MIDI in.** The engine already takes notes with velocity
     (`fm_note_on`); M6 needs UART1 and the MIDI jack from the spec side
     (Q-12).
@@ -751,7 +763,40 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
 - **Packages for real hardware.** A `.fwsc` package may need M-VAVE's boot or
   update loader, which we can't redistribute. Find out from FM-1-RE's
   documents only, before M9, and record the answer here. The app is
-  unaffected (it can boot our raw image). *Answer: not yet investigated.*
+  unaffected (it can boot our raw image). *Answer, in part (2026-10-24,
+  session midi-in-out, from FM1 Open's terms only; docs/EXPOSURE.md):*
+  M-VAVE now distributes its boot and update resources (`uboot.boot`,
+  `ota.bin`, `cfg_tool.bin`, `boot-config.bin`) and the FM-1's recovery
+  image (`FM-1_015.fwsc`) under Apache-2.0, which allows redistribution,
+  binary included, with the licence, the notices and modified files
+  marked. So the loader is no longer a licence obstacle; whether a package
+  of ours needs it is still to find out from FM-1-RE's documents. The
+  recovery image is still M-VAVE's stock firmware: clean sessions never
+  open or disassemble it (CONTRIBUTING.md), whatever its licence.
+- **FM1 Open's terms** (M-VAVE's `m-vave/fm1_open`, read 2026-10-24: its
+  `LICENSE.md` and `THIRD_PARTY.md` only, at
+  `4c7496daac04a95ff10d1afdcc8f9ead2dbabc41`; never its code). It is a GPL
+  firmware, so it stays forbidden to the firmware side and outside the
+  spec side's allowed sources. What the terms allow, for the record:
+  - its own app sources: GPLv3 only, with an additional permission under
+    GPLv3 section 7 to link with M-VAVE's binary SDK and convey the result
+    without that SDK's source (the third party's summary, "GPLv3 with a
+    linking exception plus a proprietary binary SDK", is right; it is
+    GPLv3 *only*, not "or later");
+  - the binary engine library: proprietary, no source; anyone
+    may copy it, link it, build, install and run the result, and
+    redistribute it in binary form, commercially too, but only for
+    M-VAVE FM1 devices, with the notices and `THIRD_PARTY.md`;
+  - the boot and update resources and the recovery image: Apache-2.0
+    (above); the third-party parts (FreeRTOS, micro-ecc, Newlib,
+    compiler-rt, MSFA and Dexed, Open303, DaisySP, stmlib, emu2149, the SEA
+    codec, the packager) and JieLi's SDK material keep their own licences;
+  - flashing: the terms permit installing and running such firmware on FM1
+    devices, warn that defects may lose data or make the device
+    malfunction, and disclaim warranty for the app and the binary SDK.
+  For us: our firmware links nothing of FM1 Open, so none of its
+  conditions applies to our code; the engine grant names FM1 devices only,
+  so it would not cover the SMK-37.
 - **The emulator doesn't model USB**, so M11 is hardware-only.
 - **Merge signatures are GitHub's.** Since 2026-10-22 the owner merges with
   GitHub's button, so merge commits are signed by GitHub (`web-flow`) and the
