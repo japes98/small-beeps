@@ -19,7 +19,8 @@ SR-1 and SR-2, which are answered in part; what stays open is Q-2, Q-13
 and Q-14. Session SR-3 (spec side, 2026-10-23) added section 12 for SR-3,
 answered in part (open: Q-6, Q-15), and section 13, which confirms HW-41's
 fwtest part for M3. Session SR-4-6 (spec side, 2026-10-23) added section 14
-for SR-5 and SR-6, answered in part (open: Q-16 to Q-18).
+for SR-5 and SR-6, answered in part (open: Q-16 to Q-18). Session SR-7
+(spec side, 2026-10-24) added section 15 for SR-7 (open: Q-19).
 
 ## How to read it
 
@@ -55,6 +56,7 @@ least significant. Register names are the JieLi SDK's.
 | RE | AL-255/FM-1-RE (GitHub, WTFPL), commit `ec832f281ca165a7d5e0722985f3acb1465046d5`: its hardware and boot documents `docs/reversing/01-hardware-map.md`, `docs/io/01-boot.md`, `docs/io/03-audio-dac.md`, `docs/io/08-display.md`, `docs/io/09-storage.md` (PROVENANCE P-9). Only their hardware facts are used here. |
 | DS | Sitronix ST7789V datasheet, version 1.3 (2014-03), 316 pages, from `https://www.newhavendisplay.com/appnotes/datasheets/LCDs/ST7789V.pdf`, SHA-256 `8ecf0e43…5d04ca1` (PROVENANCE P-11). Page numbers as printed. |
 | PANEL | The FM-1's printed panel labels, from two sources that agree: the owner's screenshot of the F-Emulator app's panel with its default labels, `docs/sources/panel-app-default-labels.png` (secondary: the app's drawing of the panel); and M-VAVE's product photo of the FM-1, `https://www.m-vave.com/images/products/fm-1.webp` on `https://www.m-vave.com/product.html?id=fm-1`, accessed 2026-10-22, SHA-256 `e610a746…df14b95`, not copied into this repository (PROVENANCE P-12). Only the printed labels are taken from them. The owner chose these two sources. |
+| TC | The pinned JieLi toolchain (PROVENANCE P-1, P-33): its assembler and disassembler (clang's integrated assembler and `objdump`), and the code its compiler emits for C whose meaning is known. It is the vendor's compiler for this CPU, so how its code uses an instruction says what the instruction does; it carries no documents. |
 | HARNESS | docs/HARNESS.md, fwtest's manual. It is the spec side's own description of fwtest, so it never confirms an entry on its own. |
 | E-n | A spec-side black-box experiment: a small image run in fwtest (the pinned image, `config/fwtest-image`). Its result is stated in the entry. C-SPEC-EXPERIMENTS re-runs every one in CI, so a cited result that stops holding fails CI. |
 
@@ -1115,6 +1117,45 @@ requests.
 - Standing: confirmed (SDK)
 - Needed by: M5 (SR-6)
 
+## 15. Block moves with a register base (SR-7)
+
+### HW-66: The block moves with a register base, and fwtest
+- Fact: a 4-byte instruction moves the registers in a list to or from
+  consecutive words at a base register: bytes `xm eb` then a 16-bit
+  register mask, low byte first (bit k: register rk, r0 to r15). In the
+  first byte, bits 0 to 3 are the base register and bits 4 to 6 the mode;
+  bit 7 must be 0 (with it set the bytes are a different instruction).
+  The toolchain writes the eight modes as:
+  - `0x0`: `{list} = [rN+]`, `0x1`: `{list} = [rN++]`,
+    `0x2`: `[rN+] = {list}`, `0x3`: `[rN++] = {list}`;
+  - `0x4`: `{list} = [-rN]`, `0x5`: `{list} = [--rN]`,
+    `0x6`: `[-rN] = {list}`, `0x7`: `[--rN] = {list}`.
+
+  Mode bit 4 is the `++` / `--` form, bit 5 a store, bit 6 a block below
+  the base. With n registers in the list: the lowest-numbered register
+  takes the lowest address; `[rN+]` and `[rN++]` cover the n words from
+  rN up, `[-rN]` and `[--rN]` the n words just below rN (rN - 4n to
+  rN - 4). Without `++` / `--` the base keeps its value, and every address
+  comes from the base as it was, so a base that is also in a loaded list
+  ends with its loaded word. The toolchain's compiler emits `[rN+]` and
+  `[-rN]`, loads and stores, on its own (SR-7's `{r3, r0} = [-r4]` is mode
+  `0x4`, mask `0x0009`): SR-7's reproduction leaves r0 `0x29F3A1C5`, r3
+  `0x7E41D60B` and r4 `0x01C00010`, unchanged. `[rN++]` and `[--rN]` are
+  assembler forms the compiler was not seen to emit; fwtest runs them with
+  the base moved past the block (rN + 4n, rN - 4n). fwtest runs all eight
+  modes this way since 0.3.0 (HARNESS, "Instructions"); before, `[-rN]` and
+  `[--rN]` ended the run as a fault. On the chip, what `[rN++]` and
+  `[--rN]` leave in the base, a write-back form whose base is also in its
+  list, and an empty list, are open (Q-19).
+- Sources: TC: the assembler and disassembler for every mode, base and
+  mask tried (the encoding); the compiler's code for C with known results,
+  built with `-mcpu=r3 -mfprev1` at `-Os`, `-O2` and `-O3` (the order, the
+  block below the base, the base kept, the base in the list); E-18 (fwtest,
+  all eight modes: the result above for each); HARNESS ("Instructions").
+- Standing: confirmed (E-18 for fwtest; TC for the order, the block below
+  the base and the base kept, on the chip)
+- Needed by: M5 (SR-7)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -1222,3 +1263,9 @@ spec request can turn one into a fact.
   cached, and whether a plain store by one core is seen by the other's
   next load without `csync` or a cache operation (HW-65). Settled by a
   probe on real hardware.
+- **Q-19. The block moves' write-back forms on the chip.** What
+  `{list} = [rN++]`, `{list} = [--rN]` and their stores leave in the base
+  (fwtest: rN + 4n, rN - 4n), which wins when such a form's base is also
+  in its list, and what an empty list does (HW-66). The toolchain's
+  compiler was not seen to emit them. Settled by a probe on real
+  hardware.

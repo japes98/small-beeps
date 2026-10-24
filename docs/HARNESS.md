@@ -317,6 +317,63 @@ values):
   1024 instructions, until fwtest next checks the program counter, and then
   ends the run as a fault.
 
+## Instructions
+
+fwtest runs the code the pinned toolchain's compiler emits for the
+firmware's flags (`-target pi32v2 -mcpu=r3 -mfprev1`, tools/build.sh),
+with one known exception, below. That was checked on a corpus, not proven
+for every instruction: each of the 13 981 distinct instructions (dual-issue
+pairs as one) in the firmware at `18d9459`, the vendored Plaits and the
+demo's C++ built with the firmware's CPU flags, and several hundred small C
+functions written to vary types, operations and pointer patterns, each at
+`-Os` and `-O2`, was run on its own in fwtest 0.3.0 (SR-7). The check shows
+only that fwtest decodes and runs each one, not that it computes what the
+chip does. An instruction the corpus never held can still end a run as a
+fault ("Outcomes and exit codes"): report it as SR-7 was, with its bytes
+and the smallest image that shows it.
+
+**Known gap: rotate by a register.** `rD = rS <> rT` (bytes `cc e1`, then
+two bytes naming the registers) ends the run as a fault, "an instruction
+the emulated CPU cannot decode", for every register tried. The compiler
+emits it, at `-Os` too, for a rotate by an amount it doesn't know at
+compile time, such as `(x << s) | (x >> (32 - s))`. A rotate by a
+constant (`rD = rS <> n`, bytes `c4 e1`) runs. Until fwtest runs it, keep
+rotate amounts constant, or write the rotate so the compiler can't see
+it (through a `volatile` shift count, for example).
+
+### Block moves with a register base
+
+Since 0.3.0 fwtest runs all eight modes of this 4-byte instruction (bytes
+`xm eb`, then a 16-bit register mask; HARDWARE-SPEC.md HW-66). As the
+toolchain's disassembler writes them, with n registers in the list:
+
+| First byte | Form | Words moved | The base after |
+|------------|------|-------------|----------------|
+| `0x0N` | `{list} = [rN+]` | rN to rN + 4n - 4 | unchanged |
+| `0x1N` | `{list} = [rN++]` | rN to rN + 4n - 4 | rN + 4n |
+| `0x2N` | `[rN+] = {list}` | rN to rN + 4n - 4 | unchanged |
+| `0x3N` | `[rN++] = {list}` | rN to rN + 4n - 4 | rN + 4n |
+| `0x4N` | `{list} = [-rN]` | rN - 4n to rN - 4 | unchanged |
+| `0x5N` | `{list} = [--rN]` | rN - 4n to rN - 4 | rN - 4n |
+| `0x6N` | `[-rN] = {list}` | rN - 4n to rN - 4 | unchanged |
+| `0x7N` | `[--rN] = {list}` | rN - 4n to rN - 4 | rN - 4n |
+
+- The lowest-numbered register in the list takes the lowest address.
+- Every address comes from the base as it was before the instruction. A
+  base that is also in a loaded list, in a mode without `++` / `--`, ends
+  with its loaded word (the compiler relies on this); in a write-back mode
+  it ends with the written-back address. A store writes the base's
+  value from before the instruction.
+- An empty list moves nothing (and a write-back mode leaves the base as
+  it was).
+- The compiler emits the modes without `++` / `--` (`0x0`, `0x2`, `0x4`,
+  `0x6`). The write-back modes, a write-back mode whose base is in its
+  list, and an empty list are not established for the chip (Q-19): avoid
+  relying on them.
+
+Before 0.3.0 the four modes below the base (`0x4` to `0x7`) ended the run
+as a fault, "an instruction the emulator does not implement".
+
 ## Golden files
 
 `--golden DIR`: every file in DIR is a golden file, compared with the output
@@ -371,5 +428,7 @@ differ, that is a bug in fwtest: report it.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.3.0: the block moves below a base register run, all eight modes
+  of the block moves are listed (SR-7; "Instructions").
 - 0.2.0: SPI1's `CON` writes set and clear bits as written ("The LCD").
 - 0.1.0: the first published image.

@@ -314,4 +314,18 @@ an issue or a pull request against docs/HARNESS.md.
   tools/build.sh fails an image whose disassembly holds the form, so
   none reaches fwtest unnoticed (docs/DESIGN-NOTES.md, M5). Both go once
   fwtest runs it.
-- Status: open
+- Status: answered (HARDWARE-SPEC.md, "15. Block moves with a register
+  base (SR-7)", HW-66; docs/HARNESS.md, "Instructions"): the encoding has
+  eight modes, loads and stores, up or below the base, with or without
+  moving it, for any base and any list of r0 to r15; fwtest 0.3.0 runs all
+  eight. The lowest register takes the lowest address, so your r0 and r3
+  are right, but the form without `--` leaves the base as it was: r4 stays
+  `0x01C00010`, not `0x01C00008` (the compiler's own code relies on this).
+  The compiler emits the forms without `++` / `--`; the others, and a base
+  that is also in a write-back form's list, are open for the chip (Q-19).
+  A corpus check of what the compiler emits for the firmware's flags
+  found one more form fwtest doesn't run: a rotate by a register
+  (HARNESS.md, "Instructions", "Known gap"); nothing else in it faults.
+  fwtest 0.3.0 reaches `tools/fwtest` when the pull request after this
+  one pins its image; then `copy_words` and build.sh's check can go.
+- Answered: 2026-10-24, session SR-7 (spec side)
