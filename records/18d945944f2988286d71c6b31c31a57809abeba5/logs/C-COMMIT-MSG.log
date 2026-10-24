@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 56040232c01ccee6c66efe270a8afbd26262bd76..18d945944f2988286d71c6b31c31a57809abeba5
+OK     abb01dce4a58 docs: spec request SR-7, a two-register load fwtest doesn't run
+EXEMPT 18d945944f29 (merge) Merge pull request #68 from japes98/m5/sr-7b
+2 commit(s) checked: PASS
+
+exit status 0
