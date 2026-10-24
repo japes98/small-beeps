@@ -1232,6 +1232,21 @@ SR-3 wrote only its barrier-log row.*
   as firmware side. It does not open anything on the forbidden list's
   other entries, anything under the three spec-side folders, or any other
   synthesizer's firmware.
+- Later in the session:
+  - **SR-9's answer before it merged:** from the open spec pull request
+    #97 (head `c1e68efa`), the session read `docs/HARDWARE-SPEC.md`,
+    `docs/HARNESS.md` and `docs/SPEC-REQUESTS.md` alone, each through
+    GitHub's contents API into its scratch folder (nothing fetched into
+    `.git`), and used HW-76 to HW-82 (P-54).
+  - **Metadata only:** the file lists of #96 and #97 (names, among them
+    a spec transcript's and its redaction note's, and files under
+    `harness/spec-experiments/`); from #97's file list, the git blob
+    hashes of four files it shares with #95 (all four identical to
+    #95's) and the count of lines it adds to PROVENANCE.md (three, so
+    P-51 to P-53), to number P-54. No content of any other file was
+    fetched or shown, and nothing under the spec-side folders.
+  - **The toolchain** built the firmware and its test images in the
+    build container, as before. Disk stayed between 3 and 4 GB free.
 
 ## Corrections
 
