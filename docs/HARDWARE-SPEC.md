@@ -22,7 +22,10 @@ fwtest part for M3. Session SR-4-6 (spec side, 2026-10-23) added section 14
 for SR-5 and SR-6, answered in part (open: Q-16 to Q-18). Session SR-7
 (spec side, 2026-10-24) added section 15 for SR-7 (open: Q-19). Session
 midi-in-out (spec side, 2026-10-24) added section 16 for SR-8, answered in
-part (open: Q-12), and section 17 for MIDI output (open: Q-20).
+part (open: Q-12), and section 17 for MIDI output (open: Q-20). Session
+pin-050 (spec side, 2026-10-24) added section 18, the UART as another
+JieLi chip's open driver sets it up (SDK63), for Q-12 and Q-20, which stay
+open.
 
 ## How to read it
 
@@ -43,6 +46,10 @@ Every fact is an entry:
   - **emulator-only**: the only source is the emulator model, which was
     partly written from GPL code. Rely on it in fwtest, but prefer to confirm
     it with your own black-box test.
+  - **other chip (SDK63)**: the source is a JieLi SDK for different chips
+    (SDK63), whose peripheral looks like the FM-1's chip's. A strong hint,
+    never a confirmation for the FM-1's chip: the two chips are known to
+    differ elsewhere (HW-75).
   - **superseded by HW-n**: no longer true; see the newer entry.
 - **Needed by**: the milestone that first needs it.
 
@@ -55,10 +62,12 @@ least significant. Register names are the JieLi SDK's.
 | Key | Source |
 |-----|--------|
 | SDK | JieLi AC79 SDK, `Jieli-Tech/fw-AC79_AIoT_SDK` (Gitee), commit `5fa84a9b2f723a5e9337ad79dc2ad741fc98fe2d`, Apache-2.0 (PROVENANCE P-2, P-10). `WL82.h` and `csfr.h` are vendored in `vendor/jieli-sdk/include_lib/driver/cpu/wl82/asm/`; the other files cited are at the same commit and path prefix. Line numbers refer to that commit. |
+| SDK63 | JieLi AC63 Bluetooth SDK, `https://github.com/Jieli-Tech/fw-AC63_BT_SDK`, commit `fdc018de81629e21e594d677cf05f87d288be0f0` (2025-03-18), Apache-2.0 (its `LICENSE`, SHA-256 `c71d239d…5d0ab4`) (PROVENANCE P-48). **Different chips:** its `cpu/br23/`, `cpu/br25/` and `cpu/bd29/` parts, not the FM-1's chip. Read file by file, not vendored; line numbers refer to that commit. |
 | RE | AL-255/FM-1-RE (GitHub, WTFPL), commit `ec832f281ca165a7d5e0722985f3acb1465046d5`: its hardware and boot documents `docs/reversing/01-hardware-map.md`, `docs/io/01-boot.md`, `docs/io/03-audio-dac.md`, `docs/io/08-display.md`, `docs/io/09-storage.md` (PROVENANCE P-9); since SR-8 also `docs/io/05-midi.md`, `docs/io/06-usb.md` and `docs/reversing/04-subsystems.md` (PROVENANCE P-41). Only their hardware facts are used here. |
 | DS | Sitronix ST7789V datasheet, version 1.3 (2014-03), 316 pages, from `https://www.newhavendisplay.com/appnotes/datasheets/LCDs/ST7789V.pdf`, SHA-256 `8ecf0e43…5d04ca1` (PROVENANCE P-11). Page numbers as printed. |
 | PANEL | The FM-1's printed panel labels, from two sources that agree: the owner's screenshot of the F-Emulator app's panel with its default labels, `docs/sources/panel-app-default-labels.png` (secondary: the app's drawing of the panel); and M-VAVE's product photo of the FM-1, `https://www.m-vave.com/images/products/fm-1.webp` on `https://www.m-vave.com/product.html?id=fm-1`, accessed 2026-10-22, SHA-256 `e610a746…df14b95`, not copied into this repository (PROVENANCE P-12). Only the printed labels are taken from them. The owner chose these two sources. |
 | MAN | M-VAVE's user manuals: the FM-1's, the English part (pages 1-12) of `https://m.media-amazon.com/images/I/A1WOydif9HL.pdf`, SHA-256 `69bfea10…8b715da`, accessed 2026-10-24 (PROVENANCE P-41); the SMK-37 Pro's, as `https://www.manualslib.com/manual/4132288/M-Vave-Smk-37-Pro.html` shows it, accessed 2026-10-24 (PROVENANCE P-42). Neither copied into this repository. Only what they say about the connections is used. |
+| MPLUS | Manuals+'s "M-VAVE SMK-37 PRO MIDI Controller User Manual", `https://manuals.plus/asin/B0GQZP7C8G.pdf`, 13 pages, SHA-256 `77d9d537…3e3745`, accessed 2026-10-24, supplied by the owner and checked by the planning conversation, not fetched by a session here (PROVENANCE P-49). A third party's write-up, not M-VAVE's manual: secondary, it never confirms an entry on its own. Not copied into this repository. |
 | TC | The pinned JieLi toolchain (PROVENANCE P-1, P-36): its assembler and disassembler (clang's integrated assembler and `objdump`), and the code its compiler emits for C whose meaning is known. It is the vendor's compiler for this CPU, so how its code uses an instruction says what the instruction does; it carries no documents. |
 | HARNESS | docs/HARNESS.md, fwtest's manual. It is the spec side's own description of fwtest, so it never confirms an entry on its own. |
 | E-n | A spec-side black-box experiment: a small image run in fwtest (the pinned image, `config/fwtest-image`). Its result is stated in the entry. C-SPEC-EXPERIMENTS re-runs every one in CI, so a cited result that stops holding fails CI. |
@@ -1284,7 +1293,12 @@ requests.
   a 3.5 mm to MIDI adapter to an external device's MIDI In; Chinese part
   p. 15, USB MIDI, class-compliant; p. 16, Bluetooth; p. 17, the rear
   panel's MIDI output port); the MIDI 1.0 specification (the wire format);
-  the emulator model (the SMK-37 board).
+  the emulator model (the SMK-37 board). Secondary, since pin-050: MPLUS
+  p. 4 (the rear panel's "3.5mm MIDI output (requires adapter)"), p. 12
+  (specifications, "3.5mm MIDI OUT"), p. 5 ("3.5mm TRS to 5-pin DIN MIDI
+  adapters", the TRS type not given). Its p. 3 (features) and p. 11
+  (troubleshooting) say "3.5mm MIDI input/output" instead: unresolved, and
+  not taken as evidence of a MIDI input jack.
 - Standing: confirmed (MAN)
 - Needed by: M6b (MIDI out)
 
@@ -1341,6 +1355,65 @@ requests.
   model with vendor patch 0009.
 - Standing: confirmed (E-21)
 - Needed by: M6b (MIDI out)
+
+## 18. The UART on other JieLi chips (Q-12, Q-20)
+
+### HW-75: The UART as three other JieLi chips' open driver sets it up
+- Fact: Three other JieLi chips, the ones SDK63 calls br23, br25 and
+  bd29, have three UARTs with the FM-1's chip's eleven words in the same
+  order, widths and access (HW-68), at the same three bases, and SDK63's
+  drivers for them are open source. All three drivers do the same:
+  - The rate: `BAUD` is f / baud rounded to the nearest whole number,
+    divided by 4 (rounded down), less 1, where f is the UART clock; so
+    the rate is f / (4 × (`BAUD` + 1)). For 31 250 baud that is 383 from a
+    48 MHz clock and 191 from 24 MHz, both exact.
+  - Set-up: the pending flags cleared (`CON0` bits 13, 12 and 10 written
+    as 1) with bit 0 clear; then `BAUD`, and `OTCNT` when bit 5 is set;
+    then bit 0 set with the same three clears.
+  - `CON0` bit 1 set gives 9-bit frames, clear 8-bit.
+  - The receive ring: `RXSADR` its first byte and `RXEADR` one past its
+    last (the buffer's start plus its size); `RXCNT` the bytes per receive
+    pending; bits 6, 5 and 3 set together to receive by DMA.
+  - The idle timeout: `OTCNT` is the time in the low-speed bus clock
+    (milliseconds × that clock / 1000), not in the UART clock.
+  - Receive without the DMA (bit 6 clear): wait for bit 14, read `BUF`,
+    then write bit 12. The drivers only poll for such a byte, never take
+    it by interrupt.
+  - The receive and timeout interrupts write bit 7, then 10, then 12, and
+    then read `HRXCNT`; the driver's comment says the order must not
+    change.
+  - Transmit: a byte by writing `BUF`, waiting for bit 15 and clearing it
+    with bit 13; a DMA by clearing bit 13, setting bit 2 (the transmit
+    interrupt, taken when bits 2 and 15 are set), then writing `TXADR` and
+    then `TXCNT`.
+  - `CON0` bits 4, 8 and 9 are never used, and no error flag (framing,
+    overrun, parity) is read or cleared.
+  On br23's UART1 only, `CON1` holds hardware flow control: bit 0 turns
+  RTS on and bit 2 CTS, and bit 4 sets the RTS line by hand; when bit 0 is
+  set, each receive or timeout interrupt also writes bit 13; while bits 2
+  and 15 are set the sender waits, writing bit 14 (by that use, 15 is CTS
+  holding the sender off and 14 clears it). Where the bits overlap the FM-1's
+  chip's (`CON0` bits 0, 2, 3, 5, 6, 7 and 10 to 15: HW-69, HW-70, HW-73)
+  they mean the same. But the chips differ: br23's clock header encodes
+  the UART clock in `CLK_CON1` bits 10-11 as 0 the PLL's 48 MHz, 1 the
+  oscillator, 2 the low-speed bus clock, while the FM-1's chip's SDK has
+  0 and 1 the other way round (HW-53). So none of this is confirmed for
+  the FM-1's chip, and fwtest is not changed for it. Two points differ
+  from fwtest: fwtest counts `OTCNT` in 48 MHz UART clocks (HW-70,
+  emulator-only), and fwtest has no 9-bit frames, receive by `BUF` or
+  `CON1` (HW-71).
+- Sources: SDK63 `cpu/br23/uart_dev.c` (lines 22-23, the UART and
+  timeout clocks; UART1's put-byte, get-byte, interrupt, read, write,
+  set-rate and open functions at lines 300, 321, 354, 406, 448, 473 and
+  490, and UART0's and UART2's alike; the flow control at lines 899-923),
+  `cpu/br25/uart_dev.c` and `cpu/bd29/uart_dev.c` (the same functions,
+  without `CON1`); SDK63 `include_lib/driver/cpu/br23/asm/br23.h` lines
+  372-393, `br25/asm/br25.h` lines 380-401 and `bd29/asm/bd29.h` lines
+  426-447 (the UART's words and bases); SDK63
+  `include_lib/driver/cpu/br23/asm/clock_hw.h` line 298 (the UART clock
+  field). For the FM-1's chip: SDK `WL82.h` lines 569-591; HW-53.
+- Standing: other chip (SDK63)
+- Needed by: real hardware (Level 2); M6a and M6b (the UART's set-up)
 
 ## Open questions
 
@@ -1416,8 +1489,19 @@ spec request can turn one into a fact.
   byte or one past it; what the DMA does when the ring overflows; which
   clock `OTCNT` counts when the UART clock isn't the PLL's 48 MHz. The SDK
   at the pinned commit gives none of them (its UART driver is a prebuilt
-  library). Settled by a datasheet, a probe on real hardware, or a source
-  the owner allows (another JieLi SDK whose UART driver is open).
+  library). Since pin-050, another JieLi SDK whose UART driver is open
+  (SDK63, for other chips with the same UART words; the owner allowed it)
+  gives answers for those chips (HW-75), not yet for the FM-1's: the
+  `BAUD` formula (so 383 from 48 MHz); 9-bit frames on `CON0` bit 1;
+  receive without the DMA by polling bit 14 and reading `BUF`, cleared
+  with bit 12; `RXEADR` one past the ring's last byte; `CON1` as flow
+  control on one chip's UART1; and `OTCNT` in the low-speed bus clock,
+  whatever the UART clock, which differs from fwtest's 48 MHz count
+  (HW-70). Still open even there: a receive interrupt per byte without
+  the DMA; error flags (none is used); what the DMA does when the ring
+  overflows; and for the FM-1 the jack's pin, its port set-up and the TRS
+  wiring. Settled for the FM-1's chip by a datasheet or a probe on real
+  hardware.
 - **Q-13. The timer acknowledge on the chip.** Whether writing a TIMER0-3
   `CON` to acknowledge its interrupt restarts the count, as it does in
   fwtest (HW-48), or the count runs on and the period stays `PRD` counts.
@@ -1473,7 +1557,7 @@ spec request can turn one into a fact.
   channel of `JL_IOMAP`; drive); how its TRS socket is wired (type A or B);
   whether the SMK-37 has the FM-1's chip; whether the FM-1's board brings
   UART1's transmit pin anywhere; which `CON0` bit enables the transmit
-  interrupt; whether, after a DMA, the pending means the transfer has been
+  interrupt (bit 2 on the chips SDK63 covers, HW-75); whether, after a DMA, the pending means the transfer has been
   read from RAM or the last stop bit has left the pin; whether the
   transmit DMA needs a 4-byte aligned address or length; what writing
   `TXCNT` does while a transfer is still going; how `BUF` and the DMA mix.

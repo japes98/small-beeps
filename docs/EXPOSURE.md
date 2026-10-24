@@ -1127,7 +1127,20 @@ SR-3 wrote only its barrier-log row.*
 - What it archived: midi-in-out's transcript (`fbe11e0f`) into
   `sessions/spec/`; `tools/check-transcripts.py` PASS.
 - Exposure: the spec side's usual material (the vendored emulator and
-  `harness/`, the pinned toolchain, this repository).
+  `harness/`, the pinned toolchain, this repository). New for this
+  session: the F-Emulator app's note `test-fix-0008.md` in the owner's
+  drop folder (that file only; P-47); a clean upstream copy of the
+  emulator's three crates with fwtest's patches, in its scratch folder;
+  JieLi's AC63 Bluetooth SDK (Apache-2.0, another chip family's SDK, which
+  the owner allowed for Q-12): its licence and English README, three UART
+  drivers, six chip headers' UART words and one clock header, by raw URL
+  into its scratch folder, plus GitHub's repository list and code search
+  for file paths (P-48). The Manuals+ write-up of the SMK-37 Pro's manual
+  was given by the owner as a citation and a reading; this session did not
+  open it (P-49). Nothing of any firmware was read.
+- Later in the session: it ran the firmware suite on fwtest 0.4.0 and
+  0.5.0 (pinned), the `midiout` test image through the pinned fwtest, and
+  the emulator crates' and harness's own tests.
 
 ## Corrections
 
