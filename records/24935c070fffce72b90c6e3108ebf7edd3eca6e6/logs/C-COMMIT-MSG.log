@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 3f74bfb2b334c9ebf385ad923766d079246e3740..24935c070fffce72b90c6e3108ebf7edd3eca6e6
+OK     ac316a90192d docs: M5's results in PLAN.md, M6 next; later exposure notes
+EXEMPT 24935c070fff (merge) Merge pull request #71 from japes98/m5/wrapup
+2 commit(s) checked: PASS
+
+exit status 0

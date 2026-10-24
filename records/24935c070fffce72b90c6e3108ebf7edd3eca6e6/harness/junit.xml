@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="13" failures="0">
+  <testsuite name="harness" tests="13" failures="0">
+    <testcase classname="harness" name="heartbeat"/>
+    <testcase classname="harness" name="halt"/>
+    <testcase classname="harness" name="wild"/>
+    <testcase classname="harness" name="undecodable"/>
+    <testcase classname="harness" name="hang"/>
+    <testcase classname="harness" name="console"/>
+    <testcase classname="harness" name="lcd"/>
+    <testcase classname="harness" name="leds"/>
+    <testcase classname="harness" name="keys"/>
+    <testcase classname="harness" name="pot"/>
+    <testcase classname="harness" name="midi"/>
+    <testcase classname="harness" name="audio"/>
+    <testcase classname="harness" name="flashrw"/>
+  </testsuite>
+</testsuites>
