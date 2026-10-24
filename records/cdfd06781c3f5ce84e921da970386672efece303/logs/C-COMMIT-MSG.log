@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range f2961547df1546733a0d1145eb3bef54934ca732..cdfd06781c3f5ce84e921da970386672efece303
+OK     2feb673ffe90 config: pin fwtest 0.3.0 (the block moves below a base register run)
+EXEMPT cdfd06781c3f (merge) Merge pull request #73 from japes98/spec/sr-7-pin
+2 commit(s) checked: PASS
+
+exit status 0
