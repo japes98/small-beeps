@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 96544f02c61d737a02a8d7bc352e4440fce75eed..60ab84aeac5d1e81a49e9e2a301aa769d7af5d95
+OK     2070dbb8f5db docs: MIDI output on the SMK-37 and the FM-1's chip (HW-72, HW-73, Q-20)
+OK     75ee7cafff6f docs: HW-73 from the SDK's own UART output (CON0 bits 0, 13, 15; BUF)
+OK     a2937178e6d3 docs: this session's P-43 becomes P-45 (M6a's #83 takes P-43, P-44)
+EXEMPT 60ab84aeac5d (merge) Merge pull request #82 from japes98/spec/midi-out-spec
+4 commit(s) checked: PASS
+
+exit status 0

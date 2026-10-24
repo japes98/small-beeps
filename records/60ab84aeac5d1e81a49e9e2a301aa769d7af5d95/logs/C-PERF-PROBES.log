@@ -1,0 +1,55 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py probes --build /home/runner/work/small-beeps/small-beeps/out/60ab84aeac5d1e81a49e9e2a301aa769d7af5d95/build-a --out /home/runner/work/small-beeps/small-beeps/out/60ab84aeac5d1e81a49e9e2a301aa769d7af5d95/perf-probes
+reference: code 15748, data 32, bss 141976, image 15780 bytes; static RAM 142008; stack 388 of 4096 bytes used; startup 1032624 instructions; steady state 1242030 instructions for 689 audio blocks (1802.656 per block) between the 1250.296 and 2250.364 ms runs
+reference loaded: 58507692 instructions for 689 audio blocks (84916.824 per block) between the 1250.796 and 2250.114 ms runs with tests/fw/scripts/perfload.txt
+control (the build against itself):
+  code                 PASS         15748 of 20480 bytes (M5 budget)
+  static_ram           PASS         142008 of 147456 bytes (M5 budget)
+  stack_high_water     PASS         388 of 512 bytes (M5 budget)
+  startup_instructions PASS         1032624 of 1572864 instructions (M5 budget)
+  steady_per_period    PASS         1802.656 of 2048 instructions per period (M5 budget)
+  loaded_per_period    PASS         84916.824 of 98304 instructions per period (M5 budget)
+  speed                PASS         1802.656 steady-state instructions per period, 1802.656 before: +0.00%, within 3%
+  loaded_speed         PASS         84916.824 loaded instructions per period, 84916.824 before: +0.00%, within 3%
+SB_PROBE_SLOW: code 15768, data 32, bss 141976, image 15800 bytes; static RAM 142008; stack 388 of 4096 bytes used; startup 1031482 instructions; steady state 1301970 instructions for 689 audio blocks (1889.652 per block) between the 1250.046 and 2250.030 ms runs
+SB_PROBE_SLOW loaded: 58567808 instructions for 690 audio blocks (84880.881 per block) between the 1250.297 and 2250.530 ms runs with tests/fw/scripts/perfload.txt
+  code                 PASS         15768 of 15768 bytes (probe budget)
+  static_ram           PASS         142008 of 142008 bytes (probe budget)
+  stack_high_water     PASS         388 of 388 bytes (probe budget)
+  startup_instructions PASS         1031482 of 1031482 instructions (probe budget)
+  steady_per_period    FAIL         1889.652 instructions per period, over the probe budget of 1802
+  loaded_per_period    PASS         84880.881 of 84881 instructions per period (probe budget)
+  speed                FAIL         1889.652 steady-state instructions per period, 1802.656 before: +4.83%, a rise of more than 3%
+  loaded_speed         PASS         84880.881 loaded instructions per period, 84916.824 before: -0.04%, within 3%
+SB_PROBE_BIG: code 16848, data 32, bss 142232, image 16880 bytes; static RAM 142264; stack 728 of 4096 bytes used; startup 1033283 instructions; steady state 1242030 instructions for 689 audio blocks (1802.656 per block) between the 1250.299 and 2250.366 ms runs
+SB_PROBE_BIG loaded: 58508596 instructions for 690 audio blocks (84795.067 per block) between the 1250.799 and 2250.533 ms runs with tests/fw/scripts/perfload.txt
+  code                 FAIL         16848 bytes, over the probe budget of 15748
+  static_ram           FAIL         142264 bytes, over the probe budget of 142008
+  stack_high_water     FAIL         728 bytes, over the probe budget of 388
+  startup_instructions FAIL         1033283 instructions, over the probe budget of 1032624
+  steady_per_period    PASS         1802.656 of 1803 instructions per period (probe budget)
+  loaded_per_period    PASS         84795.067 of 84796 instructions per period (probe budget)
+  speed                PASS         1802.656 steady-state instructions per period, 1802.656 before: +0.00%, within 3%
+  loaded_speed         PASS         84795.067 loaded instructions per period, 84916.824 before: -0.14%, within 3%
+SB_PROBE_STACK: code 15804, data 32, bss 141980, image 15836 bytes; static RAM 142012; stack 1236 of 4096 bytes used; startup 1034429 instructions; steady state 1242030 instructions for 689 audio blocks (1802.656 per block) between the 1250.304 and 2250.371 ms runs
+SB_PROBE_STACK loaded: 58508598 instructions for 690 audio blocks (84795.070 per block) between the 1250.804 and 2250.538 ms runs with tests/fw/scripts/perfload.txt
+  code                 PASS         15804 of 15804 bytes (probe budget)
+  static_ram           PASS         142012 of 142012 bytes (probe budget)
+  stack_high_water     PASS         1236 of 1236 bytes (probe budget)
+  startup_instructions PASS         1034429 of 1034429 instructions (probe budget)
+  steady_per_period    PASS         1802.656 of 1803 instructions per period (probe budget)
+  loaded_per_period    PASS         84795.070 of 84796 instructions per period (probe budget)
+  speed                PASS         1802.656 steady-state instructions per period, 1802.656 before: +0.00%, within 3%
+  loaded_speed         PASS         84795.070 loaded instructions per period, 84916.824 before: -0.14%, within 3%
+SB_PROBE_LOADED: code 15776, data 32, bss 141976, image 15808 bytes; static RAM 142008; stack 388 of 4096 bytes used; startup 1032624 instructions; steady state 1242030 instructions for 689 audio blocks (1802.656 per block) between the 1250.296 and 2250.364 ms runs
+SB_PROBE_LOADED loaded: 75044167 instructions for 689 audio blocks (108917.514 per block) between the 1250.049 and 2250.033 ms runs with tests/fw/scripts/perfload.txt
+  code                 PASS         15776 of 15776 bytes (probe budget)
+  static_ram           PASS         142008 of 142008 bytes (probe budget)
+  stack_high_water     PASS         388 of 388 bytes (probe budget)
+  startup_instructions PASS         1032624 of 1032624 instructions (probe budget)
+  steady_per_period    PASS         1802.656 of 1803 instructions per period (probe budget)
+  loaded_per_period    FAIL         108917.514 instructions per period, over the probe budget of 84916
+  speed                PASS         1802.656 steady-state instructions per period, 1802.656 before: +0.00%, within 3%
+  loaded_speed         FAIL         108917.514 loaded instructions per period, 84916.824 before: +28.26%, a rise of more than 3%
+perf probes: PASS
+
+exit status 0
