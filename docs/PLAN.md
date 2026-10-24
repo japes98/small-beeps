@@ -764,6 +764,23 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     its first sample (at most two blocks); at rest +2.0% (36 instructions a
     block), loaded +1.0%; code 18 408 bytes, static RAM 143 256: the M5
     budgets hold, none raised.
+  - **The owner's decisions** (2026-10-24): the loaded measure includes
+    MIDI (#86's M6 budgets, #87's script: 109 899 a block of 131 072);
+    a program change and the mono and poly messages release held notes,
+    as PRESETS does, by design.
+  - **Open items:**
+    - **The receiver on the chip.** HW-70 (the receive set-up bits) is
+      known from the emulator only, and the baud rate, UART clock, pin
+      and port set-up are not set (Q-12). The receiver also writes
+      UART1's `CON0` once a block to latch the byte count (HW-69); what
+      that write does on the chip, beyond the latch, is not known. To
+      settle with real hardware (Level 2) or a further spec request.
+    - **The dense case the prompt named can't happen on the wire.** At
+      31 250 baud a block (1.45 ms) carries about 4.5 bytes, two notes
+      in running status, so "all 16 voices struck again every block"
+      can't arrive by MIDI. The test (mididense) and the loaded measure
+      fill the wire instead (all 16 voices sounding, notes struck again
+      continuously); a faster input (USB MIDI, M11) could come closer.
   - **Next: M6b, MIDI out**, waiting on the spec side (which port the FM-1
     sends MIDI on; the spec side has #82 open on MIDI output).
 
