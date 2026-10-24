@@ -21,5 +21,6 @@ flashrw   halt      images/flashrw.bin --ms 50 --flash data/flash-in.bin --flash
 pairwaw   halt      images/pairwaw.bin --ms 1 --ram 0x01c00100:16@end --golden golden/pairwaw
 flashcall fault     images/flashcall.bin --ms 20
 flashload fault     images/flashload.bin --ms 20
+flashhelper fault   images/flashhelper.bin --ms 20 --ram 0x01c00100:12@end --golden golden/flashhelper
 flashirq  fault     images/flashirq.bin --ms 60 --ram 0x01c00100:0x20@end --golden golden/flashirq
 flashkeep power-cut images/flashkeep.bin --power-cut 30 --flash-log --ram 0x01c00100:8@end --golden golden/flashkeep

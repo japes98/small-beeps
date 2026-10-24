@@ -543,6 +543,17 @@ fn flash_busy_and_the_window() {
     assert_eq!(what, "read the code window at 0x02000000 while the flash chip was busy (an erase or program in progress)");
     assert_eq!(words(output(&r, "ram-01c00100-8-end.bin"))[0], 0, "never ran past the read");
 
+    // a helper in the window, already run (so decoded), called from RAM
+    // just after an erase starts
+    let mut o = opts(20);
+    o.ram = vec![(OUT0, 12, When::End)];
+    let r = run(&image("flashhelper"), &o).unwrap();
+    let (core, pc, what) = fault_text(&r);
+    assert_eq!(core, 0);
+    assert!((0x0200_0000..0x0210_0000).contains(&pc), "{pc:#x}");
+    assert!(what.starts_with("ran code in the code window while the flash chip was busy"), "{what}");
+    assert_eq!(words(output(&r, "ram-01c00100-c-end.bin")), vec![0, 0, 4]);
+
     // a TIMER0 handler in RAM runs through a 12 ms erase and a 3 ms program;
     // moved to the window, the next tick during an erase is a fault
     let mut o = opts(60);
