@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 24935c070fffce72b90c6e3108ebf7edd3eca6e6..f2961547df1546733a0d1145eb3bef54934ca732
+OK     72e111d90830 sessions: archive SR-4-6; SR-7's exposure entry and prompt
+OK     0aee9feef1d1 harness: the block moves below a base register run (fwtest 0.3.0)
+OK     72d5640a3bec docs: SR-7's answer: HW-66, Q-19, HARNESS.md's instructions
+OK     5cd3cbb342c6 docs: SR-7's form sweep: a second gap; HW-66's standing; exposure
+EXEMPT 39aa1d28138b (merge) docs: merge main into SR-7, after #70; SR-7's source is P-36
+EXEMPT f2961547df15 (merge) Merge pull request #72 from japes98/spec/sr-7
+6 commit(s) checked: PASS
+
+exit status 0
