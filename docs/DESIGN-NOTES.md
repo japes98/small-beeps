@@ -1920,3 +1920,152 @@ redrawn when they change.
   the record).
 - **Never disturbs audio:** no underrun in any case, audiogold and fmgold
   byte for byte as before.
+
+### 2026-10-24 M7: flash storage
+- Facts: HW-5 (the code window shows the chip from offset `0x4000` in
+  fwtest), HW-47 (SPI0, the chip select, the commands); and SR-9's answer,
+  HW-76 to HW-82 (#97, read from its branch before it merged): the part
+  (the P25Q80H, if the FM-1 carries it: Q-21), its times and endurance,
+  its command rules, nothing from the window while the flash is busy,
+  the FM-1's flash layout, the window encrypted and cached on the chip,
+  fwtest 0.5.0's chip; HARNESS.md's `--flash`, `--flash-out` and its
+  known gap around an unused volatile read. PROVENANCE P-54.
+- Sources: our own design. No other firmware's store, no file system's
+  or EEPROM-emulation library's source, was looked at for it.
+
+#### Nothing runs from the window
+On the chip the code window is the flash itself, and while an erase or a
+program is in progress nothing may be read through it, on either core
+(HW-79); a 4 KiB erase takes up to 12 ms, longer than a half of the audio
+buffer lasts. So the firmware no longer reads the window once main runs
+(the first of HW-79's ways to keep the audio going): the
+linker places every instruction and constant in RAM (`.data`, from
+`__ram_code_start` to `__ram_code_end`), and the start-up copy that
+already copied the initial data copies them too (24 KiB, about 63 us more
+at the start). Only `_start`, the stack fill and `sb_start` run from the
+window (`.boot.text`, 120 bytes). Core 1, the interrupt handlers and the
+vector table's addresses are all RAM addresses. The store reads the chip
+through SPI0's read command, never through the window, as HW-81 asks
+(the window is encrypted and cached on the chip). The wipe test build
+proves the rest:
+it erases its own image once main runs, and the heaviest load with saves
+then plays on with no underrun and no fault. `tools/build.sh` still
+counts all of it as code, and `ram_code` says how much runs from RAM;
+since it takes RAM, `tools/perf.py` counts it in static RAM too.
+
+#### The store
+A ring of 18 sectors of 4 KiB, chip offsets `0xEA000` to `0xFBFFF`
+(docs/STORE-FORMAT.md has the bytes). The region is the stock layout's
+user patch region (HW-80): out of the boot area, the Bluetooth sector
+and the per-unit last sector. A first draft used the chip's last 64 KiB,
+which HW-80 showed includes that last sector; the move was one define.
+Where our own image sits on the chip is M9's to settle (Q-24), so the
+region stays one definition. The choices:
+- **Append only, CRC on everything.** A record is never changed once
+  written, so a power cut can only leave the newest record incomplete;
+  its CRC-32 fails and the copy before it is read. No commit bit, no
+  second write to the same bytes: that keeps the store right whatever a
+  program cut short leaves in the bits, and whatever the chip does when a
+  program meets bits that are not erased.
+- **Read whole sectors, in 16-byte steps.** A torn record can leave erased
+  blocks inside it, so an erased block is no sign that a sector's records
+  have ended; the reader goes on to the sector's end, and the head takes
+  new records only after its last byte that is not erased. A torn record
+  therefore never closes the head. (An earlier draft closed it, and the
+  sweep's design showed the trap: a cut during a compaction would leave a
+  closed head with live records still in the sector after it, and every
+  save after it refused.)
+- **The ring and its compaction.** The sector after the head holds nothing
+  live, always: when the head is full, that sector is erased and becomes
+  the head, and the live records of the sector after it are copied in.
+  All the live records together (16 patches, the selection, the
+  settings, a reset) take 2 160 bytes, so they always fit one sector with
+  room to spare; `tests/test_store.py` checks it. A cut during a
+  compaction leaves the originals where they were; the next save finishes
+  the copying first.
+- **Reset is a record.** The factory reset writes one record that voids
+  every older one, so it is as safe against a cut as any save, and wears
+  nothing. A reset is always copied forward.
+- **The part's rules** (HW-78): a write enable before every erase and
+  program, a page program never past its page, the end of each waited for
+  on the status register's WIP bit, never by a delay. Start-up reads the
+  JEDEC ID, and a part other than the P25Q80H (HW-76) is read but never
+  written (`STORE_ERR_PART`), since its rules and times are not known.
+  SPI0's sending side never reads `BUF`, which also keeps clear of fwtest
+  0.5.0's gap around an unused volatile read (HARNESS.md).
+- **Start-up** reads the ID, 18 headers and every valid sector: 20 us
+  for an empty store, 5.8 ms for a full one (72 KiB
+  through SPI0 in fwtest, where a byte takes no time of its own, HW-82;
+  on the chip SPI0's clock sets it).
+- **Main does it all.** The engine never waits: it takes the panel's save
+  in its block callback, stores the patch in RAM at once, and adds one to
+  that slot's save count; main's loop writes every slot whose count moved
+  (and none a later reset voided), then the reset. The selection and the
+  settings are compared once a second. While main waits for the flash the
+  interrupts stay on, so the audio, the tick, the scan and core 1 go on;
+  the screen waits.
+
+#### Wear
+- **Limits by kind** (`STORE_SETTLE_S`, R-STORE-8): the selection and the
+  settings are written only when they changed, at most once every 2 s; a
+  patch only when the player saves it; a reset only when asked. Under
+  PRESETS turned four times a second for 6 s, the selection was written 4
+  times (wear).
+- **Spread:** every sector is erased in turn (the ring), so each takes one
+  erase in 18. The model writes 6 000 random saves with erase counts
+  within one of each other (`tests/test_store.py`).
+- **Lifetime:** the P25Q80H takes 100 000 erase cycles a sector (HW-77).
+  A sector has 1 920 bytes for new records after the largest compaction,
+  so the region takes 18 x 1 920 x 100 000 bytes of records: the
+  selection and the settings both changing every 2 s without a break
+  (96 bytes in 2 s) last about 2.3 years; a patch saved every 10 s
+  without a break, about 8.6 years. Real use is a small part of either.
+
+#### The panel (minimal; the full UI is M8)
+- **Save:** hold SAVE and press one of the 16 leftmost keys (KEY1 to
+  KEY16, lower and raised keys counted left to right, HW-37): the patch
+  playing now is
+  saved to that user slot, with the algorithm ALGORITHM chose and the
+  mode SEL with MONO or POLY chose; no note plays while SAVE is held. The
+  screen's event line says "saved to slot n" (or "SAVE FAILED, slot n").
+  KNOB1 to KNOB4 stay offsets over the patch, as they are over every
+  patch, and are not saved, so a saved patch never takes them twice.
+  The program stays as it was.
+- **Programs:** PRESETS and program changes reach the test patches (0 to
+  8), then the user slots that hold a patch (9 to 24). With no user
+  slots, PRESETS turns as before.
+- **Factory defaults:** hold SAVE and HOME together for 2 s: every user
+  slot empty, the settings' defaults, the first program; the event line
+  says "factory defaults". Held less, nothing happens.
+- **Kept without asking:** the selection and the settings, once they have
+  stayed changed for 2 s (above).
+
+#### How it is tested (R-STORE-1 to R-STORE-9)
+`tools/store_suite.py`, run by `tools/fw-suite.py` after the suite, since
+its runs need the flash another run left. `tools/store.py` reads every
+image the way the firmware does, and where a case starts from an image it
+made, its model also predicts the image the firmware leaves, command for
+command; the two are compared byte for byte. The sweep's save takes a new
+head, erases it and copies 17 live records (28 commands); the cut test
+build stops after each command and part way through each page program
+(109 cuts), and the model adds programs with half their bits cleared and
+erases half done (29 images). Every image holds the old patch or the new
+and nothing else changed, and the shipping image starts from each one,
+finds what `tools/store.py` finds, and saves again. The busy test build
+makes each erase take 12 ms and each page program 3 ms, the part's
+longest (HW-77; an earlier run at 400 ms an erase passed too); three
+saves under the heaviest panel load still leave no underrun and every
+tick within 2 time base ticks.
+
+#### Open (SR-9's open questions)
+- **Q-21, the part:** read on a unit; the ID check above refuses to write
+  to any other until its datasheet is read.
+- **Q-22, SPI0 on the chip:** how the window's controller hands the flash
+  to SPI0 and back, SPI0's clock and mode, and the chip select (fwtest
+  takes PD0; on the chip it may be another pin). The driver writes only
+  HW-47's bits; what the chip needs goes in `store_init` and the select
+  functions. Core 1 already runs from RAM, so it needn't be stopped.
+- **Q-23, write protection:** if a unit's protect bits are set, a write
+  reads back wrong and the save is reported failed (never silently lost).
+- **Q-24, updates:** whether an update rewrites the user region decides
+  whether saved patches survive one (M9).

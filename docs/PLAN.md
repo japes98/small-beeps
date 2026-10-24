@@ -840,6 +840,61 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
       122; M8's UI changes them, M7 saves them.
   - **Next: M7, flash storage.**
 
+### M7: flash storage (firmware side)
+- Status 2026-10-24 (session M7, firmware side, on the owner's Mac,
+  unattended): done, in pull requests #95 (start, SR-9), #98 (the M7
+  budgets) and the store pull request; SR-9 answered by the spec side in
+  #97 (HW-76 to HW-82), read from its branch.
+  - **Nothing runs from the code window** once main runs: every
+    instruction and constant is copied to RAM at start-up with the
+    initial data (24 KiB; HW-79: nothing may be read through the window
+    while the flash is busy, on either core). Only the boot code runs
+    from the window.
+  - **The store** (docs/STORE-FORMAT.md, our own design): a ring of 18
+    sectors in the stock layout's user region, `0xEA000` to `0xFBFFF`
+    (HW-80); append-only records with a kind, an id, a version, a length,
+    a sequence number and a CRC-32; the newest valid copy wins; a full
+    head takes the next sector and copies the live records of the oldest
+    forward; a reset is a record. Read and written over SPI0 only (HW-81);
+    a part other than the P25Q80H (HW-76) is never written.
+  - **What it keeps:** 16 user slots (patches in M5's format), the
+    selection, `struct midi_settings` (version 1 migrated to 2). The
+    selection and the settings are written 2 s after they change, at most
+    once in 2 s; patches when saved.
+  - **The panel (minimal):** SAVE held with one of the 16 leftmost keys
+    saves the patch playing now to that slot, which PRESETS reaches after
+    the test patches; SAVE and HOME held 2 s restore the factory
+    defaults; the event line says what happened.
+  - **Tests** (R-STORE-1 to R-STORE-9, `tools/store_suite.py`, run by
+    the fw suite): persistence across runs; a power cut after each of a
+    compacting save's 28 flash commands and part way through every page
+    program (109 cuts), plus 29 torn images (bits half cleared, erases
+    half done), each the store model's image exactly, each started from
+    and saved again; a damaged record, garbage, an unknown kind; no
+    free sector (refused, nothing written); 36 saves wearing the ring in
+    order; version 1 settings migrated; saves under the heaviest load
+    with the part's longest erase and program times, and with the
+    firmware's own image erased: no underrun, every tick on time.
+  - **Figures** (fwtest 0.5.0): a compacting save 0.6 ms in fwtest (its
+    chip is never busy), 95 ms with the part's longest times; start-up
+    reads an empty store in 20 us, a full one in 5.8 ms. At rest
+    1 877.1 instructions a block (+0.7%), loaded 107 136.9 (-2.8%);
+    code 24 188 bytes (+4 044), static RAM 180 784 (with the 24 068
+    bytes of code run from RAM), stack 564: the M7 budgets (#98).
+    audiogold unchanged; fmgold and the MIDI out captures moved only in
+    time (the copy at start-up moves events across block edges; checked
+    sound by sound and byte by byte, then made again).
+  - **Wear:** 100 000 cycles a sector (HW-77) give about 2.3 years of the
+    selection and the settings both changing every 2 s without a break.
+  - **Open items:** Q-21 (the FM-1's part), Q-22 (handing the flash from
+    the window to SPI0 on the chip, SPI0's clock, the chip select pin),
+    Q-23 (write protection), Q-24 (whether an update keeps the user
+    region; M9). fwtest's next version (busy times, the page wrap, the
+    write enable, a power cut inside an operation) can replace the busy
+    test build and add cuts inside an erase.
+  - **Next: M8, the UI and our own presets** (docs/M8-PROPOSAL.md, for
+    the owner's review first).
+
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer (done; above).
 - **M2** screen (done; above).
@@ -848,8 +903,9 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   a demo build, and the loaded-case budget (done; above).
 - **M5** the FM engine (done; above).
 - **M6a** MIDI in (done; above). **M6b** MIDI out (done; above).
-- **M7** flash storage (next).
-- **M8** UI and original presets (no Yamaha factory voices).
+- **M7** flash storage (done; above).
+- **M8** UI and original presets (no Yamaha factory voices) (next;
+  docs/M8-PROPOSAL.md).
 - **M9** packaging, and a raw-image boot path in the app.
 
 ### Level 2: real hardware
