@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range aa17918638329b62ad14d6d8c88b14449539cf07..3c276e343f29ee4ae15cc31fd565a3b0169254a0
+OK     e50fb9ea10f3 tools: the audit self-test finds all 30 files; FM1 Open's terms recorded
+EXEMPT 3c276e343f29 (merge) Merge pull request #85 from japes98/spec/housekeeping
+2 commit(s) checked: PASS
+
+exit status 0
