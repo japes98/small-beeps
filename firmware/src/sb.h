@@ -106,6 +106,9 @@ u32 sb_ticks(void);
  * adds one to sb_seconds), the input scan one with each event it queues
  * (docs/DESIGN-NOTES.md, M3). */
 extern volatile u32 sb_work, sb_seconds;
+/* Since M5: a heartbeat (beats) at which the tick adds one to sb_work and
+ * clears this, for the panel's next frame (panel.c); 0 for none. */
+extern volatile u32 sb_wake_at;
 
 /* lcd.c: the panel (HW-27 to HW-32). Rows are whole rows of the frame
  * buffer, sent from it as they are. */

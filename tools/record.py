@@ -126,7 +126,7 @@ CHECKS = [
     {"id": "C-FW-SUITE", "title": "Firmware in fwtest: boot, clock, tick and heartbeat timing, vector table, idle, fault and stray reports, the screen, the panel's keys, encoders, pot and LEDs, the audio output and the test instrument (tests/fw/boot.suite)",
      "reqs": ["R-BOOT-1", "R-BOOT-2", "R-BOOT-3", "R-BOOT-4", "R-BOOT-5", "R-CLK-1",
               "R-IRQ-1", "R-IRQ-2", "R-IRQ-3", "R-IRQ-4",
-              "R-LCD-1", "R-LCD-2", "R-LCD-3", "R-LCD-4", "R-LCD-5",
+              "R-LCD-1", "R-LCD-2", "R-LCD-3", "R-LCD-4", "R-LCD-5", "R-LCD-6",
               "R-KEY-1", "R-KEY-2", "R-KEY-3", "R-ENC-1", "R-ENC-2", "R-POT-1", "R-POT-2",
               "R-LED-1", "R-LED-2", "R-LED-3", "R-INPUT-1", "R-INPUT-2", "R-INPUT-3",
               "R-AUD-1", "R-AUD-2", "R-AUD-3", "R-AUD-4", "R-AUD-5", "R-AUD-6", "R-AUD-7"],
@@ -134,7 +134,7 @@ CHECKS = [
                      "--out", os.path.join(OUT, "fwtest")]},
     # Performance (M0e): size, RAM, stack high-water and speed, gated.
     {"id": "C-PERF", "title": "Firmware size, RAM, stack high-water and instructions per period, within budget and the 3% speed gate",
-     "reqs": ["R-PERF-1", "R-PERF-2", "R-PERF-3"], "cmd": _perf_cmd},
+     "reqs": ["R-PERF-1", "R-PERF-2", "R-PERF-3", "R-LCD-6"], "cmd": _perf_cmd},
     {"id": "C-PERF-PROBES", "title": "Deliberately slower and bigger builds fail the performance gates; a known stack use shows",
      "reqs": ["R-PERF-3", "R-PERF-5"],
      "cmd": lambda: [PY, "-I", "tools/perf.py", "probes", "--build", os.path.join(OUT, "build-a"),

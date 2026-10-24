@@ -5,14 +5,16 @@
  * The live panel screen (M3): every control's state, drawn from the input
  * layer's events, with each button's and key's LED lit while it is held,
  * so the whole panel can be tried by hand. It replaces the test screen at
- * the first event (docs/DESIGN-NOTES.md, M3, "The panel screen"), and
- * each event then redraws only what it changed and sends only those rows.
+ * the first event (docs/DESIGN-NOTES.md, M3, "The panel screen"); after
+ * that only what events changed is redrawn and only those rows are sent,
+ * since M5 in frames, within a drawing budget (below).
  * tools/fw-suite.py checks it against golden images; the layout here and
  * the goldens go together.
  */
 
 #include "sb.h"
 #include "input.h"
+#include "audio.h"
 
 #define BLACK   RGB565(0, 0, 0)
 #define WHITE   RGB565(31, 63, 31)
@@ -135,7 +137,12 @@ static void draw_keys(void)
 {
     u32 k, pass;
 
-    gfx_fill(0, KEYS_Y, SCREEN_W, LOWER_H, BLACK);
+    /* The black around and between the lower keys (since M5 only that,
+     * not the whole strip first: the keys cover the rest). */
+    gfx_fill(0, KEYS_Y, 8, LOWER_H, BLACK);
+    gfx_fill(8 + 14 * 16 - 1, KEYS_Y, SCREEN_W - (8 + 14 * 16 - 1), LOWER_H, BLACK);
+    for (k = 0; k < 15; k++)
+        gfx_fill(8 + 14 * k + 13, KEYS_Y, 1, LOWER_H, BLACK);
     /* Lower keys first, then the raised keys over them. */
     for (pass = 0; pass < 2; pass++) {
         for (k = 0; k < 27; k++) {
@@ -195,8 +202,84 @@ static void draw_all(void)
     screen_beat_all();
 }
 
+/* Since M5 the screen is drawn in frames (docs/DESIGN-NOTES.md, M5, "the
+ * screen's cost"): an event sets its LED at once and marks what it
+ * changed; what is marked is drawn at most once a FRAME_MS, and, item by
+ * item, for at most DRAW_TICKS of time base ticks in any one audio block,
+ * so the screen never takes the time the voices need. What is left waits
+ * for the next block; the tick wakes main when a frame is due
+ * (sb_wake_at). The first event still draws the whole panel at once. */
+#define FRAME_MS   16u
+#define DRAW_TICKS 4352u   /* an eighth of a block: 64 frames of 544 */
+
+#define ITEM_KEYS  (1u << 14)    /* bits 0 to 13: the buttons */
+#define ITEM_KNOB0 15u           /* bits 15 to 22: the knobs in screen order */
+#define ITEM_EVENT (1u << 23)
+
+static u32 dirty, in_frame, frame_beat, draw_block, spent;
+static struct input_event last;
+
+static void draw_item(u32 bit)
+{
+    if (bit < 14) {
+        u32 x, y;
+        draw_button(bit);
+        button_place(bit, &x, &y);
+        lcd_send_rows(y, BUTTON_H);
+    } else if (bit == 14) {
+        draw_keys();
+        lcd_send_rows(KEYS_Y, LOWER_H);
+    } else if (bit < 23) {
+        u32 y = draw_knob(bit - ITEM_KNOB0);
+        lcd_send_rows(y, FONT_H);
+        if (knob_order[bit - ITEM_KNOB0] == INPUT_MASTER)
+            lcd_send_rows(BAR_Y, 6);
+    } else {
+        draw_event(&last);
+        lcd_send_rows(EVENT_Y, FONT_H);
+    }
+}
+
+/* Starts a frame once FRAME_MS have passed since the last began, and
+ * draws what is marked until it is all drawn or this block's drawing
+ * time is spent; otherwise asks the tick to wake main again: for the
+ * frame, or for the rest of it a millisecond on. The time base is read
+ * once before and once after each item, hundreds of instructions apart,
+ * so fwtest never takes it for waiting (docs/HARNESS.md, "Time"). */
+static void draw_frame(void)
+{
+    u32 beats = sb_beacon.beats;
+
+    if (!in_frame) {
+        if (beats - frame_beat < FRAME_MS) {
+            sb_wake_at = frame_beat + FRAME_MS;
+            return;
+        }
+        in_frame = 1;
+        frame_beat = beats;
+    }
+    while (dirty) {
+        u32 bit = 0, t;
+
+        if (sb_audio.blocks != draw_block) {
+            draw_block = sb_audio.blocks;
+            spent = 0;
+        } else if (spent >= DRAW_TICKS) {
+            sb_wake_at = beats + 1;
+            return;
+        }
+        while (!(dirty >> bit & 1))
+            bit++;
+        dirty &= ~(1u << bit);
+        t = sb_now();
+        draw_item(bit);
+        spent += sb_now() - t;
+    }
+    in_frame = 0;
+}
+
 /* Takes every queued event: its LED first (so it changes with the least
- * delay), then the screen. */
+ * delay), then marks what it changed on the screen. */
 void panel_serve(void)
 {
     struct input_event e;
@@ -210,26 +293,22 @@ void panel_serve(void)
             draw_event(&e);
             lcd_send_rows(0, SCREEN_H);
             sb_beacon.screen = SB_SCREEN_PANEL;
+            frame_beat = sb_beacon.beats;
             continue;
         }
         if (e.control < 14) {
-            u32 x, y;
-            draw_button(e.control);
-            button_place(e.control, &x, &y);
-            lcd_send_rows(y, BUTTON_H);
+            dirty |= 1u << e.control;
         } else if (e.control < INPUT_MASTER) {
-            draw_keys();
-            lcd_send_rows(KEYS_Y, LOWER_H);
+            dirty |= ITEM_KEYS;
         } else {
-            u32 i = 0, y;
+            u32 i = 0;
             while (knob_order[i] != e.control)
                 i++;
-            y = draw_knob(i);
-            lcd_send_rows(y, FONT_H);
-            if (e.control == INPUT_MASTER)
-                lcd_send_rows(BAR_Y, 6);
+            dirty |= 1u << (ITEM_KNOB0 + i);
         }
-        draw_event(&e);
-        lcd_send_rows(EVENT_Y, FONT_H);
+        last = e;
+        dirty |= ITEM_EVENT;
     }
+    if (dirty)
+        draw_frame();
 }

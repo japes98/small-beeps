@@ -60,7 +60,7 @@ static volatile u32 bss_probe;
  * tick; and the next whole second. */
 static u32 tb_start, tb_done, tb_last, next_second = 1000;
 
-volatile u32 sb_work, sb_seconds;
+volatile u32 sb_work, sb_seconds, sb_wake_at;
 
 #if defined(SB_COST_SILENT_ENGINE)
 /* The output path's own cost (docs/DESIGN-NOTES.md, M4): an engine that
@@ -143,6 +143,11 @@ void sb_tick(void)
     if (beats >= next_second) {
         next_second += BEATS_PER_SECOND;
         sb_seconds++;
+        sb_work++;
+    }
+    /* The panel's next frame is due (since M5). */
+    if (sb_wake_at && (int)(beats - sb_wake_at) >= 0) {
+        sb_wake_at = 0;
         sb_work++;
     }
 
