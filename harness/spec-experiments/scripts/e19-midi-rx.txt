@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+# E-19: two bytes while the UART is off, six once it is set up (a receive
+# pending after four, a timeout after the last two), then twenty, which
+# wrap the 16-byte ring.
+0.5 midi f8 f8
+3   midi 90 3c 64 80 3c 00
+8   midi 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11 12 13

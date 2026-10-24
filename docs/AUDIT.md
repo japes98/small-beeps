@@ -22,8 +22,9 @@ job flags a pair, only an **auditor** may look (below).
 - **Ours:** the C files under `firmware/` (`.c`, `.h`, and C++ suffixes if
   we ever have any). Assembly (`.S`) and linker scripts (`.ld`) are not
   compared: JPlag's C front end doesn't read them. `vendor/` is not ours
-  and is never compared. A file of ours that JPlag cannot score at all is
-  compared as text instead (below, "Files JPlag cannot score").
+  and is never compared. A file of ours that JPlag cannot score at all, or
+  that it matches with nothing, is compared as text too (below, "Files JPlag
+  cannot score").
 - **Base code:** the vendored JieLi SDK headers
   (`vendor/jieli-sdk/include_lib`), for all our files; and (since SR-4) the
   vendored Plaits (`vendor/plaits/`), only for our files under
@@ -252,6 +253,10 @@ M2 one is: `src/font.c`, our font, is a single constant table whose rows
 are macro calls on string literals, and JPlag's C front end makes 5 tokens
 of its 116 lines. Such a file is not left out:
 
+(Since session midi-in-out, a file JPlag scores but matches with nothing,
+which it leaves out of its index, goes to the text check the same way, and
+the report marks it so; "The second self-test gap" below.)
+
 - the report lists it under "Our files" as **not scorable by JPlag**, with
   JPlag's reason;
 - the **text check** (C-AUDIT-TEXT) compares it with every target file, one
@@ -472,6 +477,33 @@ file not found was `src/font.c`, which JPlag drops as `TOO_SMALL` (above).
 The gate's own checks passed in each of those runs, but `src/font.c` was
 compared with nothing. Those runs stay red in the records; docs/PLAN.md
 lists them.
+
+### The second self-test gap (#61 to the similarity rule)
+
+From the merge of #61 (M4b's Plaits demo) the self-test failed again: "23
+of our 27 files found", then "25 of our 30" from #70 on (session
+midi-in-out, 2026-10-24, found why by running it locally):
+
+- **Four of the demo's files** (`plaits_demo.c`, `plaits_voice.cc`,
+  `sftest.c`, `runtime/softfloat.c`) were matched in full by their copies
+  (JPlag's similarity 1.0), but in pieces: JPlag leaves out what matches
+  the Plaits base code, which splits a verbatim copy's match, so the
+  longest piece stayed under 90% of the file's tokens.
+- **`src/audio.h`** matched nothing, not even its own verbatim copy
+  (state "no match"), and such a file went nowhere: JPlag doesn't cover
+  it, and the text check took only files JPlag could not score.
+
+**The fix:** a file JPlag scored is found by a match covering 90% of its
+tokens, or by a similarity of at least 0.9 with a copy of itself (the
+report now names each pair's target file, so another file's copy doesn't
+count). A file JPlag matched with nothing goes to the text check too, in
+the real audit as well, so every file is covered by JPlag or by the text
+check; the report says which, and why. The self-test then finds 30 of 30
+(26 by JPlag, 4 by the text check). On the real audit at `1537391`, five
+of our files matched nothing (three headers, `src/start.c`, the demo's
+`plaits_voice.h`); they are now compared as text too. The gate and the
+text check passed in every one of these runs; the runs stay red in the
+records, and docs/PLAN.md lists them.
 
 ## When the audit fails
 

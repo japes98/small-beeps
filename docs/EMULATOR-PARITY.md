@@ -34,6 +34,7 @@ them, against upstream with fwtest's 0001 and 0002.
 | 0006 | none | The 4-byte push and pop of any register list run, not only lists from r0 | gap | yes (0.4.0) | no: to apply (same note) |
 | 0007 | 0004 (C) | Peripheral addresses looked up before the memories | speed only | yes (0.4.0) | yes |
 | 0008 | 0005 (D) | Code blocks in RAM found current by a count of writes to code, on every build | speed only | yes (0.4.0) | yes |
+| 0009 | none | The MIDI output: the UART's transmit side sends bytes at the wire's pace and keeps them with their times, and its pending flag rises when the last has gone (it used to finish at once and send nothing) | model | yes (0.5.0) | no: to apply, with the bytes sent to CoreMIDI (harness/upstream/fm1-emu-midi-out.md) |
 | none | 0006 (E) | Boot a raw image | the app's loader | no: fwtest has its own (in `harness/`, docs/HARNESS.md "The raw image") | yes |
 | none | not a patch | Two pattern guards rewritten so the crates build on an older Rust | build | no: fwtest builds on Rust 1.99 | yes |
 
@@ -71,6 +72,23 @@ three need nothing newer than the Rust the app builds with.
   spec experiments and the harness's own suite were run on fwtest built
   with and without 0007 and 0008: all 284 output files are byte for byte
   the same.
+- **0009 (the MIDI output, session midi-in-out).** The transmit side's
+  registers from the SDK's register map and FM-1-RE's MIDI document; its
+  timing from the MIDI wire format. A harness test and a suite case run a
+  DMA, a single byte and one queued behind a transfer, with the UART off
+  and on, and check every byte's time, the pending interrupt and the
+  decoded messages. Without the patch there is nothing to capture, and
+  the same image's interrupt record shows the difference: on 0.4.0 its
+  handler ran twice, at once on each transfer (0 and 4.0 ms; a single
+  byte raised nothing), on 0.5.0 three times, as each transfer's last
+  byte ended (1.600, 3.320 and 5.281 ms); the suite case's golden file
+  holds that record. The spec experiment E-21 does the same against the
+  checkout's fwtest (C-SPEC-EXPERIMENTS). The
+  input side and every other output are unchanged: the harness suite and
+  the spec experiments match their earlier golden files, and the firmware
+  suite (at `1537391`) gives the same 176 files as on 0.4.0 but for the
+  version each `result.json` records and its new `midi_out_bytes_dropped`
+  (0).
 - **The firmware.** The same comparison between fwtest 0.3.0's emulator
   and 0.4.0's (0004 to 0008): no output of the three suites changed.
 

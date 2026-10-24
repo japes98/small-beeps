@@ -124,6 +124,34 @@ fn inputs_from_a_script() {
     assert_eq!(output(&r, "ram-01c00200-8-end.bin"), &[0x90, 0x3c, 0x64, 0x80, 0x3c, 0, 0, 0]);
 }
 
+/// HARNESS.md ("MIDI output"): UART1's transmit side. Bytes from a DMA or a
+/// BUF write go out one per 320 us, after any still going; nothing with the
+/// UART off; the transmit pending (and its interrupt) when the last has
+/// gone. The capture: each byte with its time, and the messages.
+#[test]
+fn transmits_midi() {
+    let mut o = opts(8);
+    o.midi_out = true;
+    o.ram = vec![(OUT0, 0x24, When::End)];
+    let r = run(&image("midiout"), &o).unwrap();
+    assert_eq!(r.outcome, Outcome::Completed);
+    assert_eq!(r.midi_out_dropped, 1, "the BUF write with the UART off");
+    let csv = String::from_utf8(output(&r, "midi-out.csv").to_vec()).unwrap();
+    assert_eq!(csv, "ms,byte\n0.320,90\n0.640,3c\n0.960,64\n1.280,3e\n1.600,50\n3.320,f8\n\
+4.321,80\n4.641,3c\n4.961,00\n5.281,fe\n");
+    let txt = String::from_utf8(output(&r, "midi-out.txt").to_vec()).unwrap();
+    assert_eq!(txt, "0.960 note-on ch 1 key 60 vel 100\n1.600 note-on ch 1 key 62 vel 80 (running status)\n\
+3.320 clock\n4.961 note-off ch 1 key 60 vel 0\n5.281 active-sensing\n");
+    let w = words(output(&r, "ram-01c00100-24-end.bin"));
+    assert_eq!((w[0], w[1]), (0x600d_d00e, 3), "one transmit interrupt per transfer, the queued byte's included");
+    // entered as the last byte's stop bit ends (TIMER4: 24 counts a microsecond), pending set
+    for (k, us) in [1_600u32, 3_320, 5_281].into_iter().enumerate() {
+        let t = w[2 + 2 * k];
+        assert!(t >= us * 24 && t < us * 24 + 24 * 2, "entry {k} at {t}, want about {us} us");
+        assert_eq!(w[3 + 2 * k], 0x8005);
+    }
+}
+
 /// R-HARN-3: the LCD as PNG.
 #[test]
 fn lcd_capture() {

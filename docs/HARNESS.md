@@ -213,6 +213,7 @@ fwtest version
 | `--wav` | Save the audio output (`audio.wav`). |
 | `--ipb` | Save instructions per audio block (`ipb.csv`). |
 | `--console` | Save the bytes written to the chip's debug message register (`console.txt`; `HARDWARE-SPEC.md` names it). |
+| `--midi-out` | Save the MIDI output: the bytes with their times (`midi-out.csv`) and the messages they make (`midi-out.txt`). See "MIDI output". |
 | `--watchdog ADDR:MS` | A hang if the 32-bit word at RAM address ADDR stays the same for more than MS ms. |
 | `--halt-ok` | A halt counts as success (exit 0). |
 | `--golden DIR` | Compare the outputs with the golden files in DIR (below). |
@@ -243,7 +244,7 @@ the order written.
 | `key N tap [HOLD]` | Pressed, then released HOLD ms later (default 50). |
 | `enc N +C`, `enc N -C` | Encoder N (0 to 6) turned C detents (1 to 1000); `+` is clockwise. Each detent is four contact changes, 2 ms apart, the first at the event's time. |
 | `pot V` | The pot's reading becomes V (0 to 1023). It reads 900 until a script sets it. |
-| `midi HH ...` | Bytes (two hex digits each) arrive at the MIDI input one after another, at the wire's pace: one byte every 320 µs, the first 320 µs after the event's time. |
+| `midi HH ...` | Bytes (two hex digits each) arrive at the MIDI input one after another, at the wire's pace: one byte every 320 µs, the first 320 µs after the event's time. The MIDI input is the FM-1's MIDI IN jack, received by UART1 (`HARDWARE-SPEC.md`, HW-67, HW-71); fwtest has no USB or Bluetooth MIDI. |
 
 Key, LED and encoder numbers are fwtest's own. `HARDWARE-SPEC.md` maps them
 to the panel and to the key matrix.
@@ -262,21 +263,65 @@ All in `--out`. A run writes only what it was asked for, plus
 | `audio.wav` | The audio output: 16-bit PCM, stereo, the header says 44 100 Hz. Every sample the output played, in order. How the firmware feeds the output, and its exact rate: `HARDWARE-SPEC.md`. |
 | `ipb.csv` | Header `block,end_ms,core0,core1`, then one row per audio block (each time the output finished one half of its buffer): its number, the time it finished, and the instructions core 0 and core 1 executed since the previous block (the first row: since the start). Core 0's count is exact; core 1's is counted at a granularity of 1024 core-0 instructions. |
 | `console.txt` | The debug console bytes, as written. |
+| `midi-out.csv` | Header `ms,byte`, then one row per byte the MIDI output sent: the time its stop bit ended (ms, three decimals) and the byte as two hex digits. Empty but for the header if nothing was sent. |
+| `midi-out.txt` | The same bytes as MIDI messages, one a line: the time of the message's last byte, then the message ("MIDI output"). |
 | `result.json` | What happened (below). |
 | `junit.xml` | JUnit XML: a test case `run` (fails on a fault or hang, and on a halt without `--halt-ok`), and one `golden NAME` per golden file. |
 
 `result.json` holds: `fwtest` (version and the emulator build it carries),
 `image` (file name, size, SHA-256), `script_sha256`, `run` (`outcome`,
 `detail`, `emulated_ms`, `instructions` per core, `midi_bytes_dropped`,
+`midi_out_bytes_dropped`,
 `unmodelled_accesses`, and every output's name, size and SHA-256), `golden`
 (each file's `match` or `mismatch` and why), and `exit_code`.
 
 - `midi_bytes_dropped`: bytes that arrived while the image had no MIDI
   receiver set up, or more than about a second's worth waiting.
+  `HARDWARE-SPEC.md`, HW-71, says what counts as set up: the receiver
+  takes bytes only by DMA into a ring, so a byte that arrives without one
+  is dropped and raises nothing. The bytes' pace doesn't depend on the
+  baud rate, the UART clock or the pins, which fwtest ignores.
+- `midi_out_bytes_dropped`: bytes the image wrote to the MIDI output
+  while its UART was off (`HARDWARE-SPEC.md`, HW-74); they were not sent.
 - `unmodelled_accesses`: addresses the image read or wrote that fwtest does
   not model (reads give 0, writes are dropped), with counts, up to 256.
   Usually a sign the image touched something unexpected; if the hardware
   has something there, ask for it in a spec request.
+
+## MIDI output
+
+fwtest models the MIDI OUT of the FM-1's sibling, the SMK-37: the transmit
+side of the UART that receives the MIDI input (`HARDWARE-SPEC.md`, HW-72
+to HW-74, says which registers). A real FM-1 has no MIDI OUT jack, so on
+the FM-1 itself these bytes go nowhere; the SMK-37 sends them through its
+3.5 mm jack.
+
+- **What goes out.** Writing the transmit count sends that many bytes from
+  RAM, read at the moment of the write; writing the data register sends
+  one byte. Each byte takes 320 µs on the wire (31 250 baud, whatever the
+  baud and clock registers hold). A transfer started while another is
+  still going waits behind it, byte for byte.
+- **When it's done.** When the last byte has gone, the transmit pending
+  flag is set and, if its interrupt is enabled, the UART's interrupt
+  source is raised (HW-74). With the UART off nothing is sent:
+  `result.json` counts the bytes in `midi_out_bytes_dropped`.
+- **The capture** (`--midi-out`). `midi-out.csv` holds every byte sent,
+  in order, with the time its stop bit ended: exact, at the emulated
+  clock, whether core 0 is busy or waiting. `midi-out.txt` decodes them
+  by the MIDI 1.0 rules, one message a line, at the time of its last byte:
+  `note-on ch 1 key 60 vel 100`, `note-off`, `poly-pressure`,
+  `control-change ch C ctrl N value V`, `program-change`,
+  `channel-pressure`, `pitch-bend ch C value V` (0 to 16383, 8192 at
+  rest), `sysex f0 ... f7 (N bytes)`, the system common and real-time
+  messages by name (`clock`, `start`, `active-sensing`, ...). Channels
+  count from 1. A message sent without its status byte ends
+  `(running status)`; real-time bytes inside another message come out
+  where they were sent. What breaks the rules is named: `stray-data XX`
+  (a data byte with no status), `sysex-unterminated ...`, `incomplete
+  ...` (cut short by a status byte, or at the end).
+- **Golden files.** Both can be golden files, compared byte for byte (the
+  times are exact, so no tolerance is needed; `rel-percent` would also let
+  a byte written in decimal digits differ, so don't use it here).
 
 ## Outcomes and exit codes
 
@@ -462,6 +507,9 @@ differ, that is a bug in fwtest: report it.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.5.0: the MIDI output: the UART's transmit side sends at the wire's
+  pace and sets its pending flag when done (it used to finish at once and
+  send nothing); `--midi-out`, `midi_out_bytes_dropped` ("MIDI output").
 - 0.4.0: the rotate by a register and the 4-byte push and pop of any
   register list run; a dual-issue pair's head among the 4-byte ALU forms
   holds its result until after the pair ("Instructions"). The emulator is

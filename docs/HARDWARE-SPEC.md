@@ -20,7 +20,9 @@ and Q-14. Session SR-3 (spec side, 2026-10-23) added section 12 for SR-3,
 answered in part (open: Q-6, Q-15), and section 13, which confirms HW-41's
 fwtest part for M3. Session SR-4-6 (spec side, 2026-10-23) added section 14
 for SR-5 and SR-6, answered in part (open: Q-16 to Q-18). Session SR-7
-(spec side, 2026-10-24) added section 15 for SR-7 (open: Q-19).
+(spec side, 2026-10-24) added section 15 for SR-7 (open: Q-19). Session
+midi-in-out (spec side, 2026-10-24) added section 16 for SR-8, answered in
+part (open: Q-12), and section 17 for MIDI output (open: Q-20).
 
 ## How to read it
 
@@ -53,9 +55,10 @@ least significant. Register names are the JieLi SDK's.
 | Key | Source |
 |-----|--------|
 | SDK | JieLi AC79 SDK, `Jieli-Tech/fw-AC79_AIoT_SDK` (Gitee), commit `5fa84a9b2f723a5e9337ad79dc2ad741fc98fe2d`, Apache-2.0 (PROVENANCE P-2, P-10). `WL82.h` and `csfr.h` are vendored in `vendor/jieli-sdk/include_lib/driver/cpu/wl82/asm/`; the other files cited are at the same commit and path prefix. Line numbers refer to that commit. |
-| RE | AL-255/FM-1-RE (GitHub, WTFPL), commit `ec832f281ca165a7d5e0722985f3acb1465046d5`: its hardware and boot documents `docs/reversing/01-hardware-map.md`, `docs/io/01-boot.md`, `docs/io/03-audio-dac.md`, `docs/io/08-display.md`, `docs/io/09-storage.md` (PROVENANCE P-9). Only their hardware facts are used here. |
+| RE | AL-255/FM-1-RE (GitHub, WTFPL), commit `ec832f281ca165a7d5e0722985f3acb1465046d5`: its hardware and boot documents `docs/reversing/01-hardware-map.md`, `docs/io/01-boot.md`, `docs/io/03-audio-dac.md`, `docs/io/08-display.md`, `docs/io/09-storage.md` (PROVENANCE P-9); since SR-8 also `docs/io/05-midi.md`, `docs/io/06-usb.md` and `docs/reversing/04-subsystems.md` (PROVENANCE P-41). Only their hardware facts are used here. |
 | DS | Sitronix ST7789V datasheet, version 1.3 (2014-03), 316 pages, from `https://www.newhavendisplay.com/appnotes/datasheets/LCDs/ST7789V.pdf`, SHA-256 `8ecf0e43…5d04ca1` (PROVENANCE P-11). Page numbers as printed. |
 | PANEL | The FM-1's printed panel labels, from two sources that agree: the owner's screenshot of the F-Emulator app's panel with its default labels, `docs/sources/panel-app-default-labels.png` (secondary: the app's drawing of the panel); and M-VAVE's product photo of the FM-1, `https://www.m-vave.com/images/products/fm-1.webp` on `https://www.m-vave.com/product.html?id=fm-1`, accessed 2026-10-22, SHA-256 `e610a746…df14b95`, not copied into this repository (PROVENANCE P-12). Only the printed labels are taken from them. The owner chose these two sources. |
+| MAN | M-VAVE's user manuals: the FM-1's, the English part (pages 1-12) of `https://m.media-amazon.com/images/I/A1WOydif9HL.pdf`, SHA-256 `69bfea10…8b715da`, accessed 2026-10-24 (PROVENANCE P-41); the SMK-37 Pro's, as `https://www.manualslib.com/manual/4132288/M-Vave-Smk-37-Pro.html` shows it, accessed 2026-10-24 (PROVENANCE P-42). Neither copied into this repository. Only what they say about the connections is used. |
 | TC | The pinned JieLi toolchain (PROVENANCE P-1, P-36): its assembler and disassembler (clang's integrated assembler and `objdump`), and the code its compiler emits for C whose meaning is known. It is the vendor's compiler for this CPU, so how its code uses an instruction says what the instruction does; it carries no documents. |
 | HARNESS | docs/HARNESS.md, fwtest's manual. It is the spec side's own description of fwtest, so it never confirms an entry on its own. |
 | E-n | A spec-side black-box experiment: a small image run in fwtest (the pinned image, `config/fwtest-image`). Its result is stated in the entry. C-SPEC-EXPERIMENTS re-runs every one in CI, so a cited result that stops holding fails CI. |
@@ -1155,6 +1158,190 @@ requests.
 - Standing: confirmed (E-18)
 - Needed by: M5 (SR-7)
 
+## 16. MIDI input (SR-8)
+
+### HW-67: The FM-1's MIDI inputs, and the one fwtest feeds
+- Fact: The FM-1 takes MIDI in three ways, all active at once: a 3.5 mm
+  MIDI IN jack carrying serial MIDI at 31 250 baud, USB MIDI (the FM-1 is a
+  class-compliant USB device with a MIDI and an audio interface), and MIDI
+  over Bluetooth LE. Its manual lists no MIDI OUT jack. On the chip, the
+  jack's serial MIDI is received by UART1 (`JL_UART1`, HW-68), through its
+  receive DMA. fwtest models only the jack:
+  a script's `midi` event (HARNESS, "Input scripts") delivers its bytes to
+  UART1's receiver, and fwtest has no USB or Bluetooth MIDI. Which pin the
+  jack reaches, and how the TRS socket is wired (type A or B), the sources
+  don't say (Q-12).
+- Sources: MAN (the FM-1's manual, English part, p. 10, "MIDI
+  Connectivity": the three interfaces, the jack's 31 250 baud; "What the
+  FM-1 sends via MIDI"); RE `docs/io/05-midi.md` §1 and §2 (the three
+  transports; UART MIDI on the UART at `0x00012100`, received by DMA),
+  `docs/io/06-usb.md` §1 (a USB composite device, audio and MIDI),
+  `docs/reversing/01-hardware-map.md` (MIDI I/O: USB and UART MIDI); SDK
+  `WL82.h` lines 569-591 (UART1's base); E-19 (fwtest's `midi` bytes reach
+  UART1's ring).
+- Standing: confirmed (MAN, RE, SDK, E-19)
+- Needed by: M6a (SR-8)
+
+### HW-68: The UARTs' registers, sources, pins and clocks
+- Fact: The chip has three UARTs, `JL_UART0`, `JL_UART1` and `JL_UART2`,
+  at `0x00012000`, `0x00012100` and `0x00012200`. Each has the words, from
+  its base: `CON0` +0x00, `CON1` +0x04, `BAUD` +0x08, `BUF` +0x0C, `OTCNT`
+  +0x10, `TXADR` +0x14, `TXCNT` +0x18, `RXSADR` +0x1C, `RXEADR` +0x20,
+  `RXCNT` +0x24, `HRXCNT` +0x28. `CON0`, `CON1`, `BAUD`, `TXCNT` and
+  `HRXCNT` are 16 bits and `BUF` 8 bits, each in the low part of its word;
+  `BAUD` and `TXCNT` are write-only and `HRXCNT` read-only. Their interrupt
+  sources are 19, 20 and 21. A UART's transmit and receive pins are either
+  one of its fixed pin pairs, given as transmit then receive (UART1: PH6 and
+  PH7, PC3 and PC4, PB3 and PB4, or the USB pins), or any pin, through an
+  output and an input channel of the port map (`JL_IOMAP`). The UART clock
+  is the low-speed bus clock, the crystal oscillator or the PLL's 48 MHz
+  (`CLK_CON1` bits 10-11, HW-53). The SDK's driver receives into a circular
+  buffer by DMA, with an interrupt after a given number of bytes and an
+  idle timeout counted in clocks, and each of the transmit, receive and
+  timeout interrupts can be left off. The SDK gives no bit meanings for
+  `CON0`, `CON1` or `BAUD` (its UART driver is a prebuilt library).
+- Sources: SDK `WL82.h` lines 12-16 (the bases, `map_adr`) and 569-591
+  (`JL_UART_TypeDef`, the three bases); SDK
+  `include_lib/driver/cpu/wl82/asm/hwi.h` lines 59-61 (sources 19 to 21);
+  SDK `include_lib/driver/cpu/wl82/asm/uart.h` (three UARTs, the pin pairs,
+  the input and output channels); SDK `include_lib/driver/device/uart.h`
+  (the clock choices, the circular buffer, the byte count and idle timeout,
+  the interrupts that can be left off).
+- Standing: confirmed (SDK)
+- Needed by: M6a (SR-8)
+
+### HW-69: UART1's receive flags, their acknowledge and the count latch
+- Fact: In UART1's `CON0`, read: bit 14 is set when the receive DMA has
+  taken the set number of bytes (receive pending), bit 11 when the line has
+  been idle for the set time after a byte (timeout pending). Written as 1:
+  bit 12 clears the receive pending, bit 10 the timeout pending, bit 13 the
+  transmit pending; bit 7 latches into `HRXCNT` how many bytes the receive
+  DMA has written since the previous latch, and `HRXCNT` keeps that count
+  until the next latch. FM-1's own firmware receives MIDI from the jack
+  this way, by DMA, on source 20.
+- Sources: RE `docs/io/05-midi.md` §2.1 (the UART's flags at `0x00012100`:
+  `0x4000` receive pending, `0x800` timeout; acknowledged with `0x80`,
+  `0x1000`, `0x400`, `0x2000`; the count at `0x00012128` read in the
+  handler); E-19 (the same bits in fwtest).
+- Standing: confirmed (RE, E-19)
+- Needed by: M6a (SR-8)
+
+### HW-70: UART1's receive set-up bits, the ring, the count and the timeout
+- Fact: In UART1's `CON0`: bit 0 turns the UART on; bit 2 enables the
+  transmit interrupt, bit 3 the receive interrupt (bit 14, HW-69), bit 5
+  the timeout interrupt (bit 11); bit 6 turns the receive DMA on. The DMA
+  writes each byte at the next address of the ring from `RXSADR` up to,
+  not including, `RXEADR`, and wraps to `RXSADR`; writing `RXSADR` starts
+  it again at the ring's start. `RXCNT` is the number of bytes since the
+  last latch that sets the receive pending (0: never). `OTCNT` is the idle
+  time, in UART clocks (48 MHz from the PLL), after a byte that sets the
+  timeout pending. The sources give no receive by `BUF` a byte at a time,
+  no error flags (framing, overrun) and no `BAUD` formula (Q-12).
+- Sources: the emulator model; SDK `include_lib/driver/device/uart.h`
+  (that the receive is a DMA ring with a byte count and an idle timeout,
+  not the bits); E-19, E-20 (fwtest behaves so).
+- Standing: emulator-only
+- Needed by: M6a (SR-8)
+
+### HW-71: UART1's receive in fwtest
+- Fact: In fwtest a `midi` byte arrives 320 µs after the one before it,
+  whatever `BAUD`, `CON1`, `CLK_CON1` and the pins are set to: none needs
+  setting. fwtest counts as "a MIDI receiver set up" (HARNESS, `result.json`'s
+  `midi_bytes_dropped`) `CON0` with bits 0 and 6 set and `RXEADR` −
+  `RXSADR` from 1 to 65 536. A byte arriving otherwise is dropped and
+  counted: no interrupt, nothing in RAM, and `BUF` reads 0; fwtest has no
+  receive through `BUF`. So does a byte with more than 3 125 waiting (about
+  a second). Received bytes go into the ring as HW-70 says: a byte that
+  arrives before the firmware has read the one before is kept; past the
+  ring's size the oldest are overwritten, with no flag in `CON0`. The
+  receive pending is set when the bytes since the last latch reach `RXCNT`,
+  so a handler that clears it without latching gets it again on every
+  later byte. The timeout comes `OTCNT` × 5 cycles (at 240 MHz) after the
+  last byte, and at least one byte time (320 µs). Source 20 then interrupts
+  as any source does (HW-20, HW-22). E-19: with `RXCNT` 4 and `OTCNT`
+  48 000, six bytes from 3 ms give a receive pending at 4.28 ms with
+  `HRXCNT` 4, and a timeout at 5.92 ms with `HRXCNT` 2.
+- Sources: E-19, E-20; HARNESS ("Input scripts", "Outputs").
+- Standing: confirmed (E-19, E-20)
+- Needed by: M6a (SR-8)
+
+## 17. MIDI output (M6b)
+
+### HW-72: The SMK-37's MIDI OUT, and the FM-1's
+- Fact: M-VAVE's SMK-37 Pro, the FM-1's sibling keyboard, has a 3.5 mm
+  MIDI OUT jack on its rear panel. It reaches an external device's MIDI IN
+  through a 3.5 mm-to-MIDI adapter, so it carries serial MIDI: the MIDI 1.0
+  wire format, a current loop at 31 250 baud, each byte one start bit,
+  eight data bits from the least significant, one stop bit, no parity. It
+  also sends MIDI over USB (a class-compliant device) and Bluetooth LE. So
+  its MIDI OUT is a UART's transmit side, not USB or Bluetooth. The FM-1
+  has no MIDI OUT jack (HW-67). Which UART and pin drive the SMK-37's jack,
+  and how its TRS socket is wired (type A or B), the sources don't say
+  (Q-20). Whether the SMK-37 has the FM-1's chip, the allowed sources don't
+  say either: the emulator runs the SMK-37's own firmware on the FM-1's
+  chip with a different panel, which is the emulator's view only.
+- Sources: MAN (the SMK-37 Pro's manual, English part p. 3, "MIDI OUT":
+  a 3.5 mm to MIDI adapter to an external device's MIDI In; Chinese part
+  p. 15, USB MIDI, class-compliant; p. 16, Bluetooth; p. 17, the rear
+  panel's MIDI output port); the MIDI 1.0 specification (the wire format);
+  the emulator model (the SMK-37 board).
+- Standing: confirmed (MAN)
+- Needed by: M6b (MIDI out)
+
+### HW-73: The UARTs' transmit side, and UART1's on the FM-1
+- Fact: Each UART (HW-68) transmits as well as receives, the two sides
+  independent: `BUF` for a byte at a time, and a transmit DMA from RAM,
+  `TXADR` the start address and `TXCNT` (write-only) the number of bytes,
+  written last. The SDK's example keeps a DMA transmit buffer 4-byte
+  aligned. The SDK's own byte-at-a-time output, on UART2, sends only while
+  `CON0` bit 0 (the UART on) is set: it clears the transmit pending by
+  writing `CON0` bit 13, writes the byte to `BUF`, and waits until `CON0`
+  bit 15 (transmit pending) is set, which means the byte has gone. On the
+  FM-1, FM-1's own firmware sends MIDI bytes through UART1's
+  transmit DMA (`TXADR` then `TXCNT`), the UART that receives the MIDI IN
+  jack, although the FM-1 has no MIDI OUT jack. So a MIDI output on UART1
+  shares the input's UART, its baud rate and its clock. UART1's transmit
+  pin is one of PH6, PC3, PB3 or a USB pin in its fixed pairs, or any pin
+  through an output channel of `JL_IOMAP` (HW-68); which, if any, the
+  FM-1's board connects, the sources don't say (Q-20).
+- Sources: SDK `WL82.h` lines 569-591 (`TXADR`, `TXCNT`, `BUF`); SDK
+  `include_lib/driver/device/uart.h` (transmit by DMA, the transmit
+  interrupt that can be left off, the transmit pin); SDK
+  `cpu/wl82/debug.c` lines 390-404 (`CON0` bits 0, 13 and 15, a byte by
+  `BUF`); SDK
+  `apps/common/example/peripheral/uart/uart_test.c` (the DMA transmit
+  buffer 4-byte aligned); SDK `include_lib/driver/cpu/wl82/asm/uart.h` (the
+  pin pairs, transmit first); RE `docs/io/05-midi.md` §1 and §2.1 (FM-1's
+  firmware writes UART1's transmit address and count to send MIDI; the
+  transmit pending acknowledged with `0x2000`).
+- Standing: confirmed (SDK, RE)
+- Needed by: M6b (MIDI out)
+
+### HW-74: UART1's transmit in fwtest, and on a real FM-1
+- Fact: Since fwtest 0.5.0, UART1 transmits: writing `TXCNT` sends that
+  many bytes from `TXADR` (fwtest reads them from RAM at the write), and
+  writing `BUF` sends one byte. Bytes go out one every 320 µs (31 250
+  baud, whatever `BAUD`, `CON1`, `CLK_CON1` and the pins say), each after
+  any still going, so a `BUF` byte written during a transfer goes after
+  it. When the last byte has gone, `CON0` bit 15 (transmit pending) is set,
+  and source 20 is raised if `CON0` bit 2 is set; writing bit 13 clears it
+  (HW-69). With `CON0` bit 0 clear nothing is sent, and the bytes are
+  counted in `result.json`'s `midi_out_bytes_dropped`. `--midi-out` saves
+  every byte sent with the time its stop bit ended, and the MIDI messages
+  they make (HARNESS, "MIDI output"). Before 0.5.0 a `TXCNT` write set the
+  pending at once and sent nothing. On a real FM-1 these bytes reach no
+  socket: it has no MIDI OUT jack (HW-67), and which pin, if any, its
+  board gives UART1's transmit side is open (Q-20). `CON0` bits 0, 13 and
+  15 and a byte by `BUF` behave as the SDK's own output relies on (HW-73);
+  the interrupt enable (bit 2) and the DMA's pace are the emulator's
+  (HW-70). The SMK-37's MIDI OUT is a UART's transmit side (HW-72), which
+  this models for the FM-1's chip.
+- Sources: E-21 (the timing, the order, the pending and its interrupt,
+  nothing sent with the UART off); HARNESS ("MIDI output"); the emulator
+  model with vendor patch 0009.
+- Standing: confirmed (E-21)
+- Needed by: M6b (MIDI out)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -1216,8 +1403,21 @@ spec request can turn one into a fact.
   the loader passes in r0, and whether a raw image can be started on real
   hardware without M-VAVE's loader (PLAN.md, M9 risk), and whether such an
   image can release core 1 as HW-9 says.
-- **Q-12. MIDI input.** UART1 and the MIDI jack are not covered here (M6
-  will ask).
+- **Q-12. MIDI input.** Since SR-8, the jack's UART (UART1), its
+  registers, source and clock choices, its receive flags, acknowledge and
+  count latch, and fwtest's receiver are known (HW-67 to HW-71); still open
+  for the chip: which pin the jack reaches, and its port set-up (fixed pin
+  pair or an input channel of `JL_IOMAP`; direction, pull-up); how the TRS
+  socket is wired (type A or B); `CON1`'s bits; how `BAUD` sets the rate,
+  so its value for 31 250 baud from each UART clock; whether the receiver
+  can be used without the DMA, a byte at a time from `BUF` with an
+  interrupt per byte, and which bits that takes; whether there are framing
+  or overrun flags and how they clear; whether `RXEADR` is the ring's last
+  byte or one past it; what the DMA does when the ring overflows; which
+  clock `OTCNT` counts when the UART clock isn't the PLL's 48 MHz. The SDK
+  at the pinned commit gives none of them (its UART driver is a prebuilt
+  library). Settled by a datasheet, a probe on real hardware, or a source
+  the owner allows (another JieLi SDK whose UART driver is open).
 - **Q-13. The timer acknowledge on the chip.** Whether writing a TIMER0-3
   `CON` to acknowledge its interrupt restarts the count, as it does in
   fwtest (HW-48), or the count runs on and the period stays `PRD` counts.
@@ -1268,3 +1468,14 @@ spec request can turn one into a fact.
   in its list, and what an empty list does (HW-66). The toolchain's
   compiler was not seen to emit them. Settled by a probe on real
   hardware.
+- **Q-20. MIDI output on the chip.** Which UART and pin drive the
+  SMK-37's MIDI OUT jack, and its port set-up (fixed pin pair or an output
+  channel of `JL_IOMAP`; drive); how its TRS socket is wired (type A or B);
+  whether the SMK-37 has the FM-1's chip; whether the FM-1's board brings
+  UART1's transmit pin anywhere; which `CON0` bit enables the transmit
+  interrupt; whether, after a DMA, the pending means the transfer has been
+  read from RAM or the last stop bit has left the pin; whether the
+  transmit DMA needs a 4-byte aligned address or length; what writing
+  `TXCNT` does while a transfer is still going; how `BUF` and the DMA mix.
+  Settled by a datasheet or a probe on real hardware (an SMK-37 and an
+  FM-1).

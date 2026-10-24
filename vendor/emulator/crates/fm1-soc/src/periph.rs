@@ -29,7 +29,11 @@
 //!   DMA, written bit 7 latches the bytes received since the last latch into HRXCNT (+0x28),
 //!   written bits 10/12/13 clear the timeout / RX / TX pendings (bits 11/14/15). RX pending =
 //!   RXCNT bytes since the last latch, timeout = OTCNT UART clocks (48 MHz) of silence after a
-//!   byte; IRQ 20. A TX DMA (TXCNT written) finishes at once: no TX pin on the board;
+//!   byte; IRQ 20. The transmit side (MIDI out: the SMK-37's TRS jack; the FM-1 has none): a
+//!   TX DMA (TXCNT written: that many bytes from TXADR) or a BUF write puts bytes on the wire, one
+//!   per byte time, after any still going; the TX pending (bit 15) rises when the last has gone.
+//!   With the UART off (CON0 bit 0) nothing is sent. Every byte sent is kept with its time
+//!   until the runner takes it;
 //! * the key/encoder matrix: 11 columns from two 74HC595s (PA4 SER, PA3
 //!   SRCLK, PA1 RCLK, MSB first, a low bit selects the column), rows PA0,
 //!   PA5-PA8, PB7 with pull-ups (low = closed).
@@ -80,6 +84,13 @@ struct Uart {
     ot_next: u64,
     /// Bytes dropped: arrived with the UART off or without a ring, or past the queue's cap.
     dropped: u64,
+    /// Bytes waiting to go out, the cycle the one on the wire has gone, and every byte sent
+    /// (the cycle its stop bit ended, the byte).
+    tx_q: VecDeque<u8>,
+    tx_next: u64,
+    sent: Vec<(u64, u8)>,
+    /// Bytes not sent: written for transmit with the UART off.
+    tx_dropped: u64,
 }
 
 /// The JL_TIMER prescaler table: CON bits 4-7 index it (the stock firmware's own copy at
@@ -291,7 +302,7 @@ impl Default for Periph {
             spi2_pending: false,
             spi2_next: u64::MAX,
             tmr: [Tmr { next: u64::MAX, ..Default::default() }; 4],
-            uart: Uart { next: u64::MAX, ot_next: u64::MAX, ..Default::default() },
+            uart: Uart { next: u64::MAX, ot_next: u64::MAX, tx_next: u64::MAX, ..Default::default() },
             uart_irq: false,
             sr_shift: 0xffff,
             sr_latched: 0xffff,
@@ -371,7 +382,7 @@ impl Periph {
     /// The next cycle at which something timed happens.
     fn next_event(&self) -> u64 {
         let mut n = self.t5_next.min(self.alnk_next).min(self.tick_next).min(self.spi2_next).min(self.adc_next).min(self.spi1_irq_at);
-        n = n.min(self.uart.next).min(self.uart.ot_next);
+        n = n.min(self.uart.next).min(self.uart.ot_next).min(self.uart.tx_next);
         for t in &self.tmr {
             n = n.min(t.next);
         }
@@ -452,6 +463,9 @@ impl Periph {
         }
         if self.cycles >= self.uart.next {
             due.uart_rx = self.uart_receive();
+        }
+        while self.cycles >= self.uart.tx_next {
+            self.uart_sent();
         }
         if self.cycles >= self.uart.ot_next {
             self.uart.ot_next = u64::MAX;
@@ -554,6 +568,49 @@ impl Periph {
     fn uart_update(&mut self) {
         let u = &self.uart;
         self.uart_irq = (u.con0 & 0x08 != 0 && u.rpnd) || (u.con0 & 0x20 != 0 && u.otpnd) || (u.con0 & 0x04 != 0 && u.tpnd);
+    }
+
+    /// Bytes for UART1's transmitter (a TX DMA's or a BUF write's): they go out after any still
+    /// going, one per byte time. With the UART off they are not sent.
+    pub fn uart_transmit(&mut self, bytes: &[u8]) {
+        if self.uart.con0 & 1 == 0 {
+            self.uart.tx_dropped += bytes.len() as u64;
+            return;
+        }
+        if bytes.is_empty() {
+            return;
+        }
+        if self.uart.tx_q.is_empty() && self.uart.tx_next == u64::MAX {
+            self.uart.tx_next = self.cycles + self.midi_byte_time();
+        }
+        self.uart.tx_q.extend(bytes.iter().copied());
+        self.next_due = 0;
+    }
+
+    /// The byte on the wire has gone: keep it; start the next, or raise the TX pending.
+    fn uart_sent(&mut self) {
+        let at = self.uart.tx_next;
+        if let Some(b) = self.uart.tx_q.pop_front() {
+            self.uart.sent.push((at, b));
+        }
+        if self.uart.tx_q.is_empty() {
+            self.uart.tx_next = u64::MAX;
+            self.uart.tpnd = true;
+            self.uart_update();
+        } else {
+            self.uart.tx_next = at + self.midi_byte_time();
+        }
+    }
+
+    /// The bytes UART1 has sent (MIDI out) since the last call, oldest first: the cycle each
+    /// one's stop bit ended, and the byte. A runner drains them as it goes.
+    pub fn midi_take_sent(&mut self) -> Vec<(u64, u8)> {
+        std::mem::take(&mut self.uart.sent)
+    }
+
+    /// Bytes written for UART1 to send while it was off.
+    pub fn midi_out_dropped(&self) -> u64 {
+        self.uart.tx_dropped
     }
 
     /// MIDI bytes waiting to arrive (the queue behind the jack).
@@ -903,12 +960,6 @@ impl Periph {
             0x12120 => self.uart.rxeadr = v,
             0x12124 => self.uart.rxcnt = v & 0xffff,
             0x12110 => self.uart.otcnt = v,
-            // TX DMA count: sent at once (MIDI thru has no pin here)
-            0x12118 => {
-                self.uart.tpnd = true;
-                self.uart_update();
-                return false;
-            }
             0x50000 if self.board == crate::Board::Smk37 => {
                 // PA1's rising edge latches the 595 chain (SPI2 shifts it)
                 if self.pa_out & 2 == 0 && v & 2 != 0 {

@@ -584,9 +584,10 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
             failed.update({n: v for n, v in f_i.items() if n in mine or (i == 0 and n in control)})
             tokens.update({n: v for n, v in t_i.items() if n in mine or (i == 0 and n in control)})
             # A file JPlag could not score at all goes to the text check
-            # instead, with the same base code; a file it scored that matched
-            # nothing ("no match") does not.
-            unscorable_i = {n: read_ours(n) for n in sorted(mine) if n in f_i}
+            # instead, with the same base code; so does one it matched with
+            # nothing ("no match": not even, in the self-test, a verbatim copy
+            # of itself), which JPlag therefore doesn't cover.
+            unscorable_i = {n: read_ours(n) for n in sorted(text_check_files(mine, f_i, t_i))}
             if unscorable_i:
                 text += text_scores(unscorable_i, pool.dir, tc["k"], [d for _, f in tr for d in f.values()])
             report["passes"].append({"files": label, "count": len(mine), "base_code": [b["path"] for b, _ in tr],
@@ -608,10 +609,13 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
         # of its index, so its token count is unknown; it was still compared.
         report["ours_files"] = [{"file": p, "tokens": tokens.get(n), "state": failed.get(n, "scored" if n in tokens else "no match")}
                                 for n, p in sorted(ours.items())]
-        unscorable = sorted(n for n in ours if n in failed)
+        unscorable = sorted(n for n in ours if n in failed or n not in tokens)
         for f, n in zip(report["ours_files"], sorted(ours)):
             if n in failed:
                 f["not_scorable"] = not_scorable(failed[n], cfg)
+            elif n not in tokens:
+                f["text_check"] = "JPlag matched nothing in it; compared by the text check too"
+
         text_flagged = [x for x in text if x[3] or x[2] >= tc["threshold"]]
         best_text = {}
         for x in text:
@@ -623,7 +627,7 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
                                 "top_pairs": [text_row(x, ours, pool.where, licences) for x in text[:cfg["top_pairs"]]],
                                 "flagged": [text_row(x, ours, pool.where, licences, limit=None) for x in text_flagged]}
         text_check = ("FAIL" if text_flagged else "PASS",
-                                  ("%d of our files not scorable by JPlag (%s), compared as text with %d target files; "
+                                  ("%d of our files JPlag could not score or matched with nothing (%s), compared as text with %d target files; "
                                    "%d pairs an exact copy or at or above %.2f of %d-character pieces"
                                    % (len(unscorable), ", ".join(ours[n] for n in unscorable), len(pool.where),
                                       len(text_flagged), tc["threshold"], tc["k"])) if unscorable else
@@ -674,7 +678,10 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
                                                 cfg["margin_tokens"]) for q in report["passes"][1:]))
         checks["C-AUDIT-TEXT"] = text_check
         if selftest is not None:
-            report["selftest"] = {"ours_best": [[ours.get(x[0], x[0])] + list(x[1:]) for x in s["ours"]],
+            # each pair with the target file's path, so the verdict can tell a
+            # file's own copy from another's
+            report["selftest"] = {"ours_best": [[ours.get(x[0], x[0])] + list(x[1:]) + [pool.where[x[1]][0][1]]
+                                                for x in s["ours"]],
                                   "text": [[ours.get(x[0], x[0]), pool.where[x[1]][0][1], x[2], x[3]] for x in text]}
         report["seconds"] = round(time.time() - t0, 1)
         write_report(report, checks, out, pool.dir, cfg)
@@ -850,25 +857,39 @@ def selftest_target(work_parent, cfg):
             "status": "scored", "licence_class": "none"}, d
 
 
+def text_check_files(mine, failed, tokens):
+    """The files of a JPlag pass that go to the text check: those it could
+    not score (failed), and those it left out of its index for matching
+    nothing (no token count), which it doesn't cover either."""
+    return set(n for n in mine if n in failed or n not in tokens)
+
+
 def selftest_verdict(report, cfg):
     """Every one of our files must be found in the made-up target, and the
     report written. A file JPlag scored: by a match covering at least 90% of
-    its tokens. A file JPlag cannot score: by the text check, as an exact copy
-    (the verbatim one) and at or above its threshold without being exact (the
-    reformatted one). A file JPlag scored but matched nowhere fails."""
+    its tokens, or by JPlag's similarity with a copy of itself of at least
+    0.9 (base code, which JPlag leaves out, can split a verbatim copy's match
+    in several). A file JPlag cannot score, or matched with nothing: by the
+    text check, as an exact copy (the verbatim one) and at or above its
+    threshold without being exact (the reformatted one). Anything else
+    fails."""
     files = report.get("ours_files", [])
     tokens = {f["file"]: f["tokens"] for f in files if f["state"] == "scored"}
-    best = {}
-    for o, p, l, m, v in report.get("selftest", {}).get("ours_best", []):
-        best[o] = max(best.get(o, 0), l)
-    by_jplag = [f for f, t in tokens.items() if best.get(f, 0) >= 0.9 * t]
+    found_by_jplag = set()
+    for row in report.get("selftest", {}).get("ours_best", []):
+        o, l, m = row[0], row[2], row[3]
+        own = len(row) > 5 and row[5] in ("copied/" + o, "reformatted/" + o)
+        if o in tokens and (l >= 0.9 * tokens[o] or (own and m >= 0.9)):
+            found_by_jplag.add(o)
+    by_jplag = [f for f in tokens if f in found_by_jplag]
     exact, near = set(), set()
     for o, path, c, is_exact in report.get("selftest", {}).get("text", []):
         if is_exact:
             exact.add(o)
         elif c >= cfg["text_check"]["threshold"]:
             near.add(o)
-    by_text = [f["file"] for f in files if "not_scorable" in f and f["file"] in exact & near]
+    by_text = [f["file"] for f in files if ("not_scorable" in f or f["state"] == "no match")
+               and f["file"] in exact & near]
     leak_ok = any(c["id"] == "C-AUDIT-LEAK" and c["result"] == "PASS" for c in report.get("checks", []))
     found = len(by_jplag) + len(by_text)
     ok = bool(files) and found == len(files) and leak_ok

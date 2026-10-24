@@ -10,7 +10,7 @@
 //!   0x11c0_0-    SPI0 = external NOR flash (model in spiflash.rs; CS = PD0)
 //!   0x11d0_0-    SPI1 = LCD (ST7789-class 240×240, model in lcd.rs)
 //!   0x1180_0-    USB
-//!   0x1210_0-    UART1 (MIDI IN)
+//!   0x1210_0-    UART1 (MIDI IN; its transmit side MIDI out)
 //!   0x1310_0-    ADC
 //!   0x1eee000-   interrupt controller (0x1eee008 bit14 = ready, polled by the
 //!                RAM early-init; the rest stored bits)
@@ -843,6 +843,17 @@ impl Soc {
             Region::Uart1 => {
                 if !self.periph.write(addr, value) {
                     self.sfr_set(addr, value);
+                }
+                // the transmit side: TXCNT sends that many bytes from TXADR (the DMA reads them
+                // now), BUF one byte
+                match addr {
+                    0x12118 => {
+                        let adr = self.sfr_get(0x12114);
+                        let bytes: Vec<u8> = (0..value & 0xffff).map(|i| self.read8(adr.wrapping_add(i))).collect();
+                        self.periph.uart_transmit(&bytes);
+                    }
+                    0x1210c => self.periph.uart_transmit(&[value as u8]),
+                    _ => {}
                 }
             }
             Region::Adc => {
