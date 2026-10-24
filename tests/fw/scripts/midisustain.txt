@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Written by tools/midi_scripts.py; don't edit by hand.
+#
+# midisustain (R-MIDI-3): the sustain pedal. A note released under the
+# pedal goes on until the pedal is up; one struck again under it
+# starts again; a panel key (KEY1, note 53) and a MIDI note under
+# the pedal; all notes off with the pedal down (the pedal still
+# holds); the pedal up ends them all.
+#
+# time   event
+100      midi b0 40 7f 90 3c 64
+151.92   midi 80 3c 40
+352.88   midi 90 3c 64
+403.84   midi 80 3c 40 90 40 64
+505.76   key 14 down
+605.76   key 14 up
+615.76   midi 80 40 40
+816.72   midi b0 40 00
+1117.68  midi 90 43 64 b0 40 7f b0 7b 00
+1420.56  midi b0 40 00

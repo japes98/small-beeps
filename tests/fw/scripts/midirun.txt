@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Written by tools/midi_scripts.py; don't edit by hand.
+#
+# midirun (R-MIDI-1): running status and realtime bytes everywhere: a
+# chord in running status with clock, start, stop and active sensing
+# between and inside its messages; then notes off, each byte apart.
+#
+# time   event
+100      midi 90 3c f8 64 40 fe 64 f8 43 64 fa
+303.52   midi f8 90 f8 3c f8 00 f8 40 f8 00 fc 43 fe 00
+408      midi b0 01 f8 40 07 f8 7f 01 00
+460.88   midi f8 f8 f8 f8 f8 f8 fe
+513.12   midi f8 f8 f8 f8 f8 f8 fe
+565.36   midi f8 f8 f8 f8 f8 f8 fe
+617.6    midi f8 f8 f8 f8 f8 f8 fe

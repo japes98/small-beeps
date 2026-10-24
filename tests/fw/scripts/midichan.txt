@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Written by tools/midi_scripts.py; don't edit by hand.
+#
+# midichan (R-MIDI-5): the channel test build receives on channel 10
+# only: notes, controllers and program changes on every other channel
+# are filtered; channel 10's play.
+#
+# time   event
+100      midi 90 3c 64 b0 07 00 c0 03 80 3c 40
+103.52   midi 91 3d 64 b1 07 00 c1 03 81 3d 40
+107.04   midi 92 3e 64 b2 07 00 c2 03 82 3e 40
+110.56   midi 93 3f 64 b3 07 00 c3 03 83 3f 40
+114.08   midi 94 40 64 b4 07 00 c4 03 84 40 40
+117.6    midi 95 41 64 b5 07 00 c5 03 85 41 40
+121.12   midi 96 42 64 b6 07 00 c6 03 86 42 40
+124.64   midi 97 43 64 b7 07 00 c7 03 87 43 40
+128.16   midi 98 44 64 b8 07 00 c8 03 88 44 40
+131.68   midi 9a 46 64 ba 07 00 ca 03 8a 46 40
+135.2    midi 9b 47 64 bb 07 00 cb 03 8b 47 40
+138.72   midi 9c 48 64 bc 07 00 cc 03 8c 48 40
+142.24   midi 9d 49 64 bd 07 00 cd 03 8d 49 40
+145.76   midi 9e 4a 64 be 07 00 ce 03 8e 4a 40
+149.28   midi 9f 4b 64 bf 07 00 cf 03 8f 4b 40
+202.8    midi 99 48 64
+403.76   midi 89 48 40

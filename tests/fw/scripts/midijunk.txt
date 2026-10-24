@@ -1,0 +1,143 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Written by tools/midi_scripts.py; don't edit by hand.
+#
+# midijunk (R-MIDI-1): truncated messages and 3 000 random bytes, then a
+# reset of what the junk may have set (all sound off, controllers,
+# the pedal, poly mode, patch 0 on each channel), then a clean note.
+#
+# time   event
+100      midi 90 3c
+100.64   midi b0
+100.96   midi e0 05
+101.6    midi c0
+101.92   midi 80 3c 00
+122.88   midi e6 a8 1b b5 18 3f b7 9b b7 9a 0d 6b 05 a6 49 af a8 6e 32 0f 04 48 df 5b 56 c2 3a 57 91 4c 36 4a
+133.12   midi f9 a2 d0 45 80 ff c7 34 e3 03 1a a6 84 61 46 5c 06 48 3c 93 ab 97 24 11 6d c0 d4 f1 dd 77 0f 2f
+143.36   midi bf 23 7d f3 63 02 6e 9e c1 1a 4f 95 5c e3 e8 d0 d3 b6 5b 21 47 f3 dd 45 71 f5 31 ac 7e b7 e9 08
+153.6    midi b1 43 5c 97 b7 de 66 31 c9 f5 e2 11 84 c6 e8 63 88 ce c7 91 d2 f5 c1 4e da 7c 89 5f 6c a2 7d 2c
+163.84   midi 47 19 a3 0a 77 2c 65 45 72 ad 0d f0 f5 a0 ff 6e 9c a8 b8 bc 44 35 8a 84 20 6b 14 e1 9e d1 83 f3
+174.08   midi f7 be 8c 22 98 84 25 33 34 59 06 0c a6 09 e3 47 88 5e 66 79 93 4b ee 3f bd db 0a 0c 0c dc b4 b5
+184.32   midi 3c 4a 4d b9 14 7d 5c 52 88 12 06 3d 8f 9b 4d 48 c2 06 09 a0 ba ce a6 d7 26 e3 a3 b8 ae 5a c6 cb
+194.56   midi 8b d4 1f a6 e3 b0 c3 fa e6 f0 46 59 a9 ec f5 c8 c5 b9 d8 09 af 57 6b a5 d5 9c 16 bb 7e e4 72 8b
+204.8    midi 5e 76 3a c2 fc b5 13 83 c4 0b fc 39 eb 95 93 1f 07 8e 0d 8c 6a 7d f3 ff 42 1e 9d ef 71 12 70 4f
+215.04   midi 2d 45 d7 e3 57 23 02 45 9c 7a 61 b6 4e 2d df a6 00 9e df 01 e3 d9 f7 3f e3 81 6f 2a 81 7b 77 6e
+225.28   midi 6f 5c 2c e3 ed 93 49 99 e6 56 ad a7 c9 4d 91 b3 29 01 85 41 13 03 2f bd 33 dc c3 46 a6 b8 41 40
+235.52   midi 9c d1 72 98 b5 9d a0 d6 19 b6 18 e4 55 8d 60 a0 f9 cf 39 23 f2 93 53 cf a8 48 d2 1b d6 61 85 1e
+245.76   midi 2d bd e1 dc a8 d8 bf 54 ad b4 da 45 e9 85 06 c4 e8 1f 31 7f 77 20 1b ce ba dd d5 7f 0c 0d fb 5e
+256      midi 99 37 b0 86 bd dd 5e 6b 1b 66 2b a3 7e cc 3a 77 6f 0a a6 2d 9a 43 3f 13 e1 b2 02 4b 3d 55 5a 5a
+266.24   midi 59 59 19 6f ed 44 35 73 db e4 42 d4 0a fb b3 11 06 a7 d1 06 54 93 77 f5 96 e0 92 58 64 d1 5c 69
+276.48   midi e4 39 53 6d 2f a4 fc c4 64 48 59 b2 88 aa 2b eb 24 10 e8 e0 9c aa 7b cc 51 7f be 7d 76 18 b7 e3
+286.72   midi b3 ef 96 5a 7b 96 6a b7 2e a8 a7 14 ee 70 58 5c 41 5b 24 95 6b 1e 02 f0 89 a6 bc 92 6d c4 25 20
+296.96   midi 3d 95 19 0d ca b2 39 a3 b1 1d 63 d2 34 e6 f4 bc d6 a0 bd fc b8 87 c6 ba b6 6e c5 70 41 6a 5c 79
+307.2    midi fa 41 16 5e 14 90 20 e0 66 be c7 c5 53 a4 b5 63 5a f9 eb ed 7c 7f 7d 80 51 ef 11 ed e9 a5 16 44
+317.44   midi 63 0b c3 25 4f c7 d6 c6 c5 a4 09 c3 42 41 54 a9 46 7c e6 41 ae 9c e1 9c d1 40 d8 e3 5d 0b 09 db
+327.68   midi f0 0d 5a 3b 76 f0 15 ae 45 e7 63 a6 f9 56 8a e6 11 41 e6 ce 46 76 a8 65 af 7a 52 28 96 35 ee 95
+337.92   midi 18 5d 11 76 7e a2 93 ee 5e 9e 0b 45 71 7b 0d 73 33 62 23 6e 3d a7 8c 33 62 b5 b7 97 8b bb 7d cb
+348.16   midi 53 13 21 b0 61 77 09 e0 89 e2 3b 78 a2 47 96 a7 25 f5 d5 f8 8a c5 43 5f 63 09 3e 05 35 34 6e d3
+358.4    midi 19 49 c3 c0 17 05 30 db 3d cb 29 17 83 54 dd da 5f 13 33 44 26 69 86 3f 29 8d 21 4b 8b 39 79 07
+368.64   midi e4 15 2d 7e 97 e4 be 37 f3 71 0e fb 0c 37 9a 64 57 d3 77 2a 08 2a 0e 2d 2c 5a 97 42 85 62 56 be
+378.88   midi 29 90 98 c3 d9 ae 6c 4d 22 eb 22 fb 36 8b 85 9e 88 4e d7 83 29 a1 91 80 e5 87 d7 c1 1c 46 bd 50
+389.12   midi 62 d1 3c 65 d6 f9 f2 73 43 52 9d ef f8 e6 56 de 67 9c 8d 25 80 66 c8 90 cb 2e 1b a0 48 7e 66 15
+399.36   midi 07 f1 51 3e 86 5d 08 03 cd be b7 af 4b e1 c4 7e 6f d5 cf ea 06 11 6b b6 57 65 99 b7 00 a2 09 65
+409.6    midi 8e 08 0f 25 df 74 66 54 38 46 a8 13 26 13 89 d5 15 10 d7 a9 b2 39 32 48 00 44 8b de 3c 49 5d 99
+419.84   midi 72 2e ae f2 db d4 c4 be fd 03 a8 f3 81 16 5c 3b d3 66 db 3b 7c 77 d5 a0 3f e5 27 ee f5 0c 1c 07
+430.08   midi 28 7a 66 7e 72 16 da 99 94 0d ef 28 55 80 f4 08 21 ee 14 76 5d 63 0c 15 8b 5e a6 bd 22 83 fc 09
+440.32   midi 2b 05 6e 9f 9b d1 60 3e 73 7b b4 89 9a e9 0b 95 75 c2 bb 34 4c 94 8e ff 5c c7 40 25 bc 45 b7 f6
+450.56   midi f0 e7 00 2f 4f 9e 0e 03 15 66 31 ee 47 eb 57 39 4a f8 06 4b 42 a3 15 b6 2b 3a 2d fd ba ec 03 27
+460.8    midi f1 37 53 05 84 15 9b 42 ef e6 9d 2f 54 1c 92 4c 16 a8 2e 95 36 28 58 93 70 cd a6 1e 14 0d 9a f2
+471.04   midi a6 0e 9e f9 35 ce c1 52 7b 12 2f 24 ba 14 72 26 51 eb 6b ea 20 ba 0e ec a2 99 e1 5e c3 43 32 b1
+481.28   midi 86 84 1b e3 58 60 37 8b 31 03 21 a6 70 6d b0 1f 73 da f5 20 f9 f2 f1 1b 39 b5 16 97 be 24 84 bb
+491.52   midi 09 b0 00 9b e5 64 b4 46 88 d1 a9 8c 6e bd 05 8f f5 8a 04 11 b9 68 b7 77 ad 3a 7f a0 fe 49 49 68
+501.76   midi a8 ab 87 fa d4 71 f1 d9 f8 93 00 ae ad 9c 27 cf 4f 16 d0 93 57 b3 1a 58 78 40 53 51 7b 4a 37 10
+512      midi da 8d e6 d7 1f 21 a7 9e fa 63 5f e4 25 a4 cf 36 f8 94 90 80 cb 6c d0 17 0f de ca 82 2b be 07 0c
+522.24   midi 18 6d 56 0a bb 09 8c ec 05 56 fc 06 cd 6b b5 1c 68 1c 7e af 0e 2b 92 0a ec 2e 1c 0b 08 3e 71 b2
+532.48   midi d9 64 0f 6b a2 c4 59 1b 92 87 10 ed 9d 8a 91 d9 18 c8 d1 f9 17 88 18 8b 87 46 80 c5 0a 62 2d 5c
+542.72   midi 95 8a 49 d3 cc e8 c7 84 18 0c d3 6f 8e 98 1b c6 7f ae c0 34 df 1a 1b f1 56 3e 30 87 28 c1 f3 61
+552.96   midi c5 f7 3d 18 2f 0e 8c 7d 10 fe 7d 66 97 2f 0b 39 16 e7 85 3a 5d 7a 51 94 d4 2f 62 29 5a f4 7a 19
+563.2    midi e1 c2 21 14 c6 ce 61 60 f1 75 46 a9 b1 e4 18 8c 54 8a 56 e2 89 3f 73 cc 77 31 50 83 99 93 7c dd
+573.44   midi 60 04 2d 9e 86 c0 fe 84 33 88 66 10 d3 52 fc 16 b2 b1 6d 04 5c 02 39 f2 b7 5c 30 6d dc 35 b0 03
+583.68   midi ba d4 9b 8e 6a 7b 1b 41 4f 50 15 74 f5 0f 6e 2f a7 72 00 78 ce 5b 5b 5d 0c c7 3c c0 1c 73 cd e5
+593.92   midi 68 4c a2 bc 67 97 6f ef bd e5 8b ac 10 b4 25 2f ab e5 48 16 d5 e2 90 64 ef 8b aa 52 50 e5 8d da
+604.16   midi e1 81 7a 01 77 ae b4 e7 f3 5e 00 8f 1c d9 db 6f 37 23 7e b7 6c 2e 92 62 d8 c0 b3 fd 71 22 a6 3a
+614.4    midi 9d 8e 5b 34 92 56 a1 7f 6c d4 ab f7 0f 15 46 46 c3 44 d8 32 88 d8 18 ac 3e 7d 8f 98 76 c4 d2 5d
+624.64   midi 15 89 7c 2d af 28 ee 11 9d 5f c6 bc e4 01 20 0c c5 60 8f 5f 23 78 d9 9b 99 db 76 fc 58 60 c7 9c
+634.88   midi c1 8b 17 c4 c6 bb 52 f4 00 16 87 b4 90 35 1f 19 b8 8e db 16 35 a5 8f 88 62 f2 a0 ff 0d 91 3f 4d
+645.12   midi 18 ac 62 d1 d0 a9 87 81 0d 12 28 b8 0e 48 fd c5 11 e7 f4 2f b5 f8 f1 ca 10 da 45 7b 90 ed f0 ca
+655.36   midi 92 03 97 2c c4 87 43 0e 3b 6b df a1 53 d3 70 68 4a 83 12 83 9b 09 b6 b9 1c aa 9d 47 d7 0d 93 6a
+665.6    midi a8 a9 ec ae 9b f0 40 f5 02 39 e6 46 59 6e 31 5b db 7a 6d e9 e0 6f 97 ad fd 7b e0 3b da 89 e0 86
+675.84   midi d1 b6 9a 2e 4c 7a 34 8c db 93 73 7f 18 b0 f8 f5 3b e3 3c 39 7c c4 4d fe 2c 64 46 2f 92 f8 8f 74
+686.08   midi 86 42 da 84 cf be d8 2d 3d 92 bf 25 87 33 7d 8e e2 d6 b9 4b 65 9d 8e 05 20 7e 06 fb f6 f3 58 8e
+696.32   midi 3e 64 e2 88 1d 54 e5 30 a1 4d 02 0e 9e 8c 78 7e 49 6d 1b f7 96 95 13 19 51 e1 5a 78 fe 12 f3 2a
+706.56   midi 72 35 eb 12 2e d3 11 eb 7e dd 74 14 56 56 a1 1e e7 be 99 15 04 42 94 92 38 a5 79 7d a3 ec 18 a2
+716.8    midi 99 cc 2d fb f8 d4 15 b7 4d 5a 4d 0e a6 27 b0 c4 35 e2 6d 7e a9 3d c9 c8 4c e1 9a e2 dd 1a 7f 4e
+727.04   midi 2b 42 e0 1a 76 ef a9 ed 85 dc c5 d4 87 98 5d ca aa f0 cd 09 7d 1d 6a 13 06 ae f7 7f a3 34 e0 84
+737.28   midi a1 af 3c 47 9d bb 85 e4 9e 7a 14 3e f0 40 5f 87 bf 02 f3 8e 77 7c 2f cc dd 24 c6 2c ed d1 f2 9e
+747.52   midi 72 2b 79 5a 68 d1 61 f4 11 4d 72 24 d9 b9 70 53 eb 2d 15 e5 8f f0 d0 49 4a 5a 40 c2 b4 8a 6f f2
+757.76   midi 17 cd cf 2b cc c9 f5 76 56 6d 17 5f 3b 99 47 86 a6 8c 6c e7 be 11 05 e4 c4 69 9d 17 ef f7 0e da
+768      midi 07 ae 75 93 c3 3b f9 c0 e3 f1 3b c6 0d 78 9b 79 69 35 31 6a fb 78 86 f4 c3 69 16 05 96 b0 86 ad
+778.24   midi bb e5 a5 68 45 be 24 2c 33 f2 15 31 48 f0 26 83 ab 41 9a 48 3f bd 0b d1 c0 71 e1 63 a2 4c 90 c4
+788.48   midi aa 8c 96 84 49 eb 30 11 bb 88 df 78 e4 97 9e fc e5 c8 e0 58 81 78 4b d4 33 9a 37 0a 0b 64 e5 75
+798.72   midi 4c b9 7f be c7 59 d4 c7 f5 ca d0 73 d7 05 bc 3c 8e e1 3b 72 ba 40 00 54 93 fc 50 d0 c8 8f 3b 1a
+808.96   midi 1a 84 9a ef b8 a1 c7 a6 59 d1 1f fb 1b d4 39 9b 1f a5 e3 6f e1 af e0 a8 58 ae 64 8f d1 66 4b 0a
+819.2    midi 8c 07 1d ed 13 5b c3 06 5e b5 05 e7 a8 9a cb 71 0f 2c 10 25 ee 5a a5 2a fa c9 ab 1e 1f 81 ce 9d
+829.44   midi 18 58 41 92 d1 1f 7e 40 7c 8e bb 0f 75 f0 2b 17 d6 8d fa 6e da dc 05 32 f3 65 5d 55 a9 78 7a 2b
+839.68   midi 39 90 3f b5 e9 84 b1 ab 2c 73 77 4b 7b 6d 11 e4 ed e2 d8 21 9c cb ba 16 b8 9a b1 0c 68 e2 08 0c
+849.92   midi 64 c6 4d 2e 53 23 15 9f e5 7d 72 73 b0 aa 35 30 cc 40 e4 16 2d c0 7a 30 c3 7f e1 1b 53 58 30 99
+860.16   midi 13 13 a4 d5 08 94 60 74 20 c3 e4 60 0f 3f 4f 53 ea c2 55 25 84 52 fe d6 8c 2d 24 5b 63 72 aa 29
+870.4    midi be 8f 7c 82 00 6e 4b 82 54 5f 06 e8 8e c3 17 a6 bf 7e 62 27 9a 1a fe 62 89 bb b1 a3 8f c7 2e 14
+880.64   midi dc 51 0d 0e 32 4a 8e 22 fa 66 0e e5 25 d0 45 7f c4 8d 45 f2 66 b0 32 2b 35 43 c2 cb cf f0 73 b2
+890.88   midi e5 73 8f 50 96 c0 e1 aa 89 f3 35 2e cc fb 91 38 70 06 34 60 e0 ac 52 8a 06 db 8d ab 1c 85 33 5b
+901.12   midi 52 0b 3a 20 25 67 fc 74 79 1c b3 9c 7c df b2 28 3b 02 69 48 01 a5 16 d5 74 9b 4c 1b 6d 1d 25 68
+911.36   midi 9a 31 46 56 d6 d8 97 d7 43 fa bf 05 2d 12 62 a7 9e 99 1a 83 c1 34 36 66 f7 9d 35 f4 bb 51 01 30
+921.6    midi 36 fe eb ca a1 ab 6a 2c 5f a5 93 43 d6 2d 58 0d 11 e3 80 e7 17 f0 6a 94 08 f7 81 0d fd b9 7e 0b
+931.84   midi 9d 8a 61 55 7f 77 2d c9 43 34 66 2c 6f c8 4b b3 0b f7 d3 4e fb 73 6a b7 1f c1 68 3d 2c ed 56 51
+942.08   midi 48 ed df cd 68 d6 98 08 6a c0 70 9a f1 7a f5 f0 04 ee 4c 8e 66 53 ed 27 b3 15 22 5f 3f 84 3f 5a
+952.32   midi ae 3e 9f 0c 53 5d 62 40 49 61 e8 65 53 dc 0c 1b 75 e0 21 81 4f 28 ad 3d 3c 09 e8 48 2e 17 f2 7f
+962.56   midi 47 96 d8 e9 38 a7 45 c9 5a 2f 08 63 8e 86 49 8f d5 e4 8b ff ae 8c 61 4f 33 b6 f0 d1 f2 3d 28 16
+972.8    midi 8c 0d c1 3d 10 4a f7 fb 15 41 06 6e 99 0f 65 a1 9d 13 c2 de 7c 15 c0 b7 0f 33 73 d3 83 8f 97 79
+983.04   midi f5 ba 94 de d2 df 32 2e f1 af 1c 5c 6d 10 16 aa 44 85 fe f8 b1 5c 84 cc 49 99 a8 25 d7 a5 f8 ff
+993.28   midi f9 b6 87 a6 77 fe ac bb 66 93 80 07 01 21 15 03 42 51 76 23 44 f8 63 e6 58 00 c9 9f e9 17 03 00
+1003.52  midi 10 19 d3 6b f6 3e 1f f9 ed 03 6b 46 4d d9 1a 03 10 90 64 39 2d 82 16 5e b5 7f 0d 19 ae 7c 70 d5
+1013.76  midi b2 fa b0 07 47 38 41 40 fd 18 15 f2 4a d2 dd 02 26 5a ff 11 65 92 56 8a d7 30 ac 6c 20 6d f7 d5
+1024     midi 59 73 57 52 63 83 cb e8 0f e9 b7 e1 f0 a1 16 58 fa c7 7f 84 e3 bf d9 c4 36 28 dd 6e 37 82 50 57
+1034.24  midi 7a 99 fe 22 42 b9 75 49 9a 90 87 ed 35 e1 7d 5d 07 ee 1b 68 9f a3 58 63 4b 82 da f9 ea 52 33 b5
+1044.48  midi 8f 87 de 51 db 70 f8 bc 17 23 be ed 14 28 ca 6a c2 e8 0d 97 93 d3 8b bf 8d 54 d9 e4 31 76 58 47
+1054.72  midi 10 53 2f b5 26 40 0a 98 fd ba 94 b9 82 0f b5 d6 a6 cc 8b e8 b4 ea 2a 30 75 b7 14 07 05 86 77 63
+1064.96  midi 73 16 29 28 1c c3 64 35 c4 6f 41 29 79 2e f5 f9 28 b3 cf 33 fc 7e ed 0f 7a c3 c1 3a 5e 19 47 62
+1075.2   midi 33 e7 04 82 b4 8f bd eb e5 57 fd 16 f1 1c 44 2b c2 b5 0f 50 62 28 8c b3
+1082.88  midi b0 78 00 b0 79 00 b0 40 00 b0 7f 00 c0 00 b0 07 7f b0 10 40 b0 11 40 b0 12 40 b0 13 40 b0 65 00
+1093.12  midi b0 64 00 b0 06 02
+1095.04  midi b1 78 00 b1 79 00 b1 40 00 b1 7f 00 c1 00 b1 07 7f b1 10 40 b1 11 40 b1 12 40 b1 13 40 b1 65 00
+1105.28  midi b1 64 00 b1 06 02
+1107.2   midi b2 78 00 b2 79 00 b2 40 00 b2 7f 00 c2 00 b2 07 7f b2 10 40 b2 11 40 b2 12 40 b2 13 40 b2 65 00
+1117.44  midi b2 64 00 b2 06 02
+1119.36  midi b3 78 00 b3 79 00 b3 40 00 b3 7f 00 c3 00 b3 07 7f b3 10 40 b3 11 40 b3 12 40 b3 13 40 b3 65 00
+1129.6   midi b3 64 00 b3 06 02
+1131.52  midi b4 78 00 b4 79 00 b4 40 00 b4 7f 00 c4 00 b4 07 7f b4 10 40 b4 11 40 b4 12 40 b4 13 40 b4 65 00
+1141.76  midi b4 64 00 b4 06 02
+1143.68  midi b5 78 00 b5 79 00 b5 40 00 b5 7f 00 c5 00 b5 07 7f b5 10 40 b5 11 40 b5 12 40 b5 13 40 b5 65 00
+1153.92  midi b5 64 00 b5 06 02
+1155.84  midi b6 78 00 b6 79 00 b6 40 00 b6 7f 00 c6 00 b6 07 7f b6 10 40 b6 11 40 b6 12 40 b6 13 40 b6 65 00
+1166.08  midi b6 64 00 b6 06 02
+1168     midi b7 78 00 b7 79 00 b7 40 00 b7 7f 00 c7 00 b7 07 7f b7 10 40 b7 11 40 b7 12 40 b7 13 40 b7 65 00
+1178.24  midi b7 64 00 b7 06 02
+1180.16  midi b8 78 00 b8 79 00 b8 40 00 b8 7f 00 c8 00 b8 07 7f b8 10 40 b8 11 40 b8 12 40 b8 13 40 b8 65 00
+1190.4   midi b8 64 00 b8 06 02
+1192.32  midi b9 78 00 b9 79 00 b9 40 00 b9 7f 00 c9 00 b9 07 7f b9 10 40 b9 11 40 b9 12 40 b9 13 40 b9 65 00
+1202.56  midi b9 64 00 b9 06 02
+1204.48  midi ba 78 00 ba 79 00 ba 40 00 ba 7f 00 ca 00 ba 07 7f ba 10 40 ba 11 40 ba 12 40 ba 13 40 ba 65 00
+1214.72  midi ba 64 00 ba 06 02
+1216.64  midi bb 78 00 bb 79 00 bb 40 00 bb 7f 00 cb 00 bb 07 7f bb 10 40 bb 11 40 bb 12 40 bb 13 40 bb 65 00
+1226.88  midi bb 64 00 bb 06 02
+1228.8   midi bc 78 00 bc 79 00 bc 40 00 bc 7f 00 cc 00 bc 07 7f bc 10 40 bc 11 40 bc 12 40 bc 13 40 bc 65 00
+1239.04  midi bc 64 00 bc 06 02
+1240.96  midi bd 78 00 bd 79 00 bd 40 00 bd 7f 00 cd 00 bd 07 7f bd 10 40 bd 11 40 bd 12 40 bd 13 40 bd 65 00
+1251.2   midi bd 64 00 bd 06 02
+1253.12  midi be 78 00 be 79 00 be 40 00 be 7f 00 ce 00 be 07 7f be 10 40 be 11 40 be 12 40 be 13 40 be 65 00
+1263.36  midi be 64 00 be 06 02
+1265.28  midi bf 78 00 bf 79 00 bf 40 00 bf 7f 00 cf 00 bf 07 7f bf 10 40 bf 11 40 bf 12 40 bf 13 40 bf 65 00
+1275.52  midi bf 64 00 bf 06 02
+1327.44  midi 90 3c 64
+1428.4   midi 80 3c 40

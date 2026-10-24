@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# Written by tools/midi_scripts.py; don't edit by hand.
+#
+# midilat (R-MIDI-7): 20 notes, one every 150 ms, alone, so the time
+# from each note on's last byte to its first sample can be measured.
+#
+# time   event
+100      midi 90 3c 64
+160.96   midi 80 3c 40
+250      midi 90 3d 64
+310.96   midi 80 3d 40
+400      midi 90 3e 64
+460.96   midi 80 3e 40
+550      midi 90 3f 64
+610.96   midi 80 3f 40
+700      midi 90 40 64
+760.96   midi 80 40 40
+850      midi 90 41 64
+910.96   midi 80 41 40
+1000     midi 90 42 64
+1060.96  midi 80 42 40
+1150     midi 90 43 64
+1210.96  midi 80 43 40
+1300     midi 90 44 64
+1360.96  midi 80 44 40
+1450     midi 90 45 64
+1510.96  midi 80 45 40
+1600     midi 90 46 64
+1660.96  midi 80 46 40
+1750     midi 90 47 64
+1810.96  midi 80 47 40
+1900     midi 90 3c 64
+1960.96  midi 80 3c 40
+2050     midi 90 3d 64
+2110.96  midi 80 3d 40
+2200     midi 90 3e 64
+2260.96  midi 80 3e 40
+2350     midi 90 3f 64
+2410.96  midi 80 3f 40
+2500     midi 90 40 64
+2560.96  midi 80 40 40
+2650     midi 90 41 64
+2710.96  midi 80 41 40
+2800     midi 90 42 64
+2860.96  midi 80 42 40
+2950     midi 90 43 64
+3010.96  midi 80 43 40
