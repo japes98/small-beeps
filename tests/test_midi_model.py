@@ -93,6 +93,12 @@ class MidiScriptsTest(unittest.TestCase):
             with open(os.path.join(ms.SCRIPTS, s.name + ".txt")) as f:
                 self.assertEqual(f.read(), s.text(), s.name)
 
+    def test_perfload_midi_part_is_what_the_tool_writes(self):
+        with open(ms.PERFLOAD) as f:
+            text = f.read()
+        self.assertIn(ms.PERFLOAD_MARK, text)
+        self.assertEqual(text, ms.perfload_text(text))
+
     def test_no_two_midi_events_overlap(self):
         for case in ms.CASES:
             s = case()
