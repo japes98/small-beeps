@@ -151,7 +151,7 @@ EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "complete
           "midiout": "completed", "midiround": "completed", "midithru": "completed",
           "midilocal": "completed", "midiburst": "completed", "midioutlat": "completed",
           "views": "completed", "viewsload": "completed", "macros": "completed", "edit": "completed", "env": "completed",
-          "spectrum": "completed"}
+          "spectrum": "completed", "settings": "completed"}
 
 MARKER = 0x44304253        # "SB0D", firmware/src/sb.h
 TICKS_PER_MS = 24000       # HW-13
@@ -2486,6 +2486,45 @@ def check_spectrum(case_dir):
     return problems + more, lines + [line]
 
 
+def check_settings(case_dir):
+    """The settings screen (tests/fw/scripts/settings.txt; R-UI-13,
+    R-UI-14): each row's effect, and the factory reset asked, cancelled,
+    asked again and done."""
+    problems, lines, a, console, _ = check_audio_common("settings", case_dir)
+    m = midi_record(os.path.join(case_dir, midi_name()))
+    f = fm_record(os.path.join(case_dir, fm_name()))
+    msgs = [mm for _, mm in wire_messages(wire_bytes(os.path.join(case_dir, "midi-out.csv")))[0]]
+    want = [(0x92, 70, 100, 2), (0x92, 70, 0, 2), (0x91, 64, 100, 2), (0x81, 64, 0, 2), (0x92, 72, 100, 2),
+            (0x92, 72, 0, 2)]
+    got = [tuple(x) for x in msgs]
+    if got != want:
+        problems.append("settings: MIDI out %s, expected %s" % (got, want))
+    if m["filtered"] < 2 or m["notes_on"] != 2:
+        problems.append("settings: %d messages filtered, %d notes taken; expected 2 or more and 2 (channel 2)"
+                        % (m["filtered"], m["notes_on"]))
+    if f["notes"] != 3:
+        problems.append("settings: %d notes played, expected 3 (channel 2's, KEY18's, thru's; not KEY20's with"
+                        " local control off)" % f["notes"])
+    st_mid = struct.unpack_from("<29i", open(os.path.join(case_dir, "ram-01c00780-f0-2700ms.bin"), "rb").read())
+    st_end = struct.unpack_from("<29i", open(os.path.join(case_dir, "ram-01c00780-f0-end.bin"), "rb").read())
+    resets = store_suite.STORE_FIELDS.index("resets")
+    path = os.path.join(case_dir, "flash.bin")
+    with open(path, "rb") as fl:
+        chip = fl.read()
+    with open(path + ".sha256", "w") as fl:
+        fl.write("%s  flash.bin\n" % hashlib.sha256(chip).hexdigest())
+    os.remove(path)
+    live = sorted(store_suite.st.Image(chip).live())
+    if st_mid[resets] != 0 or st_end[resets] != 1 or live != ["reset"]:
+        problems.append("settings: resets %d after HOME, %d after SAVE, the store holds %s; expected 0, 1, the reset"
+                        % (st_mid[resets], st_end[resets], live))
+    lines.append("  in channel 2 (channel 1 filtered), out channel 3, thru, local off (KEY20 out, not played), bend"
+                 " 12, knobs direct; factory reset asked, HOME cancelled it, SAVE did it (one reset record)")
+    more, line = check_drawing("settings", ui_record(case_dir))
+    return problems + more, lines + [line]
+
+
+AUDIO_CHECKS["settings"] = check_settings
 AUDIO_CHECKS["spectrum"] = check_spectrum
 AUDIO_CHECKS["env"] = check_env
 AUDIO_CHECKS["edit"] = check_edit

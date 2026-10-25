@@ -147,9 +147,6 @@ volatile struct fm_env_dot fm_env_dot;
 static u32 user_used;
 volatile u32 fm_saved_seq[FM_USER_SLOTS], fm_saved_reset[FM_USER_SLOTS];
 volatile u32 fm_reset_seq;
-/* When SAVE and HOME were both first held (sb_audio.blocks), or none. */
-#define NOT_ARMED 0xFFFFFFFFu
-static u32 reset_armed = NOT_ARMED;
 static u32 patch_now, algorithm_now, mono, started;
 static u32 sounding;        /* voices not idle */
 static int octave, mono_stack[16];
@@ -935,28 +932,51 @@ static void save_to(u32 slot)
     sb_work++;
 }
 
-/* SAVE and HOME held for FM_RESET_MS (M7): every user slot emptied, the
+/* The factory defaults (since M8a from the settings, SAVE confirming
+ * it; M7's hold of SAVE and HOME is gone): every user slot emptied, the
  * settings' defaults, the first program; main writes the store's reset. */
-#define RESET_BLOCKS ((FM_RESET_MS * (AUDIO_RATE_NUM / 1000u) + AUDIO_FRAMES * AUDIO_RATE_DEN - 1) \
-                      / (AUDIO_FRAMES * AUDIO_RATE_DEN))
-#define RESET_DONE   (NOT_ARMED - 1u)
-
-static void reset_hold(void)
+static void factory_reset(void)
 {
-    if (!input_value(INPUT_SAVE) || !input_value(INPUT_HOME)) {
-        reset_armed = NOT_ARMED;
-    } else if (reset_armed == NOT_ARMED) {
-        reset_armed = sb_audio.blocks;
-    } else if (reset_armed != RESET_DONE && sb_audio.blocks - reset_armed >= RESET_BLOCKS) {
-        reset_armed = RESET_DONE;
-        all_off();
-        user_used = 0;
-        midi_settings_default(&midi_settings);
-        select_patch(0);
-        panel_program = 0;
-        fm_reset_seq++;
-        fm_ui.seq++;
-        sb_work++;
+    all_off();
+    user_used = 0;
+    midi_settings_default(&midi_settings);
+    select_patch(0);
+    panel_program = 0;
+    fm_reset_seq++;
+    fm_ui.seq++;
+    sb_work++;
+}
+
+/* The settings' rows (M8a part 6; views.c draws them in this order). */
+enum { ROW_IN, ROW_OUT, ROW_THRU, ROW_LOCAL, ROW_BEND, ROW_KNOBS, ROW_STORE, ROW_RESET, ROWS };
+
+/* KNOB1 on the settings: the row's value one step. */
+static void edit_setting(int d)
+{
+    struct midi_settings *m = &midi_settings;
+
+    switch (fm_ui.row) {
+    case ROW_IN:
+        m->channel = (u8)clamp(m->channel + d, MIDI_OMNI, 16);
+        break;
+    case ROW_OUT:
+        m->out_channel = (u8)clamp(m->out_channel + d, 1, 16);
+        break;
+    case ROW_THRU:
+        m->thru = d > 0;
+        break;
+    case ROW_LOCAL:
+        m->local = d > 0;
+        break;
+    case ROW_BEND:
+        m->bend_range = (u8)clamp(m->bend_range + d, 0, 24);
+        break;
+    case ROW_KNOBS:
+        m->knobs = d > 0;
+        break;
+    case ROW_RESET:
+        fm_ui.confirm = 1;   /* SAVE does it, anything else cancels */
+        break;
     }
 }
 
@@ -1406,6 +1426,7 @@ static void events(void)
                                 : e.control == INPUT_GLO ? UI_SETTINGS : UI_PATCH);
             fm_ui.page = 0;
             fm_ui.env = 0;
+            fm_ui.confirm = 0;
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_OCT_DOWN) {
             octave -= octave > -OCTAVES;
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_OCT_UP) {
@@ -1431,6 +1452,10 @@ static void events(void)
             } else if (fm_ui.screen == UI_ENV) {
                 if (local)
                     edit_env(k, e.value);
+            } else if (fm_ui.screen == UI_SETTINGS) {
+                /* KNOB1 changes the row's value (M8a part 6). */
+                if (k == 0)
+                    edit_setting(e.value);
             } else {
                 const s8 (*span)[2] = spans();
                 knob_pos[k] = clamp(knob_pos[k] + e.value, span[k][0], span[k][1]);
@@ -1439,6 +1464,12 @@ static void events(void)
         } else if (e.kind == INPUT_TURN && e.control == INPUT_SELECT && fm_ui.screen == UI_EDIT) {
             /* SELECT steps through the operator view's three pages. */
             fm_ui.page = (u8)((fm_ui.page + 3u + (u32)(e.value > 0 ? 1 : 2)) % 3u);
+        } else if (e.kind == INPUT_TURN && e.control == INPUT_SELECT && fm_ui.screen == UI_SETTINGS) {
+            fm_ui.row = (u8)clamp(fm_ui.row + e.value, 0, ROWS - 1);
+            fm_ui.confirm = 0;
+        } else if (e.kind == INPUT_PRESS && e.control == INPUT_SAVE && fm_ui.confirm) {
+            fm_ui.confirm = 0;
+            factory_reset();
         } else if (e.kind == INPUT_TURN && e.control == INPUT_SELECT && fm_ui.screen == UI_ENV && fm_ui.env < 2) {
             /* The envelope view's two pages: rates, then levels. */
             fm_ui.page ^= 1;
@@ -1466,7 +1497,6 @@ static void events(void)
         sb_midi.expression = expression;
         sb_midi.pedal = pedal;
     }
-    reset_hold();
     if (any) {
         knobs();
         /* Whatever the events changed, the screens show (M8a). */

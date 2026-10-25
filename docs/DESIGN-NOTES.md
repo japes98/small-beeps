@@ -2358,3 +2358,20 @@ patch on SAVE. `fm_play.c`, "The macros".
   keeps the sooner of two, and the live parts ask again after each frame
   (the operator view's meters and the envelope's dot update more often
   for it too).
+
+### 2026-10-25 M8a: the settings screen
+
+- **Rows:** every setting of `struct midi_settings` the panel had no way
+  to reach (in and out channels, thru, local control, bend range), the
+  knobs' mode, the store's use and the factory reset. SELECT picks a row,
+  KNOB1 changes it one step (the on/off rows by the turn's direction);
+  the engine changes the settings, as MIDI's controllers already did, so
+  M7's saving keeps them 2 s after the last change.
+- **Factory reset:** the owner moved it here with a confirmation. KNOB1
+  on the last row asks, the screen says what SAVE will clear, SAVE does
+  it, and HOME, SELECT or another screen cancels it. M7's hold of SAVE
+  and HOME is gone; the store suite's reset case now asks, confirms and
+  cancels this way.
+- **Drawing:** the eight rows are two parts (the body draws the title and
+  the first four, the info line's part the rest), each within the budget;
+  as one part they took 5 700 ticks.
