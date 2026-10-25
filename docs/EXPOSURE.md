@@ -41,7 +41,9 @@ what, and when. Roles are defined in CONTRIBUTING.md.
   in a folder named for the porter on the owner's Mac, for an unrelated
   project (not small-beeps): no FM-1 firmware, emulator or small-beeps
   material was involved. It was not a porter session; no porter session
-  has run.
+  has run. (The owner's answer to session day-1024's question, recorded
+  again in session evening-1024; the other project's details are not
+  recorded here.)
 
 Every session adds its own entry when it starts, and again whenever its
 exposure changes. Agent entries record the exact model ID and its published
@@ -1327,6 +1329,25 @@ SR-3 wrote only its barrier-log row.*
   - **The toolchain** built the firmware and its test images in the
     build container, as before. Disk stayed between 3 and 4 GB free.
 
+### Session evening-1024 (fwtest 0.6.0's pin, the flash pins, M9's plan, spec requests)
+- Date: 2026-10-25 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.310 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `e7979b06-3055-45cf-9e7c-11ab22ca1ee7`,
+  started by `/clear` at 02:13:03Z (banner `source: clear`,
+  `status: OK`), on main at `1123eca`. Largely unattended: the owner
+  checks in occasionally.
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+  3.1 GB free at the start.
+- What it archived: day-1024's transcript (`4fc544d9`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS. M7's (clean) is
+  left for the next clean session.
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository).
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
@@ -1411,6 +1432,7 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-24T12:56:38Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session pin-050 starts; banner `status: OK`. 12:57:24Z: `tools/spec-setup.sh`, banner `status: OK`; midi-in-out's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-24T13:01:56Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M6b starts; banner `status: OK`; `tools/clean-update.sh` found main at `663f135` and passed; M6a archived; `tools/check-transcripts.py` PASS with the 5 reviewed entries listed for the owner's approval |
 | 2026-10-24T14:13:39Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M7 starts; banner `status: OK`; `tools/clean-update.sh` found main at `6ba587e` and passed; M6b archived; `tools/check-transcripts.py` PASS with the 2 reviewed entries listed for the owner's approval |
+| 2026-10-25T02:13:03Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session evening-1024 starts; banner `status: OK`. 02:13:28Z: `tools/spec-setup.sh`, banner `status: OK`; day-1024's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written. `config/claude/spec.json` changes in this session (a deny rule added); the running session keeps the old settings, so its banner would show a mismatch until it restarts |
 
 ## Model cutoffs
 
