@@ -970,8 +970,8 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
 
 ### ARP: the arpeggiator (firmware side, after M8)
 - Status 2026-10-25 (session ARP, firmware side, on the owner's Mac,
-  unattended): built in one pull request (ARP), on #131 (PRESETS stops
-  at the ends) and #130 (fwtest 0.6.0); docs/ARP-PROPOSAL.md with the
+  unattended): built in pull request #132, on #131 (PRESETS stops at
+  the ends) and #130 (fwtest 0.6.0); docs/ARP-PROPOSAL.md with the
   owner's answers (#128), docs/prompts/ARP.md; docs/DESIGN-NOTES.md,
   "ARP", has the details and the choices the proposal left open.
   - **What it does:** six modes (UP, DOWN, UP/DOWN, ORDER, RANDOM with a
@@ -1002,8 +1002,8 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   - **Costs:** code 45 060 bytes (+8.5 KiB), static RAM 214 332, stack
     576 (M8's budgets); steady state 1 880 a block (+0.75%), loaded
     109 459 (+0.7%); the heaviest input with CHORD at its fastest: no
-    underrun. With the presets (#126) the code passes M8's 48 KiB: a
-    budget pull request of its own comes between ARP and #126.
+    underrun. With the presets (#126) the code passes M8's 48 KiB: #133
+    (ARP's budgets, code 56 KiB) comes between #132 and #126.
   - **Next: M9, the app release** (docs/M9-PLAN.md), then SEQ, then FX.
 
 ## Risks
