@@ -75,10 +75,12 @@ cmd_build() {
 }
 
 # The image's size in bytes, from the symbols firmware/app.ld defines:
-# code (code and constants, in the image), data (initialised data: in the
-# image and copied to RAM), bss (zeroed RAM, the beacon included), image
-# (the raw image's length), stack (reserved at the top of RAM, both
-# stacks) and irq_stack (the lower part of it: the interrupt stack).
+# code (code and constants, in the image, wherever they run), data
+# (initialised data: in the image and copied to RAM), bss (zeroed RAM, the
+# beacon included), image (the raw image's length), stack (reserved at the
+# top of RAM, both stacks), irq_stack (the lower part of it: the interrupt
+# stack) and, since M7, ram_code (the part of code copied to RAM and run
+# there, which takes RAM as data does).
 write_size() {
     sym() { nm "$1" | awk -v s="$2" '$3 == s { print $1 }'; }
     hex() { printf '%d' "0x$1"; }
@@ -88,8 +90,10 @@ write_size() {
     bss=$(( $(hex "$(sym "$1" __bss_end)") - $(hex "$(sym "$1" __bss_start)") ))
     stack=$(( $(hex "$(sym "$1" __stack_top)") - $(hex "$(sym "$1" __stack_limit)") ))
     irq=$(( $(hex "$(sym "$1" __irq_stack_top)") - $(hex "$(sym "$1" __stack_limit)") ))
-    printf 'code %d\ndata %d\nbss %d\nimage %d\nstack %d\nirq_stack %d\n' \
-        $((data_load - origin)) "$data" "$bss" $((data_load - origin + data)) "$stack" "$irq"
+    ram_code=$(( $(hex "$(sym "$1" __ram_code_end)") - $(hex "$(sym "$1" __ram_code_start)") ))
+    printf 'code %d\ndata %d\nbss %d\nimage %d\nstack %d\nirq_stack %d\nram_code %d\n' \
+        $((data_load - origin + ram_code)) $((data - ram_code)) "$bss" $((data_load - origin + data)) \
+        "$stack" "$irq" "$ram_code"
 }
 
 # The Plaits demo's own sources and the vendored Plaits (M4b,

@@ -77,6 +77,10 @@ the suite through tools/fwtest (the pinned image), and then checks:
   script): from input_led to the scan first driving that LED, within
   LED_SHOW_MS (one scan).
 
+- since M7, the store's cases (R-STORE-1 to R-STORE-9): runs chained
+  through the flash fwtest saves, by tools/store_suite.py after the
+  suite (its docstring says what each checks);
+
 - since M5, the FM engine (tests/fw/scripts/fm*.txt; R-FM-*; the engine's
   record follows the audio record; the test patches' values come from
   tools/fm_patch.py): fmbessel, test patch 1's sidebands against
@@ -118,6 +122,7 @@ import audio_analysis as aa  # noqa: E402  (tools/, our own)
 import fm_patch  # noqa: E402  (tools/, our own, since M5)
 import midi_model  # noqa: E402  (tools/, our own, since M6a)
 import midi_scripts  # noqa: E402  (tools/, our own, since M6a)
+import store_suite  # noqa: E402  (tools/, our own, since M7)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SUITE = "tests/fw/boot.suite"
@@ -128,7 +133,8 @@ TEST_BUILDS = {"test-fault": "SB_TEST_FAULT", "test-stray": "SB_TEST_STRAY",
                "test-leds": "SB_TEST_LEDS", "test-ledshow": "SB_TEST_LED_SHOW",
                "test-underrun": "SB_TEST_UNDERRUN", "test-velocity": "SB_TEST_VELOCITY",
                "test-midich": "SB_TEST_MIDI_CHANNEL", "test-midithru": "SB_TEST_MIDI_THRU",
-               "test-midiburst": "SB_TEST_MIDI_BURST"}
+               "test-midiburst": "SB_TEST_MIDI_BURST", "test-storecut": "SB_TEST_STORE_CUT",
+               "test-storebusy": "SB_TEST_STORE_BUSY", "test-storewipe": "SB_TEST_STORE_WIPE"}
 # Each case's expected outcome (the suite says the same; checked twice).
 EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "completed",
           "screen": "completed", "flood": "completed", "fault": "halt", "stray": "halt",
@@ -2197,6 +2203,12 @@ def main():
         problems += more
         if lines:
             print("\n".join(lines))
+
+    # Since M7, the store's cases: chained runs (tools/store_suite.py).
+    with open(os.path.join(ROOT, IMAGE), "rb") as f:
+        image_len = len(f.read())
+    more, _ = store_suite.run(sys.modules[__name__], out, image_len)
+    problems += more
 
     for prob in problems:
         print("FAIL: " + prob)

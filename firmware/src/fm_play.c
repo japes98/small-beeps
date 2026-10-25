@@ -127,7 +127,15 @@ struct control {
 };
 
 static struct control ctl[FM_VOICES];
-static struct patch patches[FM_PATCHES];
+static struct patch patches[FM_PROGRAMS];
+/* The user slots' patches as bytes, and which slots hold one (since M7). */
+static u8 user_raw[FM_USER_SLOTS][FM_PATCH_BYTES];
+static u32 user_used;
+volatile u32 fm_saved_seq[FM_USER_SLOTS], fm_saved_reset[FM_USER_SLOTS];
+volatile u32 fm_reset_seq;
+/* When SAVE and HOME were both first held (sb_audio.blocks), or none. */
+#define NOT_ARMED 0xFFFFFFFFu
+static u32 reset_armed = NOT_ARMED;
 static u32 patch_now, algorithm_now, mono, started;
 static u32 sounding;        /* voices not idle */
 static int octave, mono_stack[16];
@@ -641,12 +649,111 @@ static int clamp(int v, int lo, int hi)
     return v < lo ? lo : v > hi ? hi : v;
 }
 
+/* --- The user slots (M7) --------------------------------------------- */
+static u32 program_ok(u32 n)
+{
+    return n < FM_PATCHES || (n < FM_PROGRAMS && (user_used >> (n - FM_PATCHES) & 1u));
+}
+
+/* delta programs on from n, over the programs there are, round the ends. */
+static u32 program_step(u32 n, int delta)
+{
+    while (delta) {
+        int d = delta > 0 ? 1 : -1;
+        do
+            n = (n + FM_PROGRAMS + (u32)d) % FM_PROGRAMS;
+        while (!program_ok(n));
+        delta -= d;
+    }
+    return n;
+}
+
+static int user_put(u32 slot, const u8 *b)
+{
+    u32 i;
+
+    if (slot >= FM_USER_SLOTS || !fm_patch_valid(b))
+        return 0;
+    for (i = 0; i < FM_PATCH_BYTES; i++)
+        user_raw[slot][i] = b[i];
+    patch_parse(&patches[FM_PATCHES + slot], user_raw[slot]);
+    user_used |= 1u << slot;
+    return 1;
+}
+
+int fm_user_set(u32 slot, const u8 *patch)
+{
+    return user_put(slot, patch);
+}
+
+const u8 *fm_user_patch(u32 slot)
+{
+    return user_raw[slot];
+}
+
 static void select_patch(u32 n)
 {
     patch_now = n;
     algorithm_now = patches[n].algorithm;
     mono = patches[n].mono;
     sb_fm.patch = n;
+}
+
+int fm_program_set(u32 n)
+{
+    if (!program_ok(n))
+        return 0;
+    select_patch(n);
+    panel_program = n;
+    return 1;
+}
+
+/* SAVE held with a key (M7): the patch playing now, with the algorithm
+ * and mode the panel set, to user slot `slot`, for main to write to the
+ * store. KNOB1 to KNOB4 stay offsets over it, as they are over every
+ * patch, and are not saved (docs/DESIGN-NOTES.md, M7, "The panel"). */
+static void save_to(u32 slot)
+{
+    const u8 *from = patch_now < FM_PATCHES ? fm_patches[patch_now] : user_raw[patch_now - FM_PATCHES];
+    u8 b[FM_PATCH_BYTES];
+    u32 i, sum;
+
+    for (i = 0; i < FM_PATCH_BYTES; i++)
+        b[i] = from[i];
+    b[FMP_ALGORITHM] = (u8)(algorithm_now + 1);
+    b[FMP_FLAGS] = (u8)(mono ? 1 : 0);
+    sum = fm_patch_sum(b);
+    b[FM_SUM_OFFSET] = (u8)sum;
+    b[FM_SUM_OFFSET + 1] = (u8)(sum >> 8);
+    if (!user_put(slot, b))
+        return;
+    fm_saved_reset[slot] = fm_reset_seq;
+    fm_saved_seq[slot]++;
+    sb_work++;
+}
+
+/* SAVE and HOME held for FM_RESET_MS (M7): every user slot emptied, the
+ * settings' defaults, the first program; main writes the store's reset. */
+#define RESET_BLOCKS ((FM_RESET_MS * (AUDIO_RATE_NUM / 1000u) + AUDIO_FRAMES * AUDIO_RATE_DEN - 1) \
+                      / (AUDIO_FRAMES * AUDIO_RATE_DEN))
+#define RESET_DONE   (NOT_ARMED - 1u)
+
+static void reset_hold(void)
+{
+    if (!input_value(INPUT_SAVE) || !input_value(INPUT_HOME)) {
+        reset_armed = NOT_ARMED;
+    } else if (reset_armed == NOT_ARMED) {
+        reset_armed = sb_audio.blocks;
+    } else if (reset_armed != RESET_DONE && sb_audio.blocks - reset_armed >= RESET_BLOCKS) {
+        reset_armed = RESET_DONE;
+        all_off();
+        user_used = 0;
+        midi_settings_default(&midi_settings);
+        select_patch(0);
+        panel_program = 0;
+        fm_reset_seq++;
+        sb_work++;
+    }
 }
 
 /* KNOB1 to KNOB4 as the engine uses them (DESIGN-NOTES.md, M5, "The
@@ -839,8 +946,9 @@ static u32 midi_message(const struct midi_msg *m)
         again = controller(m->data[0], m->data[1]);
         break;
     case MIDI_PROGRAM:
-        /* A program selects a test patch; one past them is ignored. */
-        if (m->data[0] < FM_PATCHES) {
+        /* A program selects a test patch or (since M7) a user slot that
+         * holds a patch; any other is ignored. */
+        if (program_ok(m->data[0])) {
             all_off();
             select_patch(m->data[0]);
             sb_midi.program = m->data[0];
@@ -878,6 +986,14 @@ static void events(void)
         if (e.control >= INPUT_KEY1 && e.control <= INPUT_KEY27) {
             u32 k = e.control - INPUT_KEY1, velocity = FM_KEY_VELOCITY;
             if (e.kind == INPUT_PRESS) {
+                /* SAVE held (M7): KEY1 to KEY16 save to their slot, and no
+                 * key plays a note. */
+                if (input_value(INPUT_SAVE)) {
+                    if (k < FM_USER_SLOTS)
+                        save_to(k);
+                    key_note[k] = -1;
+                    continue;
+                }
                 /* SEL held: MONO and POLY switch the mode (and play no
                  * note); MIDI out sends the mode message (M6b). */
                 if (input_value(INPUT_SEL) && (e.control == INPUT_KEY_MONO || e.control == INPUT_KEY_POLY)) {
@@ -918,7 +1034,7 @@ static void events(void)
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_PLAY) {
             tone_state = tone_state == TONE_OFF || tone_state == TONE_RELEASE ? TONE_ATTACK : TONE_RELEASE;
         } else if (e.kind == INPUT_TURN && e.control == INPUT_PRESETS) {
-            panel_program = ((local ? patch_now : panel_program) + FM_PATCHES * 16 + (u32)(int)e.value) % FM_PATCHES;
+            panel_program = program_step(local ? patch_now : panel_program, (int)e.value);
             if (local) {
                 all_off();
                 select_patch(panel_program);
@@ -954,6 +1070,7 @@ static void events(void)
         sb_midi.expression = expression;
         sb_midi.pedal = pedal;
     }
+    reset_hold();
     if (any)
         knobs();
     /* What this block queued goes out at once if the wire is free. */

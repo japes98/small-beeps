@@ -150,6 +150,9 @@ void screen_beat_all(void);
 /* panel.c: the live panel screen (M3): takes every queued input event,
  * lights the LEDs to match and, from the first one on, shows the panel. */
 void panel_serve(void);
+/* Since M7: a message on the event line, with a number after it unless
+ * it is 0 (the store's results). */
+void panel_message(const char *text, u32 number);
 
 /* crt0.S */
 u32 sb_clock_measure(volatile u32 *count);
@@ -185,6 +188,10 @@ void sb_test_leds(void);
 #endif
 #if defined(SB_TEST_UNDERRUN)
 void sb_test_late_block(s32 *out, u32 frames);
+#endif
+#if defined(SB_TEST_STORE_WIPE)
+/* Erases the image's own flash once main runs from RAM (M7). */
+void sb_test_store_wipe(void);
 #endif
 #if defined(SB_TEST_MIDI_BURST)
 /* Queues a burst of MIDI out in one block (M6b). */

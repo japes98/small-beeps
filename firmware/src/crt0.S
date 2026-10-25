@@ -43,7 +43,8 @@ _start:
  * address in rets, so nothing below sp is in use. */
 	.set	SB_STACK_FILL, 0x4B415453	/* "STAK"; also in sb.h */
 
-	.text
+	/* Runs before the copy to RAM, so it stays in the window (app.ld). */
+	.section .boot.text,"ax",@progbits
 	.globl	sb_stack_fill
 	.type	sb_stack_fill,@function
 sb_stack_fill:
@@ -57,6 +58,8 @@ sb_stack_fill:
 .Lfilled:
 	rts
 	.size	sb_stack_fill, .-sb_stack_fill
+
+	.text
 
 /* Measures the core clock against the 24 MHz time base (HW-13): reads
  * TIMER4's count (its address in r0, from C), runs exactly
