@@ -12,8 +12,10 @@
  *   and constant to RAM with the initial data, so nothing reads the window
  *   once main runs, and the flash may be busy erasing or programming
  *   without anything waiting on it (docs/DESIGN-NOTES.md, M7; HW-79). The
- *   store (store.h) takes chip offsets 0xEA000 to 0xFBFFF: the image must
- *   end before them.
+ *   image ends before chip offset 0xEA000, where the stock firmware's
+ *   user patch region begins (HW-80), so it never overwrites the stock
+ *   firmware's saved patches; since M8a the store (store.h) takes chip
+ *   offsets 0xFC000 to 0xFEFFF, past that region.
  * RAM: main RAM is 512 KiB from 0x01C00000 on the chip (HW-6). Its top,
  *   from 0x01C7FC00, is not part of RAM here: the block r0 points to at
  *   entry (HW-4) and the SDK's boot and update area are left alone, and
@@ -28,13 +30,15 @@
 OUTPUT_ARCH(pi32v2)
 ENTRY(_start)
 
-/* The store (store.h) begins at chip offset 0xEA000, which the window
- * shows at 0x02000000 + 0xEA000 - 0x4000 in fwtest (HW-5). */
-STORE_BASE = 0xEA000;
+/* The store (store.h) begins at chip offset 0xFC000, which the window
+ * shows at 0x02000000 + 0xFC000 - 0x4000 in fwtest (HW-5). The stock
+ * user patch region begins at chip offset 0xEA000 (HW-80). */
+STORE_BASE = 0xFC000;
+USER_REGION = 0xEA000;
 
 MEMORY
 {
-    IMAGE (rx)  : ORIGIN = 0x02000000, LENGTH = 0xEA000 - 0x4000
+    IMAGE (rx)  : ORIGIN = 0x02000000, LENGTH = 0xEA000 - 0x4000   /* USER_REGION - 0x4000 */
     RAM   (rwx) : ORIGIN = 0x01C00000, LENGTH = 0x0007FC00
 }
 
@@ -106,7 +110,8 @@ SECTIONS
     ASSERT(__irq_stack_top % 8 == 0, "the interrupt stack must be 8-byte aligned")
     ASSERT(__vectors == __stack_top + 0x200, "the vector table is HW-18's, above the reserved area")
     ASSERT(sb_irq_stubs_end - sb_irq_stubs == 128 * 2, "crt0.S's stubs must be 2 bytes each")
-    ASSERT(STORE_BASE == 0xEA000, "the store begins at store.h's STORE_BASE")
+    ASSERT(STORE_BASE == 0xFC000, "the store begins at store.h's STORE_BASE")
+    ASSERT(STORE_BASE >= USER_REGION + 0x12000, "the store keeps out of the stock user patch region")
 
     /* Debug information: kept in the ELF, never loaded. Every section is
      * placed by name (the build links with --orphan-handling=error). */
