@@ -1,0 +1,7 @@
+code 35508
+data 80
+bss 167804
+image 35588
+stack 4096
+irq_stack 2048
+ram_code 35388

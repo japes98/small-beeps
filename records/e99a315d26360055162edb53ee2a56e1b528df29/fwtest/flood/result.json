@@ -1,0 +1,38 @@
+{
+  "fwtest": {
+    "version": "0.5.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "test-flood.bin",
+    "bytes": 35476,
+    "sha256": "2a811427f527a975bfc4fc22079ea7fc2a16ab6f832bd1c2d470a1fdd77a9bdc"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "1500.000",
+    "instructions": {
+      "core0": 241393557,
+      "core1": 707656
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "lcd-end.png",
+        "bytes": 173118,
+        "sha256": "3c8181d71869fb47f5423f677a73bc7adf835d05e12d82ac2727931876961d5d"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "2088306f779b896d379bb0d1a462633b37a106d4d5b999327953cea2dca6cf1b"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

@@ -1,0 +1,11 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range a92e85ecf60d45f0cbed73152081ef41e8d06972..e99a315d26360055162edb53ee2a56e1b528df29
+OK     0b7832be226f firmware: the live spectrum on the patch view (M8a, part 5)
+EXEMPT 6d2b1e984527 (merge) config: merge M8's loaded budget for the spectrum into part 5 (M8a)
+OK     ece3c6cd8c06 firmware: the spectrum captures only what it transforms, in 2 KiB
+OK     a86cd198c402 docs: the spectrum's costs against the proposal's figures
+EXEMPT ffcb864ee18d (merge) docs: merge m8a/env into m8a/spectrum (M8a)
+OK     a639778d025d tests: the goldens after the spectrum's capture on demand
+EXEMPT e99a315d2636 (merge) Merge pull request #123 from japes98/m8a/spectrum
+7 commit(s) checked: PASS
+
+exit status 0

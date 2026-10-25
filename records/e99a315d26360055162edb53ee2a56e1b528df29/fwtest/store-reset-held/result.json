@@ -1,0 +1,79 @@
+{
+  "fwtest": {
+    "version": "0.5.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 35588,
+    "sha256": "0783ee2a4905109366b08e878c887195fb972d5d4bc03d546ed30eec2b068268"
+  },
+  "script_sha256": "4c99b3910e8738b58319fded89717ea196702476a664967af07305b959c2cb7b",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "3000.159",
+    "instructions": {
+      "core0": 5481934,
+      "core1": 16531
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "ec985f8d7fd5be2adc40cb2b57f42402426e2f2cf26260618505ea452529e25d"
+      },
+      {
+        "name": "lcd-2600ms.png",
+        "bytes": 173118,
+        "sha256": "5936642336118115cbf415cfbe0ef219146a1e2f93a96f6db2b7171cda5b9a5d"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "bab4e509efe1255bef4adf9a1d095445339da30271096e6ec8d1ecc1f8cffe30"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "2e9021494933b40d7abd0a72a85b7001708e332db5f5c07f420886d5ab4c9a8b"
+      },
+      {
+        "name": "ram-01c00590-40-250ms.bin",
+        "bytes": 64,
+        "sha256": "068d9234557873060f2c7b1d45aee12dfb8bc5d765afd848bfcbf082a809694d"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "79b0196a3c63a7b7f96c4f7f9ed986791b481fdcea9adb98c103d4ab7a896e9b"
+      },
+      {
+        "name": "ram-01c005d0-164-end.bin",
+        "bytes": 356,
+        "sha256": "548757c304868499670f44704c80fd8433da7e185e3747abd105892af58adc3c"
+      },
+      {
+        "name": "ram-01c00780-f0-end.bin",
+        "bytes": 240,
+        "sha256": "023ca59e94ff273f11a606db12a7f95bee081eef94169e2dde19d5e190745a26"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "lcd-2600ms.png",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 0
+}

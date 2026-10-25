@@ -1,0 +1,5 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-tracked.py no-toolchain
+721 tracked files checked for toolchain parts and binaries
+no-toolchain: PASS
+
+exit status 0

@@ -1,0 +1,33 @@
+{
+  "fwtest": {
+    "version": "0.5.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "test-ledshow.bin",
+    "bytes": 35640,
+    "sha256": "8b02e8593c2557bc890ca0190d06ca0682d1832c6db94cb85f59c9a5c0a6fcd5"
+  },
+  "script_sha256": "6a7d851e29c32d0f5cfd28747f8e711b89c53ec616b6d76421916e0cb2b60e29",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "2400.129",
+    "instructions": {
+      "core0": 12443013,
+      "core1": 2832944
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "ram-01c00060-4f0-end.bin",
+        "bytes": 1264,
+        "sha256": "374dbde5e9a1e6f3e460a3b261422ab4c85f7ed513770bf53a65c1e0ea18b0ec"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

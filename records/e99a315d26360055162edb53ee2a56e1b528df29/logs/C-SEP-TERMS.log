@@ -1,0 +1,188 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-emulator-terms.py
+doors accepted as on origin/main (e99a315d2636): 44 terms
+DOOR PROVENANCE.md:69 term d1a537582c285328: in the reviewed doors on main
+DOOR PROVENANCE.md:70 term d1a537582c285328: in the reviewed doors on main
+DOOR PROVENANCE.md:70 term f897aded4c2954ad: in the reviewed doors on main
+REVIEWED audit/targets.json:1638 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:2630 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:2631 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:2795 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:2796 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:2798 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:2804 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5184 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5185 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5187 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5927 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5928 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5930 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:5936 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:6174 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:6175 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:6177 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:6183 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:7432 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:7433 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:7435 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:7441 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:8367 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:8368 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+REVIEWED audit/targets.json:8370 term f0728a91274a90cb: Part of public GitHub repository names in audit/targets.json (the name of another M-VAVE keyboard, which some FM-1 firmwares are ported to), written there by tools/audit-discover.py from repository metadata; not taken from the emulator.
+DOOR docs/DESIGN-NOTES.md:39 term 99657bb7826921ed: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:43 term 744ecd8ac4b5da96: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:92 term 8d3094fa2e9da0b5: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:95 term 99657bb7826921ed: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:156 term 99657bb7826921ed: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:170 term 99657bb7826921ed: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:339 term 744ecd8ac4b5da96: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:530 term 52660849a75e5520: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:658 term cec236a1fa64b323: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:693 term cec236a1fa64b323: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:1564 term d8ede2658e0bceb5: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:1566 term 76370ae20734a8d3: in the reviewed doors on main
+REVIEWED docs/DESIGN-NOTES.md:1953 term 45732e3d51d5cc39: The firmware side's own name (M7) for the part of its code that the linker places in RAM and the start-up copies there: the linker symbols around it in firmware/app.ld, the line tools/build.sh adds to app.size and tools/perf.py reads, and the docs and commit messages that describe them. Chosen as the plain description of what it is; not taken from the emulator, which the firmware side never reads.
+DOOR docs/DESIGN-NOTES.md:1957 term d1a537582c285328: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:2082 term d1a537582c285328: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:2084 term f897aded4c2954ad: in the reviewed doors on main
+DOOR docs/DESIGN-NOTES.md:2087 term d1a537582c285328: in the reviewed doors on main
+DOOR docs/HARDWARE-SPEC.md:411 term eab5cb44eb7b01be: in the reviewed doors on main
+DOOR docs/HARDWARE-SPEC.md:414 term 52660849a75e5520: in the reviewed doors on main
+DOOR docs/HARDWARE-SPEC.md:415 term eab5cb44eb7b01be: in the reviewed doors on main
+DOOR docs/HARDWARE-SPEC.md:609 term cec236a1fa64b323: in the reviewed doors on main
+DOOR docs/HARDWARE-SPEC.md:923 term 8350af171db360ad: in the reviewed doors on main
+DOOR docs/HARDWARE-SPEC.md:932 term 8350af171db360ad: in the reviewed doors on main
+DOOR docs/HARDWARE-SPEC.md:947 term 8350af171db360ad: in the reviewed doors on main
+DOOR docs/HARNESS.md:311 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR docs/PLAN.md:141 term 99657bb7826921ed: in the reviewed doors on main
+DOOR docs/PLAN.md:468 term 52660849a75e5520: in the reviewed doors on main
+DOOR docs/PLAN.md:854 term d1a537582c285328: in the reviewed doors on main
+DOOR docs/PLAN.md:1025 term f897aded4c2954ad: in the reviewed doors on main
+DOOR docs/REQUIREMENTS.md:74 term 744ecd8ac4b5da96: in the reviewed doors on main
+DOOR docs/REQUIREMENTS.md:128 term d1a537582c285328: in the reviewed doors on main
+DOOR docs/REQUIREMENTS.md:128 term f897aded4c2954ad: in the reviewed doors on main
+DOOR docs/STORE-FORMAT.md:17 term f897aded4c2954ad: in the reviewed doors on main
+DOOR docs/STORE-FORMAT.md:19 term d1a537582c285328: in the reviewed doors on main
+DOOR docs/reviews/M0c-spec-review.md:39 term cec236a1fa64b323: in the reviewed doors on main
+DOOR docs/reviews/M0c-spec-review.md:58 term eab5cb44eb7b01be: in the reviewed doors on main
+DOOR firmware/app.ld:15 term d1a537582c285328: in the reviewed doors on main
+DOOR firmware/app.ld:18 term f897aded4c2954ad: in the reviewed doors on main
+DOOR firmware/app.ld:19 term 99657bb7826921ed: in the reviewed doors on main
+DOOR firmware/app.ld:22 term 744ecd8ac4b5da96: in the reviewed doors on main
+DOOR firmware/app.ld:33 term f897aded4c2954ad: in the reviewed doors on main
+DOOR firmware/app.ld:34 term f897aded4c2954ad: in the reviewed doors on main
+DOOR firmware/app.ld:35 term d1a537582c285328: in the reviewed doors on main
+DOOR firmware/app.ld:36 term f897aded4c2954ad: in the reviewed doors on main
+DOOR firmware/app.ld:37 term d1a537582c285328: in the reviewed doors on main
+DOOR firmware/app.ld:41 term d1a537582c285328: in the reviewed doors on main
+DOOR firmware/app.ld:42 term 99657bb7826921ed: in the reviewed doors on main
+DOOR firmware/app.ld:99 term 744ecd8ac4b5da96: in the reviewed doors on main
+DOOR firmware/app.ld:101 term 99657bb7826921ed: in the reviewed doors on main
+DOOR firmware/app.ld:115 term f897aded4c2954ad: in the reviewed doors on main
+DOOR firmware/src/fm.h:14 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR firmware/src/fm.h:191 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR firmware/src/fm.h:200 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR firmware/src/fm_play.c:80 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR firmware/src/gfx.c:7 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/input.c:29 term cec236a1fa64b323: in the reviewed doors on main
+DOOR firmware/src/sb.h:126 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/sb.h:129 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:14 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:15 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:16 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:17 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:18 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:19 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:20 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:21 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:22 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:41 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:85 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:86 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/screen.c:89 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/store.h:40 term f897aded4c2954ad: in the reviewed doors on main
+DOOR firmware/src/views.c:30 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/views.c:31 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/views.c:32 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/views.c:33 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/views.c:34 term 52660849a75e5520: in the reviewed doors on main
+DOOR firmware/src/views.c:35 term 52660849a75e5520: in the reviewed doors on main
+DOOR tests/fw/boot.suite:78 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:78 term 744ecd8ac4b5da96: in the reviewed doors on main
+DOOR tests/fw/boot.suite:79 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:80 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:81 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:82 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:83 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:84 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:86 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:87 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:88 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:89 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:90 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:92 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:93 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:94 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:97 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:98 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:99 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:100 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:101 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:102 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:103 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:109 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:110 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:111 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:112 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:113 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:114 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:115 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:116 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:117 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:136 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:137 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:138 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:139 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:140 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:141 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:148 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:149 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:150 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:151 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:152 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/fw/boot.suite:153 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/test_audio_analysis.py:107 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tests/test_fw_suite.py:103 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tests/test_fw_suite.py:110 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tests/test_fw_suite.py:396 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tests/test_perf.py:202 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tests/test_perf.py:206 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tests/test_perf.py:426 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tests/test_plaits_bench.py:96 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tests/test_store.py:49 term d1a537582c285328: in the reviewed doors on main
+DOOR tests/test_store.py:49 term f897aded4c2954ad: in the reviewed doors on main
+REVIEWED tools/build.sh:82 term 45732e3d51d5cc39: The firmware side's own name (M7) for the part of its code that the linker places in RAM and the start-up copies there: the linker symbols around it in firmware/app.ld, the line tools/build.sh adds to app.size and tools/perf.py reads, and the docs and commit messages that describe them. Chosen as the plain description of what it is; not taken from the emulator, which the firmware side never reads.
+REVIEWED tools/build.sh:93 term 45732e3d51d5cc39: The firmware side's own name (M7) for the part of its code that the linker places in RAM and the start-up copies there: the linker symbols around it in firmware/app.ld, the line tools/build.sh adds to app.size and tools/perf.py reads, and the docs and commit messages that describe them. Chosen as the plain description of what it is; not taken from the emulator, which the firmware side never reads.
+REVIEWED tools/build.sh:95 term 45732e3d51d5cc39: The firmware side's own name (M7) for the part of its code that the linker places in RAM and the start-up copies there: the linker symbols around it in firmware/app.ld, the line tools/build.sh adds to app.size and tools/perf.py reads, and the docs and commit messages that describe them. Chosen as the plain description of what it is; not taken from the emulator, which the firmware side never reads.
+REVIEWED tools/build.sh:96 term 45732e3d51d5cc39: The firmware side's own name (M7) for the part of its code that the linker places in RAM and the start-up copies there: the linker symbols around it in firmware/app.ld, the line tools/build.sh adds to app.size and tools/perf.py reads, and the docs and commit messages that describe them. Chosen as the plain description of what it is; not taken from the emulator, which the firmware side never reads.
+DOOR tools/fw-suite.py:445 term 52660849a75e5520: in the reviewed doors on main
+DOOR tools/fw-suite.py:1132 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tools/fw-suite.py:1134 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tools/fw-suite.py:1136 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tools/fw-suite.py:1170 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tools/fw-suite.py:1204 term 76370ae20734a8d3: in the reviewed doors on main
+REVIEWED tools/perf.py:35 term 45732e3d51d5cc39: The firmware side's own name (M7) for the part of its code that the linker places in RAM and the start-up copies there: the linker symbols around it in firmware/app.ld, the line tools/build.sh adds to app.size and tools/perf.py reads, and the docs and commit messages that describe them. Chosen as the plain description of what it is; not taken from the emulator, which the firmware side never reads.
+DOOR tools/perf.py:118 term 99657bb7826921ed: in the reviewed doors on main
+REVIEWED tools/perf.py:282 term 45732e3d51d5cc39: The firmware side's own name (M7) for the part of its code that the linker places in RAM and the start-up copies there: the linker symbols around it in firmware/app.ld, the line tools/build.sh adds to app.size and tools/perf.py reads, and the docs and commit messages that describe them. Chosen as the plain description of what it is; not taken from the emulator, which the firmware side never reads.
+REVIEWED tools/perf.py:283 term 45732e3d51d5cc39: The firmware side's own name (M7) for the part of its code that the linker places in RAM and the start-up copies there: the linker symbols around it in firmware/app.ld, the line tools/build.sh adds to app.size and tools/perf.py reads, and the docs and commit messages that describe them. Chosen as the plain description of what it is; not taken from the emulator, which the firmware side never reads.
+DOOR tools/plaits-bench.py:340 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tools/plaits-bench.py:465 term 76370ae20734a8d3: in the reviewed doors on main
+DOOR tools/store.py:24 term f897aded4c2954ad: in the reviewed doors on main
+DOOR tools/store.py:26 term d1a537582c285328: in the reviewed doors on main
+DOOR tools/store.py:26 term f897aded4c2954ad: in the reviewed doors on main
+DOOR tools/store_suite.py:75 term 99657bb7826921ed: in the reviewed doors on main
+DOOR tools/store_suite.py:79 term 76370ae20734a8d3: in the reviewed doors on main
+4478 emulator-only terms; 224 files, 7 commit messages, 0 pull request texts scanned
+the Plaits list (vendor/plaits/, checksums verified) took 3 of the emulator's terms off the list
+emulator terms: PASS
+
+exit status 0
