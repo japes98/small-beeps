@@ -604,8 +604,10 @@ def clock_cases():
 
 
 def out_cases():
-    keys = ["100 midi c0 09", "300 key %d down" % key(1), "300 key %d down" % key(8),
-            "1300 key %d up" % key(1), "1300 key %d up" % key(8)]
+    # The two keys 10 ms apart: at the same time their order on MIDI out
+    # would be the scan's, which moves with the code's timing.
+    keys = ["100 midi c0 09", "300 key %d down" % key(1), "310 key %d down" % key(8),
+            "1300 key %d up" % key(1), "1310 key %d up" % key(8)]
 
     def check_keys(name, d):
         p = []
@@ -823,9 +825,11 @@ def run(image, out, only=None, write_golden=False):
         print("%-12s %s" % (c.name, "PASS" if not p else "FAIL"), flush=True)
         problems += p
     if write_golden:
+        # The runs written now replace theirs; the others' (--only) stay.
+        golden.update(sums)
+        golden["comment"] = "SHA-256 of each tools/arp_suite.py run's sound (wav_sha256)"
         with open(GOLDEN_SUMS, "w") as f:
-            json.dump({"comment": "SHA-256 of each tools/arp_suite.py run's sound (wav_sha256)", **sums}, f, indent=2,
-                      sort_keys=True)
+            json.dump(golden, f, indent=2, sort_keys=True)
             f.write("\n")
     return problems, lines
 
