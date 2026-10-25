@@ -2324,34 +2324,40 @@ patch on SAVE. `fm_play.c`, "The macros".
   narrow at the top: its tallest bar is its own (the spectrum case
   checks the test tone's 1 kHz lands there), and the Hann window's
   leakage falls 31 dB within 3 bins.
-- **Cost.** The engine copies a block's 64 samples into a ring only
-  while the patch view shows, and clears it once at rest. Main runs at
-  most a transform each 33 ms, as three parts, each within the drawing
-  budget: the window and the first four of seven stages; three more; the
-  split into 128 bins and the bars. The transform is of 256 real samples
-  as 128 complex ones (the even samples real, the odd imaginary) and a
-  split, half the butterflies of a 256-point complex transform; a
-  butterfly is 25 instructions. With the tone alone, a transform takes
-  about 3 300 time base ticks in all, interrupts included. Only the bars
-  that moved are redrawn, each as the column between its old height and
-  its new, and only the spectrum's 40 rows are sent (19 200 bytes; on
-  the chip's bus about a third of the time at 30 a second, as the
-  proposal said). With the bars down at rest it stops, and the next event
-  wakes it. RAM: 1 KiB for the transform, 512 bytes of ring and of
-  power, 1 KiB of tables made at the first transform.
-- **Under the heaviest input** (the loaded measure) the spectrum costs
-  more than its direct timing says: part 4 measured 105 721 instructions
-  a block; this part 110 309 (+4.3%). Built without the engine feeding
-  it, 104 648 (main's bookkeeping is lighter now: it skips everything
-  when the engine's state hasn't moved); feeding and transforming without
-  drawing, 109 757; the whole transform as one part instead of three,
-  110 157. So the transform adds about 5 100 a block at 28 transforms a
-  second, some 125 000 instructions each, where its own timing says
-  about 33 000 cycles. Not explained yet: one candidate is core 0's wait
-  for core 1 in the audio interrupt, which may lengthen when main is busy
-  (fwtest takes the cores in turns). The proposal's figure (about 650 a
-  block) holds for the transform's own work, not for this measure; the
-  loaded budget moves in its own pull request, and the owner is asked.
+- **Cost.** Before each transform main asks the engine for a capture:
+  the next 4 blocks' output (256 samples), or silence at rest; between
+  captures the engine copies nothing. Main runs at most a transform each
+  33 ms, as three parts, each within the drawing budget: the window and
+  the first four of seven stages; three more; the split into 128 bins
+  and the bars. The transform is of 256 real samples as 128 complex ones
+  (the even samples real, the odd imaginary) and a split, half the
+  butterflies of a 256-point complex transform; a butterfly is 25
+  instructions. Only the bars that moved are redrawn, each as the column
+  between its old height and its new, and only the spectrum's 40 rows
+  are sent (19 200 bytes; on the chip's bus about a third of the time at
+  30 a second, as the proposal said). At rest, with the bars down, it
+  makes one capture after each piece of new work (a note starting is
+  one) and nothing else.
+- **Against the proposal's figures.** RAM: 2 048 bytes (the capture 512,
+  the transform 1 024, the twiddles 512; the window and the bins' power
+  are computed as needed), the proposal's "about 2 KiB". CPU, with the
+  test tone alone (the spectrum case, core 0's instructions a block over
+  its steady tone, with and without the spectrum): 1 489 a block, about
+  2.3 times the proposal's 650; the proposal counted the transform
+  alone, at about 15 000 instructions, where this one, with the window,
+  the bars and their drawing, is about 32 000.
+- **Under the heaviest input** (the loaded measure) it costs more than
+  that: part 4 measured 105 721 instructions a block; this part 110 268
+  (+4.3%). Built without the spectrum, 104 648 (main's bookkeeping is
+  lighter now: it skips everything when the engine's state hasn't
+  moved); transforming without drawing, 109 757; the transform as one
+  part instead of three, 110 157; capturing only what a transform needs
+  rather than every block, 110 268. So under that input the spectrum
+  adds about 5 600 a block where the same work adds 1 489 with the tone
+  alone. Not explained yet: one candidate is core 0's wait for core 1 in
+  the audio interrupt, which may lengthen when main is busy (fwtest takes
+  the cores in turns). The loaded budget moves in its own pull request,
+  and the owner is asked.
 - **Waking.** The frames used to set the tick's wake directly, so a
   frame's own wake could replace the live parts' and main then slept
   until the next event: 9 transforms where 40 were due. Now every wake
