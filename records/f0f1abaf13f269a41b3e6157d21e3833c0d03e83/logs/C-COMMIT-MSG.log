@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 25345d7813522208eb1af19fe4ce4985144a1be8..f0f1abaf13f269a41b3e6157d21e3833c0d03e83
+OK     eb44dbab3dd8 docs: the ARP proposal, for the owner's review
+EXEMPT f0f1abaf13f2 (merge) Merge pull request #125 from japes98/m8a/arp-proposal
+2 commit(s) checked: PASS
+
+exit status 0
