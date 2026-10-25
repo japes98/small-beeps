@@ -1,8 +1,6 @@
 {
-  "clock": "3fe6c84e0023c3ba160acca272f5b8b8096503c5c6e1aaf529c8e868135dbd70",
   "clock-out": "df5ddb58eb2d8a2f917d92fd95ccd7fd7aa835b9cc5e08e8e087fc8623da1ff1",
   "comment": "SHA-256 of each tools/arp_suite.py run's sound (wav_sha256)",
-  "follow": "4ff61d166df11af7ead5d0100160c8b50a8e9c832553b97abe3400fdc7204011",
   "keys-out": "df5ddb58eb2d8a2f917d92fd95ccd7fd7aa835b9cc5e08e8e087fc8623da1ff1",
   "local-off": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "mode-chord": "c422c5a8c48c0f8203a2bdf36460323dec6f45f85c63df57ed89a42280c1f2f9",
