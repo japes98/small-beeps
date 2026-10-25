@@ -75,6 +75,9 @@ struct sb_ui_record {
     u32 live_max;      /* the longest */
     u32 item_max_part; /* which part that was (views.c's ITEM_* bit) */
     u32 reserved;
+    /* Written by the engine (M8a's macros): BRIGHT, COLOR, SHAPE, MOTION
+     * now, 0 with "Knobs: direct". */
+    s32 macro[4];
 };
 extern volatile struct sb_ui_record sb_ui;
 

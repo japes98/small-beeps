@@ -149,7 +149,7 @@ EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "complete
           "midichan": "completed", "midipanel": "completed", "midilat": "completed",
           "midiout": "completed", "midiround": "completed", "midithru": "completed",
           "midilocal": "completed", "midiburst": "completed", "midioutlat": "completed",
-          "views": "completed", "viewsload": "completed"}
+          "views": "completed", "viewsload": "completed", "macros": "completed"}
 
 MARKER = 0x44304253        # "SB0D", firmware/src/sb.h
 TICKS_PER_MS = 24000       # HW-13
@@ -2140,10 +2140,10 @@ AUDIO_CHECKS.update(MIDI_CHECKS)
 
 # --- The screens (M8a) ---------------------------------------------------
 
-UI_ADDR, UI_LEN = 0x01C00870, 0x40
+UI_ADDR, UI_LEN = 0x01C00870, 0x50
 UI_MARKER = 0x38495553
 UI_FIELDS = ("marker screen seq shows frames items rows_sent item_max block_max over leds messages"
-             " live live_max item_max_part reserved").split()
+             " live live_max item_max_part reserved macro0 macro1 macro2 macro3").split()
 UI_PATCH, UI_EDIT, UI_ENV, UI_SETTINGS = range(4)
 DRAW_TICKS = 4352          # views.c: drawing a block may take before no more parts start
 SCREEN_BUTTON = {UI_PATCH: 8, UI_EDIT: 6, UI_ENV: 4, UI_SETTINGS: 7}   # HOME, EDIT, ENV, GLO
@@ -2153,7 +2153,9 @@ OP1_KEY = 15               # KEY2, the raised key labelled OP1
 def ui_record(case_dir, when="end"):
     name = "ram-%08x-%x-%s.bin" % (UI_ADDR, UI_LEN, when if when == "end" else "%dms" % when)
     with open(os.path.join(case_dir, name), "rb") as f:
-        return dict(zip(UI_FIELDS, struct.unpack("<%dI" % len(UI_FIELDS), f.read()[:UI_LEN])))
+        u = dict(zip(UI_FIELDS, struct.unpack("<%dI" % len(UI_FIELDS), f.read()[:UI_LEN])))
+    u["macros"] = [m - (1 << 32) if m >= 1 << 31 else m for m in (u.pop("macro%d" % k) for k in range(4))]
+    return u
 
 
 def check_drawing(name, u, budget=True):
@@ -2246,9 +2248,105 @@ def check_viewsload(case_dir):
     return problems, lines
 
 
+def check_macros(case_dir):
+    """The macros (tests/fw/scripts/macros.txt; R-UI-6, R-UI-7): each one's
+    effect on the same note, measured; back at 0 the note exactly as
+    before; their controllers out as the panel turned them, and one in."""
+    problems, lines, a, console, wav = check_audio_common("macros", case_dir)
+    if wav is None:
+        return problems + ["macros: no audio"], lines
+    x, ends = wav
+    f0 = aa.note_hz(70)
+    rate = aa.RATE
+
+    def onset(ms):
+        i = int(ms * rate / 1000)
+        while i < len(x) and not x[i]:
+            i += 1
+        return i
+
+    def seg(ms, n=8192):
+        i = onset(ms)
+        return x[i + 2048:i + 2048 + n]
+
+    bright = [aa.share_above(seg(t), 7.5 * f0) for t in (300, 900)]
+    color = [aa.inharmonicity(seg(t), f0) for t in (300, 1550)]
+    lines.append("  BRIGHT: the share above 7.5 f0 %.3f at 0, %.3f at +20" % tuple(bright))
+    lines.append("  COLOR: partials off the harmonics by %.3f f0 at 0, %.3f at +32" % tuple(color))
+    if not bright[1] > bright[0] + 0.1:
+        problems.append("macros: BRIGHT +20 did not raise the upper partials (%.3f, %.3f)" % tuple(bright))
+    if not (color[0] < 0.03 and color[1] > 0.1):
+        problems.append("macros: COLOR +32 did not move the partials off the harmonics (%.3f, %.3f)" % tuple(color))
+    a0, d0 = onset(300), onset(2200)
+    n = int(0.25 * rate)
+    if x[a0:a0 + n] != x[d0:d0 + n]:
+        problems.append("macros: with every macro back at 0 the note is not the same as before")
+    else:
+        lines.append("  back at 0: the note is the first one again, sample for sample (%d samples)" % n)
+    att = [aa.attack_ms(x[:onset(t) + int(0.9 * rate)], onset(t)) for t in (2650, 3550, 5000)]
+    rel = [aa.release_ms(x, int(t * rate / 1000) + int(0.004 * rate)) for t in (2950, 3850, 6400)]
+    lines.append("  SHAPE: attack to -3 dB %.1f / %.1f / %.1f ms, release to -60 dB %.0f / %.0f / %.0f ms"
+                 " (0, -64, +64)" % tuple(att + rel))
+    if not (att[1] <= att[0] and att[2] > 300 and att[0] < 20):
+        problems.append("macros: SHAPE's attacks %s, expected -64 no slower than 0, +64 over 300 ms" % att)
+    if not (rel[1] < rel[0] < rel[2] and rel[2] > 1000):
+        problems.append("macros: SHAPE's releases %s, expected -64 < 0 < +64, over 1 s" % rel)
+    swing = [aa.pitch_swing_cents(x, onset(t) + int(0.05 * rate), onset(t) + int(0.28 * rate))
+             for t in (2650,)] + [aa.pitch_swing_cents(x, onset(9600) + int(0.05 * rate), onset(9600) + int(0.9 * rate))]
+    lines.append("  MOTION: the pitch swings %.1f cents at 0, %.1f at +64" % tuple(swing))
+    if not (swing[0] < 2 and swing[1] > 30):
+        problems.append("macros: MOTION +64 swings the pitch %.1f cents (at 0 %.1f): expected over 30" % (swing[1], swing[0]))
+    u = ui_record(case_dir)
+    if u["macros"] != [0, 32, 0, 64]:
+        problems.append("macros: at the end the macros are %s, expected [0, 32, 0, 64] (COLOR from MIDI)" % u["macros"])
+    # Out: each macro's controller as the panel turned it, over the macros'
+    # spans (midi_model.MACRO_SPAN).
+    msgs = [m for _, m in wire_messages(wire_bytes(os.path.join(case_dir, "midi-out.csv")))[0] if m[0] == 0xB0]
+    want = []
+    for k, path in ((0, list(range(1, 21)) + list(range(19, -1, -1))),
+                    (1, list(range(1, 33)) + list(range(31, -1, -1))),
+                    (2, list(range(-1, -65, -1)) + list(range(-63, 65)) + list(range(63, -1, -1))),
+                    (3, list(range(1, 65)))):
+        vals, last = [], None
+        for p in path:
+            v = midi_model.knob_value(k, p, midi_model.MACRO_SPAN)
+            if v != last:
+                vals.append(v)
+                last = v
+        got = [m[2] for m in msgs if m[1] == 16 + k]
+        want.append(len(vals))
+        if got != vals:
+            problems.append("macros: controller %d out %s..., expected %s..." % (16 + k, got[:6], vals[:6]))
+    lines.append("  out: controllers 16 to 19, %s values, as the macros' spans give them" % want)
+    return problems[:20], lines
+
+
+AUDIO_CHECKS["macros"] = check_macros
 AUDIO_CHECKS["viewsload"] = check_viewsload
 INPUT_CHECKS = {"views": check_views, "keys": check_keys, "chords": check_chords, "encoders": check_encoders, "pot": check_pot,
                 "leds": check_leds, "ledshow": check_ledshow}
+
+
+# Since M8a KNOB1 to KNOB4 are the macros unless the settings say "Knobs:
+# direct". The cases written for M5's and M6's controls (midiout,
+# midiround, midilocal) start from a flash chip holding settings that say
+# so, as a player who chose it would have: the store's own record,
+# written by tools/store.py (version 3, the default map, knobs direct).
+KNOBS_DIRECT = os.path.join("out", "fw", "knobs-direct.flash.bin")
+DEFAULT_ROUTES = ((1, 1), (7, 2), (11, 3), (64, 4), (16, 5), (17, 6), (18, 7), (19, 8), (5, 6), (74, 7))
+
+
+def settings_bytes(knobs):
+    """struct midi_settings, version 3: midi.c's defaults, with knobs."""
+    routes = [b for r in DEFAULT_ROUTES for b in r] + [0] * (2 * (16 - len(DEFAULT_ROUTES)))
+    return bytes([3, 0, 2, len(DEFAULT_ROUTES)] + routes + [1, 0, 1, knobs])
+
+
+def write_knobs_direct():
+    s = store_suite.st.Store()
+    s.put(store_suite.st.SETTINGS, 0, 3, settings_bytes(1))
+    with open(os.path.join(ROOT, KNOBS_DIRECT), "wb") as f:
+        f.write(s.chip())
 
 
 def build_tests(build):
@@ -2284,6 +2382,7 @@ def main():
         print("start slack: %d time base ticks (bss cleared before main starts the time base)" % START_SLACK)
     symbols = elf_symbols(os.path.join(a.build, "app.elf"))
     problems = build_tests(a.build)
+    write_knobs_direct()
 
     out = os.path.abspath(a.out)
     p = subprocess.run(["sh", "tools/fwtest", "suite", SUITE, "--out", out], cwd=ROOT,

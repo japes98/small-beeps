@@ -93,7 +93,7 @@ enum {
     MIDI_TARGETS
 };
 
-#define MIDI_SETTINGS_VERSION 2u   /* 2 since M6b: MIDI out's three settings */
+#define MIDI_SETTINGS_VERSION 3u   /* 2 since M6b: MIDI out's three settings; 3 since M8a: the knobs */
 #define MIDI_OMNI             0u     /* channel: receive on every channel */
 #define MIDI_CC_ROUTES        16u
 
@@ -110,7 +110,8 @@ struct midi_settings {
     u8 out_channel;       /* the panel's messages go out on it: 1 to 16 */
     u8 thru;              /* 1: what MIDI in receives is sent out again */
     u8 local;             /* 1: the panel plays the engine; 0: MIDI out only */
-    u8 reserved;          /* 0 */
+    /* Since M8a (version 3; version 2's byte here was always 0): */
+    u8 knobs;             /* 0: KNOB1 to KNOB4 are the macros; 1: direct (M5's controls) */
 };
 _Static_assert(sizeof(struct midi_settings) == 8 + 2 * MIDI_CC_ROUTES, "settings are bytes");
 

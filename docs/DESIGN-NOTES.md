@@ -2185,3 +2185,51 @@ and `views.c`; M3's panel screen (`panel.c`) is gone.
   screen, no input) 1 872 instructions a block, as before; the loaded
   measure 98 265, down from 107 590, as the screens redraw less than the
   M3 panel did under the same input.
+
+### 2026-10-25 M8a: the macros
+
+KNOB1 to KNOB4 on the patch view are four macros (docs/M8-PROPOSAL.md),
+unless the settings say "Knobs: direct" (M5's pitch, glide, depth,
+feedback). The owner's answer: they stay offsets, never written into the
+patch on SAVE. `fm_play.c`, "The macros".
+
+- **What each moves.** BRIGHT is M5's KNOB3 renamed: every modulator's
+  level, -64 to +32 steps of 0.75 dB. COLOR, -32 to +32: above 0 every
+  modulator's ratio is multiplied by 2^(c/64), up to the square root of 2
+  at +32, an irrational factor, so the sidebands leave the harmonics the
+  same way on every patch; feedback rises by up to 3 steps. Below 0 each
+  ratio moves toward its nearest whole number (or a half), so a patch
+  with fractional ratios grows purer and a harmonic one is unchanged.
+  SHAPE, -64 to +64, moves the carriers' time codes and levels toward a
+  pluck (attack 0, decay 1 to 56, decay 2 to 72 with the held level to
+  0, release 40, the level after decay 1 toward 96) or a pad (attack 80,
+  about a second; the levels after decay 1 and held toward 127; release
+  96, about four seconds), in proportion. MOTION, 0 to 64: vibrato at
+  M6a's 5.5 Hz, up to half a semitone more than the wheel's, and the
+  carriers but the first detuned up to 12 cents, above and below in
+  turn, so a held note moves and, with several carriers, beats and
+  widens.
+- **Exact at 0.** The operators with COLOR and SHAPE applied are worked
+  out once a change (`shape_ops`: the patch, the algorithm or a macro),
+  copying the parsed patch's values and changing only what a macro moves.
+  At 0 nothing moves, so the notes are the stored patch's bit for bit:
+  audiogold and fmgold are unchanged, and the macros case plays a note,
+  turns BRIGHT and COLOR and back, and gets the first note again, sample
+  for sample. COLOR also reaches the notes already sounding (their
+  ratios); SHAPE the notes started after it.
+- **MIDI.** Controllers 16 to 19, as M6a mapped them to the four knobs,
+  over each macro's own range by M6b's rule (64 is 0). SHAPE and MOTION
+  have more positions than a controller has values, so one position
+  (+63) goes out as the next (+64). With the macros, the default map's
+  74 (brightness) moves BRIGHT, and 5 (the glide time) nothing.
+- **The setting** is `struct midi_settings`' last byte, always 0 in
+  version 2, so a version 2 record reads as version 3 with the macros
+  (R-STORE-6). M5's and M6's cases written for the direct controls start
+  from a flash chip holding settings that say "Knobs: direct", made by
+  `tools/store.py` (the store's own record): the shipping image, as a
+  player who chose it.
+- **Measured** (the macros case, test patch 1, MIDI note 70): the share
+  of power above 7.5 f0 0.067 at 0, 0.373 at BRIGHT +20; partials 0.005
+  f0 off the harmonics at 0, 0.29 at COLOR +32; test patch 0: attack to
+  -3 dB 2.9 / 0.0 / 637 ms and release to -60 dB 41 / 17 / 2 520 ms at
+  SHAPE 0 / -64 / +64; the pitch swings 50 cents at MOTION +64.
