@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# presetends (R-MIDIOUT-2, R-STORE-9): PRESETS stops at the ends. From
+# the first program (001) with KEY1 held, PRESETS turned down does
+# nothing: the note keeps sounding and no program change goes out. Up
+# by 100 it stops at the last program that holds a patch (past the
+# empty user slots): a program change a detent up to it, then none. Up
+# again from there does nothing.
+#
+# time   event
+200      key 14 down
+300      enc 6 -2
+500      enc 6 +100
+1400     key 14 up
+1500     enc 6 +1

@@ -2032,8 +2032,12 @@ region stays one definition. The choices:
   patch, and are not saved, so a saved patch never takes them twice.
   The program stays as it was.
 - **Programs:** PRESETS and program changes reach the test patches (0 to
-  8), then the user slots that hold a patch (9 to 24). With no user
-  slots, PRESETS turns as before.
+  8), then the user slots that hold a patch (9 to 24), and since M8b the
+  presets (25 to 88, P01 to P64 on the screen). PRESETS stops at
+  the first program and the last one that holds a patch: it never wraps
+  from one end to the other (the owner's answer on #126, 2026-10-25;
+  until then it went round the ends). A program change selects its
+  program directly, so the ends don't concern it.
 - **Factory defaults:** hold SAVE and HOME together for 2 s: every user
   slot empty, the settings' defaults, the first program; the event line
   says "factory defaults". Held less, nothing happens.

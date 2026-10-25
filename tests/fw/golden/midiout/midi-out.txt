@@ -1,8 +1,8 @@
-104.936 note-on ch 1 key 53 vel 100
+104.937 note-on ch 1 key 53 vel 100
 205.030 note-on ch 1 key 53 vel 0
-405.234 note-on ch 1 key 64 vel 100
-405.874 note-on ch 1 key 67 vel 100 (running status)
-406.514 note-on ch 1 key 60 vel 100 (running status)
+405.235 note-on ch 1 key 64 vel 100
+405.875 note-on ch 1 key 67 vel 100 (running status)
+406.515 note-on ch 1 key 60 vel 100 (running status)
 605.417 note-on ch 1 key 60 vel 0
 606.057 note-on ch 1 key 64 vel 0 (running status)
 606.697 note-on ch 1 key 67 vel 0 (running status)
@@ -55,6 +55,6 @@
 2228.709 control-change ch 1 ctrl 16 value 120
 2235.962 control-change ch 1 ctrl 16 value 122
 2244.666 control-change ch 1 ctrl 16 value 125
-2251.919 control-change ch 1 ctrl 16 value 127
+2251.920 control-change ch 1 ctrl 16 value 127
 2505.790 note-on ch 1 key 67 vel 100
 2605.883 note-on ch 1 key 67 vel 0

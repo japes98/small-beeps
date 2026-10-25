@@ -47,7 +47,9 @@ command for command, and the two are compared byte for byte.
   is written.
 - wear (R-STORE-4, R-STORE-8): 36 saves on the wrapped ring, two or more
   new heads: the model's image exactly, the sectors erased in ring order; the
-  selection, turned every 250 ms for 6 s, written at most once in 2 s.
+  selection, turned every 250 ms for 6 s (up to the last test patch,
+  down to the first and up again, since PRESETS stops at the ends),
+  written at most once in 2 s.
 - migrate (R-STORE-6): settings saved as version 1 (M6a's) are taken as
   version 2, with its defaults; a change then writes version 2.
 - busy, wipe (R-STORE-7): saves under audioload's input (the heaviest the
@@ -89,7 +91,8 @@ WORKERS = 4
 PATCHES = [fm_patch.encode(p) for p in fm_patch.TEST_PATCHES]
 # The programs (fm.h): the test patches, the user slots, and since M8b the
 # presets after them; PRESETS and program changes reach those that hold a
-# patch, round the ends (fm_play.c, program_ok and program_step).
+# patch, PRESETS stopping at the ends (fm_play.c, program_ok and
+# program_step).
 PRESETS = [fm_patch.encode(p) for _, _, p in fm_patch.PRESETS]
 PRESET0 = len(PATCHES) + st.SLOTS
 PROGRAMS = PRESET0 + len(PRESETS)
@@ -259,16 +262,6 @@ def with_stock(chip):
 def program_ok(n, img):
     """Whether program n holds a patch, with the user slots in img."""
     return n < len(PATCHES) or PRESET0 <= n < PROGRAMS or (len(PATCHES) <= n < PRESET0 and bool(img.keys[n - len(PATCHES)]))
-
-
-def program_step(n, delta, img):
-    """delta programs on from n, as PRESETS turns."""
-    d = 1 if delta > 0 else -1
-    for _ in range(abs(delta)):
-        n = (n + d) % PROGRAMS
-        while not program_ok(n, img):
-            n = (n + d) % PROGRAMS
-    return n
 
 
 def program_bytes(n, img):
@@ -637,6 +630,9 @@ def case_full(out, image_len):
 
 
 SAVES = 36
+# The selection's 24 turns: up to the last test patch, down to the first,
+# and up again; PRESETS stops at the ends, so every turn changes it.
+RATE_TURNS = [1] * (len(PATCHES) - 1) + [-1] * (len(PATCHES) - 1) + [1] * (len(PATCHES) - 1)
 
 
 def case_wear(out, image_len):
@@ -650,7 +646,7 @@ def case_wear(out, image_len):
     want, commands = predict(s0, puts)
     run = Run(out, "store-wear", "app", 150 + 150 * SAVES + 200, flash=s0, script=script).go()
     rate = Run(out, "store-wear-rate", "app", 9500,
-               script=["%d enc %d +1" % (300 + 250 * i, ENC_PRESETS) for i in range(24)]).go()
+               script=["%d enc %d %+d" % (300 + 250 * i, ENC_PRESETS, d) for i, d in enumerate(RATE_TURNS)]).go()
     for x in (run, rate):
         p += common(x, image_len)
     if p:
@@ -665,8 +661,7 @@ def case_wear(out, image_len):
         p.append("wear: %d erases (model %d), %d saves, %d failed" % (r["erases"], len(erased), r["saves"], r["save_fail"]))
     rr = rate.rec("store")
     # 6 s of turns: at most one write a STORE_SETTLE_S (2 s), and the last.
-    turned = program_step(0, 24, st.Image(rate.flash))
-    if not 2 <= rr["auto_writes"] <= 6 // 2 + 1 or st.Image(rate.flash).get(st.SELECTION) != (1, bytes([turned, 0, 0, 0])):
+    if not 2 <= rr["auto_writes"] <= 6 // 2 + 1 or st.Image(rate.flash).get(st.SELECTION) != (1, bytes([sum(RATE_TURNS), 0, 0, 0])):
         p.append("wear: the selection was written %d times over 6 s of turns, and holds %s"
                  % (rr["auto_writes"], st.Image(rate.flash).get(st.SELECTION)))
     lines.append("  wear: %d saves erased sectors %s in ring order, %d records copied, the stock user patch"

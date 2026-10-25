@@ -4,9 +4,9 @@
 416.826 control-change ch 1 ctrl 16 value 70
 424.079 control-change ch 1 ctrl 16 value 72
 432.783 control-change ch 1 ctrl 16 value 75
-440.036 control-change ch 1 ctrl 16 value 78
-448.740 control-change ch 1 ctrl 16 value 80
-507.897 program-change ch 1 program 1
+440.037 control-change ch 1 ctrl 16 value 78
+448.741 control-change ch 1 ctrl 16 value 80
+507.898 program-change ch 1 program 1
 515.151 program-change ch 1 program 2
 523.855 program-change ch 1 program 3
 605.412 note-on ch 1 key 57 vel 100
