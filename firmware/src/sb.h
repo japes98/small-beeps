@@ -68,7 +68,7 @@ struct sb_beacon {
 #define SB_SCREEN_NONE    0u
 #define SB_SCREEN_PATTERN 1u  /* the address pattern (screen.c) */
 #define SB_SCREEN_TEST    2u  /* the test screen with the heartbeat */
-#define SB_SCREEN_PANEL   3u  /* the live panel screen (panel.c, M3) */
+#define SB_SCREEN_PANEL   3u  /* the live panel screen (panel.c, M3); since M8a the instrument's screens (views.c) */
 
 #define SB_MARKER     0x44304253u  /* "SB0D" in memory order */
 #define SB_MARKER_BAD 0x21444142u  /* "BAD!": startup left data wrong */
@@ -117,6 +117,8 @@ extern volatile u32 sb_wake_at;
 void lcd_init(void);
 void lcd_command(u8 command, const u8 *params, u32 count);
 void lcd_send_rows(u32 first, u32 rows);
+void lcd_send_rect(u32 x, u32 y, u32 w, u32 h);   /* since M8a */
+u32 lcd_busy(void);                               /* since M8a */
 void lcd_wait(void);
 void lcd_spi_done(void) __attribute__((interrupt("")));
 #define LCD_DISPON 0x29u
@@ -147,12 +149,8 @@ void screen_test(void);
 void screen_beat(void);
 void screen_beat_all(void);
 
-/* panel.c: the live panel screen (M3): takes every queued input event,
- * lights the LEDs to match and, from the first one on, shows the panel. */
-void panel_serve(void);
-/* Since M7: a message on the event line, with a number after it unless
- * it is 0 (the store's results). */
-void panel_message(const char *text, u32 number);
+/* Since M8a the screens are views.c's (ui.h: view_serve, view_message),
+ * which replace M3's panel screen (panel.c). */
 
 /* crt0.S */
 u32 sb_clock_measure(volatile u32 *count);

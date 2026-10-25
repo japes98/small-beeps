@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# macros (tests/fw/boot.suite, R-UI-6, R-UI-7): the four macros' effect
+# on the sound, each against the same note with every macro at 0 (KEY18,
+# MIDI note 70), and their controllers out (and one in). An encoder's
+# detent takes 8 ms here, so each turn ends before the next note.
+# - test patch 1 (two operators): A every macro at 0; B BRIGHT +20; C
+#   COLOR +32 (BRIGHT back at 0); D every macro back at 0 (A again,
+#   sample for sample);
+# - test patch 0 (one sine): E every macro at 0; F SHAPE -64 (a pluck);
+#   G SHAPE +64 (a pad, held 1.4 s); H MOTION +64 (SHAPE back at 0);
+# - then MIDI in: controller 17 at 127, COLOR +32.
+#
+# time   event
+100      enc 6 +1
+300      key 31 down
+600      key 31 up
+700      enc 2 +20
+900      key 31 down
+1200     key 31 up
+1250     enc 2 -20
+1250     enc 3 +32
+1550     key 31 down
+1850     key 31 up
+1900     enc 3 -32
+2200     key 31 down
+2500     key 31 up
+2550     enc 6 -1
+2650     key 31 down
+2950     key 31 up
+3000     enc 4 -64
+3550     key 31 down
+3850     key 31 up
+3900     enc 4 +128
+5000     key 31 down
+6400     key 31 up
+9000     enc 4 -64
+9000     enc 5 +64
+9600     key 31 down
+10600    key 31 up
+10800    midi b0 11 7f

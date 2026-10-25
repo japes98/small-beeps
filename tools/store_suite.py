@@ -20,6 +20,10 @@ command for command, and the two are compared byte for byte.
   (CC 122); the next run starts with the slot, the selection and the
   settings, and plays the slot's patch. Every run of every case: nothing
   written outside the store's region but fwtest's own image (R-STORE-1).
+  Since M8a the store is past the stock firmware's user patch region
+  (HW-80): persist and wear start with that region full of a pattern
+  standing for the stock firmware's saved patches, and it is still there
+  byte for byte after every save, erase and compaction.
 - sweep (R-STORE-3): a ring that has wrapped, its head one save from
   full, so a save takes a new sector, its erase and the compaction of the
   sector after it. The power cut test build stops after every one of the
@@ -29,9 +33,10 @@ command for command, and the two are compared byte for byte.
   the old patch or the new, every other key as before; then the shipping
   image starts from it, finds what tools/store.py finds, saves slot 5, and
   leaves what the model predicts.
-- reset (R-STORE-9): SAVE and HOME held 2.4 s empty the store (a reset
-  record) and the next start finds nothing; held 1 s, nothing happens.
-  The screen says "factory defaults" (golden image).
+- reset (R-STORE-9): since M8a, the settings' last row (GLO, SELECT to
+  it, KNOB1) asks, and SAVE empties the store (a reset record): the next
+  start finds nothing; HOME instead cancels it and nothing happens. The
+  screen says "factory defaults" (golden image).
 - corrupt (R-STORE-5): a record's payload and another's CRC damaged, a
   garbage block, a record of a kind this firmware doesn't know: the older
   copy is read, the damaged one ignored, the counts as tools/store.py's;
@@ -78,8 +83,8 @@ MIDI_FIELDS = ("marker bytes ring_dropped parsed messages realtime sysex sysex_b
                " orphans undefined cut filtered notes_on notes_off").split()
 STORE_MARKER = 0x374F5453
 IMAGE_AT = 0x4000              # fwtest writes the image here (docs/HARNESS.md)
-KEY_HOME, KEY_SAVE = 8, 9
-ENC_ALGORITHM, ENC_PRESETS = 1, 6
+KEY_GLO, KEY_HOME, KEY_SAVE = 7, 8, 9
+ENC_SELECT, ENC_ALGORITHM, ENC_KNOB1, ENC_PRESETS = 0, 1, 2, 6
 WORKERS = 4
 PATCHES = [fm_patch.encode(p) for p in fm_patch.TEST_PATCHES]
 ERR_FULL = -2
@@ -200,6 +205,11 @@ def settings_v2(channel=0, bend=2, out=1, thru=0, local=1):
     return bytes([2, channel, bend, 0] + [0] * 32 + [out, thru, local, 0])
 
 
+def settings_v3(channel=0, bend=2, out=1, thru=0, local=1, knobs=0):
+    """Since M8a: version 2's last byte is the knobs' mode (1: direct)."""
+    return bytes([3, channel, bend, 0] + [0] * 32 + [out, thru, local, knobs])
+
+
 def settings_v1(channel, bend):
     return bytes([1, channel, bend, 0] + [0] * 32)
 
@@ -227,6 +237,17 @@ def ring_before_advance():
             if sum(1 for e in s.key if e and s._sector_of(e[1]) == m) >= 10:
                 return s.chip()
         assert n < 50000
+
+
+def with_stock(chip):
+    """chip with the stock firmware's user patch region (HW-80) full of a
+    pattern standing for its saved patches: a store that erased or wrote
+    there would change it, and outside_writes would say so."""
+    b = bytearray(chip + b"\xff" * (st.CHIP - len(chip)))
+    lo, hi = st.USER_REGION
+    rng = random.Random(80)
+    b[lo:hi] = bytes(rng.randrange(256) for _ in range(hi - lo))
+    return bytes(b)
 
 
 def selection_of(chip):
@@ -307,7 +328,7 @@ def agrees(run, chip):
 def case_persist(out, image_len):
     p, lines = [], []
     a0 = PATCHES[0][16]
-    a = Run(out, "store-persist-a", "app", 3800,
+    a = Run(out, "store-persist-a", "app", 3800, flash=with_stock(b""),
             script=["200 enc %d +2" % ENC_ALGORITHM] + save_script(300, 1)
             + ["600 enc %d +3" % ENC_PRESETS, "700 midi b0 7a 00"]).go()
     p += common(a, image_len)
@@ -323,7 +344,7 @@ def case_persist(out, image_len):
     if img.get(st.SELECTION) != (1, bytes([3, 0, 0, 0])):
         p.append("persist-a: the selection is %s, not program 3" % (img.get(st.SELECTION),))
     sv = img.get(st.SETTINGS)
-    if not sv or sv[0] != 2 or sv[1][38] != 0 or sv[1][36] != 1 or sv[1][37] != 0:
+    if not sv or sv[0] != 3 or sv[1][38] != 0 or sv[1][36] != 1 or sv[1][37] != 0:
         p.append("persist-a: the settings saved are %s, not local off" % (sv,))
     if sorted(img.live()) != ["selection", "settings", "slot 1"]:
         p.append("persist-a: the store holds %s" % sorted(img.live()))
@@ -411,7 +432,7 @@ def torn_erase(before, addr, rng, how):
 
 def case_sweep(out, image_len):
     p, lines = [], []
-    s0 = ring_before_advance()
+    s0 = with_stock(ring_before_advance())
     sel = selection_of(s0)
     new3 = saved(PATCHES[sel], 2)
     s1, commands = predict(s0, [(st.PATCH, 2, 1, new3)])
@@ -489,13 +510,14 @@ def case_reset(out, image_len):
     s.put(st.SELECTION, 0, 1, bytes([9, 0, 0, 0]))
     s.put(st.SETTINGS, 0, 2, settings_v2(channel=5))
     chip = s.chip()
+    # Since M8a the factory reset is the settings' last row: GLO, SELECT
+    # to it, KNOB1 asks, SAVE does it; HOME instead cancels it.
+    ask = ["600 key %d tap" % KEY_GLO, "700 enc %d +7" % ENC_SELECT, "800 enc %d +1" % ENC_KNOB1]
     held = Run(out, "store-reset-held", "app", 3000, flash=chip,
-               script=["300 key %d down" % KEY_SAVE, "350 key %d down" % KEY_HOME,
-                       "2750 key %d up" % KEY_HOME, "2800 key %d up" % KEY_SAVE], at=(("fm", 250),),
+               script=ask + ["1000 key %d tap" % KEY_SAVE], at=(("fm", 250),),
                extra=screen(2600, "store-reset")).go()
     short = Run(out, "store-reset-short", "app", 2000, flash=chip,
-                script=["300 key %d down" % KEY_SAVE, "350 key %d down" % KEY_HOME,
-                        "1350 key %d up" % KEY_HOME, "1400 key %d up" % KEY_SAVE]).go()
+                script=ask + ["1000 key %d tap" % KEY_HOME]).go()
     for run in (held, short):
         p += common(run, image_len) + agrees(run, chip)
     if p:
@@ -504,16 +526,18 @@ def case_reset(out, image_len):
     if held.rec("fm", 250)["patch"] != 9:
         p.append("reset: started on program %d, not slot 1's 9" % held.rec("fm", 250)["patch"])
     if rh["resets"] != 1 or held.rec("fm")["patch"] != 0 or sorted(st.Image(held.flash).live()) != ["reset"]:
-        p.append("reset: held 2.4 s: %d resets, program %d, the store holds %s"
+        p.append("reset: confirmed with SAVE: %d resets, program %d, the store holds %s"
                  % (rh["resets"], held.rec("fm")["patch"], sorted(st.Image(held.flash).live())))
     if rs["resets"] or region(short.flash) != region(chip):
-        p.append("reset: held 1 s: %d resets, the store changed: %s" % (rs["resets"], region(short.flash) != region(chip)))
+        p.append("reset: cancelled with HOME: %d resets, the store changed: %s"
+                 % (rs["resets"], region(short.flash) != region(chip)))
     again = Run(out, "store-reset-again", "app", 300, flash=held.flash).go()
     p += common(again, image_len) + agrees(again, held.flash)
     if again.result and again.rec("store")["loaded"]:
         p.append("reset: the next start loaded 0x%x" % again.rec("store")["loaded"])
-    lines.append("  reset: held 2.4 s, slot 1, the selection and the settings were voided by one record and"
-                 " the next start loaded nothing; held 1 s, nothing changed")
+    lines.append("  reset: asked on the settings' last row and confirmed with SAVE, slot 1, the selection and the"
+                 " settings were voided by one record and the next start loaded nothing; cancelled with HOME,"
+                 " nothing changed")
     return p, lines
 
 
@@ -616,8 +640,9 @@ def case_wear(out, image_len):
     if not 2 <= rr["auto_writes"] <= 6 // 2 + 1 or st.Image(rate.flash).get(st.SELECTION) != (1, bytes([24 % 9, 0, 0, 0])):
         p.append("wear: the selection was written %d times over 6 s of turns, and holds %s"
                  % (rr["auto_writes"], st.Image(rate.flash).get(st.SELECTION)))
-    lines.append("  wear: %d saves erased sectors %s in ring order, %d records copied; the selection, turned"
-                 " 24 times in 6 s, was written %d times" % (SAVES, erased, r["copies"], rr["auto_writes"]))
+    lines.append("  wear: %d saves erased sectors %s in ring order, %d records copied, the stock user patch"
+                 " region unchanged; the selection, turned 24 times in 6 s, was written %d times"
+                 % (SAVES, erased, r["copies"], rr["auto_writes"]))
     return p, lines
 
 
@@ -638,10 +663,23 @@ def case_migrate(out, image_len):
     if m["filtered"] < 2 or m["notes_on"] != 1:
         p.append("migrate: %d messages filtered, %d notes taken: not channel 10" % (m["filtered"], m["notes_on"]))
     sv = st.Image(run.flash).get(st.SETTINGS)
-    if sv != (2, settings_v2(channel=10, bend=12, local=0)):
+    if sv != (3, settings_v3(channel=10, bend=12, local=0)):
         p.append("migrate: the settings written after the change are %s" % (sv,))
-    lines.append("  migrate: version 1 settings (channel 10, bend 12) taken as version 2; a change wrote"
-                 " version 2 with them kept and its defaults added")
+    # Since M8a: version 2 (M6b's) taken as version 3, the knobs the macros.
+    s = st.Store()
+    s.put(st.SETTINGS, 0, 2, settings_v2(channel=10, bend=12, thru=1))
+    chip2 = s.chip()
+    run2 = Run(out, "store-migrate-v2", "app", 3800, flash=chip2,
+               script=["300 midi 90 3c 64", "400 midi 80 3c 00", "800 midi b9 7a 00"]).go()
+    p += common(run2, image_len) + agrees(run2, chip2)
+    if not p:
+        if run2.rec("store")["loaded"] & 6 != 6 or run2.rec("midi")["filtered"] < 2:
+            p.append("migrate: version 2 settings not taken (loaded 0x%x)" % run2.rec("store")["loaded"])
+        sv2 = st.Image(run2.flash).get(st.SETTINGS)
+        if sv2 != (3, settings_v3(channel=10, bend=12, thru=1, local=0)):
+            p.append("migrate: version 2's settings written after the change are %s" % (sv2,))
+    lines.append("  migrate: version 1 settings (channel 10, bend 12) and version 2 (with thru on) taken as"
+                 " version 3; a change wrote version 3 with them kept, its defaults added, the knobs the macros")
     return p, lines
 
 

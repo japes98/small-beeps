@@ -21,8 +21,9 @@ import sys
 import zlib
 
 CHIP = 0x100000
-BASE = 0xEA000
-SIZE = 0x12000
+BASE = 0xFC000
+SIZE = 0x3000
+USER_REGION = (0xEA000, 0xFC000)   # the stock firmware's saved patches (HW-80): never touched
 SECTOR = 4096
 SECTORS = SIZE // SECTOR
 PAGE = 256
