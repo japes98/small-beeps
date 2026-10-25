@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# views (tests/fw/boot.suite, R-UI-1 to R-UI-3, R-UI-5): the screens
+# (M8a). HOME at 600 ms is the first event: the patch view replaces the
+# test screen. Then EDIT, ENV and GLO in turn; on the settings screen the
+# controls that mean the same everywhere: PRESETS two programs on, OCT+,
+# MASTER; then HOME back to the patch view. The screen is captured 250 ms
+# after each change (golden images), and the interface's record with it.
+#
+# time   event
+600      key 8 tap
+900      key 6 tap
+1200     key 4 tap
+1500     key 7 tap
+1800     enc 6 +2
+1850     key 1 tap
+1900     pot 700
+2100     key 8 tap

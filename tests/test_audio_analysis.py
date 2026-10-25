@@ -146,5 +146,54 @@ class FmAnalysisTest(unittest.TestCase):
             self.assertAlmostEqual(f, 440.0, places=3)
 
 
+
+class MacroMeasuresTest(unittest.TestCase):
+    """Requirements: R-UI-6 (the macros' measures, on signals whose answers
+    are known)."""
+
+    def test_fft_finds_a_sine(self):
+        n = 1024
+        re = [math.sin(2 * math.pi * 10 * i / n) for i in range(n)]
+        im = [0.0] * n
+        aa.fft(re, im)
+        mags = [math.hypot(a, b) for a, b in zip(re, im)]
+        self.assertEqual(max(range(n // 2), key=lambda k: mags[k]), 10)
+        self.assertAlmostEqual(mags[10], n / 2, places=6)
+
+    def test_share_above(self):
+        f0 = 200.0
+        low = tone(f0, 1000, 8192)
+        both = [a + b for a, b in zip(low, tone(8 * f0, 1000, 8192))]
+        self.assertLess(aa.share_above(low, 7.5 * f0), 0.001)
+        self.assertAlmostEqual(aa.share_above(both, 7.5 * f0), 0.5, delta=0.02)
+
+    def test_inharmonicity(self):
+        f0 = 220.0
+        harm = [a + b for a, b in zip(tone(f0, 1000, 8192), tone(3 * f0, 500, 8192))]
+        off = [a + b for a, b in zip(tone(f0, 1000, 8192), tone(3.4 * f0, 500, 8192))]
+        self.assertLess(aa.inharmonicity(harm, f0), 0.02)
+        self.assertGreater(aa.inharmonicity(off, f0), 0.05)
+
+    def test_attack_and_release(self):
+        rate = aa.RATE
+        attack, release = int(0.05 * rate), int(0.2 * rate)
+        x = gated(440.0, 10000, 0, attack, int(0.3 * rate), release, int(0.8 * rate))
+        self.assertAlmostEqual(aa.attack_ms(x, 0), 50 * 10 ** (-3 / 20), delta=3)
+        off = attack + int(0.3 * rate)
+        self.assertAlmostEqual(aa.release_ms(x, off, drop_db=20), 180, delta=5)
+
+    def test_pitch_swing(self):
+        rate, n = aa.RATE, int(0.5 * aa.RATE)
+        steady = tone(440.0, 10000, n)
+        phase, wobble = 0.0, []
+        for i in range(n):
+            f = 440.0 * 2 ** (30 / 1200 * math.sin(2 * math.pi * 5.5 * i / rate))
+            phase += 2 * math.pi * f / rate
+            wobble.append(10000 * math.sin(phase))
+        self.assertLess(aa.pitch_swing_cents(steady, 0, n), 1)
+        self.assertAlmostEqual(aa.pitch_swing_cents(wobble, 0, n), 30, delta=5)
+
+
+
 if __name__ == "__main__":
     unittest.main()

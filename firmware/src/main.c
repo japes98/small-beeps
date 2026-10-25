@@ -7,9 +7,9 @@
  * keeps the heartbeat (M1), bring up the screen and show the address
  * pattern, then the test screen (M2), start scanning the panel (M3) and
  * the audio output with the test instrument (M4), and idle between
- * interrupts, putting the heartbeat on the screen once a
- * second and showing the panel's controls on the panel screen from the
- * first touch on.
+ * interrupts, putting the heartbeat on the test screen once a
+ * second and, from the first touch on, the instrument's screens (M8a,
+ * views.c).
  */
 
 #include "sb.h"
@@ -17,6 +17,7 @@
 #include "audio.h"
 #include "fm.h"
 #include "store.h"
+#include "ui.h"
 #include "WL82.h"
 
 /* HW-25: in fwtest each word written here is appended to the console. The
@@ -168,7 +169,7 @@ static void serve_store(void)
     const char *said = store_serve();
 
     if (said)
-        panel_message(said, store_message_slot);
+        view_message(said, store_message_slot);
 #endif
 }
 
@@ -291,8 +292,10 @@ int main(void)
         sb_beacon.loop_ticks = sb_beacon.tick_count;
         seen = sb_work;
         second = sb_seconds;
-        /* What the engine asked of the store before the loop began. */
+        /* What the engine asked of the store before the loop began, and
+         * (since M8a) the panel's events from before it: the screens. */
         serve_store();
+        view_serve();
         for (;;) {
             __asm__ volatile("idle");
             wakes++;
@@ -300,11 +303,14 @@ int main(void)
                 seen = sb_work;
                 sb_beacon.wakes = wakes;
                 sb_beacon.wakes_ticks = sb_beacon.tick_count;
-                panel_serve();
+                view_serve();
                 serve_store();
+                /* The heartbeat is the test screen's own (since M8a the
+                 * instrument's screens have no place for it). */
                 while (second != sb_seconds) {
                     second++;
-                    screen_beat();
+                    if (sb_beacon.screen == SB_SCREEN_TEST)
+                        screen_beat();
                 }
             }
         }

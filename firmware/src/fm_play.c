@@ -22,8 +22,12 @@
 #include "input.h"
 #include "midi.h"
 #include "midi_out.h"
+#include "ui.h"
 
 volatile struct sb_fm_record sb_fm __attribute__((section(".beacon.fm")));
+/* The interface's state (M8a; ui.h): the engine's, since it takes the
+ * panel's events in order; main draws it. */
+volatile struct fm_ui fm_ui;
 
 /* --- Shared between the cores (DESIGN-NOTES.md, M5, "Two cores") -----
  * Core 0 changes the voices only between blocks, and core 1 renders its
@@ -130,12 +134,19 @@ static struct control ctl[FM_VOICES];
 static struct patch patches[FM_PROGRAMS];
 /* The user slots' patches as bytes, and which slots hold one (since M7). */
 static u8 user_raw[FM_USER_SLOTS][FM_PATCH_BYTES];
+/* The program playing now as bytes, with the operator view's edits, and
+ * whether there are any (M8a part 3). */
+static u8 edit_raw[FM_PATCH_BYTES];
+static u32 edited;
+/* Each operator's loudest gain now (2^-30), while the operator view shows
+ * (ui.h); main draws them. */
+volatile s32 fm_op_level[FM_OPS];
+/* The envelope view's live dot (M8a part 4): where the last note started
+ * is in the envelope shown, while ENV shows. */
+volatile struct fm_env_dot fm_env_dot;
 static u32 user_used;
 volatile u32 fm_saved_seq[FM_USER_SLOTS], fm_saved_reset[FM_USER_SLOTS];
 volatile u32 fm_reset_seq;
-/* When SAVE and HOME were both first held (sb_audio.blocks), or none. */
-#define NOT_ARMED 0xFFFFFFFFu
-static u32 reset_armed = NOT_ARMED;
 static u32 patch_now, algorithm_now, mono, started;
 static u32 sounding;        /* voices not idle */
 static int octave, mono_stack[16];
@@ -166,6 +177,12 @@ static int midi_knob[4];
 /* The panel's KNOB1 to KNOB4 as the engine last took them: frozen while
  * local control is off (M6b). The program the panel's PRESETS last chose. */
 static int panel_knob[4];
+/* Since M8a: KNOB1 to KNOB4's positions as the patch view's controls,
+ * moved only by turns there and held to the span (so turning back from
+ * past an end answers at once); the other screens' turns edit instead. */
+static int knob_pos[4];
+/* midi_settings.knobs as knobs() last took it (M8a): 0 the macros. */
+static u32 knobs_mode;
 static u32 panel_program;
 static u32 lfo_phase, rpn = 0x3FFFu;
 
@@ -291,6 +308,138 @@ u32 fm_patch_sum(const u8 *b)
     return c << 8 | a;
 }
 
+/* --- The macros (M8a; docs/M8-PROPOSAL.md, docs/DESIGN-NOTES.md) ------
+ * KNOB1 to KNOB4 on the patch view, unless the setting "Knobs: direct"
+ * (midi_settings.knobs) gives them M5's controls. Each moves several of
+ * the patch's values at once as an offset over the stored patch, so at 0
+ * the patch sounds exactly as stored, and turning it back returns there:
+ * - BRIGHT: every modulator's level (M5's KNOB3, renamed);
+ * - COLOR: the modulators' ratios, from whole numbers (below 0, each
+ *   moved toward its nearest whole number, or a half) to inharmonic (above
+ *   0, each multiplied by up to the square root of 2, the same sweep on
+ *   every patch), and feedback up to 3 steps more at the metallic end;
+ * - SHAPE: the carriers' envelopes, from a pluck (below 0: a fast attack,
+ *   a short decay, a quick release, the held level falling away) to a pad
+ *   (above 0: a slow attack, full sustain, a long release);
+ * - MOTION: vibrato (5.5 Hz, up to half a semitone) and a detune spread
+ *   across the carriers (the first in tune, the others up to 12 cents
+ *   above and below it in turn).
+ * The operators' values with COLOR and SHAPE applied are worked out once
+ * a change (shape_ops), not each note or block. */
+#define MACRO_BRIGHT 0
+#define MACRO_COLOR  1
+#define MACRO_SHAPE  2
+#define MACRO_MOTION 3
+static int macro[4];
+/* Each macro's range, and MIDI's controllers 16 to 19 over it (64: 0):
+ * MOTION has nothing below 0, so a controller's 0 to 64 are all 0. */
+static const s8 macro_span[4][2] = { { -64, 32 }, { -32, 32 }, { -64, 64 }, { 0, 64 } };
+/* The operators as notes take them now: the patch's, with COLOR and SHAPE. */
+static struct {
+    u32 freq;
+    s32 step[4], target[3];
+} shaped[FM_OPS];
+/* MOTION's detune factor for each operator, 2^-30 (1 for a modulator). */
+static s32 spread[FM_OPS];
+/* What shaped[] was worked out for. */
+static u32 shaped_patch = 0xFFFFFFFFu, shaped_algorithm;
+static int shaped_color, shaped_shape, shaped_motion;
+
+static int toward(int from, int to, int t)
+{
+    return from + (to - from) * t / 64;
+}
+
+/* COLOR on a ratio (x 256). */
+static u32 color_ratio(u32 f, int c)
+{
+    s32 h;
+
+    if (c > 0)   /* x 2^(c / 64): up to the square root of 2 at 32 */
+        return (u32)(((u64)f * fm_exp2_frac((u32)c << 10)) >> 30);
+    h = (s32)((f + 128u) & ~255u);
+    if (!h)
+        h = 128;
+    return (u32)((s32)f + (h - (s32)f) * -c / 32);
+}
+
+static void shape_ops(void)
+{
+    const struct patch *p = &patches[patch_now];
+    const u8 *raw = fm_program_bytes();
+    const struct fm_algorithm *a = &fm_algorithms[algorithm_now];
+    int color = macro[MACRO_COLOR], shape = macro[MACRO_SHAPE], motion = macro[MACRO_MOTION];
+    u32 i, k, n, side = 0;
+
+    for (i = 0; i < FM_OPS; i++) {
+        const u8 *o = raw + FM_OP_OFFSET + FM_OP_BYTES * i;
+        u32 carrier = a->dest[i] == FM_TO_OUT;
+
+        shaped[i].freq = p->op[i].freq;
+        for (k = 0; k < 4; k++)
+            shaped[i].step[k] = p->op[i].step[k];
+        for (k = 0; k < 3; k++)
+            shaped[i].target[k] = p->op[i].target[k];
+        spread[i] = GAIN_ONE;
+        if (!carrier && !p->op[i].fixed && color)
+            shaped[i].freq = color_ratio(p->op[i].freq, color);
+        if (carrier && shape) {
+            int r[4], l[3], t = shape < 0 ? -shape : shape;
+            for (k = 0; k < 4; k++)
+                r[k] = o[FMO_RATE + k];
+            for (k = 0; k < 3; k++)
+                l[k] = o[FMO_ENV_LEVEL + k];
+            if (shape < 0) {
+                r[0] = toward(r[0], 0, t);
+                r[1] = toward(r[1], 56, t);
+                r[2] = toward(r[2], 72, t);
+                r[3] = toward(r[3], 48, t);
+                l[1] = toward(l[1], 96, t);
+                l[2] = toward(l[2], 0, t);
+            } else {
+                r[0] = toward(r[0], 80, t);
+                r[3] = toward(r[3], 96, t);
+                l[1] = toward(l[1], 127, t);
+                l[2] = toward(l[2], 127, t);
+            }
+            shaped[i].step[0] = step_of((u32)r[0], STEP_LIN);
+            for (k = 1; k < 4; k++)
+                shaped[i].step[k] = step_of((u32)r[k], STEP_ATT);
+            for (k = 0; k < 3; k++)
+                shaped[i].target[k] = (s32)(127 - l[k]) << 13;
+        }
+        if (carrier && motion) {
+            /* The first carrier stays in tune; the others alternately
+             * above and below it. */
+            int cents = side ? motion * 12 / 64 : 0;
+            if (side && !(side & 1))
+                cents = -cents;
+            side++;
+            spread[i] = cents >= 0 ? (s32)fm_exp2_frac((u32)(cents * 65536 / 1200))
+                                   : fm_exp2_neg(-cents * 65536 / 1200);
+        }
+    }
+    /* The notes sounding take COLOR's ratios at once. */
+    for (n = 0; n < FM_VOICES; n++)
+        if (voice[n].state == VOICE_ON && ctl[n].patch == p && voice[n].algorithm == algorithm_now)
+            for (i = 0; i < FM_OPS; i++)
+                if (!voice[n].op[i].fixed)
+                    voice[n].op[i].freq = shaped[i].freq;
+    shaped_patch = patch_now;
+    shaped_algorithm = algorithm_now;
+    shaped_color = color;
+    shaped_shape = shape;
+    shaped_motion = motion;
+}
+
+/* shaped[] for the patch, algorithm and macros now. */
+static void ensure_shaped(void)
+{
+    if (shaped_patch != patch_now || shaped_algorithm != algorithm_now || shaped_color != macro[MACRO_COLOR]
+        || shaped_shape != macro[MACRO_SHAPE] || shaped_motion != macro[MACRO_MOTION])
+        shape_ops();
+}
+
 /* --- Notes ------------------------------------------------------------ */
 
 /* Starts note on voice n from the current patch. A free voice starts from
@@ -317,6 +466,7 @@ static void voice_start(u32 n, int note, u32 velocity)
     c->pitch_stage = 0;
     c->pitch_level = p->pitch_level[0];
     v->algorithm = algorithm_now;
+    ensure_shaped();
     for (i = 0; i < FM_OPS; i++) {
         struct fm_op *o = &v->op[i];
         if (fresh) {
@@ -328,13 +478,13 @@ static void voice_start(u32 n, int note, u32 velocity)
             o->lin = o->stage == ENV_OFF ? 0 : fm_exp2_neg(o->att);
         }
         o->fixed = p->op[i].fixed;
-        o->freq = p->op[i].freq;
+        o->freq = shaped[i].freq;
         o->detune = p->op[i].detune;
         o->fixed_att = p->op[i].level_att + soft * p->op[i].velocity;
         for (k = 0; k < 4; k++)
-            o->step[k] = p->op[i].step[k];
+            o->step[k] = shaped[i].step[k];
         for (k = 0; k < 3; k++)
-            o->target[k] = p->op[i].target[k];
+            o->target[k] = shaped[i].target[k];
         o->stage = p->op[i].off ? ENV_OFF : ENV_ATTACK;
         carriers += !p->op[i].off && fm_algorithms[algorithm_now].dest[i] == FM_TO_OUT;
     }
@@ -649,6 +799,20 @@ static int clamp(int v, int lo, int hi)
     return v < lo ? lo : v > hi ? hi : v;
 }
 
+/* The operator a raised key's second label names (OP1 to OP6), or -1. */
+static int op_of_key(u32 control)
+{
+    static const u8 keys[FM_OPS] = {
+        INPUT_KEY_OP1, INPUT_KEY_OP2, INPUT_KEY_OP3, INPUT_KEY_OP4, INPUT_KEY_OP5, INPUT_KEY_OP6,
+    };
+    int i;
+
+    for (i = 0; i < (int)FM_OPS; i++)
+        if (keys[i] == control)
+            return i;
+    return -1;
+}
+
 /* --- The user slots (M7) --------------------------------------------- */
 static u32 program_ok(u32 n)
 {
@@ -678,6 +842,12 @@ static int user_put(u32 slot, const u8 *b)
         user_raw[slot][i] = b[i];
     patch_parse(&patches[FM_PATCHES + slot], user_raw[slot]);
     user_used |= 1u << slot;
+    shaped_patch = 0xFFFFFFFFu;   /* the patch may be the one playing (M8a) */
+    if (FM_PATCHES + slot == patch_now) {
+        for (i = 0; i < FM_PATCH_BYTES; i++)
+            edit_raw[i] = user_raw[slot][i];
+        edited = 0;
+    }
     return 1;
 }
 
@@ -691,8 +861,38 @@ const u8 *fm_user_patch(u32 slot)
     return user_raw[slot];
 }
 
+/* For the screens (M8a). */
+/* The program playing now, as patch bytes, with the operator view's
+ * edits (since M8a part 3): what the screens show and SAVE writes. */
+const u8 *fm_program_bytes(void)
+{
+    return edit_raw;
+}
+
+u32 fm_user_used(void)
+{
+    return user_used;
+}
+
+/* A program's bytes as stored: a test patch's, or a user slot's. */
+static const u8 *stored_bytes(u32 n)
+{
+    return n < FM_PATCHES ? fm_patches[n] : user_raw[n - FM_PATCHES];
+}
+
 static void select_patch(u32 n)
 {
+    u32 i;
+
+    /* The operator view's edits stay with the program until another is
+     * chosen (M8a part 3): then the program as stored again. */
+    if (edited) {
+        patch_parse(&patches[patch_now], stored_bytes(patch_now));
+        edited = 0;
+    }
+    for (i = 0; i < FM_PATCH_BYTES; i++)
+        edit_raw[i] = stored_bytes(n)[i];
+    shaped_patch = 0xFFFFFFFFu;
     patch_now = n;
     algorithm_now = patches[n].algorithm;
     mono = patches[n].mono;
@@ -714,7 +914,7 @@ int fm_program_set(u32 n)
  * patch, and are not saved (docs/DESIGN-NOTES.md, M7, "The panel"). */
 static void save_to(u32 slot)
 {
-    const u8 *from = patch_now < FM_PATCHES ? fm_patches[patch_now] : user_raw[patch_now - FM_PATCHES];
+    const u8 *from = edit_raw;   /* with the operator view's edits (M8a) */
     u8 b[FM_PATCH_BYTES];
     u32 i, sum;
 
@@ -732,28 +932,162 @@ static void save_to(u32 slot)
     sb_work++;
 }
 
-/* SAVE and HOME held for FM_RESET_MS (M7): every user slot emptied, the
+/* The factory defaults (since M8a from the settings, SAVE confirming
+ * it; M7's hold of SAVE and HOME is gone): every user slot emptied, the
  * settings' defaults, the first program; main writes the store's reset. */
-#define RESET_BLOCKS ((FM_RESET_MS * (AUDIO_RATE_NUM / 1000u) + AUDIO_FRAMES * AUDIO_RATE_DEN - 1) \
-                      / (AUDIO_FRAMES * AUDIO_RATE_DEN))
-#define RESET_DONE   (NOT_ARMED - 1u)
-
-static void reset_hold(void)
+static void factory_reset(void)
 {
-    if (!input_value(INPUT_SAVE) || !input_value(INPUT_HOME)) {
-        reset_armed = NOT_ARMED;
-    } else if (reset_armed == NOT_ARMED) {
-        reset_armed = sb_audio.blocks;
-    } else if (reset_armed != RESET_DONE && sb_audio.blocks - reset_armed >= RESET_BLOCKS) {
-        reset_armed = RESET_DONE;
-        all_off();
-        user_used = 0;
-        midi_settings_default(&midi_settings);
-        select_patch(0);
-        panel_program = 0;
-        fm_reset_seq++;
-        sb_work++;
+    all_off();
+    user_used = 0;
+    midi_settings_default(&midi_settings);
+    select_patch(0);
+    panel_program = 0;
+    fm_reset_seq++;
+    fm_ui.seq++;
+    sb_work++;
+}
+
+/* The settings' rows (M8a part 6; views.c draws them in this order). */
+enum { ROW_IN, ROW_OUT, ROW_THRU, ROW_LOCAL, ROW_BEND, ROW_KNOBS, ROW_STORE, ROW_RESET, ROWS };
+
+/* KNOB1 on the settings: the row's value one step. */
+static void edit_setting(int d)
+{
+    struct midi_settings *m = &midi_settings;
+
+    switch (fm_ui.row) {
+    case ROW_IN:
+        m->channel = (u8)clamp(m->channel + d, MIDI_OMNI, 16);
+        break;
+    case ROW_OUT:
+        m->out_channel = (u8)clamp(m->out_channel + d, 1, 16);
+        break;
+    case ROW_THRU:
+        m->thru = d > 0;
+        break;
+    case ROW_LOCAL:
+        m->local = d > 0;
+        break;
+    case ROW_BEND:
+        m->bend_range = (u8)clamp(m->bend_range + d, 0, 24);
+        break;
+    case ROW_KNOBS:
+        m->knobs = d > 0;
+        break;
+    case ROW_RESET:
+        fm_ui.confirm = 1;   /* SAVE does it, anything else cancels */
+        break;
     }
+}
+
+/* --- The operator view's editing (M8a part 3) -------------------------
+ * KNOB1 to KNOB4 on EDIT edit the selected operator of the program
+ * playing now, page by page (SELECT): ratio or frequency, level, detune,
+ * velocity; mode, coarse, fine; the envelope's three levels. */
+static const u16 ratios[] = {
+    128, 256, 512, 768, 1024, 1280, 1536, 1792, 2048, 2304, 2560, 2816, 3072, 3328, 3584, 3840, 4096,
+};
+#define RATIOS (sizeof ratios / sizeof ratios[0])
+
+/* The next whole ratio (or a half) up or down from f (x 256). */
+static u32 ratio_step(u32 f, int d)
+{
+    u32 i;
+
+    if (d > 0) {
+        for (i = 0; i < RATIOS; i++)
+            if (ratios[i] > f)
+                return ratios[i];
+        return f;
+    }
+    for (i = RATIOS; i--;)
+        if (ratios[i] < f)
+            return ratios[i];
+    return f;
+}
+
+/* After an edit: the copy's check sum, parsed again. */
+static void edit_done(void)
+{
+    u32 sum = fm_patch_sum(edit_raw);
+
+    edit_raw[FM_SUM_OFFSET] = (u8)sum;
+    edit_raw[FM_SUM_OFFSET + 1] = (u8)(sum >> 8);
+    patch_parse(&patches[patch_now], edit_raw);
+    edited = 1;
+    shaped_patch = 0xFFFFFFFFu;
+}
+
+static void edit_op(u32 knob, int d)
+{
+    u8 *o = edit_raw + FM_OP_OFFSET + FM_OP_BYTES * fm_ui.op;
+    u32 f = (u32)o[FMO_FREQ] | (u32)o[FMO_FREQ + 1] << 8;
+
+    switch (fm_ui.page * 4u + knob) {
+    case 0:   /* RATIO, or the fixed frequency a semitone a detent */
+        if (o[FMO_MODE])
+            f = d > 0 ? (f * 69433u) >> 16 : (f * 61858u) >> 16;
+        else
+            f = ratio_step(f, d);
+        break;
+    case 1:
+        o[FMO_LEVEL] = (u8)clamp(o[FMO_LEVEL] + d, 0, 127);
+        break;
+    case 2:
+        o[FMO_DETUNE] = (u8)clamp(signed8(o[FMO_DETUNE]) + d, -100, 100);
+        break;
+    case 3:
+        o[FMO_VELOCITY] = (u8)clamp(o[FMO_VELOCITY] + d, 0, 7);
+        break;
+    case 4:   /* MODE: ratio 1, or fixed at 440 Hz */
+        o[FMO_MODE] = d > 0;
+        f = d > 0 ? 1760u : 256u;
+        break;
+    case 5:   /* COARSE: a whole ratio, or an octave */
+        if (o[FMO_MODE])
+            f = d > 0 ? f * 2u : f / 2u;
+        else
+            f = (u32)clamp((int)f + 256 * d, 32, 65535);
+        break;
+    case 6:   /* FINE: 1/256 of a ratio, or 1 Hz */
+        f = (u32)clamp((int)f + (o[FMO_MODE] ? 4 * d : d), 1, 65535);
+        break;
+    case 8:
+    case 9:
+    case 10:
+        o[FMO_ENV_LEVEL + knob] = (u8)clamp(o[FMO_ENV_LEVEL + knob] + d, 0, 127);
+        break;
+    default:
+        return;
+    }
+    f = f < 1 ? 1 : f > 65535 ? 65535 : f;
+    o[FMO_FREQ] = (u8)f;
+    o[FMO_FREQ + 1] = (u8)(f >> 8);
+    edit_done();
+}
+
+/* The envelope view's editing (M8a part 4): the selected operator's four
+ * rates or three levels, the pitch envelope's three rates and depth or
+ * four levels, or the glide time. */
+static void edit_env(u32 knob, int d)
+{
+    u8 *o = edit_raw + FM_OP_OFFSET + FM_OP_BYTES * fm_ui.op;
+
+    if (fm_ui.env == 0 && fm_ui.page == 0)
+        o[FMO_RATE + knob] = (u8)clamp(o[FMO_RATE + knob] + d, 0, 127);
+    else if (fm_ui.env == 0 && knob < 3)
+        o[FMO_ENV_LEVEL + knob] = (u8)clamp(o[FMO_ENV_LEVEL + knob] + d, 0, 127);
+    else if (fm_ui.env == 1 && fm_ui.page == 0 && knob < 3)
+        edit_raw[FMP_PITCH_RATE + knob] = (u8)clamp(edit_raw[FMP_PITCH_RATE + knob] + d, 0, 127);
+    else if (fm_ui.env == 1 && fm_ui.page == 0)
+        edit_raw[FMP_PITCH_DEPTH] = (u8)clamp(signed8(edit_raw[FMP_PITCH_DEPTH]) + d, -48, 48);
+    else if (fm_ui.env == 1)
+        edit_raw[FMP_PITCH_LEVEL + knob] = (u8)clamp(signed8(edit_raw[FMP_PITCH_LEVEL + knob]) + d, -127, 127);
+    else if (fm_ui.env == 2 && knob == 0)
+        edit_raw[FMP_GLIDE] = (u8)clamp(edit_raw[FMP_GLIDE] + d, 0, 127);
+    else
+        return;
+    edit_done();
 }
 
 /* KNOB1 to KNOB4 as the engine uses them (DESIGN-NOTES.md, M5, "The
@@ -764,11 +1098,32 @@ static void knobs(void)
 
     if (midi_settings.local)
         for (k = 0; k < 4; k++)
-            panel_knob[k] = input_value(INPUT_KNOB1 + k);
-    pitch_knob = clamp(panel_knob[0] + midi_knob[0], -24, 24);
-    glide_code = (u32)clamp((int)patches[patch_now].glide + 4 * (panel_knob[1] + midi_knob[1]), 0, 127);
-    depth_att = -clamp(panel_knob[2] + midi_knob[2], -64, 32) * 8192;
-    feedback_knob = panel_knob[3] + midi_knob[3];
+            panel_knob[k] = knob_pos[k];
+    /* A change of mode starts MIDI's offsets afresh: they were in the
+     * other mode's steps. */
+    if (midi_settings.knobs != knobs_mode) {
+        knobs_mode = midi_settings.knobs;
+        midi_knob[0] = midi_knob[1] = midi_knob[2] = midi_knob[3] = 0;
+    }
+    if (knobs_mode) {
+        /* "Knobs: direct": M5's controls. */
+        pitch_knob = clamp(panel_knob[0] + midi_knob[0], -24, 24);
+        glide_code = (u32)clamp((int)patches[patch_now].glide + 4 * (panel_knob[1] + midi_knob[1]), 0, 127);
+        depth_att = -clamp(panel_knob[2] + midi_knob[2], -64, 32) * 8192;
+        feedback_knob = panel_knob[3] + midi_knob[3];
+        macro[0] = macro[1] = macro[2] = macro[3] = 0;
+    } else {
+        for (k = 0; k < 4; k++)
+            macro[k] = clamp(panel_knob[k] + midi_knob[k], macro_span[k][0], macro_span[k][1]);
+        pitch_knob = 0;
+        glide_code = patches[patch_now].glide;
+        depth_att = -macro[MACRO_BRIGHT] * 8192;
+        feedback_knob = macro[MACRO_COLOR] > 0 ? macro[MACRO_COLOR] * 3 / 32 : 0;
+    }
+    ensure_shaped();
+    for (k = 0; k < 4; k++)
+        sb_ui.macro[k] = macro[k];
+    fm_ui.knobs = (u8)knobs_mode;
     sb_audio.engine[SYNTH_OCTAVE] = (u32)octave;
     sb_audio.engine[SYNTH_TONE] = tone_state != TONE_OFF && tone_state != TONE_RELEASE;
     sb_fm.algorithm = algorithm_now + 1;
@@ -785,10 +1140,18 @@ static void knobs(void)
  * ends of each knob's useful range (KNOB1 +-24 semitones, KNOB2 +-32
  * glide steps, KNOB3 -64 to +32 level steps, KNOB4 +-7 feedback steps). */
 static const s8 knob_span[4][2] = { { -24, 24 }, { -32, 32 }, { -64, 32 }, { -7, 7 } };
+/* Since M8a, the macros' (macro_span, above), by the same rule. */
+
+static const s8 (*spans(void))[2]
+{
+    return knobs_mode ? knob_span : macro_span;
+}
 
 static int knob_offset(u32 k, u32 v)
 {
-    return v >= 64 ? (int)(v - 64) * knob_span[k][1] / 63 : (int)(64 - v) * knob_span[k][0] / 64;
+    const s8 (*span)[2] = spans();
+
+    return v >= 64 ? (int)(v - 64) * span[k][1] / 63 : (int)(64 - v) * span[k][0] / 64;
 }
 
 /* Its inverse (M6b): the controller value whose offset is the panel
@@ -797,7 +1160,8 @@ static int knob_offset(u32 k, u32 v)
  * == p (tests/test_midi_model.py checks every p against the model's). */
 static u32 knob_value(u32 k, int p)
 {
-    int lo = knob_span[k][0], hi = knob_span[k][1];
+    const s8 (*span)[2] = spans();
+    int lo = span[k][0], hi = span[k][1];
 
     p = clamp(p, lo, hi);
     return p >= 0 ? 64u + (u32)((p * 63 + hi - 1) / hi) : 64u - (u32)((-p * 64 - lo - 1) / -lo);
@@ -811,7 +1175,7 @@ static u8 knob_sent[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
 
 static void knob_out(u32 k)
 {
-    u32 i, v = knob_value(k, input_value(INPUT_KNOB1 + k));
+    u32 i, v = knob_value(k, knob_pos[k]);
 
     if (v == knob_sent[k])
         return;
@@ -898,6 +1262,13 @@ static u32 controller(u32 cc, u32 v)
         case MIDI_TO_KNOB3:
         case MIDI_TO_KNOB4: {
             u32 k = midi_settings.cc[i].to - MIDI_TO_KNOB1;
+            /* With the macros (M8a) the default map's two controllers
+             * named for M5's controls keep their meaning: 74, brightness,
+             * moves BRIGHT, and 5, the glide time, has no macro. */
+            if (!knobs_mode && cc == 5)
+                return 0;
+            if (!knobs_mode && cc == 74)
+                k = MACRO_BRIGHT;
             midi_knob[k] = knob_offset(k, v);
             return 1;
         }
@@ -996,6 +1367,27 @@ static void events(void)
                 }
                 /* SEL held: MONO and POLY switch the mode (and play no
                  * note); MIDI out sends the mode message (M6b). */
+                /* SEL with OP1 to OP6 picks the operator (M8a); SEL with any
+                 * of the ten labelled raised keys plays no note. */
+                if (input_value(INPUT_SEL) && e.control >= INPUT_KEY_OP1 && e.control <= INPUT_KEY_POLY
+                    && op_of_key(e.control) >= 0) {
+                    fm_ui.op = (u8)op_of_key(e.control);
+                    if (fm_ui.env) {
+                        fm_ui.env = 0;   /* back to an operator's envelope */
+                        fm_ui.page = 0;
+                    }
+                    key_note[k] = -1;
+                    continue;
+                }
+                if (input_value(INPUT_SEL) && (e.control == INPUT_KEY_PIT || e.control == INPUT_KEY_GLO)) {
+                    /* The envelope view with the pitch envelope, or the
+                     * glide (M8a part 4). */
+                    fm_ui.screen = UI_ENV;
+                    fm_ui.env = e.control == INPUT_KEY_PIT ? 1 : 2;
+                    fm_ui.page = 0;
+                    key_note[k] = -1;
+                    continue;
+                }
                 if (input_value(INPUT_SEL) && (e.control == INPUT_KEY_MONO || e.control == INPUT_KEY_POLY)) {
                     if (local) {
                         all_off();
@@ -1027,6 +1419,14 @@ static void events(void)
                 midi_out_channel(MIDI_NOTE_ON, (u32)key_note[k], 0);
                 key_note[k] = -1;
             }
+        } else if (e.kind == INPUT_PRESS && (e.control == INPUT_HOME || e.control == INPUT_EDIT
+                                             || e.control == INPUT_ENV || e.control == INPUT_GLO)) {
+            /* The screens (M8a): HOME always back to the patch view. */
+            fm_ui.screen = (u8)(e.control == INPUT_EDIT ? UI_EDIT : e.control == INPUT_ENV ? UI_ENV
+                                : e.control == INPUT_GLO ? UI_SETTINGS : UI_PATCH);
+            fm_ui.page = 0;
+            fm_ui.env = 0;
+            fm_ui.confirm = 0;
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_OCT_DOWN) {
             octave -= octave > -OCTAVES;
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_OCT_UP) {
@@ -1045,7 +1445,34 @@ static void events(void)
             if (local)
                 algorithm_now = (algorithm_now + FM_ALGORITHMS * 16 + (u32)(int)e.value) % FM_ALGORITHMS;
         } else if (e.kind == INPUT_TURN && e.control >= INPUT_KNOB1 && e.control <= INPUT_KNOB4) {
-            knob_out(e.control - INPUT_KNOB1);
+            u32 k = e.control - INPUT_KNOB1;
+            if (fm_ui.screen == UI_EDIT) {
+                if (local)
+                    edit_op(k, e.value);
+            } else if (fm_ui.screen == UI_ENV) {
+                if (local)
+                    edit_env(k, e.value);
+            } else if (fm_ui.screen == UI_SETTINGS) {
+                /* KNOB1 changes the row's value (M8a part 6). */
+                if (k == 0)
+                    edit_setting(e.value);
+            } else {
+                const s8 (*span)[2] = spans();
+                knob_pos[k] = clamp(knob_pos[k] + e.value, span[k][0], span[k][1]);
+                knob_out(k);
+            }
+        } else if (e.kind == INPUT_TURN && e.control == INPUT_SELECT && fm_ui.screen == UI_EDIT) {
+            /* SELECT steps through the operator view's three pages. */
+            fm_ui.page = (u8)((fm_ui.page + 3u + (u32)(e.value > 0 ? 1 : 2)) % 3u);
+        } else if (e.kind == INPUT_TURN && e.control == INPUT_SELECT && fm_ui.screen == UI_SETTINGS) {
+            fm_ui.row = (u8)clamp(fm_ui.row + e.value, 0, ROWS - 1);
+            fm_ui.confirm = 0;
+        } else if (e.kind == INPUT_PRESS && e.control == INPUT_SAVE && fm_ui.confirm) {
+            fm_ui.confirm = 0;
+            factory_reset();
+        } else if (e.kind == INPUT_TURN && e.control == INPUT_SELECT && fm_ui.screen == UI_ENV && fm_ui.env < 2) {
+            /* The envelope view's two pages: rates, then levels. */
+            fm_ui.page ^= 1;
         }
     }
     midi_poll();
@@ -1070,15 +1497,20 @@ static void events(void)
         sb_midi.expression = expression;
         sb_midi.pedal = pedal;
     }
-    reset_hold();
-    if (any)
+    if (any) {
         knobs();
+        /* Whatever the events changed, the screens show (M8a). */
+        fm_ui.seq++;
+        sb_work++;
+    }
     /* What this block queued goes out at once if the wire is free. */
     midi_out_poll();
     /* Vibrato: a 5.5 Hz sine, up to half a semitone at the wheel's top. */
-    if (mod_wheel) {
+    /* Since M8a MOTION adds to it, up to half a semitone more. */
+    if (mod_wheel || macro[MACRO_MOTION]) {
         lfo_phase += LFO_INC;
-        vibrato = (s32)(((s64)fm_sine(lfo_phase) * (s32)(mod_wheel * 2048u / 127u)) >> 23);
+        vibrato = (s32)(((s64)fm_sine(lfo_phase) * (s32)(mod_wheel * 2048u / 127u + (u32)macro[MACRO_MOTION] * 32u))
+                        >> 23);
     } else {
         vibrato = 0;
     }
@@ -1117,6 +1549,8 @@ static void voice_pitch(u32 n)
         struct fm_op *o = &v->op[i];
         u64 inc = o->fixed ? o->freq : ((u64)base * o->freq) >> 8;
         inc = (inc * (u32)o->detune) >> 30;
+        if (macro[MACRO_MOTION])
+            inc = (inc * (u32)spread[i]) >> 30;
         o->inc = inc >= 0x80000000u ? 0x80000000u : (u32)inc;
     }
     v->mod_att = depth_att;
@@ -1175,7 +1609,12 @@ void fm_block(s32 *out, u32 frames)
         if (sb_fm.voices[0] | sb_fm.voices[1]) {
             sb_fm.voices[0] = sb_fm.voices[1] = 0;
             sb_audio.engine[SYNTH_VOICES_ON] = 0;
+            for (n = 0; n < FM_OPS; n++)
+                fm_op_level[n] = 0;
+            fm_env_dot.valid = 0;
         }
+        if (spec_capture)
+            spectrum_feed(0, frames);
         return;
     }
     sb_fm.voices[0] = on[0];
@@ -1206,6 +1645,37 @@ void fm_block(s32 *out, u32 frames)
             sb_fm.wait_max = d;
         for (n = 0; n < AUDIO_FRAMES; n++)
             mix[0][n] += mix[1][n];
+    }
+    /* The envelope view's dot (M8a part 4), only while it shows: the
+     * newest note still sounding. */
+    if (fm_ui.screen == UI_ENV) {
+        u32 pick = FM_VOICES;
+        for (n = 0; n < FM_VOICES; n++)
+            if (voice[n].state == VOICE_ON && (pick == FM_VOICES || ctl[n].age > ctl[pick].age))
+                pick = n;
+        if (pick == FM_VOICES || fm_ui.env == 2) {
+            fm_env_dot.valid = 0;
+        } else if (fm_ui.env == 1) {
+            fm_env_dot.stage = ctl[pick].pitch_stage;
+            fm_env_dot.att = ctl[pick].pitch_level;
+            fm_env_dot.valid = 2;
+        } else {
+            const struct fm_op *o = &voice[pick].op[fm_ui.op];
+            fm_env_dot.stage = o->stage;
+            fm_env_dot.att = o->stage == ENV_ATTACK ? o->lin : o->att;
+            fm_env_dot.valid = o->stage != ENV_OFF;
+        }
+    }
+    /* The operator view's live levels (M8a), only while it shows. */
+    if (fm_ui.screen == UI_EDIT) {
+        u32 i;
+        for (i = 0; i < FM_OPS; i++) {
+            s32 g = 0;
+            for (n = 0; n < FM_VOICES; n++)
+                if (voice[n].state == VOICE_ON && voice[n].op[i].gain > g)
+                    g = voice[n].op[i].gain;
+            fm_op_level[i] = g;
+        }
     }
     m = master;
     for (n = 0, w = out; n < frames; n++, w += 2) {
@@ -1241,6 +1711,9 @@ void fm_block(s32 *out, u32 frames)
         }
         tone_env = env;
     }
+    /* The patch view's spectrum (M8a part 5): a capture main asked for. */
+    if (spec_capture)
+        spectrum_feed(out, frames);
 }
 
 void fm_init(void)

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
 import os
+import re
 import shutil
 import struct
 import tempfile
@@ -416,3 +417,21 @@ class FwSuiteAudioTest(unittest.TestCase):
         self.assertTrue(fw.check_audio_common("x", self.dir)[0])
         self.write_case(100, console="hello\n")
         self.assertTrue(fw.check_audio_common("x", self.dir)[0])
+
+
+class KnobsDirectTest(unittest.TestCase):
+    """Requirements: R-UI-8 (the flash the M5 and M6 cases start from holds
+    midi.c's defaults with "Knobs: direct")."""
+
+    def test_default_routes_are_the_firmwares(self):
+        with open(os.path.join(ROOT, "firmware", "src", "midi.c")) as f:
+            c = f.read()
+        with open(os.path.join(ROOT, "firmware", "src", "midi.h")) as f:
+            h = f.read()
+        names = re.search(r"enum \{\s*(MIDI_TO_NONE.*?)MIDI_TARGETS", h, re.S).group(1)
+        index = {n: i for i, n in enumerate(re.findall(r"(MIDI_TO_\w+)", names))}
+        body = re.search(r"default_routes\[\]\[2\] = \{(.*?)\};", c, re.S).group(1)
+        routes = tuple((int(cc), index[to]) for cc, to in re.findall(r"\{ (\d+), (MIDI_TO_\w+) \}", body))
+        self.assertEqual(routes, fw.DEFAULT_ROUTES)
+        b = fw.settings_bytes(1)
+        self.assertEqual((len(b), b[0], b[3], b[-1]), (40, 3, len(routes), 1))

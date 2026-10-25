@@ -130,6 +130,9 @@ def parse(stream):
 # The four knobs' controllers (M6a's map, firmware/src/fm_play.c): a
 # controller's 64 is no offset, 0 and 127 the ends of each knob's span.
 KNOB_SPAN = ((-24, 24), (-32, 32), (-64, 32), (-7, 7))
+# Since M8a, the macros' (BRIGHT, COLOR, SHAPE, MOTION), by the same rule
+# (KNOB_SPAN is "Knobs: direct"'s).
+MACRO_SPAN = ((-64, 32), (-32, 32), (-64, 64), (0, 64))
 
 
 def _div(a, b):
@@ -138,19 +141,25 @@ def _div(a, b):
     return q if (a >= 0) == (b > 0) else -q
 
 
-def knob_offset(k, v):
+def knob_offset(k, v, spans=KNOB_SPAN):
     """The knob offset MIDI in takes from controller value v."""
-    lo, hi = KNOB_SPAN[k]
+    lo, hi = spans[k]
     return _div((v - 64) * hi, 63) if v >= 64 else _div((64 - v) * lo, 64)
 
 
-def knob_value(k, p):
+def knob_value(k, p, spans=KNOB_SPAN):
     """MIDI out's inverse (M6b): the smallest controller value whose
     offset is the knob position p, held to the span. Written from the
     rule, not the C: searched, not computed."""
-    lo, hi = KNOB_SPAN[k]
+    lo, hi = spans[k]
     p = max(lo, min(hi, p))
-    cands = [v for v in range(128) if knob_offset(k, v) == p]
+    cands = [v for v in range(128) if knob_offset(k, v, spans) == p]
+    if not cands:
+        # Since M8a: a span of more than 127 steps (SHAPE, MOTION) leaves a
+        # few positions no controller value gives; MIDI out sends the first
+        # one past it, away from 64.
+        return min(v for v in range(64, 128) if knob_offset(k, v, spans) >= p) if p > 0 else \
+            max(v for v in range(0, 65) if knob_offset(k, v, spans) <= p)
     return min(cands, key=lambda v: abs(v - 64))
 
 

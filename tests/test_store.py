@@ -39,14 +39,17 @@ class StoreFormatTest(unittest.TestCase):
             m = re.search(r"#define %s\s+(0x[0-9A-Fa-f]+|\d+)u" % name, c)
             self.assertIsNotNone(m, name)
             self.assertEqual(int(m.group(1), 0), value, name)
-        # The image's window ends where the store begins (HW-5: window
-        # offset n is chip offset 0x4000 + n).
-        self.assertIn("LENGTH = 0x%X - 0x4000" % st.BASE, ld)
-        # HW-80: out of the boot area, the Bluetooth sector and the
-        # per-unit last sector.
-        self.assertGreaterEqual(st.BASE, 0xEA000)
-        self.assertLessEqual(st.BASE + st.SIZE, 0xFC000)
-        self.assertLess(st.CUT_PARAM + 8, st.BASE)
+        # The image's window ends where the stock firmware's user patch
+        # region begins (HW-5: window offset n is chip offset 0x4000 + n).
+        self.assertIn("LENGTH = 0x%X - 0x4000" % st.USER_REGION[0], ld)
+        self.assertIn("STORE_BASE = 0x%X;" % st.BASE, ld)
+        # HW-80: since M8a the unused region, out of the boot area, the
+        # Bluetooth sector, the stock user patch region and the per-unit
+        # last sector.
+        self.assertEqual(st.USER_REGION, (0xEA000, 0xFC000))
+        self.assertGreaterEqual(st.BASE, st.USER_REGION[1])
+        self.assertLessEqual(st.BASE + st.SIZE, 0xFF000)
+        self.assertLess(st.CUT_PARAM + 8, st.USER_REGION[0])
 
     def test_the_firmware_crc_table_is_the_common_crc32(self):
         table = re.search(r"crc_nibble\[16\] = \{(.*?)\};", source("src/store.c"), re.S).group(1)
@@ -158,8 +161,11 @@ class SettingsLayoutTest(unittest.TestCase):
     """Requirements: R-STORE-6"""
 
     def test_version_1_is_version_2_without_its_tail(self):
+        """Since M8a version 3 is version 2's 40 bytes, its last (always 0
+        in version 2) the knobs' mode."""
         h = source("src/midi.h")
-        self.assertIn("#define MIDI_SETTINGS_VERSION 2u", h)
+        self.assertIn("#define MIDI_SETTINGS_VERSION 3u", h)
+        self.assertRegex(h, r"u8 local;[^\n]*\n(?:\s*/\*[^\n]*\n)?\s*u8 knobs;")
         self.assertIn('sizeof(struct midi_settings) == 8 + 2 * MIDI_CC_ROUTES', h)
         self.assertIn("#define MIDI_CC_ROUTES        16u", h)
         self.assertIn("#define SETTINGS_V1_BYTES (4u + 2u * MIDI_CC_ROUTES)", source("src/saving.c"))
