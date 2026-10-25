@@ -22,7 +22,7 @@ dependencies = [
 
 [[package]]
 name = "fwtest"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "fm1-core",
  "fm1-isa",

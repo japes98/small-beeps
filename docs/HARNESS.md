@@ -47,12 +47,56 @@ tools/fwtest --image        # the pinned image reference
 | Load address | The image's first byte is at `0x02000000`, the start of the code window. Link it there. |
 | Entry | Core 0 starts at `0x02000000`: the image's first instruction. |
 | Size | 1 byte to 1 032 192 bytes (1 MiB less 16 KiB). |
-| The flash chip | 1 MiB. Erased (all `0xFF`) unless `--flash FILE` gives its first bytes. The image is then written into it at offset `0x4000`, as an installed image sits. |
+| The flash chip | 1 MiB. Erased (all `0xFF`) unless `--flash FILE` gives its first bytes. The image is then written into it at offset `0x4000`, as an installed image sits. Since 0.6.0 an erase or program takes time and keeps the chip busy ("The flash chip", below). |
 | Past the image | Reads in the code window after the image's last byte show the flash chip: window address `0x02000000 + n` shows chip offset `0x4000 + n`. Changes the image makes to the chip (erase, program) show through the window, also over the image's own bytes. |
 | Writes to the window | Ignored (and listed as unmodelled accesses). |
 | RAM | 1 MiB at `0x01C00000`, all zero at the start. Other memories, and what the real chip has: `HARDWARE-SPEC.md`. |
 | Core 0 at the start | User mode. Every register is 0, both stack pointers included (set your own stacks first), except `r0` = `0x01C7FC00`: a 64-byte block of zeros whose first word holds `0x01C7FC40`. |
 | Core 1 | Does not run until the image releases it (`HARDWARE-SPEC.md` says how). Then it runs alongside core 0 (below, "Time"). |
+
+## The flash chip
+
+Since 0.6.0 fwtest's flash chip behaves as the P25Q80H's datasheet says
+(`HARDWARE-SPEC.md`, HW-77, HW-78, HW-83), at its maximum times:
+
+- **Busy times.** A page program keeps the chip busy for 3 ms and an
+  erase (a 256-byte page, 4 KiB, 32 KiB, 64 KiB or the whole chip) for
+  12 ms, from the moment chip select goes high. Meanwhile status register
+  1 reads bit 0 (busy) and bit 1 (write enable) set, and the chip ignores
+  every command but the status reads, the array and ID reads too.
+- **Command rules.** An erase or program needs the write enable command
+  first, or it is ignored. A program wraps within its 256-byte page and
+  only clears bits.
+- **The code window while busy.** While the chip is busy, a core that is
+  about to run code in the code window (the image, or the chip past it),
+  or reads it, ends the run as a fault: "ran code in the code window
+  while the flash chip was busy (an erase or program in progress)", or
+  "read the code window at ADDR while ...". That includes an interrupt
+  handler in the window, and core 1. So the code that erases or
+  programs, and waits, runs in RAM; so does any handler that can run
+  meanwhile, with everything it calls and reads; or interrupts stay
+  masked. fwtest checks only while the chip is busy: on the chip the
+  window is unavailable for the whole time the firmware works the flash
+  directly (HW-79), from its first command. Core 1 is checked on core
+  0's clock, which it trails by at most one run call (1024 instructions).
+  The audio output plays on through a busy time: it reads RAM.
+- **Persistence.** The chip lasts from one run to the next only through
+  files: `--flash FILE` starts a run from a saved chip (the image is
+  written at `0x4000` again), `--flash-out` saves it at the end, whatever
+  the outcome. Give one run's `flash.bin` to the next as `--flash`.
+- **A power cut.** `--power-cut MS` ends the run at MS (in place of
+  `--ms`) as if the power went then, and saves `flash.bin`. An erase or
+  program in progress keeps only the part done by then: its first bytes,
+  in address order, in proportion to the time gone (a 4 KiB erase cut a
+  quarter of the way through has its first 1 KiB erased and the rest as
+  before). That is fwtest's choice: on the chip an interrupted erase or
+  program leaves those bytes undefined, so a firmware must be able to
+  tell an interrupted write from a finished one (a check sum, or a marker
+  written last). `--flash-log` lists every erase and program with its
+  times, to aim a cut. A run that ends any other way (`--ms`, a halt, a
+  fault) during an erase or program saves `flash.bin` (with
+  `--flash-out`) as if that operation had finished: the bytes change when
+  it starts. Use `--power-cut` for a cut.
 
 ## Time
 
@@ -202,7 +246,8 @@ fwtest version
 
 | Option | What it does |
 |--------|--------------|
-| `--ms MS` | Run for MS emulated milliseconds (up to three decimals). Required. |
+| `--ms MS` | Run for MS emulated milliseconds (up to three decimals). Required, unless `--power-cut` is given. |
+| `--power-cut MS` | Run for MS emulated milliseconds, then end as a power cut: the flash keeps only the part done of an erase or program in progress, and `flash.bin` is saved ("The flash chip"). In place of `--ms`. |
 | `--out DIR` | Write the outputs here. Required; must be empty or new. |
 | `--script FILE` | Timed inputs (below). |
 | `--flash FILE` | The flash chip's first bytes (at most 1 MiB); the rest is erased. |
@@ -210,6 +255,7 @@ fwtest version
 | `--lcd WHEN` | Save the screen as a PNG at WHEN. Repeatable. |
 | `--leds-every MS` | Sample the LEDs every MS into `leds.csv`. |
 | `--flash-out` | Save the whole flash chip at the end (`flash.bin`). |
+| `--flash-log` | Save every erase and program the chip started (`flash-ops.csv`). |
 | `--wav` | Save the audio output (`audio.wav`). |
 | `--ipb` | Save instructions per audio block (`ipb.csv`). |
 | `--console` | Save the bytes written to the chip's debug message register (`console.txt`; `HARDWARE-SPEC.md` names it). |
@@ -259,7 +305,8 @@ All in `--out`. A run writes only what it was asked for, plus
 | `ram-AAAAAAAA-L-WHEN.bin` | The bytes saved by `--ram` (address as 8 hex digits, length in hex, WHEN as `10ms`, `2.500ms` or `end`). |
 | `lcd-WHEN.png` | The screen, 240 x 240, 8-bit RGB, whatever the display's on/off state. Each pixel is the panel's 16-bit colour (5-6-5 bits) with each channel scaled to 8 bits (`c * 255 / 31`, or `/ 63` for green). |
 | `leds.csv` | Header `ms,led0,...,led40`, then one row per sample: the sample's time, and for each LED the share of the time since the previous sample (or since the start) that it was lit, in thousandths (0 to 1000, rounded). LED N belongs to key N. |
-| `flash.bin` | The flash chip (1 MiB) at the end of the run. |
+| `flash.bin` | The flash chip (1 MiB) at the end of the run (after a power cut, as the cut left it). |
+| `flash-ops.csv` | Header `start_ms,end_ms,command,offset,bytes`, then one row per erase or page program the chip started, in order: when chip select went high and when the chip was no longer busy (ms, three decimals), the command as two hex digits (`02` program, `81`, `20`, `52`, `d8`, `60` or `c7` erase), the first chip offset it covers (hex) and how many bytes (a program: its whole 256-byte page). |
 | `audio.wav` | The audio output: 16-bit PCM, stereo, the header says 44 100 Hz. Every sample the output played, in order. How the firmware feeds the output, and its exact rate: `HARDWARE-SPEC.md`. |
 | `ipb.csv` | Header `block,end_ms,core0,core1`, then one row per audio block (each time the output finished one half of its buffer): its number, the time it finished, and the instructions core 0 and core 1 executed since the previous block (the first row: since the start). Core 0's count is exact; core 1's is counted at a granularity of 1024 core-0 instructions. |
 | `console.txt` | The debug console bytes, as written. |
@@ -328,9 +375,10 @@ the FM-1 itself these bytes go nowhere; the SMK-37 sends them through its
 | Exit | Outcome | When |
 |------|---------|------|
 | 0 | completed | Ran for `--ms`, and every golden file matched. (Also a halt with `--halt-ok`.) |
+| 0 | power-cut | Ran to `--power-cut`, and every golden file matched. `detail` names the erase or program the cut interrupted, if any, and how many of its bytes were done. |
 | 1 | golden mismatch | A golden file differs (beyond its tolerance), or an output it names is missing. |
 | 2 | usage error | Bad arguments, an unreadable or oversized image, a bad script, `--out` not empty, a capture outside RAM. Nothing ran. |
-| 3 | fault | A core met an instruction it cannot decode or the emulator does not implement, or its program counter left every memory that can hold code (the image, RAM, the other RAM banks). |
+| 3 | fault | A core met an instruction it cannot decode or the emulator does not implement, or its program counter left every memory that can hold code (the image, RAM, the other RAM banks), or it ran or read the code window while the flash chip was busy ("The flash chip"). |
 | 4 | halt | Core 0 executed a jump to itself with interrupts disabled: a deliberate stop. The run ends there. |
 | 5 | hang | The `--watchdog` word did not change for longer than its time. |
 
@@ -387,7 +435,8 @@ computes what the chip does. An instruction neither check held can still
 end a run as a fault ("Outcomes and exit codes"): report it as SR-7 was,
 with its bytes and the smallest image that shows it.
 
-No known gaps since fwtest 0.4.0. In 0.3.0 and earlier two forms ended the run as
+No known gaps since fwtest 0.6.0 (0.5.0 and earlier: the pairs below,
+"Both halves writing one register"). In 0.3.0 and earlier two forms ended the run as
 a fault, "an instruction the emulated CPU cannot decode"; 0.4.0 runs them,
 and one more change makes dual-issue pairs behave as the compiler expects:
 
@@ -420,16 +469,17 @@ and one more change makes dual-issue pairs behave as the compiler expects:
 
 None of the three changed any output of the firmware's suite at `cdfd067`.
 
-**A known gap in 0.5.0 (found 2026-10-24, SR-9).** When both halves of a
-dual-issue pair write the same register, fwtest 0.5.0 keeps the second
-half's value; the compiler's code expects the head's. Seen in a flash
-driver loop: `rA = rB + 0x80000 #` paired with `rA = [rC+8]`, a read of
-SPI0's `BUF` whose result is unused, then `rA` used as the address. The
-symptom: a value or address computed just before an unused volatile read
-becomes the read's value. Until a fixed fwtest is pinned, check the
-disassembly of such loops (a `#` pair whose halves name the same
-destination), or use the read's result (for example, accumulate it into
-a variable that is kept).
+**Both halves writing one register (0.6.0).** When both halves of a
+dual-issue pair write the same register, the head's result is the one
+there after the pair, as the compiler's code expects: it pairs a head
+computing a value with a load into the same register whose result it
+doesn't use, then uses the head's value (seen in flash routines:
+`rA = rB + 0x80000 #` then `rA = [rC+8]`, an unused read of SPI0's
+`BUF`, then `rA` as the address). fwtest 0.5.0 kept the second half's
+value, so such code computed the wrong address or value there. A head
+whose result equals the register's old value can't be told from one that
+didn't write it; then the second half's value stays. The firmware's suite
+at `6ba587e` gives the same outputs with and without the change.
 
 ### Block moves with a register base
 
@@ -496,7 +546,8 @@ stop    halt       images/stop.bin       --ms 10
 ```
 
 NAME (letters, digits, `-`, `_`) is the case's output folder under DIR.
-EXPECT is the outcome expected: `completed`, `halt`, `fault` or `hang`. A
+EXPECT is the outcome expected: `completed`, `halt`, `fault`, `hang` or
+`power-cut`. A
 case passes when its outcome is EXPECT and every golden file matches. DIR
 also gets `result.json` (every case's result) and `junit.xml` (one test case
 per suite case). The exit code is 0 when every case passes, 1 otherwise, 2
@@ -518,6 +569,13 @@ differ, that is a bug in fwtest: report it.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.6.0: the flash chip takes the P25Q80H's maximum times and keeps busy
+  meanwhile, needs a write enable, wraps a program within its page and
+  knows the 256-byte, 32 KiB and whole-chip erases; running or reading
+  the code window while it is busy is a fault; `--power-cut`,
+  `--flash-log` and the `power-cut` outcome ("The flash chip"). A
+  dual-issue pair whose halves write one register keeps the head's
+  result ("Instructions").
 - 0.5.0: the MIDI output: the UART's transmit side sends at the wire's
   pace and sets its pending flag when done (it used to finish at once and
   send nothing); `--midi-out`, `midi_out_bytes_dropped` ("MIDI output").

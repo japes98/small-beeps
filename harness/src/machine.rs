@@ -16,6 +16,12 @@
 //! (`machine::run_dual`). `run_blocks` below is upstream's loop of the same
 //! name with one addition: after each SoC service it notes the end of an
 //! audio half-buffer, with cpu0's instruction count at that point.
+//! `run_dual` and `run_cpu1` are upstream's too, copied for one more: while
+//! the flash chip is busy with an erase or program (`SpiFlash::working`,
+//! timed by `FLASH_PROGRAM_MS` and `FLASH_ERASE_MS`), each core runs a block
+//! at a time and the run ends as a fault when a core is about to run a block
+//! in the code window, or read the window (`Soc::window_read_busy`): on the
+//! chip the window can't be served then (docs/HARDWARE-SPEC.md HW-79).
 //!
 //! Determinism: no JIT (`jit_on` stays false on both cores), `skip_idle` on
 //! (time jumps over `idle` and TIMER4 polling, so instruction counts measure
@@ -23,7 +29,8 @@
 //! before anything is built, since several switch execution paths or traces.
 
 use fm1_core::{Cpu, CoreError};
-use fm1_soc::{machine, Soc, FLASH_SIZE, OVL_BASE, RAM_BASE, SRAM2_BASE, XIP_BASE, XIP_FLASH_OFFSET};
+use fm1_soc::machine::{self, Core1Bus};
+use fm1_soc::{FlashTiming, Soc, FLASH_SIZE, OVL_BASE, RAM_BASE, SRAM2_BASE, VEC_BASE, XIP_BASE, XIP_FLASH_OFFSET};
 
 /// RAM given to the image, as upstream's raw-image default.
 pub const RAM_SIZE: usize = 1 << 20;
@@ -36,6 +43,14 @@ pub const SLICE: u32 = 1024;
 /// Emulated cycles per millisecond (`fm1_soc::CPU_HZ`, one instruction per
 /// cycle when nothing is skipped).
 pub const CYCLES_PER_MS: u64 = fm1_soc::CPU_HZ / 1000;
+/// How long a page program and an erase (of any size) keep the flash chip
+/// busy: the P25Q80H datasheet's maximum times (HW-77).
+pub const FLASH_PROGRAM_MS: u64 = 3;
+pub const FLASH_ERASE_MS: u64 = 12;
+/// A fault's text for code-window use while the flash is busy.
+const WINDOW_BUSY_RUN: &str = "ran code in the code window while the flash chip was busy (an erase or program in progress)";
+/// Errors from the core-1 loop that are ours, not upstream's debug text.
+const CORE1: &str = "core 1: ";
 /// Overlay RAM and the SRAM banks: sizes as `Soc::new` makes them.
 const OVL_SIZE: u32 = 512 * 1024;
 const SRAM2_SIZE: u32 = 256 * 1024;
@@ -84,6 +99,7 @@ impl Board {
         let mut soc = Soc::new(RAM_SIZE, image.to_vec());
         soc.periph.skip_idle = true;
         soc.xip_flash = true;
+        soc.flash.timing = FlashTiming { program: FLASH_PROGRAM_MS * CYCLES_PER_MS, erase: FLASH_ERASE_MS * CYCLES_PER_MS };
         if let Some(f) = flash {
             soc.flash.load(f);
         }
@@ -111,7 +127,7 @@ impl Board {
         let before = (self.cpu0.pc, self.cpu0.regs, self.cpu0.sp);
         let first_new = self.blocks.len();
         let Board { soc, cpu0, cpu1, pending_tick, blocks, halves_seen, .. } = self;
-        let r = machine::run_dual(cpu1, soc, n, RAM_SIZE, false, |soc, k| {
+        let r = run_dual(cpu1, soc, n, RAM_SIZE, |soc, k| {
             run_blocks(cpu0, soc, k, pending_tick, blocks, halves_seen)
         });
         let c1 = self.cpu1.as_ref().map_or(0, |c| c.insn_count);
@@ -122,6 +138,7 @@ impl Board {
             // cpu1's errors come back from upstream's runner as debug text: keep only the
             // kind (the clean side reads these messages)
             return Err(match self.cpu1.as_ref() {
+                Some(c) if e.starts_with(CORE1) => Stop::Fault { core: 1, pc: c.pc, what: e[CORE1.len()..].into() },
                 Some(c) if e.starts_with("cpu1:") => Stop::Fault {
                     core: 1,
                     pc: c.pc,
@@ -202,12 +219,21 @@ fn run_blocks(
         if soc.periph.any_pending() {
             if let Some((irq, prio)) = soc.pending_irq() {
                 if cpu.irq_ready(prio) {
-                    let handler = fm1_core::Bus::read32(soc, fm1_soc::VEC_BASE + 4 * irq as u32);
+                    let handler = fm1_core::Bus::read32(soc, VEC_BASE + 4 * irq as u32);
                     cpu.interrupt(handler, prio);
                 }
             }
         }
-        match cpu.run_fast(soc, n - done) {
+        // the flash busy: a block at a time, none in the code window
+        let busy = flash_busy(soc);
+        if busy && in_window(cpu.pc) {
+            return Err(WINDOW_BUSY_RUN.into());
+        }
+        let r = cpu.run_fast(soc, if busy { 1 } else { n - done });
+        if let Some(a) = soc.window_read_busy.take() {
+            return Err(window_busy_read(a));
+        }
+        match r {
             Ok((0, _)) => {
                 cpu.step(soc).map_err(describe)?;
                 done += 1;
@@ -223,6 +249,108 @@ fn run_blocks(
         }
     }
     *pending_tick = ticked;
+    Ok(())
+}
+
+fn flash_busy(soc: &Soc) -> bool {
+    soc.flash.working(soc.periph.cycles)
+}
+
+/// The code window: the image and the flash chip behind it.
+fn in_window(pc: u32) -> bool {
+    pc.wrapping_sub(XIP_BASE) < MAX_IMAGE as u32
+}
+
+fn window_busy_read(addr: u32) -> String {
+    format!("read the code window at {addr:#010x} while the flash chip was busy (an erase or program in progress)")
+}
+
+/// Upstream's `fm1_soc::machine::run_dual` (MIT), without the JIT switch,
+/// running core 1 through `run_cpu1` below.
+fn run_dual(
+    cpu1: &mut Option<Cpu>,
+    soc: &mut Soc,
+    n: u32,
+    ram_size: usize,
+    mut run0: impl FnMut(&mut Soc, u32) -> Result<(), String>,
+) -> Result<(), String> {
+    let mut done = 0;
+    while cpu1.is_none() {
+        *cpu1 = machine::released_cpu1(soc, ram_size).map(|mut c| {
+            c.jit_on = false;
+            c
+        });
+        if cpu1.is_some() || done >= n {
+            break;
+        }
+        let k = (n - done).min(4096);
+        soc.periph.room_cap = k as u64;
+        run0(soc, k)?;
+        done += k;
+    }
+    let Some(c1) = cpu1.as_mut() else { return Ok(()) };
+    soc.periph.room_cap = machine::SLICE as u64;
+    while done < n {
+        let k = (n - done).min(machine::SLICE);
+        let c0 = soc.periph.cycles;
+        if soc.core_paused(0) {
+            soc.advance(k as u64);
+        } else {
+            run0(soc, k)?;
+        }
+        done += k;
+        let dt = soc.periph.cycles - c0;
+        run_cpu1(c1, soc, dt)?;
+    }
+    Ok(())
+}
+
+/// Upstream's `fm1_soc::machine::run_cpu1` (MIT), with the same check as
+/// `run_blocks` while the flash is busy (on cpu0's clock, which core 1
+/// trails by at most one run call).
+fn run_cpu1(c1: &mut Cpu, soc: &mut Soc, cycles: u64) -> Result<(), String> {
+    if soc.core_paused(1) {
+        return Ok(());
+    }
+    let probe = (c1.pc, c1.regs, c1.sp);
+    let mut left = cycles.min(1 << 20);
+    let mut probing = 512u64;
+    while left > 0 {
+        if soc.periph.any_pending() {
+            if let Some((irq, prio)) = soc.pending_irq_for(1) {
+                if c1.irq_ready(prio) {
+                    let handler = fm1_core::Bus::read32(soc, VEC_BASE + 4 * irq as u32);
+                    c1.interrupt(handler, prio);
+                }
+            }
+        }
+        let busy = flash_busy(soc);
+        if busy && in_window(c1.pc) {
+            return Err(format!("{CORE1}{WINDOW_BUSY_RUN}"));
+        }
+        let chunk = if probing > 0 || busy { 1 } else { left.min(256) };
+        let mut bus = Core1Bus { soc: &mut *soc, budget: chunk.max(64) + 1 };
+        let r = c1.run_fast(&mut bus, chunk as u32);
+        if let Some(a) = soc.window_read_busy.take() {
+            return Err(format!("{CORE1}{}", window_busy_read(a)));
+        }
+        let k = match r {
+            Ok((0, _)) => {
+                let mut bus = Core1Bus { soc: &mut *soc, budget: 65 };
+                if let Err(e) = c1.step(&mut bus) {
+                    return Err(format!("cpu1: {e:?} at pc {:#010x}", c1.pc));
+                }
+                1
+            }
+            Ok((k, _)) => k as u64,
+            Err(e) => return Err(format!("cpu1: {e:?} at pc {:#010x}", c1.pc)),
+        };
+        left = left.saturating_sub(k);
+        probing = probing.saturating_sub(k);
+        if c1.pc == probe.0 && c1.sp == probe.2 && c1.regs == probe.1 {
+            break;
+        }
+    }
     Ok(())
 }
 
