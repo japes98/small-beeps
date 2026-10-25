@@ -1,0 +1,18 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py check --build /home/runner/work/small-beeps/small-beeps/out/ce586704776589bcb536fafeceda4280a460fa00/build-a --out /home/runner/work/small-beeps/small-beeps/out/ce586704776589bcb536fafeceda4280a460fa00/perf --base-ref ce586704776589bcb536fafeceda4280a460fa00^1 --require-records
+current: code 36376, data 64, bss 167804, image 36440 bytes; static RAM 204124; stack 536 of 4096 bytes used; startup 1066321 instructions; steady state 1287341 instructions for 690 audio blocks (1865.712 per block) between the 1250.727 and 2250.710 ms runs
+current loaded: 75983100 instructions for 689 audio blocks (110280.261 per block) between the 1250.000 and 2250.462 ms runs with tests/fw/scripts/perfload.txt
+baseline: the record of e5ff5c918390, the latest of ce586704776589bcb536fafeceda4280a460fa00^1 on origin/records
+baseline: code 24140, data 68, bss 156560, image 24208 bytes; static RAM 180648; stack 528 of 4096 bytes used; startup 1059310 instructions; steady state 1293352 instructions for 689 audio blocks (1877.144 per block) between the 1250.244 and 2250.311 ms runs
+baseline loaded: 74129170 instructions for 689 audio blocks (107589.507 per block) between the 1250.000 and 2250.517 ms runs with tests/fw/scripts/perfload.txt
+loaded baseline: the record of e5ff5c918390, the latest of ce586704776589bcb536fafeceda4280a460fa00^1 on origin/records
+  code                 PASS         36376 of 49152 bytes (M8 budget)
+  static_ram           PASS         204124 of 229376 bytes (M8 budget)
+  stack_high_water     PASS         536 of 768 bytes (M8 budget)
+  startup_instructions PASS         1066321 of 1572864 instructions (M8 budget)
+  steady_per_period    PASS         1865.712 of 2048 instructions per period (M8 budget)
+  loaded_per_period    PASS         110280.261 of 147456 instructions per period (M8 budget)
+  speed                PASS         1865.712 steady-state instructions per period, 1877.144 before: -0.61%, within 3%
+  loaded_speed         NOT COMPARED 110280.261 loaded instructions per period, 107589.507 before (+2.50%), but the baseline's record was made under a loaded budget of 131072, not this M8 budget of 147456
+perf: PASS
+
+exit status 0
