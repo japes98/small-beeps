@@ -1,0 +1,18 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py check --build /home/runner/work/small-beeps/small-beeps/out/cb6a4865bca90f08552e17e0e11996a7286c3202/build-a --out /home/runner/work/small-beeps/small-beeps/out/cb6a4865bca90f08552e17e0e11996a7286c3202/perf --base-ref cb6a4865bca90f08552e17e0e11996a7286c3202^1 --require-records
+current: code 20144, data 48, bss 143728, image 20192 bytes; static RAM 143776; stack 452 of 4096 bytes used; startup 1032505 instructions; steady state 1284203 instructions for 689 audio blocks (1863.865 per block) between the 1250.051 and 2250.202 ms runs
+current loaded: 75933041 instructions for 689 audio blocks (110207.607 per block) between the 1250.000 and 2250.036 ms runs with tests/fw/scripts/perfload.txt
+baseline: the record of ef5e3924df2a, the latest of cb6a4865bca90f08552e17e0e11996a7286c3202^1 on origin/records
+baseline: code 20144, data 48, bss 143728, image 20192 bytes; static RAM 143776; stack 452 of 4096 bytes used; startup 1032505 instructions; steady state 1284203 instructions for 689 audio blocks (1863.865 per block) between the 1250.051 and 2250.202 ms runs
+baseline loaded: 75933041 instructions for 689 audio blocks (110207.607 per block) between the 1250.000 and 2250.036 ms runs with tests/fw/scripts/perfload.txt
+loaded baseline: the record of ef5e3924df2a, the latest of cb6a4865bca90f08552e17e0e11996a7286c3202^1 on origin/records
+  code                 PASS         20144 of 28672 bytes (M7 budget)
+  static_ram           PASS         143776 of 196608 bytes (M7 budget)
+  stack_high_water     PASS         452 of 768 bytes (M7 budget)
+  startup_instructions PASS         1032505 of 1572864 instructions (M7 budget)
+  steady_per_period    PASS         1863.865 of 2048 instructions per period (M7 budget)
+  loaded_per_period    PASS         110207.607 of 131072 instructions per period (M7 budget)
+  speed                PASS         1863.865 steady-state instructions per period, 1863.865 before: +0.00%, within 3%
+  loaded_speed         PASS         110207.607 loaded instructions per period, 110207.607 before: +0.00%, within 3%
+perf: PASS
+
+exit status 0
