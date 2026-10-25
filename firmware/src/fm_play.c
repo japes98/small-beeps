@@ -134,6 +134,13 @@ static struct control ctl[FM_VOICES];
 static struct patch patches[FM_PROGRAMS];
 /* The user slots' patches as bytes, and which slots hold one (since M7). */
 static u8 user_raw[FM_USER_SLOTS][FM_PATCH_BYTES];
+/* The program playing now as bytes, with the operator view's edits, and
+ * whether there are any (M8a part 3). */
+static u8 edit_raw[FM_PATCH_BYTES];
+static u32 edited;
+/* Each operator's loudest gain now (2^-30), while the operator view shows
+ * (ui.h); main draws them. */
+volatile s32 fm_op_level[FM_OPS];
 static u32 user_used;
 volatile u32 fm_saved_seq[FM_USER_SLOTS], fm_saved_reset[FM_USER_SLOTS];
 volatile u32 fm_reset_seq;
@@ -170,6 +177,10 @@ static int midi_knob[4];
 /* The panel's KNOB1 to KNOB4 as the engine last took them: frozen while
  * local control is off (M6b). The program the panel's PRESETS last chose. */
 static int panel_knob[4];
+/* Since M8a: KNOB1 to KNOB4's positions as the patch view's controls,
+ * moved only by turns there and held to the span (so turning back from
+ * past an end answers at once); the other screens' turns edit instead. */
+static int knob_pos[4];
 /* midi_settings.knobs as knobs() last took it (M8a): 0 the macros. */
 static u32 knobs_mode;
 static u32 panel_program;
@@ -788,6 +799,20 @@ static int clamp(int v, int lo, int hi)
     return v < lo ? lo : v > hi ? hi : v;
 }
 
+/* The operator a raised key's second label names (OP1 to OP6), or -1. */
+static int op_of_key(u32 control)
+{
+    static const u8 keys[FM_OPS] = {
+        INPUT_KEY_OP1, INPUT_KEY_OP2, INPUT_KEY_OP3, INPUT_KEY_OP4, INPUT_KEY_OP5, INPUT_KEY_OP6,
+    };
+    int i;
+
+    for (i = 0; i < (int)FM_OPS; i++)
+        if (keys[i] == control)
+            return i;
+    return -1;
+}
+
 /* --- The user slots (M7) --------------------------------------------- */
 static u32 program_ok(u32 n)
 {
@@ -818,6 +843,11 @@ static int user_put(u32 slot, const u8 *b)
     patch_parse(&patches[FM_PATCHES + slot], user_raw[slot]);
     user_used |= 1u << slot;
     shaped_patch = 0xFFFFFFFFu;   /* the patch may be the one playing (M8a) */
+    if (FM_PATCHES + slot == patch_now) {
+        for (i = 0; i < FM_PATCH_BYTES; i++)
+            edit_raw[i] = user_raw[slot][i];
+        edited = 0;
+    }
     return 1;
 }
 
@@ -832,9 +862,11 @@ const u8 *fm_user_patch(u32 slot)
 }
 
 /* For the screens (M8a). */
+/* The program playing now, as patch bytes, with the operator view's
+ * edits (since M8a part 3): what the screens show and SAVE writes. */
 const u8 *fm_program_bytes(void)
 {
-    return patch_now < FM_PATCHES ? fm_patches[patch_now] : user_raw[patch_now - FM_PATCHES];
+    return edit_raw;
 }
 
 u32 fm_user_used(void)
@@ -842,8 +874,25 @@ u32 fm_user_used(void)
     return user_used;
 }
 
+/* A program's bytes as stored: a test patch's, or a user slot's. */
+static const u8 *stored_bytes(u32 n)
+{
+    return n < FM_PATCHES ? fm_patches[n] : user_raw[n - FM_PATCHES];
+}
+
 static void select_patch(u32 n)
 {
+    u32 i;
+
+    /* The operator view's edits stay with the program until another is
+     * chosen (M8a part 3): then the program as stored again. */
+    if (edited) {
+        patch_parse(&patches[patch_now], stored_bytes(patch_now));
+        edited = 0;
+    }
+    for (i = 0; i < FM_PATCH_BYTES; i++)
+        edit_raw[i] = stored_bytes(n)[i];
+    shaped_patch = 0xFFFFFFFFu;
     patch_now = n;
     algorithm_now = patches[n].algorithm;
     mono = patches[n].mono;
@@ -865,7 +914,7 @@ int fm_program_set(u32 n)
  * patch, and are not saved (docs/DESIGN-NOTES.md, M7, "The panel"). */
 static void save_to(u32 slot)
 {
-    const u8 *from = patch_now < FM_PATCHES ? fm_patches[patch_now] : user_raw[patch_now - FM_PATCHES];
+    const u8 *from = edit_raw;   /* with the operator view's edits (M8a) */
     u8 b[FM_PATCH_BYTES];
     u32 i, sum;
 
@@ -908,6 +957,85 @@ static void reset_hold(void)
     }
 }
 
+/* --- The operator view's editing (M8a part 3) -------------------------
+ * KNOB1 to KNOB4 on EDIT edit the selected operator of the program
+ * playing now, page by page (SELECT): ratio or frequency, level, detune,
+ * velocity; mode, coarse, fine; the envelope's three levels. */
+static const u16 ratios[] = {
+    128, 256, 512, 768, 1024, 1280, 1536, 1792, 2048, 2304, 2560, 2816, 3072, 3328, 3584, 3840, 4096,
+};
+#define RATIOS (sizeof ratios / sizeof ratios[0])
+
+/* The next whole ratio (or a half) up or down from f (x 256). */
+static u32 ratio_step(u32 f, int d)
+{
+    u32 i;
+
+    if (d > 0) {
+        for (i = 0; i < RATIOS; i++)
+            if (ratios[i] > f)
+                return ratios[i];
+        return f;
+    }
+    for (i = RATIOS; i--;)
+        if (ratios[i] < f)
+            return ratios[i];
+    return f;
+}
+
+static void edit_op(u32 knob, int d)
+{
+    u8 *o = edit_raw + FM_OP_OFFSET + FM_OP_BYTES * fm_ui.op;
+    u32 f = (u32)o[FMO_FREQ] | (u32)o[FMO_FREQ + 1] << 8, sum;
+
+    switch (fm_ui.page * 4u + knob) {
+    case 0:   /* RATIO, or the fixed frequency a semitone a detent */
+        if (o[FMO_MODE])
+            f = d > 0 ? (f * 69433u) >> 16 : (f * 61858u) >> 16;
+        else
+            f = ratio_step(f, d);
+        break;
+    case 1:
+        o[FMO_LEVEL] = (u8)clamp(o[FMO_LEVEL] + d, 0, 127);
+        break;
+    case 2:
+        o[FMO_DETUNE] = (u8)clamp(signed8(o[FMO_DETUNE]) + d, -100, 100);
+        break;
+    case 3:
+        o[FMO_VELOCITY] = (u8)clamp(o[FMO_VELOCITY] + d, 0, 7);
+        break;
+    case 4:   /* MODE: ratio 1, or fixed at 440 Hz */
+        o[FMO_MODE] = d > 0;
+        f = d > 0 ? 1760u : 256u;
+        break;
+    case 5:   /* COARSE: a whole ratio, or an octave */
+        if (o[FMO_MODE])
+            f = d > 0 ? f * 2u : f / 2u;
+        else
+            f = (u32)clamp((int)f + 256 * d, 32, 65535);
+        break;
+    case 6:   /* FINE: 1/256 of a ratio, or 1 Hz */
+        f = (u32)clamp((int)f + (o[FMO_MODE] ? 4 * d : d), 1, 65535);
+        break;
+    case 8:
+    case 9:
+    case 10:
+        o[FMO_ENV_LEVEL + knob] = (u8)clamp(o[FMO_ENV_LEVEL + knob] + d, 0, 127);
+        break;
+    default:
+        return;
+    }
+    f = f < 1 ? 1 : f > 65535 ? 65535 : f;
+    o[FMO_FREQ] = (u8)f;
+    o[FMO_FREQ + 1] = (u8)(f >> 8);
+    sum = fm_patch_sum(edit_raw);
+    edit_raw[FM_SUM_OFFSET] = (u8)sum;
+    edit_raw[FM_SUM_OFFSET + 1] = (u8)(sum >> 8);
+    patch_parse(&patches[patch_now], edit_raw);
+    edited = 1;
+    shaped_patch = 0xFFFFFFFFu;
+}
+
 /* KNOB1 to KNOB4 as the engine uses them (DESIGN-NOTES.md, M5, "The
  * controls"). */
 static void knobs(void)
@@ -916,7 +1044,7 @@ static void knobs(void)
 
     if (midi_settings.local)
         for (k = 0; k < 4; k++)
-            panel_knob[k] = input_value(INPUT_KNOB1 + k);
+            panel_knob[k] = knob_pos[k];
     /* A change of mode starts MIDI's offsets afresh: they were in the
      * other mode's steps. */
     if (midi_settings.knobs != knobs_mode) {
@@ -993,7 +1121,7 @@ static u8 knob_sent[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
 
 static void knob_out(u32 k)
 {
-    u32 i, v = knob_value(k, input_value(INPUT_KNOB1 + k));
+    u32 i, v = knob_value(k, knob_pos[k]);
 
     if (v == knob_sent[k])
         return;
@@ -1185,6 +1313,18 @@ static void events(void)
                 }
                 /* SEL held: MONO and POLY switch the mode (and play no
                  * note); MIDI out sends the mode message (M6b). */
+                /* SEL with OP1 to OP6 picks the operator (M8a); SEL with any
+                 * of the ten labelled raised keys plays no note. */
+                if (input_value(INPUT_SEL) && e.control >= INPUT_KEY_OP1 && e.control <= INPUT_KEY_POLY
+                    && op_of_key(e.control) >= 0) {
+                    fm_ui.op = (u8)op_of_key(e.control);
+                    key_note[k] = -1;
+                    continue;
+                }
+                if (input_value(INPUT_SEL) && (e.control == INPUT_KEY_PIT || e.control == INPUT_KEY_GLO)) {
+                    key_note[k] = -1;
+                    continue;
+                }
                 if (input_value(INPUT_SEL) && (e.control == INPUT_KEY_MONO || e.control == INPUT_KEY_POLY)) {
                     if (local) {
                         all_off();
@@ -1240,7 +1380,18 @@ static void events(void)
             if (local)
                 algorithm_now = (algorithm_now + FM_ALGORITHMS * 16 + (u32)(int)e.value) % FM_ALGORITHMS;
         } else if (e.kind == INPUT_TURN && e.control >= INPUT_KNOB1 && e.control <= INPUT_KNOB4) {
-            knob_out(e.control - INPUT_KNOB1);
+            u32 k = e.control - INPUT_KNOB1;
+            if (fm_ui.screen == UI_EDIT) {
+                if (local)
+                    edit_op(k, e.value);
+            } else {
+                const s8 (*span)[2] = spans();
+                knob_pos[k] = clamp(knob_pos[k] + e.value, span[k][0], span[k][1]);
+                knob_out(k);
+            }
+        } else if (e.kind == INPUT_TURN && e.control == INPUT_SELECT && fm_ui.screen == UI_EDIT) {
+            /* SELECT steps through the operator view's three pages. */
+            fm_ui.page = (u8)((fm_ui.page + 3u + (u32)(e.value > 0 ? 1 : 2)) % 3u);
         }
     }
     midi_poll();
@@ -1378,6 +1529,8 @@ void fm_block(s32 *out, u32 frames)
         if (sb_fm.voices[0] | sb_fm.voices[1]) {
             sb_fm.voices[0] = sb_fm.voices[1] = 0;
             sb_audio.engine[SYNTH_VOICES_ON] = 0;
+            for (n = 0; n < FM_OPS; n++)
+                fm_op_level[n] = 0;
         }
         return;
     }
@@ -1409,6 +1562,17 @@ void fm_block(s32 *out, u32 frames)
             sb_fm.wait_max = d;
         for (n = 0; n < AUDIO_FRAMES; n++)
             mix[0][n] += mix[1][n];
+    }
+    /* The operator view's live levels (M8a), only while it shows. */
+    if (fm_ui.screen == UI_EDIT) {
+        u32 i;
+        for (i = 0; i < FM_OPS; i++) {
+            s32 g = 0;
+            for (n = 0; n < FM_VOICES; n++)
+                if (voice[n].state == VOICE_ON && voice[n].op[i].gain > g)
+                    g = voice[n].op[i].gain;
+            fm_op_level[i] = g;
+        }
     }
     m = master;
     for (n = 0, w = out; n < frames; n++, w += 2) {

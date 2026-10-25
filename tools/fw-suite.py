@@ -107,6 +107,7 @@ the suite through tools/fwtest (the pinned image), and then checks:
 Prints what it saw for the record, and exits 1 if anything failed.
 """
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -149,7 +150,7 @@ EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "complete
           "midichan": "completed", "midipanel": "completed", "midilat": "completed",
           "midiout": "completed", "midiround": "completed", "midithru": "completed",
           "midilocal": "completed", "midiburst": "completed", "midioutlat": "completed",
-          "views": "completed", "viewsload": "completed", "macros": "completed"}
+          "views": "completed", "viewsload": "completed", "macros": "completed", "edit": "completed"}
 
 MARKER = 0x44304253        # "SB0D", firmware/src/sb.h
 TICKS_PER_MS = 24000       # HW-13
@@ -2321,6 +2322,86 @@ def check_macros(case_dir):
     return problems[:20], lines
 
 
+def check_edit(case_dir):
+    """The operator view's editing (tests/fw/scripts/edit.txt; R-UI-9,
+    R-UI-10): each knob's effect on the same note, measured; SAVE writes
+    the edited patch; another program and back discards the edits."""
+    problems, lines, a, console, wav = check_audio_common("edit", case_dir)
+    if wav is None:
+        return problems + ["edit: no audio"], lines
+    x, ends = wav
+    rate = aa.RATE
+    f0 = aa.note_hz(70)
+
+    def onset(ms):
+        i = int(ms * rate / 1000)
+        while i < len(x) and not x[i]:
+            i += 1
+        return i
+
+    def fit(ms):
+        i = onset(ms) + int(0.05 * rate)
+        return aa.sine_fit(x[i:i + int(0.12 * rate)])
+
+    notes = {t: fit(t) for t in (400, 800, 1350, 2100, 2950, 3600, 4050, 5300)}
+    ref = notes[400]
+
+    def db(t):
+        return 20 * math.log10(notes[t]["amplitude"] / ref["amplitude"])
+
+    checks = [
+        ("E1 as stored: the note's pitch", ref["frequency"], f0, 0.5),
+        ("E2 RATIO 2.00: twice the pitch", notes[800]["frequency"], 2 * f0, 1.0),
+        ("E3 LEVEL 103: -18 dB", db(1350), -18.0, 0.5),
+        ("E4 DETUNE +50: cents", aa.cents(notes[2100]["frequency"], f0), 50.0, 2.0),
+        ("E5 MODE fixed: 440 Hz", notes[2950]["frequency"], 440.0, 0.5),
+        ("E6 HOLD 103: -18 dB held", db(3600), -18.0, 0.5),
+        ("E7 VELO 7: dB at velocity 100, against E6", db(4050) - db(3600), -20 * math.log10(2) * 27 * 8 / 127, 0.5),
+    ]
+    for name, got, want, tol in checks:
+        lines.append("  %s %.2f (expected %.2f)" % (name, got, want))
+        if abs(got - want) > tol:
+            problems.append("edit: %s %.2f, expected %.2f +- %s" % (name, got, want, tol))
+    n = int(0.2 * rate)
+    if x[onset(400):onset(400) + n] != x[onset(5300):onset(5300) + n]:
+        problems.append("edit: after another program and back the note is not the stored patch's")
+    else:
+        lines.append("  E8: another program and back: the stored patch again, sample for sample")
+    path = os.path.join(case_dir, "flash.bin")
+    with open(path, "rb") as f:
+        chip = f.read()
+    with open(path + ".sha256", "w") as f:
+        f.write("%s  flash.bin\n" % hashlib.sha256(chip).hexdigest())
+    os.remove(path)
+    saved = store_suite.st.Image(chip).get(store_suite.st.PATCH, 0)
+    want = bytearray(fm_patch.encode(fm_patch.TEST_PATCHES[0]))
+    want[fm_patch.OP_OFFSET + 5] = 7                      # operator 1: velocity
+    want[fm_patch.OP_OFFSET + 12] = 103                   # its held level
+    want[16] = 9                                          # the algorithm, turned once
+    s16 = fm_patch.fletcher16(want[:110])
+    want[110], want[111] = s16 & 0xFF, s16 >> 8
+    if not saved or saved[1] != bytes(want):
+        problems.append("edit: slot 1 holds %s, not the edited patch" % (saved and saved[1].hex()))
+    else:
+        lines.append("  SAVE with KEY1: slot 1 holds the edited patch (velocity 7, held 103, algorithm 9)")
+    f = fm_record(os.path.join(case_dir, fm_name()))
+    u = ui_record(case_dir)
+    if f["patch"] != 0 or f["algorithm"] != 8:
+        problems.append("edit: at the end program %d, algorithm %d; expected 0 and 8 (as stored)"
+                        % (f["patch"], f["algorithm"]))
+    more, line = check_drawing("edit", u)
+    problems += more
+    lines.append(line + "; %d live updates, the longest %d ticks" % (u["live"], u["live_max"]))
+    if not u["live"]:
+        problems.append("edit: no live updates of the operators' levels")
+    # OP2's key at half from SEL with OP2 (4420 ms) until HOME (4700).
+    for ms, duty in read_leds(case_dir):
+        if 4530 < ms < 4690 and not LED_FULL_DUTY[0] / 2 - 10 <= duty[17] <= LED_FULL_DUTY[1] / 2 + 10:
+            problems.append("edit: OP2's key at %.0f ms: %d, not half" % (ms, duty[17]))
+    return problems[:20], lines
+
+
+AUDIO_CHECKS["edit"] = check_edit
 AUDIO_CHECKS["macros"] = check_macros
 AUDIO_CHECKS["viewsload"] = check_viewsload
 INPUT_CHECKS = {"views": check_views, "keys": check_keys, "chords": check_chords, "encoders": check_encoders, "pot": check_pot,
