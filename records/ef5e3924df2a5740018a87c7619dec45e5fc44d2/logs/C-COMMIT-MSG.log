@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range cb7c98044570e47271951d72a790cde07b0a420e..ef5e3924df2a5740018a87c7619dec45e5fc44d2
+OK     2e158df07088 harness: fwtest 0.6.0, the flash chip's busy times and a power cut; pairs
+EXEMPT f05f31ba3987 (merge) docs: merge spec/sr-9 into spec/fwtest-060, after its fixes
+OK     4f2c21773d22 harness: a window helper called while the flash is busy faults; doc fixes
+EXEMPT 9a3888a2e19b (merge) docs: merge spec/sr-9 into spec/fwtest-060, after its fixes
+OK     846405baaa2b docs: EXPOSURE.md without the conflict markers a merge left in
+EXEMPT ef5e3924df2a (merge) Merge pull request #99 from japes98/spec/fwtest-060
+6 commit(s) checked: PASS
+
+exit status 0

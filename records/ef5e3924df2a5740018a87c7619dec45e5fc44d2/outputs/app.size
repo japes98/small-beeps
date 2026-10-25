@@ -1,0 +1,6 @@
+code 20144
+data 48
+bss 143728
+image 20192
+stack 4096
+irq_stack 2048
