@@ -1424,7 +1424,8 @@ requests. Section 19 completes it (SR-9).
 Completes section 8 for SR-9. HW-76 to HW-79 are the chip and its flash
 part, HW-80 and HW-81 the FM-1's flash layout and what the boot chain and
 the update path need, HW-82 fwtest 0.5.0's flash, superseded by HW-83,
-fwtest 0.6.0's. Open: Q-21 to Q-24.
+fwtest 0.6.0's; HW-84 the code window's controller on the chip. Open:
+Q-21 to Q-24.
 
 ### HW-76: The flash part's identity
 - Fact: In fwtest the flash chip answers the JEDEC ID read (`0x9F`) with
@@ -1660,6 +1661,28 @@ fwtest 0.6.0's. Open: Q-21 to Q-24.
 - Standing: confirmed (E-22)
 - Needed by: M7
 
+### HW-84: The code window's controller and its decryption, on the chip
+- Fact: On the chip the code window is served by a flash controller,
+  `JL_SFC`, at `0x00040200`: `CON` +0 (read and write), `BAUD` +4, `CODE`
+  +8 and `BASE_ADR` +12 (write only). Its decryption has a block of its
+  own, `JL_SFCENC`, at `0x00040300`: `CON` +0 (8 bits), `KEY` +4 (16
+  bits), and four write-only words that bound address ranges,
+  `UNENC_ADRH` +8, `UNENC_ADRL` +12, `LENC_ADRH` +16, `LENC_ADRL` +20
+  (by their names, an unencrypted range and a second range). The stock
+  firmware's direct flash routines first wait for the controller to be
+  idle and switch it to a command mode through `0x00040200` (FM-1-RE,
+  medium confidence), then drive SPI0. The SDK gives no bit meanings
+  (its flash driver is a prebuilt library), so which bits hand the flash
+  to SPI0 and back, and how the ranges are set for the stock layout,
+  stay open (Q-22). fwtest models neither block: it has no controller to
+  hand over, and its window is never encrypted (HW-83).
+- Sources: SDK `WL82.h` lines 13-16 (`hsfr_base`, `map_adr`) and 38-60
+  (`JL_SFC`, `JL_SFCENC`); RE `docs/io/09-storage.md` §1 (command mode via
+  `0x40200`, the idle wait); RE `docs/architecture.md` §2 (the app area
+  encrypted with the chip key).
+- Standing: confirmed (SDK, RE)
+- Needed by: M7 (real hardware), M9
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -1822,7 +1845,9 @@ spec request can turn one into a fact.
   PD0 as a chip select on the chip may be wrong; SPI0's clock and mode
   for those commands; whether the window caches the flash and what makes
   it see a change (the stock firmware synchronises the instruction cache
-  after a program, HW-81); whether core 1 must be stopped (the emulator's
+  after a program, HW-81); which bits of the controller's `CON` (HW-84)
+  hand the flash over and back, and how its decryption ranges are set;
+  whether core 1 must be stopped (the emulator's
   model says the stock firmware pauses it around flash work). Settled by
   a probe on real hardware, or a datasheet for the chip.
 - **Q-23. Write protection on the FM-1's flash.** Whether the status
