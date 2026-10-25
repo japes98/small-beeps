@@ -1433,6 +1433,32 @@ SR-3 wrote only its barrier-log row.*
   than the golden on fwtest 0.6.0 with M8a's firmware. Main's firmware
   matched it on 0.6.0 earlier in this session. Left to the firmware side.
 
+### Session owner-answers-1025 (the owner's answers to the ARP and M9 proposals, MIDI clock in the harness, spec requests)
+- Date: 2026-10-25 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.310 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `e9c791d0-c0ad-48c5-bdb9-ede17aa9736a`,
+  started by `/clear` at 13:23:41Z (banner `source: clear`,
+  `status: OK`), with the folder still at `1123eca`, before #110 had
+  reached it. The session therefore loaded the old settings
+  (`eaa5f875…`), which lack only #110's deny rule against cloning the
+  port repository, and keeps them while it runs.
+- Where it ran: the owner's Mac, in `~/<top>/spec`; 13:24:11Z:
+  `tools/spec-setup.sh` on main at `ce586704`, banner `status: OK`
+  (`84a7e56c…`); `tools/private-terms.local` exists (not opened). 11 GB
+  free at the start.
+- What it archived: evening-1024's transcript (`e7979b06`) into
+  `sessions/spec/`. `tools/check-transcripts.py` first failed on it: its
+  banner after a compaction (04:32:36Z) reported `CONFIG MISMATCH`, the
+  one evening-1024's own entry foresaw (Corrections, below).
+  `tools/check-transcripts.py` gained `ALLOWED_MISMATCH`, which allows
+  that one banner by its session, source and both hashes, for the owner
+  to approve by merging; then PASS (29 archived transcripts).
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository).
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
@@ -1477,6 +1503,24 @@ SR-3 wrote only its barrier-log row.*
   ("Roles") now names the repository and licence; the older entries and
   prompts keep their wording.
 
+### 2026-10-25: evening-1024's mismatched banner
+*Written by session owner-answers-1025.*
+
+- **What happened.** Session evening-1024 installed `config/claude/spec.json`
+  (`eaa5f875…`) at its start, then added a deny rule to it (#110,
+  `84a7e56c…`: `Bash(git clone*small-beeps-ports*)`, the only change).
+  At 04:32:36Z, after a compaction, its banner (`source: compact`)
+  compared the running settings with the changed file and reported
+  `status: CONFIG MISMATCH`, saying to stop and tell the owner. The
+  session went on working and did not mention it; its entry above
+  foresaw the mismatch, but not this banner.
+- **What it means.** The settings in force were the older, looser ones:
+  every deny rule but the new one held. Nothing in its transcript clones
+  the port repository (`tools/check-transcripts.py` PASS).
+- **What changed.** `tools/check-transcripts.py`'s `ALLOWED_MISMATCH`
+  allows this one banner, by its session, `source`, settings hash and
+  config hash, all four exactly; any other mismatch still fails.
+
 ## Barrier log
 
 | When (UTC) | Folder | Settings SHA-256 | Event |
@@ -1518,6 +1562,8 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-24T13:01:56Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M6b starts; banner `status: OK`; `tools/clean-update.sh` found main at `663f135` and passed; M6a archived; `tools/check-transcripts.py` PASS with the 5 reviewed entries listed for the owner's approval |
 | 2026-10-24T14:13:39Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M7 starts; banner `status: OK`; `tools/clean-update.sh` found main at `6ba587e` and passed; M6b archived; `tools/check-transcripts.py` PASS with the 2 reviewed entries listed for the owner's approval |
 | 2026-10-25T02:13:03Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session evening-1024 starts; banner `status: OK`. 02:13:28Z: `tools/spec-setup.sh`, banner `status: OK`; day-1024's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written. `config/claude/spec.json` changes in this session (a deny rule added); the running session keeps the old settings, so its banner would show a mismatch until it restarts |
+| 2026-10-25T04:32:36Z | `~/<top>/spec` | `eaa5f875…ed542f810` | Session evening-1024, after a compaction: banner `status: CONFIG MISMATCH` (the running settings against #110's `config/claude/spec.json`, `84a7e56c…`); recorded by session owner-answers-1025 (Corrections) |
+| 2026-10-25T13:23:41Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session owner-answers-1025 starts; banner `status: OK` (the folder still at `1123eca`). 13:24:11Z: `tools/spec-setup.sh` on main at `ce586704`, banner `status: OK` (`84a7e56c…f947bc`); evening-1024's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS with `ALLOWED_MISMATCH`; this entry written. The running session keeps the old settings |
 
 ## Model cutoffs
 
