@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range b09368cb2b65dbdbbd5516d3956df0ef46085f36..b5b938aaf5c10b89f3a0da03d58af9fc40e0648e
+OK     c604abc900c3 audit: rediscovered targets (112 new, 2 gone, 99 moved)
+EXEMPT 70e08f1b7641 (merge) docs: merge spec/flash-pins into spec/audit-targets
+EXEMPT e47fc94da776 (merge) docs: merge spec/flash-pins into spec/audit-targets
+EXEMPT 1e940f6ebe37 (merge) docs: merge spec/flash-pins into spec/audit-targets
+EXEMPT b5b938aaf5c1 (merge) Merge pull request #114 from japes98/spec/audit-targets
+5 commit(s) checked: PASS
+
+exit status 0
