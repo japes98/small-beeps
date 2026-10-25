@@ -1,0 +1,15 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 9ff4bd8425d39612c8720c8ba6b54eb4eb199636..ad13a38f51ed2c8f6b7e77001e166864bfc73381
+OK     dcc2f9751d21 firmware: run every instruction and constant from RAM after start-up
+OK     505e67597f7c firmware: the store, and the panel's save and factory reset
+OK     fb6cd31b1a18 tools: the store's format and model, and its tests
+OK     3c6967402c92 tests: fmgold and the MIDI out captures, moved in time
+OK     eb0d82ddb875 docs: M7, flash storage: the format, the design, the requirements, the plan
+OK     f6f256c04b16 docs: EXPOSURE.md, what M7 read of the spec side's open pull requests
+OK     4f2a78ed0c91 tests: store cases: hashes for flash images, screens, audioload's input
+OK     6dcd0855baa4 docs: EXPOSURE.md, two CI artifacts downloaded whole
+OK     3de78635148a docs: EXPOSURE.md, the artifacts' deletion time as the clock gave it
+EXEMPT 01d1d61c8542 (merge) firmware: merge main into the store, after #96 to #99 and #108
+EXEMPT ad13a38f51ed (merge) Merge pull request #106 from japes98/m7/store
+11 commit(s) checked: PASS
+
+exit status 0
