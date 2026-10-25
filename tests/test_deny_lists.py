@@ -52,8 +52,7 @@ class DenyListTest(unittest.TestCase):
                 self.assertTrue(dl.check(self.dir), "%s %s" % (role, rule))
 
     def test_dropping_from_the_baseline_fails(self):
-        # an entry ORIGINAL holds (a later one is still required of the config)
-        self.edit("deny-baseline.json", lambda d: d["spec"].remove("Bash(git clone*dinghy*)"))
+        self.edit("deny-baseline.json", lambda d: d["spec"].pop())
         self.assertTrue(dl.check(self.dir))
 
     def test_dropping_from_the_auditor_baseline_fails(self):
@@ -74,6 +73,9 @@ class DenyListTest(unittest.TestCase):
             self.edit(role + ".json",
                       lambda d: d["permissions"]["deny"].remove(rule))
             self.assertTrue(dl.check(self.dir), role)
+            self.setUp()
+            self.edit("deny-baseline.json", lambda d: d[role].remove(rule))
+            self.assertTrue(dl.check(self.dir), "baseline " + role)
 
     def test_adding_an_entry_passes(self):
         self.edit("spec.json", lambda d: d["permissions"]["deny"].append("WebFetch(domain:example.org)"))

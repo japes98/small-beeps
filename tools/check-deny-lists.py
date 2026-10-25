@@ -41,6 +41,8 @@ ORIGINAL = {
         "Bash(git clone*dinghy*)",
         "Bash(git clone*fm1-emu*)",
         "Bash(git clone*f-emulator*)",
+        # since evening-1024 (the owner's decision)
+        "Bash(git clone*small-beeps-ports*)",
     ],
     "spec": [
         "Read(**/fm1-sid/**)",
@@ -50,6 +52,8 @@ ORIGINAL = {
         "Bash(git clone*Felucca*)",
         "Bash(git clone*felucca*)",
         "Bash(git clone*dinghy*)",
+        # since evening-1024 (the owner's decision)
+        "Bash(git clone*small-beeps-ports*)",
     ],
     # first committed in M0e (session M0e-spec)
     "auditor": [
