@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
 #
-# SessionStart hook (config/claude/clean.json, spec.json and auditor.json), run on every
+# SessionStart hook (config/claude/clean.json, spec.json, auditor.json and porter.json), run on every
 # session source: startup, resume, clear, compact. It prints the session's
 # role, the Claude Code version, the SHA-256 of the live settings and of the
 # committed config for that role, and the UTC time. If the live settings
@@ -39,7 +39,7 @@ for c in claude "$HOME/.claude/local/claude" "$HOME/.local/bin/claude" \
 done
 
 status=OK
-case "$role" in clean|spec|auditor) ;; *) status="CONFIG MISMATCH" ;; esac
+case "$role" in clean|spec|auditor|porter) ;; *) status="CONFIG MISMATCH" ;; esac
 if [ "$live" = absent ] || [ "$live" != "$committed" ]; then status="CONFIG MISMATCH"; fi
 
 cat <<EOF

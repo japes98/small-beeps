@@ -2,14 +2,15 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
 #
-# Shared by tools/clean-setup.sh, tools/spec-setup.sh and tools/auditor-setup.sh.
+# Shared by tools/clean-setup.sh, tools/spec-setup.sh, tools/auditor-setup.sh and
+# tools/porter-setup.sh.
 #
 #   tools/setup-folder.sh ROLE [DIR]
 #
-# ROLE is clean, spec or auditor. With a DIR that doesn't exist yet, clones
+# ROLE is clean, spec, auditor or porter. With a DIR that doesn't exist yet, clones
 # this repository into it first (clean: blob-less clone with a sparse checkout
 # that leaves out the spec-side folders listed in config/spec-side-folders,
-# so their contents never reach the disk; spec and auditor: a full clone). Without DIR, sets up
+# so their contents never reach the disk; spec, auditor and porter: a full clone). Without DIR, sets up
 # this checkout. SETUP_SOURCE (a URL, default this checkout's origin) and
 # SETUP_REF (default main) choose what a new folder is cloned from; CI uses
 # them to test a pull request's own tree.
@@ -26,7 +27,7 @@ set -eu
 
 ROLE=${1:-}
 DIR=${2:-}
-case "$ROLE" in clean|spec|auditor) ;; *) echo "usage: $0 clean|spec|auditor [DIR]" >&2; exit 2 ;; esac
+case "$ROLE" in clean|spec|auditor|porter) ;; *) echo "usage: $0 clean|spec|auditor|porter [DIR]" >&2; exit 2 ;; esac
 
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 # The spec-side folders, from the one list (since M3).
