@@ -2131,23 +2131,24 @@ def check_midioutlat(case_dir):
 def check_presetends(case_dir):
     """PRESETS stops at the ends (tests/fw/scripts/presetends.txt): turned
     down from the first program, or up from the last, it does nothing (the
-    held note sounds on, no program change goes out); up by 30 from the
+    held note sounds on, no program change goes out); up by 100 from the
     first it stops at the last program that holds a patch."""
     problems, lines, a, _, _ = check_audio_common("presetends", case_dir)
     more, l2, o, msgs, _ = midi_out_common("presetends", case_dir)
     problems, lines = problems + more, lines + l2
     last = len(fm_patch.TEST_PATCHES) - 1
-    # fwtest turns the 30 detents one at a time: a program change each up
-    # to the last, then none.
-    problems += expect_messages("presetends", msgs, [(0x90, 53, 100)] + [(0xC0, n) for n in range(1, last + 1)]
+    # fwtest turns the 100 detents one at a time: a program change each
+    # up to the last, then none.
+    progs = [n for n in range(1, last + 1) if n < len(fm_patch.TEST_PATCHES) or n >= len(fm_patch.TEST_PATCHES) + 16]
+    problems += expect_messages("presetends", msgs, [(0x90, 53, 100)] + [(0xC0, n) for n in progs]
                                 + [(0x90, 53, 0)], lines)
     f450, f = fm_record(os.path.join(case_dir, fm_name("450ms"))), fm_record(os.path.join(case_dir, fm_name("end")))
     if (f450["patch"], f450["voices0"] + f450["voices1"], f["patch"], f["notes"]) != (0, 1, last, 1):
         problems.append("presetends: program %d with %d voices sounding after the turn down, program %d and %d notes"
                         " at the end; expected 0, 1, %d, 1" % (f450["patch"], f450["voices0"] + f450["voices1"],
                                                                f["patch"], f["notes"], last))
-    lines.append("  PRESETS down from 001: nothing (KEY1 sounds on); up 30: to %03d, a program change a detent"
-                 " until then; up again: nothing" % (last + 1))
+    lines.append("  PRESETS down from 001: nothing (KEY1 sounds on); up 100: to program %d, a program change a"
+                 " detent until then; up again: nothing" % last)
     return problems, lines
 
 
