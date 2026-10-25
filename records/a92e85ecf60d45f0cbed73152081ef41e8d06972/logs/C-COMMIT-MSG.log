@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 5d978a1c3820ab3db9f796eec457ee589e253cb0..a92e85ecf60d45f0cbed73152081ef41e8d06972
+OK     705e3e915359 config: M8's loaded budget, for the live spectrum under the heaviest input
+EXEMPT a92e85ecf60d (merge) Merge pull request #122 from japes98/m8a/budgets-spectrum
+2 commit(s) checked: PASS
+
+exit status 0
