@@ -290,7 +290,7 @@ the order written.
 | `key N tap [HOLD]` | Pressed, then released HOLD ms later (default 50). |
 | `enc N +C`, `enc N -C` | Encoder N (0 to 6) turned C detents (1 to 1000); `+` is clockwise. Each detent is four contact changes, 2 ms apart, the first at the event's time. |
 | `pot V` | The pot's reading becomes V (0 to 1023). It reads 900 until a script sets it. |
-| `midi HH ...` | Bytes (two hex digits each) arrive at the MIDI input one after another, at the wire's pace: one byte every 320 µs, the first 320 µs after the event's time. The MIDI input is the FM-1's MIDI IN jack, received by UART1 (`HARDWARE-SPEC.md`, HW-67, HW-71); fwtest has no USB or Bluetooth MIDI. |
+| `midi HH ...` | Bytes (two hex digits each) arrive at the MIDI input one after another, at the wire's pace: one byte every 320 µs, the first 320 µs after the event's time. Bytes still waiting from an earlier event go first ("MIDI clock in and timing"). The MIDI input is the FM-1's MIDI IN jack, received by UART1 (`HARDWARE-SPEC.md`, HW-67, HW-71); fwtest has no USB or Bluetooth MIDI. |
 
 Key, LED and encoder numbers are fwtest's own. `HARDWARE-SPEC.md` maps them
 to the panel and to the key matrix.
@@ -369,6 +369,47 @@ the FM-1 itself these bytes go nowhere; the SMK-37 sends them through its
 - **Golden files.** Both can be golden files, compared byte for byte (the
   times are exact, so no tolerance is needed; `rel-percent` would also let
   a byte written in decimal digits differ, so don't use it here).
+
+## MIDI clock in and timing
+
+What a test of a MIDI clock follower (an arpeggiator, a sequencer) needs
+from the two sections above, in one place.
+
+- **The input is one wire.** A byte arrives (its stop bit ends, and the
+  receiver has it) 320 µs after it starts. An event's bytes start at its
+  time if nothing is waiting, else right after the last byte waiting, in
+  the order written; two events never interleave. Events at the same
+  time join in the order written.
+- **So a clock byte due during a message arrives after it.** With
+  `1 midi 90 3c 64` and `1.1 midi f8`, the clock byte arrives at
+  1.960 + 0.320 = 2.280 ms, not 1.420: up to 320 µs late for every byte
+  still waiting, as on a cable whose sender holds the clock until the
+  message ends. To put a real-time byte inside a message, write it there:
+  `3 midi 90 f8 3c 64` delivers 0x90 at 3.320 ms and 0xF8 at 3.640.
+- **Clock (0xF8), 24 a beat.** At *T* BPM one every 60 000 / (24 *T*)
+  ms: 20.833 ms at 120, 27.778 ms at 90. Script times have 1 µs
+  steps, so write the *k*-th clock at `t0 + k × period` rounded to the
+  µs, never by adding a rounded period: each byte is then within 0.5 µs
+  of its ideal time and the error never grows. A minute at 120 BPM is
+  2 880 lines; generate the script. Jitter, a tempo change or a clock
+  that stops is just a different list of times.
+- **Start (0xFA), Continue (0xFB), Stop (0xFC)** and song position
+  (`f2 LL MM`) are ordinary `midi` events. A run starts with no clock;
+  stopping the clock is not sending it.
+- **The output's times are exact** (`midi-out.csv`, "MIDI output"), on
+  the same emulated clock as the script, from 0 when the image starts. A
+  row's time is the byte's stop bit's end, so the byte started 0.320 ms
+  earlier, and a message with *n* bytes started *n* × 0.320 ms before its
+  last byte's time (if nothing was waiting before it). A step meant to
+  fall on the *k*-th clock can be compared with that clock's arrival,
+  `t0 + k × period + 0.320`, to the microsecond; an internal tempo's
+  steps with `k × step` from the first, over any length of run.
+- **Against the audio.** `ipb.csv`'s `end_ms` is when each audio block
+  finished, on the same clock, so a MIDI byte's time can be placed among
+  the blocks of `audio.wav`.
+- **Bytes the image sends faster than the wire** wait behind each other
+  ("MIDI output"); a burst of a chord's note ons spreads 320 µs a byte,
+  and a test of its timing allows for that.
 
 ## Outcomes and exit codes
 
