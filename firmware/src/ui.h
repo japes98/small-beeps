@@ -62,6 +62,23 @@ struct fm_env_dot {
 };
 extern volatile struct fm_env_dot fm_env_dot;
 
+/* The live spectrum (since M8a part 5; spectrum.c). Before each
+ * transform main sets spec_capture to SPEC_BLOCKS; the engine copies that
+ * many blocks' output (out 0: silence, at rest), one each block. */
+#define SPEC_N      256u     /* samples a transform */
+#define SPEC_BLOCKS 4u       /* blocks a capture: SPEC_N / AUDIO_FRAMES */
+#define SPEC_BARS   56u      /* bars, 200 Hz to 20 kHz */
+extern volatile u32 spec_capture;
+void spectrum_feed(const s32 *out, u32 frames);
+/* Main, in three steps (each a part of the drawing): the ring now,
+ * windowed (0 if silent); stages first to last - 1 of eight; the bars'
+ * heights, 0 to height. */
+u32 spectrum_start(void);
+void spectrum_stages(u32 first, u32 last);
+void spectrum_bars(u8 *bars, u32 height);
+/* 1 if the last capture held only silence. */
+u32 spectrum_quiet(void);
+
 /* views.c, from main's loop: take the panel's events (LEDs, the event
  * line) and the engine's state, and draw what changed. view_message puts
  * a message on the event line, with a number after it unless it is 0. */
@@ -91,6 +108,13 @@ struct sb_ui_record {
     /* Written by the engine (M8a's macros): BRIGHT, COLOR, SHAPE, MOTION
      * now, 0 with "Knobs: direct". */
     s32 macro[4];
+    /* The spectrum (M8a part 5): transforms made, skipped (silence), the
+     * longest (ticks), and the tallest bar of the last one (its index in
+     * the low half, its height in the high). */
+    u32 spec_updates;
+    u32 spec_silent;
+    u32 spec_max;
+    u32 spec_peak;
 };
 extern volatile struct sb_ui_record sb_ui;
 

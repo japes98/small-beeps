@@ -150,7 +150,8 @@ EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "complete
           "midichan": "completed", "midipanel": "completed", "midilat": "completed",
           "midiout": "completed", "midiround": "completed", "midithru": "completed",
           "midilocal": "completed", "midiburst": "completed", "midioutlat": "completed",
-          "views": "completed", "viewsload": "completed", "macros": "completed", "edit": "completed", "env": "completed"}
+          "views": "completed", "viewsload": "completed", "macros": "completed", "edit": "completed", "env": "completed",
+          "spectrum": "completed"}
 
 MARKER = 0x44304253        # "SB0D", firmware/src/sb.h
 TICKS_PER_MS = 24000       # HW-13
@@ -2141,10 +2142,11 @@ AUDIO_CHECKS.update(MIDI_CHECKS)
 
 # --- The screens (M8a) ---------------------------------------------------
 
-UI_ADDR, UI_LEN = 0x01C00870, 0x50
+UI_ADDR, UI_LEN = 0x01C00870, 0x60
 UI_MARKER = 0x38495553
 UI_FIELDS = ("marker screen seq shows frames items rows_sent item_max block_max over leds messages"
-             " live live_max item_max_part reserved macro0 macro1 macro2 macro3").split()
+             " live live_max item_max_part reserved macro0 macro1 macro2 macro3"
+             " spec_updates spec_silent spec_max spec_peak").split()
 UI_PATCH, UI_EDIT, UI_ENV, UI_SETTINGS = range(4)
 DRAW_TICKS = 4352          # views.c: drawing a block may take before no more parts start
 SCREEN_BUTTON = {UI_PATCH: 8, UI_EDIT: 6, UI_ENV: 4, UI_SETTINGS: 7}   # HOME, EDIT, ENV, GLO
@@ -2454,6 +2456,37 @@ def check_env(case_dir):
     return problems, lines
 
 
+SPEC_BAR_HZ = [200 * 100 ** (j / 56) for j in range(57)]   # spectrum.c's bars' edges
+
+
+def check_spectrum(case_dir):
+    """The patch view's live spectrum (tests/fw/scripts/spectrum.txt;
+    R-UI-12): the test tone's 1 kHz in its bar, the transforms at about 30
+    a second while there is sound, none at rest."""
+    problems, lines, a, console, _ = check_audio_common("spectrum", case_dir)
+    u1, u2, u3, u = (ui_record(case_dir, t) for t in (1300, 2000, 2900, "end"))
+    bar, height = u1["spec_peak"] & 0xFFFF, u1["spec_peak"] >> 16
+    want = next(j for j in range(56) if SPEC_BAR_HZ[j] <= 1000 < SPEC_BAR_HZ[j + 1])
+    lines.append("  the tone: the tallest bar %d (%.0f to %.0f Hz) at %d of 40; 1 kHz is bar %d"
+                 % (bar, SPEC_BAR_HZ[bar], SPEC_BAR_HZ[bar + 1], height, want))
+    if abs(bar - want) > 1 or height < 30:
+        problems.append("spectrum: the tone's tallest bar %d at %d, expected bar %d at 30 or more" % (bar, height, want))
+    rate = u1["spec_updates"] / 0.5
+    lines.append("  transforms: %d by 1 300 ms (from the tone at 800: %.0f a second), %d at 2 000, %d at 2 900, %d"
+                 " at the end; the longest %d ticks (three parts, with the audio's interrupts)"
+                 % (u1["spec_updates"], rate, u2["spec_updates"], u3["spec_updates"], u["spec_updates"], u["spec_max"]))
+    if not 20 <= rate <= 32:
+        problems.append("spectrum: %.0f transforms a second with the tone, expected about 30" % rate)
+    if u3["spec_updates"] != u2["spec_updates"] or u3["spec_peak"] or u2["spec_peak"]:
+        problems.append("spectrum: at rest the transforms went on (%d, %d) or the bars stayed up"
+                        % (u2["spec_updates"], u3["spec_updates"]))
+    if u["spec_updates"] <= u3["spec_updates"]:
+        problems.append("spectrum: the note after rest brought no transform")
+    more, line = check_drawing("spectrum", u)
+    return problems + more, lines + [line]
+
+
+AUDIO_CHECKS["spectrum"] = check_spectrum
 AUDIO_CHECKS["env"] = check_env
 AUDIO_CHECKS["edit"] = check_edit
 AUDIO_CHECKS["macros"] = check_macros

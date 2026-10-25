@@ -721,6 +721,33 @@ static void dot_move(void)
     }
 }
 
+/* --- The patch view's spectrum (M8a part 5; spectrum.c) -------------- */
+#define SPEC_X  8u
+#define SPEC_Y  (BODY_Y + 124u)
+#define SPEC_H  40u
+#define SPEC_MS 33u    /* about 30 transforms a second, at most */
+static u8 bars_new[SPEC_BARS], bars_drawn[SPEC_BARS];
+
+/* all: the whole area (the body is drawn); else only the bars that
+ * moved, each as the column between its old height and its new. */
+static void draw_spectrum(u32 all)
+{
+    u32 j;
+
+    if (all) {
+        gfx_fill(SPEC_X, SPEC_Y, SPEC_BARS * 4u, SPEC_H, BLACK);
+        gfx_fill(SPEC_X, SPEC_Y + SPEC_H - 1u, SPEC_BARS * 4u, 1, DARK);
+    }
+    for (j = 0; j < SPEC_BARS; j++) {
+        u32 n = bars_new[j], d = all ? 0 : bars_drawn[j], x = SPEC_X + 4u * j;
+        if (n > d)
+            gfx_fill(x, SPEC_Y + SPEC_H - n, 3, n - d, CYAN);
+        else if (n < d)
+            gfx_fill(x, SPEC_Y + SPEC_H - d, 3, d - n, BLACK);
+        bars_drawn[j] = (u8)n;
+    }
+}
+
 /* --- The bodies ---------------------------------------------------------- */
 
 static const u8 *op_bytes(u32 i)
@@ -767,6 +794,7 @@ static void body_patch(void)
     /* Local control off (M6b): the panel plays MIDI out only. */
     if (!midi_settings.local)
         text(136, BODY_Y + 50, "LOCAL OFF", YELLOW, 1);
+    draw_spectrum(1);
 }
 
 static void body_edit(void)
@@ -938,9 +966,24 @@ static void draw_body(void)
 #define ITEM_GRAPH  (3u << 14)    /* the envelope view's graph (M8a part 4): cleared in two halves, */
 #define ITEM_GRAPH_DRAW (1u << 16)  /* drawn, */
 #define ITEM_GRAPH_SEND (1u << 17)  /* and sent */
+#define ITEM_SPEC   (1u << 18)    /* the patch view's spectrum (M8a part 5): the transform, */
+#define ITEM_SPEC2  (1u << 19)    /* in three parts, */
+#define ITEM_SPEC3  (1u << 20)
+#define ITEM_SPEC_DRAW (1u << 21) /* the bars drawn and sent */
+/* The parts that send to the panel (the others only draw or compute). */
+#define ITEM_SENDS (ITEM_HEAD | (((1u << BANDS) - 1u) << ITEM_SEND0) | ITEM_LINE | ITEM_STRIP | ITEM_INFO \
+                    | ITEM_LIVE | ITEM_GRAPH_SEND | ITEM_SPEC_DRAW)
 #define ITEM_BODY_ALL (((1u << BANDS) - 1u) << ITEM_CLEAR0 | ITEM_BODY)
 
 static u32 dirty, shown, in_frame, frame_beat, draw_block, spent;
+
+/* Asks the tick to wake main at beat b, unless it will sooner (since
+ * M8a: the frames and the live parts each keep their own wake). */
+static void wake_at(u32 b)
+{
+    if (!sb_wake_at || (int)(b - sb_wake_at) < 0)
+        sb_wake_at = b;
+}
 
 /* The live parts (M8a part 3): each operator's meter that moved, drawn
  * and sent as its own rectangle. */
@@ -963,6 +1006,49 @@ static void draw_live(void)
     sb_ui.live++;
     if (t > sb_ui.live_max)
         sb_ui.live_max = t;
+}
+
+/* The transform, and the bars marked if they moved; silence costs only
+ * the look at the ring (and one last draw of the bars falling to 0). */
+static u32 spec_ticks;
+
+static void spectrum_part(u32 step)
+{
+    u32 t = sb_now(), j, moved = 0, top = 0;
+
+    if (step == 0) {
+        spec_ticks = 0;
+        if (!spectrum_start()) {
+            for (j = 0; j < SPEC_BARS; j++)
+                bars_new[j] = 0;
+            sb_ui.spec_silent++;
+            goto bars;
+        }
+        spectrum_stages(0, 4);
+        spec_ticks += sb_now() - t;
+        dirty |= ITEM_SPEC2;
+        return;
+    }
+    if (step == 1) {
+        spectrum_stages(4, 7);
+        spec_ticks += sb_now() - t;
+        dirty |= ITEM_SPEC3;
+        return;
+    }
+    spectrum_bars(bars_new, SPEC_H);
+    spec_ticks += sb_now() - t;
+    sb_ui.spec_updates++;
+    if (spec_ticks > sb_ui.spec_max)
+        sb_ui.spec_max = spec_ticks;
+bars:
+    for (j = 0; j < SPEC_BARS; j++) {
+        moved |= bars_new[j] != bars_drawn[j];
+        if (bars_new[j] > bars_new[top])
+            top = j;
+    }
+    sb_ui.spec_peak = top | (u32)bars_new[top] << 16;
+    if (moved)
+        dirty |= ITEM_SPEC_DRAW;
 }
 
 static void draw_item(u32 bit)
@@ -994,8 +1080,13 @@ static void draw_item(u32 bit)
     } else if (bit == 16) {
         draw_graph(0);
         dirty |= ITEM_GRAPH_SEND;
-    } else {
+    } else if (bit == 17) {
         send(GRAPH_Y, GRAPH_H);
+    } else if (bit < 21) {
+        spectrum_part(bit - 18);
+    } else {
+        draw_spectrum(0);
+        send(SPEC_Y, SPEC_H);
     }
 }
 
@@ -1009,7 +1100,7 @@ static void draw_frame(void)
 
     if (!in_frame) {
         if (beats - frame_beat < FRAME_MS) {
-            sb_wake_at = frame_beat + FRAME_MS;
+            wake_at(frame_beat + FRAME_MS);
             return;
         }
         in_frame = 1;
@@ -1023,11 +1114,18 @@ static void draw_frame(void)
             draw_block = sb_audio.blocks;
             spent = 0;
         } else if (spent >= DRAW_TICKS) {
-            sb_wake_at = beats + 1;
+            wake_at(beats + 1);
             return;
         }
         while (!(dirty >> bit & 1))
             bit++;
+        /* A part that sends waits for the bus to be free, in the next
+         * block, rather than in lcd_wait (the spectrum's 40 rows take
+         * about 10 ms of it). */
+        if ((1u << bit) & ITEM_SENDS && lcd_busy()) {
+            wake_at(beats + 1);
+            return;
+        }
         dirty &= ~(1u << bit);
         t = sb_now();
         draw_item(bit);
@@ -1096,12 +1194,15 @@ static void leds_for_state(void)
 
 /* --- Serving ------------------------------------------------------------- */
 
-/* Marks every part whose contents changed. */
+/* Marks every part whose contents changed: only after the engine's state
+ * moved (the live parts' wakes find nothing to do here). */
 static void work(void)
 {
     u32 k;
 
-    if (fm_ui.seq != ui_seen) {
+    if (fm_ui.seq == ui_seen && sb_ui.shows)
+        return;
+    {
         u32 screen = ui.screen;
         take();
         ui_seen = ui.seq;
@@ -1110,6 +1211,8 @@ static void work(void)
             sb_ui.shows++;
         }
         sb_ui.screen = ui.screen;
+        if (ui.screen != UI_PATCH)
+            spec_capture = 0;
         sb_ui.seq = ui.seq;
     }
     head_work();
@@ -1189,25 +1292,52 @@ static void midi_line(u32 m)
     message(b, 0);
 }
 
-/* Asks the tick to wake main at beat b, unless it will sooner. */
-static void wake_at(u32 b)
-{
-    if (!sb_wake_at || (int)(b - sb_wake_at) < 0)
-        sb_wake_at = b;
-}
-
 /* The live parts, at most every LIVE_MS while their screen shows and its
  * body is drawn. */
 #define LIVE_MS 50u
-static u32 live_beat;
+static u32 live_beat, capturing, quiet_seen;
 
 static void live_work(void)
 {
     u32 beats = sb_beacon.beats, i, any = 0;
 
-    if ((ui.screen != UI_EDIT && ui.screen != UI_ENV)
-        || (dirty & (ITEM_BODY_ALL | ITEM_GRAPH | ITEM_GRAPH_DRAW | ITEM_GRAPH_SEND
-                     | (((1u << BANDS) - 1u) << ITEM_SEND0))))
+    if (dirty & (ITEM_BODY_ALL | ITEM_GRAPH | ITEM_GRAPH_DRAW | ITEM_GRAPH_SEND | ITEM_SPEC | ITEM_SPEC2 | ITEM_SPEC3
+                 | ITEM_SPEC_DRAW
+                 | (((1u << BANDS) - 1u) << ITEM_SEND0)))
+        return;
+    if (ui.screen == UI_PATCH) {
+        /* A capture asked for: the transform once it is in. */
+        if (capturing) {
+            if (spec_capture) {
+                wake_at(beats + 1);
+                return;
+            }
+            capturing = 0;
+            dirty |= ITEM_SPEC;
+            return;
+        }
+        /* At rest, with the bars down, one capture after each new piece
+         * of work (a note starting is one), and nothing in between. */
+        if (spectrum_quiet()) {
+            for (i = 0; i < SPEC_BARS && !bars_drawn[i]; i++)
+                ;
+            if (i == SPEC_BARS) {
+                if (quiet_seen == sb_work)
+                    return;
+                quiet_seen = sb_work;
+            }
+        }
+        if (beats - live_beat < SPEC_MS) {
+            wake_at(live_beat + SPEC_MS);
+            return;
+        }
+        live_beat = beats;
+        spec_capture = SPEC_BLOCKS;
+        capturing = 1;
+        wake_at(beats + 6);
+        return;
+    }
+    if (ui.screen != UI_EDIT && ui.screen != UI_ENV)
         return;
     if (beats - live_beat < LIVE_MS) {
         wake_at(live_beat + LIVE_MS);
@@ -1229,6 +1359,17 @@ static void live_work(void)
     if (any)
         dirty |= ITEM_LIVE;
     wake_at(live_beat + LIVE_MS);
+}
+
+/* The live parts' next turn, whatever the frames asked for meanwhile. */
+static void live_rearm(void)
+{
+    if (ui.screen == UI_PATCH && capturing)
+        wake_at(sb_beacon.beats + 1);
+    else if (ui.screen == UI_PATCH && (!spectrum_quiet() || bars_drawn[0] | bars_drawn[SPEC_BARS / 2]))
+        wake_at(live_beat + SPEC_MS);
+    else if (ui.screen == UI_EDIT || ui.screen == UI_ENV)
+        wake_at(live_beat + LIVE_MS);
 }
 
 void view_serve(void)
@@ -1280,4 +1421,5 @@ void view_serve(void)
     live_work();
     if (dirty)
         draw_frame();
+    live_rearm();
 }

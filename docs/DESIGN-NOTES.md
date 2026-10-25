@@ -2306,3 +2306,61 @@ patch on SAVE. `fm_play.c`, "The macros".
 - **Also:** main now serves the panel's events from before its loop
   began (a key pressed during the boot screens shows the instrument's
   screens at once, rather than at the next event).
+
+### 2026-10-25 M8a: the live spectrum
+
+- **The transform.** `spectrum.c`: a Hann window and a 256-point
+  radix-2 FFT in fixed point. Samples are the output's top 16 bits;
+  every stage halves its results, so values stay within 16 bits, their
+  products within 32, and no float is needed (the proposal assumed the
+  float unit; this is simpler and exact from run to run). A full-scale
+  sine's peak bin comes out near 2^26 of power; the bars show 60 dB
+  below that over 40 rows.
+- **The bars.** 56 bars, 4 pixels apart, from 200 Hz to 20 kHz on a
+  logarithmic axis (the owner's answer). Bins are 172 Hz apart, so the
+  bars below about 700 Hz are narrower than a bin: each takes the power
+  between its two nearest bins, in proportion; above, the strongest bin
+  in its band. A pure tone therefore shows as a hump on the log axis,
+  narrow at the top: its tallest bar is its own (the spectrum case
+  checks the test tone's 1 kHz lands there), and the Hann window's
+  leakage falls 31 dB within 3 bins.
+- **Cost.** Before each transform main asks the engine for a capture:
+  the next 4 blocks' output (256 samples), or silence at rest; between
+  captures the engine copies nothing. Main runs at most a transform each
+  33 ms, as three parts, each within the drawing budget: the window and
+  the first four of seven stages; three more; the split into 128 bins
+  and the bars. The transform is of 256 real samples as 128 complex ones
+  (the even samples real, the odd imaginary) and a split, half the
+  butterflies of a 256-point complex transform; a butterfly is 25
+  instructions. Only the bars that moved are redrawn, each as the column
+  between its old height and its new, and only the spectrum's 40 rows
+  are sent (19 200 bytes; on the chip's bus about a third of the time at
+  30 a second, as the proposal said). At rest, with the bars down, it
+  makes one capture after each piece of new work (a note starting is
+  one) and nothing else.
+- **Against the proposal's figures.** RAM: 2 048 bytes (the capture 512,
+  the transform 1 024, the twiddles 512; the window and the bins' power
+  are computed as needed), the proposal's "about 2 KiB". CPU, with the
+  test tone alone (the spectrum case, core 0's instructions a block over
+  its steady tone, with and without the spectrum): 1 489 a block, about
+  2.3 times the proposal's 650; the proposal counted the transform
+  alone, at about 15 000 instructions, where this one, with the window,
+  the bars and their drawing, is about 32 000.
+- **Under the heaviest input** (the loaded measure) it costs more than
+  that: part 4 measured 105 721 instructions a block; this part 110 268
+  (+4.3%). Built without the spectrum, 104 648 (main's bookkeeping is
+  lighter now: it skips everything when the engine's state hasn't
+  moved); transforming without drawing, 109 757; the transform as one
+  part instead of three, 110 157; capturing only what a transform needs
+  rather than every block, 110 268. So under that input the spectrum
+  adds about 5 600 a block where the same work adds 1 489 with the tone
+  alone. Not explained yet: one candidate is core 0's wait for core 1 in
+  the audio interrupt, which may lengthen when main is busy (fwtest takes
+  the cores in turns). The loaded budget moves in its own pull request,
+  and the owner is asked.
+- **Waking.** The frames used to set the tick's wake directly, so a
+  frame's own wake could replace the live parts' and main then slept
+  until the next event: 9 transforms where 40 were due. Now every wake
+  keeps the sooner of two, and the live parts ask again after each frame
+  (the operator view's meters and the envelope's dot update more often
+  for it too).
