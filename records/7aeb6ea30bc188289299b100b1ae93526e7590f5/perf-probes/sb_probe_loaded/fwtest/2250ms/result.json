@@ -1,0 +1,43 @@
+{
+  "fwtest": {
+    "version": "0.5.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "SB_PROBE_LOADED.bin",
+    "bytes": 27124,
+    "sha256": "95b064b6f90096cde8738e60262d12be3221128f81ee6071ba328be07d9ada96"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "2250.571",
+    "instructions": {
+      "core0": 3955103,
+      "core1": 12100
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "ipb.csv",
+        "bytes": 30728,
+        "sha256": "9eed48aacae6114cf68178618165bab5a868801dd9ff971ac321e237da7a0b6d"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "0aea7e1755784c3c1cc1a32d5ddaae0220b2ad41553d78802e8fb7a37426de3f"
+      },
+      {
+        "name": "ram-01c7ec00-1000-end.bin",
+        "bytes": 4096,
+        "sha256": "a2e5f2ad875851544535211975a62e9e1a9851fdb6375aa5de697cda8f37a2f4"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

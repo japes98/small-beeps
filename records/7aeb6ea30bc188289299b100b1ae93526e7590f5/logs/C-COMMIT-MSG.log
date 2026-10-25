@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 7dab4d94374ffc0bed18d912995fd7d71a5e99e0..7aeb6ea30bc188289299b100b1ae93526e7590f5
+OK     e6208cfabb5c config: M8's loaded budget, for the macros under the heaviest input
+EXEMPT 7aeb6ea30bc1 (merge) Merge pull request #118 from japes98/m8a/budgets-loaded
+2 commit(s) checked: PASS
+
+exit status 0
