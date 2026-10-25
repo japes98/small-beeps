@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
-"""The preset bank's tests (M8b, a draft; docs/M8-PROPOSAL.md, "Presets"):
+"""The preset bank's tests (M8b; docs/M8-PROPOSAL.md, "Presets"):
 every preset in tools/fm_patch.py's PRESETS played in fwtest by the
 shipping image, through MIDI in: a program change, a reference note (C4
 at velocity 100, held 2 s, then 1 s to fade), then a short phrase (C4 E4
@@ -29,7 +29,7 @@ Each reference note is checked:
   ends late (docs/HARNESS.md, "Time"), by an amount that moves with core
   0's instruction count (fwtest 0.6.0's flash busy time moved P44's and
   P47's by a block), so the frames after that are left out.
-tools/fw-suite.py runs it after the store's cases (run()), since M8b.
+tools/record.py's check C-PRESETS runs it (R-PRESET-1 to R-PRESET-4).
 With --drop, each run's WAV is copied there as NN-name.wav, with
 INDEX.md (number, name, category, what it is for, its loudness).
 """
