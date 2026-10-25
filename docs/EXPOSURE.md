@@ -1507,9 +1507,19 @@ SR-3 wrote only its barrier-log row.*
 - Later in the session:
   - **fwtest 0.6.0** (the pinned image, already pulled): the firmware
     suite, and single cases with `tools/fwtest run`.
-  - **A scratch git worktree** in the session's temporary folder, for
-    the arpeggiator while the suite ran here (sparse like this folder:
-    no spec-side folder on disk, checked).
+  - **Two scratch git worktrees** in the session's temporary folder:
+    one for the arpeggiator, one for #131's last commit while the suite
+    ran here. Both sparse like this folder (no spec-side folder on disk,
+    checked). In each, `tools/private-terms.local` was a symbolic link to
+    this folder's, so the commit hook checked the terms (never opened).
+    Both worktrees and links are removed at the end.
+  - **CI:** the runs of #131 and #126 read with `gh run view --log`
+    (the logs only, for C-PRESETS' line); no artifact downloaded.
+  - **The presets draft's listening set** (`~/<top>/drop/presets/`):
+    not re-rendered (no preset's sound changed; the preset suite 64 of
+    64 on #126 with #131).
+  - **Disk:** 9.1 GB free at the start, 8.3 GB at the lowest; stale
+    `out/` folders removed as the session went.
 
 ## Corrections
 
