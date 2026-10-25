@@ -1,0 +1,6 @@
+1255.068 note-on ch 3 key 70 vel 100
+1305.839 note-on ch 3 key 70 vel 0
+1503.132 note-on ch 2 key 64 vel 100
+1552.452 note-off ch 2 key 64 vel 0
+1804.867 note-on ch 3 key 72 vel 100
+1855.640 note-on ch 3 key 72 vel 0
