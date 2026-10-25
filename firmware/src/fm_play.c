@@ -22,8 +22,12 @@
 #include "input.h"
 #include "midi.h"
 #include "midi_out.h"
+#include "ui.h"
 
 volatile struct sb_fm_record sb_fm __attribute__((section(".beacon.fm")));
+/* The interface's state (M8a; ui.h): the engine's, since it takes the
+ * panel's events in order; main draws it. */
+volatile struct fm_ui fm_ui;
 
 /* --- Shared between the cores (DESIGN-NOTES.md, M5, "Two cores") -----
  * Core 0 changes the voices only between blocks, and core 1 renders its
@@ -691,6 +695,17 @@ const u8 *fm_user_patch(u32 slot)
     return user_raw[slot];
 }
 
+/* For the screens (M8a). */
+const u8 *fm_program_bytes(void)
+{
+    return patch_now < FM_PATCHES ? fm_patches[patch_now] : user_raw[patch_now - FM_PATCHES];
+}
+
+u32 fm_user_used(void)
+{
+    return user_used;
+}
+
 static void select_patch(u32 n)
 {
     patch_now = n;
@@ -752,6 +767,7 @@ static void reset_hold(void)
         select_patch(0);
         panel_program = 0;
         fm_reset_seq++;
+        fm_ui.seq++;
         sb_work++;
     }
 }
@@ -1027,6 +1043,12 @@ static void events(void)
                 midi_out_channel(MIDI_NOTE_ON, (u32)key_note[k], 0);
                 key_note[k] = -1;
             }
+        } else if (e.kind == INPUT_PRESS && (e.control == INPUT_HOME || e.control == INPUT_EDIT
+                                             || e.control == INPUT_ENV || e.control == INPUT_GLO)) {
+            /* The screens (M8a): HOME always back to the patch view. */
+            fm_ui.screen = (u8)(e.control == INPUT_EDIT ? UI_EDIT : e.control == INPUT_ENV ? UI_ENV
+                                : e.control == INPUT_GLO ? UI_SETTINGS : UI_PATCH);
+            fm_ui.page = 0;
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_OCT_DOWN) {
             octave -= octave > -OCTAVES;
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_OCT_UP) {
@@ -1071,8 +1093,12 @@ static void events(void)
         sb_midi.pedal = pedal;
     }
     reset_hold();
-    if (any)
+    if (any) {
         knobs();
+        /* Whatever the events changed, the screens show (M8a). */
+        fm_ui.seq++;
+        sb_work++;
+    }
     /* What this block queued goes out at once if the wire is free. */
     midi_out_poll();
     /* Vibrato: a 5.5 Hz sine, up to half a semitone at the wheel's top. */
