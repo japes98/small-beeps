@@ -1433,6 +1433,48 @@ SR-3 wrote only its barrier-log row.*
   than the golden on fwtest 0.6.0 with M8a's firmware. Main's firmware
   matched it on 0.6.0 earlier in this session. Left to the firmware side.
 
+### Session fwtest-060-and-presets (fwtest 0.6.0's pin, the presets draft's CI)
+- Date: 2026-10-25
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.310 (banner), unattended (a background session).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `7572a4b5-269a-4514-bd2e-fd7ae24e79e6`,
+  started by a `/clear` at 13:21:03Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-setup.sh` installed
+  #110's `clean.json` (banner `status: OK` on it); `tools/clean-update.sh`,
+  run from main, found main at `ce58670` and ended "no spec-side files on
+  disk or in .git"; `tools/private-terms.local` exists (not opened); lazy
+  fetching off (`GIT_NO_LAZY_FETCH=1`). It archived M8a (`93de9c87`) into
+  `sessions/clean/`; every other clean session was already archived.
+  `tools/check-transcripts.py` PASS. The Mac had 10 GB free.
+- Reads: this file, sessions/README.md, docs/HARNESS.md ("The flash
+  chip", "Time", "Golden files", "Versions"), docs/DESIGN-NOTES.md and
+  docs/M8-PROPOSAL.md (searched for the programs and the presets), and
+  this repository's tools, tests, scripts and firmware.
+- Later in the session:
+  - **Open spec pull request #112, metadata and one named file:** its
+    description and file list (names only), and through GitHub's contents
+    API `config/fwtest-image` on its branch, for the digest. Nothing
+    fetched into `.git`.
+  - **fwtest 0.6.0 and 0.5.0** (both images already pulled): the
+    firmware suite on 0.6.0, and fmgold, env and the preset suite on both
+    (`FWTEST_IMAGE`), to compare; `--flash-log` on fmgold. A scratch git
+    worktree of this branch in the session's temporary folder, to build
+    main's firmware beside the presets draft's (sparse like this folder:
+    no spec-side folder on disk, checked), removed at the end.
+  - **CI:** #126's failed run read with `gh run view --log-failed` (the
+    log only); no artifact downloaded.
+  - **The presets draft's listening set** in `~/<top>/drop/presets/`
+    (our own renders, M8b), compared sample for sample with this
+    session's renders; not re-rendered (no preset's sound changed).
+  - **Disk:** 10 GB free at the start, 9.1 GB at the lowest; `out/`
+    cleared between runs; Docker left alone.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
@@ -1476,6 +1518,14 @@ SR-3 wrote only its barrier-log row.*
   repositories. The clean-room rules are unchanged. CONTRIBUTING.md
   ("Roles") now names the repository and licence; the older entries and
   prompts keep their wording.
+
+### 2026-10-25: M8a's disk figures
+*Written by session fwtest-060-and-presets. The entry is left as written.*
+
+- **What was stated.** Session M8a's entry says "3.1 GB free at the
+  start, 2.3 to 2.4 GB through the day".
+- **What it was.** Free disk went down to 1.9 GB (the owner's
+  correction), below the 2 GB at which a session is to stop its work.
 
 ## Barrier log
 
