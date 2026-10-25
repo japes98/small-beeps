@@ -960,7 +960,8 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
 - **M7** flash storage (done; above).
 - **M8** UI and original presets (no Yamaha factory voices): M8a the
   interface (above); M8b the preset bank (next; docs/M8-PROPOSAL.md).
-- **M9** packaging, and a raw-image boot path in the app.
+- **M9** packaging, and a raw-image boot path in the app (plan:
+  docs/M9-PLAN.md, for the owner's review).
 
 ### Level 2: real hardware
 - **M10** recovery kit.
