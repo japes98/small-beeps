@@ -162,13 +162,16 @@ class SettingsLayoutTest(unittest.TestCase):
 
     def test_version_1_is_version_2_without_its_tail(self):
         """Since M8a version 3 is version 2's 40 bytes, its last (always 0
-        in version 2) the knobs' mode."""
+        in version 2) the knobs' mode; since ARP version 4 is version 3's
+        40 bytes, then the tempo and the arpeggiator's MIDI out."""
         h = source("src/midi.h")
-        self.assertIn("#define MIDI_SETTINGS_VERSION 3u", h)
+        self.assertIn("#define MIDI_SETTINGS_VERSION 4u", h)
         self.assertRegex(h, r"u8 local;[^\n]*\n(?:\s*/\*[^\n]*\n)?\s*u8 knobs;")
-        self.assertIn('sizeof(struct midi_settings) == 8 + 2 * MIDI_CC_ROUTES', h)
+        self.assertRegex(h, r"u8 knobs;[^\n]*\n(?:\s*/\*[^\n]*\n)?\s*u8 tempo;[^\n]*\n\s*u8 arp_out;")
+        self.assertIn('sizeof(struct midi_settings) == 10 + 2 * MIDI_CC_ROUTES', h)
         self.assertIn("#define MIDI_CC_ROUTES        16u", h)
         self.assertIn("#define SETTINGS_V1_BYTES (4u + 2u * MIDI_CC_ROUTES)", source("src/saving.c"))
+        self.assertIn("#define SETTINGS_V3_BYTES (8u + 2u * MIDI_CC_ROUTES)", source("src/saving.c"))
 
 
 if __name__ == "__main__":

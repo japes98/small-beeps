@@ -8,7 +8,8 @@
       DIR/logs/<check>.log, DIR/outputs/ (the build outputs), DIR/fwtest/
       (the firmware suite's outputs, but since M4 its audio captures only
       as names and SHA-256 in DIR/fwtest-audio.sha256: about a megabyte a
-      record otherwise), DIR/spec-experiments.sha256 (the
+      record otherwise), DIR/arp/ (since ARP the arpeggiator's runs,
+      their audio likewise in DIR/arp-audio.sha256), DIR/spec-experiments.sha256 (the
       names and SHA-256 of the spec experiments' outputs, never the files)
       and DIR/SHA256SUMS (of all of those). Exit status 1 if any check failed.
       Before hashing, C-RECORD-PRIVATE withholds any file holding a private
@@ -77,7 +78,7 @@ CHECKS = [
               "R-SEP-2", "R-SPEC-1", "R-SPEC-3", "R-AUDIT-1", "R-AUDIT-2", "R-AUDIT-3", "R-AUDIT-4",
               "R-AUDIT-5", "R-PERF-4", "R-BUILD-1", "R-FM-1", "R-FM-7", "R-MIDI-1", "R-MIDI-4",
               "R-MIDIOUT-2", "R-MIDIOUT-6", "R-STORE-1", "R-STORE-3", "R-STORE-4", "R-STORE-5",
-              "R-STORE-6", "R-STORE-8", "R-UI-6", "R-UI-7", "R-UI-8"],
+              "R-STORE-6", "R-STORE-8", "R-UI-6", "R-UI-7", "R-UI-8", "R-ARP-1", "R-ARP-2", "R-ARP-7"],
      "cmd": [PY, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"]},
     {"id": "C-REUSE", "title": "reuse lint (SPDX licence and copyright on every file)",
      "reqs": ["R-LIC-1", "R-LIC-2"], "cmd": ["reuse", "lint"]},
@@ -139,12 +140,17 @@ CHECKS = [
               "R-STORE-1", "R-STORE-2", "R-STORE-3", "R-STORE-4", "R-STORE-5", "R-STORE-6",
               "R-STORE-7", "R-STORE-8", "R-STORE-9",
               "R-UI-1", "R-UI-2", "R-UI-3", "R-UI-4", "R-UI-5", "R-UI-6", "R-UI-7", "R-UI-8",
-              "R-UI-9", "R-UI-10", "R-UI-11", "R-UI-12", "R-UI-13", "R-UI-14"],
+              "R-UI-9", "R-UI-10", "R-UI-11", "R-UI-12", "R-UI-13", "R-UI-14", "R-ARP-7"],
      "cmd": lambda: [PY, "-I", "tools/fw-suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "fwtest")]},
+    # The arpeggiator (ARP): its runs in fwtest against its model.
+    {"id": "C-ARP", "title": "The arpeggiator in fwtest: each mode and rate against its model, the frames of its steps, MIDI clock in and out, MIDI out, no stuck notes, its screen, saving, under load (tools/arp_suite.py)",
+     "reqs": ["R-ARP-1", "R-ARP-2", "R-ARP-3", "R-ARP-4", "R-ARP-5", "R-ARP-6", "R-ARP-7", "R-ARP-8"],
+     "cmd": lambda: [PY, "-I", "tools/arp_suite.py", "--image", os.path.join(OUT, "build-a", "app.bin"),
+                     "--out", os.path.join(OUT, "arp")]},
     # Performance (M0e): size, RAM, stack high-water and speed, gated.
     {"id": "C-PERF", "title": "Firmware size, RAM, stack high-water and instructions per period, within budget and the 3% speed gate",
-     "reqs": ["R-PERF-1", "R-PERF-2", "R-PERF-3", "R-LCD-6", "R-MIDIOUT-3", "R-UI-4"], "cmd": _perf_cmd},
+     "reqs": ["R-PERF-1", "R-PERF-2", "R-PERF-3", "R-LCD-6", "R-MIDIOUT-3", "R-UI-4", "R-ARP-8"], "cmd": _perf_cmd},
     {"id": "C-PERF-PROBES", "title": "Deliberately slower and bigger builds fail the performance gates; a known stack use shows",
      "reqs": ["R-PERF-3", "R-PERF-5"],
      "cmd": lambda: [PY, "-I", "tools/perf.py", "probes", "--build", os.path.join(OUT, "build-a"),
@@ -573,6 +579,8 @@ def cmd_run(a):
         shutil.rmtree(os.path.join(OUT, d), ignore_errors=True)
     hashes_only(os.path.join(OUT, "spec-experiments"), os.path.join(OUT, "spec-experiments.sha256"))
     audio_hashes_only(os.path.join(OUT, "fwtest"), os.path.join(OUT, "fwtest-audio.sha256"))
+    # Since ARP the arpeggiator's runs: their WAVs as hashes too.
+    audio_hashes_only(os.path.join(OUT, "arp"), os.path.join(OUT, "arp-audio.sha256"))
     for c in CHECKS:
         if not c.get("last") or c["id"] in skip or (only is not None and c["id"] not in only):
             continue
