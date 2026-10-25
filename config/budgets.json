@@ -67,7 +67,7 @@
       "stack_high_water": 768,
       "startup_instructions": 1572864,
       "steady_per_period": 2048,
-      "loaded_per_period": 139264
+      "loaded_per_period": 147456
     }
   }
 }
