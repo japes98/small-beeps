@@ -62,12 +62,13 @@ struct fm_env_dot {
 };
 extern volatile struct fm_env_dot fm_env_dot;
 
-/* The live spectrum (since M8a part 5; spectrum.c). The engine feeds it
- * each block while main says the patch view shows (spec_wanted); with no
- * output (out 0) it clears its ring once. */
-#define SPEC_N    256u     /* samples a transform */
-#define SPEC_BARS 56u      /* bars, 200 Hz to 20 kHz */
-extern volatile u32 spec_wanted;
+/* The live spectrum (since M8a part 5; spectrum.c). Before each
+ * transform main sets spec_capture to SPEC_BLOCKS; the engine copies that
+ * many blocks' output (out 0: silence, at rest), one each block. */
+#define SPEC_N      256u     /* samples a transform */
+#define SPEC_BLOCKS 4u       /* blocks a capture: SPEC_N / AUDIO_FRAMES */
+#define SPEC_BARS   56u      /* bars, 200 Hz to 20 kHz */
+extern volatile u32 spec_capture;
 void spectrum_feed(const s32 *out, u32 frames);
 /* Main, in three steps (each a part of the drawing): the ring now,
  * windowed (0 if silent); stages first to last - 1 of eight; the bars'
@@ -75,7 +76,7 @@ void spectrum_feed(const s32 *out, u32 frames);
 u32 spectrum_start(void);
 void spectrum_stages(u32 first, u32 last);
 void spectrum_bars(u8 *bars, u32 height);
-/* 1 while the output has been silent since the ring was last cleared. */
+/* 1 if the last capture held only silence. */
 u32 spectrum_quiet(void);
 
 /* views.c, from main's loop: take the panel's events (LEDs, the event

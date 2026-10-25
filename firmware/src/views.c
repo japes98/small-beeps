@@ -1211,8 +1211,8 @@ static void work(void)
             sb_ui.shows++;
         }
         sb_ui.screen = ui.screen;
-        /* The engine feeds the spectrum only while the patch view shows. */
-        spec_wanted = ui.screen == UI_PATCH;
+        if (ui.screen != UI_PATCH)
+            spec_capture = 0;
         sb_ui.seq = ui.seq;
     }
     head_work();
@@ -1295,7 +1295,7 @@ static void midi_line(u32 m)
 /* The live parts, at most every LIVE_MS while their screen shows and its
  * body is drawn. */
 #define LIVE_MS 50u
-static u32 live_beat;
+static u32 live_beat, capturing, quiet_seen;
 
 static void live_work(void)
 {
@@ -1306,21 +1306,35 @@ static void live_work(void)
                  | (((1u << BANDS) - 1u) << ITEM_SEND0)))
         return;
     if (ui.screen == UI_PATCH) {
-        /* At rest, with the bars down, nothing to do until the next
-         * event wakes main (a note starting is one). */
+        /* A capture asked for: the transform once it is in. */
+        if (capturing) {
+            if (spec_capture) {
+                wake_at(beats + 1);
+                return;
+            }
+            capturing = 0;
+            dirty |= ITEM_SPEC;
+            return;
+        }
+        /* At rest, with the bars down, one capture after each new piece
+         * of work (a note starting is one), and nothing in between. */
         if (spectrum_quiet()) {
             for (i = 0; i < SPEC_BARS && !bars_drawn[i]; i++)
                 ;
-            if (i == SPEC_BARS)
-                return;
+            if (i == SPEC_BARS) {
+                if (quiet_seen == sb_work)
+                    return;
+                quiet_seen = sb_work;
+            }
         }
         if (beats - live_beat < SPEC_MS) {
             wake_at(live_beat + SPEC_MS);
             return;
         }
         live_beat = beats;
-        dirty |= ITEM_SPEC;
-        wake_at(live_beat + SPEC_MS);
+        spec_capture = SPEC_BLOCKS;
+        capturing = 1;
+        wake_at(beats + 6);
         return;
     }
     if (ui.screen != UI_EDIT && ui.screen != UI_ENV)
@@ -1350,9 +1364,9 @@ static void live_work(void)
 /* The live parts' next turn, whatever the frames asked for meanwhile. */
 static void live_rearm(void)
 {
-    if (ui.screen == UI_PATCH && !spectrum_quiet())
-        wake_at(live_beat + SPEC_MS);
-    else if (ui.screen == UI_PATCH && bars_drawn[0] | bars_drawn[SPEC_BARS / 2])
+    if (ui.screen == UI_PATCH && capturing)
+        wake_at(sb_beacon.beats + 1);
+    else if (ui.screen == UI_PATCH && (!spectrum_quiet() || bars_drawn[0] | bars_drawn[SPEC_BARS / 2]))
         wake_at(live_beat + SPEC_MS);
     else if (ui.screen == UI_EDIT || ui.screen == UI_ENV)
         wake_at(live_beat + LIVE_MS);

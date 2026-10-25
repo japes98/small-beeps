@@ -6,9 +6,9 @@
  * M8a): our own FFT of the output's last SPEC_N samples, as bars on a
  * logarithmic frequency axis (the owner's answer: log frequency).
  *
- * - While the patch view shows, the engine copies each block's output
- *   into a ring (spectrum_feed); at rest it clears the ring once, so a
- *   silent output costs nothing more.
+ * - Main asks for a capture (spec_capture, 4 blocks) before each
+ *   transform, and the engine copies those blocks' output, or silence at
+ *   rest (spectrum_feed); between captures it copies nothing.
  * - Main, about 30 times a second, takes the ring, applies a Hann
  *   window and a 256-point FFT in fixed point (Q15 values, each stage
  *   halving them, so nothing overflows 32 bits and no float is needed;
@@ -22,13 +22,13 @@
 
 #include "sb.h"
 #include "ui.h"
+#include "audio.h"
 
 
 /* The ring, written by the engine (audio interrupt), read by main. */
-volatile u32 spec_wanted;
-volatile s16 spec_ring[SPEC_N];
-volatile u32 spec_pos;
-static volatile u32 ring_clear;
+volatile u32 spec_capture;          /* blocks still to copy, set by main */
+static s16 ring[SPEC_N];             /* the last capture */
+static u32 last_silent;
 
 /* cos(pi/2 * i / 64), i = 0 to 64, in Q15 (made offline, by round()). */
 static const s16 quarter[65] = {
@@ -65,48 +65,39 @@ static s32 cos256(u32 k)
     return quarter[256 - k];
 }
 
-/* The engine's side: one block's output (stereo, 24-bit), while the
- * patch view shows; or, at rest, the ring cleared once. */
+/* The engine's side, each block while a capture is asked for: this
+ * block's output (stereo, 24-bit), or silence (out 0, the engine at
+ * rest), into its place in the capture. */
 void spectrum_feed(const s32 *out, u32 frames)
 {
-    u32 n, p = spec_pos;
+    u32 n, left = spec_capture, at;
 
-    if (!out) {
-        if (!ring_clear) {
-            for (n = 0; n < SPEC_N; n++)
-                spec_ring[n] = 0;
-            ring_clear = 1;
-        }
+    if (!left || left > SPEC_N / AUDIO_FRAMES)
         return;
-    }
-    for (n = 0; n < frames; n++)
-        spec_ring[(p + n) & (SPEC_N - 1u)] = (s16)(out[2 * n] >> 8);
-    spec_pos = p + frames;
-    ring_clear = 0;
+    at = (SPEC_N / AUDIO_FRAMES - left) * AUDIO_FRAMES;
+    for (n = 0; n < frames && at + n < SPEC_N; n++)
+        ring[at + n] = out ? (s16)(out[2 * n] >> 8) : 0;
+    spec_capture = left - 1;
 }
 
-/* 1 once the engine has cleared the ring at rest. */
+/* 1 if the last capture held only silence. */
 u32 spectrum_quiet(void)
 {
-    return ring_clear;
+    return last_silent;
 }
 
 /* The transform of 256 real samples as one of 128 complex ones (the
  * even samples real, the odd imaginary), then split into the 128 bins:
  * half the butterflies of a 256-point complex transform. */
 #define M (SPEC_N / 2u)
-static s16 hann[SPEC_N];              /* (1 - cos) / 2, Q15 */
 static s16 twr[M], twi[M];            /* e^(-i 2 pi k / 256), Q15 */
 static u32 tables;
 static s32 zr[M], zi[M];
-static u32 power[M];
 
 static void make_tables(void)
 {
     u32 i;
 
-    for (i = 0; i < SPEC_N; i++)
-        hann[i] = (s16)((32768 - cos256(i)) >> 1);
     for (i = 0; i < M; i++) {
         twr[i] = (s16)cos256(i);
         twi[i] = (s16)-cos256(i + 192u);
@@ -121,18 +112,19 @@ static void make_tables(void)
  * makes the bars. */
 u32 spectrum_start(void)
 {
-    u32 i, j, start = spec_pos, any = 0;
+    u32 i, j, any = 0;
 
     if (!tables)
         make_tables();
     for (i = 0; i < SPEC_N; i++)
-        any |= (u32)spec_ring[i];
+        any |= (u32)ring[i];
+    last_silent = !any;
     if (!any)
         return 0;
+    /* Hann: (1 - cos) / 2, Q15. */
     for (i = 0; i < M; i++) {
-        s32 a = spec_ring[(start + 2 * i) & (SPEC_N - 1u)], b = spec_ring[(start + 2 * i + 1) & (SPEC_N - 1u)];
-        zr[i] = (a * hann[2 * i]) >> 15;
-        zi[i] = (b * hann[2 * i + 1]) >> 15;
+        zr[i] = (ring[2 * i] * ((32768 - cos256(2 * i)) >> 1)) >> 15;
+        zi[i] = (ring[2 * i + 1] * ((32768 - cos256(2 * i + 1)) >> 1)) >> 15;
     }
     /* Bit-reversed order for the butterflies. */
     for (i = 1, j = 0; i < M; i++) {
@@ -179,27 +171,38 @@ void spectrum_stages(u32 first, u32 last)
 /* The bins from the complex transform (X[k] = E[k] + W^k O[k], E and O
  * the even and odd samples' transforms, from Z[k] and Z[128 - k]), then
  * the bars' heights (0 to height). */
+static u32 power(u32 k)
+{
+    s32 er, ei, orr, oi, tr, ti, xr, xi;
+
+    if (!k || k >= M)
+        return 0;
+    er = (zr[k] + zr[M - k]) >> 1;
+    ei = (zi[k] - zi[M - k]) >> 1;
+    orr = (zi[k] + zi[M - k]) >> 1;
+    oi = (zr[M - k] - zr[k]) >> 1;
+    tr = (orr * twr[k] - oi * twi[k]) >> 15;
+    ti = (orr * twi[k] + oi * twr[k]) >> 15;
+    xr = (er + tr) >> 1;
+    xi = (ei + ti) >> 1;
+    return (u32)(xr * xr) + (u32)(xi * xi);
+}
+
 void spectrum_bars(u8 *bars, u32 height)
 {
-    u32 k, j, i;
+    u32 j, i;
 
-    power[0] = 0;
-    for (k = 1; k < M; k++) {
-        s32 er = (zr[k] + zr[M - k]) >> 1, ei = (zi[k] - zi[M - k]) >> 1;
-        s32 orr = (zi[k] + zi[M - k]) >> 1, oi = (zr[M - k] - zr[k]) >> 1;
-        s32 tr = (orr * twr[k] - oi * twi[k]) >> 15, ti = (orr * twi[k] + oi * twr[k]) >> 15;
-        s32 xr = (er + tr) >> 1, xi = (ei + ti) >> 1;
-        power[k] = (u32)(xr * xr) + (u32)(xi * xi);
-    }
     for (j = 0; j < SPEC_BARS; j++) {
         u32 lo = (edge[j] + 15u) >> 4, hi = edge[j + 1] >> 4, p = 0, lg, q;
         if (lo > hi) {
             u32 c = (edge[j] + edge[j + 1]) >> 1, k0 = c >> 4, f = c & 15u;
-            p = (power[k0] >> 4) * (16u - f) + (k0 + 1 < M ? (power[k0 + 1] >> 4) * f : 0);
+            p = (power(k0) >> 4) * (16u - f) + (power(k0 + 1) >> 4) * f;
         } else {
-            for (i = lo; i <= hi && i < M; i++)
-                if (power[i] > p)
-                    p = power[i];
+            for (i = lo; i <= hi && i < M; i++) {
+                u32 q0 = power(i);
+                if (q0 > p)
+                    p = q0;
+            }
         }
         /* log2 of the power in sixteenths; a full-scale sine's peak bin
          * is about 2^24 here, 60 dB below it about 2^4. */
