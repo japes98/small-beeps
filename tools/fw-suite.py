@@ -81,6 +81,10 @@ the suite through tools/fwtest (the pinned image), and then checks:
   through the flash fwtest saves, by tools/store_suite.py after the
   suite (its docstring says what each checks);
 
+- since M8b (a draft), the preset bank: every preset played by
+  tools/preset_suite.py after the store's cases (its docstring says what
+  each checks);
+
 - since M5, the FM engine (tests/fw/scripts/fm*.txt; R-FM-*; the engine's
   record follows the audio record; the test patches' values come from
   tools/fm_patch.py): fmbessel, test patch 1's sidebands against
@@ -124,6 +128,7 @@ import fm_patch  # noqa: E402  (tools/, our own, since M5)
 import midi_model  # noqa: E402  (tools/, our own, since M6a)
 import midi_scripts  # noqa: E402  (tools/, our own, since M6a)
 import store_suite  # noqa: E402  (tools/, our own, since M7)
+import preset_suite  # noqa: E402  (tools/, our own, since M8b)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SUITE = "tests/fw/boot.suite"
@@ -791,8 +796,8 @@ def check_chords(case_dir):
         problems.append("chords: the chattering key gave %s, not one press and one release" % k20)
     if any(e[1] == 21 and e[4] > 1150 * TICKS_PER_MS for e in log):
         problems.append("chords: the 1.5 ms glitch gave an event")
-    if (values[SELECT], values[PRESETS]) != (3, -3):
-        problems.append("chords: SELECT %d, PRESETS %d with keys held in their columns, not +3 and -3"
+    if (values[SELECT], values[PRESETS]) != (-3, 3):
+        problems.append("chords: SELECT %d, PRESETS %d with keys held in their columns, not -3 and +3"
                         % (values[SELECT], values[PRESETS]))
     lines.append("  no ghost at the rectangle's fourth corner; chatter gave one press and one release;"
                  " the glitch none; encoders exact with keys held in their columns")
@@ -2653,6 +2658,15 @@ def main():
         image_len = len(f.read())
     more, _ = store_suite.run(sys.modules[__name__], out, image_len)
     problems += more
+    # Since M8b (a draft), the preset bank: each preset played and checked
+    # (tools/preset_suite.py), into out/presets.
+    try:
+        more = preset_suite.run(os.path.join(ROOT, IMAGE), os.path.join(out, "presets"))[0]
+    except (OSError, ValueError, RuntimeError) as e:
+        more = ["presets: %s: %s" % (type(e).__name__, e)]
+    problems += more
+    print("presets: %d of %d pass" % (len(fm_patch.PRESETS) - len({q.split(":")[0] for q in more}),
+                                      len(fm_patch.PRESETS)))
 
     for prob in problems:
         print("FAIL: " + prob)

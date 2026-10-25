@@ -23,7 +23,13 @@ Each reference note is checked:
 - on all 16 voices (a 16-note chord, 500 ms): no underrun, every block
   filled within its 1 451 us;
 - the WAV against its SHA-256 in tests/fw/golden/presets.json (fwtest is
-  exact), unless --write-golden writes them.
+  exact), unless --write-golden writes them: the SHA-256 of its first
+  HASH_FRAMES frames, whole blocks that end at least 2 ms before RUN_MS.
+  The WAV ends when the run does, and a run that ends while core 0 waits
+  ends late (docs/HARNESS.md, "Time"), by an amount that moves with core
+  0's instruction count (fwtest 0.6.0's flash busy time moved P44's and
+  P47's by a block), so the frames after that are left out.
+tools/fw-suite.py runs it after the store's cases (run()), since M8b.
 With --drop, each run's WAV is copied there as NN-name.wav, with
 INDEX.md (number, name, category, what it is for, its loudness).
 """
@@ -50,6 +56,7 @@ TARGET_DB = -25.0           # dBFS RMS of each reference note's loudest 20 ms
 TOLERANCE_DB = 3.0
 NOTE_ON_MS, NOTE_OFF_MS, RUN_MS = 300, 2300, 6200
 FULL = 32767
+HASH_FRAMES = int((RUN_MS - 2) * aa.RATE / 1000) // 64 * 64   # 273 408
 
 
 def script(program):
@@ -105,6 +112,19 @@ def render(image, out, i):
     if p.returncode or not os.path.exists(wav):
         raise RuntimeError("preset %d: fwtest: %s" % (i + 1, p.stdout.decode("utf-8", "replace")[-300:]))
     return wav
+
+
+def sound_sha256(wav):
+    """The SHA-256 of the WAV's first HASH_FRAMES frames (16-bit stereo)."""
+    with open(wav, "rb") as f:
+        b = f.read()
+    i = 12
+    while b[i:i + 4] != b"data":
+        i += 8 + struct.unpack("<I", b[i + 4:i + 8])[0]
+    data = b[i + 8:i + 8 + struct.unpack("<I", b[i + 4:i + 8])[0]]
+    if len(data) < HASH_FRAMES * 4:
+        raise ValueError("%s: %d frames, fewer than %d" % (rel(wav), len(data) // 4, HASH_FRAMES))
+    return hashlib.sha256(data[:HASH_FRAMES * 4]).hexdigest()
 
 
 def db(x):
@@ -163,6 +183,38 @@ def check(i, m):
     return problems
 
 
+def run(image, out, which=None, write_golden=False):
+    """Plays and checks presets `which` (indexes; all by default):
+    (problems, rows, wavs, sums), printing a line for each."""
+    which = range(len(fm_patch.PRESETS)) if which is None else which
+    with concurrent.futures.ThreadPoolExecutor(4) as ex:
+        wavs = dict(zip(which, ex.map(lambda i: render(image, out, i), which)))
+        loads = dict(zip(which, ex.map(lambda i: load(image, out, i), which)))
+    golden = {}
+    if os.path.exists(GOLDEN):
+        with open(GOLDEN) as f:
+            golden = json.load(f)
+    problems, rows, sums = [], [], {}
+    for i in which:
+        category, purpose, p = fm_patch.PRESETS[i]
+        m = measure(wavs[i])
+        sums["P%02d" % (i + 1)] = sound_sha256(wavs[i])
+        more = check(i, m)
+        under, fill = loads[i]
+        m["fill_us"] = fill / 24.0
+        if under or fill >= BLOCK_TICKS:
+            more.append("on 16 voices: %d underruns, the longest fill %.0f us" % (under, fill / 24.0))
+        if not write_golden and golden.get("P%02d" % (i + 1)) != sums["P%02d" % (i + 1)]:
+            more.append("the WAV differs from its golden SHA-256" if "P%02d" % (i + 1) in golden
+                        else "no golden SHA-256")
+        problems += ["P%02d %s: %s" % (i + 1, p["name"], q) for q in more]
+        rows.append((i + 1, p["name"], fm_patch.CATEGORIES[category], purpose, m))
+        print("P%02d %-12s %-22s %6.1f dBFS  attack %6.1f ms  2 s %6.1f dB  below 300 Hz %3.0f%%  16 voices %4.0f us"
+              "  %s" % (i + 1, p["name"], fm_patch.CATEGORIES[category], m["loud_db"], m["attack_ms"], m["fall_db"],
+                        100 * m["low_share"], m["fill_us"], "PASS" if not more else "FAIL"))
+    return problems, rows, wavs, sums
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--image", required=True)
@@ -174,32 +226,8 @@ def main():
                     help="rewrite tools/fm_patch.py's TRIM toward TARGET_DB from this render")
     a = ap.parse_args()
     out = os.path.abspath(a.out)
-    which = [k - 1 for k in a.only] if a.only else range(len(fm_patch.PRESETS))
-    with concurrent.futures.ThreadPoolExecutor(4) as ex:
-        wavs = dict(zip(which, ex.map(lambda i: render(a.image, out, i), which)))
-        loads = dict(zip(which, ex.map(lambda i: load(a.image, out, i), which)))
-    golden = {}
-    if os.path.exists(GOLDEN):
-        with open(GOLDEN) as f:
-            golden = json.load(f)
-    problems, rows, sums = [], [], {}
-    for i in which:
-        category, purpose, p = fm_patch.PRESETS[i]
-        m = measure(wavs[i])
-        with open(wavs[i], "rb") as f:
-            sums["P%02d" % (i + 1)] = hashlib.sha256(f.read()).hexdigest()
-        more = check(i, m)
-        under, fill = loads[i]
-        m["fill_us"] = fill / 24.0
-        if under or fill >= BLOCK_TICKS:
-            more.append("on 16 voices: %d underruns, the longest fill %.0f us" % (under, fill / 24.0))
-        if not a.write_golden and golden.get("P%02d" % (i + 1)) not in (None, sums["P%02d" % (i + 1)]):
-            more.append("the WAV differs from its golden SHA-256")
-        problems += ["P%02d %s: %s" % (i + 1, p["name"], q) for q in more]
-        rows.append((i + 1, p["name"], fm_patch.CATEGORIES[category], purpose, m))
-        print("P%02d %-12s %-22s %6.1f dBFS  attack %6.1f ms  2 s %6.1f dB  below 300 Hz %3.0f%%  16 voices %4.0f us"
-              "  %s" % (i + 1, p["name"], fm_patch.CATEGORIES[category], m["loud_db"], m["attack_ms"], m["fall_db"],
-                        100 * m["low_share"], m["fill_us"], "PASS" if not more else "FAIL"))
+    which = [k - 1 for k in a.only] if a.only else None
+    problems, rows, wavs, sums = run(a.image, out, which, a.write_golden)
     if a.calibrate:
         trims = dict(fm_patch.TRIM)
         for n, name, cat, purpose, m in rows:
@@ -218,7 +246,8 @@ def main():
         print("calibrate: TRIM rewritten for %d presets" % len(trims))
     if a.write_golden:
         with open(GOLDEN, "w") as f:
-            json.dump({"comment": "SHA-256 of each preset's run in tools/preset_suite.py (its WAV)",
+            json.dump({"comment": "SHA-256 of each preset's run in tools/preset_suite.py (its WAV's first"
+                                  " HASH_FRAMES frames)",
                        **sums}, f, indent=2, sort_keys=True)
             f.write("\n")
     if a.drop:

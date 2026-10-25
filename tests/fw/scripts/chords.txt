@@ -29,12 +29,13 @@
 960        key 34 up
 960        key 11 up
 # keys held in columns 0 and 1 while encoders 0 and 6, whose contacts are
-# in those columns, turn three detents each, opposite ways
+# in those columns, turn three detents each, opposite ways (PRESETS up:
+# since M8b down from the first program wraps round to the presets)
 1000       key 5 down
 1000       key 0 down
 1000       key 11 down
-1002       enc 0 +3
-1002       enc 6 -3
+1002       enc 0 -3
+1002       enc 6 +3
 1040       key 5 up
 1040       key 0 up
 1040       key 11 up
