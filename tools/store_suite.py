@@ -33,9 +33,10 @@ command for command, and the two are compared byte for byte.
   the old patch or the new, every other key as before; then the shipping
   image starts from it, finds what tools/store.py finds, saves slot 5, and
   leaves what the model predicts.
-- reset (R-STORE-9): SAVE and HOME held 2.4 s empty the store (a reset
-  record) and the next start finds nothing; held 1 s, nothing happens.
-  The screen says "factory defaults" (golden image).
+- reset (R-STORE-9): since M8a, the settings' last row (GLO, SELECT to
+  it, KNOB1) asks, and SAVE empties the store (a reset record): the next
+  start finds nothing; HOME instead cancels it and nothing happens. The
+  screen says "factory defaults" (golden image).
 - corrupt (R-STORE-5): a record's payload and another's CRC damaged, a
   garbage block, a record of a kind this firmware doesn't know: the older
   copy is read, the damaged one ignored, the counts as tools/store.py's;
@@ -82,8 +83,8 @@ MIDI_FIELDS = ("marker bytes ring_dropped parsed messages realtime sysex sysex_b
                " orphans undefined cut filtered notes_on notes_off").split()
 STORE_MARKER = 0x374F5453
 IMAGE_AT = 0x4000              # fwtest writes the image here (docs/HARNESS.md)
-KEY_HOME, KEY_SAVE = 8, 9
-ENC_ALGORITHM, ENC_PRESETS = 1, 6
+KEY_GLO, KEY_HOME, KEY_SAVE = 7, 8, 9
+ENC_SELECT, ENC_ALGORITHM, ENC_KNOB1, ENC_PRESETS = 0, 1, 2, 6
 WORKERS = 4
 PATCHES = [fm_patch.encode(p) for p in fm_patch.TEST_PATCHES]
 ERR_FULL = -2
@@ -509,13 +510,14 @@ def case_reset(out, image_len):
     s.put(st.SELECTION, 0, 1, bytes([9, 0, 0, 0]))
     s.put(st.SETTINGS, 0, 2, settings_v2(channel=5))
     chip = s.chip()
+    # Since M8a the factory reset is the settings' last row: GLO, SELECT
+    # to it, KNOB1 asks, SAVE does it; HOME instead cancels it.
+    ask = ["600 key %d tap" % KEY_GLO, "700 enc %d +7" % ENC_SELECT, "800 enc %d +1" % ENC_KNOB1]
     held = Run(out, "store-reset-held", "app", 3000, flash=chip,
-               script=["300 key %d down" % KEY_SAVE, "350 key %d down" % KEY_HOME,
-                       "2750 key %d up" % KEY_HOME, "2800 key %d up" % KEY_SAVE], at=(("fm", 250),),
+               script=ask + ["1000 key %d tap" % KEY_SAVE], at=(("fm", 250),),
                extra=screen(2600, "store-reset")).go()
     short = Run(out, "store-reset-short", "app", 2000, flash=chip,
-                script=["300 key %d down" % KEY_SAVE, "350 key %d down" % KEY_HOME,
-                        "1350 key %d up" % KEY_HOME, "1400 key %d up" % KEY_SAVE]).go()
+                script=ask + ["1000 key %d tap" % KEY_HOME]).go()
     for run in (held, short):
         p += common(run, image_len) + agrees(run, chip)
     if p:
@@ -524,16 +526,18 @@ def case_reset(out, image_len):
     if held.rec("fm", 250)["patch"] != 9:
         p.append("reset: started on program %d, not slot 1's 9" % held.rec("fm", 250)["patch"])
     if rh["resets"] != 1 or held.rec("fm")["patch"] != 0 or sorted(st.Image(held.flash).live()) != ["reset"]:
-        p.append("reset: held 2.4 s: %d resets, program %d, the store holds %s"
+        p.append("reset: confirmed with SAVE: %d resets, program %d, the store holds %s"
                  % (rh["resets"], held.rec("fm")["patch"], sorted(st.Image(held.flash).live())))
     if rs["resets"] or region(short.flash) != region(chip):
-        p.append("reset: held 1 s: %d resets, the store changed: %s" % (rs["resets"], region(short.flash) != region(chip)))
+        p.append("reset: cancelled with HOME: %d resets, the store changed: %s"
+                 % (rs["resets"], region(short.flash) != region(chip)))
     again = Run(out, "store-reset-again", "app", 300, flash=held.flash).go()
     p += common(again, image_len) + agrees(again, held.flash)
     if again.result and again.rec("store")["loaded"]:
         p.append("reset: the next start loaded 0x%x" % again.rec("store")["loaded"])
-    lines.append("  reset: held 2.4 s, slot 1, the selection and the settings were voided by one record and"
-                 " the next start loaded nothing; held 1 s, nothing changed")
+    lines.append("  reset: asked on the settings' last row and confirmed with SAVE, slot 1, the selection and the"
+                 " settings were voided by one record and the next start loaded nothing; cancelled with HOME,"
+                 " nothing changed")
     return p, lines
 
 

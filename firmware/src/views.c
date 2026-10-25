@@ -44,6 +44,7 @@ volatile struct sb_ui_record sb_ui __attribute__((section(".beacon.ui")));
 #define STRIP_Y  202u
 #define STRIP_H  38u    /* a line at 203, names at 207, values (scale 2) at 220 */
 #define COLUMN_W 60u
+#define SETTING_ROWS 8u   /* the settings screen's rows (fm_play.c's ROW_*) */
 
 /* --- Text ------------------------------------------------------------ */
 
@@ -227,6 +228,45 @@ static void strip_edit(void)
     }
 }
 
+/* The settings' strip (M8a part 6): KNOB1 changes the row's value. */
+static void strip_settings(void)
+{
+    static const char *const names[SETTING_ROWS] = {
+        "IN CH", "OUT CH", "THRU", "LOCAL", "BEND", "KNOBS", "STORE", "RESET",
+    };
+    const struct midi_settings *m = &midi_settings;
+    char b[8];
+    u32 n = 0, r = ui.row < SETTING_ROWS ? ui.row : 0, k;
+
+    switch (r) {
+    case 0:
+        n = m->channel == MIDI_OMNI ? put(b, 0, "omni") : decimal(b, 0, m->channel, 0);
+        break;
+    case 1:
+        n = decimal(b, 0, m->out_channel, 0);
+        break;
+    case 2:
+        n = put(b, 0, m->thru ? "on" : "off");
+        break;
+    case 3:
+        n = put(b, 0, m->local ? "on" : "off");
+        break;
+    case 4:
+        n = decimal(b, 0, m->bend_range, 0);
+        break;
+    case 5:
+        n = put(b, 0, m->knobs ? "dir" : "macro");
+        break;
+    case 7:
+        n = put(b, 0, ui.confirm ? "SAVE?" : "");
+        break;
+    }
+    b[n] = 0;
+    strip_text(0, r == 6 ? "" : names[r], r == 6 ? "" : b);
+    for (k = 1; k < 4; k++)
+        strip_text(k, "", "");
+}
+
 /* The envelope view's strip (M8a part 4). */
 static void strip_env(void)
 {
@@ -266,6 +306,10 @@ static void strip_work(void)
     }
     if (ui.screen == UI_ENV) {
         strip_env();
+        return;
+    }
+    if (ui.screen == UI_SETTINGS) {
+        strip_settings();
         return;
     }
     if (ui.knobs) {
@@ -832,6 +876,11 @@ static void info_work(void)
     char *b = info_text;
     u32 n = 0;
 
+    if (ui.screen == UI_SETTINGS) {
+        put(b, 0, "settings");   /* the second half of the rows */
+        b[8] = 0;
+        return;
+    }
     if (ui.screen != UI_EDIT) {
         b[0] = 0;
         return;
@@ -847,10 +896,22 @@ static void info_work(void)
     pad(b, n, 38);
 }
 
+static void settings_rows(u32 first, u32 last);
+#define SETTINGS_Y(r) (BODY_Y + 20u + 12u * (r))
+
 static void draw_info(void)
 {
-    gfx_fill(0, INFO_Y, SCREEN_W, FONT_H, BLACK);
-    text(4, INFO_Y, info_text, GREY, 1);
+    if (ui.screen == UI_SETTINGS) {
+        /* Only ever after the body, whose bands cleared these rows: a
+         * setting's change redraws the body. */
+        u32 y = SETTINGS_Y(SETTING_ROWS / 2), h = SETTINGS_Y(SETTING_ROWS) + 4 + FONT_H - y;
+        settings_rows(SETTING_ROWS / 2, SETTING_ROWS);
+        send(y, h);
+    } else {
+        gfx_fill(0, INFO_Y, SCREEN_W, FONT_H, BLACK);
+        text(4, INFO_Y, info_text, GREY, 1);
+        send(INFO_Y, FONT_H);
+    }
     copy_text(info_drawn, info_text);
 }
 
@@ -874,12 +935,12 @@ static void body_env(void)
 }
 
 /* The settings, one row each: a name, then the value. */
-#define SETTING_ROWS 7u
 
 static void setting_row(u32 r, char *b)
 {
     static const char *const names[SETTING_ROWS] = {
         "MIDI in channel", "MIDI out channel", "Thru", "Local control", "Bend range", "Knobs", "Store",
+        "Factory reset",
     };
     u32 n = put(b, 0, r == ui.row ? "> " : "  "), u, k;
 
@@ -905,26 +966,41 @@ static void setting_row(u32 r, char *b)
     case 5:
         n = put(b, n, midi_settings.knobs ? "direct" : "macros");
         break;
-    default:
+    case 6:
         for (u = user_used, k = 0; u; u &= u - 1)
             k++;
         n = decimal(b, n, (int)k, 0);
         n = put(b, n, "/16 used");
         break;
+    default:
+        n = put(b, n, ui.confirm ? "SAVE: yes" : "KNOB1");
+        break;
     }
     b[n] = 0;
 }
 
-static void body_settings(void)
+/* Rows first to last - 1, and after the last row the footer. The body
+ * draws the first half, the info line's part the rest (each within the
+ * drawing budget). */
+
+static void settings_rows(u32 first, u32 last)
 {
     char b[41];
     u32 r;
 
-    text(4, BODY_Y + 4, "SETTINGS", WHITE, 1);
-    for (r = 0; r < SETTING_ROWS; r++) {
+    for (r = first; r < last; r++) {
         setting_row(r, b);
-        text(4, BODY_Y + 20 + 12 * r, b, r == ui.row ? YELLOW : WHITE, 1);
+        text(4, SETTINGS_Y(r), b, r == ui.row ? YELLOW : WHITE, 1);
     }
+    if (last == SETTING_ROWS)
+        text(4, SETTINGS_Y(SETTING_ROWS) + 4, ui.confirm ? "Clear it all? SAVE: yes  HOME: no"
+             : "SELECT: row   KNOB1: change", ui.confirm ? YELLOW : GREY, 1);
+}
+
+static void body_settings(void)
+{
+    text(4, BODY_Y + 4, "SETTINGS", WHITE, 1);
+    settings_rows(0, SETTING_ROWS / 2);
 }
 
 /* The body's contents, over a body the band parts have cleared. */
@@ -1070,7 +1146,6 @@ static void draw_item(u32 bit)
         draw_strip();
     } else if (bit == 12) {
         draw_info();
-        send(INFO_Y, FONT_H);
     } else if (bit == 13) {
         draw_live();
     } else if (bit < 16) {
