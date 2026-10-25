@@ -1419,6 +1419,19 @@ SR-3 wrote only its barrier-log row.*
   the SDK's `cpu/wl82/tools/note.txt`, and the blob hashes and sizes of
   the SDK's loader and packaging files (none opened) (P-57). Nothing of
   FM1 Open was fetched; its file sizes and hashes come from docs/PLAN.md.
+- Spec requests, every 20 minutes from 03:22Z to 11:52Z: only
+  `docs/SPEC-REQUESTS.md` on main and on the firmware side's open
+  branches (#111, #116 to #126); none new.
+- At the end, the firmware side's latest open branches (#124, which
+  carries #111 and #116 to #123, and #125) were merged into this
+  session's branches; their files were merged, not reviewed. #126 is a
+  draft not for merging and was left out.
+- #112's CI after that merge failed C-FW-SUITE. From that run's report
+  artifact the session opened only `logs/C-FW-SUITE.log`, the artifact's
+  listing and `fwtest/fmgold/result.json`, then deleted it at 12:04Z.
+  fmgold and fmgold2's `audio.wav` is 256 bytes (128 samples) shorter
+  than the golden on fwtest 0.6.0 with M8a's firmware. Main's firmware
+  matched it on 0.6.0 earlier in this session. Left to the firmware side.
 
 ## Corrections
 
