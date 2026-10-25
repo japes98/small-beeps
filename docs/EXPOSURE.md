@@ -1185,6 +1185,25 @@ SR-3 wrote only its barrier-log row.*
   - **The toolchain** built the firmware and its test images in the
     build container, as before. Disk stayed between 4.5 and 4.8 GB free.
 
+### Session day-1024 (flash facts for M7, spec requests, the porter role)
+- Date: 2026-10-24 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.310 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `4fc544d9-3a50-4ba0-9cb1-91fc187048df`,
+  started by `/clear` at 14:13:11Z (banner `source: clear`,
+  `status: OK`), on main at `6ba587e`. Unattended: the owner reviews on
+  return.
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+  4.8 GB free at the start.
+- What it archived: pin-050's transcript (`9406e046`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS.
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository). Anything new is
+  added below as the session goes.
+
 ### Session M7 (flash storage, then the M8 proposal)
 - Date: 2026-10-24
 - Role: firmware side (clean).
