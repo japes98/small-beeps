@@ -78,12 +78,12 @@ From RE `docs/architecture.md` §2 and `docs/io/11-ota-protocol.md`:
   ("logical") image.
 - The header is encrypted with the fixed header key `0xFFFF` and holds a
   header CRC, a list CRC, the image size, the entry count and eight
-  entries: `flash.bin`, `info.log`, `USR`, `isd_config.ini`, `ota.bin`,
-  `script.ver`, `blimit.bin`, `tail.bin`. CRCs are JieLi's CRC-16
+  entries: `flash.bin`, `info.log`, `USR`, the loader's configuration
+  file (an `.ini`), `ota.bin`, `script.ver`, `blimit.bin`, `tail.bin`. CRCs are JieLi's CRC-16
   (CRC-16/CCITT-FALSE).
 - `flash.bin` is the flash image from `0x00000` to `0x93FFF` (HW-80): a
   flash header, the second-stage loader `uboot.boot` from `0x000A0`, the
-  loader's configuration (`isd_config.ini`, which carries the chip key
+  loader's configuration (the same `.ini`, which carries the chip key
   `0x980F`) from `0x038D0`, then from `0x04000` the app area: a file
   directory, `app.bin` from `0x04120`, `cfg_tool.bin`, and a `cfg` entry.
   The app area is encrypted with the chip key (HW-81).
@@ -100,8 +100,8 @@ From RE `docs/io/11-ota-protocol.md` and `docs/io/12-v15-reflash-proof.md`:
   messages: a handshake, an upgrade command, then the *device* pulls the
   package by offset and length. Step 1 checks the package and stages the
   update loader; the device resets into it (it re-enumerates with another
-  USB ID); step 2 pulls the whole image and writes it; two raw addresses
-  (`0xE0000000`, `0xF0000000`) mark the ends of the steps.
+  USB ID); step 2 pulls the whole image and writes it; a request for one
+  of two reserved addresses marks the end of each step (RE gives them).
 - Step 1 refuses a package it judges the same as what is installed; the
   check is in the stock firmware, and FM-1-RE has not found all of it.
   Stock-to-stock downgrades and a modified package have been installed
@@ -123,7 +123,7 @@ A package built the SDK's way, by its packaging tools, from our raw image:
 - `ota.bin`: the update loader the stock updater stages. The SDK warns
   that an update across versions fails its file checks if the old and new
   loaders differ, or if the reserved and VM regions in the old and new
-  `isd_config` differ in count, size or address (SDK
+  loader configurations differ in count, size or address (SDK
   `cpu/wl82/tools/note.txt`, points 2(1) and 2(2)); and that single- and
   dual-backup layouts can't update one another (2(4)). So a package that
   a stock unit accepts most likely keeps the stock layout (HW-80) and the
