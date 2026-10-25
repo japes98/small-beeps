@@ -903,6 +903,60 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   For us: our firmware links nothing of FM1 Open, so none of its
   conditions applies to our code; the engine grant names FM1 devices only,
   so it would not cover the SMK-37.
+- **Vendoring FM1 Open's boot and update files for M9** (session day-1024,
+  from FM1 Open's `LICENSE.md`, `THIRD_PARTY.md`, its file list and git's
+  blob hashes only, at `4c7496daac04a95ff10d1afdcc8f9ead2dbabc41`; no file
+  of it opened beyond those two). Which files are Apache-2.0, as
+  `THIRD_PARTY.md` ("Boot/update resources and recovery firmware") names
+  them; all are binaries, so none carries a licence header:
+
+  | File | Bytes | Git blob | What |
+  |------|------:|----------|------|
+  | `sdk/tools/pack/uboot.boot` | 14 488 | `b81f8de1…` | the second-stage loader |
+  | `sdk/tools/pack/ota.bin` | 19 969 | `062ad5e0…` | the update loader |
+  | `sdk/tools/pack/boot-config.bin` | 721 | `dc7bcaa7…` | the loader's configuration |
+  | `sdk/tools/pack/cfg_tool.bin` | 383 | `e197b6db…` | a configuration resource; byte for byte the pinned AC79 SDK's `cpu/wl82/tools/cfg_tool.bin` (same blob) |
+  | `sdk/firmware/FM-1_015.fwsc` | 699 956 | `ce49cc15…` | M-VAVE's stock V15 firmware as a recovery package |
+
+  Nothing else in the repository is under these terms but the FM model
+  (Apache-2.0 from MSFA and Dexed, part of the GPL app, not ours to take).
+  The repository has no `NOTICE` file. What M9 would need to vendor the
+  loaders properly:
+  - **Only what a package needs.** Find out from FM-1-RE's update and
+    boot documents which of `uboot.boot`, `ota.bin` and `boot-config.bin`
+    a package of ours must carry (HW-80: the update package holds a flash
+    image from `0x00000`, so the loader at `0x000A0` and its
+    configuration at `0x038D0` are in it). Never the `.fwsc`: it is the
+    stock firmware, which no session here opens or disassembles, and the
+    SMK-37 and our image don't need it.
+  - **`cfg_tool.bin` from the AC79 SDK**, not FM1 Open: it is the same
+    file, and the SDK is already an allowed source (P-2), so it can be
+    added to `tools/fetch-sdk.sh` and its `SHA256SUMS` like any SDK file.
+  - **The other loaders from FM1 Open's pinned commit**, as opaque files:
+    fetched by raw URL into `vendor/fm1-open-boot/` by a script like
+    `tools/fetch-sdk.sh` that checks each SHA-256, never by cloning the
+    repository (a clone puts its GPL app on disk), with a `SOURCE.md`
+    naming the commit, the files and where `THIRD_PARTY.md` grants them.
+    FM1 Open stays off the firmware side's reading list: whoever writes
+    the packaging treats these as named binaries with hashes, never
+    opening or disassembling them. Whether the firmware side may hold
+    them at all is the owner's call (Questions, day-1024).
+  - **The licence and notices.** `LICENSES/Apache-2.0.txt` (already here, for the SDK), and
+    `REUSE.toml` entries for the vendored files with
+    the Apache-2.0 licence identifier and the copyright as
+    `THIRD_PARTY.md` gives it: M-VAVE's (珠海笙科智能科技有限公司,
+    2026) for the loaders it distributes, and Zhuhai Jieli Technology
+    Co., Ltd. (2024-2026) for JieLi material. Our `NOTICE` names the
+    files, M-VAVE's grant (the section of `THIRD_PARTY.md` quoted with
+    its commit) and that FM1 Open has no NOTICE file of its own
+    (Apache-2.0 section 4(d) then asks for nothing more).
+  - **Changes marked.** If M9 changes any of them (`boot-config.bin`,
+    say, for our image's size or name), the changed file carries a
+    prominent statement of the change (section 4(b)), in `SOURCE.md` and
+    in the release notes; a release ships the Apache-2.0 text with it
+    (section 4(a)).
+  - **Recorded.** PROVENANCE.md entries for the fetch; EXPOSURE.md for
+    the session that does it.
 - **The owner's answers to session day-1024's questions (2026-10-24):**
   - fwtest 0.6.0 (#99) is pinned only after M7's store (#106) merges,
     and the firmware side re-runs its suite on the pin's pull request

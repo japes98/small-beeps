@@ -1242,6 +1242,15 @@ SR-3 wrote only its barrier-log row.*
   `tools/porter-setup.sh`, `ports/README.md`): written from this
   repository's own rules; no GPL engine was opened for it, and no porter
   session was started.
+- FM1 Open (`m-vave/fm1_open`, commit
+  `4c7496daac04a95ff10d1afdcc8f9ead2dbabc41`, as session midi-in-out
+  read it), its terms only: its file list and git blob hashes (GitHub's
+  API), and its two terms files `LICENSE.md` and `THIRD_PARTY.md` (same
+  SHA-256 as midi-in-out recorded), by raw URL into the scratch folder.
+  No code, script, build file, binary or other document of it was opened.
+  The pinned AC79 SDK's file list and blob hashes were compared with them
+  (no SDK file opened for it). Result in docs/PLAN.md ("Vendoring FM1
+  Open's boot and update files for M9").
 
 ### Session M7 (flash storage, then the M8 proposal)
 - Date: 2026-10-24
