@@ -1,0 +1,89 @@
+{
+  "fwtest": {
+    "version": "0.5.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "test-midithru.bin",
+    "bytes": 20204,
+    "sha256": "0cbacec9d44c1e60e4380c985f982283b53871925bd9f719c604a4bd66a9c956"
+  },
+  "script_sha256": "2bbf0ea2f00b782fb6e5c86987ccc78e70fed4a2d32b66d7553ae150b4fbed06",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "600.541",
+    "instructions": {
+      "core0": 2798569,
+      "core1": 360642
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 105772,
+        "sha256": "54b0470403199e6ce45bccf1776c879186af9e0a8488c18a43ec0cfd83630dba"
+      },
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "ipb.csv",
+        "bytes": 8216,
+        "sha256": "3e2380f00834a8849058945bca02d81e926c66f658124a4fe4f74a710ec9f0a1"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 547,
+        "sha256": "a8c46d7497e859f298910a7b3f9993ffc7ba65ec71a6e0b27ac154dca1715554"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 669,
+        "sha256": "c267dc5d3c4857fc5206f985581b2631667610f7414406b6492ebc20105ba206"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "20f434e9565a329b36af508f96b263d31f374618e45f4cdbdbe916f4b2e4d5fc"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "9090cef8f300c10387496c506ad3b58668592262a7a4648d5ee6dccd4ed61762"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "8679b468a075e26e230741a067d7f5fc30f104b3a0ec581837036bc335f322cd"
+      },
+      {
+        "name": "ram-01c005d0-164-end.bin",
+        "bytes": 356,
+        "sha256": "a3556f9369ea77dd7d93bf7e71ac594fadd0f2bb22d7a38d3298b413af989bff"
+      },
+      {
+        "name": "ram-01c00734-4c-end.bin",
+        "bytes": 76,
+        "sha256": "e43719737cc0766e3064996e346ed331709fb7834b4bb4a45a3202bf3fae92e8"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "midi-out.csv",
+      "result": "match",
+      "detail": null
+    },
+    {
+      "name": "midi-out.txt",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 0
+}

@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 2fc5869a41ebb48c829cdddc6af279c3001eb2c2..040d7de209e25845a5c47afea7db8f7354db2c8b
+EXEMPT 64dff22239da (merge) docs: merge M7's start (#95) into SR-9's answer
+OK     401225719897 docs: answer SR-9, flash storage (HW-76 to HW-82; E-22)
+OK     c1e68efa78f0 docs: a known gap in fwtest 0.5.0's dual-issue pairs, for M7
+OK     7e26f4931887 docs: HW-80 states the store regions' trade-offs instead of choosing one
+EXEMPT a1f5ce736c54 (merge) docs: merge spec/day-1024-start into spec/sr-9, after its fixes
+EXEMPT 040d7de209e2 (merge) Merge pull request #97 from japes98/spec/sr-9
+6 commit(s) checked: PASS
+
+exit status 0
