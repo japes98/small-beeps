@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 7d19f64194f10c476c602d10553ca115566ba228..5d978a1c3820ab3db9f796eec457ee589e253cb0
+EXEMPT ea21cc4c3f39 (merge) tests: merge part 3's fix into part 4 (M8a)
+OK     045a6d232fa7 firmware: the envelope view, its dot and editing (M8a, part 4)
+EXEMPT 40f586910392 (merge) docs: merge m8a/edit into m8a/env (M8a)
+EXEMPT 5d978a1c3820 (merge) Merge pull request #121 from japes98/m8a/env
+4 commit(s) checked: PASS
+
+exit status 0
