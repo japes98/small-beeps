@@ -63,6 +63,20 @@ class DenyListTest(unittest.TestCase):
         self.edit("deny-baseline.json", lambda d: d["porter"].pop())
         self.assertTrue(dl.check(self.dir))
 
+    def test_clean_and_spec_deny_cloning_the_port_repository(self):
+        # since evening-1024 (the owner's decision)
+        rule = "Bash(git clone*small-beeps-ports*)"
+        for role in ("clean", "spec"):
+            with open(os.path.join(CONFIG, role + ".json")) as f:
+                self.assertIn(rule, json.load(f)["permissions"]["deny"], role)
+            self.setUp()
+            self.edit(role + ".json",
+                      lambda d: d["permissions"]["deny"].remove(rule))
+            self.assertTrue(dl.check(self.dir), role)
+            self.setUp()
+            self.edit("deny-baseline.json", lambda d: d[role].remove(rule))
+            self.assertTrue(dl.check(self.dir), "baseline " + role)
+
     def test_adding_an_entry_passes(self):
         self.edit("spec.json", lambda d: d["permissions"]["deny"].append("WebFetch(domain:example.org)"))
         self.assertEqual(dl.check(self.dir), [])

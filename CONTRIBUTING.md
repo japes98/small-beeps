@@ -97,6 +97,13 @@ EXPOSURE.md at once, and stop writing firmware.
 - the sites hugelton.github.io and thefirmwarehub.com;
 - the port repository `small-beeps-ports` and a porter's `port-work/`
   folder (the porter's GPL ports; since day-1024).
+- FM-1-RE's `docs/io/09-storage.md` (since evening-1024, the owner's
+  decision): most of it describes the stock firmware's own code (its
+  routines and its own record and patch storage). The spec side may still
+  read it and cites only its hardware facts in `HARDWARE-SPEC.md`, which is
+  how those facts reach the firmware side. `tools/check-transcripts.py`
+  applies this entry to sessions from 2026-10-25 on (M7 read the document
+  while it was allowed; docs/EXPOSURE.md).
 
 `tools/check-transcripts.py` checks every archived clean-side session against
 this list (its `FORBIDDEN` table mirrors it; change both together). Since
@@ -114,8 +121,9 @@ was used) and name the ID in the commit's `Sources:` field:
 - JieLi's AC79 SDK, `Jieli-Tech/fw-AC79_AIoT_SDK` (Gitee), Apache-2.0:
   headers, register definitions, drivers. Not its prebuilt libraries;
 - AL-255/FM-1-RE (GitHub, WTFPL): its hardware, memory-map, boot-chain and
-  update-protocol documents only. Fetch single documents by URL; never clone
-  it (a clone puts its firmware images and disassembly material on disk);
+  update-protocol documents only, except `docs/io/09-storage.md` (see the
+  list above). Fetch single documents by URL; never clone it (a clone puts
+  its firmware images and disassembly material on disk);
 - public datasheets;
 - our own experiments: test programs run in the emulator, observed only
   through the harness: `tools/fwtest`, whose manual is docs/HARNESS.md;

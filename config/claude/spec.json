@@ -7,7 +7,8 @@
       "WebFetch(domain:thefirmwarehub.com)",
       "Bash(git clone*Felucca*)",
       "Bash(git clone*felucca*)",
-      "Bash(git clone*dinghy*)"
+      "Bash(git clone*dinghy*)",
+      "Bash(git clone*small-beeps-ports*)"
     ]
   },
   "hooks": {

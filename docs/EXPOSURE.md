@@ -41,7 +41,9 @@ what, and when. Roles are defined in CONTRIBUTING.md.
   in a folder named for the porter on the owner's Mac, for an unrelated
   project (not small-beeps): no FM-1 firmware, emulator or small-beeps
   material was involved. It was not a porter session; no porter session
-  has run.
+  has run. (The owner's answer to session day-1024's question, recorded
+  again in session evening-1024; the other project's details are not
+  recorded here.)
 
 Every session adds its own entry when it starts, and again whenever its
 exposure changes. Agent entries record the exact model ID and its published
@@ -1378,6 +1380,59 @@ SR-3 wrote only its barrier-log row.*
   - **Disk:** 3.1 GB free at the start, 2.3 to 2.4 GB through the day;
     `out/` cleared between runs; Docker left alone.
 
+### Session evening-1024 (fwtest 0.6.0's pin, the flash pins, M9's plan, spec requests)
+- Date: 2026-10-25 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.310 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `e7979b06-3055-45cf-9e7c-11ab22ca1ee7`,
+  started by `/clear` at 02:13:03Z (banner `source: clear`,
+  `status: OK`), on main at `1123eca`. Largely unattended: the owner
+  checks in occasionally.
+- Where it ran: the owner's Mac, in `~/<top>/spec`; `tools/spec-setup.sh`
+  banner `status: OK`; `tools/private-terms.local` exists (not opened).
+  3.1 GB free at the start.
+- What it archived: day-1024's transcript (`4fc544d9`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS. M7's (clean) is
+  left for the next clean session.
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository).
+- fwtest 0.6.0's pin: the published image pulled; the firmware at main's
+  `1123eca` built in the build container and its suite run on 0.6.0 and
+  0.5.0 to compare.
+- The flash's pins (HW-85), all allowed sources: single files of the
+  pinned JieLi SDK through Gitee's contents API, and its file list through
+  Gitee's tree API (a blob-less fetch failed); the AC7911B datasheet,
+  found by web search; five FM-1-RE documents re-fetched by raw URL (as
+  P-51) and searched for pin names, of which `docs/io/09-storage.md`
+  (allowed to the spec side only since this session) was searched for
+  pin names alone (P-56). A Python virtual environment with `pypdf` in
+  the scratch folder, to read the datasheet's text.
+- From the firmware side's open pull requests (#111) it read only
+  `docs/SPEC-REQUESTS.md`, through GitHub's contents API.
+- The audit's discovery (`tools/audit-discover.py --write`, once):
+  repository metadata only, through GitHub's API and `git ls-remote`; no
+  target's files, README or page opened.
+- M9's plan (docs/M9-PLAN.md): FM-1-RE's `docs/io/11-ota-protocol.md`
+  and `docs/io/12-v15-reflash-proof.md` re-fetched by raw URL (as P-51);
+  the SDK's `cpu/wl82/tools/note.txt`, and the blob hashes and sizes of
+  the SDK's loader and packaging files (none opened) (P-57). Nothing of
+  FM1 Open was fetched; its file sizes and hashes come from docs/PLAN.md.
+- Spec requests, every 20 minutes from 03:22Z to 11:52Z: only
+  `docs/SPEC-REQUESTS.md` on main and on the firmware side's open
+  branches (#111, #116 to #126); none new.
+- At the end, the firmware side's latest open branches (#124, which
+  carries #111 and #116 to #123, and #125) were merged into this
+  session's branches; their files were merged, not reviewed. #126 is a
+  draft not for merging and was left out.
+- #112's CI after that merge failed C-FW-SUITE. From that run's report
+  artifact the session opened only `logs/C-FW-SUITE.log`, the artifact's
+  listing and `fwtest/fmgold/result.json`, then deleted it at 12:04Z.
+  fmgold and fmgold2's `audio.wav` is 256 bytes (128 samples) shorter
+  than the golden on fwtest 0.6.0 with M8a's firmware. Main's firmware
+  matched it on 0.6.0 earlier in this session. Left to the firmware side.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
@@ -1462,6 +1517,7 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-24T12:56:38Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session pin-050 starts; banner `status: OK`. 12:57:24Z: `tools/spec-setup.sh`, banner `status: OK`; midi-in-out's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written |
 | 2026-10-24T13:01:56Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M6b starts; banner `status: OK`; `tools/clean-update.sh` found main at `663f135` and passed; M6a archived; `tools/check-transcripts.py` PASS with the 5 reviewed entries listed for the owner's approval |
 | 2026-10-24T14:13:39Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M7 starts; banner `status: OK`; `tools/clean-update.sh` found main at `6ba587e` and passed; M6b archived; `tools/check-transcripts.py` PASS with the 2 reviewed entries listed for the owner's approval |
+| 2026-10-25T02:13:03Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session evening-1024 starts; banner `status: OK`. 02:13:28Z: `tools/spec-setup.sh`, banner `status: OK`; day-1024's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written. `config/claude/spec.json` changes in this session (a deny rule added); the running session keeps the old settings, so its banner would show a mismatch until it restarts |
 
 ## Model cutoffs
 

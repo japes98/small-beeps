@@ -38,8 +38,8 @@ class TranscriptTest(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.dir)
 
-    def write(self, entries, role="clean", sid=SID, note=True):
-        name = "2026-10-21-%s-%s" % (role, sid)
+    def write(self, entries, role="clean", sid=SID, note=True, date="2026-10-21"):
+        name = "%s-%s-%s" % (date, role, sid)
         with open(os.path.join(self.dir, name + ".jsonl"), "w") as f:
             for e in entries:
                 f.write(json.dumps(e) + "\n")
@@ -176,6 +176,23 @@ class TranscriptTest(unittest.TestCase):
         self.assertTrue(self.heredoc_call(ok, head="cd sptwo && python3 - <<'EOF'"))
         self.assertTrue(self.heredoc_call(ok, tail="\ncat sptwo/x"))
         self.assertEqual(self.heredoc_call(ok), [])
+
+    def test_fm1_re_storage_document_is_forbidden(self):
+        # since evening-1024 (the owner's decision); HARDWARE-SPEC.md's
+        # citations of it are only mentions
+        url = "https://raw.githubusercontent.com/AL-255/FM-1-RE/ec83/docs/io/09-storage.md"
+        self.assertIn("F-15", ct.forbidden_hits("shell", "curl -sO " + url)[0])
+        self.assertNotIn("F-15", ct.forbidden_hits("shell", "grep -n 09-storage docs/HARDWARE-SPEC.md")[0])
+
+    def test_a_rule_applies_from_its_date(self):
+        # F-15 since 2026-10-25: M7 (2026-10-24) read the document while it
+        # was allowed, so its read is logged, not failed
+        url = "https://raw.githubusercontent.com/AL-255/FM-1-RE/ec83/docs/io/09-storage.md"
+        entries = [hook(BANNER_OK), call("Bash", command="curl -sO " + url)]
+        problems, lines = ct.check_session(self.write(entries, date="2026-10-24"))
+        self.assertEqual(problems, [])
+        self.assertIn("    BEFORE F-15 (report only: the rule applies from 2026-10-25)", lines)
+        self.assertTrue(self.problems(self.write(entries, date="2026-10-25")))
 
     def test_other_rules_are_cleared_only_as_mentions(self):
         # The text rule's folder exemption never clears another rule; the
