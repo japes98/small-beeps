@@ -83,7 +83,7 @@ flood       completed  ../../out/fw/test-flood.bin    --ms 1500 --lcd end --ram 
 fault       halt       ../../out/fw/test-fault.bin    --ms 20 --console --ram 0x01c00000:0x60@end --golden golden/fault
 stray       halt       ../../out/fw/test-stray.bin    --ms 20 --console --ram 0x01c00000:0x60@end --golden golden/stray
 badinsn     fault      ../../out/fw/test-badinsn.bin  --ms 20
-keys        completed  ../../out/fw/app.bin           --ms 2400 --script scripts/keys.txt --leds-every 5 --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end
+keys        completed  ../../out/fw/app.bin           --ms 2400 --script scripts/keys.txt --leds-every 5 --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end --ram 0x01c00870:0x40@end
 chords      completed  ../../out/fw/app.bin           --ms 1300 --script scripts/chords.txt --lcd 1050 --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end --golden golden/chords
 encoders    completed  ../../out/fw/app.bin           --ms 2300 --script scripts/encoders.txt --ram 0x01c00060:0x4f0@1000 --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end
 pot         completed  ../../out/fw/app.bin           --ms 1300 --script scripts/pot.txt --ram 0x01c00060:0x4f0@960 --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end
@@ -136,3 +136,11 @@ midithru    completed  ../../out/fw/test-midithru.bin --ms 600 --script scripts/
 midilocal   completed  ../../out/fw/app.bin           --ms 1400 --script scripts/midilocal.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@700 --lcd 700 --golden golden/midilocal
 midiburst   completed  ../../out/fw/test-midiburst.bin --ms 1700 --script scripts/midiburst.txt --midi-out --console --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --golden golden/midiburst
 midioutlat  completed  ../../out/fw/app.bin           --ms 3200 --script scripts/midioutlat.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
+
+# views, viewsload (since M8a; R-UI-1 to R-UI-5): the instrument's
+#   screens, with the interface's record at 0x01c00870 (tools/fw-suite.py).
+#   views: each screen in turn, HOME back, PRESETS, OCT+ and MASTER on the
+#   settings screen, LEDs (golden images of each screen). viewsload: the
+#   screens changing every 100 ms under the heaviest input.
+views       completed  ../../out/fw/app.bin           --ms 2400 --script scripts/views.txt --leds-every 50 --lcd 850 --lcd 1150 --lcd 1450 --lcd 1750 --lcd 2050 --lcd 2350 --ram 0x01c00870:0x40@850 --ram 0x01c00870:0x40@1150 --ram 0x01c00870:0x40@1450 --ram 0x01c00870:0x40@1750 --ram 0x01c00870:0x40@2050 --ram 0x01c00870:0x40@2350 --ram 0x01c00870:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00550:0x40@end --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end --golden golden/views
+viewsload   completed  ../../out/fw/app.bin           --ms 3300 --script scripts/viewsload.txt --ipb --console --ram 0x01c00870:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00550:0x40@end --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end

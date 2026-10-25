@@ -67,6 +67,7 @@ SECTIONS
         KEEP(*(.beacon.midi))
         KEEP(*(.beacon.midiout))
         KEEP(*(.beacon.store))
+        KEEP(*(.beacon.ui))
     } > RAM
 
     .bss (NOLOAD) : {
@@ -104,6 +105,7 @@ SECTIONS
     ASSERT(sb_midi == 0x01C005D0, "the MIDI record must follow the FM engine's record (M6a)")
     ASSERT(sb_midi_out == 0x01C00734, "the MIDI out record must follow MIDI in's (M6b)")
     ASSERT(sb_store == 0x01C00780, "the store's record must follow MIDI out's (M7)")
+    ASSERT(sb_ui == 0x01C00870, "the interface's record must follow the store's (M8a)")
     ASSERT(__data_end <= __stack_limit, "data and bss run into the stack")
     ASSERT(__stack_top == 0x01C7FC00, "the stack must end below the reserved top of RAM")
     ASSERT(__stack_top % 8 == 0, "the stack must be 8-byte aligned")

@@ -2129,3 +2129,59 @@ user patch region begins. The store suite's `persist` and `wear` cases
 start with the user patch region full of a pseudo-random pattern standing
 for the stock firmware's saved patches, and every run checks the chip
 outside the store is unchanged, so an erase or a write there would fail.
+
+### 2026-10-25 M8a: the screens' framework
+
+The instrument's interface (docs/M8-PROPOSAL.md, with the owner's
+answers in docs/prompts/M8a.md), first its frame. `firmware/src/ui.h`
+and `views.c`; M3's panel screen (`panel.c`) is gone.
+
+- **Who owns what.** The engine owns the interface's state (`struct
+  fm_ui`: the screen, the selected operator, the page, the settings
+  row). It already takes the panel's events in order in its block
+  callback, from its own queue; so a screen button and a knob turned just
+  after it reach it in that order, and what a knob does always matches
+  the screen it was turned on. Had main decided the screen, an EDIT
+  press and a KNOB1 turn in one block could reach the engine as a macro
+  turn. The engine adds one to `fm_ui.seq` on every block that took an
+  event or a MIDI message, and wakes main. Main only draws: it copies the
+  state when `seq` holds still, works out what each part of the screen
+  should show, and redraws only the parts that changed.
+- **The frame.** Every screen has a header (rows 0-25: the program's
+  number, `001` to `009` for the test patches and `U01` to `U16` for the
+  user slots, its name at double size, the mode and the octave), a body
+  (rows 26-189, the screen's own), an event line (rows 190-201) and the
+  bottom strip (rows 202-239), which names what KNOB1 to KNOB4 do on this
+  screen, with their values at double size, in four columns of 60
+  pixels. Until M8a's patch view lands, KNOB1 to KNOB4 keep M5's meanings
+  on every screen, and the strip says so.
+- **Parts, frames and the budget.** M5's rule stays: what is marked is
+  drawn at most once a 16 ms frame, part by part, and no part starts in
+  an audio block once drawing has taken 4 352 time base ticks of it. A
+  whole new screen is many parts: the header; the body cleared in four
+  bands; the body drawn into the frame buffer; the body sent in four
+  bands; the event line; the strip. A knob turn redraws only the strip's
+  values and sends their 16 rows. The first build drew a body as one part
+  of 11 300 ticks; split so, the longest part is 3 800 ticks (the strip's
+  names and values after a change of screen), within the budget, and a
+  block's drawing is under two budgets. Two things made that: a fast path
+  for double-size text (a glyph pixel is one 32-bit store of two
+  pixels) and not padding the body's text, whose bands are cleared
+  anyway. A body is marked once a change, since its parts may take
+  several blocks: marking it again while they were under way restarted
+  its clearing and never finished (found in the first run).
+- **LEDs.** A held button or key is fully lit, the shown screen's button
+  lit, and on EDIT and ENV the selected operator's key at half. Main
+  sets them (`input_led` is main's only) as it takes each event, from
+  the same events the engine takes, so they change within R-LED-3's
+  1 ms, not a block later when the engine's state arrives.
+- **The heartbeat** stays the test screen's: main no longer draws it
+  once the instrument's screens show (it drew over their rows 200-215
+  every second).
+- **The record.** `sb_ui` at `0x01C00870`, after the store's: the screen
+  drawn, the parts, rows sent, the longest part and which, the most
+  drawing in one block, the LED changes and messages.
+- **Costs.** Code 26 700 bytes (+2 560). The steady state (the test
+  screen, no input) 1 872 instructions a block, as before; the loaded
+  measure 98 265, down from 107 590, as the screens redraw less than the
+  M3 panel did under the same input.

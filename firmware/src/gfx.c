@@ -125,6 +125,19 @@ void gfx_glyph(u32 x, u32 y, u32 c, u32 fg, u32 bg, u32 scale)
         }
         return;
     }
+    if (scale == 2 && !(x & 1)) {
+        /* Since M8a: each glyph pixel is a pair, one store, and the
+         * row below a copy of the row (the screens' large text). */
+        for (r = 0; r < FONT_H; r++) {
+            u32 *w = (u32 *)&sb_fb[(y + 2 * r) * SCREEN_W + x];
+            u32 bits = (u32)rows[r] << 1, fp = f | f << 16, bp = b | b << 16;
+            for (i = 0; i < FONT_CELL; i++)
+                w[i] = bits >> (FONT_CELL - 1 - i) & 1 ? fp : bp;
+            for (i = 0; i < FONT_CELL; i++)
+                w[i + SCREEN_W / 2] = w[i];
+        }
+        return;
+    }
     for (r = 0; r < FONT_H; r++) {
         u16 *line = &sb_fb[(y + r * scale) * SCREEN_W + x];
         u32 bits = (u32)rows[r] << 1;   /* bit FONT_CELL - 1 is the left column */
