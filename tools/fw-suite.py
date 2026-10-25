@@ -102,7 +102,9 @@ the suite through tools/fwtest (the pinned image), and then checks:
   midiout's engine state and pitches; midithru passes on every message
   but the SysEx, in order; midilocal plays nothing from the panel while
   local control is off; midiburst's policy leaves no note on unended;
-  midioutlat's key-to-wire latency within MIDI_OUT_LATENCY_MS.
+  midioutlat's key-to-wire latency within MIDI_OUT_LATENCY_MS;
+  presetends: PRESETS stops at the ends (no program change, no note
+  cut, past either end).
 
 Prints what it saw for the record, and exits 1 if anything failed.
 """
@@ -150,6 +152,7 @@ EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "complete
           "midichan": "completed", "midipanel": "completed", "midilat": "completed",
           "midiout": "completed", "midiround": "completed", "midithru": "completed",
           "midilocal": "completed", "midiburst": "completed", "midioutlat": "completed",
+          "presetends": "completed",
           "views": "completed", "viewsload": "completed", "macros": "completed", "edit": "completed", "env": "completed",
           "spectrum": "completed", "settings": "completed"}
 
@@ -599,8 +602,11 @@ LED_FULL_DUTY = (75, 92)   # thousandths: lit in 1 of 12 scan slots (83.3)
 # The keys script's LED changes: each of the 41 pressed and let go (82),
 # and since M8a three more as the screens change (ENV, EDIT, GLO, HOME
 # pressed in turn: HOME lit at the first event, then the previous screen's
-# button and OP1's key at half going dark or lit).
+# button and OP1's key at half going dark or lit). Since ARP its LED
+# stays lit from its first tap (the arpeggiator on) to its second's end
+# (off): still two changes.
 LED_CALLS_KEYS = 85
+INPUT_ARP = 10              # input.h: the ARP button (fwtest key 10)
 LED_STEP = 1000.0 / 96     # one eighth of that
 LED_STEP_TOL = 2
 EVENTS_DIR = "tests/fw/events"
@@ -698,17 +704,26 @@ def check_keys(case_dir):
     head, values, log = input_record(os.path.join(case_dir, input_name("end")))
     problems, lines, lats = [], [], []
     problems += check_events("keys", case_dir, log)
-    if head["events"] != 82 or head["dropped"] or head["taken"] != head["events"]:
-        problems.append("keys: %d events, %d dropped, %d taken: expected 82, 0, all"
-                        % (head["events"], head["dropped"], head["taken"]))
+    # The script's changes in order: each key down at 700 + 40 n and up 20
+    # ms later; since ARP, ARP (10) tapped again at 1126 to 1134 ms (on,
+    # then off).
+    want = []
+    for n in range(41):
+        want += [(n, 0, 700 + 40 * n), (n, 1, 720 + 40 * n)]
+        if n == INPUT_ARP:
+            want += [(n, 0, 1126), (n, 1, 1134)]
+    if head["events"] != len(want) or head["dropped"] or head["taken"] != head["events"]:
+        problems.append("keys: %d events, %d dropped, %d taken: expected %d, 0, all"
+                        % (head["events"], head["dropped"], head["taken"], len(want)))
     for seq, c, k, v, t in log:
-        n, up = seq // 2, seq % 2
+        n, up, when = want[seq] if seq < len(want) else (None, 0, 0)
         if (c, k, v) != (n, RELEASE if up else PRESS, 0 if up else 1):
-            problems.append("keys: event %d is %s %s %d, expected fwtest key %d (%s at %s) %s"
-                            % (seq, CONTROL_NAMES[c] if c < 49 else c, KINDS.get(k), v, n, CONTROL_NAMES[n],
-                               MATRIX[n], "release" if up else "press"))
+            problems.append("keys: event %d is %s %s %d, expected fwtest key %s (%s at %s) %s"
+                            % (seq, CONTROL_NAMES[c] if c < 49 else c, KINDS.get(k), v, n,
+                               CONTROL_NAMES[n] if n is not None else "-", MATRIX[n] if n is not None else "-",
+                               "release" if up else "press"))
             continue
-        lo, hi = latency(t, 700 + 40 * n + 20 * up)
+        lo, hi = latency(t, when)
         lats.append((lo, hi))
         if lo < KEY_LATENCY[0] or hi > KEY_LATENCY[1]:
             problems.append("keys: key %d's %s came %.3f to %.3f ms after it, not within %s ms"
@@ -747,13 +762,16 @@ def check_keys(case_dir):
         near = any(t - 1 <= ms <= t + 6 for t in edges)
         for n in range(41):
             down = 700 + 40 * n
+            # ARP (since ARP) lit from its first tap to its second's end:
+            # held, then the arpeggiator on.
+            up = 1134 - down if n == INPUT_ARP else 20
             screen = lit_by_screen(n, ms)
-            if prev >= down + KEY_LATENCY[1] + LED_LAG_MS + 1.1 and ms <= down + 20:
+            if prev >= down + KEY_LATENCY[1] + LED_LAG_MS + 1.1 and ms <= down + up:
                 lit += 1
                 held.setdefault(n, []).append(duty[n])
                 if not duty[n]:
                     problems.append("leds: LED %d dark at %.0f ms while key %d is held" % (n, ms, n))
-            elif ms <= down or prev >= down + 20 + KEY_LATENCY[1] + LED_LAG_MS + 1.1:
+            elif ms <= down or prev >= down + up + KEY_LATENCY[1] + LED_LAG_MS + 1.1:
                 if near:
                     continue
                 if screen and not duty[n]:
@@ -791,8 +809,8 @@ def check_chords(case_dir):
         problems.append("chords: the chattering key gave %s, not one press and one release" % k20)
     if any(e[1] == 21 and e[4] > 1150 * TICKS_PER_MS for e in log):
         problems.append("chords: the 1.5 ms glitch gave an event")
-    if (values[SELECT], values[PRESETS]) != (3, -3):
-        problems.append("chords: SELECT %d, PRESETS %d with keys held in their columns, not +3 and -3"
+    if (values[SELECT], values[PRESETS]) != (-3, 3):
+        problems.append("chords: SELECT %d, PRESETS %d with keys held in their columns, not -3 and +3"
                         % (values[SELECT], values[PRESETS]))
     lines.append("  no ghost at the rectangle's fourth corner; chatter gave one press and one release;"
                  " the glitch none; encoders exact with keys held in their columns")
@@ -2125,12 +2143,37 @@ def check_midioutlat(case_dir):
     return problems, lines
 
 
+def check_presetends(case_dir):
+    """PRESETS stops at the ends (tests/fw/scripts/presetends.txt): turned
+    down from the first program, or up from the last, it does nothing (the
+    held note sounds on, no program change goes out); up by 100 from the
+    first it stops at the last program that holds a patch."""
+    problems, lines, a, _, _ = check_audio_common("presetends", case_dir)
+    more, l2, o, msgs, _ = midi_out_common("presetends", case_dir)
+    problems, lines = problems + more, lines + l2
+    last = len(fm_patch.TEST_PATCHES) - 1
+    # fwtest turns the 100 detents one at a time: a program change each
+    # up to the last, then none.
+    progs = [n for n in range(1, last + 1) if n < len(fm_patch.TEST_PATCHES) or n >= len(fm_patch.TEST_PATCHES) + 16]
+    problems += expect_messages("presetends", msgs, [(0x90, 53, 100)] + [(0xC0, n) for n in progs]
+                                + [(0x90, 53, 0)], lines)
+    f450, f = fm_record(os.path.join(case_dir, fm_name("450ms"))), fm_record(os.path.join(case_dir, fm_name("end")))
+    if (f450["patch"], f450["voices0"] + f450["voices1"], f["patch"], f["notes"]) != (0, 1, last, 1):
+        problems.append("presetends: program %d with %d voices sounding after the turn down, program %d and %d notes"
+                        " at the end; expected 0, 1, %d, 1" % (f450["patch"], f450["voices0"] + f450["voices1"],
+                                                               f["patch"], f["notes"], last))
+    lines.append("  PRESETS down from 001: nothing (KEY1 sounds on); up 100: to program %d, a program change a"
+                 " detent until then; up again: nothing" % last)
+    return problems, lines
+
+
 MIDI_CHECKS = {"midimsg": check_midimsg, "midirun": midi_only("midirun"),
                "midisysex": midi_only("midisysex"), "midijunk": midi_only("midijunk", last_only=True),
                "mididense": check_mididense, "midisustain": check_midisustain,
                "midichan": check_midichan, "midipanel": check_midipanel, "midilat": check_midilat,
                "midiout": check_midiout, "midiround": check_midiround, "midithru": check_midithru,
-               "midilocal": check_midilocal, "midiburst": check_midiburst, "midioutlat": check_midioutlat}
+               "midilocal": check_midilocal, "midiburst": check_midiburst, "midioutlat": check_midioutlat,
+               "presetends": check_presetends}
 
 
 AUDIO_CHECKS = {"tone": check_tone, "notes": check_notes, "audioload": check_audioload,

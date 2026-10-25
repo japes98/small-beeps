@@ -42,6 +42,11 @@ struct midi_msg {
 #define MIDI_BEND       0xE0u
 #define MIDI_SYSEX      0xF0u
 #define MIDI_EOX        0xF7u
+/* Realtime: the clock and its transport (since ARP, arp.h). */
+#define MIDI_CLOCK      0xF8u
+#define MIDI_START      0xFAu
+#define MIDI_CONTINUE   0xFBu
+#define MIDI_STOP       0xFCu
 #define MIDI_RESET      0xFFu
 
 /* The receive ring: MIDI_RING bytes, a power of two. At the wire's pace
@@ -93,7 +98,8 @@ enum {
     MIDI_TARGETS
 };
 
-#define MIDI_SETTINGS_VERSION 3u   /* 2 since M6b: MIDI out's three settings; 3 since M8a: the knobs */
+#define MIDI_SETTINGS_VERSION 4u   /* 2 since M6b: MIDI out's three settings; 3 since M8a: the knobs;
+                                    * 4 since ARP: the tempo and what MIDI out sends while it runs */
 #define MIDI_OMNI             0u     /* channel: receive on every channel */
 #define MIDI_CC_ROUTES        16u
 
@@ -112,12 +118,16 @@ struct midi_settings {
     u8 local;             /* 1: the panel plays the engine; 0: MIDI out only */
     /* Since M8a (version 3; version 2's byte here was always 0): */
     u8 knobs;             /* 0: KNOB1 to KNOB4 are the macros; 1: direct (M5's controls) */
+    /* Since ARP (version 4; arp.h): */
+    u8 tempo;             /* the internal clock, ARP_TEMPO_MIN to ARP_TEMPO_MAX beats a minute */
+    u8 arp_out;           /* while the arpeggiator runs, MIDI out sends 0: its notes; 1: the keys held */
 };
-_Static_assert(sizeof(struct midi_settings) == 8 + 2 * MIDI_CC_ROUTES, "settings are bytes");
+_Static_assert(sizeof(struct midi_settings) == 10 + 2 * MIDI_CC_ROUTES, "settings are bytes");
 
 extern struct midi_settings midi_settings;
 /* The defaults: omni, a bend of 2 semitones, the default map; since M6b,
- * out on channel 1, thru off, local control on. */
+ * out on channel 1, thru off, local control on; since ARP, 120 beats a
+ * minute and the arpeggiator's notes out. */
 void midi_settings_default(struct midi_settings *s);
 
 /* --- The MIDI record, after the engine's (firmware/app.ld) ------------ */

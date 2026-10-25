@@ -968,6 +968,44 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
 - **M11** USB-MIDI and the update handler.
 - **M12** hardware checklist.
 
+### ARP: the arpeggiator (firmware side, after M8)
+- Status 2026-10-25 (session ARP, firmware side, on the owner's Mac,
+  unattended): built in pull request #132, on #131 (PRESETS stops at
+  the ends) and #130 (fwtest 0.6.0); docs/ARP-PROPOSAL.md with the
+  owner's answers (#128), docs/prompts/ARP.md; docs/DESIGN-NOTES.md,
+  "ARP", has the details and the choices the proposal left open.
+  - **What it does:** six modes (UP, DOWN, UP/DOWN, ORDER, RANDOM with a
+    fixed generator, CHORD), ten rates from 1/2 to 1/32 with the dotted
+    and triplet ones, 1 to 4 octaves, gate 10 to 100%, swing to 75%,
+    LATCH; the panel's keys, MIDI in and the pedal feed it. ARP: a short
+    press on or off (its LED), held its screen (RATE, MODE, OCTAVES,
+    GATE; SWING, LATCH, TEMPO, MIDI OUT).
+  - **Timing:** an exact internal clock (no drift over a minute, every
+    step at the model's frame), each step's notes started (and ended) at
+    their frame within the audio block: the renderer splits a block at a
+    pending start or release. MIDI clock in followed whenever it comes
+    (Start, Continue, Stop; the rate of the last 24 clocks between
+    them); after a Stop or 250 ms without a clock, the internal TEMPO
+    from where the pattern is. MIDI clock out on the internal clock.
+  - **Kept:** with each patch (the patch format's version 2, in version
+    1's reserved bytes: patches and the store keep their sizes; version
+    1 patches, the presets too, read with the defaults); the tempo and
+    MIDI out's choice (its notes, or the keys held) with the settings
+    (version 4).
+  - **Tests:** tools/arp_suite.py (C-ARP) against tools/arp_model.py:
+    each mode's and rate's notes, frames, sound and MIDI out, golden
+    captures; MIDI clock at 120 and 90 beats a minute, Start, Stop,
+    Continue and loss; MIDI out's setting, local control off, clock out;
+    no stuck notes; its screen; saving and the next start; no underrun
+    under the heaviest input with it at its fastest; the store's
+    migration of version 1 patches (C-FW-SUITE). R-ARP-1 to R-ARP-8.
+  - **Costs:** code 45 060 bytes (+8.5 KiB), static RAM 214 332, stack
+    576 (M8's budgets); steady state 1 880 a block (+0.75%), loaded
+    109 459 (+0.7%); the heaviest input with CHORD at its fastest: no
+    underrun. With the presets (#126) the code passes M8's 48 KiB: #133
+    (ARP's budgets, code 56 KiB) comes between #132 and #126.
+  - **Next: M9, the app release** (docs/M9-PLAN.md), then SEQ, then FX.
+
 ## Risks
 
 - **The toolchain's availability and terms.** JieLi's Linux toolchain has no

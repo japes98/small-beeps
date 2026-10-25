@@ -24,6 +24,7 @@
 #include "fm.h"
 #include "midi.h"
 #include "ui.h"
+#include "arp.h"
 
 volatile struct sb_ui_record sb_ui __attribute__((section(".beacon.ui")));
 
@@ -104,6 +105,9 @@ static struct fm_ui ui;                 /* the state as last taken */
 static u8 prog[FM_PATCH_BYTES];         /* the program's bytes, then */
 static u32 program, algorithm, mono, octave, user_used, ui_seen = 0xFFFFFFFFu;
 static s32 knob_value[4];
+/* The arpeggiator (since ARP): on, and its settings, from the program. */
+static struct arp_patch arp;
+static u32 arp_running;
 
 /* The state when it holds still (the engine may change it meanwhile). */
 static void take(void)
@@ -128,6 +132,7 @@ static void take(void)
         mono = sb_fm.mono;
         octave = sb_audio.engine[SYNTH_OCTAVE];
         user_used = fm_user_used();
+        arp_running = sb_arp.on;
         if (ui.knobs) {
             knob_value[0] = sb_fm.pitch_knob;
             knob_value[1] = (s32)sb_fm.glide;
@@ -139,6 +144,7 @@ static void take(void)
         }
     } while (s != fm_ui.seq);
     ui.seq = s;
+    arp_patch_of(prog, &arp);
 }
 
 /* The header: "001 NAME" ("U01 NAME" for a user slot), the mode, the
@@ -295,6 +301,28 @@ static void strip_env(void)
     }
 }
 
+/* The ARP screen's strip (since ARP): RATE, MODE, OCTAVES, GATE; then
+ * SWING, LATCH, TEMPO and what MIDI out sends. */
+static const char *const arp_rate_names[ARP_RATES] = {
+    "1/2", "1/4.", "1/4", "1/8.", "1/8", "1/8T", "1/16.", "1/16", "1/16T", "1/32",
+};
+static const char *const arp_mode_names[ARP_MODES] = { "UP", "DOWN", "UP/DN", "ORDER", "RAND", "CHORD" };
+
+static void strip_arp(void)
+{
+    if (ui.page == 0) {
+        strip_text(0, "RATE", arp_rate_names[arp.rate < ARP_RATES ? arp.rate : 0]);
+        strip_text(1, "MODE", arp_mode_names[arp.mode < ARP_MODES ? arp.mode : 0]);
+        strip_set(2, "OCTAVES", arp.octaves, 0);
+        strip_set(3, "GATE %", arp.gate, 0);
+    } else {
+        strip_set(0, "SWING %", arp.swing, 0);
+        strip_text(1, "LATCH", arp.latch ? "on" : "off");
+        strip_set(2, "TEMPO", midi_settings.tempo, 0);
+        strip_text(3, "MIDI OUT", midi_settings.arp_out ? "keys" : "arp");
+    }
+}
+
 static void strip_work(void)
 {
     static const char *const macros[4] = { "BRIGHT", "COLOR", "SHAPE", "MOTION" };
@@ -310,6 +338,10 @@ static void strip_work(void)
     }
     if (ui.screen == UI_SETTINGS) {
         strip_settings();
+        return;
+    }
+    if (ui.screen == UI_ARP) {
+        strip_arp();
         return;
     }
     if (ui.knobs) {
@@ -351,6 +383,15 @@ static u32 body_work(void)
      * on its info line and strip, so an edit redraws only those. */
     if (ui.screen == UI_PATCH)
         h = mix(h, prog[FMP_FEEDBACK]);
+    /* The ARP screen's body shows the arpeggiator's settings (ARP). */
+    if (ui.screen == UI_ARP) {
+        h = mix(h, prog[FMP_ARP]);
+        h = mix(h, prog[FMP_ARP_RATE]);
+        h = mix(h, prog[FMP_ARP_GATE]);
+        h = mix(h, arp_running);
+        h = mix(h, midi_settings.tempo);
+        h = mix(h, midi_settings.arp_out);
+    }
     /* The envelope view's graph is its own part (graph_work). */
     if (ui.screen == UI_SETTINGS) {
         const u8 *s = (const u8 *)&midi_settings;
@@ -865,6 +906,27 @@ static void body_edit(void)
     (void)o;
 }
 
+/* The ARP screen's live line (since ARP): the clock and its tempo, and
+ * the note of the last step. */
+static void arp_info(char *b)
+{
+    static const char names[12][3] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+    u32 t = sb_arp.tempo_x10, n;
+    int note = arp_last_note();
+
+    n = put(b, 0, sb_arp.clock ? "clock MIDI " : "clock internal ");
+    n = decimal(b, n, (int)(t / 10u), 0);
+    b[n++] = '.';
+    b[n++] = (char)('0' + t % 10u);
+    n = put(b, n, " bpm");
+    if (note >= 0 && arp_running) {
+        n = put(b, n, "   note ");
+        n = put(b, n, names[note % 12]);
+        n = decimal(b, n, note / 12 - 1, 0);
+    }
+    pad(b, n, 38);
+}
+
 /* The operator view's info line (its own part): the selected operator's
  * values on every page. */
 #define INFO_Y (BODY_Y + 144)
@@ -879,6 +941,10 @@ static void info_work(void)
     if (ui.screen == UI_SETTINGS) {
         put(b, 0, "settings");   /* the second half of the rows */
         b[8] = 0;
+        return;
+    }
+    if (ui.screen == UI_ARP) {
+        arp_info(b);
         return;
     }
     if (ui.screen != UI_EDIT) {
@@ -1003,10 +1069,53 @@ static void body_settings(void)
     settings_rows(0, SETTING_ROWS / 2);
 }
 
+/* The ARP screen (since ARP): on or off, the settings in words, and
+ * which page the strip shows; the info line below is the live part. */
+static void body_arp(void)
+{
+    char b[41];
+    u32 n;
+
+    n = put(b, 0, "ARP ");
+    n = put(b, n, arp_running ? "on" : "off");
+    b[n] = 0;
+    text(4, BODY_Y + 6, b, arp_running ? YELLOW : WHITE, 2);
+    n = put(b, 0, arp_mode_names[arp.mode < ARP_MODES ? arp.mode : 0]);
+    n = put(b, n, "  ");
+    n = put(b, n, arp_rate_names[arp.rate < ARP_RATES ? arp.rate : 0]);
+    n = put(b, n, "  ");
+    n = decimal(b, n, arp.octaves, 0);
+    n = put(b, n, arp.octaves > 1 ? " octaves" : " octave");
+    b[n] = 0;
+    text(4, BODY_Y + 34, b, WHITE, 1);
+    n = put(b, 0, "gate ");
+    n = decimal(b, n, arp.gate, 0);
+    n = put(b, n, "%  swing ");
+    n = decimal(b, n, arp.swing, 0);
+    n = put(b, n, "%  latch ");
+    n = put(b, n, arp.latch ? "on" : "off");
+    b[n] = 0;
+    text(4, BODY_Y + 48, b, WHITE, 1);
+    n = put(b, 0, "tempo ");
+    n = decimal(b, n, midi_settings.tempo, 0);
+    n = put(b, n, "   MIDI out: ");
+    n = put(b, n, midi_settings.arp_out ? "the keys" : "its notes");
+    b[n] = 0;
+    text(4, BODY_Y + 62, b, GREY, 1);
+    text(4, BODY_Y + 84, ui.page ? "page 2/2: swing, latch, tempo, MIDI" : "page 1/2: rate, mode, octaves, gate",
+         GREY, 1);
+    text(4, BODY_Y + 98, "ARP: on/off   SELECT: page   HOME: back", GREY, 1);
+    if (!midi_settings.local)
+        text(4, BODY_Y + 112, "LOCAL OFF: MIDI out only", YELLOW, 1);
+}
+
 /* The body's contents, over a body the band parts have cleared. */
 static void draw_body(void)
 {
     switch (ui.screen) {
+    case UI_ARP:
+        body_arp();
+        break;
     case UI_EDIT:
         body_edit();
         break;
@@ -1221,7 +1330,7 @@ static void draw_frame(void)
 
 /* --- LEDs ---------------------------------------------------------------- */
 
-static const u8 screen_button[UI_SCREENS] = { INPUT_HOME, INPUT_EDIT, INPUT_ENV, INPUT_GLO };
+static const u8 screen_button[UI_SCREENS] = { INPUT_HOME, INPUT_EDIT, INPUT_ENV, INPUT_GLO, INPUT_ARP };
 static const u8 op_key[FM_OPS] = {
     INPUT_KEY_OP1, INPUT_KEY_OP2, INPUT_KEY_OP3, INPUT_KEY_OP4, INPUT_KEY_OP5, INPUT_KEY_OP6,
 };
@@ -1229,7 +1338,13 @@ static u8 led_level[INPUT_LEDS];
 /* The screen and operator the LEDs show: main follows the same events
  * the engine does, in the same order, so it lights them as it takes each
  * event, without waiting for the engine's block (R-LED-3's lag holds). */
-static u32 led_screen, led_op;
+static u32 led_screen, led_op, arp_shown;
+/* ARP's LED (since ARP): the engine's on or off, turned once more for
+ * each short press main has seen and the engine not yet taken, so the LED
+ * follows the press at once (R-LED-3) and never runs ahead of the engine
+ * twice. */
+static u32 arp_toggles, arp_pressed;
+#define ARP_HOLD_TICKS (500u * 24000u)   /* as fm_play.c's */
 
 /* What control c's LED shows: held, fully lit; the screen's button, lit;
  * on the operator screens the selected operator's key at half. */
@@ -1239,6 +1354,9 @@ static u32 led_for(u32 c)
         return INPUT_LED_FULL;
     if (!shown)
         return 0;
+    /* ARP lit while the arpeggiator is on, on its own screen too (ARP). */
+    if (c == INPUT_ARP)
+        return (sb_arp.on ^ ((arp_toggles - fm_arp_toggles) & 1u)) ? INPUT_LED_FULL : 0;
     if (c == screen_button[led_screen])
         return INPUT_LED_FULL;
     if ((led_screen == UI_EDIT || led_screen == UI_ENV) && c == op_key[led_op])
@@ -1271,6 +1389,8 @@ static void leds_for_state(void)
 
 /* Marks every part whose contents changed: only after the engine's state
  * moved (the live parts' wakes find nothing to do here). */
+static void message(const char *t, u32 number);
+
 static void work(void)
 {
     u32 k;
@@ -1289,6 +1409,19 @@ static void work(void)
         if (ui.screen != UI_PATCH)
             spec_capture = 0;
         sb_ui.seq = ui.seq;
+        /* Since ARP: the screen no button chose (ARP held) takes the
+         * screens' LEDs from the one before; ARP's LED and the event line
+         * follow the arpeggiator. */
+        if (ui.screen == UI_ARP && screen != UI_ARP && led_screen != UI_ARP) {
+            led_screen = UI_ARP;
+            if (shown)
+                leds_for_state();
+        }
+        if (arp_running != arp_shown) {
+            arp_shown = arp_running;
+            led_update(INPUT_ARP);
+            message(arp_running ? "ARP on" : "ARP off", 0);
+        }
     }
     head_work();
     for (k = 0; k < 3; k++)
@@ -1412,6 +1545,19 @@ static void live_work(void)
         wake_at(beats + 6);
         return;
     }
+    if (ui.screen == UI_ARP) {
+        /* The ARP screen's live line: the clock and the step's note. */
+        if (beats - live_beat < LIVE_MS) {
+            wake_at(live_beat + LIVE_MS);
+            return;
+        }
+        live_beat = beats;
+        info_work();
+        if (!same(info_text, info_drawn))
+            dirty |= ITEM_INFO;
+        wake_at(live_beat + LIVE_MS);
+        return;
+    }
     if (ui.screen != UI_EDIT && ui.screen != UI_ENV)
         return;
     if (beats - live_beat < LIVE_MS) {
@@ -1443,7 +1589,7 @@ static void live_rearm(void)
         wake_at(sb_beacon.beats + 1);
     else if (ui.screen == UI_PATCH && (!spectrum_quiet() || bars_drawn[0] | bars_drawn[SPEC_BARS / 2]))
         wake_at(live_beat + SPEC_MS);
-    else if (ui.screen == UI_EDIT || ui.screen == UI_ENV)
+    else if (ui.screen == UI_EDIT || ui.screen == UI_ENV || ui.screen == UI_ARP)
         wake_at(live_beat + LIVE_MS);
 }
 
@@ -1454,8 +1600,9 @@ void view_serve(void)
 
     while (input_read(&e)) {
         u32 i;
+        /* (Not ARP: its screen comes from holding it, work() below.) */
         if (e.kind == INPUT_PRESS)
-            for (i = 0; i < UI_SCREENS; i++)
+            for (i = 0; i < UI_ARP; i++)
                 if (e.control == screen_button[i] && led_screen != i) {
                     led_screen = i;
                     if (shown)
@@ -1469,17 +1616,21 @@ void view_serve(void)
                     if (shown)
                         leds_for_state();
                 }
+        if (e.control == INPUT_ARP && e.kind == INPUT_PRESS)
+            arp_pressed = e.time;
+        if (e.control == INPUT_ARP && e.kind == INPUT_RELEASE && e.time - arp_pressed < ARP_HOLD_TICKS
+            && midi_settings.local)
+            arp_toggles++;
         if (e.control < INPUT_LEDS)
             led_update(e.control);
         /* The buttons later milestones take (docs/M8-PROPOSAL.md). */
-        if (e.kind == INPUT_PRESS && (e.control == INPUT_FX || e.control == INPUT_LFO || e.control == INPUT_ARP
+        if (e.kind == INPUT_PRESS && (e.control == INPUT_FX || e.control == INPUT_LFO
                                       || e.control == INPUT_SEQ || e.control == INPUT_REC)) {
-            static const char *const later[5] = {
-                "FX: in a later milestone", "LFO: in a later milestone", "ARP: in a later milestone",
+            static const char *const later[4] = {
+                "FX: in a later milestone", "LFO: in a later milestone",
                 "SEQ: in a later milestone", "REC: in a later milestone",
             };
-            u32 k = e.control == INPUT_FX ? 0 : e.control == INPUT_LFO ? 1 : e.control == INPUT_ARP ? 2
-                  : e.control == INPUT_SEQ ? 3 : 4;
+            u32 k = e.control == INPUT_FX ? 0 : e.control == INPUT_LFO ? 1 : e.control == INPUT_SEQ ? 2 : 3;
             message(later[k], 0);
         }
         if (!shown)

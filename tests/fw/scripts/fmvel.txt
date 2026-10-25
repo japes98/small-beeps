@@ -7,7 +7,7 @@
 # 300 ms. Its level must fall as the sensitivity says.
 #
 # time   event
-50       enc 6 -1           # PRESETS: patch 8 (one back from 0)
+50       enc 6 +8           # PRESETS: patch 8 (PRESETS stops at the ends)
 300      key 14 tap 300
 800      key 15 tap 300
 1300     key 16 tap 300

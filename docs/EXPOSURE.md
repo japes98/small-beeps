@@ -1433,6 +1433,107 @@ SR-3 wrote only its barrier-log row.*
   than the golden on fwtest 0.6.0 with M8a's firmware. Main's firmware
   matched it on 0.6.0 earlier in this session. Left to the firmware side.
 
+### Session fwtest-060-and-presets (fwtest 0.6.0's pin, the presets draft's CI)
+- Date: 2026-10-25
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.310 (banner), unattended (a background session).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `7572a4b5-269a-4514-bd2e-fd7ae24e79e6`,
+  started by a `/clear` at 13:21:03Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-setup.sh` installed
+  #110's `clean.json` (banner `status: OK` on it); `tools/clean-update.sh`,
+  run from main, found main at `ce58670` and ended "no spec-side files on
+  disk or in .git"; `tools/private-terms.local` exists (not opened); lazy
+  fetching off (`GIT_NO_LAZY_FETCH=1`). It archived M8a (`93de9c87`) into
+  `sessions/clean/`; every other clean session was already archived.
+  `tools/check-transcripts.py` PASS. The Mac had 10 GB free.
+- Reads: this file, sessions/README.md, docs/HARNESS.md ("The flash
+  chip", "Time", "Golden files", "Versions"), docs/DESIGN-NOTES.md and
+  docs/M8-PROPOSAL.md (searched for the programs and the presets), and
+  this repository's tools, tests, scripts and firmware.
+- Later in the session:
+  - **Open spec pull request #112, metadata and one named file:** its
+    description and file list (names only), and through GitHub's contents
+    API `config/fwtest-image` on its branch, for the digest. Nothing
+    fetched into `.git`.
+  - **fwtest 0.6.0 and 0.5.0** (both images already pulled): the
+    firmware suite on 0.6.0, and fmgold, env and the preset suite on both
+    (`FWTEST_IMAGE`), to compare; `--flash-log` on fmgold. A scratch git
+    worktree of this branch in the session's temporary folder, to build
+    main's firmware beside the presets draft's (sparse like this folder:
+    no spec-side folder on disk, checked), removed at the end.
+  - **CI:** #126's failed run read with `gh run view --log-failed` (the
+    log only); no artifact downloaded.
+  - **The presets draft's listening set** in `~/<top>/drop/presets/`
+    (our own renders, M8b), compared sample for sample with this
+    session's renders; not re-rendered (no preset's sound changed).
+  - **Disk:** 10 GB free at the start, 9.1 GB at the lowest; `out/`
+    cleared between runs; Docker left alone.
+
+### Session ARP (PRESETS stops at the ends; the presets' requirements; the arpeggiator)
+- Date: 2026-10-25
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.310 (banner), unattended (a background session).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `cd24c9a8-eea5-478d-999a-cfff4f352a34`,
+  started by a `/clear` at 15:03:08Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  #130's branch, found it at `bbe2da0` and ended "no spec-side files on
+  disk or in .git"; `tools/private-terms.local` exists (not opened); lazy
+  fetching off (`GIT_NO_LAZY_FETCH=1`). It archived fwtest-060-and-presets
+  (`7572a4b5`) into `sessions/clean/`; every other clean session was
+  already archived. `tools/check-transcripts.py` PASS. The Mac had 9.1 GB
+  free.
+- Reads: this file, sessions/README.md, docs/ARP-PROPOSAL.md,
+  docs/PATCH-FORMAT.md, docs/STORE-FORMAT.md, docs/HARNESS.md (MIDI in
+  and out), docs/HARDWARE-SPEC.md (HW-36, the ARP button),
+  docs/DESIGN-NOTES.md and docs/REQUIREMENTS.md (searched), and this
+  repository's tools, tests, scripts and firmware.
+- **Open spec pull request #128, docs only:** its file list (names only),
+  and through GitHub's contents API on its branch at `7322117` four docs:
+  docs/ARP-PROPOSAL.md (the owner's answers), docs/HARDWARE-SPEC.md,
+  docs/M9-PLAN.md and docs/PLAN.md, into the session's temporary folder.
+  Nothing fetched into `.git`.
+- Later in the session:
+  - **fwtest 0.6.0** (the pinned image, already pulled): the firmware
+    suite, and single cases with `tools/fwtest run`.
+  - **Two scratch git worktrees** in the session's temporary folder:
+    one for the arpeggiator, one for #131's last commit while the suite
+    ran here. Both sparse like this folder (no spec-side folder on disk,
+    checked). In each, `tools/private-terms.local` was a symbolic link to
+    this folder's, so the commit hook checked the terms (never opened).
+    Both worktrees and links are removed at the end.
+  - **CI:** the runs of #131, #126 and #132 read with `gh run view
+    --log` (the logs only). For #132's two C-SEP-TERMS failures, the
+    runs' report artifacts' zips were fetched three times in all (the
+    first run's twice, the second's once) through GitHub's API into the
+    session's temporary folder, and only `logs/C-SEP-TERMS.log` was read
+    from it (`unzip -p`, to the terminal; the first time its file list
+    was filtered for that name with `grep`, only that line printed;
+    nothing else extracted), the zip deleted at once each time. The hits
+    were one of our own names in arp.c (found by hashing the flagged
+    line's words; renamed, and the name kept out of every text since),
+    then that rename's own commit message (reworded and force-pushed to
+    #132's and #133's branches, unmerged).
+  - **The presets draft's listening set** (`~/<top>/drop/presets/`):
+    not re-rendered (no preset's sound changed; the preset suite 64 of
+    64 on #126 with #131).
+  - **The drop build:** `~/<top>/drop/small-beeps-25497f0.bin` (#132's
+    image, built again from its head in the worktree: the same bytes as
+    the build the suites ran) and its SHA-256 beside it.
+  - **Disk:** 9.1 GB free at the start, 8.3 GB at the lowest; stale
+    `out/` folders removed as the session went.
+
 ### Session owner-answers-1025 (the owner's answers to the ARP and M9 proposals, MIDI clock in the harness, spec requests)
 - Date: 2026-10-25 (UTC)
 - Role: **spec side (exposed).** Never writes firmware.
@@ -1458,6 +1559,19 @@ SR-3 wrote only its barrier-log row.*
   to approve by merging; then PASS (29 archived transcripts).
 - Exposure: the spec side's usual material (the vendored emulator and
   `harness/`, the pinned toolchain, this repository).
+- Section 2 (ahead of ARP): read `harness/src/` and the vendored
+  emulator's MIDI input to check how a script's MIDI bytes queue; added
+  a harness test and docs/HARNESS.md's "MIDI clock in and timing" (#129),
+  with no change to fwtest; `cargo test --release` in `harness/`.
+- Spec requests, every 20 minutes from 13:38Z to 21:43Z: only
+  `docs/SPEC-REQUESTS.md` on main and on the firmware side's open
+  branches (#126, #130 to #133), through GitHub's contents API, its blob
+  hash only; none new. Of those pull requests it also listed the changed
+  files' names, to check for conflicts.
+- At the end, the firmware side's latest open branch `arp/budgets`
+  (#133, which carries #130 to #132) was merged into this session's
+  start branch for EXPOSURE.md's conflict; its files were merged, not
+  reviewed. Free disk stayed between 7 and 11 GB.
 
 ## Corrections
 
@@ -1502,6 +1616,14 @@ SR-3 wrote only its barrier-log row.*
   repositories. The clean-room rules are unchanged. CONTRIBUTING.md
   ("Roles") now names the repository and licence; the older entries and
   prompts keep their wording.
+
+### 2026-10-25: M8a's disk figures
+*Written by session fwtest-060-and-presets. The entry is left as written.*
+
+- **What was stated.** Session M8a's entry says "3.1 GB free at the
+  start, 2.3 to 2.4 GB through the day".
+- **What it was.** Free disk went down to 1.9 GB (the owner's
+  correction), below the 2 GB at which a session is to stop its work.
 
 ### 2026-10-25: evening-1024's mismatched banner
 *Written by session owner-answers-1025.*

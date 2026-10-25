@@ -72,7 +72,12 @@
 # fmsteal (R-FM-4): 17 notes held on 16 voices, one stolen, no click.
 # fmvel (R-FM-3): a test build whose keys play five velocities.
 # fmgold, fmgold2 (R-FM-8, R-FM-9): every test patch against a golden WAV,
-#   twice: the same bytes both times. Regenerate it as audiogold's.
+#   twice: the same bytes both times. Regenerate it as audiogold's. The
+#   WAV ends when the run does, and a run that ends while core 0 waits
+#   ends late (docs/HARNESS.md, "Time"), so --ms keeps the end about 1 ms
+#   clear of the next half-buffer's end: at 4200 it fell within 2 us of
+#   one (4200.406), and fwtest 0.6.0's flash busy time, by moving core 0's
+#   instruction count, moved the end to before it, one block short.
 #
 # NAME      EXPECT     IMAGE                          run options
 boot        completed  ../../out/fw/app.bin           --ms 5 --console --ram 0x01c00000:0x60@end --ram 0x01c00000:4@end --ram 0x01c7fc00:0x200@end --ram 0x01c7fe00:0x200@end --golden golden/boot
@@ -99,8 +104,8 @@ fmenv       completed  ../../out/fw/app.bin           --ms 1400 --script scripts
 fmmono      completed  ../../out/fw/app.bin           --ms 2000 --script scripts/fmmono.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
 fmsteal     completed  ../../out/fw/app.bin           --ms 1700 --script scripts/fmsteal.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
 fmvel       completed  ../../out/fw/test-velocity.bin --ms 2800 --script scripts/fmvel.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
-fmgold      completed  ../../out/fw/app.bin           --ms 4200 --script scripts/fmgold.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end --golden golden/fmgold
-fmgold2     completed  ../../out/fw/app.bin           --ms 4200 --script scripts/fmgold.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end --golden golden/fmgold
+fmgold      completed  ../../out/fw/app.bin           --ms 4199 --script scripts/fmgold.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end --golden golden/fmgold
+fmgold2     completed  ../../out/fw/app.bin           --ms 4199 --script scripts/fmgold.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end --golden golden/fmgold
 
 # midimsg, midirun, midisysex, midijunk, mididense, midisustain, midichan,
 #   midipanel, midilat (since M6a; R-MIDI-1 to R-MIDI-7): MIDI in, scripts
@@ -139,6 +144,7 @@ midithru    completed  ../../out/fw/test-midithru.bin --ms 600 --script scripts/
 midilocal   completed  ../../out/fw/app.bin           --ms 1400 --flash ../../out/fw/knobs-direct.flash.bin --script scripts/midilocal.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@700 --lcd 700 --golden golden/midilocal
 midiburst   completed  ../../out/fw/test-midiburst.bin --ms 1700 --script scripts/midiburst.txt --midi-out --console --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --golden golden/midiburst
 midioutlat  completed  ../../out/fw/app.bin           --ms 3200 --script scripts/midioutlat.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
+presetends  completed  ../../out/fw/app.bin           --ms 1700 --script scripts/presetends.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@450 --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
 
 # views, viewsload (since M8a; R-UI-1 to R-UI-5): the instrument's
 #   screens, with the interface's record at 0x01c00870 (tools/fw-suite.py).

@@ -57,7 +57,8 @@ SECTIONS
     /* Fixed at the start of RAM so the tests know where it is: the
      * beacon, then (since M3) the input record and (since M4) the audio
      * record, (since M5) the engine's, (since M6a) MIDI's, (since M6b)
-     * MIDI out's and (since M7) the store's. */
+     * MIDI out's, (since M7) the store's, (since M8a) the interface's and
+     * (since ARP) the arpeggiator's. */
     .beacon (NOLOAD) : {
         __bss_start = .;
         KEEP(*(.beacon))
@@ -68,6 +69,7 @@ SECTIONS
         KEEP(*(.beacon.midiout))
         KEEP(*(.beacon.store))
         KEEP(*(.beacon.ui))
+        KEEP(*(.beacon.arp))
     } > RAM
 
     .bss (NOLOAD) : {
@@ -106,6 +108,7 @@ SECTIONS
     ASSERT(sb_midi_out == 0x01C00734, "the MIDI out record must follow MIDI in's (M6b)")
     ASSERT(sb_store == 0x01C00780, "the store's record must follow MIDI out's (M7)")
     ASSERT(sb_ui == 0x01C00870, "the interface's record must follow the store's (M8a)")
+    ASSERT(sb_arp == 0x01C008D0, "the arpeggiator's record must follow the interface's (ARP)")
     ASSERT(__data_end <= __stack_limit, "data and bss run into the stack")
     ASSERT(__stack_top == 0x01C7FC00, "the stack must end below the reserved top of RAM")
     ASSERT(__stack_top % 8 == 0, "the stack must be 8-byte aligned")
