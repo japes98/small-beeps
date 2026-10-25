@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range e5ff5c918390661214813fa6c37830cacb73e7c3..7dab4d94374ffc0bed18d912995fd7d71a5e99e0
+OK     7745fd4f38a8 firmware: the screens' framework, one screen at a time (M8a, part 1)
+EXEMPT 33ed6b0858fb (merge) config: merge the M8 budgets into the screens (M8a)
+EXEMPT fc25950bf14d (merge) docs: merge m8a/store-region into m8a/screens (M8a)
+EXEMPT 7dab4d94374f (merge) Merge pull request #117 from japes98/m8a/screens
+4 commit(s) checked: PASS
+
+exit status 0

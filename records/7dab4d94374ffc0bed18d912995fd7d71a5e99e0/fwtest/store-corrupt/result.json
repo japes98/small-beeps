@@ -1,0 +1,74 @@
+{
+  "fwtest": {
+    "version": "0.5.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 27060,
+    "sha256": "0280dcc18c8f5d58eb0d132d8899854d8b53ff64648ac77b3e85997f96a14853"
+  },
+  "script_sha256": "744cae73de2e297f90c5a41ca09e0f36100bbbf08d4ac615c8009154a930b3a0",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "900.008",
+    "instructions": {
+      "core0": 2554750,
+      "core1": 8017
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "9a6281695f1fdb9ebe6d987aec2ecab79a5b1b69d32f7e0dee3c15e7e55155a6"
+      },
+      {
+        "name": "lcd-880ms.png",
+        "bytes": 173118,
+        "sha256": "1c701697da4ff7ee7d62c4ce8f1462acfed61c9722c1c06f0f3e956a7e42d142"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "f11276460794526e01216c49a69d79db6005e94156c36a74948bd848a5d7ba12"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "78478c66d9bd1f3ac5c87ee32fd6b9f7027bf159e5f862db29abb0bebbe37d7e"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "069cd5c36e6ca0758bcea468dec35a0207fc0679d38f80c5021f43280f7b37c7"
+      },
+      {
+        "name": "ram-01c005d0-164-end.bin",
+        "bytes": 356,
+        "sha256": "548757c304868499670f44704c80fd8433da7e185e3747abd105892af58adc3c"
+      },
+      {
+        "name": "ram-01c00780-f0-end.bin",
+        "bytes": 240,
+        "sha256": "a609d300574fc106f18bc8befadb90b8b36bfb899fe2252eff2e3961bcef0765"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "lcd-880ms.png",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 0
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="0">
+  <testsuite name="boot.fmgold2" tests="2" failures="0">
+    <testcase classname="boot.fmgold2" name="run"/>
+    <testcase classname="boot.fmgold2" name="golden audio.wav"/>
+  </testsuite>
+</testsuites>

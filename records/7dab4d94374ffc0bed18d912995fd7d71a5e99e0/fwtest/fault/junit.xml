@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="1">
+  <testsuite name="boot.fault" tests="2" failures="1">
+    <testcase classname="boot.fault" name="run">
+      <failure message="halt: core 0 jumped to itself with interrupts disabled at pc 0x01c295e6"/>
+    </testcase>
+    <testcase classname="boot.fault" name="golden console.txt"/>
+  </testsuite>
+</testsuites>
