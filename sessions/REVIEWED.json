@@ -1101,6 +1101,20 @@
       "rule": "F-11",
       "reason": "Resolving a PROVENANCE.md merge conflict, then listing the staged names. Its `git diff --cached --name-only` takes a pathspec that leaves the three spec-side folders out (CONTRIBUTING.md's rule for history commands); the names occur only as exclusions. Nothing under them was opened, listed or fetched.",
       "added_by": "session M7 (clean side, claude-opus-5-5), 2026-10-24"
+    },
+    {
+      "session": "cd82f4be-e875-4959-b383-d66813d290ce",
+      "tool_use_id": "toolu_016UfTkQzikrBptNgDMTnLRf",
+      "rule": "F-9",
+      "reason": "Deletes the two scratch folders that held CI report artifacts downloaded whole (each carrying a record's harness/ results folder, already recorded in docs/EXPOSURE.md by session M7), then writes that EXPOSURE.md entry and a commit message describing it. The folder's name occurs in that text; nothing under it was opened, listed or searched, only deleted with its parent.",
+      "added_by": "session M8a (clean side, claude-opus-5-5), 2026-10-25"
+    },
+    {
+      "session": "cd82f4be-e875-4959-b383-d66813d290ce",
+      "tool_use_id": "toolu_01Rrqmzw94aYWtawrsTu6ok9",
+      "rule": "F-9",
+      "reason": "Appends a line to the session's memory index whose text names the folder (a note to fetch only named files from CI artifacts), then checks a PR's CI and the free disk. Nothing under the folder was opened, listed or fetched.",
+      "added_by": "session M8a (clean side, claude-opus-5-5), 2026-10-25"
     }
   ]
 }
