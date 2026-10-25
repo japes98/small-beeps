@@ -64,6 +64,20 @@ class TranscriptTest(unittest.TestCase):
         p = self.write([hook(bad, 1)])
         self.assertTrue(any("CONFIG MISMATCH" in x for x in self.problems(p)))
 
+    def test_an_allowed_mismatch_passes_only_with_all_four_fields(self):
+        (sid, source, settings, config), _ = next(iter(ct.ALLOWED_MISMATCH.items()))
+        def banner(src=source, st=settings, cf=config):
+            return ("=== small-beeps session banner v1 ===\nrole: spec\nsource: %s\n"
+                    "settings: .claude/settings.json sha256=%s\nconfig: config/claude/spec.json "
+                    "sha256=%s\nstatus: CONFIG MISMATCH\n=== end of banner ===\n" % (src, st, cf))
+        p = self.write([hook(BANNER_OK), hook(banner(), 1)], role="spec", sid=sid)
+        self.assertEqual(self.problems(p), [])
+        for other in (banner(src="startup"), banner(st="0" * 64), banner(cf="0" * 64)):
+            p = self.write([hook(BANNER_OK), hook(other, 1)], role="spec", sid=sid)
+            self.assertTrue(any("CONFIG MISMATCH" in x for x in self.problems(p)))
+        p = self.write([hook(BANNER_OK), hook(banner(), 1)], role="spec")
+        self.assertTrue(any("CONFIG MISMATCH" in x for x in self.problems(p)))
+
     def test_first_session_is_exempt_only_by_id(self):
         sid = next(iter(ct.EXEMPT_NO_BANNER))
         p = self.write([call("Read", file_path="README.md")], sid=sid)

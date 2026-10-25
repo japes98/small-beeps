@@ -19,7 +19,8 @@ For every transcript:
   - the SessionStart banner (tools/session-banner.sh) must be there, with
     `status: OK` and exit code 0. Any CONFIG MISMATCH or failed SessionStart
     hook fails. (EXEMPT_NO_BANNER lists the only sessions allowed to have
-    none, and why.)
+    none, and why; ALLOWED_MISMATCH the only mismatched banners allowed,
+    each by its session, source and both hashes.)
 For every clean-side transcript, including its subagents:
   - every file read, write, search, web fetch, web search and shell command
     is listed, and any that accesses FORBIDDEN material fails, unless that
@@ -86,6 +87,18 @@ EXEMPT_NO_BANNER = {
         "M0b, the first spec-side session: it began under the owner's hand-made "
         "settings, before tools/spec-setup.sh installed the banner hook in its "
         "folder (docs/EXPOSURE.md, session M0b)",
+}
+# A mismatched banner that is allowed: the session, the banner's `source`,
+# its settings hash and its config hash, all four exactly; added by pull
+# request, so the owner's merge approves it.
+ALLOWED_MISMATCH = {
+    ("e7979b06-3055-45cf-9e7c-11ab22ca1ee7", "compact",
+     "eaa5f875583b21f3fcbb93b00bfbf8113dfc4b8d0cdb849df457a80ed542f810",
+     "84a7e56cfaa514639a55cf17627338970f1627738543c02999da9cf1d0f947bc"):
+        "evening-1024, after a compaction: the session had installed the old "
+        "settings (eaa5f875...) at its start, then merged its own deny rule "
+        "into config/claude/spec.json (#110, 84a7e56c...); the old settings "
+        "lacked only that rule (docs/EXPOSURE.md, session owner-answers-1025)",
 }
 ROLES = ("clean", "spec")
 
@@ -745,12 +758,25 @@ def load_reviewed(sessions_dir):
     return reviewed
 
 
+def banner_fields(out):
+    """(source, settings hash, config hash) from a banner's text."""
+    m = {k: re.search(r"^%s: (.*)$" % k, out, re.M) for k in ("source", "settings", "config")}
+    v = {k: x.group(1).strip() if x else "" for k, x in m.items()}
+    h = {k: (re.search(r"sha256=([0-9a-f]{64})", v[k]) or [None, ""])[1] for k in ("settings", "config")}
+    return v["source"], h["settings"], h["config"]
+
+
 def check_banner(sid, entries, problems):
     runs = list(banners(entries))
     ok = 0
+    allowed = []
     for code, out, err in runs:
         if "CONFIG MISMATCH" in out or "CONFIG MISMATCH" in err:
-            problems.append("CONFIG MISMATCH in SessionStart banner")
+            why = ALLOWED_MISMATCH.get((sid,) + banner_fields(out))
+            if why:
+                allowed.append(why)
+            else:
+                problems.append("CONFIG MISMATCH in SessionStart banner")
         elif BANNER_START in out:
             if code not in (0, None) or "status: OK" not in out:
                 problems.append("SessionStart banner without status OK (exit %s)" % code)
@@ -759,7 +785,7 @@ def check_banner(sid, entries, problems):
         elif code not in (0, None):
             problems.append("a SessionStart hook failed (exit %s)" % code)
     if ok:
-        return "banner OK (%d)" % ok
+        return "banner OK (%d)" % ok + "".join("; mismatch allowed: " + w for w in allowed)
     if sid in EXEMPT_NO_BANNER:
         return "no banner, exempt: " + EXEMPT_NO_BANNER[sid]
     problems.append("no SessionStart banner")
