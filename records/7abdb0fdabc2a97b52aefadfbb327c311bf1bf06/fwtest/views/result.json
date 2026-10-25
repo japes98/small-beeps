@@ -1,0 +1,149 @@
+{
+  "fwtest": {
+    "version": "0.5.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 28596,
+    "sha256": "c6f7e65f73454a3ccdf7da9ed86211b7b443b532540136fef7c74ae8f0e8c837"
+  },
+  "script_sha256": "8a71bf56aacc9bd4570bfa947421429cb376beea7570b6330b261f8b1732fba4",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "2400.140",
+    "instructions": {
+      "core0": 5291425,
+      "core1": 16006
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "lcd-1150ms.png",
+        "bytes": 173118,
+        "sha256": "66e7ac78f6affc3b65f4cfb80dfc0b3a562b468237fedcf64afdd7456cf8fa72"
+      },
+      {
+        "name": "lcd-1450ms.png",
+        "bytes": 173118,
+        "sha256": "c782567702d986b354278dc228e8e3f417fc42059a7053fc621d2deb248da48b"
+      },
+      {
+        "name": "lcd-1750ms.png",
+        "bytes": 173118,
+        "sha256": "d80c754ad162207fac531a11cc5c4eb5a3c8d7b59e6751fd30eeb8cba8ed1452"
+      },
+      {
+        "name": "lcd-2050ms.png",
+        "bytes": 173118,
+        "sha256": "66108418d8120f902f69d0455170f7f1ecacbf41dbcc3676d8ed7e23bccc5ee7"
+      },
+      {
+        "name": "lcd-2350ms.png",
+        "bytes": 173118,
+        "sha256": "730b403e7d566b1d6bb12f7093b6aacfca0ce5576f3c66a5e22f96fcdc1c6750"
+      },
+      {
+        "name": "lcd-850ms.png",
+        "bytes": 173118,
+        "sha256": "fd257b3ec2ec6176cd0bef89479eea988ebf3c12ccc7333ac96f20af39df94e4"
+      },
+      {
+        "name": "leds.csv",
+        "bytes": 4444,
+        "sha256": "485c5d754a8c32d8ef9f4a1c0066ad6b051738f3c9da6c582c76569e5c4b7283"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "0c5e1660b944245189e8dd59bc4762aebad10da4a291fcc5112000e2ad7e120c"
+      },
+      {
+        "name": "ram-01c00060-4f0-end.bin",
+        "bytes": 1264,
+        "sha256": "e62af54d7ece4f6c28ee2621e157627c5df66cbd78186cddacf3bb8f45b3502a"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "92ea2f34feba5c9466ad1a0c23b167b95c687730538cedd6be506e900df441e1"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "fd90d56f7f5d06a1f81a90ffccba3d51c50ab2ade33fdea4795c5c2ff47c41b9"
+      },
+      {
+        "name": "ram-01c00870-50-1150ms.bin",
+        "bytes": 80,
+        "sha256": "d0489fbdd5045f047832e28d6ad5a7de6a96cd1f14bba8fa608265351e993a88"
+      },
+      {
+        "name": "ram-01c00870-50-1450ms.bin",
+        "bytes": 80,
+        "sha256": "25aed79a535d4300e26a71208923f6c91cf8f25ff264e85fb4f5ba1eff27d0fa"
+      },
+      {
+        "name": "ram-01c00870-50-1750ms.bin",
+        "bytes": 80,
+        "sha256": "20cd781e1849553766b589d1e10a533a367444b9efebfbd1090285313508f967"
+      },
+      {
+        "name": "ram-01c00870-50-2050ms.bin",
+        "bytes": 80,
+        "sha256": "b3c9ed067a0b547c9a1bd0c9d876d4e2bd25306ae6f0929ba74bc90a7d4c94e8"
+      },
+      {
+        "name": "ram-01c00870-50-2350ms.bin",
+        "bytes": 80,
+        "sha256": "430069ee381d9fb85a614188bb15b09950cbf768fe16ed5b12948d0a7a69bdf0"
+      },
+      {
+        "name": "ram-01c00870-50-850ms.bin",
+        "bytes": 80,
+        "sha256": "a18cfd2d932c953bd1ed3cc8493cc2e86fb63aff868a8c138a34940243528ffd"
+      },
+      {
+        "name": "ram-01c00870-50-end.bin",
+        "bytes": 80,
+        "sha256": "430069ee381d9fb85a614188bb15b09950cbf768fe16ed5b12948d0a7a69bdf0"
+      }
+    ]
+  },
+  "golden": [
+    {
+      "name": "lcd-1150ms.png",
+      "result": "match",
+      "detail": null
+    },
+    {
+      "name": "lcd-1450ms.png",
+      "result": "match",
+      "detail": null
+    },
+    {
+      "name": "lcd-1750ms.png",
+      "result": "match",
+      "detail": null
+    },
+    {
+      "name": "lcd-2050ms.png",
+      "result": "match",
+      "detail": null
+    },
+    {
+      "name": "lcd-2350ms.png",
+      "result": "match",
+      "detail": null
+    },
+    {
+      "name": "lcd-850ms.png",
+      "result": "match",
+      "detail": null
+    }
+  ],
+  "exit_code": 0
+}

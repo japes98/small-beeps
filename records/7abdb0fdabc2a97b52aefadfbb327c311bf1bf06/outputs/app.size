@@ -1,0 +1,7 @@
+code 28504
+data 92
+bss 157368
+image 28596
+stack 4096
+irq_stack 2048
+ram_code 28384

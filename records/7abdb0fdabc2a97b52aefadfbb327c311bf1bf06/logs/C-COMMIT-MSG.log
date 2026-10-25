@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 7aeb6ea30bc188289299b100b1ae93526e7590f5..7abdb0fdabc2a97b52aefadfbb327c311bf1bf06
+OK     27d0c6ba3e07 firmware: the four macros on the patch view (M8a, part 2)
+EXEMPT 0d1658d0aab5 (merge) config: merge M8's loaded budget into the macros (M8a)
+EXEMPT 144266ea764b (merge) docs: merge m8a/screens into m8a/macros (M8a)
+EXEMPT 7abdb0fdabc2 (merge) Merge pull request #119 from japes98/m8a/macros
+4 commit(s) checked: PASS
+
+exit status 0

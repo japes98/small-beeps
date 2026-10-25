@@ -1,0 +1,887 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -m unittest discover -s tests -t . -v
+test_a_term_containing_the_user_name_goes_whole (tests.test_archive.ArchiveTest.test_a_term_containing_the_user_name_goes_whole) ... ok
+test_archive_end_to_end_then_check (tests.test_archive.ArchiveTest.test_archive_end_to_end_then_check) ... ok
+test_default_top_skips_a_bare_repository_name (tests.test_archive.ArchiveTest.test_default_top_skips_a_bare_repository_name) ... ok
+test_email_after_a_json_escape (tests.test_archive.ArchiveTest.test_email_after_a_json_escape) ... ok
+test_git_summary_lines_naming_spec_side_files (tests.test_archive.ArchiveTest.test_git_summary_lines_naming_spec_side_files) ... ok
+test_host_name_after_a_json_escape (tests.test_archive.ArchiveTest.test_host_name_after_a_json_escape) ... ok
+test_private_key_in_json_string (tests.test_archive.ArchiveTest.test_private_key_in_json_string) ... ok
+test_redact_line (tests.test_archive.ArchiveTest.test_redact_line) ... ok
+test_settings_local_json_is_not_a_host_name (tests.test_archive.ArchiveTest.test_settings_local_json_is_not_a_host_name) ... ok
+test_top_folder_user_and_private_terms_anywhere (tests.test_archive.ArchiveTest.test_top_folder_user_and_private_terms_anywhere) ... ok
+test_a_first_guess_off_by_a_cent_is_refined (tests.test_audio_analysis.AnalysisTest.test_a_first_guess_off_by_a_cent_is_refined) ... ok
+test_a_ramped_note_has_no_click_and_a_hard_edge_does (tests.test_audio_analysis.AnalysisTest.test_a_ramped_note_has_no_click_and_a_hard_edge_does) ... ok
+test_a_sine_fit_finds_frequency_level_and_phase (tests.test_audio_analysis.AnalysisTest.test_a_sine_fit_finds_frequency_level_and_phase) ... ok
+test_distortion_shows_in_thd_n (tests.test_audio_analysis.AnalysisTest.test_distortion_shows_in_thd_n) ... ok
+test_equal_temperament (tests.test_audio_analysis.AnalysisTest.test_equal_temperament) ... ok
+test_sample_times_come_from_the_block_ends (tests.test_audio_analysis.AnalysisTest.test_sample_times_come_from_the_block_ends) ... ok
+test_the_rate_is_the_outputs_not_the_headers (tests.test_audio_analysis.AnalysisTest.test_the_rate_is_the_outputs_not_the_headers) ... ok
+test_wav_and_ipb_files_are_read (tests.test_audio_analysis.AnalysisTest.test_wav_and_ipb_files_are_read) ... ok
+test_amplitudes_at_known_frequencies (tests.test_audio_analysis.FmAnalysisTest.test_amplitudes_at_known_frequencies) ... ok
+test_an_fm_tone_has_bessel_sidebands (tests.test_audio_analysis.FmAnalysisTest.test_an_fm_tone_has_bessel_sidebands) ... ok
+test_bessel_values (tests.test_audio_analysis.FmAnalysisTest.test_bessel_values) ... ok
+test_block_amplitudes_and_pitch_track (tests.test_audio_analysis.FmAnalysisTest.test_block_amplitudes_and_pitch_track) ... ok
+test_attack_and_release (tests.test_audio_analysis.MacroMeasuresTest.test_attack_and_release) ... ok
+test_fft_finds_a_sine (tests.test_audio_analysis.MacroMeasuresTest.test_fft_finds_a_sine) ... ok
+test_inharmonicity (tests.test_audio_analysis.MacroMeasuresTest.test_inharmonicity) ... ok
+test_pitch_swing (tests.test_audio_analysis.MacroMeasuresTest.test_pitch_swing) ... ok
+test_share_above (tests.test_audio_analysis.MacroMeasuresTest.test_share_above) ... ok
+test_committed_list_is_well_formed (tests.test_audit.AcceptedTest.test_committed_list_is_well_formed) ... ok
+test_only_a_covered_score_is_accepted (tests.test_audit.AcceptedTest.test_only_a_covered_score_is_accepted) ... ok
+test_a_core_file_that_includes_plaits_fails (tests.test_audit.BaseCodeTest.test_a_core_file_that_includes_plaits_fails) ... ok
+test_a_missing_tree_fails (tests.test_audit.BaseCodeTest.test_a_missing_tree_fails) ... ok
+test_a_tree_that_does_not_match_its_checksums_fails (tests.test_audit.BaseCodeTest.test_a_tree_that_does_not_match_its_checksums_fails) ... ok
+test_each_tree_with_our_suffixes (tests.test_audit.BaseCodeTest.test_each_tree_with_our_suffixes) ... ok
+test_no_demo_files_one_pass (tests.test_audit.BaseCodeTest.test_no_demo_files_one_pass) ... ok
+test_plaits_is_base_code_only_for_the_demo (tests.test_audit.BaseCodeTest.test_plaits_is_base_code_only_for_the_demo) ... ok
+test_the_text_check_leaves_out_base_pieces (tests.test_audit.BaseCodeTest.test_the_text_check_leaves_out_base_pieces) ... ok
+test_carry_over (tests.test_audit.CarryOverTest.test_carry_over) ... ok
+test_changes_name_new_gone_and_moved (tests.test_audit.DiscoverTest.test_changes_name_new_gone_and_moved) ... ok
+test_committed_targets_are_pinned (tests.test_audit.DiscoverTest.test_committed_targets_are_pinned) ... ok
+test_dedupe_keeps_the_first_by_tree_seeds_first (tests.test_audit.DiscoverTest.test_dedupe_keeps_the_first_by_tree_seeds_first) ... ok
+test_licence_classes (tests.test_audit.DiscoverTest.test_licence_classes) ... ok
+test_a_leaking_report_is_withheld (tests.test_audit.LeakTest.test_a_leaking_report_is_withheld) ... ok
+test_a_target_line_in_the_report_is_caught (tests.test_audit.LeakTest.test_a_target_line_in_the_report_is_caught) ... ok
+test_artifact_must_hold_only_the_report (tests.test_audit.LeakTest.test_artifact_must_hold_only_the_report) ... ok
+test_a_control_related_target_is_judged_on_its_own (tests.test_audit.ScoreTest.test_a_control_related_target_is_judged_on_its_own) ... ok
+test_gate_is_the_control_max_plus_the_margin (tests.test_audit.ScoreTest.test_gate_is_the_control_max_plus_the_margin) ... ok
+test_names_from_jplag (tests.test_audit.ScoreTest.test_names_from_jplag) ... ok
+test_reads_names_and_numbers_from_the_archive (tests.test_audit.ScoreTest.test_reads_names_and_numbers_from_the_archive) ... ok
+test_a_copy_split_by_base_code_is_found_by_its_similarity (tests.test_audit.SelftestVerdictTest.test_a_copy_split_by_base_code_is_found_by_its_similarity) ... ok
+test_a_file_too_small_for_jplag_is_found_by_the_text_check (tests.test_audit.SelftestVerdictTest.test_a_file_too_small_for_jplag_is_found_by_the_text_check) ... ok
+test_a_file_too_small_for_jplag_the_text_check_misses_fails (tests.test_audit.SelftestVerdictTest.test_a_file_too_small_for_jplag_the_text_check_misses_fails) ... ok
+test_a_file_without_a_match_fails (tests.test_audit.SelftestVerdictTest.test_a_file_without_a_match_fails) ... ok
+test_a_file_without_a_match_is_found_by_the_text_check (tests.test_audit.SelftestVerdictTest.test_a_file_without_a_match_is_found_by_the_text_check) ... ok
+test_all_found (tests.test_audit.SelftestVerdictTest.test_all_found) ... ok
+test_the_text_check_takes_what_jplag_does_not_cover (tests.test_audit.SelftestVerdictTest.test_the_text_check_takes_what_jplag_does_not_cover) ... ok
+test_pins (tests.test_audit.SettingsTest.test_pins) ... ok
+test_rediscovery_only_writes_issues (tests.test_audit.SettingsTest.test_rediscovery_only_writes_issues) ... ok
+test_the_workflow_keeps_targets_away_from_secrets (tests.test_audit.SettingsTest.test_the_workflow_keeps_targets_away_from_secrets) ... ok
+test_committed_settings (tests.test_audit.TextCheckTest.test_committed_settings) ... ok
+test_copies_are_found_and_unrelated_code_is_not (tests.test_audit.TextCheckTest.test_copies_are_found_and_unrelated_code_is_not) ... ok
+test_normalise_drops_comments_and_whitespace_but_not_literals (tests.test_audit.TextCheckTest.test_normalise_drops_comments_and_whitespace_but_not_literals) ... ok
+test_the_reformatted_copy_differs_in_bytes_only (tests.test_audit.TextCheckTest.test_the_reformatted_copy_differs_in_bytes_only) ... ok
+test_the_report_says_why_a_file_is_not_scorable (tests.test_audit.TextCheckTest.test_the_report_says_why_a_file_is_not_scorable) ... ok
+test_matching_settings (tests.test_banner.BannerTest.test_matching_settings) ... ok
+test_missing_settings_is_a_mismatch (tests.test_banner.BannerTest.test_missing_settings_is_a_mismatch) ... ok
+test_unknown_role_is_a_mismatch (tests.test_banner.BannerTest.test_unknown_role_is_a_mismatch) ... ok
+test_wrong_config_is_a_mismatch (tests.test_banner.BannerTest.test_wrong_config_is_a_mismatch) ... ok
+test_c_and_assembly_both_use_it (tests.test_build_flags.BuildFlagsTest.test_c_and_assembly_both_use_it) ... ok
+test_the_chips_cpu_model_and_float_instructions (tests.test_build_flags.BuildFlagsTest.test_the_chips_cpu_model_and_float_instructions) ... ok
+test_agent_message_needs_trailers (tests.test_commit_msg.CommitMessageTest.test_agent_message_needs_trailers) ... ok
+test_bad_subject_fails (tests.test_commit_msg.CommitMessageTest.test_bad_subject_fails) ... ok
+test_each_field_is_required (tests.test_commit_msg.CommitMessageTest.test_each_field_is_required) ... ok
+test_empty_field_fails (tests.test_commit_msg.CommitMessageTest.test_empty_field_fails) ... ok
+test_good_message_passes (tests.test_commit_msg.CommitMessageTest.test_good_message_passes) ... ok
+test_line_two_must_be_blank (tests.test_commit_msg.CommitMessageTest.test_line_two_must_be_blank) ... ok
+test_order_matters (tests.test_commit_msg.CommitMessageTest.test_order_matters) ... ok
+test_template_comments_are_stripped (tests.test_commit_msg.CommitMessageTest.test_template_comments_are_stripped) ... ok
+test_adding_an_entry_passes (tests.test_deny_lists.DenyListTest.test_adding_an_entry_passes) ... ok
+test_changed_handmade_file_fails (tests.test_deny_lists.DenyListTest.test_changed_handmade_file_fails) ... ok
+test_clean_config_keeps_the_handmade_rules_unchanged (tests.test_deny_lists.DenyListTest.test_clean_config_keeps_the_handmade_rules_unchanged) ... ok
+test_clean_config_must_turn_lazy_fetching_off (tests.test_deny_lists.DenyListTest.test_clean_config_must_turn_lazy_fetching_off) ... ok
+test_committed_configs_pass (tests.test_deny_lists.DenyListTest.test_committed_configs_pass) ... ok
+test_dropping_any_entry_fails (tests.test_deny_lists.DenyListTest.test_dropping_any_entry_fails) ... clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 8 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 10 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 10 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 10 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 10 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 10 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 10 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 10 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 10 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 10 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 10 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 10 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 6 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 6 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 6 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 6 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 6 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 6 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 6 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 21 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook presentok
+test_dropping_from_the_auditor_baseline_fails (tests.test_deny_lists.DenyListTest.test_dropping_from_the_auditor_baseline_fails) ... ok
+test_dropping_from_the_baseline_fails (tests.test_deny_lists.DenyListTest.test_dropping_from_the_baseline_fails) ... ok
+test_dropping_from_the_porter_baseline_fails (tests.test_deny_lists.DenyListTest.test_dropping_from_the_porter_baseline_fails) ... ok
+test_missing_banner_hook_fails (tests.test_deny_lists.DenyListTest.test_missing_banner_hook_fails) ... ok
+test_spec_config_keeps_the_handmade_spec_rules (tests.test_deny_lists.DenyListTest.test_spec_config_keeps_the_handmade_spec_rules) ... ok
+test_damage_is_refused (tests.test_fm_patch.FmPatchTest.test_damage_is_refused) ... ok
+test_every_test_patch_is_valid_and_its_own_length (tests.test_fm_patch.FmPatchTest.test_every_test_patch_is_valid_and_its_own_length) ... ok
+test_fletcher16 (tests.test_fm_patch.FmPatchTest.test_fletcher16) ... ok
+test_patches_c_is_what_the_tool_writes (tests.test_fm_patch.FmPatchTest.test_patches_c_is_what_the_tool_writes) ... ok
+test_units (tests.test_fm_patch.FmPatchTest.test_units) ... ok
+test_barrier_files_never_spell_a_folder_out (tests.test_folder_list.FolderListTest.test_barrier_files_never_spell_a_folder_out) ... ok
+test_configure_needs_every_folder_rule (tests.test_folder_list.FolderListTest.test_configure_needs_every_folder_rule) ... ok
+test_shell_tools_read_the_list (tests.test_folder_list.FolderListTest.test_shell_tools_read_the_list) ... ok
+test_the_clean_settings_deny_every_folder (tests.test_folder_list.FolderListTest.test_the_clean_settings_deny_every_folder) ... ok
+test_the_list (tests.test_folder_list.FolderListTest.test_the_list) ... ok
+test_the_rules_are_the_ones_before_m3 (tests.test_folder_list.FolderListTest.test_the_rules_are_the_ones_before_m3) ... ok
+test_every_case_checks_the_output_ran_and_kept_up (tests.test_fw_suite.FwSuiteAudioTest.test_every_case_checks_the_output_ran_and_kept_up) ... ok
+test_master_follows_synth_c (tests.test_fw_suite.FwSuiteAudioTest.test_master_follows_synth_c) ... ok
+test_sounds_are_split_by_silence (tests.test_fw_suite.FwSuiteAudioTest.test_sounds_are_split_by_silence) ... ok
+test_the_record_fields_follow_audio_h (tests.test_fw_suite.FwSuiteAudioTest.test_the_record_fields_follow_audio_h) ... ok
+test_underruns_must_be_counted_and_reported_once_each (tests.test_fw_suite.FwSuiteAudioTest.test_underruns_must_be_counted_and_reported_once_each) ... ok
+test_a_good_boot_passes (tests.test_fw_suite.FwSuiteBootTest.test_a_good_boot_passes) ... ok
+test_clock_must_be_240_mhz (tests.test_fw_suite.FwSuiteBootTest.test_clock_must_be_240_mhz) ... ok
+test_every_vector_slot_is_checked (tests.test_fw_suite.FwSuiteBootTest.test_every_vector_slot_is_checked) ... ok
+test_first_tick_must_come_soon (tests.test_fw_suite.FwSuiteBootTest.test_first_tick_must_come_soon) ... ok
+test_halts_are_told_apart (tests.test_fw_suite.FwSuiteBootTest.test_halts_are_told_apart) ... ok
+test_a_capture_mid_update_needs_one_consistent_copy (tests.test_fw_suite.FwSuiteCheckTest.test_a_capture_mid_update_needs_one_consistent_copy) ... ok
+test_beats_must_match_the_time_base (tests.test_fw_suite.FwSuiteCheckTest.test_beats_must_match_the_time_base) ... ok
+test_capture_time_bounds (tests.test_fw_suite.FwSuiteCheckTest.test_capture_time_bounds) ... ok
+test_case_problems (tests.test_fw_suite.FwSuiteCheckTest.test_case_problems) ... ok
+test_end_must_follow_the_last_tick_within_a_period (tests.test_fw_suite.FwSuiteCheckTest.test_end_must_follow_the_last_tick_within_a_period) ... ok
+test_good_beacons_pass (tests.test_fw_suite.FwSuiteCheckTest.test_good_beacons_pass) ... ok
+test_start_slack_grows_with_what_startup_clears (tests.test_fw_suite.FwSuiteCheckTest.test_start_slack_grows_with_what_startup_clears) ... ok
+test_steady_state_instructions_a_tick (tests.test_fw_suite.FwSuiteCheckTest.test_steady_state_instructions_a_tick) ... ok
+test_tick_statistics (tests.test_fw_suite.FwSuiteCheckTest.test_tick_statistics) ... ok
+test_wrong_marker_or_period_fails (tests.test_fw_suite.FwSuiteCheckTest.test_wrong_marker_or_period_fails) ... ok
+test_events_compare_with_their_golden (tests.test_fw_suite.FwSuiteInputTest.test_events_compare_with_their_golden) ... ok
+test_events_of_one_scan_are_compared_as_a_set (tests.test_fw_suite.FwSuiteInputTest.test_events_of_one_scan_are_compared_as_a_set) ... ok
+test_latency_allows_for_the_time_base_start (tests.test_fw_suite.FwSuiteInputTest.test_latency_allows_for_the_time_base_start) ... ok
+test_the_record_fields_follow_input_h (tests.test_fw_suite.FwSuiteInputTest.test_the_record_fields_follow_input_h) ... ok
+test_the_record_layout (tests.test_fw_suite.FwSuiteInputTest.test_the_record_layout) ... ok
+test_colours_scale_as_fwtest_writes_them (tests.test_fw_suite.FwSuiteScreenTest.test_colours_scale_as_fwtest_writes_them) ... ok
+test_png_reader_undoes_every_filter (tests.test_fw_suite.FwSuiteScreenTest.test_png_reader_undoes_every_filter) ... ok
+test_the_address_pattern_is_checked_pixel_by_pixel (tests.test_fw_suite.FwSuiteScreenTest.test_the_address_pattern_is_checked_pixel_by_pixel) ... ok
+test_the_test_screen_shows_orientation_colour_order_and_edges (tests.test_fw_suite.FwSuiteScreenTest.test_the_test_screen_shows_orientation_colour_order_and_edges) ... ok
+test_default_routes_are_the_firmwares (tests.test_fw_suite.KnobsDirectTest.test_default_routes_are_the_firmwares) ... ok
+test_confirmed_needs_an_independent_source (tests.test_hardware_spec.HardwareSpecLintTest.test_confirmed_needs_an_independent_source) ... ok
+test_duplicate_id_and_question (tests.test_hardware_spec.HardwareSpecLintTest.test_duplicate_id_and_question) ... ok
+test_empty_source (tests.test_hardware_spec.HardwareSpecLintTest.test_empty_source) ... ok
+test_good (tests.test_hardware_spec.HardwareSpecLintTest.test_good) ... ok
+test_history (tests.test_hardware_spec.HardwareSpecLintTest.test_history) ... ok
+test_missing_field_and_unknown_field (tests.test_hardware_spec.HardwareSpecLintTest.test_missing_field_and_unknown_field) ... ok
+test_no_code (tests.test_hardware_spec.HardwareSpecLintTest.test_no_code) ... ok
+test_other_chip (tests.test_hardware_spec.HardwareSpecLintTest.test_other_chip) ... ok
+test_standing (tests.test_hardware_spec.HardwareSpecLintTest.test_standing) ... ok
+test_the_real_spec (tests.test_hardware_spec.HardwareSpecLintTest.test_the_real_spec) ... ok
+test_unknown_experiment (tests.test_hardware_spec.HardwareSpecLintTest.test_unknown_experiment) ... ok
+test_metadata (tests.test_low_profile.LowProfileTest.test_metadata) ... ok
+test_plain_words_pass (tests.test_low_profile.LowProfileTest.test_plain_words_pass) ... ok
+test_quiet_words_are_found_in_any_spelling (tests.test_low_profile.LowProfileTest.test_quiet_words_are_found_in_any_spelling) ... ok
+test_readme_first_line_and_words (tests.test_low_profile.LowProfileTest.test_readme_first_line_and_words) ... ok
+test_the_real_readme_passes (tests.test_low_profile.LowProfileTest.test_the_real_readme_passes) ... ok
+test_a_server_error_is_asked_again (tests.test_merge.MergeApiRetryTest.test_a_server_error_is_asked_again) ... 
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 63 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+clean.json: 11 deny rules, 11 required, banner hook MISSING
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+porter.json: 64 deny rules, 64 required, banner hook present
+GitHub API: HTTP Error 500: e; asking again in 10 s
+GitHub API: HTTP Error 502: e; asking again in 20 s
+ok
+test_gives_up_after_the_tries (tests.test_merge.MergeApiRetryTest.test_gives_up_after_the_tries) ... GitHub API: HTTP Error 500: e; asking again in 10 s
+GitHub API: HTTP Error 500: e; asking again in 20 s
+ok
+test_other_errors_are_not_retried (tests.test_merge.MergeApiRetryTest.test_other_errors_are_not_retried) ... ok
+test_button_merge_by_someone_else_fails (tests.test_merge.MergeCheckTest.test_button_merge_by_someone_else_fails) ... ok
+test_button_merge_by_the_owner_passes (tests.test_merge.MergeCheckTest.test_button_merge_by_the_owner_passes) ... ok
+test_local_signed_merge_by_the_owner_passes (tests.test_merge.MergeCheckTest.test_local_signed_merge_by_the_owner_passes) ... ok
+test_needs_a_pull_request_with_passing_ci (tests.test_merge.MergeCheckTest.test_needs_a_pull_request_with_passing_ci) ... ok
+test_not_a_merge_fails (tests.test_merge.MergeCheckTest.test_not_a_merge_fails) ... ok
+test_other_committer_fails (tests.test_merge.MergeCheckTest.test_other_committer_fails) ... ok
+test_unverified_fails (tests.test_merge.MergeCheckTest.test_unverified_fails) ... ok
+test_a_late_run_is_waited_for (tests.test_merge.MergeCiWaitTest.test_a_late_run_is_waited_for) ... no ci run found yet; checking again in 10 s
+ci run still in progress; checking again in 20 s
+ci run still in progress; checking again in 40 s
+no ci run found yet; checking again in 10 s
+ci run still in progress; checking again in 20 s
+ci run still in progress; checking again in 40 s
+ok
+test_an_empty_answer_is_asked_again (tests.test_merge.MergeCiWaitTest.test_an_empty_answer_is_asked_again) ... no ci run found yet; checking again in 10 s
+no ci run found yet; checking again in 20 s
+ok
+test_backoff (tests.test_merge.MergeCiWaitTest.test_backoff) ... ok
+test_gives_up_after_the_limit (tests.test_merge.MergeCiWaitTest.test_gives_up_after_the_limit) ... ci run still in progress; checking again in 10 s
+ci run still in progress; checking again in 20 s
+ci run still in progress; checking again in 40 s
+ci run still in progress; checking again in 20 s
+ok
+test_no_run_at_all_gives_up_at_the_limit (tests.test_merge.MergeCiWaitTest.test_no_run_at_all_gives_up_at_the_limit) ... no ci run found yet; checking again in 10 s
+no ci run found yet; checking again in 20 s
+no ci run found yet; checking again in 40 s
+no ci run found yet; checking again in 80 s
+no ci run found yet; checking again in 160 s
+no ci run found yet; checking again in 300 s
+no ci run found yet; checking again in 300 s
+no ci run found yet; checking again in 300 s
+no ci run found yet; checking again in 300 s
+no ci run found yet; checking again in 290 s
+ok
+test_verdicts (tests.test_merge.MergeCiWaitTest.test_verdicts) ... ok
+test_waits_until_the_run_finishes (tests.test_merge.MergeCiWaitTest.test_waits_until_the_run_finishes) ... ci run still in progress; checking again in 10 s
+ci run still in progress; checking again in 20 s
+ci run still in progress; checking again in 40 s
+ok
+test_number_from_the_merge_message (tests.test_merge.MergePullRequestTest.test_number_from_the_merge_message) ... ok
+test_the_pull_request_must_match_the_merge (tests.test_merge.MergePullRequestTest.test_the_pull_request_must_match_the_merge) ... ok
+test_garbage_never_wedges (tests.test_midi_model.MidiModelTest.test_garbage_never_wedges) ... ok
+test_limits_match_the_firmware (tests.test_midi_model.MidiModelTest.test_limits_match_the_firmware) ... ok
+test_long_sysex (tests.test_midi_model.MidiModelTest.test_long_sysex) ... ok
+test_one_data_byte_messages (tests.test_midi_model.MidiModelTest.test_one_data_byte_messages) ... ok
+test_realtime_inside_a_message_changes_nothing (tests.test_midi_model.MidiModelTest.test_realtime_inside_a_message_changes_nothing) ... ok
+test_realtime_inside_sysex (tests.test_midi_model.MidiModelTest.test_realtime_inside_sysex) ... ok
+test_reset_clears_running_status (tests.test_midi_model.MidiModelTest.test_reset_clears_running_status) ... ok
+test_running_status (tests.test_midi_model.MidiModelTest.test_running_status) ... ok
+test_status_cuts_sysex_and_partial_message (tests.test_midi_model.MidiModelTest.test_status_cuts_sysex_and_partial_message) ... ok
+test_sysex_ends_running_status (tests.test_midi_model.MidiModelTest.test_sysex_ends_running_status) ... ok
+test_system_common (tests.test_midi_model.MidiModelTest.test_system_common) ... ok
+test_undefined_and_stray (tests.test_midi_model.MidiModelTest.test_undefined_and_stray) ... ok
+test_knob_spans_match_the_firmware (tests.test_midi_model.MidiOutTest.test_knob_spans_match_the_firmware) ... ok
+test_knob_value_is_the_maps_inverse (tests.test_midi_model.MidiOutTest.test_knob_value_is_the_maps_inverse) ... ok
+test_macro_spans_match_the_firmware (tests.test_midi_model.MidiOutTest.test_macro_spans_match_the_firmware) ... ok
+test_macro_value_is_the_maps_inverse (tests.test_midi_model.MidiOutTest.test_macro_value_is_the_maps_inverse)
+Since M8a: the macros' controllers; MOTION's 0 to 64 all mean 0. ... ok
+test_round_trip_script_is_midiouts_capture (tests.test_midi_model.MidiOutTest.test_round_trip_script_is_midiouts_capture) ... ok
+test_dense_fills_the_wire (tests.test_midi_model.MidiScriptsTest.test_dense_fills_the_wire) ... ok
+test_no_two_midi_events_overlap (tests.test_midi_model.MidiScriptsTest.test_no_two_midi_events_overlap) ... ok
+test_perfload_midi_part_is_what_the_tool_writes (tests.test_midi_model.MidiScriptsTest.test_perfload_midi_part_is_what_the_tool_writes) ... ok
+test_scripts_are_what_the_tool_writes (tests.test_midi_model.MidiScriptsTest.test_scripts_are_what_the_tool_writes) ... ok
+test_a_folder_with_only_the_audit_is_not_a_record (tests.test_perf.BaselineTest.test_a_folder_with_only_the_audit_is_not_a_record) ... ok
+test_latest_record_on_the_history (tests.test_perf.BaselineTest.test_latest_record_on_the_history) ... ok
+test_never_the_commit_under_test (tests.test_perf.BaselineTest.test_never_the_commit_under_test) ... ok
+test_no_records (tests.test_perf.BaselineTest.test_no_records) ... ok
+test_a_failed_measurement_fails (tests.test_perf.GateTest.test_a_failed_measurement_fails) ... ok
+test_budgets (tests.test_perf.GateTest.test_budgets) ... ok
+test_choose_baseline_skips_the_pre_raise_image (tests.test_perf.GateTest.test_choose_baseline_skips_the_pre_raise_image) ... ok
+test_improvement_is_reported_and_passes (tests.test_perf.GateTest.test_improvement_is_reported_and_passes) ... ok
+test_no_baseline_is_not_compared (tests.test_perf.GateTest.test_no_baseline_is_not_compared) ... ok
+test_probe_budgets_follow_the_measured_build (tests.test_perf.GateTest.test_probe_budgets_follow_the_measured_build) ... ok
+test_probe_expectations (tests.test_perf.GateTest.test_probe_expectations) ... ok
+test_speed_boundaries (tests.test_perf.GateTest.test_speed_boundaries) ... ok
+test_speed_is_compared_only_under_the_same_steady_budget (tests.test_perf.GateTest.test_speed_is_compared_only_under_the_same_steady_budget) ... ok
+test_speed_is_per_period (tests.test_perf.GateTest.test_speed_is_per_period) ... ok
+test_the_gate_compares_only_under_the_same_budget (tests.test_perf.GateTest.test_the_gate_compares_only_under_the_same_budget) ... ok
+test_the_period_is_the_audio_block_and_an_image_without_audio_has_none (tests.test_perf.GateTest.test_the_period_is_the_audio_block_and_an_image_without_audio_has_none) ... ok
+test_the_real_budgets_load (tests.test_perf.GateTest.test_the_real_budgets_load) ... /home/runner/work/small-beeps/small-beeps/tests/test_perf.py:245: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/runner/work/small-beeps/small-beeps/config/budgets.json' mode='r' encoding='UTF-8'>
+  self.assertIn(b["milestone"], json.load(open(perf.BUDGETS))["budgets"])
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_the_runs_end_away_from_whole_seconds_and_tenths (tests.test_perf.GateTest.test_the_runs_end_away_from_whole_seconds_and_tenths) ... ok
+test_the_steady_state_budget_is_exact (tests.test_perf.GateTest.test_the_steady_state_budget_is_exact) ... ok
+test_two_runs_give_steady_state_and_startup (tests.test_perf.GateTest.test_two_runs_give_steady_state_and_startup) ... ok
+test_a_record_without_perf_still_gets_its_line (tests.test_perf.HistoryTest.test_a_record_without_perf_still_gets_its_line) ... /home/runner/work/small-beeps/small-beeps/tests/test_perf.py:685: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpxgby6r_w/perf-history.csv' mode='r' encoding='UTF-8'>
+  rows = list(csv.DictReader(open(self.csv)))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_an_unexpected_header_is_refused (tests.test_perf.HistoryTest.test_an_unexpected_header_is_refused) ... ok
+test_header_names_every_measure (tests.test_perf.HistoryTest.test_header_names_every_measure) ... ok
+test_one_line_per_commit_appended_never_rewritten (tests.test_perf.HistoryTest.test_one_line_per_commit_appended_never_rewritten) ... /home/runner/work/small-beeps/small-beeps/tests/test_perf.py:674: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpivqe9v9t/perf-history.csv' mode='r' encoding='UTF-8'>
+  rows = list(csv.DictReader(open(self.csv)))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_perf_measures_one_row_per_commit_and_measure (tests.test_perf.HistoryTest.test_perf_measures_one_row_per_commit_and_measure) ... /home/runner/work/small-beeps/small-beeps/tests/test_perf.py:718: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpy_djahyo/perf-measures.csv' mode='r' encoding='UTF-8'>
+  rows = list(csv.DictReader(open(mpath)))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/runner/work/small-beeps/small-beeps/tests/test_perf.py:725: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpy_djahyo/perf-history.csv' mode='r' encoding='UTF-8'>
+  self.assertEqual(next(csv.reader(open(self.csv))), perf.HISTORY_FIELDS)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/runner/work/small-beeps/small-beeps/tests/test_perf.py:726: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpy_djahyo/perf-history.csv' mode='r' encoding='UTF-8'>
+  self.assertEqual(len(list(csv.DictReader(open(self.csv)))), 2)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/runner/work/small-beeps/small-beeps/tests/test_perf.py:729: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpy_djahyo/perf-measures.csv' mode='r' encoding='UTF-8'>
+  self.assertEqual(len(list(csv.DictReader(open(mpath)))), 2)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_records_workflow_never_cancels_a_record (tests.test_perf.HistoryTest.test_records_workflow_never_cancels_a_record) ... ok
+test_records_workflow_writes_both_files (tests.test_perf.HistoryTest.test_records_workflow_writes_both_files) ... ok
+test_a_failed_loaded_measurement_fails (tests.test_perf.LoadedTest.test_a_failed_loaded_measurement_fails) ... ok
+test_choose_baseline_with_no_budget_anywhere (tests.test_perf.LoadedTest.test_choose_baseline_with_no_budget_anywhere) ... ok
+test_loaded_speed_is_compared_only_under_the_same_loaded_budget (tests.test_perf.LoadedTest.test_loaded_speed_is_compared_only_under_the_same_loaded_budget) ... ok
+test_the_load_script (tests.test_perf.LoadedTest.test_the_load_script) ... ok
+test_the_loaded_budget_and_speed_gate (tests.test_perf.LoadedTest.test_the_loaded_budget_and_speed_gate) ... ok
+test_the_loaded_probe_fails_only_its_own_gates (tests.test_perf.LoadedTest.test_the_loaded_probe_fails_only_its_own_gates) ... ok
+test_two_loaded_runs_give_its_steady_state (tests.test_perf.LoadedTest.test_two_loaded_runs_give_its_steady_state) ... ok
+test_without_a_loaded_budget_it_is_recorded_not_gated (tests.test_perf.LoadedTest.test_without_a_loaded_budget_it_is_recorded_not_gated) ... /home/runner/work/small-beeps/small-beeps/tests/test_perf.py:284: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/runner/work/small-beeps/small-beeps/config/budgets.json' mode='r' encoding='UTF-8'>
+  "loaded_per_period" not in json.load(open(perf.BUDGETS))["budgets"][
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/runner/work/small-beeps/small-beeps/tests/test_perf.py:285: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/runner/work/small-beeps/small-beeps/config/budgets.json' mode='r' encoding='UTF-8'>
+  json.load(open(perf.BUDGETS))["milestone"]])
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_layout_constants_match_the_linker_script (tests.test_perf.MeasureTest.test_layout_constants_match_the_linker_script) ... ok
+test_options_capture_the_stack_below_its_top (tests.test_perf.MeasureTest.test_options_capture_the_stack_below_its_top) ... ok
+test_read_size (tests.test_perf.MeasureTest.test_read_size) ... ok
+test_stack_high_water_by_pattern (tests.test_perf.MeasureTest.test_stack_high_water_by_pattern) ... ok
+test_stack_high_water_without_the_fill (tests.test_perf.MeasureTest.test_stack_high_water_without_the_fill) ... ok
+test_stack_probe_expectation (tests.test_perf.MeasureTest.test_stack_probe_expectation) ... ok
+test_the_fill_pattern_matches_crt0 (tests.test_perf.MeasureTest.test_the_fill_pattern_matches_crt0) ... ok
+test_two_stacks_are_measured_each_from_its_own_limit (tests.test_perf.MeasureTest.test_two_stacks_are_measured_each_from_its_own_limit) ... ok
+test_probes_are_compiled_only_on_request (tests.test_perf.ProbeSourceTest.test_probes_are_compiled_only_on_request) ... ok
+test_an_unrelated_merge_between_the_raise_and_the_firmware (tests.test_perf.RaisedBudgetBaselineTest.test_an_unrelated_merge_between_the_raise_and_the_firmware) ... ok
+test_records_written_out_of_order (tests.test_perf.RaisedBudgetBaselineTest.test_records_written_out_of_order) ... ok
+test_the_loaded_baseline_is_found_by_its_own_budget (tests.test_perf.RaisedBudgetBaselineTest.test_the_loaded_baseline_is_found_by_its_own_budget) ... ok
+test_without_a_budget_the_newest_record (tests.test_perf.RaisedBudgetBaselineTest.test_without_a_budget_the_newest_record) ... ok
+test_parse (tests.test_plaits_bench.BenchParseTest.test_parse) ... ok
+test_platform_costs_fall_back (tests.test_plaits_bench.BenchParseTest.test_platform_costs_fall_back) ... ok
+test_the_engine_list_is_plaits_order (tests.test_plaits_bench.BenchParseTest.test_the_engine_list_is_plaits_order) ... ok
+test_the_demo_is_compiled_only_into_its_own_image (tests.test_plaits_bench.DemoSourceTest.test_the_demo_is_compiled_only_into_its_own_image) ... ok
+test_operations (tests.test_plaits_bench.ReferenceTest.test_operations) ... ok
+test_rounding_matches_the_hosts_float (tests.test_plaits_bench.ReferenceTest.test_rounding_matches_the_hosts_float) ... ok
+test_the_operands_match_the_image (tests.test_plaits_bench.ReferenceTest.test_the_operands_match_the_image) ... ok
+test_ties_subnormals_and_overflow (tests.test_plaits_bench.ReferenceTest.test_ties_subnormals_and_overflow) ... ok
+test_a_staged_file_without_its_contents_is_never_fetched (tests.test_private.PrivateTermsTest.test_a_staged_file_without_its_contents_is_never_fetched) ... ok
+test_exempt_labels_name_no_spec_file (tests.test_private.PrivateTermsTest.test_exempt_labels_name_no_spec_file) ... ok
+test_exemption_needs_the_base_blob (tests.test_private.PrivateTermsTest.test_exemption_needs_the_base_blob) ... ok
+test_files_not_on_disk_are_skipped (tests.test_private.PrivateTermsTest.test_files_not_on_disk_are_skipped) ... ok
+test_hit_lines_ignore_case_and_count_lines (tests.test_private.PrivateTermsTest.test_hit_lines_ignore_case_and_count_lines) ... ok
+test_reports_file_and_line_only (tests.test_private.PrivateTermsTest.test_reports_file_and_line_only) ... ok
+test_spec_side_hits_are_counted_not_named (tests.test_private.PrivateTermsTest.test_spec_side_hits_are_counted_not_named) ... ok
+test_terms_from_environment (tests.test_private.PrivateTermsTest.test_terms_from_environment) ... ok
+test_withhold_deletes_hit_files_and_lists_their_hashes (tests.test_private.PrivateTermsTest.test_withhold_deletes_hit_files_and_lists_their_hashes) ... ok
+test_a_fail_is_written_and_returned (tests.test_recheck.RecheckTest.test_a_fail_is_written_and_returned) ... /home/runner/work/small-beeps/small-beeps/tests/test_recheck.py:58: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpnj_au2uj/verified/verification.json' mode='r' encoding='UTF-8'>
+  self.assertEqual(json.load(open(os.path.join(out, "verification.json")))["result"], "FAIL")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_a_pass_is_written_with_its_checker (tests.test_recheck.RecheckTest.test_a_pass_is_written_with_its_checker) ... /home/runner/work/small-beeps/small-beeps/tests/test_recheck.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpf7vqum8n/verified/verification.json' mode='r' encoding='UTF-8'>
+  v = json.load(open(os.path.join(out, "verification.json")))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/runner/work/small-beeps/small-beeps/tests/test_recheck.py:50: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpf7vqum8n/verified/C-MERGE.log' mode='r' encoding='UTF-8'>
+  self.assertIn("merge check: PASS " + SHA, open(os.path.join(out, "C-MERGE.log")).read())
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/runner/work/small-beeps/small-beeps/tests/test_recheck.py:51: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpf7vqum8n/verified/SHA256SUMS' mode='r' encoding='UTF-8'>
+  sums = open(os.path.join(out, "SHA256SUMS")).read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_never_overwrites (tests.test_recheck.RecheckTest.test_never_overwrites) ... ok
+test_refuses_a_short_sha_or_no_reason (tests.test_recheck.RecheckTest.test_refuses_a_short_sha_or_no_reason) ... ok
+test_the_workflow_only_adds (tests.test_recheck.RecheckTest.test_the_workflow_only_adds) ... ok
+test_a_record_file_holding_a_private_term_is_withheld (tests.test_record.RecordTest.test_a_record_file_holding_a_private_term_is_withheld) ... ok
+test_compare (tests.test_record.RecordTest.test_compare) ... ok
+test_every_check_names_known_requirements (tests.test_record.RecordTest.test_every_check_names_known_requirements) ... ok
+test_every_test_class_names_its_requirements (tests.test_record.RecordTest.test_every_test_class_names_its_requirements) ... ok
+test_requirements_table_names_only_real_checks (tests.test_record.RecordTest.test_requirements_table_names_only_real_checks) ... ok
+test_run_writes_a_complete_record (tests.test_record.RecordTest.test_run_writes_a_complete_record) ... ok
+test_skipped_checks_count_as_not_run (tests.test_record.RecordTest.test_skipped_checks_count_as_not_run) ... ok
+test_spec_experiment_outputs_are_kept_as_hashes_only (tests.test_record.RecordTest.test_spec_experiment_outputs_are_kept_as_hashes_only) ... ok
+test_spec_side_checks_skip_without_their_folder (tests.test_record.RecordTest.test_spec_side_checks_skip_without_their_folder) ... ok
+test_the_suites_audio_captures_are_kept_as_hashes_only (tests.test_record.RecordTest.test_the_suites_audio_captures_are_kept_as_hashes_only) ... ok
+test_traceability (tests.test_record.RecordTest.test_traceability) ... ok
+test_door_terms_come_from_the_commit_not_the_tree (tests.test_separation.DoorsOnMainTest.test_door_terms_come_from_the_commit_not_the_tree) ... ok
+test_merged_door_terms_pass_and_branch_ones_are_hits (tests.test_separation.DoorsOnMainTest.test_merged_door_terms_pass_and_branch_ones_are_hits) ... ok
+test_without_the_ref_nothing_is_accepted (tests.test_separation.DoorsOnMainTest.test_without_the_ref_nothing_is_accepted) ... ok
+test_finds_an_emulator_only_identifier (tests.test_separation.EmulatorTermsTest.test_finds_an_emulator_only_identifier) ... ok
+test_hex_numbers_are_terms_from_four_digits (tests.test_separation.EmulatorTermsTest.test_hex_numbers_are_terms_from_four_digits) ... ok
+test_hits_report_place_and_hash_only (tests.test_separation.EmulatorTermsTest.test_hits_report_place_and_hash_only) ... ok
+test_identifier_shapes (tests.test_separation.EmulatorTermsTest.test_identifier_shapes) ... ok
+test_skips_without_the_emulator (tests.test_separation.EmulatorTermsTest.test_skips_without_the_emulator) ... ok
+test_universal_constants_are_not_terms (tests.test_separation.EmulatorTermsTest.test_universal_constants_are_not_terms)
+By rule (R-SEP-1, since SR-4's note): powers of two, 2^n-1, 2^n+1, ... ok
+test_committed_pin_passes (tests.test_separation.FwtestPinTest.test_committed_pin_passes) ... ok
+test_digest_pins_pass_and_tags_fail (tests.test_separation.FwtestPinTest.test_digest_pins_pass_and_tags_fail) ... ok
+test_quiet_words_fail (tests.test_separation.FwtestPinTest.test_quiet_words_fail) ... ok
+test_wrapper_must_pin_and_isolate (tests.test_separation.FwtestPinTest.test_wrapper_must_pin_and_isolate) ... ok
+test_a_plaits_term_passes_and_one_in_neither_fails (tests.test_separation.PlaitsTermsTest.test_a_plaits_term_passes_and_one_in_neither_fails) ... fatal: ambiguous argument 'HEAD..HEAD': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+ok
+test_a_universal_constant_passes_and_an_emulator_only_number_fails (tests.test_separation.PlaitsTermsTest.test_a_universal_constant_passes_and_an_emulator_only_number_fails) ... fatal: ambiguous argument 'HEAD..HEAD': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+ok
+test_only_the_checksum_verified_tree_counts (tests.test_separation.PlaitsTermsTest.test_only_the_checksum_verified_tree_counts) ... ok
+test_our_own_notes_in_vendor_plaits_are_scanned (tests.test_separation.PlaitsTermsTest.test_our_own_notes_in_vendor_plaits_are_scanned) ... fatal: ambiguous argument 'HEAD..HEAD': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+ok
+test_vendor_plaits_itself_is_not_scanned (tests.test_separation.PlaitsTermsTest.test_vendor_plaits_itself_is_not_scanned) ... fatal: ambiguous argument 'HEAD..HEAD': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+ok
+test_version_1_is_version_2_without_its_tail (tests.test_store.SettingsLayoutTest.test_version_1_is_version_2_without_its_tail)
+Since M8a version 3 is version 2's 40 bytes, its last (always 0 ... ok
+test_records_are_blocks (tests.test_store.StoreFormatTest.test_records_are_blocks) ... ok
+test_the_firmware_crc_table_is_the_common_crc32 (tests.test_store.StoreFormatTest.test_the_firmware_crc_table_is_the_common_crc32) ... ok
+test_the_tool_and_the_firmware_agree_on_the_layout (tests.test_store.StoreFormatTest.test_the_tool_and_the_firmware_agree_on_the_layout) ... ok
+test_a_reset_voids_what_came_before (tests.test_store.StoreModelTest.test_a_reset_voids_what_came_before) ... ok
+test_a_torn_record_leaves_the_old_copy_and_the_head_writable (tests.test_store.StoreModelTest.test_a_torn_record_leaves_the_old_copy_and_the_head_writable) ... ok
+test_no_free_sector_is_refused_without_writing (tests.test_store.StoreModelTest.test_no_free_sector_is_refused_without_writing) ... ok
+test_put_and_read_back (tests.test_store.StoreModelTest.test_put_and_read_back) ... ok
+test_the_live_records_always_fit_one_sector (tests.test_store.StoreModelTest.test_the_live_records_always_fit_one_sector) ... ok
+test_the_newest_valid_copy_wins_and_a_damaged_one_is_skipped (tests.test_store.StoreModelTest.test_the_newest_valid_copy_wins_and_a_damaged_one_is_skipped) ... ok
+test_the_ring_keeps_every_live_record_and_wears_evenly (tests.test_store.StoreModelTest.test_the_ring_keeps_every_live_record_and_wears_evenly) ... ok
+test_a_file_written_earlier_and_run_later_fails (tests.test_transcripts.AccessRuleTest.test_a_file_written_earlier_and_run_later_fails) ... ok
+test_a_superseded_entry_fails_only_on_an_access (tests.test_transcripts.AccessRuleTest.test_a_superseded_entry_fails_only_on_an_access) ... ok
+test_accesses_still_fail (tests.test_transcripts.AccessRuleTest.test_accesses_still_fail) ... ok
+test_mentions_pass_and_are_logged (tests.test_transcripts.AccessRuleTest.test_mentions_pass_and_are_logged) ... ok
+test_the_access_rule_never_flags_what_the_text_rule_did_not (tests.test_transcripts.AccessRuleTest.test_the_access_rule_never_flags_what_the_text_rule_did_not) ... ok
+test_an_auditor_transcript_fails_anywhere_under_sessions (tests.test_transcripts.LayoutTest.test_an_auditor_transcript_fails_anywhere_under_sessions) ... ok
+test_both_folders_are_checked (tests.test_transcripts.LayoutTest.test_both_folders_are_checked) ... ok
+test_clean_folder_without_spec_transcripts_skips_them (tests.test_transcripts.LayoutTest.test_clean_folder_without_spec_transcripts_skips_them) ... ok
+test_reviewed_list_is_found_from_a_role_folder (tests.test_transcripts.LayoutTest.test_reviewed_list_is_found_from_a_role_folder) ... ok
+test_role_must_match_folder (tests.test_transcripts.LayoutTest.test_role_must_match_folder) ... ok
+test_transcript_outside_role_folders_fails (tests.test_transcripts.LayoutTest.test_transcript_outside_role_folders_fails) ... ok
+test_a_superseded_entry_clears_nothing_and_must_stay_unneeded (tests.test_transcripts.TranscriptTest.test_a_superseded_entry_clears_nothing_and_must_stay_unneeded) ... ok
+test_bad_file_name_fails (tests.test_transcripts.TranscriptTest.test_bad_file_name_fails) ... ok
+test_clean_session_with_banner_passes (tests.test_transcripts.TranscriptTest.test_clean_session_with_banner_passes) ... ok
+test_first_session_is_exempt_only_by_id (tests.test_transcripts.TranscriptTest.test_first_session_is_exempt_only_by_id) ... ok
+test_folder_names_ended_by_a_shell_operator_fail (tests.test_transcripts.TranscriptTest.test_folder_names_ended_by_a_shell_operator_fail) ... ok
+test_forbidden_reads_fetches_and_commands_fail (tests.test_transcripts.TranscriptTest.test_forbidden_reads_fetches_and_commands_fail) ... ok
+test_heredoc_that_only_edits_the_reviewed_list_passes (tests.test_transcripts.TranscriptTest.test_heredoc_that_only_edits_the_reviewed_list_passes) ... ok
+test_heredoc_that_reads_a_clean_transcript_passes (tests.test_transcripts.TranscriptTest.test_heredoc_that_reads_a_clean_transcript_passes) ... ok
+test_heredocs_that_reach_further_still_fail (tests.test_transcripts.TranscriptTest.test_heredocs_that_reach_further_still_fail) ... ok
+test_mismatch_fails (tests.test_transcripts.TranscriptTest.test_mismatch_fails) ... ok
+test_missing_banner_fails (tests.test_transcripts.TranscriptTest.test_missing_banner_fails) ... ok
+test_names_that_only_contain_a_folder_name_pass (tests.test_transcripts.TranscriptTest.test_names_that_only_contain_a_folder_name_pass) ... ok
+test_other_rules_are_cleared_only_as_mentions (tests.test_transcripts.TranscriptTest.test_other_rules_are_cleared_only_as_mentions) ... ok
+test_output_never_quotes_the_transcript (tests.test_transcripts.TranscriptTest.test_output_never_quotes_the_transcript) ... ok
+test_plain_commands_naming_the_folders_still_fail (tests.test_transcripts.TranscriptTest.test_plain_commands_naming_the_folders_still_fail) ... ok
+test_redaction_note_required (tests.test_transcripts.TranscriptTest.test_redaction_note_required) ... ok
+test_reviewed_entries_name_a_rule_by_label_or_id (tests.test_transcripts.TranscriptTest.test_reviewed_entries_name_a_rule_by_label_or_id) ... ok
+test_reviewed_file_needs_a_reason (tests.test_transcripts.TranscriptTest.test_reviewed_file_needs_a_reason) ... ok
+test_reviewed_hits_pass_only_for_that_exact_call (tests.test_transcripts.TranscriptTest.test_reviewed_hits_pass_only_for_that_exact_call) ... ok
+test_rule_ids_are_neutral (tests.test_transcripts.TranscriptTest.test_rule_ids_are_neutral) ... ok
+test_spec_side_may_read_emulator_source (tests.test_transcripts.TranscriptTest.test_spec_side_may_read_emulator_source) ... ok
+test_subagent_transcripts_are_checked (tests.test_transcripts.TranscriptTest.test_subagent_transcripts_are_checked) ... ok
+test_words_that_are_not_paths_pass (tests.test_transcripts.TranscriptTest.test_words_that_are_not_paths_pass) ... ok
+test_writing_about_forbidden_material_is_not_a_read (tests.test_transcripts.TranscriptTest.test_writing_about_forbidden_material_is_not_a_read) ... ok
+
+----------------------------------------------------------------------
+Ran 330 tests in 11.009s
+
+OK
+appended to /tmp/tmpxgby6r_w/perf-history.csv: cccccccccccccccccccccccccccccccccccccccc,,FAIL,,,,,,,,,,,,,,
+/tmp/tmpbkixesrx/perf-history.csv: unexpected header ['something', 'else']
+appended to /tmp/tmpivqe9v9t/perf-history.csv: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,2026-10-22T00:00:00Z,PASS,M0,heartbeat,356887,1000,356.887,0.000,252,4,20,256,24,4096,0,img@sha256:ab
+appended to /tmp/tmpivqe9v9t/perf-history.csv: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,2026-10-22T00:00:00Z,PASS,M0,heartbeat,356887,1000,356.887,0.000,252,4,20,256,24,4096,0,img@sha256:ab
+/tmp/tmpivqe9v9t/perf-history.csv already has a line for bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb (a re-run): left as it is
+appended to /tmp/tmpy_djahyo/perf-history.csv: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,2026-10-22T00:00:00Z,PASS,M0,heartbeat,356887,1000,356.887,0.000,252,4,20,256,24,4096,0,img@sha256:ab
+appended to /tmp/tmpy_djahyo/perf-measures.csv: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,2026-10-22T00:00:00Z,M0,loaded_per_period,114172.717,instructions per audio block,,,no
+appended to /tmp/tmpy_djahyo/perf-history.csv: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,2026-10-22T00:00:00Z,PASS,M0,heartbeat,356887,1000,356.887,0.000,252,4,20,256,24,4096,0,img@sha256:ab
+appended to /tmp/tmpy_djahyo/perf-measures.csv: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,2026-10-22T00:00:00Z,M0,loaded_per_period,120000.5,instructions per audio block,131072,1.500,yes
+/tmp/tmpy_djahyo/perf-history.csv already has a line for bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb (a re-run): left as it is
+/tmp/tmpy_djahyo/perf-measures.csv already has a line for bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb loaded_per_period (a re-run): left as it is
+appended to /tmp/tmpy_djahyo/perf-history.csv: cccccccccccccccccccccccccccccccccccccccc,2026-10-22T00:00:00Z,PASS,M0,heartbeat,356887,1000,356.887,0.000,252,4,20,256,24,4096,0,img@sha256:ab
+appended to /tmp/tmpy_djahyo/perf-history.csv: dddddddddddddddddddddddddddddddddddddddd,2026-10-22T00:00:00Z,PASS,M0,heartbeat,356887,1000,356.887,0.000,252,4,20,256,24,4096,0,img@sha256:ab
+/tmp/tmpy_djahyo/perf-measures.csv: unexpected header ['something', 'else']
+
+exit status 0

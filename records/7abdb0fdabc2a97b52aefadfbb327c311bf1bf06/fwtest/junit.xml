@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="44" failures="0">
+  <testsuite name="boot" tests="44" failures="0">
+    <testcase classname="boot" name="boot"/>
+    <testcase classname="boot" name="heartbeat"/>
+    <testcase classname="boot" name="heartbeat2"/>
+    <testcase classname="boot" name="screen"/>
+    <testcase classname="boot" name="flood"/>
+    <testcase classname="boot" name="fault"/>
+    <testcase classname="boot" name="stray"/>
+    <testcase classname="boot" name="badinsn"/>
+    <testcase classname="boot" name="keys"/>
+    <testcase classname="boot" name="chords"/>
+    <testcase classname="boot" name="encoders"/>
+    <testcase classname="boot" name="pot"/>
+    <testcase classname="boot" name="leds"/>
+    <testcase classname="boot" name="ledshow"/>
+    <testcase classname="boot" name="tone"/>
+    <testcase classname="boot" name="notes"/>
+    <testcase classname="boot" name="audioload"/>
+    <testcase classname="boot" name="audiogold"/>
+    <testcase classname="boot" name="underrun"/>
+    <testcase classname="boot" name="fmbessel"/>
+    <testcase classname="boot" name="fmenv"/>
+    <testcase classname="boot" name="fmmono"/>
+    <testcase classname="boot" name="fmsteal"/>
+    <testcase classname="boot" name="fmvel"/>
+    <testcase classname="boot" name="fmgold"/>
+    <testcase classname="boot" name="fmgold2"/>
+    <testcase classname="boot" name="midimsg"/>
+    <testcase classname="boot" name="midirun"/>
+    <testcase classname="boot" name="midisysex"/>
+    <testcase classname="boot" name="midijunk"/>
+    <testcase classname="boot" name="mididense"/>
+    <testcase classname="boot" name="midisustain"/>
+    <testcase classname="boot" name="midichan"/>
+    <testcase classname="boot" name="midipanel"/>
+    <testcase classname="boot" name="midilat"/>
+    <testcase classname="boot" name="midiout"/>
+    <testcase classname="boot" name="midiround"/>
+    <testcase classname="boot" name="midithru"/>
+    <testcase classname="boot" name="midilocal"/>
+    <testcase classname="boot" name="midiburst"/>
+    <testcase classname="boot" name="midioutlat"/>
+    <testcase classname="boot" name="views"/>
+    <testcase classname="boot" name="viewsload"/>
+    <testcase classname="boot" name="macros"/>
+  </testsuite>
+</testsuites>
