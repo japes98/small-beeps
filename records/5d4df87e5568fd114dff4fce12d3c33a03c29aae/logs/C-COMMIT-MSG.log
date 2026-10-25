@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range ef5e3924df2a5740018a87c7619dec45e5fc44d2..5d4df87e5568fd114dff4fce12d3c33a03c29aae
+OK     c8ebd671a907 config: M7's performance budgets
+EXEMPT a6329b47c1fd (merge) config: merge main into M7's budgets, after #97, #108 and #99
+EXEMPT 5d4df87e5568 (merge) Merge pull request #98 from japes98/m7/budgets
+3 commit(s) checked: PASS
+
+exit status 0

@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-deny-lists.py
+clean.json: 11 deny rules, 11 required, banner hook present
+spec.json: 7 deny rules, 7 required, banner hook present
+auditor.json: 22 deny rules, 22 required, banner hook present
+deny lists: PASS
+
+exit status 0
