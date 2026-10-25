@@ -1363,6 +1363,11 @@ SR-3 wrote only its barrier-log row.*
 - The audit's discovery (`tools/audit-discover.py --write`, once):
   repository metadata only, through GitHub's API and `git ls-remote`; no
   target's files, README or page opened.
+- M9's plan (docs/M9-PLAN.md): FM-1-RE's `docs/io/11-ota-protocol.md`
+  and `docs/io/12-v15-reflash-proof.md` re-fetched by raw URL (as P-51);
+  the SDK's `cpu/wl82/tools/note.txt`, and the blob hashes and sizes of
+  the SDK's loader and packaging files (none opened) (P-57). Nothing of
+  FM1 Open was fetched; its file sizes and hashes come from docs/PLAN.md.
 
 ## Corrections
 
