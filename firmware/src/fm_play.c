@@ -1583,6 +1583,8 @@ void fm_block(s32 *out, u32 frames)
                 fm_op_level[n] = 0;
             fm_env_dot.valid = 0;
         }
+        if (spec_wanted)
+            spectrum_feed(0, 0);
         return;
     }
     sb_fm.voices[0] = on[0];
@@ -1679,6 +1681,9 @@ void fm_block(s32 *out, u32 frames)
         }
         tone_env = env;
     }
+    /* The patch view's spectrum (M8a part 5), only while it shows. */
+    if (spec_wanted)
+        spectrum_feed(out, frames);
 }
 
 void fm_init(void)

@@ -78,6 +78,13 @@ void lcd_wait(void)
     }
 }
 
+/* Since M8a: 1 while a transfer is still on its way, so a caller with
+ * other work can come back rather than wait in lcd_wait. */
+u32 lcd_busy(void)
+{
+    return dma_left || (dma_polled && !(JL_SPI1->CON & SPI_DONE));
+}
+
 void lcd_command(u8 command, const u8 *params, u32 count)
 {
     lcd_wait();

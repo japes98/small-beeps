@@ -118,6 +118,7 @@ void lcd_init(void);
 void lcd_command(u8 command, const u8 *params, u32 count);
 void lcd_send_rows(u32 first, u32 rows);
 void lcd_send_rect(u32 x, u32 y, u32 w, u32 h);   /* since M8a */
+u32 lcd_busy(void);                               /* since M8a */
 void lcd_wait(void);
 void lcd_spi_done(void) __attribute__((interrupt("")));
 #define LCD_DISPON 0x29u
