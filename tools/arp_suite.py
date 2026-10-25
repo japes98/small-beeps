@@ -131,10 +131,13 @@ def chip(slots, settings_bytes=None):
 
 class Case:
     def __init__(self, name, ms, script, flash=None, rams=(), lcds=(), leds=False, flash_out=False, check=None,
-                 golden=True, **info):
+                 golden=True, sound=True, **info):
         self.name, self.ms, self.script, self.flash = name, ms, script, flash
         self.rams, self.lcds, self.leds, self.flash_out = rams, lcds, leds, flash_out
         self.check, self.golden, self.info = check, golden, info
+        # sound: the WAV's hash a golden too (not for MIDI clock in: which
+        # block takes a clock moves a step there, with the code's timing).
+        self.sound = sound
 
     def run(self, image, out):
         d = os.path.join(out, self.name)
@@ -241,9 +244,13 @@ def onsets(x, quiet=16, floor=2):
 def messages_text(d):
     """MIDI out's messages as fwtest decodes them, one a line, without
     their times or whether they took running status (which follows from
-    the times: whether the wire went quiet before them)."""
+    the times: whether the wire went quiet before them), and without the
+    realtime ones (MIDI clock out, Start, Stop: where they fall among the
+    notes follows from the blocks too; clock-out checks them)."""
+    realtime = ("clock", "start", "stop", "continue")
     with open(os.path.join(d, "midi-out.txt")) as f:
-        return "".join(l.split(" ", 1)[1].replace(" (running status)", "") for l in f if " " in l)
+        lines = [l.split(" ", 1)[1].replace(" (running status)", "") for l in f if " " in l]
+    return "".join(l for l in lines if l.strip() not in realtime)
 
 
 def wav_sha256(d):
@@ -591,8 +598,9 @@ def clock_cases():
 
     bank = chip([with_arp(CLICK)])
     script = script + ["%d midi 80 3c 00" % (end + 1100), "%d midi 80 40 00" % (end + 1100)]
-    return [Case("clock", int(end) + 1300, script, bank, rams=("1000", "4000", "4700", "5600", "6800"), check=check),
-            Case("follow", 3600, follow_script, bank, rams=("3000",), check=check_follow)]
+    return [Case("clock", int(end) + 1300, script, bank, rams=("1000", "4000", "4700", "5600", "6800"), check=check,
+                 sound=False),
+            Case("follow", 3600, follow_script, bank, rams=("3000",), check=check_follow, sound=False)]
 
 
 def out_cases():
@@ -745,7 +753,9 @@ def load_case():
     with open(os.path.join(ROOT, "tests", "fw", "scripts", "audioload.txt")) as f:
         for line in f:
             line = line.split("#")[0].strip()
-            if line:
+            # (not its PRESETS turns: the run stays on the slot that
+            # arpeggiates, whatever programs follow it)
+            if line and not line.split()[1:3] == ["enc", "6"]:
                 ev.append(line)
     s = ["40 midi c0 09"] + ev
     ms = 11000
@@ -799,7 +809,7 @@ def run(image, out, only=None, write_golden=False):
                 p.append("%s: no golden MIDI out" % c.name)
             elif open(gpath).read() != got:
                 p.append("%s: MIDI out's messages differ from %s" % (c.name, rel(gpath)))
-        if c.golden and os.path.exists(os.path.join(d, "audio.wav")):
+        if c.golden and c.sound and os.path.exists(os.path.join(d, "audio.wav")):
             sums[c.name] = wav_sha256(d)
             if not write_golden and golden.get(c.name) != sums[c.name]:
                 p.append("%s: the WAV differs from its golden SHA-256" % c.name if c.name in golden
