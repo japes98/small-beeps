@@ -1513,8 +1513,17 @@ SR-3 wrote only its barrier-log row.*
     checked). In each, `tools/private-terms.local` was a symbolic link to
     this folder's, so the commit hook checked the terms (never opened).
     Both worktrees and links are removed at the end.
-  - **CI:** the runs of #131 and #126 read with `gh run view --log`
-    (the logs only, for C-PRESETS' line); no artifact downloaded.
+  - **CI:** the runs of #131, #126 and #132 read with `gh run view
+    --log` (the logs only). For #132's C-SEP-TERMS failure, its report
+    artifact's zip was fetched twice through GitHub's API into the
+    session's temporary folder, and only `logs/C-SEP-TERMS.log` was read
+    from it (`unzip -p`, to the terminal; the first time its file list
+    was filtered for that name with `grep`, only that line printed;
+    nothing else extracted), the zip deleted at once each time. The hits
+    were one of our own names in arp.c (found by hashing the flagged
+    line's words; renamed, and the name kept out of every text since),
+    then that rename's own commit message (reworded and force-pushed to
+    #132's and #133's branches, unmerged).
   - **The presets draft's listening set** (`~/<top>/drop/presets/`):
     not re-rendered (no preset's sound changed; the preset suite 64 of
     64 on #126 with #131).

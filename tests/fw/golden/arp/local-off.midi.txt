@@ -1,93 +1,18 @@
-start
-clock
-clock
-clock
-clock
-clock
-clock
-clock
-clock
-clock
-clock
-start
-clock
 note-on ch 1 key 53 vel 100
-clock
-clock
 note-on ch 1 key 53 vel 0
-clock
-clock
-clock
 note-on ch 1 key 60 vel 100
-clock
-clock
-clock
 note-on ch 1 key 60 vel 0
-clock
-clock
-clock
 note-on ch 1 key 53 vel 100
-clock
-clock
-clock
 note-on ch 1 key 53 vel 0
-clock
-clock
-clock
 note-on ch 1 key 60 vel 100
-clock
-clock
-clock
 note-on ch 1 key 60 vel 0
-clock
-clock
-clock
 note-on ch 1 key 53 vel 100
-clock
-clock
-clock
 note-on ch 1 key 53 vel 0
-clock
-clock
-clock
 note-on ch 1 key 60 vel 100
-clock
-clock
-clock
 note-on ch 1 key 60 vel 0
-clock
-clock
-clock
 note-on ch 1 key 53 vel 100
-clock
-clock
-clock
 note-on ch 1 key 53 vel 0
-clock
-clock
-clock
 note-on ch 1 key 60 vel 100
-clock
-clock
-clock
 note-on ch 1 key 60 vel 0
-clock
-clock
-clock
 note-on ch 1 key 53 vel 100
-clock
-clock
-clock
 note-on ch 1 key 53 vel 0
-clock
-clock
-clock
-clock
-clock
-clock
-clock
-clock
-clock
-clock
-clock
-clock
