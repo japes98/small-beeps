@@ -120,6 +120,11 @@ FORBIDDEN = [
     ("F-15", "FM-1-RE's storage document", r"(fm-1-re|io/)\S*09-storage"),
 ]
 TEMPLATE = FORBIDDEN
+# Rules added after sessions had already run under the old list apply only
+# to sessions whose first entry (the file name's UTC date) is on or after
+# this date; an earlier session's access is logged, not failed (since
+# evening-1024: F-15, when M7 had read that document while it was allowed).
+RULE_SINCE = {"F-15": "2026-10-25"}
 OLD_IDS = {
     "F-FELUCCA": "F-1", "F-HUGELTON": "F-2", "F-DINGHY": "F-3", "F-FM1-SID": "F-4",
     "F-PROBE": "F-5", "F-EMU-REPO": "F-6", "F-EMU-CRATES": "F-7", "F-VENDOR-EMU": "F-8",
@@ -806,6 +811,10 @@ def check_session(path, reviewed=None, stats=None):
                             lines.append("    MENTION %s (report only: not an access)" % rid)
                             stats["text_only"].add((sid, tid, RULE_WHY[rid]))
                     for rid in hits:
+                        if date < RULE_SINCE.get(rid, ""):
+                            lines.append("    BEFORE %s (report only: the rule applies from %s)"
+                                         % (rid, RULE_SINCE[rid]))
+                            continue
                         why = RULE_WHY[rid]
                         entry = reviewed.get((sid, tid, why))
                         if isinstance(entry, str):
