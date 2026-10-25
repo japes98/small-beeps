@@ -1079,7 +1079,17 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     "Vendoring FM1 Open's boot and update files"); the details are
     decided then.
   - `config/claude/clean.json` and `spec.json` get a deny rule against
-    cloning the port repository, at the start of the next sessions.
+    cloning the port repository, at the start of the next sessions
+    (done in session evening-1024: `Bash(git clone*small-beeps-ports*)`).
+- **The owner's further answers to session day-1024's questions,
+  recorded in session evening-1024 (2026-10-25):**
+  - The Claude session once run in a folder named for the porter was for
+    an unrelated project, with no FM-1 firmware, emulator or small-beeps
+    material; no porter session has run (docs/EXPOSURE.md, "Porter").
+  - FM-1-RE's `docs/io/09-storage.md` is no longer allowed to the
+    firmware side, since most of it describes the stock firmware's own
+    code; the spec side keeps it and cites only its hardware facts
+    (CONTRIBUTING.md; `tools/check-transcripts.py` rule F-15).
 - **The emulator doesn't model USB**, so M11 is hardware-only.
 - **Merge signatures are GitHub's.** Since 2026-10-22 the owner merges with
   GitHub's button, so merge commits are signed by GitHub (`web-flow`) and the
