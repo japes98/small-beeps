@@ -15,6 +15,11 @@
       "sha256_16": "8350af171db360ad",
       "reason": "A port pin's name (port C's pin ten) in docs/HARDWARE-SPEC.md (HW-56), written in the spec's port-letter-and-number style from the JieLi SDK's pin list for SPI1 (spi.h) and its pin numbering (gpio.h); not taken from the emulator. Needed only until the entry that adds it has merged into a door.",
       "added_by": "session SR-3 (spec side), 2026-10-23"
+    },
+    {
+      "sha256_16": "45732e3d51d5cc39",
+      "reason": "The firmware side's own name (M7) for the part of its code that the linker places in RAM and the start-up copies there: the linker symbols around it in firmware/app.ld, the line tools/build.sh adds to app.size and tools/perf.py reads, and the docs and commit messages that describe them. Chosen as the plain description of what it is; not taken from the emulator, which the firmware side never reads.",
+      "added_by": "session M7 (firmware side, claude-opus-5-5), 2026-10-24"
     }
   ]
 }
