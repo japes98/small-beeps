@@ -28,7 +28,7 @@ static u32 running;
 static struct {
     u8 note, velocity;
 } held[ARP_HELD];
-static u32 n_held, keys_down;
+static u32 n_held, keys_pressed_now;
 /* The notes it plays now, ending at off_at. */
 static u8 playing[ARP_HELD];
 static u32 n_playing;
@@ -178,7 +178,7 @@ void arp_silence(void)
 void arp_start(void)
 {
     running = 1;
-    n_held = keys_down = 0;
+    n_held = keys_pressed_now = 0;
     n_playing = 0;
     step = 0;
     rng = RANDOM_SEED;
@@ -197,7 +197,7 @@ void arp_stop(void)
     end_notes(0);
     clock_out_stop();
     running = 0;
-    n_held = keys_down = 0;
+    n_held = keys_pressed_now = 0;
     sb_arp.on = 0;
     sb_arp.held = 0;
     busy();
@@ -210,9 +210,9 @@ void arp_key(int note, u32 velocity, u32 down)
     if (!running || note < 0 || note > 127)
         return;
     if (down) {
-        keys_down++;
+        keys_pressed_now++;
         /* LATCH: the first key down after none starts a new chord. */
-        if (set.latch && keys_down == 1)
+        if (set.latch && keys_pressed_now == 1)
             n_held = 0;
         for (i = 0; i < n_held && held[i].note != note; i++)
             ;
@@ -235,8 +235,8 @@ void arp_key(int note, u32 velocity, u32 down)
         }
         held[i < n_held ? i : n_held - 1].velocity = (u8)velocity;
     } else {
-        if (keys_down)
-            keys_down--;
+        if (keys_pressed_now)
+            keys_pressed_now--;
         if (!set.latch) {
             for (i = j = 0; i < n_held; i++)
                 if (held[i].note != note)
