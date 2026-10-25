@@ -1691,9 +1691,11 @@ Q-21 to Q-24.
   PD4, data out (IO0) PD5, data in (IO1) PD1, and for quad transfers IO2
   PD2 and IO3 PD3. SPI0's other port, C (PC5 chip select, PC3 clock, PC4,
   PC0, PC1, PC2), is chosen by setting bit 5 of `JL_IOMAP->CON0`; port A
-  by clearing it (with bit 1 of `CON1` clear). PD0 is pulled up by
-  default, so the flash is deselected while nothing drives it; on the
-  AC7911B package, PD6 is the flash's power gate (`SFGAT`). The SDK's
+  by clearing it (with bit 1 of `CON1` clear). From the AC7911B's
+  datasheet alone (JL7911B), not the SDK: PD0 is pulled up by default, so
+  the flash is deselected while nothing drives it, and on that package
+  PD6 is the flash's power gate (`SFGAT`); the pin assignment above also
+  agrees with that datasheet. The SDK's
   board code leaves ports D, E, F and G alone ("the flash and SDRAM
   ports... are controlled internally") even when it sets every other pin
   to high impedance before power-off.
@@ -1720,7 +1722,7 @@ Q-21 to Q-24.
   `SPI0_DIA`/`SFC_DIA`, PD0 `SPI0_CSA`/`SFC_CSA` with pull-up) and Table
   2-4, page 12 (PB1 and PD0 pulled up by default); HW-83 (fwtest's chip
   select is PD0).
-- Standing: confirmed (SDK, JL7911B)
+- Standing: confirmed (SDK, JL7911B; PD0's pull-up and PD6 from JL7911B alone)
 - Needed by: M7 (real hardware), M9
 
 ## Open questions
