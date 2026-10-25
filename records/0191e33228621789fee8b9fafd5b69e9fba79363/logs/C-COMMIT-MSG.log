@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range ad13a38f51ed2c8f6b7e77001e166864bfc73381..0191e33228621789fee8b9fafd5b69e9fba79363
+OK     6957dce8dc51 docs: M8's proposal: screens, controls, macros, presets, costs
+EXEMPT c3dc132e8196 (merge) docs: merge the store's last test fixes into M8's proposal
+EXEMPT 666c92ea9f63 (merge) docs: merge the store's last test fixes into M8's proposal
+EXEMPT 05a8c1916ca0 (merge) docs: merge the store, brought up to main, into M8's proposal
+EXEMPT 0191e3322862 (merge) Merge pull request #107 from japes98/m7/m8-proposal
+5 commit(s) checked: PASS
+
+exit status 0
