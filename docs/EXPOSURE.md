@@ -1327,6 +1327,38 @@ SR-3 wrote only its barrier-log row.*
   - **The toolchain** built the firmware and its test images in the
     build container, as before. Disk stayed between 3 and 4 GB free.
 
+### Session M8a (the store's region, then the instrument's interface)
+- Date: 2026-10-25
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.310 (banner), largely unattended (the owner
+  checks in now and then).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `93de9c87-4f4f-427b-9b35-3c7addd90fd8`,
+  started by a `/clear` at 02:12:20Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh` found main
+  at `1123eca` and ended "no spec-side files on disk or in .git";
+  `tools/private-terms.local` exists (not opened). The Mac had 3.1 GB
+  free. It archived M7 (`cd82f4be`) into `sessions/clean/`; every other
+  clean session was already archived. `tools/check-transcripts.py`
+  flagged two of M7's calls; the session printed only those two commands
+  from the redacted archive. One deletes the two scratch folders of the
+  CI artifacts M7 downloaded whole (already recorded above), the other
+  writes a memory note; each names a spec-side folder only in text. Two
+  `REVIEWED.json` entries clear them, for the owner to approve in the
+  pull request, and the check then passed.
+- Reads: CONTRIBUTING.md, this file, sessions/README.md,
+  sessions/REVIEWED.json, the redacted archive of `cd82f4be` (the two
+  flagged commands only), docs/HARDWARE-SPEC.md (HW-36, HW-76 to HW-82),
+  docs/M8-PROPOSAL.md, docs/STORE-FORMAT.md, docs/DESIGN-NOTES.md, and
+  this repository's tools, tests, docs and firmware. FM-1-RE's
+  `docs/io/09-storage.md` is no longer allowed for the firmware side (the
+  spec side's change of 2026-10-25); this session never opened it.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
