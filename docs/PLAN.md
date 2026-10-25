@@ -905,8 +905,8 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   moved to the unused region), #116 (M8's budgets), #117 (the screens'
   framework), #118 (the loaded budget, for the macros), #119 (the
   macros), #120 (EDIT), #121 (ENV), #122 (the loaded budget, for the
-  spectrum), #123 (the spectrum) and the settings pull request, in that
-  merge order. docs/M8-PROPOSAL.md with the owner's answers
+  spectrum), #123 (the spectrum) and #124 (the settings), in that merge
+  order; the ARP proposal is #125 (docs/ARP-PROPOSAL.md). docs/M8-PROPOSAL.md with the owner's answers
   (docs/prompts/M8a.md); docs/DESIGN-NOTES.md, M8a, has the details.
   - **The store** now lives in the stock layout's unused region,
     `0xFC000` to `0xFEFFF`, three sectors: the stock firmware's saved

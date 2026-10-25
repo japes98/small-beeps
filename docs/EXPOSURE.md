@@ -1358,6 +1358,25 @@ SR-3 wrote only its barrier-log row.*
   this repository's tools, tests, docs and firmware. FM-1-RE's
   `docs/io/09-storage.md` is no longer allowed for the firmware side (the
   spec side's change of 2026-10-25); this session never opened it.
+- Later in the session:
+  - **Open spec pull requests, metadata and named files only:** the
+    file lists of #110 and #112 (names only; among them a spec
+    transcript's, never opened), #112's description, and through GitHub's
+    contents API `config/fwtest-image` on #112's branch and
+    `PROVENANCE.md` on the branches of #110, #112, #113, #114 and #115
+    (only the last row's ID read, to number P-58). Nothing fetched into
+    `.git`, nothing under the spec-side folders.
+  - **fwtest 0.6.0 before its pin merged:** with only
+    `config/fwtest-image` changed locally (never committed), the store's
+    nine cases on main's firmware and on #111's, both PASS, and one
+    diagnostic run of the env case (the same hang as on 0.5.0: our own
+    `gfx_line`, fixed in #121). The results went to #112 as a comment.
+  - **The toolchain** built the firmware and its test images in the
+    build container; the disassembler in that container
+    (`/opt/jieli/pi32v2/bin/objdump`) was run on our own ELF to read the
+    spectrum's compiled loop.
+  - **Disk:** 3.1 GB free at the start, 2.3 to 2.4 GB through the day;
+    `out/` cleared between runs; Docker left alone.
 
 ## Corrections
 
