@@ -48,6 +48,9 @@ extern volatile struct fm_ui fm_ui;
 /* What views.c needs of the engine (fm_play.c). */
 const u8 *fm_program_bytes(void);   /* the program playing now, as patch bytes */
 u32 fm_user_used(void);             /* user slots holding a patch, bit n for slot n */
+/* Each operator's loudest gain now, 2^-30, written each block while the
+ * operator view shows (since M8a part 3), 0 when nothing sounds. */
+extern volatile s32 fm_op_level[6];
 
 /* views.c, from main's loop: take the panel's events (LEDs, the event
  * line) and the engine's state, and draw what changed. view_message puts

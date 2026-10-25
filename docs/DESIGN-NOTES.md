@@ -2233,3 +2233,38 @@ patch on SAVE. `fm_play.c`, "The macros".
   f0 off the harmonics at 0, 0.29 at COLOR +32; test patch 0: attack to
   -3 dB 2.9 / 0.0 / 637 ms and release to -60 dB 41 / 17 / 2 520 ms at
   SHAPE 0 / -64 / +64; the pitch swings 50 cents at MOTION +64.
+
+### 2026-10-25 M8a: the operator view (EDIT)
+
+- **What it shows.** The algorithm as boxes and lines, laid out from
+  `fm_algorithms` alone (a carrier's row is 0; a modulator sits a row
+  above what it modulates, in its column or the next free one), centred
+  in the body; the selected operator outlined twice in yellow; the
+  feedback operator's hook in cyan; a line with the selected operator's
+  values; the strip with the page's four values.
+- **Live levels.** While EDIT shows (only then), the engine writes each
+  operator's loudest gain over the voices sounding, after a block is
+  rendered (`fm_op_level`; about 100 compares a block). Main reads them
+  every 50 ms and redraws only the meters that moved, each one a
+  rectangle of a box's width and 3 rows. `lcd_send_rect` sends a
+  rectangle: HW-31's column and row address set bound the memory write,
+  and the rectangle is copied first into a staging buffer (7 680 bytes,
+  a chunk), since the frame buffer's rows are apart. A meter costs about
+  90 ticks; whole rows would have meant 16 to 120 rows for six meters.
+  The proposal's figure assumed rectangles; this is how it gets them.
+- **Editing.** The edits go to a copy of the program playing now
+  (`edit_raw`), which is what the screens show and SAVE writes; each one
+  parses the copy again (about 5 000 instructions, once a detent). Another
+  program discards them: the patch is parsed again from its stored bytes.
+  So editing never changes a test patch or a user slot until SAVE.
+  Ratios step through the whole numbers 1 to 16 and a half (COARSE and
+  FINE reach the rest); a fixed frequency steps a semitone a detent.
+- **Knob positions.** Since this part, KNOB1 to KNOB4's positions as the
+  patch view's controls move only with turns on the patch view, held to
+  their span: turning a knob on EDIT edits the operator and leaves the
+  macros where they were, and turning back from past an end answers at
+  once (M5 counted every detent since start). MIDI out sends the same
+  values as before for the same turns.
+- **Measured** (edit, test patch 0): ratio 2 932.32 Hz (466.16 x 2);
+  level 103 -18.06 dB; detune +50 49.98 cents; fixed 440.00 Hz; held
+  103 -18.06 dB; velocity 7 -10.24 dB at the panel's velocity 100.

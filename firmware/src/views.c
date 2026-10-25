@@ -180,11 +180,62 @@ static void strip_set(u32 k, const char *name, int v, int sign)
     pad(strip_value[k], n, 5);
 }
 
+static void strip_text(u32 k, const char *name, const char *value)
+{
+    u32 n = put(strip_name[k], 0, name);
+
+    pad(strip_name[k], n, 10);
+    n = put(strip_value[k], 0, value);
+    pad(strip_value[k], n, 5);
+}
+
+static const u8 *op_bytes(u32 i);
+static u32 freq_text(char *b, u32 n, const u8 *o);
+static int s8v(u8 x);
+
+/* The operator view's strip (M8a part 3): the selected operator's values
+ * on the page SELECT chose. */
+static void strip_edit(void)
+{
+    const u8 *o = op_bytes(ui.op);
+    char b[12];
+    u32 n;
+
+    if (ui.page == 0) {
+        n = freq_text(b, 0, o);
+        if (o[FMO_MODE])
+            n -= 2;   /* the strip's 5 characters: no "Hz" */
+        b[n] = 0;
+        strip_text(0, o[FMO_MODE] ? "FREQ Hz" : "RATIO", b);
+        strip_set(1, "LEVEL", o[FMO_LEVEL], 0);
+        strip_set(2, "DETUNE", s8v(o[FMO_DETUNE]), 1);
+        strip_set(3, "VELO", o[FMO_VELOCITY], 0);
+    } else if (ui.page == 1) {
+        strip_text(0, "MODE", o[FMO_MODE] ? "fixed" : "ratio");
+        n = freq_text(b, 0, o);
+        if (o[FMO_MODE])
+            n -= 2;
+        b[n] = 0;
+        strip_text(1, "COARSE", b);
+        strip_text(2, "FINE", b);
+        strip_text(3, "", "");
+    } else {
+        strip_set(0, "PEAK", o[FMO_ENV_LEVEL], 0);
+        strip_set(1, "D1 LEVEL", o[FMO_ENV_LEVEL + 1], 0);
+        strip_set(2, "HOLD", o[FMO_ENV_LEVEL + 2], 0);
+        strip_text(3, "", "");
+    }
+}
+
 static void strip_work(void)
 {
     static const char *const macros[4] = { "BRIGHT", "COLOR", "SHAPE", "MOTION" };
     u32 k;
 
+    if (ui.screen == UI_EDIT) {
+        strip_edit();
+        return;
+    }
     if (ui.knobs) {
         /* The setting "Knobs: direct": M5's controls, pitch, glide,
          * modulation depth, feedback. */
@@ -220,8 +271,13 @@ static u32 body_work(void)
     h = mix(h, algorithm);
     h = mix(h, user_used);
     h = mix(h, midi_settings.local);
-    for (i = 0; i < FM_PATCH_BYTES; i++)
-        h = mix(h, prog[i]);
+    /* What a body shows of the program: the operator view's values are
+     * on its info line and strip, so an edit redraws only those. */
+    if (ui.screen == UI_PATCH)
+        h = mix(h, prog[FMP_FEEDBACK]);
+    else if (ui.screen == UI_ENV)
+        for (i = 0; i < FM_PATCH_BYTES; i++)
+            h = mix(h, prog[i]);
     if (ui.screen == UI_SETTINGS) {
         const u8 *s = (const u8 *)&midi_settings;
         for (i = 0; i < sizeof midi_settings; i++)
@@ -298,6 +354,11 @@ static void draw_line(void)
 /* Where each operator sits: its row is how many operators lie between it
  * and the output (carriers 0, at the bottom); a modulator takes its
  * destination's column, or the next free one to the right. */
+/* The operator boxes as last drawn on the operator view, for its live
+ * levels (M8a part 3); and the width of each one's meter as drawn. */
+static u32 box_x[FM_OPS], box_y[FM_OPS], box_w, box_h;
+static u32 meter_drawn[FM_OPS];
+
 struct layout {
     u8 col[FM_OPS], row[FM_OPS];
     u8 cols, rows;
@@ -352,9 +413,11 @@ static void draw_algorithm(u32 alg, u32 x, u32 y, u32 w, u32 h, u32 sel)
         ch = 30;
     bw = cw - 8;
     bh = ch - 10 < 12 ? ch - 4 : ch - 10;
+    box_w = bw;
+    box_h = bh;
     for (i = 0; i < FM_OPS; i++) {
         bx[i] = x + l.col[i] * cw + (cw - bw) / 2;
-        by[i] = y + h - (l.row[i] + 1u) * ch + (ch - bh) / 2;
+        by[i] = y + h - (h - l.rows * ch) / 2 - (l.row[i] + 1u) * ch + (ch - bh) / 2;
     }
     for (i = 0; i < FM_OPS; i++) {
         if (a->dest[i] == FM_TO_OUT)
@@ -364,17 +427,43 @@ static void draw_algorithm(u32 alg, u32 x, u32 y, u32 w, u32 h, u32 sel)
                      (int)by[a->dest[i]] - 1, GREY);
     }
     for (i = 0; i < FM_OPS; i++) {
-        u32 on = i == sel, fg = on ? BLACK : WHITE, bg = on ? YELLOW : DARK;
+        u32 on = i == sel, fg = WHITE, bg = DARK;
         gfx_fill(bx[i], by[i], bw, bh, bg);
         gfx_frame(bx[i], by[i], bw, bh, on ? YELLOW : GREY);
+        if (on)
+            gfx_frame(bx[i] + 1, by[i] + 1, bw - 2, bh - 2, YELLOW);
         if (bh >= FONT_H + 2)
-            gfx_glyph(bx[i] + (bw - FONT_CELL) / 2, by[i] + (bh - FONT_H) / 2, '1' + i, fg, bg, 1);
+            gfx_glyph(bx[i] + (bw - FONT_CELL) / 2, by[i] + (bh - FONT_H - 3) / 2, '1' + i, fg, bg, 1);
+        box_x[i] = bx[i];
+        box_y[i] = by[i];
         if (i == a->feedback_op) {
             gfx_fill(bx[i] + bw, by[i] + 2, 3, 1, CYAN);
             gfx_fill(bx[i] + bw + 2, by[i] + 2, 1, bh - 4, CYAN);
             gfx_fill(bx[i] + bw, by[i] + bh - 3, 3, 1, CYAN);
         }
     }
+}
+
+/* An operator's live level as a meter along the bottom of its box: the
+ * gain's octaves below full scale, 48 dB over the meter's width. */
+static u32 meter_width(s32 g, u32 w)
+{
+    u32 lg, x;
+
+    if (g <= 0)
+        return 0;
+    lg = 31u - (u32)__builtin_clz((u32)g);
+    x = (30u - lg) * 16u - (lg >= 4 ? ((u32)g >> (lg - 4)) & 15u : 0);
+    return x >= 128 ? 0 : (128 - x) * w / 128;
+}
+
+static void draw_meter(u32 i, u32 width)
+{
+    u32 x = box_x[i] + 3, y = box_y[i] + box_h - 5, w = box_w - 6;
+
+    gfx_fill(x, y, w, 3, BLACK);
+    gfx_fill(x, y, width, 3, CYAN);
+    meter_drawn[i] = width;
 }
 
 /* --- The bodies ---------------------------------------------------------- */
@@ -435,18 +524,51 @@ static void body_edit(void)
     n = decimal(b, n, (int)algorithm, 0);
     n = put(b, n, "   OP");
     n = decimal(b, n, ui.op + 1, 0);
-    n = put(b, n, " selected");
+    n = put(b, n, "   page ");
+    n = decimal(b, n, ui.page + 1, 0);
+    n = put(b, n, "/3");
     b[n] = 0;
     text(4, BODY_Y + 4, b, WHITE, 1);
     draw_algorithm(algorithm - 1u, 4, BODY_Y + 16, 232, 120, ui.op);
-    n = put(b, 0, "ratio ");
+    {
+        u32 i;
+        for (i = 0; i < FM_OPS; i++)
+            draw_meter(i, meter_width(fm_op_level[i], box_w - 6));
+    }
+    (void)o;
+}
+
+/* The operator view's info line (its own part): the selected operator's
+ * values on every page. */
+#define INFO_Y (BODY_Y + 144)
+static char info_text[41], info_drawn[41];
+
+static void info_work(void)
+{
+    const u8 *o = op_bytes(ui.op);
+    char *b = info_text;
+    u32 n = 0;
+
+    if (ui.screen != UI_EDIT) {
+        b[0] = 0;
+        return;
+    }
+    n = put(b, n, o[FMO_MODE] ? "fixed " : "ratio ");
     n = freq_text(b, n, o);
-    n = put(b, n, "  level ");
+    n = put(b, n, " lvl ");
     n = decimal(b, n, o[FMO_LEVEL], 0);
-    n = put(b, n, "  detune ");
+    n = put(b, n, " det ");
     n = decimal(b, n, s8v(o[FMO_DETUNE]), 1);
-    b[n] = 0;
-    text(4, BODY_Y + 146, b, GREY, 1);
+    n = put(b, n, " vel ");
+    n = decimal(b, n, o[FMO_VELOCITY], 0);
+    pad(b, n, 38);
+}
+
+static void draw_info(void)
+{
+    gfx_fill(0, INFO_Y, SCREEN_W, FONT_H, BLACK);
+    text(4, INFO_Y, info_text, GREY, 1);
+    copy_text(info_drawn, info_text);
 }
 
 static void body_env(void)
@@ -561,9 +683,31 @@ static void draw_body(void)
 #define ITEM_SEND0  6u            /* bits 6 to 9: the body's bands sent */
 #define ITEM_LINE   (1u << 10)
 #define ITEM_STRIP  (1u << 11)
+#define ITEM_INFO   (1u << 12)    /* the operator view's info line (M8a part 3) */
+#define ITEM_LIVE   (1u << 13)    /* the live parts: the operators' levels */
 #define ITEM_BODY_ALL (((1u << BANDS) - 1u) << ITEM_CLEAR0 | ITEM_BODY)
 
 static u32 dirty, shown, in_frame, frame_beat, draw_block, spent;
+
+/* The live parts (M8a part 3): each operator's meter that moved, drawn
+ * and sent as its own rectangle. */
+static u32 live_width[FM_OPS];
+
+static void draw_live(void)
+{
+    u32 i, t = sb_now();
+
+    for (i = 0; i < FM_OPS; i++)
+        if (live_width[i] != meter_drawn[i]) {
+            draw_meter(i, live_width[i]);
+            lcd_send_rect(box_x[i] + 3, box_y[i] + box_h - 5, box_w - 6, 3);
+            sb_ui.rows_sent += 3;
+        }
+    t = sb_now() - t;
+    sb_ui.live++;
+    if (t > sb_ui.live_max)
+        sb_ui.live_max = t;
+}
 
 static void draw_item(u32 bit)
 {
@@ -580,8 +724,13 @@ static void draw_item(u32 bit)
     } else if (bit == 10) {
         draw_line();
         send(MSG_Y, MSG_H);
-    } else {
+    } else if (bit == 11) {
         draw_strip();
+    } else if (bit == 12) {
+        draw_info();
+        send(INFO_Y, FONT_H);
+    } else {
+        draw_live();
     }
 }
 
@@ -706,11 +855,18 @@ static void work(void)
     for (k = 0; k < 4; k++)
         if (!same(strip_name[k], strip_name_drawn[k]) || !same(strip_value[k], strip_value_drawn[k]))
             dirty |= ITEM_STRIP;
+    info_work();
+    if (!same(info_text, info_drawn))
+        dirty |= ITEM_INFO;
     /* Marked once a change: its parts may take several blocks. */
     body_sig = body_work();
     if (body_sig != body_sig_marked) {
         body_sig_marked = body_sig;
         dirty |= ITEM_BODY_ALL;
+        /* The info line lies in the body's last band. */
+        info_drawn[0] = 0;
+        if (info_text[0])
+            dirty |= ITEM_INFO;
     }
 }
 
@@ -762,6 +918,38 @@ static void midi_line(u32 m)
     message(b, 0);
 }
 
+/* Asks the tick to wake main at beat b, unless it will sooner. */
+static void wake_at(u32 b)
+{
+    if (!sb_wake_at || (int)(b - sb_wake_at) < 0)
+        sb_wake_at = b;
+}
+
+/* The live parts, at most every LIVE_MS while their screen shows and its
+ * body is drawn. */
+#define LIVE_MS 50u
+static u32 live_beat;
+
+static void live_work(void)
+{
+    u32 beats = sb_beacon.beats, i, any = 0;
+
+    if (ui.screen != UI_EDIT || (dirty & (ITEM_BODY_ALL | (((1u << BANDS) - 1u) << ITEM_SEND0))))
+        return;
+    if (beats - live_beat < LIVE_MS) {
+        wake_at(live_beat + LIVE_MS);
+        return;
+    }
+    live_beat = beats;
+    for (i = 0; i < FM_OPS; i++) {
+        live_width[i] = meter_width(fm_op_level[i], box_w - 6);
+        any |= live_width[i] != meter_drawn[i];
+    }
+    if (any)
+        dirty |= ITEM_LIVE;
+    wake_at(live_beat + LIVE_MS);
+}
+
 void view_serve(void)
 {
     struct input_event e;
@@ -773,6 +961,14 @@ void view_serve(void)
             for (i = 0; i < UI_SCREENS; i++)
                 if (e.control == screen_button[i] && led_screen != i) {
                     led_screen = i;
+                    if (shown)
+                        leds_for_state();
+                }
+        /* SEL with OP1 to OP6 picks the operator (M8a part 3). */
+        if (e.kind == INPUT_PRESS && input_value(INPUT_SEL))
+            for (i = 0; i < FM_OPS; i++)
+                if (e.control == op_key[i] && led_op != i) {
+                    led_op = i;
                     if (shown)
                         leds_for_state();
                 }
@@ -800,6 +996,7 @@ void view_serve(void)
     if (!shown)
         return;
     work();
+    live_work();
     if (dirty)
         draw_frame();
 }
