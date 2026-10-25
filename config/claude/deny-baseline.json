@@ -11,7 +11,8 @@
     "Bash(git clone*dinghy*)",
     "Bash(git clone*fm1-emu*)",
     "Bash(git clone*f-emulator*)",
-    "Read(./sessions/spec/**)"
+    "Read(./sessions/spec/**)",
+    "Bash(git clone*small-beeps-ports*)"
   ],
   "spec": [
     "Read(**/fm1-sid/**)",
@@ -20,7 +21,8 @@
     "WebFetch(domain:thefirmwarehub.com)",
     "Bash(git clone*Felucca*)",
     "Bash(git clone*felucca*)",
-    "Bash(git clone*dinghy*)"
+    "Bash(git clone*dinghy*)",
+    "Bash(git clone*small-beeps-ports*)"
   ],
   "auditor": [
     "Edit(./firmware/**)",

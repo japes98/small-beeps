@@ -177,6 +177,13 @@ class TranscriptTest(unittest.TestCase):
         self.assertTrue(self.heredoc_call(ok, tail="\ncat sptwo/x"))
         self.assertEqual(self.heredoc_call(ok), [])
 
+    def test_fm1_re_storage_document_is_forbidden(self):
+        # since evening-1024 (the owner's decision); HARDWARE-SPEC.md's
+        # citations of it are only mentions
+        url = "https://raw.githubusercontent.com/AL-255/FM-1-RE/ec83/docs/io/09-storage.md"
+        self.assertIn("F-15", ct.forbidden_hits("shell", "curl -sO " + url)[0])
+        self.assertNotIn("F-15", ct.forbidden_hits("shell", "grep -n 09-storage docs/HARDWARE-SPEC.md")[0])
+
     def test_other_rules_are_cleared_only_as_mentions(self):
         # The text rule's folder exemption never clears another rule; the
         # access rule (since M4) sees code that opens only our own files,
