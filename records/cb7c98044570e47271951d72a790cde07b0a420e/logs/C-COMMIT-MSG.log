@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 040d7de209e25845a5c47afea7db8f7354db2c8b..cb7c98044570e47271951d72a790cde07b0a420e
+OK     0c1daab90a33 config: a reviewed C-SEP-TERMS false positive, M7's name for code run from RAM
+EXEMPT cb7c98044570 (merge) Merge pull request #108 from japes98/m7/terms
+2 commit(s) checked: PASS
+
+exit status 0
