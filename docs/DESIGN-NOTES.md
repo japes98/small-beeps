@@ -1929,7 +1929,7 @@ redrawn when they change.
   its command rules, nothing from the window while the flash is busy,
   the FM-1's flash layout, the window encrypted and cached on the chip,
   fwtest 0.5.0's chip; HARNESS.md's `--flash`, `--flash-out` and its
-  known gap around an unused volatile read. PROVENANCE P-54.
+  known gap around an unused volatile read. PROVENANCE P-55.
 - Sources: our own design. No other firmware's store, no file system's
   or EEPROM-emulation library's source, was looked at for it.
 

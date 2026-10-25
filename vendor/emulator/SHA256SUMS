@@ -7,7 +7,7 @@ c243be1f7b46c2225eb1c9dcf7e8472767ae1b835cf08bcc61d7d6050a39fab9  crates/fm1-cor
 8ff587b33d2d6403f96b2145ebe4be471b26704e5ba1d80af368e1a1ea7b6808  crates/fm1-core/src/jit_a64.rs
 f03f1546903a939ef8e0d774cb3c53126790411cd30a5ff01047726bba49eb66  crates/fm1-core/src/jit_wasm.rs
 dbe0d0a9daed044e060b620eb52924dfbba43a131d439907714bb2018e47be2e  crates/fm1-core/src/jit_x64.rs
-74e1fc5323f7ef6b12d0503cfaf15d1af5e918fc7e800b607ab3955ce12ecc72  crates/fm1-core/src/lib.rs
+76a3e940f4cb2b8f1d1a16fd5991763a84c60804d18de02cfc675bf67851a348  crates/fm1-core/src/lib.rs
 3889ecda35f93e62021b4e5330a39aa00e8648c43e3e4455c55bfbde1a631a73  crates/fm1-isa/Cargo.toml
 3ffd450a3a80aadecfbbee288aebf6792a6a1ddfdd3e601d2234fade80f3d477  crates/fm1-isa/src/fpu.rs
 42f5a32abc5223916387e31a90402a21b23d4a02ff288321251f499bbf5b2a3e  crates/fm1-isa/src/generated_isa.rs
@@ -16,14 +16,14 @@ f28133c7c313de7d6c6132c14734810c08e1a3aac36bce70c2c38a7ac5446a55  crates/fm1-soc
 b54841a9de92bf1cc1ab9e73bd89a7689778a18908bd0e429743caa191b0a7d3  crates/fm1-soc/src/flaky.rs
 091c4189809ad24936572dfd2ae30ba305c856663f95f126410e214e52bb2302  crates/fm1-soc/src/fwsc.rs
 f50418d6a45da15da8cc0f5b514ee35889f65b780062f3d8deba6f0f5859521d  crates/fm1-soc/src/lcd.rs
-ae9efd4880b759ec2af2f80c8b48dcff38c33a21e9b4731c262ae4dea4bb9a98  crates/fm1-soc/src/lib.rs
+53faf849a19ecf74bfb74daddff7c508ce4f036618faa12a01948e97af17510e  crates/fm1-soc/src/lib.rs
 881962867e6217afb03c354e19745b5916f5acfac66437e41ebe69b8eb5985fe  crates/fm1-soc/src/machine.rs
 87a8a619261966c8386df9e7c97599f9c18b40a1f4a0d4229be8be30b8ed3d5a  crates/fm1-soc/src/p33.rs
 06c401fa551dd40197477bead22bf0e6e659a7ab1fcadf6bf86c3f34552c8baa  crates/fm1-soc/src/periph.rs
 78fa59feff6ef480e1b3aafc79d629afaa70d3615a8aca59ea9c2d1fb4824091  crates/fm1-soc/src/ram.rs
 b93bc4859d59089a2dc293c52c079a13e11d59b6f5a0213ad815a0a2fc1e12a3  crates/fm1-soc/src/script.rs
 9077aa2cb10b3f055a385a35b125126c7001191a0664954703ddfee6d4388b15  crates/fm1-soc/src/smk.rs
-35d22f57b59b8ada4e0e52f17b644d6443edae81519f82ac9d8a737602a558f2  crates/fm1-soc/src/spiflash.rs
+1f3fcf3f7c60c7917acafc2ff1eccd674f408f9d9b0a3cbaecdb75a489468c62  crates/fm1-soc/src/spiflash.rs
 b5a4ff1a576a757cade273b95702955d4dcea560237098f8f36965f57f8c7966  patches/0001-workspace-members.patch
 2663cbe5f0d06734764c8a7b8a6bf9133c44cf67a491dcdc4bde70b8dd58afbe  patches/0002-spi1-con-writes-replace.patch
 adb44e50e122ceae9cf9e5238444cf0fbbd6051ef98f9bf412d046710d66808c  patches/0003-block-moves-below-the-base.patch
@@ -33,3 +33,5 @@ ac522d00e9778f2ef6753a47ba9784870b88ea2dd662fb1a95fdc7ca9b08606f  patches/0006-p
 8da07f4dc7a98718d27908a0d8461d0616c6208620541bc732d1b9bdc7ac597f  patches/0007-peripherals-before-memories.patch
 beb37801c42a1e54882023f7ca8fdee65f886e19c1f861db3514803659462ab1  patches/0008-ram-blocks-by-write-count.patch
 d2bca936a5a550af2729fd8d6203ce158d408d00a67c96c32bf3ec82e5a23c94  patches/0009-midi-out-transmit-side.patch
+cf71696b55979a7dffde6b54892ac0d5be4b58b4cc457e08e05439c767bf78be  patches/0010-flash-chip-busy-times-and-power-cut.patch
+7e275740d9e487a33334831ff6e28d7abcfd01f19132631d9a8f27829cea297b  patches/0011-pair-head-wins-over-its-second-half.patch

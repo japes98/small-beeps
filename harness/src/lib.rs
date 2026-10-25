@@ -40,6 +40,8 @@ run options:
   --lcd WHEN             save the screen as PNG
   --leds-every MS        sample the LEDs every MS into leds.csv
   --flash-out            save the flash chip at the end (flash.bin)
+  --flash-log            the erases and programs started (flash-ops.csv)
+  --power-cut MS         end the run at MS as a power cut, saving flash.bin
   --wav                  save the audio output (audio.wav)
   --ipb                  instructions per audio block (ipb.csv)
   --console              save the debug console bytes (console.txt)
@@ -97,7 +99,12 @@ pub fn parse_run(args: &[String], base: &Path) -> Result<RunArgs, String> {
     while let Some(a) = it.next() {
         let mut val = |name: &str| it.next().cloned().ok_or_else(|| format!("{name} needs a value"));
         match a.as_str() {
-            "--ms" => ms = Some(script::parse_ms(&val("--ms")?)?),
+            "--ms" => {
+                if ms.is_some() {
+                    return Err(if opt.power_cut { "--power-cut sets the run's end: give it or --ms, not both" } else { "--ms given twice" }.into());
+                }
+                ms = Some(script::parse_ms(&val("--ms")?)?)
+            }
             "--out" => out = Some(path(&val("--out")?)),
             "--script" => script_path = Some(path(&val("--script")?)),
             "--flash" => flash = Some(path(&val("--flash")?)),
@@ -122,6 +129,14 @@ pub fn parse_run(args: &[String], base: &Path) -> Result<RunArgs, String> {
                 opt.watchdog = Some((number(a)?, number(m)? as u64));
             }
             "--flash-out" => opt.flash_out = true,
+            "--flash-log" => opt.flash_log = true,
+            "--power-cut" => {
+                if ms.is_some() {
+                    return Err(if opt.power_cut { "--power-cut given twice" } else { "--power-cut sets the run's end: give it or --ms, not both" }.into());
+                }
+                ms = Some(script::parse_ms(&val("--power-cut")?)?);
+                opt.power_cut = true;
+            }
             "--wav" => opt.wav = true,
             "--ipb" => opt.ipb = true,
             "--console" => opt.console = true,
@@ -132,7 +147,7 @@ pub fn parse_run(args: &[String], base: &Path) -> Result<RunArgs, String> {
             s => return Err(format!("unexpected argument {s:?}")),
         }
     }
-    opt.ms_us = ms.ok_or("--ms is required")?;
+    opt.ms_us = ms.ok_or("--ms (or --power-cut) is required")?;
     if opt.ms_us == 0 {
         return Err("--ms must be more than 0".into());
     }
@@ -180,7 +195,7 @@ pub fn execute(a: &RunArgs, suite_name: &str) -> Result<Done, String> {
     let mut cases = vec![Case {
         name: "run".into(),
         failure: match (&report.outcome, a.opt.halt_ok) {
-            (Outcome::Completed, _) | (Outcome::Halt { .. }, true) => None,
+            (Outcome::Completed | Outcome::PowerCut { .. }, _) | (Outcome::Halt { .. }, true) => None,
             (o, _) => Some(format!("{}: {}", o.name(), o.detail())),
         },
     }];
@@ -241,8 +256,8 @@ pub fn suite(file: &Path, out: &Path) -> Result<i32, String> {
             return Err(format!("suite line {}: expected `NAME EXPECT IMAGE [options]`", n + 1));
         }
         let (name, expect) = (&w[0], &w[1]);
-        if !["completed", "halt", "fault", "hang"].contains(&expect.as_str()) || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
-            return Err(format!("suite line {}: bad name or expectation (completed, halt, fault, hang)", n + 1));
+        if !["completed", "halt", "fault", "hang", "power-cut"].contains(&expect.as_str()) || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+            return Err(format!("suite line {}: bad name or expectation (completed, halt, fault, hang, power-cut)", n + 1));
         }
         let mut args = w[2..].to_vec();
         args.push("--out".into());
