@@ -146,7 +146,8 @@ docs/prompts/owner-answers-1025.md):
 6. **Clock:** follow incoming MIDI clock automatically, falling back to
    the internal tempo when it stops.
 
-Left to the firmware side's design, and open until it proposes them:
+Left to the firmware side's design (made in its ARP work, #132;
+docs/DESIGN-NOTES.md, "ARP"):
 
 - **When the clock has stopped.** A MIDI Stop, a silence with no 0xF8
   (and how long), or both; and what a Start, a Stop or a Continue does
