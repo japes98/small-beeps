@@ -194,3 +194,93 @@ def pitch_track(x, first, last, step_ms=10.0, window_ms=20.0, rate=RATE):
         out.append(((i + w / 2.0 - first) * 1000.0 / rate, sine_fit(x[i:i + w])["frequency"]))
         i += s
     return out
+
+
+# --- Since M8a: the macros' measures (tools/fw-suite.py, R-UI-6) --------
+
+def fft(re, im):
+    """In place, radix 2 (len a power of two): the discrete Fourier
+    transform of re + i im."""
+    n = len(re)
+    j = 0
+    for i in range(1, n):
+        bit = n >> 1
+        while j & bit:
+            j ^= bit
+            bit >>= 1
+        j |= bit
+        if i < j:
+            re[i], re[j] = re[j], re[i]
+            im[i], im[j] = im[j], im[i]
+    size = 2
+    while size <= n:
+        w = -2 * math.pi / size
+        for k in range(size // 2):
+            c, s = math.cos(w * k), math.sin(w * k)
+            for start in range(k, n, size):
+                a, b = start, start + size // 2
+                tr = re[b] * c - im[b] * s
+                ti = re[b] * s + im[b] * c
+                re[b], im[b] = re[a] - tr, im[a] - ti
+                re[a], im[a] = re[a] + tr, im[a] + ti
+        size *= 2
+
+
+def power_spectrum(x, n=8192):
+    """[(Hz, power)] of the first n samples of x under a Hann window."""
+    re = [x[i] * (0.5 - 0.5 * math.cos(2 * math.pi * i / n)) for i in range(n)]
+    im = [0.0] * n
+    fft(re, im)
+    return [(k * RATE / n, re[k] ** 2 + im[k] ** 2) for k in range(n // 2)]
+
+
+def share_above(x, f, n=8192):
+    """The share of the power above frequency f: how much of the sound is
+    in its upper partials."""
+    spec = power_spectrum(x, n)
+    total = sum(p for _, p in spec)
+    return sum(p for hz, p in spec if hz > f) / total if total else 0.0
+
+
+def inharmonicity(x, f0, n=8192, floor_db=-40.0):
+    """How far the partials lie from the harmonics of f0: the power-
+    weighted mean distance, in units of f0 (0 to 0.5), of every bin within
+    floor_db of the strongest from its nearest whole multiple of f0."""
+    spec = power_spectrum(x, n)
+    top = max(p for _, p in spec)
+    keep = [(hz, p) for hz, p in spec if hz > f0 / 2 and p > top * 10 ** (floor_db / 10)]
+    total = sum(p for _, p in keep)
+    return sum(p * abs(hz / f0 - round(hz / f0)) for hz, p in keep) / total if total else 0.0
+
+
+def envelope(x, step=64):
+    """The peak absolute sample in each run of step samples."""
+    return [max(abs(v) for v in x[i:i + step]) for i in range(0, len(x) - step + 1, step)]
+
+
+def attack_ms(x, start, step=64, rate=RATE):
+    """From sample start to where the envelope first reaches its peak
+    less 3 dB, in ms."""
+    env = envelope(x[start:], step)
+    top = max(env)
+    i = next(k for k, v in enumerate(env) if v >= top * 10 ** (-3 / 20))
+    return i * step * 1000.0 / rate
+
+
+def release_ms(x, off, step=64, rate=RATE, drop_db=60.0):
+    """From sample off (the note's end) to where the envelope falls drop_db
+    below its level at off, in ms (to the end, if it never does)."""
+    env = envelope(x[off:], step)
+    ref = env[0] or 1
+    for k, v in enumerate(env):
+        if v < ref * 10 ** (-drop_db / 20):
+            return k * step * 1000.0 / rate
+    return len(env) * step * 1000.0 / rate
+
+
+def pitch_swing_cents(x, first, last, rate=RATE):
+    """Half the range, in cents, of the pitch tracked over 10 ms windows
+    every 5 ms: a vibrato's depth (0 for a steady note)."""
+    track = pitch_track(x, first, last, step_ms=5.0, window_ms=10.0, rate=rate)
+    hz = [f for _, f in track]
+    return 1200 * math.log2(max(hz) / min(hz)) / 2 if hz else 0.0

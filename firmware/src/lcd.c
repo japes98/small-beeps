@@ -78,6 +78,13 @@ void lcd_wait(void)
     }
 }
 
+/* Since M8a: 1 while a transfer is still on its way, so a caller with
+ * other work can come back rather than wait in lcd_wait. */
+u32 lcd_busy(void)
+{
+    return dma_left || (dma_polled && !(JL_SPI1->CON & SPI_DONE));
+}
+
 void lcd_command(u8 command, const u8 *params, u32 count)
 {
     lcd_wait();
@@ -145,6 +152,39 @@ void lcd_send_rows(u32 first, u32 rows)
     dma_left = bytes;
     JL_SPI1->CON = SPI_CON | SPI_CLEAR | SPI_IRQ;
     start_chunk();
+}
+
+/* Since M8a: a rectangle of the frame buffer, x to x + w - 1 by y to
+ * y + h - 1, to the same place on the panel (HW-31's column and row
+ * address set bound the memory write to it). The frame buffer's rows are
+ * apart, so the rectangle is copied, once the last transfer is done, into
+ * a staging buffer and sent from there as one polled transfer: at most
+ * CHUNK bytes (a live part: an operator's level, the envelope's dot). */
+static u16 rect_buf[CHUNK / 2] __attribute__((aligned(4)));
+
+void lcd_send_rect(u32 x, u32 y, u32 w, u32 h)
+{
+    u8 cols[4] = { x >> 8, x & 0xFF, (x + w - 1) >> 8, (x + w - 1) & 0xFF };
+    u8 lines[4] = { y >> 8, y & 0xFF, (y + h - 1) >> 8, (y + h - 1) & 0xFF };
+    u32 r, i, n = 0;
+
+    if (!w || !h || w * h * 2 > CHUNK || x + w > SCREEN_W || y + h > SCREEN_H)
+        return;
+    lcd_wait();
+    for (r = 0; r < h; r++) {
+        const u16 *p = &sb_fb[(y + r) * SCREEN_W + x];
+        for (i = 0; i < w; i++)
+            rect_buf[n++] = p[i];
+    }
+    frame_start = sb_now();
+    lcd_command(CASET, cols, 4);
+    lcd_command(RASET, lines, 4);
+    lcd_command(RAMWR, 0, 0);
+    dma_polled = 1;
+    JL_SPI1->CON = SPI_CON | SPI_CLEAR;
+    JL_SPI1->ADR = (u32)rect_buf;
+    sb_beacon.chunks++;
+    JL_SPI1->CNT = n * 2;
 }
 
 /* The controller's start: a software reset, sleep out, 16-bit pixels, and

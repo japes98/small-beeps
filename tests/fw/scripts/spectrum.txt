@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# spectrum (tests/fw/boot.suite, R-UI-12): the patch view's live
+# spectrum. HOME at 600 ms shows the patch view; PLAY at 800 ms starts
+# the test tone (1 kHz, steady): the screen at 1 300 ms (golden image),
+# its tallest bar the one holding 1 kHz. PLAY at 1 500 ms stops it: by
+# 2 000 ms the bars are down (golden image), and from then on, at rest,
+# no transform runs (2 000 to 2 900 ms). KEY18 from 2 950 ms: the bars
+# rise again.
+#
+# time   event
+600      key 8 tap
+800      key 12 tap
+1500     key 12 tap
+2950     key 31 down
+3150     key 31 up

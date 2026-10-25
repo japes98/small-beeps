@@ -1,0 +1,150 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# viewsload (tests/fw/boot.suite, R-UI-4): drawing never makes the audio
+# late. Test patch 6 (every operator sounding) on all 16 voices, 20 keys
+# held, the test tone on; then for 2.9 s the screens change every 100 ms
+# (EDIT, ENV, GLO, HOME in turn: each change redraws the whole screen,
+# part by part), while KNOB1 to KNOB4 and ALGORITHM turn and MASTER
+# sweeps, so every part of every screen is drawn under the full load.
+# Made by a short script from this description; change both together.
+#
+# time   event
+50       enc 6 +6
+100      key 12 tap 50
+110      key 14 down
+110      key 15 down
+110      key 16 down
+110      key 17 down
+110      key 18 down
+110      key 19 down
+110      key 20 down
+110      key 21 down
+110      key 22 down
+110      key 23 down
+110      key 24 down
+110      key 25 down
+110      key 26 down
+110      key 27 down
+110      key 28 down
+110      key 29 down
+110      key 30 down
+110      key 31 down
+110      key 32 down
+110      key 33 down
+300      key 6 tap
+330      enc 3 +3
+360      enc 1 +1
+370      pot 1023
+400      key 4 tap
+430      enc 4 -3
+460      enc 1 -1
+470      pot 600
+500      key 7 tap
+530      enc 5 +3
+560      enc 1 +1
+570      pot 1023
+600      key 8 tap
+630      enc 2 -3
+660      enc 1 -1
+670      pot 600
+700      key 6 tap
+730      enc 3 +3
+760      enc 1 +1
+770      pot 1023
+800      key 4 tap
+830      enc 4 -3
+860      enc 1 -1
+870      pot 600
+900      key 7 tap
+930      enc 5 +3
+960      enc 1 +1
+970      pot 1023
+1000     key 8 tap
+1030     enc 2 -3
+1060     enc 1 -1
+1070     pot 600
+1100     key 6 tap
+1130     enc 3 +3
+1160     enc 1 +1
+1170     pot 1023
+1200     key 4 tap
+1230     enc 4 -3
+1260     enc 1 -1
+1270     pot 600
+1300     key 7 tap
+1330     enc 5 +3
+1360     enc 1 +1
+1370     pot 1023
+1400     key 8 tap
+1430     enc 2 -3
+1460     enc 1 -1
+1470     pot 600
+1500     key 6 tap
+1530     enc 3 +3
+1560     enc 1 +1
+1570     pot 1023
+1600     key 4 tap
+1630     enc 4 -3
+1660     enc 1 -1
+1670     pot 600
+1700     key 7 tap
+1730     enc 5 +3
+1760     enc 1 +1
+1770     pot 1023
+1800     key 8 tap
+1830     enc 2 -3
+1860     enc 1 -1
+1870     pot 600
+1900     key 6 tap
+1930     enc 3 +3
+1960     enc 1 +1
+1970     pot 1023
+2000     key 4 tap
+2030     enc 4 -3
+2060     enc 1 -1
+2070     pot 600
+2100     key 7 tap
+2130     enc 5 +3
+2160     enc 1 +1
+2170     pot 1023
+2200     key 8 tap
+2230     enc 2 -3
+2260     enc 1 -1
+2270     pot 600
+2300     key 6 tap
+2330     enc 3 +3
+2360     enc 1 +1
+2370     pot 1023
+2400     key 4 tap
+2430     enc 4 -3
+2460     enc 1 -1
+2470     pot 600
+2500     key 7 tap
+2530     enc 5 +3
+2560     enc 1 +1
+2570     pot 1023
+2600     key 8 tap
+2630     enc 2 -3
+2660     enc 1 -1
+2670     pot 600
+2700     key 6 tap
+2730     enc 3 +3
+2760     enc 1 +1
+2770     pot 1023
+2800     key 4 tap
+2830     enc 4 -3
+2860     enc 1 -1
+2870     pot 600
+2900     key 7 tap
+2930     enc 5 +3
+2960     enc 1 +1
+2970     pot 1023
+3000     key 8 tap
+3030     enc 2 -3
+3060     enc 1 -1
+3070     pot 600
+3100     key 6 tap
+3130     enc 3 +3
+3160     enc 1 +1
+3170     pot 1023

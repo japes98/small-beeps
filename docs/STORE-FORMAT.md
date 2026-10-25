@@ -14,8 +14,12 @@ firmware's. Numbers are little-endian.
 
 ## The region
 
-Chip offsets `0xEA000` to `0xFBFFF`, the stock layout's user patch
-region (HW-80): 18 sectors of 4 KiB, used as a ring. Where it sits is one
+Chip offsets `0xFC000` to `0xFEFFF`, the stock layout's unused region
+(HW-80): 3 sectors of 4 KiB, used as a ring. The firmware leaves the
+stock firmware's user patch region (`0xEA000` to `0xFBFFF`, where M7's
+store was) as it is, so the stock firmware's saved patches survive; why
+three sectors are enough is in docs/DESIGN-NOTES.md (M8a). The format
+does not depend on the number of sectors. Where it sits is one
 definition (`STORE_BASE` and `STORE_SIZE` in `store.h`), since where our
 own image sits on the chip is M9's; `firmware/app.ld` keeps the image
 clear of it. The firmware reads and writes the region only through
@@ -62,7 +66,7 @@ and out: zlib's).
 |-----:|------|----------------------|
 | 1 | a user slot's patch | the 112-byte patch (docs/PATCH-FORMAT.md), version 1 |
 | 2 | the patch selection | 4 bytes: the program (0 to 8 the test patches, 9 to 24 the user slots), then 0, 0, 0; version 1 |
-| 3 | the settings | `struct midi_settings` (`firmware/src/midi.h`): version 2, 40 bytes; version 1 (M6a's), 36 bytes, is read as version 2 with version 2's defaults for the out channel (1), thru (off) and local control (on) |
+| 3 | the settings | `struct midi_settings` (`firmware/src/midi.h`): version 3 (since M8a), 40 bytes, its last byte the knobs' mode (0: the macros, 1: direct); version 2 (M6b's), the same 40 bytes with that byte 0, is read as version 3 with the macros; version 1 (M6a's), 36 bytes, is read as version 3 with its defaults for the out channel (1), thru (off), local control (on) and the knobs (the macros) |
 | 4 | a reset | none; version 0. Every record older than it is void |
 
 ## Reading

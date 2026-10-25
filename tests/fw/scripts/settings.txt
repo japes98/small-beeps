@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# settings (tests/fw/boot.suite, R-UI-13, R-UI-14): the settings screen
+# (GLO), each row changed with KNOB1 and its effect: MIDI in channel 2
+# (a note on channel 1 filtered, one on channel 2 played); MIDI out
+# channel 3 (KEY18 goes out on channel 3); thru on (a note received goes
+# out again); local control off (KEY20 goes out but plays nothing); bend
+# range 12; knobs direct (the screen at 2 300 ms). Factory reset: KNOB1
+# asks (the screen at 2 550 ms), HOME cancels (the patch view, its knobs
+# direct, at 2 750 ms); asked again, SAVE does it (the settings' defaults,
+# the screen at 3 300 ms).
+#
+# time   event
+600      key 7 tap
+700      enc 2 +2
+800      midi 90 3c 64
+850      midi 80 3c 00
+900      midi 91 3e 64
+1000     midi 81 3e 00
+1100     enc 0 +1
+1150     enc 2 +2
+1250     key 31 tap
+1350     enc 0 +1
+1400     enc 2 +1
+1500     midi 91 40 64
+1550     midi 81 40 00
+1650     enc 0 +1
+1700     enc 2 -1
+1800     key 33 tap
+1900     enc 0 +1
+1950     enc 2 +10
+2100     enc 0 +1
+2150     enc 2 +1
+2400     enc 0 +2
+2450     enc 2 +1
+2600     key 8 tap
+2800     key 7 tap
+2900     enc 2 +1
+3000     key 9 tap

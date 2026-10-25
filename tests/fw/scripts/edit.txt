@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# edit (tests/fw/boot.suite, R-UI-9, R-UI-10): the operator view on test
+# patch 0 (one sine carrier, operator 1), KEY18 (MIDI note 70) played
+# after each edit. A detent takes 8 ms, so each turn ends before the next
+# note. E1 as stored; E2 RATIO up one (2.00); E3 LEVEL -24 (103); E4
+# DETUNE +50; page 2: E5 MODE fixed (440 Hz); page 3: E6 HOLD -24 (103);
+# page 1: E7 VELO +7 (with E6's held level); then ALGORITHM, SEL with OP2 (the screen at 4600
+# ms), HOME, SAVE with KEY1 (slot 1 holds the edited patch), PRESETS on
+# and back (the edits gone): E8 is E1 again.
+#
+# time   event
+100      key 6 tap
+400      key 31 down
+650      key 31 up
+700      enc 2 +1
+800      key 31 down
+1050     key 31 up
+1100     enc 2 -1
+1100     enc 3 -24
+1350     key 31 down
+1600     key 31 up
+1650     enc 3 +24
+1650     enc 4 +50
+2100     key 31 down
+2350     key 31 up
+2400     enc 4 -50
+2850     enc 0 +1
+2900     enc 2 +1
+2950     key 31 down
+3200     key 31 up
+3250     enc 2 -1
+3300     enc 0 +1
+3350     enc 4 -24
+3600     key 31 down
+3850     key 31 up
+3900     enc 0 +1
+3950     enc 5 +7
+4050     key 31 down
+4300     key 31 up
+4350     enc 1 +1
+4400     key 3 down
+4420     key 17 tap
+4500     key 3 up
+4700     key 8 tap
+4800     key 9 down
+4850     key 14 tap
+4950     key 9 up
+5100     enc 6 +1
+5200     enc 6 -1
+5300     key 31 down
+5550     key 31 up
