@@ -298,5 +298,5 @@ void midi_settings_default(struct midi_settings *s)
     s->out_channel = 1;
     s->thru = 0;
     s->local = 1;
-    s->reserved = 0;
+    s->knobs = 0;
 }

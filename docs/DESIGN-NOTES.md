@@ -2074,3 +2074,310 @@ golden images.
   reads back wrong and the save is reported failed (never silently lost).
 - **Q-24, updates:** whether an update rewrites the user region decides
   whether saved patches survive one (M9).
+
+### 2026-10-25 M8a: the store moves to the unused region
+
+The owner prefers that our firmware never erases the stock firmware's
+saved patches. M7's store took the stock user patch region (HW-80,
+`0xEA000` to `0xFBFFF`, 18 sectors), so it erased them. HW-80 names one
+other region a store may take without touching anything of the stock
+firmware's: `0xFC000` to `0xFEFFF`, 12 KiB, three sectors, ending before
+the per-unit last 4 KiB. The store now lives there (`STORE_BASE`,
+`STORE_SIZE`; the format is unchanged), and the image is still linked to
+end before `0xEA000`, so neither touches the user patch region. No unit
+runs a build with M7's store yet, so nothing is migrated.
+
+**Does it fit?** Everything the store keeps live at once is 16 patches
+(a record of 128 bytes each), the selection (32), the settings (64) and
+a reset (16): 2 160 bytes. A sector holds 4 080 bytes of records after
+its header. The ring moves the live records of the sector after the new
+head into it, so a sector is never erased with anything live in it; even
+when every live record has to move, the new head keeps 1 920 bytes for
+new records, more than the largest record (128). So no save is ever
+refused for want of room, with any mix of slots in use; the model and
+the store suite's `full` and `wear` cases run on three sectors.
+
+**Wear life,** counted as M7 counts it (its "Wear", a bound): each
+sector takes 100 000 erases (HW-77), and each erase gives at least the
+1 920 bytes left after the largest compaction, so the region takes
+3 x 1 920 x 100 000 bytes of records, a sixth of M7's 18 sectors:
+
+| Use, without a break | Life, 3 sectors | (M7's 18 sectors, same bound) |
+|---|---:|---:|
+| the selection and the settings both changed every 2 s (the most `STORE_SETTLE_S` allows; 96 bytes in 2 s) | 0.38 years (3 300 hours) | 2.3 years |
+| a patch saved every 10 s | 1.4 years | 8.6 years |
+| a heavy day: 300 program changes, 20 settings changes, 20 saves (about 13 KiB of records) | about 117 years | |
+| two hours a day of the most the limits allow | about 4.6 years | |
+
+The bound is pessimistic: `tools/store.py`'s model, with all 16 slots,
+the selection and the settings live, takes about 3 000 to 4 000 bytes of
+new records an erase, not 1 920, so real lives are about 1.6 to 2 times
+these. So the smaller region meets the 16 slots, the selection and the
+settings with a long life in real use; the cost is the margin for abuse.
+If that ever matters, `STORE_SETTLE_S` is the lever: at 10 s the
+selection's and settings' worst case lasts five times longer.
+
+**What is not known** (HW-80): FM-1-RE says the stock layout's free
+regions have not been validated as safe for writes from outside the
+stock firmware, and whether an update rewrites any region past the app
+area is open (Q-24). The unused region is no worse known than the user
+patch region on either count.
+
+**Tests.** The constants test checks the store lies past the user patch
+region and before the last 4 KiB, and the image's window ends where the
+user patch region begins. The store suite's `persist` and `wear` cases
+start with the user patch region full of a pseudo-random pattern standing
+for the stock firmware's saved patches, and every run checks the chip
+outside the store is unchanged, so an erase or a write there would fail.
+
+### 2026-10-25 M8a: the screens' framework
+
+The instrument's interface (docs/M8-PROPOSAL.md, with the owner's
+answers in docs/prompts/M8a.md), first its frame. `firmware/src/ui.h`
+and `views.c`; M3's panel screen (`panel.c`) is gone.
+
+- **Who owns what.** The engine owns the interface's state (`struct
+  fm_ui`: the screen, the selected operator, the page, the settings
+  row). It already takes the panel's events in order in its block
+  callback, from its own queue; so a screen button and a knob turned just
+  after it reach it in that order, and what a knob does always matches
+  the screen it was turned on. Had main decided the screen, an EDIT
+  press and a KNOB1 turn in one block could reach the engine as a macro
+  turn. The engine adds one to `fm_ui.seq` on every block that took an
+  event or a MIDI message, and wakes main. Main only draws: it copies the
+  state when `seq` holds still, works out what each part of the screen
+  should show, and redraws only the parts that changed.
+- **The frame.** Every screen has a header (rows 0-25: the program's
+  number, `001` to `009` for the test patches and `U01` to `U16` for the
+  user slots, its name at double size, the mode and the octave), a body
+  (rows 26-189, the screen's own), an event line (rows 190-201) and the
+  bottom strip (rows 202-239), which names what KNOB1 to KNOB4 do on this
+  screen, with their values at double size, in four columns of 60
+  pixels. Until M8a's patch view lands, KNOB1 to KNOB4 keep M5's meanings
+  on every screen, and the strip says so.
+- **Parts, frames and the budget.** M5's rule stays: what is marked is
+  drawn at most once a 16 ms frame, part by part, and no part starts in
+  an audio block once drawing has taken 4 352 time base ticks of it. A
+  whole new screen is many parts: the header; the body cleared in four
+  bands; the body drawn into the frame buffer; the body sent in four
+  bands; the event line; the strip. A knob turn redraws only the strip's
+  values and sends their 16 rows. The first build drew a body as one part
+  of 11 300 ticks; split so, the longest part is 3 800 ticks (the strip's
+  names and values after a change of screen), within the budget, and a
+  block's drawing is under two budgets. Two things made that: a fast path
+  for double-size text (a glyph pixel is one 32-bit store of two
+  pixels) and not padding the body's text, whose bands are cleared
+  anyway. A body is marked once a change, since its parts may take
+  several blocks: marking it again while they were under way restarted
+  its clearing and never finished (found in the first run).
+- **LEDs.** A held button or key is fully lit, the shown screen's button
+  lit, and on EDIT and ENV the selected operator's key at half. Main
+  sets them (`input_led` is main's only) as it takes each event, from
+  the same events the engine takes, so they change within R-LED-3's
+  1 ms, not a block later when the engine's state arrives.
+- **The heartbeat** stays the test screen's: main no longer draws it
+  once the instrument's screens show (it drew over their rows 200-215
+  every second).
+- **The record.** `sb_ui` at `0x01C00870`, after the store's: the screen
+  drawn, the parts, rows sent, the longest part and which, the most
+  drawing in one block, the LED changes and messages.
+- **Costs.** Code 26 700 bytes (+2 560). The steady state (the test
+  screen, no input) 1 872 instructions a block, as before; the loaded
+  measure 98 265, down from 107 590, as the screens redraw less than the
+  M3 panel did under the same input.
+
+### 2026-10-25 M8a: the macros
+
+KNOB1 to KNOB4 on the patch view are four macros (docs/M8-PROPOSAL.md),
+unless the settings say "Knobs: direct" (M5's pitch, glide, depth,
+feedback). The owner's answer: they stay offsets, never written into the
+patch on SAVE. `fm_play.c`, "The macros".
+
+- **What each moves.** BRIGHT is M5's KNOB3 renamed: every modulator's
+  level, -64 to +32 steps of 0.75 dB. COLOR, -32 to +32: above 0 every
+  modulator's ratio is multiplied by 2^(c/64), up to the square root of 2
+  at +32, an irrational factor, so the sidebands leave the harmonics the
+  same way on every patch; feedback rises by up to 3 steps. Below 0 each
+  ratio moves toward its nearest whole number (or a half), so a patch
+  with fractional ratios grows purer and a harmonic one is unchanged.
+  SHAPE, -64 to +64, moves the carriers' time codes and levels toward a
+  pluck (attack 0, decay 1 to 56, decay 2 to 72 with the held level to
+  0, release 40, the level after decay 1 toward 96) or a pad (attack 80,
+  about a second; the levels after decay 1 and held toward 127; release
+  96, about four seconds), in proportion. MOTION, 0 to 64: vibrato at
+  M6a's 5.5 Hz, up to half a semitone more than the wheel's, and the
+  carriers but the first detuned up to 12 cents, above and below in
+  turn, so a held note moves and, with several carriers, beats and
+  widens.
+- **Exact at 0.** The operators with COLOR and SHAPE applied are worked
+  out once a change (`shape_ops`: the patch, the algorithm or a macro),
+  copying the parsed patch's values and changing only what a macro moves.
+  At 0 nothing moves, so the notes are the stored patch's bit for bit:
+  audiogold and fmgold are unchanged, and the macros case plays a note,
+  turns BRIGHT and COLOR and back, and gets the first note again, sample
+  for sample. COLOR also reaches the notes already sounding (their
+  ratios); SHAPE the notes started after it.
+- **MIDI.** Controllers 16 to 19, as M6a mapped them to the four knobs,
+  over each macro's own range by M6b's rule (64 is 0). SHAPE and MOTION
+  have more positions than a controller has values, so one position
+  (+63) goes out as the next (+64). With the macros, the default map's
+  74 (brightness) moves BRIGHT, and 5 (the glide time) nothing.
+- **The setting** is `struct midi_settings`' last byte, always 0 in
+  version 2, so a version 2 record reads as version 3 with the macros
+  (R-STORE-6). M5's and M6's cases written for the direct controls start
+  from a flash chip holding settings that say "Knobs: direct", made by
+  `tools/store.py` (the store's own record): the shipping image, as a
+  player who chose it.
+- **Measured** (the macros case, test patch 1, MIDI note 70): the share
+  of power above 7.5 f0 0.067 at 0, 0.373 at BRIGHT +20; partials 0.005
+  f0 off the harmonics at 0, 0.29 at COLOR +32; test patch 0: attack to
+  -3 dB 2.9 / 0.0 / 637 ms and release to -60 dB 41 / 17 / 2 520 ms at
+  SHAPE 0 / -64 / +64; the pitch swings 50 cents at MOTION +64.
+
+### 2026-10-25 M8a: the operator view (EDIT)
+
+- **What it shows.** The algorithm as boxes and lines, laid out from
+  `fm_algorithms` alone (a carrier's row is 0; a modulator sits a row
+  above what it modulates, in its column or the next free one), centred
+  in the body; the selected operator outlined twice in yellow; the
+  feedback operator's hook in cyan; a line with the selected operator's
+  values; the strip with the page's four values.
+- **Live levels.** While EDIT shows (only then), the engine writes each
+  operator's loudest gain over the voices sounding, after a block is
+  rendered (`fm_op_level`; about 100 compares a block). Main reads them
+  every 50 ms and redraws only the meters that moved, each one a
+  rectangle of a box's width and 3 rows. `lcd_send_rect` sends a
+  rectangle: HW-31's column and row address set bound the memory write,
+  and the rectangle is copied first into a staging buffer (7 680 bytes,
+  a chunk), since the frame buffer's rows are apart. A meter costs about
+  90 ticks; whole rows would have meant 16 to 120 rows for six meters.
+  The proposal's figure assumed rectangles; this is how it gets them.
+- **Editing.** The edits go to a copy of the program playing now
+  (`edit_raw`), which is what the screens show and SAVE writes; each one
+  parses the copy again (about 5 000 instructions, once a detent). Another
+  program discards them: the patch is parsed again from its stored bytes.
+  So editing never changes a test patch or a user slot until SAVE.
+  Ratios step through the whole numbers 1 to 16 and a half (COARSE and
+  FINE reach the rest); a fixed frequency steps a semitone a detent.
+- **Knob positions.** Since this part, KNOB1 to KNOB4's positions as the
+  patch view's controls move only with turns on the patch view, held to
+  their span: turning a knob on EDIT edits the operator and leaves the
+  macros where they were, and turning back from past an end answers at
+  once (M5 counted every detent since start). MIDI out sends the same
+  values as before for the same turns.
+- **Measured** (edit, test patch 0): ratio 2 932.32 Hz (466.16 x 2);
+  level 103 -18.06 dB; detune +50 49.98 cents; fixed 440.00 Hz; held
+  103 -18.06 dB; velocity 7 -10.24 dB at the panel's velocity 100.
+
+### 2026-10-25 M8a: the envelope view (ENV), and a line that never ended
+
+- **The drawing.** An envelope's stages are drawn as wide as their time
+  codes (plus 8, so a code of 0 still shows), the held stage a fixed 36
+  pixels, the height the level code. Since a code is 2^(t/8) ms, the
+  time axis is logarithmic, as the proposal said it would be. The pitch
+  envelope is drawn about its middle (P0 to P3, signed), the glide as a
+  ramp over its code.
+- **The dot.** While ENV shows, the engine writes the newest sounding
+  note's stage and level for the envelope shown (the operator's gain in
+  the attack, its attenuation after; the pitch envelope's level). Main,
+  every 50 ms, places the dot along the stage's segment by how far the
+  level has come between the stage's ends, keeps the 25 pixels under it,
+  and on a move puts them back and sends two 5 x 5 rectangles, so the
+  graph is never redrawn for it (about 500 ticks, the stage's name
+  included). The graph, when an edit changes it, is cleared in two
+  halves, drawn and sent as parts of their own (each within the budget;
+  as one part it took 4 800 ticks).
+- **Editing** works as the operator view's, on the program's copy: the
+  four rates or three levels of the selected operator; the pitch
+  envelope's three rates and depth, or its four levels; the glide time.
+- **The line.** M2's `gfx_line` tested its second step against the
+  error its first step had just changed, so on some lines it stepped
+  past the end and never stopped: about one random line in five. M2's
+  test screen and M8a's algorithm diagrams happen to draw only lines it
+  finishes (all ten algorithms checked, on both screens), so the first
+  envelope drawn after an edit was the first to hang main, in the env
+  case. Now both tests use the error from the step's start, the usual
+  form. The test screen's two diagonals change by a few pixels (their
+  golden images with them), and so do the diagrams' lines.
+- **Measured** (env, test patch 2): ATTACK 40 -> 56 makes the attack x
+  4.13 (21.8 -> 89.9 ms to -3 dB); RELEASE 64 -> 48 x 0.27; HOLD 87 -> 71
+  -12.04 dB; DEPTH 12, P0 -127, RATE1 56: -9.6 semitones 10 ms in, 0.00
+  by 390 ms.
+- **Also:** main now serves the panel's events from before its loop
+  began (a key pressed during the boot screens shows the instrument's
+  screens at once, rather than at the next event).
+
+### 2026-10-25 M8a: the live spectrum
+
+- **The transform.** `spectrum.c`: a Hann window and a 256-point
+  radix-2 FFT in fixed point. Samples are the output's top 16 bits;
+  every stage halves its results, so values stay within 16 bits, their
+  products within 32, and no float is needed (the proposal assumed the
+  float unit; this is simpler and exact from run to run). A full-scale
+  sine's peak bin comes out near 2^26 of power; the bars show 60 dB
+  below that over 40 rows.
+- **The bars.** 56 bars, 4 pixels apart, from 200 Hz to 20 kHz on a
+  logarithmic axis (the owner's answer). Bins are 172 Hz apart, so the
+  bars below about 700 Hz are narrower than a bin: each takes the power
+  between its two nearest bins, in proportion; above, the strongest bin
+  in its band. A pure tone therefore shows as a hump on the log axis,
+  narrow at the top: its tallest bar is its own (the spectrum case
+  checks the test tone's 1 kHz lands there), and the Hann window's
+  leakage falls 31 dB within 3 bins.
+- **Cost.** Before each transform main asks the engine for a capture:
+  the next 4 blocks' output (256 samples), or silence at rest; between
+  captures the engine copies nothing. Main runs at most a transform each
+  33 ms, as three parts, each within the drawing budget: the window and
+  the first four of seven stages; three more; the split into 128 bins
+  and the bars. The transform is of 256 real samples as 128 complex ones
+  (the even samples real, the odd imaginary) and a split, half the
+  butterflies of a 256-point complex transform; a butterfly is 25
+  instructions. Only the bars that moved are redrawn, each as the column
+  between its old height and its new, and only the spectrum's 40 rows
+  are sent (19 200 bytes; on the chip's bus about a third of the time at
+  30 a second, as the proposal said). At rest, with the bars down, it
+  makes one capture after each piece of new work (a note starting is
+  one) and nothing else.
+- **Against the proposal's figures.** RAM: 2 048 bytes (the capture 512,
+  the transform 1 024, the twiddles 512; the window and the bins' power
+  are computed as needed), the proposal's "about 2 KiB". CPU, with the
+  test tone alone (the spectrum case, core 0's instructions a block over
+  its steady tone, with and without the spectrum): 1 489 a block, about
+  2.3 times the proposal's 650; the proposal counted the transform
+  alone, at about 15 000 instructions, where this one, with the window,
+  the bars and their drawing, is about 32 000.
+- **Under the heaviest input** (the loaded measure) it costs more than
+  that: part 4 measured 105 721 instructions a block; this part 110 268
+  (+4.3%). Built without the spectrum, 104 648 (main's bookkeeping is
+  lighter now: it skips everything when the engine's state hasn't
+  moved); transforming without drawing, 109 757; the transform as one
+  part instead of three, 110 157; capturing only what a transform needs
+  rather than every block, 110 268. So under that input the spectrum
+  adds about 5 600 a block where the same work adds 1 489 with the tone
+  alone. Not explained yet: one candidate is core 0's wait for core 1 in
+  the audio interrupt, which may lengthen when main is busy (fwtest takes
+  the cores in turns). The loaded budget moves in its own pull request,
+  and the owner is asked.
+- **Waking.** The frames used to set the tick's wake directly, so a
+  frame's own wake could replace the live parts' and main then slept
+  until the next event: 9 transforms where 40 were due. Now every wake
+  keeps the sooner of two, and the live parts ask again after each frame
+  (the operator view's meters and the envelope's dot update more often
+  for it too).
+
+### 2026-10-25 M8a: the settings screen
+
+- **Rows:** every setting of `struct midi_settings` the panel had no way
+  to reach (in and out channels, thru, local control, bend range), the
+  knobs' mode, the store's use and the factory reset. SELECT picks a row,
+  KNOB1 changes it one step (the on/off rows by the turn's direction);
+  the engine changes the settings, as MIDI's controllers already did, so
+  M7's saving keeps them 2 s after the last change.
+- **Factory reset:** the owner moved it here with a confirmation. KNOB1
+  on the last row asks, the screen says what SAVE will clear, SAVE does
+  it, and HOME, SELECT or another screen cancels it. M7's hold of SAVE
+  and HOME is gone; the store suite's reset case now asks, confirms and
+  cancels this way.
+- **Drawing:** the eight rows are two parts (the body draws the title and
+  the first four, the info line's part the rest), each within the budget;
+  as one part they took 5 700 ticks.
