@@ -65,22 +65,26 @@ void gfx_pixel(u32 x, u32 y, u32 colour)
 
 /* From (x0, y0) to (x1, y1), both ends included: each step moves one
  * pixel along the longer axis and, when the error accumulated in the
- * other axis passes half a pixel, one along that too. */
+ * other axis passes half a pixel, one along that too. Both tests use the
+ * error from the step's start (since M8a: M2's tested the second against
+ * the error the first had just changed, which can step past the end and
+ * never stop, as a line from (52, 50) to (93, 71) did). */
 void gfx_line(int x0, int y0, int x1, int y1, u32 colour)
 {
     int dx = x1 > x0 ? x1 - x0 : x0 - x1, sx = x1 > x0 ? 1 : -1;
     int dy = y1 > y0 ? y1 - y0 : y0 - y1, sy = y1 > y0 ? 1 : -1;
-    int err = dx - dy;
+    int err = dx - dy, e2;
 
     for (;;) {
         gfx_pixel((u32)x0, (u32)y0, colour);
         if (x0 == x1 && y0 == y1)
             return;
-        if (2 * err > -dy) {
+        e2 = 2 * err;
+        if (e2 > -dy) {
             err -= dy;
             x0 += sx;
         }
-        if (2 * err < dx) {
+        if (e2 < dx) {
             err += dx;
             y0 += sy;
         }

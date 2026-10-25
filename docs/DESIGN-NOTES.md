@@ -2268,3 +2268,41 @@ patch on SAVE. `fm_play.c`, "The macros".
 - **Measured** (edit, test patch 0): ratio 2 932.32 Hz (466.16 x 2);
   level 103 -18.06 dB; detune +50 49.98 cents; fixed 440.00 Hz; held
   103 -18.06 dB; velocity 7 -10.24 dB at the panel's velocity 100.
+
+### 2026-10-25 M8a: the envelope view (ENV), and a line that never ended
+
+- **The drawing.** An envelope's stages are drawn as wide as their time
+  codes (plus 8, so a code of 0 still shows), the held stage a fixed 36
+  pixels, the height the level code. Since a code is 2^(t/8) ms, the
+  time axis is logarithmic, as the proposal said it would be. The pitch
+  envelope is drawn about its middle (P0 to P3, signed), the glide as a
+  ramp over its code.
+- **The dot.** While ENV shows, the engine writes the newest sounding
+  note's stage and level for the envelope shown (the operator's gain in
+  the attack, its attenuation after; the pitch envelope's level). Main,
+  every 50 ms, places the dot along the stage's segment by how far the
+  level has come between the stage's ends, keeps the 25 pixels under it,
+  and on a move puts them back and sends two 5 x 5 rectangles, so the
+  graph is never redrawn for it (about 500 ticks, the stage's name
+  included). The graph, when an edit changes it, is cleared in two
+  halves, drawn and sent as parts of their own (each within the budget;
+  as one part it took 4 800 ticks).
+- **Editing** works as the operator view's, on the program's copy: the
+  four rates or three levels of the selected operator; the pitch
+  envelope's three rates and depth, or its four levels; the glide time.
+- **The line.** M2's `gfx_line` tested its second step against the
+  error its first step had just changed, so on some lines it stepped
+  past the end and never stopped: about one random line in five. M2's
+  test screen and M8a's algorithm diagrams happen to draw only lines it
+  finishes (all ten algorithms checked, on both screens), so the first
+  envelope drawn after an edit was the first to hang main, in the env
+  case. Now both tests use the error from the step's start, the usual
+  form. The test screen's two diagonals change by a few pixels (their
+  golden images with them), and so do the diagrams' lines.
+- **Measured** (env, test patch 2): ATTACK 40 -> 56 makes the attack x
+  4.13 (21.8 -> 89.9 ms to -3 dB); RELEASE 64 -> 48 x 0.27; HOLD 87 -> 71
+  -12.04 dB; DEPTH 12, P0 -127, RATE1 56: -9.6 semitones 10 ms in, 0.00
+  by 390 ms.
+- **Also:** main now serves the panel's events from before its loop
+  began (a key pressed during the boot screens shows the instrument's
+  screens at once, rather than at the next event).

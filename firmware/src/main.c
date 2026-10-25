@@ -292,8 +292,10 @@ int main(void)
         sb_beacon.loop_ticks = sb_beacon.tick_count;
         seen = sb_work;
         second = sb_seconds;
-        /* What the engine asked of the store before the loop began. */
+        /* What the engine asked of the store before the loop began, and
+         * (since M8a) the panel's events from before it: the screens. */
         serve_store();
+        view_serve();
         for (;;) {
             __asm__ volatile("idle");
             wakes++;

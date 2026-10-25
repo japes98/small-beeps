@@ -139,7 +139,7 @@ CHECKS = [
               "R-STORE-1", "R-STORE-2", "R-STORE-3", "R-STORE-4", "R-STORE-5", "R-STORE-6",
               "R-STORE-7", "R-STORE-8", "R-STORE-9",
               "R-UI-1", "R-UI-2", "R-UI-3", "R-UI-4", "R-UI-5", "R-UI-6", "R-UI-7", "R-UI-8",
-              "R-UI-9", "R-UI-10"],
+              "R-UI-9", "R-UI-10", "R-UI-11"],
      "cmd": lambda: [PY, "-I", "tools/fw-suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "fwtest")]},
     # Performance (M0e): size, RAM, stack high-water and speed, gated.
