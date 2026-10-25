@@ -29,14 +29,15 @@
 #define UI_EDIT      1u   /* EDIT: operators and the algorithm */
 #define UI_ENV       2u   /* ENV: an envelope */
 #define UI_SETTINGS  3u   /* GLO: the settings */
-#define UI_SCREENS   4u
+#define UI_ARP       4u   /* ARP held (since ARP): the arpeggiator */
+#define UI_SCREENS   5u
 
 /* The interface's state, written by the engine only (fm_play.c). */
 struct fm_ui {
     u32 seq;      /* one more on every change */
     u8 screen;    /* UI_* */
     u8 op;        /* the selected operator, 0 to 5 */
-    u8 page;      /* the screen's page (SELECT steps through them) */
+    u8 page;      /* the screen's page (SELECT steps through them; ARP: 0 or 1) */
     u8 row;       /* the settings' row */
     u8 env;       /* ENV: 0 the operator's envelope, 1 the pitch envelope, 2 glide */
     u8 confirm;   /* settings: 1 while the factory reset waits for SAVE */
@@ -44,6 +45,10 @@ struct fm_ui {
     u8 reserved;
 };
 extern volatile struct fm_ui fm_ui;
+
+/* ARP's short presses the engine has taken (since ARP; fm_play.c): main
+ * counts those it has seen, so ARP's LED follows the press at once. */
+extern volatile u32 fm_arp_toggles;
 
 /* What views.c needs of the engine (fm_play.c). */
 const u8 *fm_program_bytes(void);   /* the program playing now, as patch bytes */

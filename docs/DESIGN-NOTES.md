@@ -2385,3 +2385,142 @@ patch on SAVE. `fm_play.c`, "The macros".
 - **Drawing:** the eight rows are two parts (the body draws the title and
   the first four, the info line's part the rest), each within the budget;
   as one part they took 5 700 ticks.
+
+### 2026-10-25 ARP: the arpeggiator
+
+Our own design, from docs/ARP-PROPOSAL.md and the owner's answers there
+(`firmware/src/arp.c`, `arp.h`; hooks in `fm_play.c`, `fm.c`, `views.c`).
+
+- **What it plays:** while it is on, a note held by a key, by MIDI in or
+  by the pedal is the arpeggiator's input, not a note for the engine. It
+  plays them one at a time (CHORD: all together) on a clock, each as an
+  ordinary note on and off to the engine, so every patch, macro and voice
+  rule applies. Its own notes reach the engine past `hold[]`, so a held
+  key and the arpeggiator's note of the same pitch never end each other.
+- **Modes:** UP and DOWN by pitch; UP/DOWN up then down, the ends not
+  repeated; ORDER as the notes came; RANDOM a fixed linear congruential
+  generator (x = 1664525 x + 1013904223, the note at (x >> 8) mod the
+  count), seeded with 1 each time the arpeggiator starts, so a test can
+  predict it; CHORD every note held each step. With 2 to 4 octaves the
+  pattern runs through the notes, then again an octave up, and so on
+  (CHORD moves the whole chord up an octave a step). A note above 127
+  plays octaves lower.
+- **Rates:** 1/2, dotted 1/4, 1/4, dotted 1/8, 1/8, 1/8 triplet, dotted
+  1/16, 1/16, 1/16 triplet, 1/32: 48, 36, 24, 18, 12, 8, 9, 6, 4 and 3
+  MIDI clock pulses (24 a beat), in the owner's order. The grid is whole
+  multiples of the step from the clock's zero, so a rate change takes
+  effect at the next multiple of the new step, and on MIDI clock the
+  steps fall on the sender's beats.
+- **Gate and swing:** each note sounds GATE% of its step (10 to 100%),
+  ending at the next step at the latest; SWING (0 to 75% in 5% steps)
+  delays every odd step of the grid by that share of a step.
+- **Latch:** with LATCH on, letting go of the keys keeps the notes
+  playing; the first key down after none starts a new chord. Turning
+  LATCH off lets go of every note no key holds.
+- **Starting and stopping:** a short press of ARP (released within
+  500 ms) turns it on or off; held 500 ms, ARP shows its screen instead
+  and leaves it as it was. Turned on, the notes held leave the engine
+  for the arpeggiator; turned off, every note it played ends and the
+  notes held sound again (the panel's only with local control on). On
+  the internal clock, the first note held after none starts the pattern
+  and the clock at once, so the first note plays at the next block, not
+  at the next step; on MIDI clock it waits for the next step.
+- **The clock, in exact units:** the clock's position is pulses and
+  units of a pulse, 3 750 000 units a pulse. At t beats a minute a frame
+  (24 MHz / 544) is 34 t units, exactly (t x 24 / 60 x 544 / 24 000 000
+  = 34 t / 3 750 000), so the internal clock never drifts: step k of a
+  1/16 at 120 beats a minute is at 5 514.705... frames x k, rounded up to
+  the frame, for ever. Only 32-bit divisions are needed (the firmware has
+  no 64-bit one).
+- **Sample-accurate steps:** each block, before the voices are
+  rendered, the clock moves on 64 frames and every step and gate end in
+  that span plays at its frame. A start or release at frame f > 0 is
+  pending on the voice (`struct fm_voice`'s `pending`, `at`, and for a
+  voice still sounding each operator's level with the velocity and a
+  pointer to the shaped operators, unchanged until the block is
+  rendered, so a voice keeps 40 bytes for it, not its operators): the
+  renderer renders frames 0 to f - 1 as the voice was, takes the start
+  or release, then renders f to 63 (`fm.c`, `render_pending`, its own
+  copy of the operator loop, so the whole-block path is unchanged). A
+  fresh voice is silent before f; a voice taken again (the same note,
+  or mono) keeps its phases and starts its attacks from its envelopes'
+  levels, as at a block's start. What is not to the frame: a stolen
+  voice still fades for a block first (R-FM-4); a release before a start
+  on the same voice in one block is dropped (the start wins); and for
+  the frames before a start on a voice still sounding, the pitch is
+  already the new note's (the pitch is worked out once a block). MIDI
+  out sends once a block, so the arpeggiator's notes there are within a
+  block and a byte of their frame.
+- **MIDI clock (the owner's answer: followed whenever it arrives):**
+  - a 0xF8 while on the internal clock starts following it, the position
+    taken to the next whole pulse; then each 0xF8 is a pulse, and the
+    position never runs more than a pulse past the last clock (so a
+    late clock delays the steps, never skips them), and jumps to it if
+    it was behind;
+  - between clocks the position moves at the rate of the last 24 clocks
+    (frames between their arrivals, at the block they were taken), so
+    steps between clocks still fall on their frames;
+  - Start (0xFA): the next 0xF8 is pulse 0: the pattern and the grid
+    start again there. Continue (0xFB): the next 0xF8 carries on from
+    where the position is;
+  - **when the clock has stopped** (the firmware side's choice, open in
+    the proposal): a Stop (0xFC), or 250 ms (172 blocks) without a 0xF8
+    while following it. Then the internal clock takes over at once, at
+    the settings' TEMPO (not the MIDI clock's last tempo, so what plays
+    is what the screen shows), from where the position is: the step
+    playing ends at its gate and the next falls where the internal
+    tempo puts it. After a Stop, clocks are ignored until a Start or
+    Continue (a sender that keeps its clock running while stopped would
+    otherwise take it over again). Notes still sounding end at their
+    gate.
+- **Per patch, per instrument (open in the proposal):** a patch keeps
+  on or off, LATCH, MODE, RATE, OCTAVES, GATE and SWING (the patch
+  format's version 2, docs/PATCH-FORMAT.md: version 1's three reserved
+  bytes, so patches keep their 112 bytes and the store its records'
+  sizes). TEMPO and what MIDI out sends belong to the instrument (the
+  settings, version 4): changing patch while playing doesn't change the
+  tempo, and MIDI out's choice is about what is plugged in. A patch saved
+  before ARP (version 1), a preset and every test patch take the
+  defaults: off, no latch, UP, one octave, 1/16, no swing, gate 50%. The
+  ARP screen's changes are edits of the program, as the operator view's
+  are: SAVE keeps them, another program discards them.
+- **MIDI out (the owner's answer):** the arpeggiator's notes go out on
+  the out channel by default, and the keys held don't; the setting
+  (MIDI OUT: keys) sends the keys held instead, and the arpeggiator's
+  notes don't. A key's note off goes out only if its note on did, so
+  turning the arpeggiator on or off while a key is held leaves no note
+  hanging at the far end. With local control off the arpeggiator still
+  takes the panel's keys and MIDI in's notes, and its notes go only to
+  MIDI out.
+- **MIDI clock out (the proposal's):** while the arpeggiator runs on the
+  internal clock, a 0xF8 each pulse its position passes (sent in that
+  block, like every MIDI out message); a Start (0xFA) with pulse 0's
+  clock each time its pattern and grid start again (turned on, or the
+  first note after none); a Stop (0xFC) when it stops or MIDI clock takes
+  over; a Continue (0xFB) when the internal clock takes over again. While
+  it follows MIDI clock it sends none (thru passes the sender's on, if on).
+- **The screen (ARP held):** the strip shows RATE, MODE, OCTAVES and GATE;
+  SELECT pages to SWING, LATCH, TEMPO and MIDI OUT. The body shows the
+  settings in words; the info line is its live part (every 50 ms when
+  it changes): the clock, internal or MIDI, with its tempo, and the last
+  step's note. ARP's LED is lit while the arpeggiator is on, and the
+  event line says "ARP on" or "ARP off".
+- **Stuck notes:** every note it starts is kept until its gate ends, and
+  ends with it, with the pattern stopping, a program or mode change
+  (`all_off`), all sound off, or the arpeggiator turned off; each end
+  goes to the engine and to MIDI out as its start did.
+- **Costs (measured, fwtest 0.6.0, against #131's image):** code 45 060
+  bytes (+8 668), static RAM 214 332 (+10 192, the code run from RAM
+  with it), stack 576 (+40); steady state 1 879.7 instructions a block
+  (+0.75%: off, a block costs it one test of `arp_busy` and the ARP
+  button's hold check), loaded 109 459 (+0.7%: each voice's test for a
+  pending start). The rare paths (the ARP screen's edits, turning it on
+  or off, a block in two parts) are kept out of line, as inlined they
+  took the stack to 724 of its 768 bytes. On, a step is a few hundred
+  instructions, at most 32 a second at 1/32 and 240 beats a minute. The
+  heaviest input with CHORD at 1/32 and 240 beats a minute: no underrun,
+  the longest fill 479 us (load). RAM: about 200 bytes, the
+  record 224 bytes, and the voices' pending starts 16 x 40 bytes: 1.4
+  KiB of static RAM in all. That matters beyond the budget: the start-up
+  clears it before the time base starts, so more of it moves every
+  event's time stamp later against fwtest's clock (about 2 us a KiB).

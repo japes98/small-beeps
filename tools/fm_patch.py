@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 japes98
-"""The FM engine's patch format, version 1, and our own test patches
-(M5; docs/PATCH-FORMAT.md, R-FM-7).
+"""The FM engine's patch format, version 2 (since ARP: the arpeggiator's
+settings; version 1 is M5's), and our own test patches (M5;
+docs/PATCH-FORMAT.md, R-FM-7).
 
   fm_patch.py write      writes firmware/src/patches.c from TEST_PATCHES
   fm_patch.py check      exits 1 if firmware/src/patches.c is not what
@@ -21,7 +22,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "firmware", "src", "patches.c")
 
 BYTES = 112
-VERSION = 1
+VERSION = 2
 OP_OFFSET, OP_BYTES, SUM_OFFSET = 32, 13, 110
 ALGORITHMS = 10
 RATIO, FIXED = 0, 1
@@ -45,13 +46,47 @@ def op(freq, level, mode=RATIO, detune=0, velocity=0, rates=(0, 0, 0, 0), levels
 
 OFF = op(1.0, 0)
 
+# The arpeggiator's settings in a patch (since ARP, version 2; bytes 29 to
+# 31, docs/PATCH-FORMAT.md): its modes, and its rates in MIDI clock pulses
+# (24 a quarter note), in the order KNOB1 steps through them.
+ARP_MODES = ("UP", "DOWN", "UP/DOWN", "ORDER", "RANDOM", "CHORD")
+ARP_RATES = (("1/2", 48), ("1/4.", 36), ("1/4", 24), ("1/8.", 18), ("1/8", 12), ("1/8T", 8),
+             ("1/16.", 9), ("1/16", 6), ("1/16T", 4), ("1/32", 3))
+ARP_DEFAULT = {"on": False, "latch": False, "mode": 0, "octaves": 1, "rate": 7, "swing": 0, "gate": 50}
+
+
+def arp(**kw):
+    """A patch's arpeggiator settings: ARP_DEFAULT with these changed.
+    mode an index of ARP_MODES, rate of ARP_RATES, octaves 1 to 4, swing
+    0 to 75 (%, in steps of 5), gate 10 to 100 (%)."""
+    a = dict(ARP_DEFAULT)
+    for k in kw:
+        assert k in a, k
+    a.update(kw)
+    return a
+
+
+def arp_bytes(a):
+    """Bytes 29 to 31 for these settings."""
+    assert 0 <= a["mode"] < len(ARP_MODES) and 1 <= a["octaves"] <= 4 and 0 <= a["rate"] < len(ARP_RATES)
+    assert a["swing"] % 5 == 0 and 0 <= a["swing"] <= 75 and 10 <= a["gate"] <= 100
+    return bytes((int(a["on"]) | int(a["latch"]) << 1 | a["mode"] << 2 | (a["octaves"] - 1) << 5,
+                  a["rate"] | (a["swing"] // 5) << 4, a["gate"]))
+
+
+def arp_of(b):
+    """A version 2 patch's arpeggiator settings, as arp() gives them."""
+    return {"on": bool(b[29] & 1), "latch": bool(b[29] & 2), "mode": b[29] >> 2 & 7,
+            "octaves": (b[29] >> 5 & 3) + 1, "rate": b[30] & 15, "swing": (b[30] >> 4) * 5, "gate": b[31]}
+
 
 def patch(name, algorithm, ops, feedback=0, mono=False, glide=0, transpose=0,
-          pitch_depth=0, pitch_rates=(0, 0, 0), pitch_levels=(0, 0, 0, 0)):
+          pitch_depth=0, pitch_rates=(0, 0, 0), pitch_levels=(0, 0, 0, 0), arp_settings=None):
     ops = list(ops) + [OFF] * (6 - len(ops))
     return {"name": name, "algorithm": algorithm, "feedback": feedback, "mono": mono,
             "glide": glide, "transpose": transpose, "pitch_depth": pitch_depth,
-            "pitch_rates": tuple(pitch_rates), "pitch_levels": tuple(pitch_levels), "ops": ops}
+            "pitch_rates": tuple(pitch_rates), "pitch_levels": tuple(pitch_levels), "ops": ops,
+            "arp": dict(arp_settings or ARP_DEFAULT)}
 
 
 # The test patches, in PRESETS order. Times are time codes (time_ms),
@@ -580,6 +615,7 @@ def encode(p):
     b[21] = p["pitch_depth"] & 0xFF
     b[22:25] = bytes(p["pitch_rates"])
     b[25:29] = bytes(v & 0xFF for v in p["pitch_levels"])
+    b[29:32] = arp_bytes(p.get("arp", ARP_DEFAULT))
     for i, o in enumerate(p["ops"]):
         at = OP_OFFSET + OP_BYTES * i
         if o["mode"] == RATIO:
@@ -604,8 +640,9 @@ def s8(x):
 
 
 def problems(b):
-    """Why b isn't a valid version 1 patch ([] if it is): the same rules
-    as fm_patch_valid() in firmware/src/fm.c."""
+    """Why b isn't a valid version 2 patch ([] if it is): the same rules
+    as fm_patch_valid() in firmware/src/fm_play.c. A version 1 patch is
+    taken through upgrade() first, as the firmware's store does."""
     out = []
     if len(b) != BYTES:
         return ["%d bytes, not %d" % (len(b), BYTES)]
@@ -619,8 +656,11 @@ def problems(b):
         out.append("feedback, flags or glide")
     if not -24 <= s8(b[20]) <= 24 or not -48 <= s8(b[21]) <= 48:
         out.append("transpose or pitch depth")
-    if any(x > 127 for x in b[22:25]) or any(s8(x) < -127 for x in b[25:29]) or any(b[29:32]):
-        out.append("pitch envelope or reserved")
+    if any(x > 127 for x in b[22:25]) or any(s8(x) < -127 for x in b[25:29]):
+        out.append("pitch envelope")
+    if b[29] >> 2 & 7 >= len(ARP_MODES) or b[29] & 0x80 or b[30] & 15 >= len(ARP_RATES) \
+            or not 10 <= b[31] <= 100:
+        out.append("arpeggiator")
     for i in range(6):
         o = b[OP_OFFSET + OP_BYTES * i:OP_OFFSET + OP_BYTES * (i + 1)]
         if o[0] > 1 or not -100 <= s8(o[3]) <= 100 or o[4] > 127 or o[5] > 7 or any(x > 127 for x in o[6:13]):
@@ -628,6 +668,26 @@ def problems(b):
     if b[SUM_OFFSET] | b[SUM_OFFSET + 1] << 8 != fletcher16(b[:SUM_OFFSET]):
         out.append("check sum")
     return out
+
+
+def upgrade(b):
+    """A version 1 patch (M5's, bytes 29 to 31 reserved) as version 2:
+    the arpeggiator's defaults there, the version and the check sum
+    anew; a version 2 patch as it is; anything else None. The firmware's
+    fm_patch_upgrade() does the same (since ARP)."""
+    b = bytes(b)
+    if len(b) != BYTES or b[0:2] != b"FM" or b[3] != BYTES:
+        return None
+    if b[2] == VERSION:
+        return b
+    if b[2] != 1 or any(b[29:32]) or b[SUM_OFFSET] | b[SUM_OFFSET + 1] << 8 != fletcher16(b[:SUM_OFFSET]):
+        return None
+    c = bytearray(b)
+    c[2] = VERSION
+    c[29:32] = arp_bytes(ARP_DEFAULT)
+    s = fletcher16(c[:SUM_OFFSET])
+    c[SUM_OFFSET], c[SUM_OFFSET + 1] = s & 0xFF, s >> 8
+    return bytes(c)
 
 
 def source():

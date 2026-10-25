@@ -19,6 +19,7 @@
  */
 
 #include "fm.h"
+#include "arp.h"
 #include "input.h"
 #include "midi.h"
 #include "midi_out.h"
@@ -128,6 +129,7 @@ struct control {
     u32 glide_left;    /* blocks */
     u32 pitch_stage;   /* 0 toward P1, 1 toward P2 (then held), 2 released */
     s32 pitch_level;   /* the pitch envelope, 2^-16 of a level */
+    u32 release_next;  /* since ARP: released within the block it started in, so at the next */
 };
 
 static struct control ctl[FM_VOICES];
@@ -171,6 +173,29 @@ static int feedback_knob;
 #define HOLD_PEDAL 4u
 static u8 hold[128];
 volatile u32 fm_midi_notes[4];   /* notes MIDI or the pedal holds, for the screen */
+/* Since ARP: each note's last velocity, for the notes held when the
+ * arpeggiator starts or stops. */
+static u8 note_velocity[128];
+
+/* A note now held, or no longer held by anything: to the engine, or
+ * while it runs to the arpeggiator (since ARP), whose own notes reach
+ * the engine through fm_arp_on and fm_arp_off, past hold[]. */
+static void held_on(int note, u32 velocity, u32 was)
+{
+    note_velocity[note] = (u8)velocity;
+    if (!arp_on())
+        fm_note_on(note, velocity);
+    else if (!was)
+        arp_key(note, velocity, 1);
+}
+
+static void held_off(int note)
+{
+    if (arp_on())
+        arp_key(note, 0, 0);
+    else
+        fm_note_off(note);
+}
 
 /* MIDI's controls: the pitch bend and vibrato (1 / 4096 semitone), the
  * levels (0 to 127), the pedal, the four knobs' offsets (in their own
@@ -190,6 +215,11 @@ static int knob_pos[4];
 static u32 knobs_mode;
 static u32 panel_program;
 static u32 lfo_phase, rpn = 0x3FFFu;
+/* Since ARP: the keys whose note on MIDI out sent (bit k for KEY k + 1),
+ * and the ARP button: held now, held long enough for its screen, since. */
+static u32 key_sent, arp_down, arp_long, arp_pressed;
+volatile u32 fm_arp_toggles;
+#define ARP_HOLD_TICKS (500u * 24000u)   /* 500 ms of the time base */
 
 #define OCTAVES   2
 #define SEMITONE  4096
@@ -286,9 +316,9 @@ int fm_patch_valid(const u8 *b)
     for (i = 0; i < 4; i++)
         if (signed8(b[FMP_PITCH_LEVEL + i]) < -127)
             return 0;
-    for (i = 29; i < 32; i++)
-        if (b[i])
-            return 0;
+    if ((b[FMP_ARP] >> 2 & 7u) > 5u || (b[FMP_ARP] & 0x80u) || (b[FMP_ARP_RATE] & 15u) > 9u
+        || b[FMP_ARP_GATE] < 10 || b[FMP_ARP_GATE] > 100)
+        return 0;
     for (i = 0; i < FM_OPS; i++) {
         const u8 *o = b + FM_OP_OFFSET + FM_OP_BYTES * i;
         if (o[FMO_MODE] > 1 || signed8(o[FMO_DETUNE]) < -100 || signed8(o[FMO_DETUNE]) > 100
@@ -299,6 +329,23 @@ int fm_patch_valid(const u8 *b)
                 return 0;
     }
     return fm_patch_sum(b) == ((u32)b[FM_SUM_OFFSET] | (u32)b[FM_SUM_OFFSET + 1] << 8);
+}
+
+int fm_patch_upgrade(u8 *b)
+{
+    u32 sum;
+
+    if (b[FMP_MAGIC0] == 'F' && b[FMP_MAGIC1] == 'M' && b[FMP_VERSION] == 1u && b[FMP_LENGTH] == FM_PATCH_BYTES
+        && !b[FMP_ARP] && !b[FMP_ARP_RATE] && !b[FMP_ARP_GATE]
+        && fm_patch_sum(b) == ((u32)b[FM_SUM_OFFSET] | (u32)b[FM_SUM_OFFSET + 1] << 8)) {
+        b[FMP_VERSION] = FM_PATCH_VERSION;
+        b[FMP_ARP_RATE] = ARP_RATE_DEFAULT;
+        b[FMP_ARP_GATE] = ARP_GATE_DEFAULT;
+        sum = fm_patch_sum(b);
+        b[FM_SUM_OFFSET] = (u8)sum;
+        b[FM_SUM_OFFSET + 1] = (u8)(sum >> 8);
+    }
+    return fm_patch_valid(b);
 }
 
 /* Fletcher's 16-bit check sum of the bytes before it. */
@@ -340,10 +387,7 @@ static int macro[4];
  * MOTION has nothing below 0, so a controller's 0 to 64 are all 0. */
 static const s8 macro_span[4][2] = { { -64, 32 }, { -32, 32 }, { -64, 64 }, { 0, 64 } };
 /* The operators as notes take them now: the patch's, with COLOR and SHAPE. */
-static struct {
-    u32 freq;
-    s32 step[4], target[3];
-} shaped[FM_OPS];
+static struct fm_op_shape shaped[FM_OPS];
 /* MOTION's detune factor for each operator, 2^-30 (1 for a modulator). */
 static s32 spread[FM_OPS];
 /* What shaped[] was worked out for. */
@@ -450,13 +494,15 @@ static void ensure_shaped(void)
 /* Starts note on voice n from the current patch. A free voice starts from
  * silence at phase 0; one still sounding (the same note again, or mono)
  * keeps its phases and starts its attacks from where its envelopes are,
- * so neither clicks. */
-static void voice_start(u32 n, int note, u32 velocity)
+ * so neither clicks. Since ARP the start may fall at frame `at` of the
+ * block (0: its start): the renderer takes it there (fm.h, pending); a
+ * release pending before it in the block is dropped. */
+static void voice_start(u32 n, int note, u32 velocity, u32 at)
 {
     struct fm_voice *v = &voice[n];
     struct control *c = &ctl[n];
     const struct patch *p = PATCH_NOW;
-    u32 i, k, fresh = v->state != VOICE_ON, carriers = 0;
+    u32 i, k, fresh = v->state != VOICE_ON, carriers = 0, stage = !fresh && at;
     /* Velocity: up to 8 octaves (48 dB) less at velocity 0, for a
      * sensitivity of 7, in proportion below (DESIGN-NOTES.md, M5). */
     s32 soft = (s32)(127u - velocity) * (8 * 65536 / 7) / 127;
@@ -470,10 +516,25 @@ static void voice_start(u32 n, int note, u32 velocity)
     c->glide_left = 0;
     c->pitch_stage = 0;
     c->pitch_level = p->pitch_level[0];
-    v->algorithm = algorithm_now;
+    c->release_next = 0;
     ensure_shaped();
+    if (stage) {
+        v->next_shape = shaped;
+        v->next_off = 0;
+    }
     for (i = 0; i < FM_OPS; i++) {
         struct fm_op *o = &v->op[i];
+        if (stage) {
+            /* Still sounding until `at`: its envelopes and levels kept
+             * for the renderer (fm.h, pending), its frequency now. */
+            o->fixed = p->op[i].fixed;
+            o->freq = shaped[i].freq;
+            o->detune = p->op[i].detune;
+            v->next_att[i] = p->op[i].level_att + soft * p->op[i].velocity;
+            v->next_off |= p->op[i].off << i;
+            carriers += !p->op[i].off && fm_algorithms[algorithm_now].dest[i] == FM_TO_OUT;
+            continue;
+        }
         if (fresh) {
             o->phase = 0;
             o->gain = 0;
@@ -493,7 +554,17 @@ static void voice_start(u32 n, int note, u32 velocity)
         o->stage = p->op[i].off ? ENV_OFF : ENV_ATTACK;
         carriers += !p->op[i].off && fm_algorithms[algorithm_now].dest[i] == FM_TO_OUT;
     }
-    v->out_att = fm_carrier_att(carriers);
+    if (stage) {
+        v->next_algorithm = algorithm_now;
+        v->next_out_att = fm_carrier_att(carriers);
+        v->pending = FM_PENDING_START;
+        v->at = at;
+    } else {
+        v->algorithm = algorithm_now;
+        v->out_att = fm_carrier_att(carriers);
+        v->pending = fresh && at ? FM_PENDING_FRESH : FM_PENDING_NONE;
+        v->at = at;
+    }
     if (fresh) {
         v->fb_now = 0;
         sounding++;
@@ -508,13 +579,27 @@ static void voice_start(u32 n, int note, u32 velocity)
     sb_audio.engine[SYNTH_NOTES]++;
 }
 
-static void voice_release(u32 n)
+/* Since ARP at frame `at` of the block (0: its start); a note whose start
+ * is still pending in this block is released at the next. */
+static void voice_release(u32 n, u32 at)
 {
     struct fm_voice *v = &voice[n];
     u32 i;
 
     ctl[n].held = 0;
+    if (v->pending == FM_PENDING_FRESH || v->pending == FM_PENDING_START) {
+        ctl[n].release_next = 1;
+        return;
+    }
     ctl[n].pitch_stage = 2;
+    if (at) {
+        if (v->pending == FM_PENDING_NONE) {
+            v->pending = FM_PENDING_RELEASE;
+            v->at = at;
+        }
+        return;
+    }
+    v->pending = FM_PENDING_NONE;
     for (i = 0; i < FM_OPS; i++) {
         struct fm_op *o = &v->op[i];
         if (o->stage == ENV_OFF)
@@ -543,7 +628,7 @@ static s32 loudness(u32 n)
  * else the oldest. A voice taken while it sounds fades out over one block
  * first, and the new note starts the block after (DESIGN-NOTES.md, M5,
  * "Voices"). */
-static void poly_on(int note, u32 velocity)
+static void poly_on(int note, u32 velocity, u32 at)
 {
     u32 n, pick = FM_VOICES, load[2] = { 0, 0 };
 
@@ -554,7 +639,7 @@ static void poly_on(int note, u32 velocity)
                 pick = n;
         }
     if (pick < FM_VOICES) {
-        voice_start(pick, note, velocity);
+        voice_start(pick, note, velocity, at);
         return;
     }
     for (n = 0; n < FM_VOICES; n++) {
@@ -564,7 +649,7 @@ static void poly_on(int note, u32 velocity)
             pick = n;
     }
     if (pick < FM_VOICES) {
-        voice_start(pick, note, velocity);
+        voice_start(pick, note, velocity, at);
         return;
     }
     for (n = 0; n < FM_VOICES; n++) {
@@ -610,7 +695,7 @@ static void glide_to(u32 n, int note)
 /* Mono: one voice, the last note held sounds. A note while another is
  * held glides to it without starting the envelopes again (legato);
  * releasing it goes back to the one before. */
-static void mono_on(int note, u32 velocity)
+static void mono_on(int note, u32 velocity, u32 at)
 {
     u32 i, j;
 
@@ -627,10 +712,10 @@ static void mono_on(int note, u32 velocity)
     if (mono_held > 1 && voice[0].state == VOICE_ON && ctl[0].held)
         glide_to(0, note);
     else
-        voice_start(0, note, velocity);
+        voice_start(0, note, velocity, at);
 }
 
-static void mono_off(int note)
+static void mono_off(int note, u32 at)
 {
     u32 i, j;
 
@@ -643,26 +728,27 @@ static void mono_off(int note)
     if (mono_held)
         glide_to(0, mono_stack[mono_held - 1]);
     else
-        voice_release(0);
+        voice_release(0, at);
 }
 
-void fm_note_on(int note, u32 velocity)
+/* Since ARP at frame `at` of the block (0: its start). */
+static void note_on_at(int note, u32 velocity, u32 at)
 {
     if (note < 0 || note > 127)
         return;
     velocity = velocity < 1 ? 1 : velocity > 127 ? 127 : velocity;
     if (mono)
-        mono_on(note, velocity);
+        mono_on(note, velocity, at);
     else
-        poly_on(note, velocity);
+        poly_on(note, velocity, at);
 }
 
-void fm_note_off(int note)
+static void note_off_at(int note, u32 at)
 {
     u32 n;
 
     if (mono) {
-        mono_off(note);
+        mono_off(note, at);
         return;
     }
     for (n = 0; n < FM_VOICES; n++) {
@@ -671,8 +757,18 @@ void fm_note_off(int note)
         if (ctl[n].next == note)
             ctl[n].next_held = 0;
         else if (ctl[n].note == note && ctl[n].held && ctl[n].next < 0)
-            voice_release(n);
+            voice_release(n, at);
     }
+}
+
+void fm_note_on(int note, u32 velocity)
+{
+    note_on_at(note, velocity, 0);
+}
+
+void fm_note_off(int note)
+{
+    note_off_at(note, 0);
 }
 
 static void held_changed(int note);
@@ -686,13 +782,16 @@ static void all_off(void)
 
     for (n = 0; n < FM_VOICES; n++) {
         if (voice[n].state == VOICE_ON && ctl[n].held)
-            voice_release(n);
+            voice_release(n, 0);
         ctl[n].next_held = 0;
     }
+    arp_silence();
     mono_held = 0;
     for (n = 0; n < 128; n++)
         if (hold[n] & HOLD_PEDAL) {
             hold[n] &= (u8)~HOLD_PEDAL;
+            if (!hold[n] && arp_on())
+                arp_key((int)n, 0, 0);
             held_changed((int)n);
         }
 }
@@ -720,9 +819,11 @@ static void held_changed(int note)
 /* A key down, on the panel or by MIDI: the note sounds (again). */
 static void note_press(int note, u32 velocity, u32 from)
 {
+    u32 was = hold[note] != 0;
+
     hold[note] = (u8)((hold[note] | from) & ~HOLD_PEDAL);
     held_changed(note);
-    fm_note_on(note, velocity);
+    held_on(note, velocity, was);
 }
 
 /* A key up: the note ends when nothing else holds it; while the pedal is
@@ -736,7 +837,7 @@ static void note_release(int note, u32 from)
         if (pedal)
             hold[note] |= HOLD_PEDAL;
         else if (!hold[note])
-            fm_note_off(note);
+            held_off(note);
     }
     held_changed(note);
 }
@@ -750,7 +851,7 @@ static void pedal_up(void)
         if (hold[n] & HOLD_PEDAL) {
             hold[n] &= (u8)~HOLD_PEDAL;
             if (!hold[n])
-                fm_note_off(n);
+                held_off(n);
             held_changed(n);
         }
 }
@@ -776,9 +877,10 @@ static void sound_off(void)
         if (hold[n] & (HOLD_MIDI | HOLD_PEDAL)) {
             hold[n] &= (u8)~(HOLD_MIDI | HOLD_PEDAL);
             if (!hold[n])
-                fm_note_off(n);
+                held_off(n);
             held_changed(n);
         }
+    arp_silence();
     for (n = 0; n < (int)FM_VOICES; n++)
         if (voice[n].state == VOICE_ON) {
             voice[n].fade = 1;
@@ -912,12 +1014,15 @@ static void select_patch(u32 n)
     sb_fm.patch = n;
 }
 
+static void arp_follow(void);
+
 int fm_program_set(u32 n)
 {
     if (!program_ok(n))
         return 0;
     select_patch(n);
     panel_program = n;
+    arp_follow();
     return 1;
 }
 
@@ -1101,6 +1206,118 @@ static void edit_env(u32 knob, int d)
     else
         return;
     edit_done();
+}
+
+/* --- The arpeggiator (ARP; arp.h) --------------------------------------
+ * Its settings are the program's (bytes FMP_ARP to FMP_ARP_GATE, edited
+ * as the operator view edits the rest), but for the tempo and what MIDI
+ * out sends (the settings, midi_settings). */
+static struct arp_patch arp_was;
+
+static void arp_put(const struct arp_patch *a)
+{
+    edit_raw[FMP_ARP] = (u8)(a->on | a->latch << 1 | a->mode << 2 | (a->octaves - 1u) << 5);
+    edit_raw[FMP_ARP_RATE] = (u8)(a->rate | (a->swing / 5u) << 4);
+    edit_raw[FMP_ARP_GATE] = a->gate;
+    edit_done();
+}
+
+/* The ARP screen's knobs: RATE, MODE, OCTAVES, GATE; then SWING, LATCH,
+ * TEMPO and MIDI out (the arpeggiator's notes, or the keys held). */
+static __attribute__((noinline)) void arp_edit(u32 knob, int d, u32 local)
+{
+    struct arp_patch a;
+
+    arp_patch_of(edit_raw, &a);
+    switch (fm_ui.page * 4u + knob) {
+    case 0:
+        a.rate = (u8)clamp(a.rate + d, 0, ARP_RATES - 1);
+        break;
+    case 1:
+        a.mode = (u8)clamp(a.mode + d, 0, ARP_MODES - 1);
+        break;
+    case 2:
+        a.octaves = (u8)clamp(a.octaves + d, 1, ARP_OCTAVES);
+        break;
+    case 3:
+        a.gate = (u8)clamp(a.gate + d, ARP_GATE_MIN, ARP_GATE_MAX);
+        break;
+    case 4:
+        a.swing = (u8)clamp(a.swing + 5 * d, 0, ARP_SWING_MAX);
+        break;
+    case 5:
+        a.latch = d > 0;
+        break;
+    case 6:
+        midi_settings.tempo = (u8)clamp(midi_settings.tempo + d, ARP_TEMPO_MIN, ARP_TEMPO_MAX);
+        return;
+    default:
+        midi_settings.arp_out = d > 0;
+        return;
+    }
+    if (local)
+        arp_put(&a);
+}
+
+/* After any event: the arpeggiator takes the program's settings; turned
+ * on, the notes held leave the engine for it; turned off, every note it
+ * played ends and the notes held sound again (those the panel holds only
+ * with local control on). LATCH turned off lets go of the notes no key
+ * holds any more. */
+static __attribute__((noinline)) void arp_follow(void)
+{
+    struct arp_patch a;
+    u32 n, on = arp_on();
+
+    arp_patch_of(edit_raw, &a);
+    if (on && a.on && arp_was.latch && !a.latch) {
+        arp_stop();
+        on = 0;
+    }
+    arp_settings(&a);
+    if (a.on && !on) {
+        arp_start();
+        for (n = 0; n < 128; n++)
+            if (hold[n]) {
+                fm_note_off((int)n);
+                arp_key((int)n, note_velocity[n], 1);
+            }
+    } else if (!a.on && on) {
+        arp_stop();
+        for (n = 0; n < 128; n++)
+            if ((hold[n] & (HOLD_MIDI | HOLD_PEDAL)) || (midi_settings.local && (hold[n] & HOLD_PANEL)))
+                fm_note_on((int)n, note_velocity[n]);
+    }
+    arp_patch_copy(&arp_was, &a);
+    sb_arp.on = arp_on();
+}
+
+/* The arpeggiator's notes (arp.h): to the engine with local control on,
+ * and to MIDI out unless it sends the keys held. */
+void fm_arp_on(int note, u32 velocity, u32 at)
+{
+    if (midi_settings.local)
+        note_on_at(note, velocity, at);
+    if (!midi_settings.arp_out)
+        midi_out_channel(MIDI_NOTE_ON, (u32)note, velocity);
+}
+
+void fm_arp_off(int note, u32 at)
+{
+    if (midi_settings.local)
+        note_off_at(note, at);
+    if (!midi_settings.arp_out)
+        midi_out_channel(MIDI_NOTE_ON, (u32)note, 0);
+}
+
+void fm_arp_clock_out(u32 status)
+{
+    struct midi_msg m;
+
+    m.status = (u8)status;
+    m.data[0] = m.data[1] = 0;
+    m.length = 0;
+    midi_out_send(&m);
 }
 
 /* KNOB1 to KNOB4 as the engine uses them (DESIGN-NOTES.md, M5, "The
@@ -1297,6 +1514,11 @@ static u32 midi_message(const struct midi_msg *m)
     u32 kind = m->status & 0xF0u, ch = m->status & 0x0Fu, again = 0;
     int note = m->data[0];
 
+    /* MIDI clock and its transport (since ARP): the arpeggiator's. */
+    if (m->status >= MIDI_CLOCK && m->status <= MIDI_STOP) {
+        arp_clock(m->status, sb_audio.blocks);
+        return m->status != MIDI_CLOCK;
+    }
     if (m->status == MIDI_RESET) {
         /* A system reset: as at power on, except the settings. */
         midi_notes_off();
@@ -1420,16 +1642,25 @@ static void events(void)
                         velocity = velocities[k];
                 }
 #endif
-                if (local)
+                /* Since ARP the arpeggiator takes the panel's keys even
+                 * with local control off, and MIDI out sends them only if
+                 * it is off or sends the keys held; a key's note off goes
+                 * out only if its note on did. */
+                if (local || arp_on())
                     note_press(key_note[k], velocity, HOLD_PANEL);
-                midi_out_channel(MIDI_NOTE_ON, (u32)key_note[k], velocity);
-                sb_midi_out.panel_notes++;
-                sb_midi_out.last_note_tick = sb_ticks();
+                if (!arp_on() || midi_settings.arp_out) {
+                    midi_out_channel(MIDI_NOTE_ON, (u32)key_note[k], velocity);
+                    sb_midi_out.panel_notes++;
+                    sb_midi_out.last_note_tick = sb_ticks();
+                    key_sent |= 1u << k;
+                }
             } else if (e.kind == INPUT_RELEASE && key_note[k] >= 0) {
                 /* A note off as a note on at velocity 0, so a run of
                  * notes keeps running status (DESIGN-NOTES.md, M6b). */
                 note_release(key_note[k], HOLD_PANEL);
-                midi_out_channel(MIDI_NOTE_ON, (u32)key_note[k], 0);
+                if (key_sent >> k & 1u)
+                    midi_out_channel(MIDI_NOTE_ON, (u32)key_note[k], 0);
+                key_sent &= ~(1u << k);
                 key_note[k] = -1;
             }
         } else if (e.kind == INPUT_PRESS && (e.control == INPUT_HOME || e.control == INPUT_EDIT
@@ -1440,6 +1671,22 @@ static void events(void)
             fm_ui.page = 0;
             fm_ui.env = 0;
             fm_ui.confirm = 0;
+        } else if (e.control == INPUT_ARP && (e.kind == INPUT_PRESS || e.kind == INPUT_RELEASE)) {
+            /* ARP (since ARP): a short press turns the arpeggiator on or
+             * off, on its release; held ARP_HOLD_TICKS it shows the ARP
+             * screen instead (below, each block). */
+            if (e.kind == INPUT_PRESS) {
+                arp_down = 1;
+                arp_long = 0;
+                arp_pressed = e.time;
+            } else {
+                if (arp_down && !arp_long && local) {
+                    edit_raw[FMP_ARP] ^= 1u;
+                    edit_done();
+                    fm_arp_toggles++;
+                }
+                arp_down = 0;
+            }
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_OCT_DOWN) {
             octave -= octave > -OCTAVES;
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_OCT_UP) {
@@ -1474,6 +1721,8 @@ static void events(void)
                 /* KNOB1 changes the row's value (M8a part 6). */
                 if (k == 0)
                     edit_setting(e.value);
+            } else if (fm_ui.screen == UI_ARP) {
+                arp_edit(k, e.value, local);
             } else {
                 const s8 (*span)[2] = spans();
                 knob_pos[k] = clamp(knob_pos[k] + e.value, span[k][0], span[k][1]);
@@ -1482,6 +1731,8 @@ static void events(void)
         } else if (e.kind == INPUT_TURN && e.control == INPUT_SELECT && fm_ui.screen == UI_EDIT) {
             /* SELECT steps through the operator view's three pages. */
             fm_ui.page = (u8)((fm_ui.page + 3u + (u32)(e.value > 0 ? 1 : 2)) % 3u);
+        } else if (e.kind == INPUT_TURN && e.control == INPUT_SELECT && fm_ui.screen == UI_ARP) {
+            fm_ui.page ^= 1;   /* the ARP screen's two pages */
         } else if (e.kind == INPUT_TURN && e.control == INPUT_SELECT && fm_ui.screen == UI_SETTINGS) {
             fm_ui.row = (u8)clamp(fm_ui.row + e.value, 0, ROWS - 1);
             fm_ui.confirm = 0;
@@ -1492,6 +1743,14 @@ static void events(void)
             /* The envelope view's two pages: rates, then levels. */
             fm_ui.page ^= 1;
         }
+    }
+    /* ARP held: its screen, once (since ARP). */
+    if (arp_down && !arp_long && sb_ticks() - arp_pressed >= ARP_HOLD_TICKS) {
+        arp_long = 1;
+        fm_ui.screen = UI_ARP;
+        fm_ui.page = 0;
+        fm_ui.confirm = 0;
+        any = 1;
     }
     midi_poll();
     if (midi_read(&m)) {
@@ -1517,6 +1776,7 @@ static void events(void)
     }
     if (any) {
         knobs();
+        arp_follow();
         /* Whatever the events changed, the screens show (M8a). */
         fm_ui.seq++;
         sb_work++;
@@ -1594,9 +1854,9 @@ void fm_block(s32 *out, u32 frames)
             if (c->next >= 0) {
                 int note = c->next;
                 u32 held = c->next_held;
-                voice_start(n, note, c->next_velocity);
+                voice_start(n, note, c->next_velocity, 0);
                 if (!held)
-                    voice_release(n);
+                    voice_release(n, 0);
             }
         } else if (v->silent && !v->fade) {
             v->state = VOICE_IDLE;
@@ -1605,6 +1865,17 @@ void fm_block(s32 *out, u32 frames)
         }
     }
     events();
+    /* Since ARP: a note released in the block it started in, at this
+     * block's start (after the events, so they are taken as before). */
+    for (n = 0; sounding && n < FM_VOICES; n++)
+        if (ctl[n].release_next && voice[n].state == VOICE_ON)
+            voice_release(n, 0);
+    /* The arpeggiator's steps within this block, at their frames (ARP),
+     * and its notes on the wire at once if it is free. */
+    if (arp_busy) {
+        arp_block(sb_audio.blocks);
+        midi_out_poll();
+    }
     pot = input_value(INPUT_MASTER);
     target = pot >= 1023 ? ENV_FULL : pot * pot * 16;
     /* MIDI's volume and expression (127 each until a controller says
@@ -1757,6 +2028,8 @@ void fm_init(void)
     sb_midi.expression = expression;
     midi_start();
     knobs();
+    arp_follow();
+    sb_arp.marker = ARP_MARKER;
     sb_fm.marker = FM_MARKER;
     sb_midi.marker = MIDI_MARKER;
     sb_midi_out.marker = MIDI_OUT_MARKER;

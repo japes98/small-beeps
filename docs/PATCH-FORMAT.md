@@ -3,12 +3,13 @@ SPDX-License-Identifier: MIT
 SPDX-FileCopyrightText: 2026 japes98
 -->
 
-# The FM engine's patch format, version 1
+# The FM engine's patch format, version 2
 
 A patch is everything the FM engine (M5, `firmware/src/fm.h`) needs to
-play a sound: 112 bytes, each field one byte, or two bytes little-endian,
-so a patch can be saved to flash (M7) and shared (the app) as it is,
-without conversion. `tools/fm_patch.py` writes and checks patches in this
+play a sound, and since version 2 (ARP) how the arpeggiator plays it:
+112 bytes, each field one byte, or two bytes little-endian (the
+arpeggiator's, since version 2, a few to a byte), so a patch can be
+saved to flash (M7) and shared (the app) as it is, without conversion. `tools/fm_patch.py` writes and checks patches in this
 format (its `encode` and `problems`), and `fm_patch_valid()` in
 `firmware/src/fm_play.c` checks them the same way. The test patches are
 defined once, in `tools/fm_patch.py`, and generated into
@@ -19,7 +20,7 @@ defined once, in `tools/fm_patch.py`, and generated into
 | Offset | Bytes | Field | Values |
 |-------:|------:|-------|--------|
 | 0 | 2 | magic | `F` `M` (0x46, 0x4D) |
-| 2 | 1 | version | 1 |
+| 2 | 1 | version | 2 (since ARP; 1 before it, below) |
 | 3 | 1 | length | 112, the whole patch |
 | 4 | 12 | name | printable ASCII (32 to 126), padded with 0 |
 | 16 | 1 | algorithm | 1 to 10 ("The algorithms", docs/DESIGN-NOTES.md, M5) |
@@ -30,7 +31,9 @@ defined once, in `tools/fm_patch.py`, and generated into
 | 21 | 1 | pitch depth | signed semitones that a pitch level of 127 means, -48 to 48 |
 | 22 | 3 | pitch rates | time codes: P0 to P1, P1 to P2 (then held), and to P3 on release |
 | 25 | 4 | pitch levels | P0 (at note on) to P3, signed, -127 to 127 |
-| 29 | 3 | reserved | 0 |
+| 29 | 1 | arpeggiator | bit 0: on; bit 1: latch; bits 2 to 4: the mode, 0 to 5 (UP, DOWN, UP/DOWN, ORDER, RANDOM, CHORD); bits 5 and 6: octaves - 1 (1 to 4 octaves); bit 7: 0 |
+| 30 | 1 | arpeggiator rate | bits 0 to 3: the rate, 0 to 9 (1/2, dotted 1/4, 1/4, dotted 1/8, 1/8, 1/8 triplet, dotted 1/16, 1/16, 1/16 triplet, 1/32); bits 4 to 7: the swing in steps of 5%, 0 to 15 (0 to 75%) |
+| 31 | 1 | arpeggiator gate | 10 to 100: how long each note sounds, in % of its step |
 | 32 | 6 x 13 | operators | operator 1 first (below) |
 | 110 | 2 | check sum | Fletcher-16 of bytes 0 to 109: low byte the first sum, high byte the second, each mod 255 |
 
@@ -62,7 +65,18 @@ Each operator, 13 bytes from its first:
 
 ## Versions
 
-Version 1 is the first (M5). A reader must refuse a patch with another
+Version 1 is the first (M5): bytes 29 to 31 reserved, 0. Version 2 (ARP)
+gives those three bytes the arpeggiator's settings (the layout above,
+docs/DESIGN-NOTES.md, "ARP"), so a patch keeps its 112 bytes and the
+store its records' sizes. A version 1 patch is read as version 2 with the
+arpeggiator's defaults: off, no latch, UP, one octave, 1/16, no swing, a
+gate of 50% (bytes 29 to 31: 0, 7, 50), the version 2 and the check sum
+worked out again (`fm_patch_upgrade()` in `firmware/src/fm_play.c`,
+`upgrade` in `tools/fm_patch.py`). The arpeggiator's tempo, and what
+MIDI out sends while it runs, belong to the instrument, not the patch
+(docs/STORE-FORMAT.md, the settings).
+
+A reader must refuse a patch with another
 magic, version or length, a bad check sum or a field out of range: it
 never guesses. A later version will keep the first four bytes' meaning,
 so any reader can tell a patch it doesn't know from a damaged one, and

@@ -299,4 +299,6 @@ void midi_settings_default(struct midi_settings *s)
     s->thru = 0;
     s->local = 1;
     s->knobs = 0;
+    s->tempo = 120;
+    s->arp_out = 0;
 }

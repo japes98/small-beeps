@@ -51,7 +51,10 @@ command for command, and the two are compared byte for byte.
   down to the first and up again, since PRESETS stops at the ends),
   written at most once in 2 s.
 - migrate (R-STORE-6): settings saved as version 1 (M6a's) are taken as
-  version 2, with its defaults; a change then writes version 2.
+  version 2, with its defaults; a change then writes version 2. Since
+  ARP (R-ARP-7) settings are version 4, and a version 1 patch in a slot
+  plays as version 2 with the arpeggiator's defaults; SAVE writes it as
+  version 2.
 - busy, wipe (R-STORE-7): saves under audioload's input (the heaviest the
   panel gives: test patch 6 on all 16 voices), SAVE held three times so
   the keys it strikes meanwhile save to their slots, on a test build whose chip takes the part's longest times, 12 ms
@@ -96,6 +99,7 @@ PATCHES = [fm_patch.encode(p) for p in fm_patch.TEST_PATCHES]
 PRESETS = [fm_patch.encode(p) for _, _, p in fm_patch.PRESETS]
 PRESET0 = len(PATCHES) + st.SLOTS
 PROGRAMS = PRESET0 + len(PRESETS)
+PV = fm_patch.VERSION          # a patch record's version: the patch's (2 since ARP)
 ERR_FULL = -2
 
 
@@ -202,6 +206,13 @@ def saved(program_patch, algorithm_turns=0):
     return with_sum(b)
 
 
+def patch_v1(b):
+    """A version 2 patch as version 1 (before ARP): bytes 29 to 31 zero."""
+    b = bytearray(b)
+    b[2], b[29:32] = 1, b"\0\0\0"
+    return with_sum(b)
+
+
 def user_patch(n):
     b = bytearray(PATCHES[n % len(PATCHES)])
     b[4:16] = b"\0" * 12
@@ -217,6 +228,11 @@ def settings_v2(channel=0, bend=2, out=1, thru=0, local=1):
 def settings_v3(channel=0, bend=2, out=1, thru=0, local=1, knobs=0):
     """Since M8a: version 2's last byte is the knobs' mode (1: direct)."""
     return bytes([3, channel, bend, 0] + [0] * 32 + [out, thru, local, knobs])
+
+
+def settings_v4(channel=0, bend=2, out=1, thru=0, local=1, knobs=0, tempo=120, arp_out=0):
+    """Since ARP: version 3's, then the tempo and the arpeggiator's MIDI out."""
+    return bytes([4]) + settings_v3(channel, bend, out, thru, local, knobs)[1:] + bytes([tempo, arp_out])
 
 
 def settings_v1(channel, bend):
@@ -235,7 +251,7 @@ def ring_before_advance():
     head, erases it and compacts the slots into it."""
     s = st.Store()
     for slot in range(st.SLOTS):
-        s.put(st.PATCH, slot, 1, user_patch(slot))
+        s.put(st.PATCH, slot, PV, user_patch(slot))
     s.put(st.SETTINGS, 0, 2, settings_v2())
     n = 0
     while True:
@@ -339,8 +355,8 @@ def agrees(run, chip):
         n = sel[1][0]
         if program_ok(n, img):
             loaded |= 1
-    if r["loaded"] & ~6 != loaded:
-        p.append("%s: loaded 0x%x, tools/store.py has 0x%x" % (run.name, r["loaded"] & ~6, loaded))
+    if r["loaded"] & ~14 != loaded:
+        p.append("%s: loaded 0x%x, tools/store.py has 0x%x" % (run.name, r["loaded"] & ~14, loaded))
     return p
 
 
@@ -360,12 +376,12 @@ def case_persist(out, image_len):
     if r["saves"] != 1 or r["save_fail"] or r["auto_writes"] != 2:
         p.append("persist-a: saves %d (failed %d), automatic writes %d; expected 1, 0, 2"
                  % (r["saves"], r["save_fail"], r["auto_writes"]))
-    if img.get(st.PATCH, 0) != (1, want_patch):
+    if img.get(st.PATCH, 0) != (PV, want_patch):
         p.append("persist-a: slot 1 is not the patch saved")
     if img.get(st.SELECTION) != (1, bytes([3, 0, 0, 0])):
         p.append("persist-a: the selection is %s, not program 3" % (img.get(st.SELECTION),))
     sv = img.get(st.SETTINGS)
-    if not sv or sv[0] != 3 or sv[1][38] != 0 or sv[1][36] != 1 or sv[1][37] != 0:
+    if not sv or sv[0] != 4 or sv[1][38] != 0 or sv[1][36] != 1 or sv[1][37] != 0:
         p.append("persist-a: the settings saved are %s, not local off" % (sv,))
     if sorted(img.live()) != ["selection", "settings", "slot 1"]:
         p.append("persist-a: the store holds %s" % sorted(img.live()))
@@ -421,7 +437,7 @@ def boot_check(run, chip, image_len):
         return p
     sel = selection_of(chip)
     base = program_bytes(sel, st.Image(chip))
-    want, _ = predict(chip, [(st.PATCH, 4, 1, saved(base))])
+    want, _ = predict(chip, [(st.PATCH, 4, PV, saved(base))])
     r = run.rec("store")
     if r["save_fail"] or r["saves"] != 1:
         p.append("%s: the save after the cut failed (%d of %d)" % (run.name, r["save_fail"], r["saves"]))
@@ -456,7 +472,7 @@ def case_sweep(out, image_len):
     s0 = with_stock(ring_before_advance())
     sel = selection_of(s0)
     new3 = saved(PATCHES[sel], 2)
-    s1, commands = predict(s0, [(st.PATCH, 2, 1, new3)])
+    s1, commands = predict(s0, [(st.PATCH, 2, PV, new3)])
     erases = sum(1 for c in commands if c[0] == "erase")
     copies = len(commands) - erases
     # The uncut run first: the model's image and its command count.
@@ -527,7 +543,7 @@ def case_sweep(out, image_len):
 def case_reset(out, image_len):
     p, lines = [], []
     s = st.Store()
-    s.put(st.PATCH, 0, 1, user_patch(0))
+    s.put(st.PATCH, 0, PV, user_patch(0))
     s.put(st.SELECTION, 0, 1, bytes([9, 0, 0, 0]))
     s.put(st.SETTINGS, 0, 2, settings_v2(channel=5))
     chip = s.chip()
@@ -565,9 +581,9 @@ def case_reset(out, image_len):
 def case_corrupt(out, image_len):
     p, lines = [], []
     s = st.Store()
-    s.put(st.PATCH, 0, 1, user_patch(0))
-    s.put(st.PATCH, 0, 1, user_patch(1))      # the newest slot 1: damaged below
-    s.put(st.PATCH, 1, 1, user_patch(2))      # slot 2's only copy: CRC damaged below
+    s.put(st.PATCH, 0, PV, user_patch(0))
+    s.put(st.PATCH, 0, PV, user_patch(1))      # the newest slot 1: damaged below
+    s.put(st.PATCH, 1, PV, user_patch(2))      # slot 2's only copy: CRC damaged below
     s.put(st.SELECTION, 0, 1, bytes([1, 0, 0, 0]))
     chip = bytearray(s.chip())
     img = st.Image(chip)
@@ -586,12 +602,12 @@ def case_corrupt(out, image_len):
     p += common(run, image_len) + agrees(run, chip)
     if p:
         return p, lines
-    if want.get(st.PATCH, 0) != (1, user_patch(0)) or want.get(st.PATCH, 1) is not None:
+    if want.get(st.PATCH, 0) != (PV, user_patch(0)) or want.get(st.PATCH, 1) is not None:
         p.append("corrupt: tools/store.py doesn't read the older slot 1 and no slot 2")
     if want.counts["crc_bad"] != 2 or want.counts["unknown"] != 1 or not want.counts["skipped"]:
         p.append("corrupt: tools/store.py counts %s" % want.counts)
     after = st.Image(run.flash)
-    if after.get(st.PATCH, 3) != (1, saved(PATCHES[1])) or after.get(st.PATCH, 0) != (1, user_patch(0)):
+    if after.get(st.PATCH, 3) != (PV, saved(PATCHES[1])) or after.get(st.PATCH, 0) != (PV, user_patch(0)):
         p.append("corrupt: the save after it failed, or slot 1 was lost")
     lines.append("  corrupt: %d damaged records and %d garbage blocks ignored, %d unknown record kept out,"
                  " the older slot 1 read; a save after it went in" % (want.counts["crc_bad"],
@@ -604,7 +620,7 @@ def case_full(out, image_len):
     s = st.Store()
     for sec in range(st.SECTORS):
         s.raw_sector(sec, sec + 1)
-    s.raw_record(0, 16, st.PATCH, 0, 1, user_patch(0), 1)        # live, in the sector after the head
+    s.raw_record(0, 16, st.PATCH, 0, PV, user_patch(0), 1)        # live, in the sector after the head
     seq = 2
     for sec in range(1, st.SECTORS):
         off = 16
@@ -622,7 +638,7 @@ def case_full(out, image_len):
     if r["save_fail"] != 1 or r["last_result"] != ERR_FULL or region(run.flash) != region(chip):
         p.append("full: save failures %d, result %d, the store changed: %s"
                  % (r["save_fail"], r["last_result"], region(run.flash) != region(chip)))
-    if st.Image(run.flash).get(st.PATCH, 0) != (1, user_patch(0)):
+    if st.Image(run.flash).get(st.PATCH, 0) != (PV, user_patch(0)):
         p.append("full: slot 1 was lost")
     lines.append("  full: every sector in use and no room to move slot 1 out of the next one: the save was"
                  " refused (result %d), reported, and nothing written" % r["last_result"])
@@ -642,7 +658,7 @@ def case_wear(out, image_len):
     script, puts = [], []
     for i in range(SAVES):
         script += save_script(150 + 150 * i, i % 16 + 1)
-        puts.append((st.PATCH, i % 16, 1, saved(PATCHES[sel])))
+        puts.append((st.PATCH, i % 16, PV, saved(PATCHES[sel])))
     want, commands = predict(s0, puts)
     run = Run(out, "store-wear", "app", 150 + 150 * SAVES + 200, flash=s0, script=script).go()
     rate = Run(out, "store-wear-rate", "app", 9500,
@@ -687,7 +703,7 @@ def case_migrate(out, image_len):
     if m["filtered"] < 2 or m["notes_on"] != 1:
         p.append("migrate: %d messages filtered, %d notes taken: not channel 10" % (m["filtered"], m["notes_on"]))
     sv = st.Image(run.flash).get(st.SETTINGS)
-    if sv != (3, settings_v3(channel=10, bend=12, local=0)):
+    if sv != (4, settings_v4(channel=10, bend=12, local=0)):
         p.append("migrate: the settings written after the change are %s" % (sv,))
     # Since M8a: version 2 (M6b's) taken as version 3, the knobs the macros.
     s = st.Store()
@@ -700,10 +716,29 @@ def case_migrate(out, image_len):
         if run2.rec("store")["loaded"] & 6 != 6 or run2.rec("midi")["filtered"] < 2:
             p.append("migrate: version 2 settings not taken (loaded 0x%x)" % run2.rec("store")["loaded"])
         sv2 = st.Image(run2.flash).get(st.SETTINGS)
-        if sv2 != (3, settings_v3(channel=10, bend=12, thru=1, local=0)):
+        if sv2 != (4, settings_v4(channel=10, bend=12, thru=1, local=0)):
             p.append("migrate: version 2's settings written after the change are %s" % (sv2,))
+    # Since ARP: a patch saved before it (version 1, in a version 1
+    # record) plays with the arpeggiator's defaults; SAVE writes version 2.
+    v1 = patch_v1(user_patch(2))
+    s = st.Store()
+    s.put(st.PATCH, 0, 1, v1)
+    chip3 = s.chip()
+    run3 = Run(out, "store-migrate-patch", "app", 3800, flash=chip3,
+               script=["300 midi c0 09", "500 midi 90 3c 64", "700 midi 80 3c 00"] + save_script(1000, 2)).go()
+    p += common(run3, image_len) + agrees(run3, chip3)
+    if not p:
+        r3, f3, img3 = run3.rec("store"), run3.rec("fm"), st.Image(run3.flash)
+        if r3["loaded"] & 0x108 != 0x108 or f3["patch"] != 9 or f3["notes"] != 1:
+            p.append("migrate: a version 1 patch: loaded 0x%x, program %d, %d notes" % (r3["loaded"], f3["patch"],
+                                                                                     f3["notes"]))
+        if img3.get(st.PATCH, 1) != (PV, fm_patch.upgrade(v1)) or img3.get(st.PATCH, 0) != (1, v1):
+            p.append("migrate: after SAVE slot 2 holds %s, slot 1 %s" % (img3.get(st.PATCH, 1), img3.get(st.PATCH, 0)))
+    lines.append("  migrate: a version 1 patch in slot 1 played as version 2 with the arpeggiator's defaults;"
+                 " SAVE to slot 2 wrote it as version 2, slot 1 left as it was")
     lines.append("  migrate: version 1 settings (channel 10, bend 12) and version 2 (with thru on) taken as"
-                 " version 3; a change wrote version 3 with them kept, its defaults added, the knobs the macros")
+                 " version 4; a change wrote version 4 with them kept, its defaults added, the knobs the macros,"
+                 " 120 beats a minute, the arpeggiator's notes out")
     return p, lines
 
 

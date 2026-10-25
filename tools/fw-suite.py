@@ -602,8 +602,11 @@ LED_FULL_DUTY = (75, 92)   # thousandths: lit in 1 of 12 scan slots (83.3)
 # The keys script's LED changes: each of the 41 pressed and let go (82),
 # and since M8a three more as the screens change (ENV, EDIT, GLO, HOME
 # pressed in turn: HOME lit at the first event, then the previous screen's
-# button and OP1's key at half going dark or lit).
+# button and OP1's key at half going dark or lit). Since ARP its LED
+# stays lit from its first tap (the arpeggiator on) to its second's end
+# (off): still two changes.
 LED_CALLS_KEYS = 85
+INPUT_ARP = 10              # input.h: the ARP button (fwtest key 10)
 LED_STEP = 1000.0 / 96     # one eighth of that
 LED_STEP_TOL = 2
 EVENTS_DIR = "tests/fw/events"
@@ -701,17 +704,26 @@ def check_keys(case_dir):
     head, values, log = input_record(os.path.join(case_dir, input_name("end")))
     problems, lines, lats = [], [], []
     problems += check_events("keys", case_dir, log)
-    if head["events"] != 82 or head["dropped"] or head["taken"] != head["events"]:
-        problems.append("keys: %d events, %d dropped, %d taken: expected 82, 0, all"
-                        % (head["events"], head["dropped"], head["taken"]))
+    # The script's changes in order: each key down at 700 + 40 n and up 20
+    # ms later; since ARP, ARP (10) tapped again at 1126 to 1134 ms (on,
+    # then off).
+    want = []
+    for n in range(41):
+        want += [(n, 0, 700 + 40 * n), (n, 1, 720 + 40 * n)]
+        if n == INPUT_ARP:
+            want += [(n, 0, 1126), (n, 1, 1134)]
+    if head["events"] != len(want) or head["dropped"] or head["taken"] != head["events"]:
+        problems.append("keys: %d events, %d dropped, %d taken: expected %d, 0, all"
+                        % (head["events"], head["dropped"], head["taken"], len(want)))
     for seq, c, k, v, t in log:
-        n, up = seq // 2, seq % 2
+        n, up, when = want[seq] if seq < len(want) else (None, 0, 0)
         if (c, k, v) != (n, RELEASE if up else PRESS, 0 if up else 1):
-            problems.append("keys: event %d is %s %s %d, expected fwtest key %d (%s at %s) %s"
-                            % (seq, CONTROL_NAMES[c] if c < 49 else c, KINDS.get(k), v, n, CONTROL_NAMES[n],
-                               MATRIX[n], "release" if up else "press"))
+            problems.append("keys: event %d is %s %s %d, expected fwtest key %s (%s at %s) %s"
+                            % (seq, CONTROL_NAMES[c] if c < 49 else c, KINDS.get(k), v, n,
+                               CONTROL_NAMES[n] if n is not None else "-", MATRIX[n] if n is not None else "-",
+                               "release" if up else "press"))
             continue
-        lo, hi = latency(t, 700 + 40 * n + 20 * up)
+        lo, hi = latency(t, when)
         lats.append((lo, hi))
         if lo < KEY_LATENCY[0] or hi > KEY_LATENCY[1]:
             problems.append("keys: key %d's %s came %.3f to %.3f ms after it, not within %s ms"
@@ -750,13 +762,16 @@ def check_keys(case_dir):
         near = any(t - 1 <= ms <= t + 6 for t in edges)
         for n in range(41):
             down = 700 + 40 * n
+            # ARP (since ARP) lit from its first tap to its second's end:
+            # held, then the arpeggiator on.
+            up = 1134 - down if n == INPUT_ARP else 20
             screen = lit_by_screen(n, ms)
-            if prev >= down + KEY_LATENCY[1] + LED_LAG_MS + 1.1 and ms <= down + 20:
+            if prev >= down + KEY_LATENCY[1] + LED_LAG_MS + 1.1 and ms <= down + up:
                 lit += 1
                 held.setdefault(n, []).append(duty[n])
                 if not duty[n]:
                     problems.append("leds: LED %d dark at %.0f ms while key %d is held" % (n, ms, n))
-            elif ms <= down or prev >= down + 20 + KEY_LATENCY[1] + LED_LAG_MS + 1.1:
+            elif ms <= down or prev >= down + up + KEY_LATENCY[1] + LED_LAG_MS + 1.1:
                 if near:
                     continue
                 if screen and not duty[n]:

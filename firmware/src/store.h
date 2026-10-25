@@ -130,7 +130,7 @@ struct sb_store_record {
     u32 save_fail;      /* of which failed */
     u32 resets;         /* factory resets from the panel */
     u32 auto_writes;    /* selection and settings written when they changed */
-    u32 loaded;         /* bit 0: selection, 1: settings, 2: settings migrated, 8 + n: slot n */
+    u32 loaded;         /* bit 0: selection, 1: settings, 2: settings migrated, 3: a patch migrated (ARP), 8 + n: slot n */
     u32 trace_count;    /* commands traced; the last is trace[(trace_count - 1) % STORE_TRACE] */
     u32 trace[STORE_TRACE];   /* each command: kind << 28 | chip offset (1 erase, 2 program) */
 };
