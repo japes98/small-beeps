@@ -20,6 +20,10 @@ command for command, and the two are compared byte for byte.
   (CC 122); the next run starts with the slot, the selection and the
   settings, and plays the slot's patch. Every run of every case: nothing
   written outside the store's region but fwtest's own image (R-STORE-1).
+  Since M8a the store is past the stock firmware's user patch region
+  (HW-80): persist and wear start with that region full of a pattern
+  standing for the stock firmware's saved patches, and it is still there
+  byte for byte after every save, erase and compaction.
 - sweep (R-STORE-3): a ring that has wrapped, its head one save from
   full, so a save takes a new sector, its erase and the compaction of the
   sector after it. The power cut test build stops after every one of the
@@ -229,6 +233,17 @@ def ring_before_advance():
         assert n < 50000
 
 
+def with_stock(chip):
+    """chip with the stock firmware's user patch region (HW-80) full of a
+    pattern standing for its saved patches: a store that erased or wrote
+    there would change it, and outside_writes would say so."""
+    b = bytearray(chip + b"\xff" * (st.CHIP - len(chip)))
+    lo, hi = st.USER_REGION
+    rng = random.Random(80)
+    b[lo:hi] = bytes(rng.randrange(256) for _ in range(hi - lo))
+    return bytes(b)
+
+
 def selection_of(chip):
     e = st.Image(chip).get(st.SELECTION)
     return e[1][0] if e else 0
@@ -307,7 +322,7 @@ def agrees(run, chip):
 def case_persist(out, image_len):
     p, lines = [], []
     a0 = PATCHES[0][16]
-    a = Run(out, "store-persist-a", "app", 3800,
+    a = Run(out, "store-persist-a", "app", 3800, flash=with_stock(b""),
             script=["200 enc %d +2" % ENC_ALGORITHM] + save_script(300, 1)
             + ["600 enc %d +3" % ENC_PRESETS, "700 midi b0 7a 00"]).go()
     p += common(a, image_len)
@@ -411,7 +426,7 @@ def torn_erase(before, addr, rng, how):
 
 def case_sweep(out, image_len):
     p, lines = [], []
-    s0 = ring_before_advance()
+    s0 = with_stock(ring_before_advance())
     sel = selection_of(s0)
     new3 = saved(PATCHES[sel], 2)
     s1, commands = predict(s0, [(st.PATCH, 2, 1, new3)])
@@ -616,8 +631,9 @@ def case_wear(out, image_len):
     if not 2 <= rr["auto_writes"] <= 6 // 2 + 1 or st.Image(rate.flash).get(st.SELECTION) != (1, bytes([24 % 9, 0, 0, 0])):
         p.append("wear: the selection was written %d times over 6 s of turns, and holds %s"
                  % (rr["auto_writes"], st.Image(rate.flash).get(st.SELECTION)))
-    lines.append("  wear: %d saves erased sectors %s in ring order, %d records copied; the selection, turned"
-                 " 24 times in 6 s, was written %d times" % (SAVES, erased, r["copies"], rr["auto_writes"]))
+    lines.append("  wear: %d saves erased sectors %s in ring order, %d records copied, the stock user patch"
+                 " region unchanged; the selection, turned 24 times in 6 s, was written %d times"
+                 % (SAVES, erased, r["copies"], rr["auto_writes"]))
     return p, lines
 
 

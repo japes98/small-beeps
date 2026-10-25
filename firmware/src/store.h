@@ -37,13 +37,15 @@
 
 #include "sb.h"
 
-/* The region: the stock layout's user patch region, chip offsets 0xEA000
- * to 0xFBFFF, 18 sectors (HW-80: out of the boot area, the Bluetooth
- * sector and the per-unit last sector; where our image sits on the chip
- * is M9's, so this stays one definition). firmware/app.ld keeps the
- * image clear of it. */
-#define STORE_BASE       0xEA000u    /* chip offset */
-#define STORE_SIZE       0x12000u
+/* The region: the stock layout's unused region, chip offsets 0xFC000 to
+ * 0xFEFFF, 3 sectors (HW-80: out of the boot area, the Bluetooth sector,
+ * the stock firmware's user patch region, which it leaves as it is, and
+ * the per-unit last sector; where our image sits on the chip is M9's, so
+ * this stays one definition). Since M8a; M7's store took the user patch
+ * region (docs/DESIGN-NOTES.md, M8a, has why three sectors are enough).
+ * firmware/app.ld keeps the image clear of both. */
+#define STORE_BASE       0xFC000u    /* chip offset */
+#define STORE_SIZE       0x3000u
 #define STORE_SECTOR     4096u
 #define STORE_SECTORS    (STORE_SIZE / STORE_SECTOR)
 #define STORE_PAGE       256u        /* a page program's reach */

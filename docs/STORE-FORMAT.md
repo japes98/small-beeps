@@ -14,8 +14,12 @@ firmware's. Numbers are little-endian.
 
 ## The region
 
-Chip offsets `0xEA000` to `0xFBFFF`, the stock layout's user patch
-region (HW-80): 18 sectors of 4 KiB, used as a ring. Where it sits is one
+Chip offsets `0xFC000` to `0xFEFFF`, the stock layout's unused region
+(HW-80): 3 sectors of 4 KiB, used as a ring. The firmware leaves the
+stock firmware's user patch region (`0xEA000` to `0xFBFFF`, where M7's
+store was) as it is, so the stock firmware's saved patches survive; why
+three sectors are enough is in docs/DESIGN-NOTES.md (M8a). The format
+does not depend on the number of sectors. Where it sits is one
 definition (`STORE_BASE` and `STORE_SIZE` in `store.h`), since where our
 own image sits on the chip is M9's; `firmware/app.ld` keeps the image
 clear of it. The firmware reads and writes the region only through

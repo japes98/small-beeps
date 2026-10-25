@@ -2074,3 +2074,58 @@ golden images.
   reads back wrong and the save is reported failed (never silently lost).
 - **Q-24, updates:** whether an update rewrites the user region decides
   whether saved patches survive one (M9).
+
+### 2026-10-25 M8a: the store moves to the unused region
+
+The owner prefers that our firmware never erases the stock firmware's
+saved patches. M7's store took the stock user patch region (HW-80,
+`0xEA000` to `0xFBFFF`, 18 sectors), so it erased them. HW-80 names one
+other region a store may take without touching anything of the stock
+firmware's: `0xFC000` to `0xFEFFF`, 12 KiB, three sectors, ending before
+the per-unit last 4 KiB. The store now lives there (`STORE_BASE`,
+`STORE_SIZE`; the format is unchanged), and the image is still linked to
+end before `0xEA000`, so neither touches the user patch region. No unit
+runs a build with M7's store yet, so nothing is migrated.
+
+**Does it fit?** Everything the store keeps live at once is 16 patches
+(a record of 128 bytes each), the selection (32), the settings (64) and
+a reset (16): 2 160 bytes. A sector holds 4 080 bytes of records after
+its header. The ring moves the live records of the sector after the new
+head into it, so a sector is never erased with anything live in it; even
+when every live record has to move, the new head keeps 1 920 bytes for
+new records, more than the largest record (128). So no save is ever
+refused for want of room, with any mix of slots in use; the model and
+the store suite's `full` and `wear` cases run on three sectors.
+
+**Wear life,** counted as M7 counts it (its "Wear", a bound): each
+sector takes 100 000 erases (HW-77), and each erase gives at least the
+1 920 bytes left after the largest compaction, so the region takes
+3 x 1 920 x 100 000 bytes of records, a sixth of M7's 18 sectors:
+
+| Use, without a break | Life, 3 sectors | (M7's 18 sectors, same bound) |
+|---|---:|---:|
+| the selection and the settings both changed every 2 s (the most `STORE_SETTLE_S` allows; 96 bytes in 2 s) | 0.38 years (3 300 hours) | 2.3 years |
+| a patch saved every 10 s | 1.4 years | 8.6 years |
+| a heavy day: 300 program changes, 20 settings changes, 20 saves (about 13 KiB of records) | about 117 years | |
+| two hours a day of the most the limits allow | about 4.6 years | |
+
+The bound is pessimistic: `tools/store.py`'s model, with all 16 slots,
+the selection and the settings live, takes about 3 000 to 4 000 bytes of
+new records an erase, not 1 920, so real lives are about 1.6 to 2 times
+these. So the smaller region meets the 16 slots, the selection and the
+settings with a long life in real use; the cost is the margin for abuse.
+If that ever matters, `STORE_SETTLE_S` is the lever: at 10 s the
+selection's and settings' worst case lasts five times longer.
+
+**What is not known** (HW-80): FM-1-RE says the stock layout's free
+regions have not been validated as safe for writes from outside the
+stock firmware, and whether an update rewrites any region past the app
+area is open (Q-24). The unused region is no worse known than the user
+patch region on either count.
+
+**Tests.** The constants test checks the store lies past the user patch
+region and before the last 4 KiB, and the image's window ends where the
+user patch region begins. The store suite's `persist` and `wear` cases
+start with the user patch region full of a pseudo-random pattern standing
+for the stock firmware's saved patches, and every run checks the chip
+outside the store is unchanged, so an erase or a write there would fail.
