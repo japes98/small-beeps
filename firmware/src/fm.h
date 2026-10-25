@@ -26,11 +26,12 @@
 #define FM_ALGORITHMS 10u
 #define FM_PATCHES    9u       /* the test patches (patches.c) */
 
-/* --- The patch format, version 1 (docs/PATCH-FORMAT.md) ------------
+/* --- The patch format, version 2 (docs/PATCH-FORMAT.md) ------------
  * FM_PATCH_BYTES bytes, every field a byte (or two, little-endian), so a
- * patch can be saved (M7) and shared (the app) as it is. */
+ * patch can be saved (M7) and shared (the app) as it is. Version 2 (since
+ * ARP) holds the arpeggiator's settings in version 1's reserved bytes. */
 #define FM_PATCH_BYTES    112u
-#define FM_PATCH_VERSION  1u
+#define FM_PATCH_VERSION  2u
 #define FM_OP_BYTES       13u
 #define FM_OP_OFFSET      32u   /* operator 1's first byte; op n at 32 + 13 (n - 1) */
 #define FM_SUM_OFFSET     110u  /* the check sum, the last two bytes */
@@ -49,7 +50,10 @@
 #define FMP_PITCH_DEPTH 21u /* signed semitones the pitch envelope's 127 means, -48 to 48 */
 #define FMP_PITCH_RATE 22u  /* 3 time codes: to P1, to P2 (held), release to P3 */
 #define FMP_PITCH_LEVEL 25u /* 4 signed levels P0 (at note on) to P3, -127 to 127 */
-/* 29 to 31: reserved, 0 */
+/* Since version 2 (ARP), the arpeggiator's settings (version 1: reserved, 0): */
+#define FMP_ARP        29u  /* bit 0 on, bit 1 latch, bits 2-4 the mode (ARP_*), bits 5-6 octaves - 1 */
+#define FMP_ARP_RATE   30u  /* bits 0-3 the rate (0 to 9, 1/2 to 1/32), bits 4-7 the swing in 5% (0 to 75%) */
+#define FMP_ARP_GATE   31u  /* the gate, 10 to 100 (% of a step) */
 
 /* Operator n's fields, from its first byte. */
 #define FMO_MODE       0u   /* 0: ratio of the note's frequency; 1: fixed */
@@ -95,6 +99,20 @@ struct fm_op {
     s32 detune;     /* 2^-30: the detune's factor */
 };
 
+/* An operator as notes take it now: the patch's frequency, rates and
+ * levels with the macros applied (fm_play.c's shaped[], worked out once a
+ * change; since ARP also what a start pending within a block takes). */
+struct fm_op_shape {
+    u32 freq;
+    s32 step[4], target[3];
+};
+
+/* A start or a release at a frame within the block (since ARP: the
+ * arpeggiator's steps fall on their frames, arp.h): fm_render renders the
+ * frames before it as the voice was, then takes it, then the rest. A
+ * fresh voice's frames before its start are silent. */
+enum { FM_PENDING_NONE, FM_PENDING_FRESH, FM_PENDING_START, FM_PENDING_RELEASE };
+
 /* A voice. Core 0 sets it up and changes it between blocks only; during
  * a block only the core that owns it touches it (DESIGN-NOTES.md, M5,
  * "Two cores"). */
@@ -109,6 +127,20 @@ struct fm_voice {
     u32 fade;       /* 1: fade out over the next block (a stolen voice) */
     u32 silent;     /* set by the renderer: every carrier is off */
     u32 fade_done;  /* set by the renderer: the fade is over */
+    /* Since ARP: FM_PENDING_*, at frame `at` (1 to AUDIO_FRAMES - 1) of
+     * the next block; for a start on a voice still sounding
+     * (FM_PENDING_START; a fresh voice's are set at once), what its
+     * operators take there: the rates and levels of next_shape (core 0's,
+     * unchanged until the block is rendered), each one's level with the
+     * velocity, which are off (bit n), and the routing. Its frequencies
+     * are set at once (they only make the block's phase steps). The
+     * renderer clears it. */
+    u32 pending, at;
+    const struct fm_op_shape *next_shape;
+    s32 next_att[FM_OPS];
+    u32 next_off;
+    u32 next_algorithm;
+    s32 next_out_att;
 };
 
 enum { VOICE_IDLE, VOICE_ON };
@@ -146,9 +178,13 @@ extern const struct fm_algorithm fm_algorithms[FM_ALGORITHMS];
 
 /* --- The test patches (patches.c) ------------------------------------ */
 extern const u8 fm_patches[FM_PATCHES][FM_PATCH_BYTES];
-/* 1 if p is a well-formed version 1 patch (magic, version, length, check
+/* 1 if p is a well-formed version 2 patch (magic, version, length, check
  * sum, every field in range). */
 int fm_patch_valid(const u8 *p);
+/* A version 1 patch (M5's) made version 2 in place: the arpeggiator's
+ * defaults in its reserved bytes, the version and the check sum anew.
+ * 1 if p is now a valid version 2 patch (one already is left as it is). */
+int fm_patch_upgrade(u8 *p);
 u32 fm_patch_sum(const u8 *p);
 
 /* --- The user slots (since M7) ---------------------------------------- */

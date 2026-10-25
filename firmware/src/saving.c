@@ -12,6 +12,7 @@
 #include "store.h"
 #include "fm.h"
 #include "midi.h"
+#include "arp.h"
 
 _Static_assert(FM_USER_SLOTS == STORE_SLOTS, "one store slot for each user slot");
 _Static_assert(FM_PATCH_BYTES <= STORE_MAX_PAYLOAD, "a patch fits a record");
@@ -19,8 +20,11 @@ _Static_assert(sizeof(struct midi_settings) <= STORE_MAX_PAYLOAD, "the settings 
 _Static_assert(FM_PROGRAMS <= 255, "a program fits the selection's byte");
 
 /* The settings' version 1 (M6a): the first 4 + 2 * MIDI_CC_ROUTES bytes
- * of version 2, which added the out channel, thru and local control. */
+ * of version 2, which added the out channel, thru and local control;
+ * versions 2 and 3 are the first 8 + 2 * MIDI_CC_ROUTES of version 4,
+ * which added the tempo and the arpeggiator's MIDI out (ARP). */
 #define SETTINGS_V1_BYTES (4u + 2u * MIDI_CC_ROUTES)
+#define SETTINGS_V3_BYTES (8u + 2u * MIDI_CC_ROUTES)
 
 /* What the store holds now, to see what changed, and since when. */
 static struct midi_settings settings_kept;
@@ -58,7 +62,8 @@ static int settings_ok(const struct midi_settings *m)
 
     if (m->version != MIDI_SETTINGS_VERSION || m->channel > 16 || m->bend_range > 24
         || m->routes > MIDI_CC_ROUTES || m->out_channel < 1 || m->out_channel > 16 || m->thru > 1
-        || m->local > 1 || m->knobs > 1)
+        || m->local > 1 || m->knobs > 1 || m->tempo < ARP_TEMPO_MIN || m->tempo > ARP_TEMPO_MAX
+        || m->arp_out > 1)
         return 0;
     for (i = 0; i < MIDI_CC_ROUTES; i++)
         if (m->cc[i].cc > 119 || m->cc[i].to > MIDI_TO_KNOB4)
@@ -66,9 +71,10 @@ static int settings_ok(const struct midi_settings *m)
     return 1;
 }
 
-/* The settings record: version 3 as it is; version 2 (M6b's; its last
- * byte, always 0, is version 3's knobs: the macros) and version 1 (M6a's)
- * into version 3, with its defaults for what they lacked. */
+/* The settings record: version 4 as it is; version 3 (M8a's), version 2
+ * (M6b's; its last byte, always 0, is version 3's knobs: the macros) and
+ * version 1 (M6a's) into version 4, with its defaults for what they
+ * lacked. */
 static void load_settings(void)
 {
     u32 version;
@@ -77,8 +83,8 @@ static void load_settings(void)
     midi_settings_default(&s);
     if (n == (int)sizeof s && version == MIDI_SETTINGS_VERSION) {
         copy(&s, buf, sizeof s);
-    } else if (n == (int)sizeof s && version == 2 && buf[0] == 2) {
-        copy(&s, buf, sizeof s);
+    } else if (n == (int)SETTINGS_V3_BYTES && (version == 3 || version == 2) && buf[0] == version) {
+        copy(&s, buf, SETTINGS_V3_BYTES);
         s.version = MIDI_SETTINGS_VERSION;
         sb_store.loaded |= 4u;
     } else if (n == (int)SETTINGS_V1_BYTES && version == 1 && buf[0] == 1) {
@@ -102,8 +108,11 @@ void store_boot(void)
     store_init();
     for (slot = 0; slot < STORE_SLOTS; slot++) {
         n = store_get(STORE_PATCH, slot, buf, sizeof buf, &version);
-        if (n == (int)FM_PATCH_BYTES && version == FM_PATCH_VERSION && fm_user_set(slot, buf))
-            sb_store.loaded |= 1u << (8 + slot);
+        /* A patch saved before ARP (version 1) takes the arpeggiator's
+         * defaults; the slot keeps it as version 1 until it is saved again. */
+        if (n == (int)FM_PATCH_BYTES && (version == FM_PATCH_VERSION || (version == 1 && buf[FMP_VERSION] == 1))
+            && fm_patch_upgrade(buf) && fm_user_set(slot, buf))
+            sb_store.loaded |= 1u << (8 + slot) | (version == 1 ? 8u : 0u);
     }
     load_settings();
     n = store_get(STORE_SELECTION, 0, buf, sizeof buf, &version);

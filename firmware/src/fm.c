@@ -195,12 +195,13 @@ s32 fm_sine(u32 phase)
  * into dst[] or added to it. The compiler makes one loop of each kind. */
 static inline __attribute__((always_inline)) void op_block(struct fm_op *o, const s32 *in, s32 *dst,
                                                            s32 g0, s32 dg, s32 fb0, s32 dfb,
-                                                           const int mod, const int feed, const int add)
+                                                           const int mod, const int feed, const int add,
+                                                           u32 n0, u32 n1)
 {
     u32 ph = o->phase, inc = o->inc, n;
     s32 g = g0, y1 = o->y1, y2 = o->y2, fb = fb0;
 
-    for (n = 0; n < AUDIO_FRAMES; n++) {
+    for (n = n0; n < n1; n++) {
         u32 p = ph;
         s32 y;
         if (mod)
@@ -227,14 +228,31 @@ static void op_dispatch(struct fm_op *o, const s32 *in, s32 *dst, s32 g0, s32 dg
                         u32 kind)
 {
     switch (kind) {
-    case 0: op_block(o, in, dst, g0, dg, fb0, dfb, 0, 0, 0); break;
-    case 1: op_block(o, in, dst, g0, dg, fb0, dfb, 0, 0, 1); break;
-    case 2: op_block(o, in, dst, g0, dg, fb0, dfb, 0, 1, 0); break;
-    case 3: op_block(o, in, dst, g0, dg, fb0, dfb, 0, 1, 1); break;
-    case 4: op_block(o, in, dst, g0, dg, fb0, dfb, 1, 0, 0); break;
-    case 5: op_block(o, in, dst, g0, dg, fb0, dfb, 1, 0, 1); break;
-    case 6: op_block(o, in, dst, g0, dg, fb0, dfb, 1, 1, 0); break;
-    default: op_block(o, in, dst, g0, dg, fb0, dfb, 1, 1, 1); break;
+    case 0: op_block(o, in, dst, g0, dg, fb0, dfb, 0, 0, 0, 0, AUDIO_FRAMES); break;
+    case 1: op_block(o, in, dst, g0, dg, fb0, dfb, 0, 0, 1, 0, AUDIO_FRAMES); break;
+    case 2: op_block(o, in, dst, g0, dg, fb0, dfb, 0, 1, 0, 0, AUDIO_FRAMES); break;
+    case 3: op_block(o, in, dst, g0, dg, fb0, dfb, 0, 1, 1, 0, AUDIO_FRAMES); break;
+    case 4: op_block(o, in, dst, g0, dg, fb0, dfb, 1, 0, 0, 0, AUDIO_FRAMES); break;
+    case 5: op_block(o, in, dst, g0, dg, fb0, dfb, 1, 0, 1, 0, AUDIO_FRAMES); break;
+    case 6: op_block(o, in, dst, g0, dg, fb0, dfb, 1, 1, 0, 0, AUDIO_FRAMES); break;
+    default: op_block(o, in, dst, g0, dg, fb0, dfb, 1, 1, 1, 0, AUDIO_FRAMES); break;
+    }
+}
+
+/* The same over frames n0 to n1 - 1 only (since ARP: a block in two
+ * parts, around a start or a release at a frame). */
+static void op_dispatch_part(struct fm_op *o, const s32 *in, s32 *dst, s32 g0, s32 dg, s32 fb0, s32 dfb,
+                             u32 kind, u32 n0, u32 n1)
+{
+    switch (kind) {
+    case 0: op_block(o, in, dst, g0, dg, fb0, dfb, 0, 0, 0, n0, n1); break;
+    case 1: op_block(o, in, dst, g0, dg, fb0, dfb, 0, 0, 1, n0, n1); break;
+    case 2: op_block(o, in, dst, g0, dg, fb0, dfb, 0, 1, 0, n0, n1); break;
+    case 3: op_block(o, in, dst, g0, dg, fb0, dfb, 0, 1, 1, n0, n1); break;
+    case 4: op_block(o, in, dst, g0, dg, fb0, dfb, 1, 0, 0, n0, n1); break;
+    case 5: op_block(o, in, dst, g0, dg, fb0, dfb, 1, 0, 1, n0, n1); break;
+    case 6: op_block(o, in, dst, g0, dg, fb0, dfb, 1, 1, 0, n0, n1); break;
+    default: op_block(o, in, dst, g0, dg, fb0, dfb, 1, 1, 1, n0, n1); break;
     }
 }
 
@@ -255,10 +273,9 @@ static s32 share(s32 d, s32 step)
  * fall exponentially, as struck and plucked things do (DESIGN-NOTES.md,
  * M5, "The envelopes"). A stage that ends within the block hands what is
  * left of the block to the next, so no stage loses time to the blocks. */
-static s32 envelope(struct fm_op *o)
+static inline __attribute__((always_inline)) s32 envelope_by(struct fm_op *o, s32 left)
 {
-    s32 left = 1 << 16;   /* the share of the block still to move, 2^-16 */
-
+    /* left: the share of the block still to move, 2^-16 */
     for (;;) {
         s32 step, to, d, move;
         if (o->stage == ENV_ATTACK) {
@@ -296,6 +313,107 @@ static s32 envelope(struct fm_op *o)
     }
 }
 
+static s32 envelope(struct fm_op *o)
+{
+    return envelope_by(o, 1 << 16);
+}
+
+/* Part of a block, frames n0 to n1 - 1: its share of the envelope (a
+ * frame is 2^10 of 2^16). */
+static s32 envelope_part(struct fm_op *o, u32 frames)
+{
+    return envelope_by(o, (s32)(frames << 10));
+}
+
+/* Frames n0 to n1 - 1 of voice v's block, as fm_render renders a whole
+ * block (since ARP; below). */
+static __attribute__((noinline)) void render_part(struct fm_voice *v, s32 *mix, s32 (*buf)[AUDIO_FRAMES],
+                                                  u32 n0, u32 n1)
+{
+    const struct fm_algorithm *a = &fm_algorithms[v->algorithm];
+    u32 written = 0, sounding = 0, n, frames = n1 - n0;
+    int i;
+
+    for (i = FM_OPS - 1; i >= 0; i--) {
+        struct fm_op *o = &v->op[i];
+        u32 dest = a->dest[i], to = dest == FM_TO_OUT ? FM_OPS : dest, kind = 0;
+        s32 e = envelope_part(o, frames), target, dg, fb0 = 0, dfb = 0;
+
+        if (o->stage != ENV_OFF && dest == FM_TO_OUT)
+            sounding = 1;
+        target = (s32)(((s64)e * fm_exp2_neg(o->fixed_att + (dest == FM_TO_OUT ? v->out_att : v->mod_att)))
+                       >> 30);
+        if (o->inc >= 0x80000000u) {
+            target = 0;
+        } else if (dest != FM_TO_OUT && o->inc) {
+            float room = (2147483648.0f - (float)v->op[dest].inc) / (float)o->inc - 1.0f;
+            float cap = room * (1073741824.0f / 12.566371f);
+            if (cap < (float)target)
+                target = cap > 0.0f ? (s32)cap : 0;
+        }
+        dg = (target - o->gain) / (s32)frames;
+        if ((u32)i == a->feedback_op) {
+            fb0 = v->fb_now;
+            dfb = (v->fb_target - v->fb_now) >> 6;
+        }
+        if (!o->gain && !target) {
+            o->phase += o->inc * frames;
+            o->y1 = o->y2 = 0;
+            continue;
+        }
+        kind = (written >> i & 1) ? 4 : 0;
+        kind |= (u32)i == a->feedback_op && (fb0 || dfb) ? 2 : 0;
+        kind |= written >> to & 1;
+        op_dispatch_part(o, buf[i], buf[to], o->gain, dg, fb0, dfb, kind, n0, n1);
+        o->gain += dg * (s32)frames;
+        written |= 1u << to;
+    }
+    v->fb_now += ((v->fb_target - v->fb_now) >> 6) * (s32)frames;
+    v->silent = !sounding;
+    if (!(written >> FM_OPS & 1))
+        return;
+    for (n = n0; n < n1; n++)
+        mix[n] += buf[FM_OPS][n] >> 2;
+}
+
+/* A start or a release at its frame (fm.h, FM_PENDING_*): the frames
+ * before it as the voice was (none for a fresh voice: it was silent),
+ * then the start's operators (from their envelopes' levels, as fm_play.c's
+ * voice_start does at a block's start) or the release, then the rest. */
+static __attribute__((noinline)) void render_pending(struct fm_voice *v, s32 *mix, s32 (*buf)[AUDIO_FRAMES])
+{
+    u32 at = v->at, i, k;
+
+    if (v->pending != FM_PENDING_FRESH)
+        render_part(v, mix, buf, 0, at);
+    for (i = 0; i < FM_OPS; i++) {
+        struct fm_op *o = &v->op[i];
+        const struct fm_op_shape *s = &v->next_shape[i];
+        if (v->pending == FM_PENDING_RELEASE) {
+            if (o->stage == ENV_OFF)
+                continue;
+            if (o->stage == ENV_ATTACK)
+                o->att = fm_att_of(o->lin);
+            o->stage = ENV_RELEASE;
+        } else if (v->pending == FM_PENDING_START) {
+            if (o->stage != ENV_ATTACK)
+                o->lin = o->stage == ENV_OFF ? 0 : fm_exp2_neg(o->att);
+            o->fixed_att = v->next_att[i];
+            for (k = 0; k < 4; k++)
+                o->step[k] = s->step[k];
+            for (k = 0; k < 3; k++)
+                o->target[k] = s->target[k];
+            o->stage = (v->next_off >> i & 1u) ? ENV_OFF : ENV_ATTACK;
+        }
+    }
+    if (v->pending == FM_PENDING_START) {
+        v->algorithm = v->next_algorithm;
+        v->out_att = v->next_out_att;
+    }
+    v->pending = FM_PENDING_NONE;
+    render_part(v, mix, buf, at, AUDIO_FRAMES);
+}
+
 void fm_render(struct fm_voice *v, s32 *mix, s32 (*buf)[AUDIO_FRAMES])
 {
     /* buf[i] is operator i's input, summed from its modulators, and
@@ -305,6 +423,15 @@ void fm_render(struct fm_voice *v, s32 *mix, s32 (*buf)[AUDIO_FRAMES])
     u32 written = 0, sounding = 0, n;
     int i;
 
+    /* Since ARP: a start or release within the block (a fading voice
+     * fades as before: its pending start or release is dropped). */
+    if (v->pending) {
+        if (!v->fade) {
+            render_pending(v, mix, buf);
+            return;
+        }
+        v->pending = FM_PENDING_NONE;
+    }
     for (i = FM_OPS - 1; i >= 0; i--) {
         struct fm_op *o = &v->op[i];
         u32 dest = a->dest[i], to = dest == FM_TO_OUT ? FM_OPS : dest, kind = 0;
