@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 38d05b5d169ef6526c98e44033008c2c91956b7e..e5ff5c918390661214813fa6c37830cacb73e7c3
+OK     448751305d62 config: the M8 budgets, more code and static RAM for the screens
+EXEMPT e5ff5c918390 (merge) Merge pull request #116 from japes98/m8a/budgets
+2 commit(s) checked: PASS
+
+exit status 0

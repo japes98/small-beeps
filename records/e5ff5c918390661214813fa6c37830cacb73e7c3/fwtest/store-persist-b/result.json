@@ -1,0 +1,68 @@
+{
+  "fwtest": {
+    "version": "0.5.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 24208,
+    "sha256": "94564ce24a326be2824308d3fbf447f3bcaa944c1fc74e47b5c1e1a99009c109"
+  },
+  "script_sha256": "dfa6a9bd07437f64c0066c2503004b5e0027cd1dacfdd0e275d8916b55c6335a",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "1600.949",
+    "instructions": {
+      "core0": 3477956,
+      "core1": 10717
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "929e690edfc2a6a2640fcc683355aeab9861a90c2fa84337a4f0f81d15abf631"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "c4ec73654557baf4414ba45339ebfe07b90aebc6132b1065f2810a3e60fe9900"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "54ba78d58c38aec72df01d4a54a77a4dd093375750c0d1609df970e20cecfc20"
+      },
+      {
+        "name": "ram-01c00590-40-500ms.bin",
+        "bytes": 64,
+        "sha256": "f89aa2d891ff6b81c7cc82f112c041bfaf35daad7e506fadc62f978450c4d814"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "dcd178d4c7354cd018750040610aa23ebbdfb0f1582ebe9d9a0db2b5ca95e1dd"
+      },
+      {
+        "name": "ram-01c005d0-164-end.bin",
+        "bytes": 356,
+        "sha256": "3e34308a2907bc83b3af420d498c5c1f9d59bcd93feaab0cae6f9f1228a616e5"
+      },
+      {
+        "name": "ram-01c00780-f0-end.bin",
+        "bytes": 240,
+        "sha256": "3afc14fb7ab8aed75b88c055b33f818f506c4a001c047ea13bd45ada277c3bee"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

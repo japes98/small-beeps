@@ -1,0 +1,7 @@
+code 24140
+data 68
+bss 156560
+image 24208
+stack 4096
+irq_stack 2048
+ram_code 24020
