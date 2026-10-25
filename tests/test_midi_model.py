@@ -129,6 +129,27 @@ class MidiOutTest(unittest.TestCase):
             self.assertEqual((mm.knob_value(k, lo - 5), mm.knob_value(k, hi + 5)), (0, 127))
             self.assertEqual(mm.knob_value(k, 0), 64)
 
+    def test_macro_value_is_the_maps_inverse(self):
+        """Since M8a: the macros' controllers; MOTION's 0 to 64 all mean 0."""
+        for k, (lo, hi) in enumerate(mm.MACRO_SPAN):
+            for p in range(lo, hi + 1):
+                v = mm.knob_value(k, p, mm.MACRO_SPAN)
+                # SHAPE's and MOTION's 129 steps: one position is a step off.
+                self.assertLessEqual(abs(mm.knob_offset(k, v, mm.MACRO_SPAN) - p), 1, (k, p, v))
+                # fm_play.c's knob_value: 64 + ceil(p 63 / hi), 64 - ceil(-p 64 / -lo).
+                ceil = lambda a, b: -(-a // b)
+                self.assertEqual(v, 64 + ceil(p * 63, hi) if p >= 0 else 64 - ceil(-p * 64, -lo), (k, p))
+            self.assertEqual(mm.knob_value(k, hi + 5, mm.MACRO_SPAN), 127)
+            self.assertEqual(mm.knob_value(k, 0, mm.MACRO_SPAN), 64)
+        self.assertEqual({mm.knob_offset(3, v, mm.MACRO_SPAN) for v in range(65)}, {0})
+
+    def test_macro_spans_match_the_firmware(self):
+        with open(os.path.join(ROOT, "firmware", "src", "fm_play.c")) as f:
+            c = f.read()
+        spans = re.search(r"macro_span\[4\]\[2\] = \{(.*?)\};", c).group(1)
+        self.assertEqual(tuple(tuple(int(x) for x in re.findall(r"-?\d+", g)) for g in re.findall(r"\{([^{}]*)\}", spans)),
+                         mm.MACRO_SPAN)
+
     def test_knob_spans_match_the_firmware(self):
         with open(os.path.join(ROOT, "firmware", "src", "fm_play.c")) as f:
             c = f.read()

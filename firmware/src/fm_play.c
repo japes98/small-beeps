@@ -170,6 +170,8 @@ static int midi_knob[4];
 /* The panel's KNOB1 to KNOB4 as the engine last took them: frozen while
  * local control is off (M6b). The program the panel's PRESETS last chose. */
 static int panel_knob[4];
+/* midi_settings.knobs as knobs() last took it (M8a): 0 the macros. */
+static u32 knobs_mode;
 static u32 panel_program;
 static u32 lfo_phase, rpn = 0x3FFFu;
 
@@ -295,6 +297,138 @@ u32 fm_patch_sum(const u8 *b)
     return c << 8 | a;
 }
 
+/* --- The macros (M8a; docs/M8-PROPOSAL.md, docs/DESIGN-NOTES.md) ------
+ * KNOB1 to KNOB4 on the patch view, unless the setting "Knobs: direct"
+ * (midi_settings.knobs) gives them M5's controls. Each moves several of
+ * the patch's values at once as an offset over the stored patch, so at 0
+ * the patch sounds exactly as stored, and turning it back returns there:
+ * - BRIGHT: every modulator's level (M5's KNOB3, renamed);
+ * - COLOR: the modulators' ratios, from whole numbers (below 0, each
+ *   moved toward its nearest whole number, or a half) to inharmonic (above
+ *   0, each multiplied by up to the square root of 2, the same sweep on
+ *   every patch), and feedback up to 3 steps more at the metallic end;
+ * - SHAPE: the carriers' envelopes, from a pluck (below 0: a fast attack,
+ *   a short decay, a quick release, the held level falling away) to a pad
+ *   (above 0: a slow attack, full sustain, a long release);
+ * - MOTION: vibrato (5.5 Hz, up to half a semitone) and a detune spread
+ *   across the carriers (the first in tune, the others up to 12 cents
+ *   above and below it in turn).
+ * The operators' values with COLOR and SHAPE applied are worked out once
+ * a change (shape_ops), not each note or block. */
+#define MACRO_BRIGHT 0
+#define MACRO_COLOR  1
+#define MACRO_SHAPE  2
+#define MACRO_MOTION 3
+static int macro[4];
+/* Each macro's range, and MIDI's controllers 16 to 19 over it (64: 0):
+ * MOTION has nothing below 0, so a controller's 0 to 64 are all 0. */
+static const s8 macro_span[4][2] = { { -64, 32 }, { -32, 32 }, { -64, 64 }, { 0, 64 } };
+/* The operators as notes take them now: the patch's, with COLOR and SHAPE. */
+static struct {
+    u32 freq;
+    s32 step[4], target[3];
+} shaped[FM_OPS];
+/* MOTION's detune factor for each operator, 2^-30 (1 for a modulator). */
+static s32 spread[FM_OPS];
+/* What shaped[] was worked out for. */
+static u32 shaped_patch = 0xFFFFFFFFu, shaped_algorithm;
+static int shaped_color, shaped_shape, shaped_motion;
+
+static int toward(int from, int to, int t)
+{
+    return from + (to - from) * t / 64;
+}
+
+/* COLOR on a ratio (x 256). */
+static u32 color_ratio(u32 f, int c)
+{
+    s32 h;
+
+    if (c > 0)   /* x 2^(c / 64): up to the square root of 2 at 32 */
+        return (u32)(((u64)f * fm_exp2_frac((u32)c << 10)) >> 30);
+    h = (s32)((f + 128u) & ~255u);
+    if (!h)
+        h = 128;
+    return (u32)((s32)f + (h - (s32)f) * -c / 32);
+}
+
+static void shape_ops(void)
+{
+    const struct patch *p = &patches[patch_now];
+    const u8 *raw = fm_program_bytes();
+    const struct fm_algorithm *a = &fm_algorithms[algorithm_now];
+    int color = macro[MACRO_COLOR], shape = macro[MACRO_SHAPE], motion = macro[MACRO_MOTION];
+    u32 i, k, n, side = 0;
+
+    for (i = 0; i < FM_OPS; i++) {
+        const u8 *o = raw + FM_OP_OFFSET + FM_OP_BYTES * i;
+        u32 carrier = a->dest[i] == FM_TO_OUT;
+
+        shaped[i].freq = p->op[i].freq;
+        for (k = 0; k < 4; k++)
+            shaped[i].step[k] = p->op[i].step[k];
+        for (k = 0; k < 3; k++)
+            shaped[i].target[k] = p->op[i].target[k];
+        spread[i] = GAIN_ONE;
+        if (!carrier && !p->op[i].fixed && color)
+            shaped[i].freq = color_ratio(p->op[i].freq, color);
+        if (carrier && shape) {
+            int r[4], l[3], t = shape < 0 ? -shape : shape;
+            for (k = 0; k < 4; k++)
+                r[k] = o[FMO_RATE + k];
+            for (k = 0; k < 3; k++)
+                l[k] = o[FMO_ENV_LEVEL + k];
+            if (shape < 0) {
+                r[0] = toward(r[0], 0, t);
+                r[1] = toward(r[1], 56, t);
+                r[2] = toward(r[2], 72, t);
+                r[3] = toward(r[3], 48, t);
+                l[1] = toward(l[1], 96, t);
+                l[2] = toward(l[2], 0, t);
+            } else {
+                r[0] = toward(r[0], 80, t);
+                r[3] = toward(r[3], 96, t);
+                l[1] = toward(l[1], 127, t);
+                l[2] = toward(l[2], 127, t);
+            }
+            shaped[i].step[0] = step_of((u32)r[0], STEP_LIN);
+            for (k = 1; k < 4; k++)
+                shaped[i].step[k] = step_of((u32)r[k], STEP_ATT);
+            for (k = 0; k < 3; k++)
+                shaped[i].target[k] = (s32)(127 - l[k]) << 13;
+        }
+        if (carrier && motion) {
+            /* The first carrier stays in tune; the others alternately
+             * above and below it. */
+            int cents = side ? motion * 12 / 64 : 0;
+            if (side && !(side & 1))
+                cents = -cents;
+            side++;
+            spread[i] = cents >= 0 ? (s32)fm_exp2_frac((u32)(cents * 65536 / 1200))
+                                   : fm_exp2_neg(-cents * 65536 / 1200);
+        }
+    }
+    /* The notes sounding take COLOR's ratios at once. */
+    for (n = 0; n < FM_VOICES; n++)
+        if (voice[n].state == VOICE_ON && ctl[n].patch == p && voice[n].algorithm == algorithm_now)
+            for (i = 0; i < FM_OPS; i++)
+                if (!voice[n].op[i].fixed)
+                    voice[n].op[i].freq = shaped[i].freq;
+    shaped_patch = patch_now;
+    shaped_algorithm = algorithm_now;
+    shaped_color = color;
+    shaped_shape = shape;
+    shaped_motion = motion;
+}
+
+/* shaped[] for the patch, algorithm and macros now. */
+static void ensure_shaped(void)
+{
+    if (shaped_patch != patch_now || shaped_algorithm != algorithm_now || shaped_color != macro[MACRO_COLOR]
+        || shaped_shape != macro[MACRO_SHAPE] || shaped_motion != macro[MACRO_MOTION])
+        shape_ops();
+}
+
 /* --- Notes ------------------------------------------------------------ */
 
 /* Starts note on voice n from the current patch. A free voice starts from
@@ -321,6 +455,7 @@ static void voice_start(u32 n, int note, u32 velocity)
     c->pitch_stage = 0;
     c->pitch_level = p->pitch_level[0];
     v->algorithm = algorithm_now;
+    ensure_shaped();
     for (i = 0; i < FM_OPS; i++) {
         struct fm_op *o = &v->op[i];
         if (fresh) {
@@ -332,13 +467,13 @@ static void voice_start(u32 n, int note, u32 velocity)
             o->lin = o->stage == ENV_OFF ? 0 : fm_exp2_neg(o->att);
         }
         o->fixed = p->op[i].fixed;
-        o->freq = p->op[i].freq;
+        o->freq = shaped[i].freq;
         o->detune = p->op[i].detune;
         o->fixed_att = p->op[i].level_att + soft * p->op[i].velocity;
         for (k = 0; k < 4; k++)
-            o->step[k] = p->op[i].step[k];
+            o->step[k] = shaped[i].step[k];
         for (k = 0; k < 3; k++)
-            o->target[k] = p->op[i].target[k];
+            o->target[k] = shaped[i].target[k];
         o->stage = p->op[i].off ? ENV_OFF : ENV_ATTACK;
         carriers += !p->op[i].off && fm_algorithms[algorithm_now].dest[i] == FM_TO_OUT;
     }
@@ -682,6 +817,7 @@ static int user_put(u32 slot, const u8 *b)
         user_raw[slot][i] = b[i];
     patch_parse(&patches[FM_PATCHES + slot], user_raw[slot]);
     user_used |= 1u << slot;
+    shaped_patch = 0xFFFFFFFFu;   /* the patch may be the one playing (M8a) */
     return 1;
 }
 
@@ -781,10 +917,31 @@ static void knobs(void)
     if (midi_settings.local)
         for (k = 0; k < 4; k++)
             panel_knob[k] = input_value(INPUT_KNOB1 + k);
-    pitch_knob = clamp(panel_knob[0] + midi_knob[0], -24, 24);
-    glide_code = (u32)clamp((int)patches[patch_now].glide + 4 * (panel_knob[1] + midi_knob[1]), 0, 127);
-    depth_att = -clamp(panel_knob[2] + midi_knob[2], -64, 32) * 8192;
-    feedback_knob = panel_knob[3] + midi_knob[3];
+    /* A change of mode starts MIDI's offsets afresh: they were in the
+     * other mode's steps. */
+    if (midi_settings.knobs != knobs_mode) {
+        knobs_mode = midi_settings.knobs;
+        midi_knob[0] = midi_knob[1] = midi_knob[2] = midi_knob[3] = 0;
+    }
+    if (knobs_mode) {
+        /* "Knobs: direct": M5's controls. */
+        pitch_knob = clamp(panel_knob[0] + midi_knob[0], -24, 24);
+        glide_code = (u32)clamp((int)patches[patch_now].glide + 4 * (panel_knob[1] + midi_knob[1]), 0, 127);
+        depth_att = -clamp(panel_knob[2] + midi_knob[2], -64, 32) * 8192;
+        feedback_knob = panel_knob[3] + midi_knob[3];
+        macro[0] = macro[1] = macro[2] = macro[3] = 0;
+    } else {
+        for (k = 0; k < 4; k++)
+            macro[k] = clamp(panel_knob[k] + midi_knob[k], macro_span[k][0], macro_span[k][1]);
+        pitch_knob = 0;
+        glide_code = patches[patch_now].glide;
+        depth_att = -macro[MACRO_BRIGHT] * 8192;
+        feedback_knob = macro[MACRO_COLOR] > 0 ? macro[MACRO_COLOR] * 3 / 32 : 0;
+    }
+    ensure_shaped();
+    for (k = 0; k < 4; k++)
+        sb_ui.macro[k] = macro[k];
+    fm_ui.knobs = (u8)knobs_mode;
     sb_audio.engine[SYNTH_OCTAVE] = (u32)octave;
     sb_audio.engine[SYNTH_TONE] = tone_state != TONE_OFF && tone_state != TONE_RELEASE;
     sb_fm.algorithm = algorithm_now + 1;
@@ -801,10 +958,18 @@ static void knobs(void)
  * ends of each knob's useful range (KNOB1 +-24 semitones, KNOB2 +-32
  * glide steps, KNOB3 -64 to +32 level steps, KNOB4 +-7 feedback steps). */
 static const s8 knob_span[4][2] = { { -24, 24 }, { -32, 32 }, { -64, 32 }, { -7, 7 } };
+/* Since M8a, the macros' (macro_span, above), by the same rule. */
+
+static const s8 (*spans(void))[2]
+{
+    return knobs_mode ? knob_span : macro_span;
+}
 
 static int knob_offset(u32 k, u32 v)
 {
-    return v >= 64 ? (int)(v - 64) * knob_span[k][1] / 63 : (int)(64 - v) * knob_span[k][0] / 64;
+    const s8 (*span)[2] = spans();
+
+    return v >= 64 ? (int)(v - 64) * span[k][1] / 63 : (int)(64 - v) * span[k][0] / 64;
 }
 
 /* Its inverse (M6b): the controller value whose offset is the panel
@@ -813,7 +978,8 @@ static int knob_offset(u32 k, u32 v)
  * == p (tests/test_midi_model.py checks every p against the model's). */
 static u32 knob_value(u32 k, int p)
 {
-    int lo = knob_span[k][0], hi = knob_span[k][1];
+    const s8 (*span)[2] = spans();
+    int lo = span[k][0], hi = span[k][1];
 
     p = clamp(p, lo, hi);
     return p >= 0 ? 64u + (u32)((p * 63 + hi - 1) / hi) : 64u - (u32)((-p * 64 - lo - 1) / -lo);
@@ -914,6 +1080,13 @@ static u32 controller(u32 cc, u32 v)
         case MIDI_TO_KNOB3:
         case MIDI_TO_KNOB4: {
             u32 k = midi_settings.cc[i].to - MIDI_TO_KNOB1;
+            /* With the macros (M8a) the default map's two controllers
+             * named for M5's controls keep their meaning: 74, brightness,
+             * moves BRIGHT, and 5, the glide time, has no macro. */
+            if (!knobs_mode && cc == 5)
+                return 0;
+            if (!knobs_mode && cc == 74)
+                k = MACRO_BRIGHT;
             midi_knob[k] = knob_offset(k, v);
             return 1;
         }
@@ -1102,9 +1275,11 @@ static void events(void)
     /* What this block queued goes out at once if the wire is free. */
     midi_out_poll();
     /* Vibrato: a 5.5 Hz sine, up to half a semitone at the wheel's top. */
-    if (mod_wheel) {
+    /* Since M8a MOTION adds to it, up to half a semitone more. */
+    if (mod_wheel || macro[MACRO_MOTION]) {
         lfo_phase += LFO_INC;
-        vibrato = (s32)(((s64)fm_sine(lfo_phase) * (s32)(mod_wheel * 2048u / 127u)) >> 23);
+        vibrato = (s32)(((s64)fm_sine(lfo_phase) * (s32)(mod_wheel * 2048u / 127u + (u32)macro[MACRO_MOTION] * 32u))
+                        >> 23);
     } else {
         vibrato = 0;
     }
@@ -1143,6 +1318,8 @@ static void voice_pitch(u32 n)
         struct fm_op *o = &v->op[i];
         u64 inc = o->fixed ? o->freq : ((u64)base * o->freq) >> 8;
         inc = (inc * (u32)o->detune) >> 30;
+        if (macro[MACRO_MOTION])
+            inc = (inc * (u32)spread[i]) >> 30;
         o->inc = inc >= 0x80000000u ? 0x80000000u : (u32)inc;
     }
     v->mod_att = depth_att;

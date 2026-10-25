@@ -204,6 +204,11 @@ def settings_v2(channel=0, bend=2, out=1, thru=0, local=1):
     return bytes([2, channel, bend, 0] + [0] * 32 + [out, thru, local, 0])
 
 
+def settings_v3(channel=0, bend=2, out=1, thru=0, local=1, knobs=0):
+    """Since M8a: version 2's last byte is the knobs' mode (1: direct)."""
+    return bytes([3, channel, bend, 0] + [0] * 32 + [out, thru, local, knobs])
+
+
 def settings_v1(channel, bend):
     return bytes([1, channel, bend, 0] + [0] * 32)
 
@@ -338,7 +343,7 @@ def case_persist(out, image_len):
     if img.get(st.SELECTION) != (1, bytes([3, 0, 0, 0])):
         p.append("persist-a: the selection is %s, not program 3" % (img.get(st.SELECTION),))
     sv = img.get(st.SETTINGS)
-    if not sv or sv[0] != 2 or sv[1][38] != 0 or sv[1][36] != 1 or sv[1][37] != 0:
+    if not sv or sv[0] != 3 or sv[1][38] != 0 or sv[1][36] != 1 or sv[1][37] != 0:
         p.append("persist-a: the settings saved are %s, not local off" % (sv,))
     if sorted(img.live()) != ["selection", "settings", "slot 1"]:
         p.append("persist-a: the store holds %s" % sorted(img.live()))
@@ -654,10 +659,23 @@ def case_migrate(out, image_len):
     if m["filtered"] < 2 or m["notes_on"] != 1:
         p.append("migrate: %d messages filtered, %d notes taken: not channel 10" % (m["filtered"], m["notes_on"]))
     sv = st.Image(run.flash).get(st.SETTINGS)
-    if sv != (2, settings_v2(channel=10, bend=12, local=0)):
+    if sv != (3, settings_v3(channel=10, bend=12, local=0)):
         p.append("migrate: the settings written after the change are %s" % (sv,))
-    lines.append("  migrate: version 1 settings (channel 10, bend 12) taken as version 2; a change wrote"
-                 " version 2 with them kept and its defaults added")
+    # Since M8a: version 2 (M6b's) taken as version 3, the knobs the macros.
+    s = st.Store()
+    s.put(st.SETTINGS, 0, 2, settings_v2(channel=10, bend=12, thru=1))
+    chip2 = s.chip()
+    run2 = Run(out, "store-migrate-v2", "app", 3800, flash=chip2,
+               script=["300 midi 90 3c 64", "400 midi 80 3c 00", "800 midi b9 7a 00"]).go()
+    p += common(run2, image_len) + agrees(run2, chip2)
+    if not p:
+        if run2.rec("store")["loaded"] & 6 != 6 or run2.rec("midi")["filtered"] < 2:
+            p.append("migrate: version 2 settings not taken (loaded 0x%x)" % run2.rec("store")["loaded"])
+        sv2 = st.Image(run2.flash).get(st.SETTINGS)
+        if sv2 != (3, settings_v3(channel=10, bend=12, thru=1, local=0)):
+            p.append("migrate: version 2's settings written after the change are %s" % (sv2,))
+    lines.append("  migrate: version 1 settings (channel 10, bend 12) and version 2 (with thru on) taken as"
+                 " version 3; a change wrote version 3 with them kept, its defaults added, the knobs the macros")
     return p, lines
 
 

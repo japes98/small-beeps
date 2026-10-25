@@ -161,8 +161,11 @@ class SettingsLayoutTest(unittest.TestCase):
     """Requirements: R-STORE-6"""
 
     def test_version_1_is_version_2_without_its_tail(self):
+        """Since M8a version 3 is version 2's 40 bytes, its last (always 0
+        in version 2) the knobs' mode."""
         h = source("src/midi.h")
-        self.assertIn("#define MIDI_SETTINGS_VERSION 2u", h)
+        self.assertIn("#define MIDI_SETTINGS_VERSION 3u", h)
+        self.assertRegex(h, r"u8 local;[^\n]*\n(?:\s*/\*[^\n]*\n)?\s*u8 knobs;")
         self.assertIn('sizeof(struct midi_settings) == 8 + 2 * MIDI_CC_ROUTES', h)
         self.assertIn("#define MIDI_CC_ROUTES        16u", h)
         self.assertIn("#define SETTINGS_V1_BYTES (4u + 2u * MIDI_CC_ROUTES)", source("src/saving.c"))

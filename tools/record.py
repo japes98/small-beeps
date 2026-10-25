@@ -77,7 +77,7 @@ CHECKS = [
               "R-SEP-2", "R-SPEC-1", "R-SPEC-3", "R-AUDIT-1", "R-AUDIT-2", "R-AUDIT-3", "R-AUDIT-4",
               "R-AUDIT-5", "R-PERF-4", "R-BUILD-1", "R-FM-1", "R-FM-7", "R-MIDI-1", "R-MIDI-4",
               "R-MIDIOUT-2", "R-MIDIOUT-6", "R-STORE-1", "R-STORE-3", "R-STORE-4", "R-STORE-5",
-              "R-STORE-6", "R-STORE-8"],
+              "R-STORE-6", "R-STORE-8", "R-UI-6", "R-UI-7", "R-UI-8"],
      "cmd": [PY, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"]},
     {"id": "C-REUSE", "title": "reuse lint (SPDX licence and copyright on every file)",
      "reqs": ["R-LIC-1", "R-LIC-2"], "cmd": ["reuse", "lint"]},
@@ -138,7 +138,7 @@ CHECKS = [
               "R-MIDIOUT-7", "R-MIDIOUT-8",
               "R-STORE-1", "R-STORE-2", "R-STORE-3", "R-STORE-4", "R-STORE-5", "R-STORE-6",
               "R-STORE-7", "R-STORE-8", "R-STORE-9",
-              "R-UI-1", "R-UI-2", "R-UI-3", "R-UI-4", "R-UI-5"],
+              "R-UI-1", "R-UI-2", "R-UI-3", "R-UI-4", "R-UI-5", "R-UI-6", "R-UI-7", "R-UI-8"],
      "cmd": lambda: [PY, "-I", "tools/fw-suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "fwtest")]},
     # Performance (M0e): size, RAM, stack high-water and speed, gated.

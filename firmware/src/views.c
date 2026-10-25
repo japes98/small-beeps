@@ -127,10 +127,15 @@ static void take(void)
         mono = sb_fm.mono;
         octave = sb_audio.engine[SYNTH_OCTAVE];
         user_used = fm_user_used();
-        knob_value[0] = sb_fm.pitch_knob;
-        knob_value[1] = (s32)sb_fm.glide;
-        knob_value[2] = sb_fm.depth;
-        knob_value[3] = sb_fm.feedback;
+        if (ui.knobs) {
+            knob_value[0] = sb_fm.pitch_knob;
+            knob_value[1] = (s32)sb_fm.glide;
+            knob_value[2] = sb_fm.depth;
+            knob_value[3] = sb_fm.feedback;
+        } else {
+            for (i = 0; i < 4; i++)
+                knob_value[i] = sb_ui.macro[i];
+        }
     } while (s != fm_ui.seq);
     ui.seq = s;
 }
@@ -177,12 +182,20 @@ static void strip_set(u32 k, const char *name, int v, int sign)
 
 static void strip_work(void)
 {
-    /* The M5 controls (since M8a's later parts, the setting "Knobs:
-     * direct"): pitch, glide, modulation depth, feedback. */
-    strip_set(0, "PITCH", knob_value[0], 1);
-    strip_set(1, "GLIDE", knob_value[1], 0);
-    strip_set(2, "DEPTH", knob_value[2], 1);
-    strip_set(3, "FDBK", knob_value[3], 1);
+    static const char *const macros[4] = { "BRIGHT", "COLOR", "SHAPE", "MOTION" };
+    u32 k;
+
+    if (ui.knobs) {
+        /* The setting "Knobs: direct": M5's controls, pitch, glide,
+         * modulation depth, feedback. */
+        strip_set(0, "PITCH", knob_value[0], 1);
+        strip_set(1, "GLIDE", knob_value[1], 0);
+        strip_set(2, "DEPTH", knob_value[2], 1);
+        strip_set(3, "FDBK", knob_value[3], 1);
+        return;
+    }
+    for (k = 0; k < 4; k++)
+        strip_set(k, macros[k], knob_value[k], k != 3);
 }
 
 /* The body's signature: when it changes, the body is drawn again. */
@@ -461,12 +474,12 @@ static void body_env(void)
 }
 
 /* The settings, one row each: a name, then the value. */
-#define SETTING_ROWS 6u
+#define SETTING_ROWS 7u
 
 static void setting_row(u32 r, char *b)
 {
     static const char *const names[SETTING_ROWS] = {
-        "MIDI in channel", "MIDI out channel", "Thru", "Local control", "Bend range", "Store",
+        "MIDI in channel", "MIDI out channel", "Thru", "Local control", "Bend range", "Knobs", "Store",
     };
     u32 n = put(b, 0, r == ui.row ? "> " : "  "), u, k;
 
@@ -488,6 +501,9 @@ static void setting_row(u32 r, char *b)
         break;
     case 4:
         n = decimal(b, n, midi_settings.bend_range, 0);
+        break;
+    case 5:
+        n = put(b, n, midi_settings.knobs ? "direct" : "macros");
         break;
     default:
         for (u = user_used, k = 0; u; u &= u - 1)
