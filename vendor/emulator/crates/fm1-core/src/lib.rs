@@ -844,8 +844,9 @@ impl Cpu {
         let before = self.regs;
         let jumped = self.exec_fast(bus, f, next_pc);
         if let Some((old, new)) = pending {
+            // the head's results win over the second half's (see `step`)
             for i in 0..16 {
-                if new[i] != old[i] && self.regs[i] == old[i] {
+                if new[i] != old[i] {
                     self.regs[i] = new[i];
                 }
             }
@@ -889,9 +890,13 @@ impl Cpu {
         let pending = self.pair_pending.take();
         let res = self.execute(bus, &insn, &x.pre, next_pc);
         if let Some((old, new)) = pending {
-            // commit the pair head's results the second instruction didn't override
+            // commit the pair head's results, over the second instruction's where both wrote a
+            // register: the vendor compiler pairs a head with a load into the same register
+            // whose value it doesn't use, and uses the head's (`r7 = r6 + 0x80000 #` then
+            // `r7 = [r1+8]`, then `r5 = r7 >> 16`). A head that leaves a register's value as it
+            // was can't be told from one that didn't write it: the second half's value stays.
             for i in 0..16 {
-                if new[i] != old[i] && self.regs[i] == old[i] {
+                if new[i] != old[i] {
                     self.regs[i] = new[i];
                 }
             }
@@ -3865,6 +3870,22 @@ mod tests {
         let (_, after) = cpu.pair_pending.expect("a pair head");
         assert_eq!(cpu.regs[0], 0x55, "held back until the pair's second half");
         assert_eq!(after[0], 0x108);
+    }
+
+    #[test]
+    fn pair_head_wins_over_its_second_half() {
+        // `e7 f0 00 6a` r7 = r6 + 0x80000 #, then `17 62` r7 = [r1+8]: the vendor compiler
+        // uses r7 after this as the head's sum, not the loaded word
+        let mut mem = vec![0u8; 0x100];
+        mem[..6].copy_from_slice(&[0xe7, 0xf0, 0x00, 0x6a, 0x17, 0x62]);
+        mem[0x48..0x4c].copy_from_slice(&0xdead_beefu32.to_le_bytes());
+        let mut ram = FlatRam::new(mem);
+        let mut cpu = Cpu::new(0);
+        cpu.regs[1] = 0x40;
+        cpu.regs[6] = 0x300;
+        cpu.step(&mut ram).unwrap();
+        cpu.step(&mut ram).unwrap();
+        assert_eq!(cpu.regs[7], 0x0008_0300);
     }
 
     #[test]

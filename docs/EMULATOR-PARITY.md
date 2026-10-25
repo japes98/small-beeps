@@ -35,6 +35,8 @@ them, against upstream with fwtest's 0001 and 0002.
 | 0007 | 0004 (C) | Peripheral addresses looked up before the memories | speed only | yes (0.4.0) | yes |
 | 0008 | 0005 (D) | Code blocks in RAM found current by a count of writes to code, on every build | speed only | yes (0.4.0) | yes |
 | 0009 | none | The MIDI output: the UART's transmit side sends bytes at the wire's pace and keeps them with their times, and its pending flag rises when the last has gone (it used to finish at once and send nothing) | model | yes (0.5.0) | no: to apply, with the bytes sent to CoreMIDI (harness/upstream/fm1-emu-midi-out.md) |
+| 0010 | none | The flash chip: the P25Q80H's command rules (write enable, start on chip select high, a program wraps within its page, the other erase sizes); with a timing set, busy times (status bit 0, other commands ignored); an operations log; a power cut that keeps the part done; a record of code-window reads while busy | model | yes (0.6.0; fwtest sets the datasheet's maximum times and ends a run on window use while busy) | no: to apply, the timing the owner's choice (harness/upstream/fm1-emu-flash-busy.md) |
+| 0011 | none | A dual-issue pair whose halves write one register keeps the head's result (it kept the second half's) | bug fix | yes (0.6.0) | no: to apply (harness/upstream/fm1-emu-pair-same-register.md) |
 | none | 0006 (E) | Boot a raw image | the app's loader | no: fwtest has its own (in `harness/`, docs/HARNESS.md "The raw image") | yes |
 | none | not a patch | Two pattern guards rewritten so the crates build on an older Rust | build | no: fwtest builds on Rust 1.99 | yes |
 
@@ -104,6 +106,29 @@ three need nothing newer than the Rust the app builds with.
   suite (at `1537391`) gives the same 176 files as on 0.4.0 but for the
   version each `result.json` records and its new `midi_out_bytes_dropped`
   (0).
+- **0010 (the flash chip, session day-1024).** The rules and times from
+  the P25Q80H's datasheet (HARDWARE-SPEC.md HW-77, HW-78). Crate tests in
+  `spiflash.rs` (the write enable, the wrap, bits only cleared, a timed
+  erase busy and ignoring commands, a cut part done, untimed operations
+  at once); harness tests and suite cases run erases and programs from
+  RAM, a handler in RAM through them, the window used while busy (a
+  fault), the chip carried across runs and a power cut during an erase;
+  the spec experiment E-22's results change as HW-83 says. Without the
+  timing (the app's default) only a firmware that breaks the rules sees a
+  difference.
+- **0011 (pairs writing one register, session day-1024).** From the
+  vendor compiler's code: every pair whose halves write one register in
+  the firmware at `6ba587e`, the harness's test images and the spec
+  experiments (at `-Os` and `-O2`) uses the head's value next. The crate
+  test and the harness test (`pairwaw.S`, the compiler's own pairs as
+  bytes) fail without it; the harness's image build checks that the
+  compiler still emits such a pair (in `flashkeep.c`).
+- **0010 and 0011 together.** The firmware's suite at `6ba587e` on fwtest
+  0.5.0 (pinned) and 0.6.0 (local build): every output fwtest writes is
+  byte for byte the same (342 files; `result.json` and `junit.xml`
+  differ only in the version). The harness's suite and the spec
+  experiments: only `flashrw` (now 15 ms of erase and program where it
+  ran 5 ms) and E-22 change.
 - **The firmware.** The same comparison between fwtest 0.3.0's emulator
   and 0.4.0's (0004 to 0008): no output of the three suites changed.
 

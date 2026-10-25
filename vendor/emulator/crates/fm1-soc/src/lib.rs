@@ -39,7 +39,7 @@ mod spiflash;
 pub use lcd::{write_bmp, Lcd};
 pub use periph::{Action, Periph, CPU_HZ, VEC_BASE};
 pub use ram::Ram;
-pub use spiflash::{SpiFlash, FLASH_SIZE};
+pub use spiflash::{FlashOp, FlashTiming, SpiFlash, FLASH_SIZE};
 
 pub const XIP_BASE: u32 = 0x0200_0000;
 pub const RAM_BASE: u32 = 0x01c0_0000;
@@ -184,6 +184,10 @@ pub struct Soc {
     pub flaky_core1: Option<flaky::FlakyCore1>,
     /// The power domain's analog registers.
     pub p33: p33::P33,
+    /// The first read of the code window (an address) while the flash chip was busy with an
+    /// erase or program: on the chip the window can't be served then (the runner decides what
+    /// that means; fwtest ends the run).
+    pub window_read_busy: Option<u32>,
 }
 
 fn dbg_line(addr: u32) -> &'static str {
@@ -229,6 +233,21 @@ impl Soc {
         }
     }
 
+    /// The power goes now: the flash keeps only the part of an operation in progress done by
+    /// now (`SpiFlash::power_cut`), and the window shows it.
+    pub fn power_cut(&mut self) -> Option<(FlashOp, usize)> {
+        let cut = self.flash.power_cut(self.periph.cycles);
+        self.sync_xip();
+        cut
+    }
+
+    #[inline(always)]
+    fn note_window_read(&mut self, addr: u32) {
+        if self.flash.working(self.periph.cycles) && self.window_read_busy.is_none() {
+            self.window_read_busy = Some(addr);
+        }
+    }
+
     /// `ram_size` in bytes; `xip` = the app binary mapped at XIP_BASE.
     pub fn new(ram_size: usize, xip: Vec<u8>) -> Self {
         Self {
@@ -256,6 +275,7 @@ impl Soc {
             unknown_log: Vec::new(),
             flaky_core1: None,
             p33: Default::default(),
+            window_read_busy: None,
         }
     }
 
@@ -613,6 +633,7 @@ impl Bus for Soc {
         }
         let x = addr.wrapping_sub(XIP_BASE) as usize;
         if x + 4 <= self.xip.len() {
+            self.note_window_read(addr);
             return u32::from_le_bytes([self.xip[x], self.xip[x + 1], self.xip[x + 2], self.xip[x + 3]]);
         }
         self.read32_slow(addr)
@@ -652,12 +673,14 @@ impl Soc {
     fn read32_slow(&mut self, addr: u32) -> u32 {
         match self.region(addr) {
             Region::Xip => {
+                self.note_window_read(addr);
                 let o = (addr - XIP_BASE) as usize;
                 let g = |i: usize| self.xip.get(i).copied().unwrap_or(0);
                 u32::from_le_bytes([g(o), g(o + 1), g(o + 2), g(o + 3)])
             }
             Region::Ram => self.ram.read32(addr - RAM_BASE),
             Region::XipFlash => {
+                self.note_window_read(addr);
                 let o = (addr - XIP_BASE) as usize + XIP_FLASH_OFFSET;
                 let g = |i: usize| self.flash.mem.get(i).copied().unwrap_or(0xff);
                 u32::from_le_bytes([g(o), g(o + 1), g(o + 2), g(o + 3)])
@@ -803,6 +826,7 @@ impl Soc {
                 // PD0 drives the flash chip select; PA1/PA3/PA4 clock the
                 // key-matrix shift registers
                 if addr == 0x500c0 {
+                    self.flash.now = self.periph.cycles;
                     self.flash.set_cs(value & 1 == 0);
                     self.sync_xip();
                 }
@@ -815,6 +839,7 @@ impl Soc {
                 }
             }
             Region::Spi0 => {
+                self.flash.now = self.periph.cycles;
                 self.flash.write(addr, value);
                 self.sync_xip();
             }
