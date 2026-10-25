@@ -1475,6 +1475,42 @@ SR-3 wrote only its barrier-log row.*
   - **Disk:** 10 GB free at the start, 9.1 GB at the lowest; `out/`
     cleared between runs; Docker left alone.
 
+### Session ARP (PRESETS stops at the ends; the presets' requirements; the arpeggiator)
+- Date: 2026-10-25
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.310 (banner), unattended (a background session).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `cd24c9a8-eea5-478d-999a-cfff4f352a34`,
+  started by a `/clear` at 15:03:08Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  #130's branch, found it at `bbe2da0` and ended "no spec-side files on
+  disk or in .git"; `tools/private-terms.local` exists (not opened); lazy
+  fetching off (`GIT_NO_LAZY_FETCH=1`). It archived fwtest-060-and-presets
+  (`7572a4b5`) into `sessions/clean/`; every other clean session was
+  already archived. `tools/check-transcripts.py` PASS. The Mac had 9.1 GB
+  free.
+- Reads: this file, sessions/README.md, docs/ARP-PROPOSAL.md,
+  docs/PATCH-FORMAT.md, docs/STORE-FORMAT.md, docs/HARNESS.md (MIDI in
+  and out), docs/HARDWARE-SPEC.md (HW-36, the ARP button),
+  docs/DESIGN-NOTES.md and docs/REQUIREMENTS.md (searched), and this
+  repository's tools, tests, scripts and firmware.
+- **Open spec pull request #128, docs only:** its file list (names only),
+  and through GitHub's contents API on its branch at `7322117` four docs:
+  docs/ARP-PROPOSAL.md (the owner's answers), docs/HARDWARE-SPEC.md,
+  docs/M9-PLAN.md and docs/PLAN.md, into the session's temporary folder.
+  Nothing fetched into `.git`.
+- Later in the session:
+  - **fwtest 0.6.0** (the pinned image, already pulled): the firmware
+    suite, and single cases with `tools/fwtest run`.
+  - **A scratch git worktree** in the session's temporary folder, for
+    the arpeggiator while the suite ran here (sparse like this folder:
+    no spec-side folder on disk, checked).
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
