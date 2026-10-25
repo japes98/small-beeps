@@ -101,7 +101,9 @@ EXPOSURE.md at once, and stop writing firmware.
   decision): most of it describes the stock firmware's own code (its
   routines and its own record and patch storage). The spec side may still
   read it and cites only its hardware facts in `HARDWARE-SPEC.md`, which is
-  how those facts reach the firmware side.
+  how those facts reach the firmware side. `tools/check-transcripts.py`
+  applies this entry to sessions from 2026-10-25 on (M7 read the document
+  while it was allowed; docs/EXPOSURE.md).
 
 `tools/check-transcripts.py` checks every archived clean-side session against
 this list (its `FORBIDDEN` table mirrors it; change both together). Since
