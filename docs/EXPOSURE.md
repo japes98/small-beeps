@@ -1514,8 +1514,9 @@ SR-3 wrote only its barrier-log row.*
     this folder's, so the commit hook checked the terms (never opened).
     Both worktrees and links are removed at the end.
   - **CI:** the runs of #131, #126 and #132 read with `gh run view
-    --log` (the logs only). For #132's C-SEP-TERMS failure, its report
-    artifact's zip was fetched twice through GitHub's API into the
+    --log` (the logs only). For #132's two C-SEP-TERMS failures, the
+    runs' report artifacts' zips were fetched three times in all (the
+    first run's twice, the second's once) through GitHub's API into the
     session's temporary folder, and only `logs/C-SEP-TERMS.log` was read
     from it (`unzip -p`, to the terminal; the first time its file list
     was filtered for that name with `grep`, only that line printed;
@@ -1527,6 +1528,9 @@ SR-3 wrote only its barrier-log row.*
   - **The presets draft's listening set** (`~/<top>/drop/presets/`):
     not re-rendered (no preset's sound changed; the preset suite 64 of
     64 on #126 with #131).
+  - **The drop build:** `~/<top>/drop/small-beeps-25497f0.bin` (#132's
+    image, built again from its head in the worktree: the same bytes as
+    the build the suites ran) and its SHA-256 beside it.
   - **Disk:** 9.1 GB free at the start, 8.3 GB at the lowest; stale
     `out/` folders removed as the session went.
 
