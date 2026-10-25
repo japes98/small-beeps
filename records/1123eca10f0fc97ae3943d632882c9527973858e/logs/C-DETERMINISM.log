@@ -1,0 +1,7 @@
+$ (internal) determinism
+IDENTICAL app.bin 2d17f994b093f06ea171b16beedcf3182eaf5ba87017bdba8016e6e67659af44
+IDENTICAL app.elf e5ece8479e7a1a74143eabd4578a8748d19842557a42a209dc8e6f380c35b6be
+IDENTICAL app.size fc2e7cbd8b5f5b709d798749f167d0ebe620ecdb07f2c4896b9e8574c1283ddc
+determinism: PASS
+
+exit status 0

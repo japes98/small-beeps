@@ -1,0 +1,12 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 0191e33228621789fee8b9fafd5b69e9fba79363..1123eca10f0fc97ae3943d632882c9527973858e
+OK     01c965a29ce4 docs: HW-84, the code window's controller and its decryption (Q-22)
+EXEMPT 03ba26030b11 (merge) docs: merge spec/fm1open-m9 into spec/q22-sfc, after its fixes
+EXEMPT 6d56fcb7df1d (merge) docs: merge spec/fm1open-m9 into spec/q22-sfc, after its fixes
+EXEMPT 7647f7862979 (merge) docs: merge spec/fm1open-m9 into spec/q22-sfc, after its fixes
+EXEMPT 08e11727cf6f (merge) docs: merge spec/fm1open-m9 into spec/q22-sfc, after its fixes
+OK     1580df7f6d64 docs: EXPOSURE.md without the conflict markers a merge left in
+EXEMPT fa1f28d5158f (merge) docs: merge spec/fm1open-m9 into spec/q22-sfc, after its fixes
+EXEMPT 1123eca10f0f (merge) Merge pull request #104 from japes98/spec/q22-sfc
+8 commit(s) checked: PASS
+
+exit status 0
