@@ -1,0 +1,80 @@
+When both halves of a dual-issue pair write the same register, the head's
+result is the one there after the pair. Upstream kept the second half's.
+The vendor compiler relies on the head's: it pairs a head computing a
+value with a word load into the same register whose result it doesn't
+use (an unused read of SPI0's BUF), then uses the register as the head's
+value, as in
+
+    r7 = r6 + 0x80000  #
+    r7 = [r1+8]
+    r5 = r7 >> 16
+
+(flash routines at -Os) and `r0 = r1.b0 (u) #` or `r0 = uextra(...) #`
+with `r0 = [r3+8]`, then `[r3+8] = r0` (at -O2). Of every pair in the
+firmware at main's 6ba587e, the harness's test images and the spec
+experiments (at -Os and -O2), these are the only ones whose halves write
+one register, and each uses the head's value next; none uses the second
+half's. Limit: a head that leaves a register's value as it was can't be
+told from one that didn't write it, so the second half's value stays
+there.
+
+Our own change (session day-1024, 2026-10-24), from the vendor
+toolchain's code (PROVENANCE P-1). The crate test
+pair_head_wins_over_its_second_half and the harness test of the same
+name (image tests/images/pairwaw.S) fail without it; the firmware's
+suite at 6ba587e gives the same outputs with and without it.
+
+diff --git a/crates/fm1-core/src/lib.rs b/crates/fm1-core/src/lib.rs
+index b670de2..cbf8634 100644
+--- a/crates/fm1-core/src/lib.rs
++++ b/crates/fm1-core/src/lib.rs
+@@ -844,8 +844,9 @@ impl Cpu {
+         let before = self.regs;
+         let jumped = self.exec_fast(bus, f, next_pc);
+         if let Some((old, new)) = pending {
++            // the head's results win over the second half's (see `step`)
+             for i in 0..16 {
+-                if new[i] != old[i] && self.regs[i] == old[i] {
++                if new[i] != old[i] {
+                     self.regs[i] = new[i];
+                 }
+             }
+@@ -889,9 +890,13 @@ impl Cpu {
+         let pending = self.pair_pending.take();
+         let res = self.execute(bus, &insn, &x.pre, next_pc);
+         if let Some((old, new)) = pending {
+-            // commit the pair head's results the second instruction didn't override
++            // commit the pair head's results, over the second instruction's where both wrote a
++            // register: the vendor compiler pairs a head with a load into the same register
++            // whose value it doesn't use, and uses the head's (`r7 = r6 + 0x80000 #` then
++            // `r7 = [r1+8]`, then `r5 = r7 >> 16`). A head that leaves a register's value as it
++            // was can't be told from one that didn't write it: the second half's value stays.
+             for i in 0..16 {
+-                if new[i] != old[i] && self.regs[i] == old[i] {
++                if new[i] != old[i] {
+                     self.regs[i] = new[i];
+                 }
+             }
+@@ -3867,6 +3872,22 @@ mod tests {
+         assert_eq!(after[0], 0x108);
+     }
+ 
++    #[test]
++    fn pair_head_wins_over_its_second_half() {
++        // `e7 f0 00 6a` r7 = r6 + 0x80000 #, then `17 62` r7 = [r1+8]: the vendor compiler
++        // uses r7 after this as the head's sum, not the loaded word
++        let mut mem = vec![0u8; 0x100];
++        mem[..6].copy_from_slice(&[0xe7, 0xf0, 0x00, 0x6a, 0x17, 0x62]);
++        mem[0x48..0x4c].copy_from_slice(&0xdead_beefu32.to_le_bytes());
++        let mut ram = FlatRam::new(mem);
++        let mut cpu = Cpu::new(0);
++        cpu.regs[1] = 0x40;
++        cpu.regs[6] = 0x300;
++        cpu.step(&mut ram).unwrap();
++        cpu.step(&mut ram).unwrap();
++        assert_eq!(cpu.regs[7], 0x0008_0300);
++    }
++
+     #[test]
+     fn nop_runs_at_entry() {
+         let mut ram = FlatRam::new(vec![0u8; 16]);

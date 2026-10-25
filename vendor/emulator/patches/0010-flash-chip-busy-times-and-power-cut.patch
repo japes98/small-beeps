@@ -1,0 +1,445 @@
+The flash chip on SPI0 as its part's datasheet has it (the part whose
+JEDEC ID the model answers): an erase or page program needs a write
+enable and starts when chip select goes high; a page program wraps
+within its 256-byte page (of more than 256 bytes the last 256 count) and
+only clears bits; the page (81), 32 KiB (52) and chip (60, C7) erases
+join the 4 KiB and 64 KiB ones. Upstream erased on the third address
+byte, programmed without a write enable, and ran a program on past the
+page's end.
+
+With SpiFlash::timing set (fwtest: the datasheet's maximum times, 3 ms a
+program and 12 ms an erase), an operation keeps the chip busy: status 1's
+WIP bit reads 1 and WEL stays 1 until it ends, and the chip ignores
+every command but the status reads meanwhile (array and ID reads too).
+The default timing finishes every operation at once, as upstream did.
+The bytes change when an operation starts; SpiFlash::power_cut (and
+Soc::power_cut) puts back the part not yet done at that moment, in
+proportion to the time gone, so a runner can cut the power during one.
+Every operation started is kept in SpiFlash::log (start, end, command,
+offset, length). Soc::window_read_busy records the first read of the
+code window while the chip is busy (instruction fetches that miss the
+decode cache and data reads; not the JIT's direct reads): on the chip
+the window can't be served then, and the runner decides what that means
+(fwtest ends the run as a fault and also checks each core's pc there).
+
+Our own change (session day-1024, 2026-10-24), from the part's
+datasheet (PROVENANCE P-53) and docs/HARDWARE-SPEC.md HW-77 to HW-79.
+The crate tests in spiflash.rs and the harness tests flash_capture,
+flash_busy_and_the_window and flash_persists_and_power_cuts check it.
+
+diff --git a/crates/fm1-soc/src/lib.rs b/crates/fm1-soc/src/lib.rs
+index d2e9e9c..c2dcb87 100644
+--- a/crates/fm1-soc/src/lib.rs
++++ b/crates/fm1-soc/src/lib.rs
+@@ -39,7 +39,7 @@ mod spiflash;
+ pub use lcd::{write_bmp, Lcd};
+ pub use periph::{Action, Periph, CPU_HZ, VEC_BASE};
+ pub use ram::Ram;
+-pub use spiflash::{SpiFlash, FLASH_SIZE};
++pub use spiflash::{FlashOp, FlashTiming, SpiFlash, FLASH_SIZE};
+ 
+ pub const XIP_BASE: u32 = 0x0200_0000;
+ pub const RAM_BASE: u32 = 0x01c0_0000;
+@@ -184,6 +184,10 @@ pub struct Soc {
+     pub flaky_core1: Option<flaky::FlakyCore1>,
+     /// The power domain's analog registers.
+     pub p33: p33::P33,
++    /// The first read of the code window (an address) while the flash chip was busy with an
++    /// erase or program: on the chip the window can't be served then (the runner decides what
++    /// that means; fwtest ends the run).
++    pub window_read_busy: Option<u32>,
+ }
+ 
+ fn dbg_line(addr: u32) -> &'static str {
+@@ -229,6 +233,21 @@ impl Soc {
+         }
+     }
+ 
++    /// The power goes now: the flash keeps only the part of an operation in progress done by
++    /// now (`SpiFlash::power_cut`), and the window shows it.
++    pub fn power_cut(&mut self) -> Option<(FlashOp, usize)> {
++        let cut = self.flash.power_cut(self.periph.cycles);
++        self.sync_xip();
++        cut
++    }
++
++    #[inline(always)]
++    fn note_window_read(&mut self, addr: u32) {
++        if self.flash.working(self.periph.cycles) && self.window_read_busy.is_none() {
++            self.window_read_busy = Some(addr);
++        }
++    }
++
+     /// `ram_size` in bytes; `xip` = the app binary mapped at XIP_BASE.
+     pub fn new(ram_size: usize, xip: Vec<u8>) -> Self {
+         Self {
+@@ -256,6 +275,7 @@ impl Soc {
+             unknown_log: Vec::new(),
+             flaky_core1: None,
+             p33: Default::default(),
++            window_read_busy: None,
+         }
+     }
+ 
+@@ -613,6 +633,7 @@ impl Bus for Soc {
+         }
+         let x = addr.wrapping_sub(XIP_BASE) as usize;
+         if x + 4 <= self.xip.len() {
++            self.note_window_read(addr);
+             return u32::from_le_bytes([self.xip[x], self.xip[x + 1], self.xip[x + 2], self.xip[x + 3]]);
+         }
+         self.read32_slow(addr)
+@@ -652,12 +673,14 @@ impl Soc {
+     fn read32_slow(&mut self, addr: u32) -> u32 {
+         match self.region(addr) {
+             Region::Xip => {
++                self.note_window_read(addr);
+                 let o = (addr - XIP_BASE) as usize;
+                 let g = |i: usize| self.xip.get(i).copied().unwrap_or(0);
+                 u32::from_le_bytes([g(o), g(o + 1), g(o + 2), g(o + 3)])
+             }
+             Region::Ram => self.ram.read32(addr - RAM_BASE),
+             Region::XipFlash => {
++                self.note_window_read(addr);
+                 let o = (addr - XIP_BASE) as usize + XIP_FLASH_OFFSET;
+                 let g = |i: usize| self.flash.mem.get(i).copied().unwrap_or(0xff);
+                 u32::from_le_bytes([g(o), g(o + 1), g(o + 2), g(o + 3)])
+@@ -803,6 +826,7 @@ impl Soc {
+                 // PD0 drives the flash chip select; PA1/PA3/PA4 clock the
+                 // key-matrix shift registers
+                 if addr == 0x500c0 {
++                    self.flash.now = self.periph.cycles;
+                     self.flash.set_cs(value & 1 == 0);
+                     self.sync_xip();
+                 }
+@@ -815,6 +839,7 @@ impl Soc {
+                 }
+             }
+             Region::Spi0 => {
++                self.flash.now = self.periph.cycles;
+                 self.flash.write(addr, value);
+                 self.sync_xip();
+             }
+diff --git a/crates/fm1-soc/src/spiflash.rs b/crates/fm1-soc/src/spiflash.rs
+index 9c063e6..87c7bfa 100644
+--- a/crates/fm1-soc/src/spiflash.rs
++++ b/crates/fm1-soc/src/spiflash.rs
+@@ -10,9 +10,17 @@
+ //!
+ //! The flash is a 1 MiB part reporting JEDEC `85 60 14` (Puya, as on real
+ //! units). Commands modelled: 9F (JEDEC id), 4B (unique id), 05/35 (status
+-//! 1/2), 06/04 (WREN/WRDI), 03/0B (read / fast read), 20 (4 KiB erase),
+-//! D8 (64 KiB erase), 02 (page program). Erase/program are instantaneous;
+-//! status never reports busy.
++//! 1/2), 06/04 (WREN/WRDI), 03/0B (read / fast read), 81 (256-byte page
++//! erase), 20 (4 KiB erase), 52 (32 KiB erase), D8 (64 KiB erase), 60/C7
++//! (chip erase), 02 (page program). As the part's datasheet has them:
++//! an erase or program needs WREN first and starts when CS goes high; a
++//! page program wraps within its 256-byte page (of more than 256 bytes the
++//! last 256 count) and only clears bits. With `timing` set, an erase or
++//! program then keeps the chip busy for that long: status 1 bit 0 (WIP)
++//! reads 1 and WEL stays 1 until it ends, and every command but the status
++//! reads is ignored meanwhile. Without it (the default) they finish at once.
++//! The bytes change when the operation starts; `power_cut` puts back the
++//! part not yet done.
+ //!
+ //! Power cuts (FM1_FLASH_CUT=N): the Nth erase or page program is cut half way (the first
+ //! half of its bytes changed, the rest as before), and nothing after it reaches the chip, as if
+@@ -20,6 +28,24 @@
+ 
+ pub const SPI0_BASE: u32 = 0x11c00;
+ pub const FLASH_SIZE: usize = 1 << 20;
++pub const PAGE: usize = 256;
++
++/// How long an erase or a page program keeps the chip busy, in CPU cycles (0: no time).
++#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
++pub struct FlashTiming {
++    pub program: u64,
++    pub erase: u64,
++}
++
++/// One erase or page program the chip started: when, which command, which bytes.
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub struct FlashOp {
++    pub start: u64,
++    pub end: u64,
++    pub cmd: u8,
++    pub base: usize,
++    pub len: usize,
++}
+ 
+ pub struct SpiFlash {
+     pub mem: Vec<u8>,
+@@ -45,6 +71,18 @@ pub struct SpiFlash {
+     pub ops: u32,
+     /// FM1_FLASH_CUT: the op that is cut half way; none reach the chip after it
+     pub cut_at: Option<u32>,
++    /// Busy times; the default finishes every operation at once.
++    pub timing: FlashTiming,
++    /// The cycle now, set by the bus before each access (the busy state's clock).
++    pub now: u64,
++    /// The chip is busy until this cycle (the last operation's end).
++    pub busy_until: u64,
++    /// The operation in progress (or the last one) and the bytes it replaced.
++    current_op: Option<(FlashOp, Vec<u8>)>,
++    /// Every erase and page program started, in order.
++    pub log: Vec<FlashOp>,
++    /// The command now selected was sent while busy: ignored to its end.
++    ignored: bool,
+ }
+ 
+ impl SpiFlash {
+@@ -65,6 +103,12 @@ impl SpiFlash {
+             revision: 0,
+             ops: 0,
+             cut_at: std::env::var("FM1_FLASH_CUT").ok().and_then(|v| v.parse().ok()),
++            timing: FlashTiming::default(),
++            now: 0,
++            busy_until: 0,
++            current_op: None,
++            log: Vec::new(),
++            ignored: false,
+         }
+     }
+ 
+@@ -76,29 +120,45 @@ impl SpiFlash {
+ 
+     pub fn busy(&self) -> bool { self.cs_low }
+ 
++    /// Is an erase or program still in progress at cycle `now`?
++    pub fn working(&self, now: u64) -> bool { now < self.busy_until }
++
++    /// An operation that has ended clears WEL (as the chip does when its cycle completes).
++    fn settle(&mut self) {
++        if self.current_op.is_some() && self.now >= self.busy_until {
++            self.current_op = None;
++            self.wel = false;
++        }
++    }
++
+     pub fn set_cs(&mut self, low: bool) {
++        self.settle();
+         if !low && self.cs_low && self.trace && self.nbytes > 0 {
+             eprintln!("flash cmd {:02x} addr {:06x} bytes {}", self.cmd, self.addr, self.nbytes);
+         }
+         if low && !self.cs_low {
+             self.cmd = 0;
+             self.nbytes = 0;
++            self.ignored = false;
+             self.pending_prog.clear();
+         }
+-        if !low && self.cs_low && self.cmd == 0x02 {
+-            // page program commits on CS release
+-            let n = match self.op() { Some(true) => self.pending_prog.len(), Some(false) => self.pending_prog.len() / 2, None => 0 };
+-            for (i, b) in self.pending_prog.iter().take(n).enumerate() {
+-                let a = (self.addr as usize + i) & (FLASH_SIZE - 1);
+-                self.mem[a] &= *b;
+-            }
+-            let a = self.addr as usize & (FLASH_SIZE - 1);
+-            if n > 0 {
+-                self.changed = Some((a, (a + n).min(FLASH_SIZE)));
+-                self.revision = self.revision.wrapping_add(1);
++        if !low && self.cs_low && !self.ignored && self.wel {
++            // an erase or page program starts as CS goes high
++            match (self.cmd, self.nbytes) {
++                (0x02, n) if n > 4 => self.program(),
++                (0x81, n) if n >= 4 => self.erase(PAGE),
++                (0x20, n) if n >= 4 => self.erase(0x1000),
++                (0x52, n) if n >= 4 => self.erase(0x8000),
++                (0xd8, n) if n >= 4 => self.erase(0x10000),
++                (0x60 | 0xc7, _) => {
++                    self.addr = 0;
++                    self.erase(FLASH_SIZE)
++                }
++                _ => {}
+             }
++        }
++        if !low {
+             self.pending_prog.clear();
+-            self.wel = false;
+         }
+         self.cs_low = low;
+     }
+@@ -108,11 +168,17 @@ impl SpiFlash {
+         if !self.cs_low {
+             return 0xff;
+         }
++        self.settle();
+         let i = self.nbytes;
+         self.nbytes += 1;
+         if i == 0 {
+             self.cmd = out;
+             self.addr = 0;
++            // busy: only the status reads are decoded
++            if self.working(self.now) && !matches!(out, 0x05 | 0x35) {
++                self.ignored = true;
++                return 0xff;
++            }
+             match out {
+                 0x06 => self.wel = true,
+                 0x04 => self.wel = false,
+@@ -120,6 +186,9 @@ impl SpiFlash {
+             }
+             return 0xff;
+         }
++        if self.ignored {
++            return 0xff;
++        }
+         let k = i - 1; // byte index after the opcode
+         match self.cmd {
+             0x9f => self.jedec.get(k).copied().unwrap_or(0xff),
+@@ -127,18 +196,11 @@ impl SpiFlash {
+                 // 4 dummy bytes then a 16-byte unique id
+                 if k < 4 { 0xff } else { [0x46, 0x4d, 0x31, 0x2d][(k - 4) & 3] }
+             }
+-            0x05 => if self.wel { 0x02 } else { 0x00 },
++            0x05 => (self.working(self.now) as u8) | if self.wel { 0x02 } else { 0x00 },
+             0x35 => 0x00,
+-            0x03 | 0x0b | 0x20 | 0xd8 | 0x02 => {
++            0x03 | 0x0b | 0x81 | 0x20 | 0x52 | 0xd8 | 0x02 => {
+                 if k < 3 {
+                     self.addr = (self.addr << 8) | out as u32;
+-                    if k == 2 {
+-                        match self.cmd {
+-                            0x20 => self.erase(0x1000),
+-                            0xd8 => self.erase(0x10000),
+-                            _ => {}
+-                        }
+-                    }
+                     0xff
+                 } else if self.cmd == 0x0b && k == 3 {
+                     0xff // fast-read dummy byte
+@@ -169,13 +231,38 @@ impl SpiFlash {
+     /// Has the power been cut (FM1_FLASH_CUT reached)?
+     pub fn cut(&self) -> bool { self.cut_at.is_some_and(|c| self.ops >= c) }
+ 
+-    fn erase(&mut self, size: usize) {
+-        if !self.wel {
+-            return;
++    /// The chip starts an operation on `base..base + len`: keep what it replaces, time it.
++    fn start(&mut self, cmd: u8, base: usize, len: usize, cycles: u64) {
++        let op = FlashOp { start: self.now, end: self.now + cycles, cmd, base, len };
++        self.current_op = Some((op, self.mem[base..base + len].to_vec()));
++        self.busy_until = op.end;
++        self.log.push(op);
++    }
++
++    /// Page program: the bytes wrap within the page (later ones win), and only clear bits.
++    fn program(&mut self) {
++        let n = match self.op() { Some(true) => self.pending_prog.len(), Some(false) => self.pending_prog.len() / 2, None => 0 };
++        let page = self.addr as usize & !(PAGE - 1) & (FLASH_SIZE - 1);
++        self.start(0x02, page, PAGE, self.timing.program);
++        let mut data = [None; PAGE];
++        for (i, b) in self.pending_prog.iter().take(n).enumerate() {
++            data[(self.addr as usize + i) & (PAGE - 1)] = Some(*b);
++        }
++        for (o, b) in data.iter().enumerate() {
++            if let Some(b) = b {
++                self.mem[page + o] &= *b;
++            }
+         }
++        if n > 0 {
++            self.changed = Some((page, page + PAGE));
++            self.revision = self.revision.wrapping_add(1);
++        }
++    }
++
++    fn erase(&mut self, size: usize) {
+         let n = match self.op() { Some(true) => size, Some(false) => size / 2, None => 0 };
+         let base = (self.addr as usize) & !(size - 1) & (FLASH_SIZE - 1);
+-        self.wel = false;
++        self.start(self.cmd, base, size, self.timing.erase);
+         if n == 0 {
+             return;
+         }
+@@ -186,6 +273,25 @@ impl SpiFlash {
+         self.revision = self.revision.wrapping_add(1);
+     }
+ 
++    /// The power goes at cycle `now`: an operation in progress keeps only the part done by
++    /// then (its first bytes, in proportion to the time gone), the rest as it was before.
++    /// Returns that operation and how many of its bytes were done.
++    pub fn power_cut(&mut self, now: u64) -> Option<(FlashOp, usize)> {
++        self.now = now;
++        let (op, before) = self.current_op.take()?;
++        if now >= op.end {
++            self.wel = false;
++            return None;
++        }
++        let done = ((op.len as u128 * (now - op.start) as u128) / (op.end - op.start) as u128) as usize;
++        self.mem[op.base + done..op.base + op.len].copy_from_slice(&before[done..]);
++        self.changed = Some((op.base, op.base + op.len));
++        self.revision = self.revision.wrapping_add(1);
++        self.busy_until = now;
++        self.wel = false;
++        Some((op, done))
++    }
++
+     pub fn read(&mut self, addr: u32) -> u32 {
+         match addr - SPI0_BASE {
+             0x0 => self.con,
+@@ -215,3 +321,64 @@ impl SpiFlash {
+         }
+     }
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn cmd(f: &mut SpiFlash, bytes: &[u8]) -> Vec<u8> {
++        f.set_cs(true);
++        let r = bytes.iter().map(|&b| f.transfer(b)).collect();
++        f.set_cs(false);
++        r
++    }
++
++    fn status(f: &mut SpiFlash) -> u8 {
++        cmd(f, &[0x05, 0xff])[1]
++    }
++
++    #[test]
++    fn program_needs_wren_wraps_in_its_page_and_only_clears_bits() {
++        let mut f = SpiFlash::new();
++        cmd(&mut f, &[0x02, 0x08, 0x00, 0x10, 0x00]);
++        assert_eq!(f.mem[0x80010], 0xff, "no WREN: ignored");
++        cmd(&mut f, &[0x06]);
++        cmd(&mut f, &[0x02, 0x08, 0x00, 0xfe, 0xf0, 0x0f, 0xaa, 0x55]);
++        assert_eq!(&f.mem[0x800fe..0x80100], &[0xf0, 0x0f]);
++        assert_eq!(&f.mem[0x80000..0x80002], &[0xaa, 0x55], "wrapped to the page's start");
++        assert_eq!(f.mem[0x80100], 0xff, "the next page untouched");
++        cmd(&mut f, &[0x06]);
++        cmd(&mut f, &[0x02, 0x08, 0x00, 0x00, 0x3c]);
++        assert_eq!(f.mem[0x80000], 0x28, "bits only cleared");
++    }
++
++    #[test]
++    fn timed_erase_is_busy_ignores_commands_and_cuts_part_done() {
++        let mut f = SpiFlash::new();
++        f.timing = FlashTiming { program: 100, erase: 1000 };
++        f.mem[0x1000..0x2000].fill(0);
++        cmd(&mut f, &[0x06]);
++        cmd(&mut f, &[0x20, 0x00, 0x10, 0x00]);
++        assert_eq!(f.log, vec![FlashOp { start: 0, end: 1000, cmd: 0x20, base: 0x1000, len: 0x1000 }]);
++        f.now = 10;
++        assert_eq!(status(&mut f), 0x03, "WIP and WEL while busy");
++        assert_eq!(cmd(&mut f, &[0x9f, 0, 0, 0]), vec![0xff; 4], "the ID read ignored while busy");
++        cmd(&mut f, &[0x06]);
++        cmd(&mut f, &[0x20, 0x00, 0x30, 0x00]);
++        assert_eq!(f.log.len(), 1, "an erase sent while busy is ignored");
++        let cut = f.power_cut(250);
++        assert_eq!(cut.map(|(op, done)| (op.cmd, done)), Some((0x20, 0x400)));
++        assert!(f.mem[0x1000..0x1400].iter().all(|&b| b == 0xff), "the first quarter erased");
++        assert!(f.mem[0x1400..0x2000].iter().all(|&b| b == 0), "the rest as it was");
++        assert_eq!(status(&mut f), 0x00);
++    }
++
++    #[test]
++    fn untimed_operations_finish_at_once() {
++        let mut f = SpiFlash::new();
++        cmd(&mut f, &[0x06]);
++        cmd(&mut f, &[0xd8, 0x01, 0x00, 0x00]);
++        assert_eq!(status(&mut f), 0x00);
++        assert_eq!(f.power_cut(0), None);
++    }
++}

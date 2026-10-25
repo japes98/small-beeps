@@ -45,6 +45,10 @@ pub struct Options {
     pub midi_out: bool,
     pub watchdog: Option<(u32, u64)>,
     pub halt_ok: bool,
+    /// `--power-cut`: the run ends at `ms_us` as a power cut (the flash keeps only the part
+    /// of an operation then in progress that was done) and the flash chip is saved.
+    pub power_cut: bool,
+    pub flash_log: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -53,6 +57,9 @@ pub enum Outcome {
     Halt { pc: u32 },
     Fault { core: u32, pc: u32, what: String },
     Hang { addr: u32, ms: u64 },
+    /// The power was cut at the time asked; the erase or program then in progress, if any:
+    /// its command, chip offset, length and the bytes done.
+    PowerCut { op: Option<(u8, usize, usize, usize)> },
 }
 
 impl Outcome {
@@ -62,6 +69,7 @@ impl Outcome {
             Outcome::Halt { .. } => "halt",
             Outcome::Fault { .. } => "fault",
             Outcome::Hang { .. } => "hang",
+            Outcome::PowerCut { .. } => "power-cut",
         }
     }
 
@@ -71,6 +79,11 @@ impl Outcome {
             Outcome::Halt { pc } => format!("core 0 jumped to itself with interrupts disabled at pc {pc:#010x}"),
             Outcome::Fault { core, pc, what } => format!("core {core} at pc {pc:#010x}: {what}"),
             Outcome::Hang { addr, ms } => format!("the watched word at {addr:#010x} did not change for {ms} ms"),
+            Outcome::PowerCut { op: None } => "the power was cut at the time asked, with no erase or program in progress".into(),
+            Outcome::PowerCut { op: Some((cmd, at, len, done)) } => format!(
+                "the power was cut at the time asked, during {} of {len} bytes at chip offset {at:#08x}: {done} bytes done",
+                if *cmd == 0x02 { "a page program" } else { "an erase" }
+            ),
         }
     }
 }
@@ -167,6 +180,10 @@ pub fn run(image: &[u8], opt: &Options) -> Result<Report, String> {
             }
         }
         if now >= end_cycle {
+            if opt.power_cut {
+                let op = board.soc.power_cut().map(|(op, done)| (op.cmd, op.base, op.len, done));
+                break Outcome::PowerCut { op };
+            }
             break Outcome::Completed;
         }
         let mut n = SLICE as u64;
@@ -200,8 +217,17 @@ pub fn run(image: &[u8], opt: &Options) -> Result<Report, String> {
         }
         outputs.push(Output { name: "leds.csv".into(), data: s.into_bytes() });
     }
-    if opt.flash_out {
+    if opt.flash_out || opt.power_cut {
         outputs.push(Output { name: "flash.bin".into(), data: board.soc.flash.mem.clone() });
+    }
+    if opt.flash_log {
+        let us = CYCLES_PER_MS / 1000;
+        let ms = |c: u64| format!("{}.{:03}", c / us / 1000, c / us % 1000);
+        let mut s = String::from("start_ms,end_ms,command,offset,bytes\n");
+        for op in &board.soc.flash.log {
+            s.push_str(&format!("{},{},{:02x},{:#08x},{}\n", ms(op.start), ms(op.end), op.cmd, op.base, op.len));
+        }
+        outputs.push(Output { name: "flash-ops.csv".into(), data: s.into_bytes() });
     }
     if opt.wav {
         outputs.push(Output { name: "audio.wav".into(), data: formats::wav(44100, 2, &board.soc.periph.audio) });
