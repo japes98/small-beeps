@@ -1360,6 +1360,9 @@ SR-3 wrote only its barrier-log row.*
   the scratch folder, to read the datasheet's text.
 - From the firmware side's open pull requests (#111) it read only
   `docs/SPEC-REQUESTS.md`, through GitHub's contents API.
+- The audit's discovery (`tools/audit-discover.py --write`, once):
+  repository metadata only, through GitHub's API and `git ls-remote`; no
+  target's files, README or page opened.
 
 ## Corrections
 

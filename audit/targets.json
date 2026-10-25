@@ -1,12 +1,12 @@
 {
  "schema": 1,
  "comment": "Written by tools/audit-discover.py from repository metadata only; docs/AUDIT.md. Pinned by commit and tree.",
- "discovered": "2026-10-22",
+ "discovered": "2026-10-25",
  "counts": {
-  "scored": 516,
-  "duplicate": 262,
+  "scored": 598,
+  "duplicate": 288,
   "empty": 2,
-  "unreachable": 0
+  "unreachable": 2
  },
  "unresolved": [
   {
@@ -22,13 +22,46 @@
  ],
  "targets": [
   {
+   "repo": "2bbb/Felucca-Engines",
+   "url": "https://github.com/2bbb/Felucca-Engines",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca-Engines",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "commit": "04ffe903eb87a752305d1e5b10da01b53e4ab004",
+   "tree": "871119f7304be49dd85d95d5cc37f055908eec3a",
+   "status": "duplicate",
+   "same_tree_as": "hugelton/Felucca-Engines"
+  },
+  {
    "repo": "2bbb/fm1-firmware-collection",
    "url": "https://github.com/2bbb/fm1-firmware-collection",
    "found_by": "search: fm-1 firmware",
    "licence": "MIT",
    "licence_class": "permissive",
-   "commit": "ba2b078cd5cce039c15da23031ff1f40b1a8fdad",
-   "tree": "8ac607a1319d8a17bc96f9f40fb33f40068bcfd4",
+   "commit": "8ba398c87a31e49e1b89a50f76942e1219807094",
+   "tree": "5a4b0a7914c96a840e292a277d522da60f73eb20",
+   "status": "scored"
+  },
+  {
+   "repo": "2bbb/glitchbox",
+   "url": "https://github.com/2bbb/glitchbox",
+   "found_by": "fork",
+   "fork_of": "erikdevos/glitchbox",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "093d57670d9b9e17eade9bca8348087851bf0508",
+   "tree": "d6fd1fc7bd4e267846fc594180ef5faf9253a814",
+   "status": "scored"
+  },
+  {
+   "repo": "3x-x5/anatomy-fm1",
+   "url": "https://github.com/3x-x5/anatomy-fm1",
+   "found_by": "search: fm1",
+   "licence": null,
+   "licence_class": "none",
+   "commit": "4839e5c30228232417ac43a095eed23158520dff",
+   "tree": "5842a631a868779109b057616fd167c197b80943",
    "status": "scored"
   },
   {
@@ -133,8 +166,8 @@
    "found_by": "search: m-vave",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "aa95a031915189416c6229846f80c37eac61499a",
-   "tree": "ec71a40ad6ea329e68e2ec9892868771462cfc60",
+   "commit": "5e49a216c18c6e0a7e5e42bef43843b40ad9ea5f",
+   "tree": "67a6b397bbd82dcc295d0b82effcb30665dde79e",
    "status": "scored"
   },
   {
@@ -155,6 +188,17 @@
    "licence_class": "gpl",
    "commit": "976b6e65dc968a6f9bfa946e6d300e61aa69ebb6",
    "tree": "75d293f808ba6762e59caf43d3bbc08703a41ad8",
+   "status": "scored"
+  },
+  {
+   "repo": "admali777/fm1-sloop-ui",
+   "url": "https://github.com/admali777/fm1-sloop-ui",
+   "found_by": "fork",
+   "fork_of": "isod89/sloop-fm1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "ec9e53721cc576816a5750220391f2d0217c01cb",
+   "tree": "7f1484b732e07a039591a925406da5948c445221",
    "status": "scored"
   },
   {
@@ -220,6 +264,21 @@
    "status": "scored"
   },
   {
+   "repo": "AlexanderSeel/fm1-emu_win",
+   "url": "https://github.com/AlexanderSeel/fm1-emu_win",
+   "found_by": "fork",
+   "fork_of": "joakimeriksson/fm1-emu",
+   "paths": [
+    "fm1-sid/",
+    "probes/"
+   ],
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "commit": "932968f43329cf3a67bf047b38d5d9ebee274d02",
+   "tree": "37317a27f091044a3f9009763e4b1465e1d9b12b",
+   "status": "scored"
+  },
+  {
    "repo": "AlexanderSeel/TheReFmB1rth",
    "url": "https://github.com/AlexanderSeel/TheReFmB1rth",
    "found_by": "search: fm1",
@@ -257,8 +316,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "MIT",
    "licence_class": "permissive",
-   "commit": "f97ccd4eef25c0c779e3514a3e4f23b28c0a5271",
-   "tree": "42f9dba7febd3dc6c3fbd45fb9e77f819cac4d7c",
+   "commit": "375f500115a791398e9e3d18a2fd2747cc563b4e",
+   "tree": "f32da44883bf3c3b4cbcc0443eecbdf08767474f",
    "status": "scored"
   },
   {
@@ -329,6 +388,16 @@
    "licence_class": "gpl",
    "commit": "377235d9f39a362e673f8fd60a26f0b1748218e7",
    "tree": "9563e43cfba38e00fd1349a808a3a66454aedd64",
+   "status": "scored"
+  },
+  {
+   "repo": "andrerezemini/fm1-cartridge",
+   "url": "https://github.com/andrerezemini/fm1-cartridge",
+   "found_by": "search: felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "d7659e4f85357a1d3879b29aa5d5e0f8eaf9cb2a",
+   "tree": "958be0c63303733761b609b9ec042ee72f653a54",
    "status": "scored"
   },
   {
@@ -413,8 +482,8 @@
    "found_by": "search: fm1",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "fd7ae3ea5968e8cc914cf693c5eb295884edd880",
-   "tree": "7a425d0a5a8d2fcd8867e35b1c7bb7b91cc8945b",
+   "commit": "29664b28c9d8b8eb043de0739bf9dd64869958c4",
+   "tree": "552b624d94185cd87a68343a2ddb4a7f32d1f399",
    "status": "scored"
   },
   {
@@ -445,8 +514,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": null,
    "licence_class": "none",
-   "commit": "9b7e9b5cfd9b425e842d3390382472eb44ffb2c2",
-   "tree": "b9928d9552c68586bdfbe8efec1dd1361fcb2c19",
+   "commit": "8b24193a190453f153a47f123334bb7315e52e5d",
+   "tree": "f8a2fb2664aadd5fb991e61beeb139791e89be3a",
    "status": "scored"
   },
   {
@@ -469,6 +538,16 @@
    "licence_class": "gpl",
    "commit": "8fad1a15ff59d5c3ed0bfe2d7a9ae90962cf4d5e",
    "tree": "898bf97fa193673cc0bc4921952b1943d3919200",
+   "status": "scored"
+  },
+  {
+   "repo": "AveyCole/FM1-Field",
+   "url": "https://github.com/AveyCole/FM1-Field",
+   "found_by": "search: fm-1 firmware",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "commit": "88bf7d4307bb1be8253deb57487eef1e1fa547cd",
+   "tree": "c363983665154f0f659d3e903a8d646f3ed14f9e",
    "status": "scored"
   },
   {
@@ -514,6 +593,27 @@
    "licence_class": "other",
    "commit": "5d3eac2573dbd054254fabda6fde099adc594348",
    "tree": "c65adc911b04491e1bd8ffa564cffde4dce0ecda",
+   "status": "scored"
+  },
+  {
+   "repo": "babage/JIANT",
+   "url": "https://github.com/babage/JIANT",
+   "found_by": "fork",
+   "fork_of": "juanjiant-bit/JIANT",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "b66729d38a2e6aff21d24dda0e40ed53a63f5667",
+   "tree": "e4481e3c1150bb601c5a528992dcbf8f2108e202",
+   "status": "scored"
+  },
+  {
+   "repo": "balancechiang/fm1-midi-converter",
+   "url": "https://github.com/balancechiang/fm1-midi-converter",
+   "found_by": "search: m-vave",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "3cd6c1fb29b30a4aa9ec992c0f90581eb0d502a5",
+   "tree": "5975553183f5cc4914083c93aee621c7ff1832c7",
    "status": "scored"
   },
   {
@@ -598,6 +698,18 @@
    "status": "scored"
   },
   {
+   "repo": "beingsane/carnac-os",
+   "url": "https://github.com/beingsane/carnac-os",
+   "found_by": "fork",
+   "fork_of": "OwenKirby/carnac-os",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "6387a21932aab0f00fe46b4c0920b76830f9962e",
+   "tree": "dcd3b59bd2bfc2c07ccafa6dd88b19b9c875ea2f",
+   "status": "duplicate",
+   "same_tree_as": "OwenKirby/carnac-os"
+  },
+  {
    "repo": "beingsane/Felucca",
    "url": "https://github.com/beingsane/Felucca",
    "found_by": "fork",
@@ -644,6 +756,17 @@
    "status": "scored"
   },
   {
+   "repo": "beingsane/fm1-loom",
+   "url": "https://github.com/beingsane/fm1-loom",
+   "found_by": "fork",
+   "fork_of": "charlesvestal/fm1-loom",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "97d6726022a0898b9776522e08517d6a47c1296f",
+   "tree": "cf89c191cf928ea59fbbbf237915617f4eb389d9",
+   "status": "scored"
+  },
+  {
    "repo": "beingsane/sloop-fm1",
    "url": "https://github.com/beingsane/sloop-fm1",
    "found_by": "fork",
@@ -683,8 +806,8 @@
    "found_by": "search: m-vave",
    "licence": "MIT",
    "licence_class": "permissive",
-   "commit": "c11ab28cbc1ecec045122f338c1ee327b36a5752",
-   "tree": "e30c932c9538b61ad076f1624c12fa699aefd7b9",
+   "commit": "458b151102d25f1af3f626fe44c66874d845c2f7",
+   "tree": "04fc72c397c8628d196f677ef7eecb96ad0e180a",
    "status": "scored"
   },
   {
@@ -708,8 +831,7 @@
    "licence_class": "gpl",
    "commit": "ed490917895803fa160bd53b21ad848cd7bbe04a",
    "tree": "de7042906743a404f072090b6b30fab7dabac183",
-   "status": "duplicate",
-   "same_tree_as": "sbegueria/fm1-dub"
+   "status": "scored"
   },
   {
    "repo": "birkmann/fm1-x0x",
@@ -744,7 +866,22 @@
    "commit": "ec9e53721cc576816a5750220391f2d0217c01cb",
    "tree": "7f1484b732e07a039591a925406da5948c445221",
    "status": "duplicate",
-   "same_tree_as": "isod89/sloop-fm1"
+   "same_tree_as": "admali777/fm1-sloop-ui"
+  },
+  {
+   "repo": "bitedits/fm1-emu",
+   "url": "https://github.com/bitedits/fm1-emu",
+   "found_by": "fork",
+   "fork_of": "joakimeriksson/fm1-emu",
+   "paths": [
+    "fm1-sid/",
+    "probes/"
+   ],
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "commit": "c1c045fc067da024d686e7a690806e2e55795042",
+   "tree": "c1b47a44dbec88a2d5f219a1c5f64a66ae50ab58",
+   "status": "scored"
   },
   {
    "repo": "blackpit73/FM-1-RE",
@@ -812,6 +949,29 @@
    "status": "scored"
   },
   {
+   "repo": "burn-again/Felucca-Sog",
+   "url": "https://github.com/burn-again/Felucca-Sog",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "e3788eee038e1e77afc48fa3b7b1405e74e373cd",
+   "tree": "98d77486039205984fd2a9af42403cf9a2293fb8",
+   "status": "scored"
+  },
+  {
+   "repo": "bwatanabe/fm1-mutant",
+   "url": "https://github.com/bwatanabe/fm1-mutant",
+   "found_by": "fork",
+   "fork_of": "npi3pak/fm1-gator",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "92f923e0b9fe6101d5cd422cffa5946ce20d785a",
+   "tree": "8c3d643784acdd86425a46042508283670aa3eac",
+   "status": "duplicate",
+   "same_tree_as": "npi3pak/fm1-gator"
+  },
+  {
    "repo": "C-Fow/Felucca",
    "url": "https://github.com/C-Fow/Felucca",
    "found_by": "fork",
@@ -852,8 +1012,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "9de99261fc3c41717336c2eb87ef51801aa52ca3",
-   "tree": "8b08b3941242cde147b9455ef19033779bf4e2bd",
+   "commit": "6a20fa387cf6bc28a33309a09aaa94a108325e2e",
+   "tree": "fc3f642ca6cc57210520a0ac8e091611b62ab0e7",
    "status": "scored"
   },
   {
@@ -879,6 +1039,17 @@
    "status": "scored"
   },
   {
+   "repo": "CDMGaming/TILT-FM",
+   "url": "https://github.com/CDMGaming/TILT-FM",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "618a4889f66db1730a095c07bfc8a941697a290a",
+   "tree": "1eaa724c9120e8acaaf3daa18cd69106d4435908",
+   "status": "scored"
+  },
+  {
    "repo": "cdodd/felucca-vst",
    "url": "https://github.com/cdodd/felucca-vst",
    "found_by": "search: felucca",
@@ -899,6 +1070,18 @@
    "tree": "c65adc911b04491e1bd8ffa564cffde4dce0ecda",
    "status": "duplicate",
    "same_tree_as": "babage/fm1_open"
+  },
+  {
+   "repo": "cgtenuta/melodee",
+   "url": "https://github.com/cgtenuta/melodee",
+   "found_by": "fork",
+   "fork_of": "keremimo/melodee",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "398ada1e09d864c12f3b778a43e45c7c2a8031b8",
+   "tree": "26f302f548d100b2d84d738e482e185dc0c66922",
+   "status": "duplicate",
+   "same_tree_as": "keremimo/melodee"
   },
   {
    "repo": "ChanceTheMaker/doom-fm1-smk",
@@ -937,18 +1120,18 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "47d83306d7b61068415eb727a1479e71f7446b15",
-   "tree": "b1247b95a76a1ac345276f02fac65d94e7a372a9",
+   "commit": "09fe97f82cf70a15b14300bd699aa955095e36bb",
+   "tree": "2bc27a7489c30e3eca825f7ddc8480c00bb1ea39",
    "status": "scored"
   },
   {
    "repo": "ChanceTheMaker/NESynth-FM1-SMK",
    "url": "https://github.com/ChanceTheMaker/NESynth-FM1-SMK",
-   "found_by": "search: fm1 synth",
+   "found_by": "search: fm-1 synth",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "3fdbe3e6bab8cd4277627c8e9b879f7ab3c81a5c",
-   "tree": "b04054a525ae365505cbaff6477c32e16c8a9524",
+   "commit": "25c7b7ed6da15384a248814ffbbb19eede337354",
+   "tree": "ea0f691bb213e605e9010d412ac08fc346df6865",
    "status": "scored"
   },
   {
@@ -989,8 +1172,8 @@
    "found_by": "search: felucca",
    "licence": "MPL-2.0",
    "licence_class": "other",
-   "commit": "865bc2f416813e0f9cd64c762f1399f44a51cd09",
-   "tree": "2f63a37eaf584605a83e85776e044c30029b9990",
+   "commit": "aa2b3bc8f7900cd1820947cb93ca0e8ecc4189e7",
+   "tree": "850f55ce13e6a8f8c8adf0ba9c10db5f2eb61f7b",
    "status": "scored"
   },
   {
@@ -1019,8 +1202,8 @@
    "found_by": "search: fm-1 groovebox",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "e88f2e00ec60d299b623c28b038db54409fdeff1",
-   "tree": "1759cc4aa88f005e1824b5a6aec4eb85580bd617",
+   "commit": "534a5201c41aef12a7d1637d6b9ea6311e3b91f8",
+   "tree": "39b88d67f23a575380fa3448cef35871b60fb292",
    "status": "scored"
   },
   {
@@ -1059,8 +1242,8 @@
    "found_by": "search: fm1",
    "licence": "MPL-2.0",
    "licence_class": "other",
-   "commit": "66d62558bc715eb7b1244d7f5febc799d78e5e7f",
-   "tree": "77927bb13a821bc6fd2430926b64e9a9e71bf315",
+   "commit": "c9113b5eceb9d6c295e32c86e5d769ed8efa67d6",
+   "tree": "624472afccf3589b640bd8c2b1d882cb2a1e62eb",
    "status": "scored"
   },
   {
@@ -1113,8 +1296,7 @@
    "licence_class": "gpl",
    "commit": "d44df7db09b98ccad2f1233b8f83f5f09c04829e",
    "tree": "8cefd253b92b544109a315fd2fb9ffcea7c429b6",
-   "status": "duplicate",
-   "same_tree_as": "zvenson/dinghy"
+   "status": "scored"
   },
   {
    "repo": "chinotto1/unibox",
@@ -1124,6 +1306,16 @@
    "licence_class": "gpl",
    "commit": "bd184eba685754634ded832b27f493246c3998c6",
    "tree": "36597098dce3366695a43c9ddb462fbeeed520d0",
+   "status": "scored"
+  },
+  {
+   "repo": "chmess/fm1-keyboard-academy",
+   "url": "https://github.com/chmess/fm1-keyboard-academy",
+   "found_by": "search: fm-1 firmware",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "commit": "315af1a06e5ad6ad1c35634dfc312ab685f20ee6",
+   "tree": "ad9af3c7fd4e95d25431a580b895ad5e7bc67683",
    "status": "scored"
   },
   {
@@ -1144,8 +1336,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "CC0-1.0",
    "licence_class": "permissive",
-   "commit": "a7be23a05a2a7691c3f3c39fa4b5a9b20595c6f4",
-   "tree": "1ee59e590d60d0fc81dd4b9953f0948114ff1e39",
+   "commit": "81d31a7611df6636a20ecf8c95459212c75eba7f",
+   "tree": "9cc2919b7214312ade326b56e455edff7b43f18a",
    "status": "scored"
   },
   {
@@ -1232,6 +1424,16 @@
    "status": "scored"
   },
   {
+   "repo": "cotrino/fm1-cofrade",
+   "url": "https://github.com/cotrino/fm1-cofrade",
+   "found_by": "search: fm-1 firmware",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "commit": "a508afafacfb3c6c5a914b3e708590d02531d437",
+   "tree": "6c28e24aa776eed1a9ed50d3b43017432e21b084",
+   "status": "scored"
+  },
+  {
    "repo": "CoydeLau/sloop-fm1",
    "url": "https://github.com/CoydeLau/sloop-fm1",
    "found_by": "fork",
@@ -1273,8 +1475,8 @@
    "fork_of": "charlesvestal/fm1-x0x",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "e1c6d99af110efb59a976ff86fc7334c36e94045",
-   "tree": "c3693dc9b664817136cceb10558d02033cd019e2",
+   "commit": "50aa741b11ba11bb600ea5f8d2617a5ca9da8d2e",
+   "tree": "d8c89013e0b7ed18d9715352541aaf3095fdf8d7",
    "status": "scored"
   },
   {
@@ -1314,8 +1516,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "70528bfb9887d242a495c780cde18223e4e8a5ef",
-   "tree": "b61ffa8a9a9ef9b04386b3b477b44352584dfc20",
+   "commit": "6db198515da051d31b903535958788137c153dc4",
+   "tree": "73257563af48ed7941e8fd993abd41d40d1946f1",
    "status": "scored"
   },
   {
@@ -1346,6 +1548,16 @@
    "status": "scored"
   },
   {
+   "repo": "DarkHelmet67/fm1-insert-coin",
+   "url": "https://github.com/DarkHelmet67/fm1-insert-coin",
+   "found_by": "search: fm-1 firmware",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "7588e7425b999b6b9fb29fa26d6bfcce13f3736c",
+   "tree": "ab795c81ef2d32d90ce98bc9820f5af10e73bfc9",
+   "status": "scored"
+  },
+  {
    "repo": "davidozz0/clipper-smk",
    "url": "https://github.com/davidozz0/clipper-smk",
    "found_by": "fork",
@@ -1365,8 +1577,7 @@
    "licence_class": "gpl",
    "commit": "ab0f5c83d9c3b8cf10fd2f9ef3dc760a06c3abb3",
    "tree": "6a53b5228d66254058b51be95164705f685f2663",
-   "status": "duplicate",
-   "same_tree_as": "ruppert/fmini-1"
+   "status": "scored"
   },
   {
    "repo": "davidpryan/generativefm1",
@@ -1441,8 +1652,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "9e676aed0bdf90028faaa8a4487628ec380cd6b0",
-   "tree": "fcf47ce69ee18f1155fd836857473248c5061957",
+   "commit": "30222a222fa4a39b6e9ba6158eaa307107234899",
+   "tree": "0f261fd27d5af59c3c1e1ba26ca6b353150e72c6",
    "status": "scored"
   },
   {
@@ -1482,9 +1693,32 @@
    "found_by": "search: felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "7330f69475f08f9099a8a4acbc9f860f18003b48",
-   "tree": "1c4be61ea21b96b89a5602d28c4fb21e66fefc86",
+   "commit": "2d7a0b19f5c3fd5d23bec6d4e91f6038d46d1a70",
+   "tree": "97c80b97286d778b8275d005726f994e7b323970",
    "status": "scored"
+  },
+  {
+   "repo": "DeadActive/skiff",
+   "url": "https://github.com/DeadActive/skiff",
+   "found_by": "fork",
+   "fork_of": "illuminus5/skiff",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "c01fa1ed619266d770ea6552b153612e1b77d0a9",
+   "tree": "2f50f384203bf37efd360d27c2967892f4d8ebb3",
+   "status": "scored"
+  },
+  {
+   "repo": "DeadActive/sloop-fm1",
+   "url": "https://github.com/DeadActive/sloop-fm1",
+   "found_by": "fork",
+   "fork_of": "isod89/sloop-fm1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "ec9e53721cc576816a5750220391f2d0217c01cb",
+   "tree": "7f1484b732e07a039591a925406da5948c445221",
+   "status": "duplicate",
+   "same_tree_as": "admali777/fm1-sloop-ui"
   },
   {
    "repo": "Derfisfred/fm1-dx7-patch-importer",
@@ -1563,8 +1797,8 @@
    "found_by": "search: fm1",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "eea1d0aca5fef8bf35770d34d98493e3ddc37800",
-   "tree": "85b6ae64a1894d74024423432c3c37ab8b5afef3",
+   "commit": "9d6e82f7b7211b0da247f25b9fc4ad38e07c0cd7",
+   "tree": "72d60532fe5e59f7614ae1e13c7748b4ca3bf9e1",
    "status": "scored"
   },
   {
@@ -1585,8 +1819,18 @@
    "found_by": "search: fm1",
    "licence": "MIT",
    "licence_class": "permissive",
-   "commit": "94ac4ae52af028e8bff1f2a932727a22af55b9ef",
-   "tree": "017d12c50f4fd95a472f70738ed5be540fb662d9",
+   "commit": "5b20b0257228627001c3a1031371dc623064260e",
+   "tree": "e5f6460480380d02f033f5e9025ef3a00bc7662b",
+   "status": "scored"
+  },
+  {
+   "repo": "DimmKirr/setup-fm1-toolchain",
+   "url": "https://github.com/DimmKirr/setup-fm1-toolchain",
+   "found_by": "search: fm1",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "commit": "e94bbde88481a257226cc9a58f69fd496ba7f73d",
+   "tree": "edd2136706153f08e4d7b1df83ddc3f7ca0808b0",
    "status": "scored"
   },
   {
@@ -1595,8 +1839,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "MIT",
    "licence_class": "permissive",
-   "commit": "5a67521c2b6de9dd53102b3574c9ac52d6aa67f2",
-   "tree": "2d77d30f8136d4c076fe075a8a85f4f84ec83d9a",
+   "commit": "a36785b2bdaedf0011cd02b3ccb8e04c5e1be9b6",
+   "tree": "890cf24b215691022495b1ec080ea54b2488682d",
    "status": "scored"
   },
   {
@@ -1760,8 +2004,42 @@
    "fork_of": "hugelton/Felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "863773419cad68f3d048a3684bbe53974b6d1b69",
-   "tree": "6875590ba4308707e0a658a3f299283254ff70fa",
+   "commit": "5bad1cb6fc8ab6ddb224168a539723bf78ba309e",
+   "tree": "52e6c2759cf9af7c4b343091561804f9869d2731",
+   "status": "scored"
+  },
+  {
+   "repo": "doohinkus/Felucca-Engines",
+   "url": "https://github.com/doohinkus/Felucca-Engines",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca-Engines",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "commit": "2bb5a5a118d9f9f6c5fd4727fbacaf5ba90debfd",
+   "tree": "a713f7febfec4a7f023add3a8f25becf72ea8cf3",
+   "status": "scored"
+  },
+  {
+   "repo": "dororo42/sloop-fm1",
+   "url": "https://github.com/dororo42/sloop-fm1",
+   "found_by": "fork",
+   "fork_of": "isod89/sloop-fm1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "ec9e53721cc576816a5750220391f2d0217c01cb",
+   "tree": "7f1484b732e07a039591a925406da5948c445221",
+   "status": "duplicate",
+   "same_tree_as": "admali777/fm1-sloop-ui"
+  },
+  {
+   "repo": "doug-parks/furybox",
+   "url": "https://github.com/doug-parks/furybox",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "caeff7626006e57d0db25ab5ec677b46840716a6",
+   "tree": "6bd2ba1fea93e2ce091d1ad12afebcba4734a44e",
    "status": "scored"
   },
   {
@@ -1787,6 +2065,26 @@
    "same_tree_as": "charlesvestal/fm1-x0x"
   },
   {
+   "repo": "dreamsofbacon/lsdj-burrito",
+   "url": "https://github.com/dreamsofbacon/lsdj-burrito",
+   "found_by": "search: m-vave",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "24dfff43b3fe28e2f6e3a0dd92c0fb20c12f9af4",
+   "tree": "c3bd5dc773b7a8b728b6eac913e7e26a52b2a072",
+   "status": "scored"
+  },
+  {
+   "repo": "dreamsofbacon/lsdj-burrito-src",
+   "url": "https://github.com/dreamsofbacon/lsdj-burrito-src",
+   "found_by": "search: m-vave",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "f3fc16c688200867ede7bc47a4af5ec3facbe600",
+   "tree": "e154827080bb96b1e9d00a41fcc2ad6cc63b2c01",
+   "status": "scored"
+  },
+  {
    "repo": "drhl88/fm1-amb",
    "url": "https://github.com/drhl88/fm1-amb",
    "found_by": "fork",
@@ -1808,13 +2106,24 @@
    "status": "scored"
   },
   {
+   "repo": "dsablic/fm1-custom-fw",
+   "url": "https://github.com/dsablic/fm1-custom-fw",
+   "found_by": "fork",
+   "fork_of": "aroum/fm1-custom-fw",
+   "licence": null,
+   "licence_class": "none",
+   "commit": "9b7e9b5cfd9b425e842d3390382472eb44ffb2c2",
+   "tree": "b9928d9552c68586bdfbe8efec1dd1361fcb2c19",
+   "status": "scored"
+  },
+  {
    "repo": "dsablic/sidou",
    "url": "https://github.com/dsablic/sidou",
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "540b4f6088fc053e5f683c0874e2db779fa5d832",
-   "tree": "61dec2ed87ca700e5046d5fa0cbea09d6dc8fc6a",
+   "commit": "6d86587db8d36253231e858246a04186fecbe56b",
+   "tree": "62679569f1debc05841e9524b2676f366dd08fac",
    "status": "scored"
   },
   {
@@ -1892,8 +2201,7 @@
    "licence_class": "other",
    "commit": "33cac693903e753e8783baeed05c19cadfb04812",
    "tree": "3d2d98efda3b26626f8a081f3949b2389a3b9670",
-   "status": "duplicate",
-   "same_tree_as": "hugelton/felucca-bsp"
+   "status": "scored"
   },
   {
    "repo": "durutti320/fm1-base",
@@ -1915,8 +2223,7 @@
    "licence_class": "gpl",
    "commit": "e88f2e00ec60d299b623c28b038db54409fdeff1",
    "tree": "1759cc4aa88f005e1824b5a6aec4eb85580bd617",
-   "status": "duplicate",
-   "same_tree_as": "charlesvestal/fm1-loom"
+   "status": "scored"
   },
   {
    "repo": "dzwerg/analogBEAST",
@@ -1924,8 +2231,19 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "1b578d927aac1c9fd54c3c4ff001f54d28c63451",
-   "tree": "b7f5c03b2770ef86030e317d273ae3d26064967d",
+   "commit": "beef99b68d1cbb0328d2f0b1e8d52e1ba3f2f5ba",
+   "tree": "ae6ba3980fb1e711beccbf89554136539ca48159",
+   "status": "scored"
+  },
+  {
+   "repo": "easyhard007/Felucca-RDX",
+   "url": "https://github.com/easyhard007/Felucca-RDX",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "00dc20e1444d78e78bf10a43bfaf8bb2d2e1799d",
+   "tree": "3d178a9cf520e5b3816da9d9c12b7ddc989cc3e7",
    "status": "scored"
   },
   {
@@ -1948,6 +2266,16 @@
    "licence_class": "gpl",
    "commit": "30aa882bad0af978e11fa10d6f2dfab18a0f92fe",
    "tree": "3b3b461861a4165f6fd5d982203b6309cd603d0c",
+   "status": "scored"
+  },
+  {
+   "repo": "egorgam/fm1-neverhood",
+   "url": "https://github.com/egorgam/fm1-neverhood",
+   "found_by": "search: fm1",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "commit": "265798dc2c7654cf87c6a44839fc0269c3ca080a",
+   "tree": "47730a164f9d1dbf4cecb2261f5e66ea63b04c48",
    "status": "scored"
   },
   {
@@ -1977,8 +2305,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "ed463887e5773930978b2b7f6baa81d115dfd56c",
-   "tree": "2665db757c25538945f5dfd8efe8b39614504eea",
+   "commit": "3327369b445d69eb5c48ac1cc11735d3179c4f68",
+   "tree": "cea42631877d655754e4f9e1f82b6af74cd6612d",
    "status": "scored"
   },
   {
@@ -1987,8 +2315,8 @@
    "found_by": "search: felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "ffc9fa6f0eb6aadd1ea9f2b304e5d4ddda03ba1a",
-   "tree": "9ce1a5666607305ba270eab62e02da3bea699cc9",
+   "commit": "96333e35f780810ef32999bf7f428d2a8682f2cd",
+   "tree": "b805d8aea1c7525564d74fc8b45fb26b548b5be3",
    "status": "scored"
   },
   {
@@ -2026,6 +2354,29 @@
    "same_tree_as": "atachh/sloop-fm1"
   },
   {
+   "repo": "ELI7VH/switchblade",
+   "url": "https://github.com/ELI7VH/switchblade",
+   "found_by": "fork",
+   "fork_of": "OllieNicklinUK/switchblade",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "9d0752714a93c0b905c8d8e7425b9ca67dae082d",
+   "tree": "1d911389abc388e7c96514fefa7565dc27e1eab5",
+   "status": "duplicate",
+   "same_tree_as": "OllieNicklinUK/switchblade"
+  },
+  {
+   "repo": "emilystgeist/fiendbox",
+   "url": "https://github.com/emilystgeist/fiendbox",
+   "found_by": "fork",
+   "fork_of": "jasonpersinger/ghoulbox-fm1-dungeon-synth",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "f23fbc593f8af29dfa01174278f08ee79155ed27",
+   "tree": "b97a12b7f496d7b19c4ea9a47a2fd0efcaf66e85",
+   "status": "scored"
+  },
+  {
    "repo": "entryone/ChoralRootFM1",
    "url": "https://github.com/entryone/ChoralRootFM1",
    "found_by": "fork",
@@ -2043,8 +2394,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "50a33749aa623fce2655010a5933188b8dc11d7f",
-   "tree": "aaae3c9eb5c7890ed355c9f4ef38d685a8284e11",
+   "commit": "038020e1da721093e7481e8c7c8fd046d0571821",
+   "tree": "3b5e4f15a1fae85ab4ace4c3a2eeed2c2acb9289",
    "status": "scored"
   },
   {
@@ -2090,6 +2441,18 @@
    "commit": "98ce13430c99e1254d6975b152d6fa3f4714f51c",
    "tree": "4beb496e6ac8b46888fde7ae1ca2f55281d67403",
    "status": "scored"
+  },
+  {
+   "repo": "etyrnal/carnac-os_-",
+   "url": "https://github.com/etyrnal/carnac-os_-",
+   "found_by": "fork",
+   "fork_of": "OwenKirby/carnac-os",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "6387a21932aab0f00fe46b4c0920b76830f9962e",
+   "tree": "dcd3b59bd2bfc2c07ccafa6dd88b19b9c875ea2f",
+   "status": "duplicate",
+   "same_tree_as": "OwenKirby/carnac-os"
   },
   {
    "repo": "etyrnal/ChoralRootFM1",
@@ -2199,8 +2562,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "fe6d5e612c0db4c8c563ba097c1f0d46fc392a0e",
-   "tree": "9d8d5b4dff722f8d1c5bca4dcb0e60dcdd6ff600",
+   "commit": "7697c404ffa1367d5dc1d1a83d0a982819c4edd3",
+   "tree": "84944657163bafaacdcc16b459c17b838e76a2d6",
    "status": "scored"
   },
   {
@@ -2213,7 +2576,7 @@
    "commit": "d44df7db09b98ccad2f1233b8f83f5f09c04829e",
    "tree": "8cefd253b92b544109a315fd2fb9ffcea7c429b6",
    "status": "duplicate",
-   "same_tree_as": "zvenson/dinghy"
+   "same_tree_as": "chasebrey-ops/dinghy"
   },
   {
    "repo": "fabiomassimopasquazzi/dinghy",
@@ -2225,7 +2588,51 @@
    "commit": "d44df7db09b98ccad2f1233b8f83f5f09c04829e",
    "tree": "8cefd253b92b544109a315fd2fb9ffcea7c429b6",
    "status": "duplicate",
-   "same_tree_as": "zvenson/dinghy"
+   "same_tree_as": "chasebrey-ops/dinghy"
+  },
+  {
+   "repo": "fadyOne/Felucca",
+   "url": "https://github.com/fadyOne/Felucca",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "63f88ec18b71c6ed4371d03d6f04dd93f4193ad3",
+   "tree": "d14ceaafc39a32980ba830b7e96dfc9d0232f53d",
+   "status": "duplicate",
+   "same_tree_as": "hugelton/Felucca"
+  },
+  {
+   "repo": "fadyOne/melodee",
+   "url": "https://github.com/fadyOne/melodee",
+   "found_by": "fork",
+   "fork_of": "keremimo/melodee",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "398ada1e09d864c12f3b778a43e45c7c2a8031b8",
+   "tree": "26f302f548d100b2d84d738e482e185dc0c66922",
+   "status": "duplicate",
+   "same_tree_as": "keremimo/melodee"
+  },
+  {
+   "repo": "fantasmoslam/dinobox-fm1",
+   "url": "https://github.com/fantasmoslam/dinobox-fm1",
+   "found_by": "search: fm-1 firmware",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "e4dd949ff56bc0126368d446d88d931db3650549",
+   "tree": "11da4bab214d2d21445bbaa68e6c457d16b92f4f",
+   "status": "scored"
+  },
+  {
+   "repo": "FBNFRTG/drift-fm1",
+   "url": "https://github.com/FBNFRTG/drift-fm1",
+   "found_by": "search: m-vave",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "8ec7ba7093025efb2a4b84e840dd7fcdd205bb07",
+   "tree": "737df1c3f60db3f424df3b5610d46979edd3cc46",
+   "status": "scored"
   },
   {
    "repo": "feiyunwill/Felucca",
@@ -2292,8 +2699,8 @@
    "fork_of": "hugelton/Felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "3b455ff449dd1f324ed6f56bb1d907e5829c00bd",
-   "tree": "bb415e4568515c36c7477d775fa0f28c5aa8b5ec",
+   "commit": "9fb62359b1377e03e6585f72e9d144afcd425a79",
+   "tree": "df854f8fba0adb3f85e43f42a478228ab6a6e536",
    "status": "scored"
   },
   {
@@ -2366,6 +2773,17 @@
    "status": "empty"
   },
   {
+   "repo": "ForrestPanda/backbeat",
+   "url": "https://github.com/ForrestPanda/backbeat",
+   "found_by": "fork",
+   "fork_of": "isod89/sloop-fm1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "1e73c9d2073bbb2418f47ca163d8bcc56ce2eb63",
+   "tree": "a181dd86f31b24725baca05dfe1e3f71d0794a47",
+   "status": "scored"
+  },
+  {
    "repo": "franalgaba/felucca-package-template",
    "url": "https://github.com/franalgaba/felucca-package-template",
    "found_by": "search: felucca",
@@ -2417,8 +2835,8 @@
    "fork_of": "isod89/sloop-fm1",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "bad8e822a6f4d844b03b04f5b5944df422e2d011",
-   "tree": "f173759b5f75f0909e5700892c16fcc100d470f3",
+   "commit": "3cc126ab7b8f5decbd1fba5f99ad4d888b75d3fc",
+   "tree": "06eef9dcbafa260829b54cc21181645c59a96773",
    "status": "scored"
   },
   {
@@ -2470,8 +2888,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "d420b39cff02d8340969381c11884102e72767e4",
-   "tree": "553b96304a00024fbd52e2fe928043c8c57a0cf5",
+   "commit": "ff61ba1783f0a4f4cec6ee2ba875a345bbfc611f",
+   "tree": "65d33e472195b42d1d4fad4c91f6d508ddfed034",
    "status": "scored"
   },
   {
@@ -2709,8 +3127,8 @@
    "fork_of": "isod89/sloop-fm1",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "b4b61f407b723dc0023c361e1302638578a87f58",
-   "tree": "50cfca55a5c58e2e576e65d184e2740e5e3ea5b9",
+   "commit": "259c7bb02780f7be30370009693c97afc500eb19",
+   "tree": "58f9c26bc3f380478f3e6535a7e487d5a4f6d7aa",
    "status": "scored"
   },
   {
@@ -2775,8 +3193,8 @@
    "found_by": "search: fm-1 synth",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "4d9ebea892223392e0a7e2574c8831c8154a340e",
-   "tree": "31661ce921e681c8cb5ed3c3dac0e19982153251",
+   "commit": "739085df5187e91a46027419cbca52de971014b3",
+   "tree": "866b8a54ac794b0a66660422b17229a042d3aa9b",
    "status": "scored"
   },
   {
@@ -2978,6 +3396,16 @@
    "status": "scored"
   },
   {
+   "repo": "Guizmoh/K-WABASS-Sub-for-FM1",
+   "url": "https://github.com/Guizmoh/K-WABASS-Sub-for-FM1",
+   "found_by": "search: m-vave",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "d62bb7887145be525dfe3fd66b0dadafc7c84990",
+   "tree": "42e4a5bab8df66d095e708f32f977e17877c7d9e",
+   "status": "scored"
+  },
+  {
    "repo": "Guizmoh/Kawa-Tracker-Fm1",
    "url": "https://github.com/Guizmoh/Kawa-Tracker-Fm1",
    "found_by": "search: fm1",
@@ -3020,6 +3448,18 @@
    "tree": "50235ca24956c650e412828d7985c05d47ccbebc",
    "status": "duplicate",
    "same_tree_as": "balancechiang/fm1_alt"
+  },
+  {
+   "repo": "Harvie/fm1-x0x",
+   "url": "https://github.com/Harvie/fm1-x0x",
+   "found_by": "fork",
+   "fork_of": "charlesvestal/fm1-x0x",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "54194c54bb01e9d9b3fe9d641b3ddfa512ac04a3",
+   "tree": "eb62bba076671f5a11b577efa864b5ace56bf1a0",
+   "status": "duplicate",
+   "same_tree_as": "charlesvestal/fm1-x0x"
   },
   {
    "repo": "hed0rah/sqrl-1",
@@ -3071,6 +3511,16 @@
    "status": "scored"
   },
   {
+   "repo": "highdrone/fm1-flipper-recovery",
+   "url": "https://github.com/highdrone/fm1-flipper-recovery",
+   "found_by": "search: m-vave",
+   "licence": "Unlicense",
+   "licence_class": "permissive",
+   "commit": "91615fcda62d57e0b019c4b9b59153e73cc2eded",
+   "tree": "0d297c68e89accef82f891b7f442df657d163d97",
+   "status": "scored"
+  },
+  {
    "repo": "hirakos999/MODELAR",
    "url": "https://github.com/hirakos999/MODELAR",
    "found_by": "search: fm1",
@@ -3091,13 +3541,23 @@
    "status": "scored"
   },
   {
+   "repo": "HolidayMan/fm1-android",
+   "url": "https://github.com/HolidayMan/fm1-android",
+   "found_by": "search: fm1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "be7a89a2833c55a1f357d9d15035f1dbe92ff84a",
+   "tree": "a65c23f3c4d5e7c60251d3fabf325f46057f9c16",
+   "status": "scored"
+  },
+  {
    "repo": "HolidayMan/fm1-ios",
    "url": "https://github.com/HolidayMan/fm1-ios",
    "found_by": "search: fm1",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "03b0ad3c5c504c9116960c05936ab11924bc2a8d",
-   "tree": "d6e0fa2a43a463b9951b5f49af14c99aa046a3d3",
+   "commit": "d2c5a6b76246304261c98a6c4305bf80586b742d",
+   "tree": "0713b7024a48d3f945fec38558446c2159505938",
    "status": "scored"
   },
   {
@@ -3142,8 +3602,8 @@
    "seed": 5,
    "licence": "MPL-2.0",
    "licence_class": "other",
-   "commit": "33cac693903e753e8783baeed05c19cadfb04812",
-   "tree": "3d2d98efda3b26626f8a081f3949b2389a3b9670",
+   "commit": "d6b8f771795be04d77e15d72a79f474a723796d7",
+   "tree": "0272666d72a5aaa6c73ae5dcc3672fa6e6015d61",
    "status": "scored"
   },
   {
@@ -3205,8 +3665,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "NOASSERTION",
    "licence_class": "other",
-   "commit": "05250738fd9072d1d1aaaea9b351db852809fbaa",
-   "tree": "e0d90371b09405f6a563258d3934d904d403a72e",
+   "commit": "98a2519a4c8e9153849434f5e8cc94f08b435cf9",
+   "tree": "1ab593aed83c60536aaf4f6b32861b8c03235350",
    "status": "scored"
   },
   {
@@ -3267,8 +3727,8 @@
    "found_by": "search: felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "c01fa1ed619266d770ea6552b153612e1b77d0a9",
-   "tree": "2f50f384203bf37efd360d27c2967892f4d8ebb3",
+   "commit": "b03d98acd8c6356fb84e8edf2268f374a89eb8a5",
+   "tree": "bfff54ec8dca0efde14f94a2988dc7f2323aec64",
    "status": "scored"
   },
   {
@@ -3284,13 +3744,33 @@
    "same_tree_as": "CoydeLau/sloop-fm1"
   },
   {
+   "repo": "ImpossibleKnot/bongo-cat-studio",
+   "url": "https://github.com/ImpossibleKnot/bongo-cat-studio",
+   "found_by": "search: felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "ae080a7efe7ee9ccdbebb20a01e9608f5255a772",
+   "tree": "85fe1af7429a94509b7d3ab6f86e37fd55f3dfc2",
+   "status": "scored"
+  },
+  {
+   "repo": "InigoHernandez/demake-synth",
+   "url": "https://github.com/InigoHernandez/demake-synth",
+   "found_by": "search: m-vave",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "54d9e2a8e1855c84b6f37cf3f5f39ba07e13932e",
+   "tree": "560d1c59fe10a316cd33f9971a306bb6481cb41c",
+   "status": "scored"
+  },
+  {
    "repo": "InigoHernandez/mono2k",
    "url": "https://github.com/InigoHernandez/mono2k",
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "030247212924ab7a6ab1a3cc14092bedc974a144",
-   "tree": "cd75b88c533233031123fa9aab8fea5f5e196dde",
+   "commit": "90f0d2e825e38d52ba7a81e699e583490ef9cc91",
+   "tree": "60f3f228af1218c6d8122c80a445e1098b13ddeb",
    "status": "scored"
   },
   {
@@ -3321,8 +3801,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "MIT",
    "licence_class": "permissive",
-   "commit": "659c3aa9b88df292d4771925f0cf431ce68f6759",
-   "tree": "55cd3f7c049f250f8bd938183525323ddaef7957",
+   "commit": "3c6c0a7df4527a68f43f56daa48c4b2cb4e2990e",
+   "tree": "f94466dca68caf08668d0239ede240538f6f9ec6",
    "status": "scored"
   },
   {
@@ -3341,8 +3821,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "ec9e53721cc576816a5750220391f2d0217c01cb",
-   "tree": "7f1484b732e07a039591a925406da5948c445221",
+   "commit": "d89364253b79a5c6002c0d90c5f16b3c3c16ea9d",
+   "tree": "84f6dcf4178a48be7c549ec56493801c2933ef6d",
    "status": "scored"
   },
   {
@@ -3394,8 +3874,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "32946ed01d2906abfee2e51a0a54df83bbc514ef",
-   "tree": "da5f2a5b0a7fc5db7f2c7f638ebb0236c8fcecf5",
+   "commit": "3da836340b31bf486de7cab2376339e03e0bff36",
+   "tree": "af0a6845edacf8a70bc986b4bcff48f037b538fe",
    "status": "scored"
   },
   {
@@ -3672,6 +4152,17 @@
    "same_tree_as": "charlesvestal/melodee"
   },
   {
+   "repo": "JalopyMusic/fm1-konsumer-fm1buddy",
+   "url": "https://github.com/JalopyMusic/fm1-konsumer-fm1buddy",
+   "found_by": "fork",
+   "fork_of": "konsumer/fm1buddy",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "bd8a397008d54d443a0ba2aec2549f2ea74649ce",
+   "tree": "0902222b0f143a246c5b8d6ef7d8fabce2042891",
+   "status": "scored"
+  },
+  {
    "repo": "JalopyMusic/fm1-majnikool-sloop-fm1",
    "url": "https://github.com/JalopyMusic/fm1-majnikool-sloop-fm1",
    "found_by": "fork",
@@ -3859,8 +4350,8 @@
    "found_by": "search: m-vave",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "1bf76346b26f96037f591bae53a9a7069cb10647",
-   "tree": "e411fef3689df0e85003a333e74169eb8d50283f",
+   "commit": "5436092deac69d979ecdf50f16b58738938a4e6e",
+   "tree": "19e9049c4d40ad9b3d065566ffe7cdd2ddcb19d3",
    "status": "scored"
   },
   {
@@ -3876,14 +4367,24 @@
    "same_tree_as": "CoydeLau/sloop-fm1"
   },
   {
+   "repo": "jasonbot/fm1-grid",
+   "url": "https://github.com/jasonbot/fm1-grid",
+   "found_by": "search: fm-1 firmware",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "644c68bf3a975d5cf40347ffa2d9781717b8a98e",
+   "tree": "a0c79833693be7fb926af9021327a7d7b0c46125",
+   "status": "scored"
+  },
+  {
    "repo": "jasonpersinger/ghoulbox-fm1-dungeon-synth",
    "url": "https://github.com/jasonpersinger/ghoulbox-fm1-dungeon-synth",
    "found_by": "fork",
    "fork_of": "hugelton/Felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "f23fbc593f8af29dfa01174278f08ee79155ed27",
-   "tree": "b97a12b7f496d7b19c4ea9a47a2fd0efcaf66e85",
+   "commit": "9f2b9a22e456d7fe9552b40f7a1d0c13200913bb",
+   "tree": "b1c04ae8a9be04bbb8750d6f6368ff514999ba1e",
    "status": "scored"
   },
   {
@@ -3963,6 +4464,28 @@
    "status": "scored"
   },
   {
+   "repo": "jguillenconesa-coder/Wave-FM-1-plugin",
+   "url": "https://github.com/jguillenconesa-coder/Wave-FM-1-plugin",
+   "found_by": "search: fm-1 synth",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "commit": "f2f364cfd8df0c424a93635aeeca4943d573de32",
+   "tree": "9cc610c01c6df962b9cae424a5503ff52a958459",
+   "status": "scored"
+  },
+  {
+   "repo": "jjrh/fm1_open",
+   "url": "https://github.com/jjrh/fm1_open",
+   "found_by": "fork",
+   "fork_of": "m-vave/fm1_open",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "commit": "4c7496daac04a95ff10d1afdcc8f9ead2dbabc41",
+   "tree": "8b60b4861495daee0641e41af37a3ed08edb1101",
+   "status": "duplicate",
+   "same_tree_as": "m-vave/fm1_open"
+  },
+  {
    "repo": "jmcn99/JIANT",
    "url": "https://github.com/jmcn99/JIANT",
    "found_by": "fork",
@@ -3971,6 +4494,28 @@
    "licence_class": "gpl",
    "commit": "e2f60b3b472a5a37da1a4120c7fcd47fe6ffce37",
    "tree": "10b068a7c0af58d88121cb5665684061d8dfd4e4",
+   "status": "scored"
+  },
+  {
+   "repo": "jnovek/fm1_open",
+   "url": "https://github.com/jnovek/fm1_open",
+   "found_by": "fork",
+   "fork_of": "m-vave/fm1_open",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "commit": "4c7496daac04a95ff10d1afdcc8f9ead2dbabc41",
+   "tree": "8b60b4861495daee0641e41af37a3ed08edb1101",
+   "status": "duplicate",
+   "same_tree_as": "m-vave/fm1_open"
+  },
+  {
+   "repo": "joakimeriksson/fm1-dock",
+   "url": "https://github.com/joakimeriksson/fm1-dock",
+   "found_by": "search: dinghy",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "24c0da085c4b2045934994d2c4d1ea7d316c37d1",
+   "tree": "5f77aef5cd7a8bc6b3178ee249aa5915ed9c10bd",
    "status": "scored"
   },
   {
@@ -3984,8 +4529,18 @@
    ],
    "licence": "MIT",
    "licence_class": "gpl",
-   "commit": "db8d472e62f35d18e392e3abc66474daed65ffe9",
-   "tree": "fd9d97e0f7f050bfb5f608885fd23e1d4084e58f",
+   "commit": "51ca41af6734ea23871685450fe1f2e1e357bb0e",
+   "tree": "f42de7252e0c448770ef6bcff444fd8281319b79",
+   "status": "scored"
+  },
+  {
+   "repo": "joakimeriksson/scintilla-fm1",
+   "url": "https://github.com/joakimeriksson/scintilla-fm1",
+   "found_by": "search: fm-1 firmware",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "9ca06cec1685a30bd1c11211cf962183c036db8c",
+   "tree": "c0f4f8d7d85f40bdbc8f21b1feb320a2cb6a8e7a",
    "status": "scored"
   },
   {
@@ -4005,8 +4560,8 @@
    "found_by": "search: m-vave",
    "licence": "NOASSERTION",
    "licence_class": "other",
-   "commit": "9827a13d884cbb0e708b821fca627aeea7d13092",
-   "tree": "0c551d291dc88311458b8c2d495df86c8b077355",
+   "commit": "1ce92672be15d1f670db69a6869ffeb34c27ba23",
+   "tree": "fbeb57052cc56d6bc485ccef6e28482666166074",
    "status": "scored"
   },
   {
@@ -4024,10 +4579,10 @@
    "repo": "johnskiller/fm1-ctrl",
    "url": "https://github.com/johnskiller/fm1-ctrl",
    "found_by": "search: fm-1 firmware",
-   "licence": "MIT",
-   "licence_class": "permissive",
-   "commit": "b429dd0e617a09dae782431ec90217f11359f45d",
-   "tree": "5f0525d142d2ba29bd70f19c1533245b32a803d2",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "commit": "92cc34e01eea25905537368d1c20c8a9b9f7ce7a",
+   "tree": "e3013154967847c3d3f9b1535d710e4a22dab30a",
    "status": "scored"
   },
   {
@@ -4099,14 +4654,34 @@
    "same_tree_as": "amalahama/sloop-SMK37"
   },
   {
+   "repo": "Joolo09/zombie-fm1-web",
+   "url": "https://github.com/Joolo09/zombie-fm1-web",
+   "found_by": "search: fm-1 firmware",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "commit": "fc9ee4737733badaa5a929c622cbb2bea2777e34",
+   "tree": "0b06b89883f874add731cec467c462b2bef5c8f8",
+   "status": "scored"
+  },
+  {
+   "repo": "joshbartlettband-web/album-fm1",
+   "url": "https://github.com/joshbartlettband-web/album-fm1",
+   "found_by": "search: fm1",
+   "licence": "MIT",
+   "licence_class": "permissive",
+   "commit": "2647b5ecf3cc5eb36ca084cf917995c46f11e918",
+   "tree": "f09576742939b26594bdda26eacce672c1658206",
+   "status": "scored"
+  },
+  {
    "repo": "joshbartlettband-web/Double-Rainbow",
    "url": "https://github.com/joshbartlettband-web/Double-Rainbow",
    "found_by": "fork",
    "fork_of": "keremimo/melodee",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "3caf73c4cc5a470159f52f8a4d706f48cb70a90c",
-   "tree": "b1466737dfc979ee3a55f84b13c0daaf31c2b6ce",
+   "commit": "f615412bf7e30202a27037a716488214e0b16395",
+   "tree": "c0f3120f975c9f08fbfa4f859b661de7071dbee5",
    "status": "scored"
   },
   {
@@ -4116,8 +4691,8 @@
    "fork_of": "hugelton/Felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "0053aa8ac8ea314d2e219ee28ea666bfd92bb774",
-   "tree": "89a4288896adb9fd6111f358b6dbbdc7d90bc786",
+   "commit": "0baf362731c65398ad963229a3fe5500c75c6e3e",
+   "tree": "808e6f434b7ca96aaab7d51a8c6acabf8d6b1c59",
    "status": "scored"
   },
   {
@@ -4142,8 +4717,8 @@
    "fork_of": "GRiMMBIENT/grimm",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "4db0f91b1690ec45408e0aa1589e5793887ca432",
-   "tree": "c25d2c315fcb354bfb8101c03bdafc1f1355dfa2",
+   "commit": "c0abede38958bff880990ee7c3c0d10bf873aad9",
+   "tree": "7ed563066ebb14cebf778290e44b6588dcb20b78",
    "status": "scored"
   },
   {
@@ -4192,6 +4767,16 @@
    "status": "scored"
   },
   {
+   "repo": "jsopdebeeck/fm1-delrio",
+   "url": "https://github.com/jsopdebeeck/fm1-delrio",
+   "found_by": "search: fm-1 firmware",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "commit": "039b0510d2dd32080a3593690c1d490af287dacf",
+   "tree": "cad644046a34c2724d6bdd5490a92ffc0b0edc1d",
+   "status": "scored"
+  },
+  {
    "repo": "jtcole/dinghy",
    "url": "https://github.com/jtcole/dinghy",
    "found_by": "fork",
@@ -4210,8 +4795,8 @@
    "fork_of": "hugelton/Felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "dc8d025526eecdd89d0bdf0cc3669c22cbde1b71",
-   "tree": "8819acfcfbc7f5b6e3a8f002e14f7a6d63071a54",
+   "commit": "92048b29a307622d5b63fa4b7fe006e3325b5c8e",
+   "tree": "612a82250417af3bb432fb6a41a1c2318ba501e2",
    "status": "scored"
   },
   {
@@ -4237,6 +4822,17 @@
    "status": "scored"
   },
   {
+   "repo": "junkaiman/FM-SWITCH",
+   "url": "https://github.com/junkaiman/FM-SWITCH",
+   "found_by": "fork",
+   "fork_of": "ocean/FM-SWITCH",
+   "licence": null,
+   "licence_class": "none",
+   "commit": "8871da90367d72a848b73964989ec92f25a281e6",
+   "tree": "52001184bf2466139644f82489a7123695e9377d",
+   "status": "scored"
+  },
+  {
    "repo": "Juris3D/fm1-emu",
    "url": "https://github.com/Juris3D/fm1-emu",
    "found_by": "fork",
@@ -4249,8 +4845,7 @@
    "licence_class": "gpl",
    "commit": "db8d472e62f35d18e392e3abc66474daed65ffe9",
    "tree": "fd9d97e0f7f050bfb5f608885fd23e1d4084e58f",
-   "status": "duplicate",
-   "same_tree_as": "joakimeriksson/fm1-emu"
+   "status": "scored"
   },
   {
    "repo": "justynroberts/fm1-finton",
@@ -4284,7 +4879,7 @@
    "commit": "33cac693903e753e8783baeed05c19cadfb04812",
    "tree": "3d2d98efda3b26626f8a081f3949b2389a3b9670",
    "status": "duplicate",
-   "same_tree_as": "hugelton/felucca-bsp"
+   "same_tree_as": "durutti320/felucca-bsp"
   },
   {
    "repo": "jvitkauskas/fm1-backup",
@@ -4326,6 +4921,16 @@
    "licence_class": "gpl",
    "commit": "0fafe85aadb0174e6ac442002641a17c7ee5798d",
    "tree": "a15ab805616429b5badb6f2766289555c54178f6",
+   "status": "scored"
+  },
+  {
+   "repo": "Kayman18/genAMB",
+   "url": "https://github.com/Kayman18/genAMB",
+   "found_by": "search: fm1 firmware",
+   "licence": null,
+   "licence_class": "none",
+   "commit": "8a90f125022bbacca625286f5c1af8bae40c5033",
+   "tree": "86af0720cfe742061c78e8f857ed0833402f475b",
    "status": "scored"
   },
   {
@@ -4410,8 +5015,8 @@
    "found_by": "search: felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "89f0c8c0e8586a4cadbb22dc656d90a671b315d1",
-   "tree": "7ed239353ad6d648b9713ec6634d86908864f70c",
+   "commit": "dfe50b2689988d30704765934764285ea9118718",
+   "tree": "ac1a31d291942e5e8f7b1c71df33348a0c08db86",
    "status": "scored"
   },
   {
@@ -4422,6 +5027,17 @@
    "licence_class": "gpl",
    "commit": "cc816dc9c97e2265a741e6d5b4c90f828d98a6aa",
    "tree": "7e0427725747b256a1370bb7332cc92aa58606dd",
+   "status": "scored"
+  },
+  {
+   "repo": "keremimo/fm1-base",
+   "url": "https://github.com/keremimo/fm1-base",
+   "found_by": "fork",
+   "fork_of": "charlesvestal/fm1-base",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "commit": "6c0b47e4bfc56fd3cd5b34463210d0e7e0ce0431",
+   "tree": "76b140c6f07e5922d8d2907612d4da79bc8b4f49",
    "status": "scored"
   },
   {
@@ -4444,6 +5060,31 @@
    "licence_class": "gpl",
    "commit": "398ada1e09d864c12f3b778a43e45c7c2a8031b8",
    "tree": "26f302f548d100b2d84d738e482e185dc0c66922",
+   "status": "scored"
+  },
+  {
+   "repo": "keremimo/saadet",
+   "url": "https://github.com/keremimo/saadet",
+   "found_by": "search: fm-1 firmware",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "commit": "cb520e79ac22bf78e853452e7a9096d6bb23c85c",
+   "tree": "4600485ad358110aaf70c4b1e32c3419d286d2cf",
+   "status": "scored"
+  },
+  {
+   "repo": "kesi03/fm1-emu",
+   "url": "https://github.com/kesi03/fm1-emu",
+   "found_by": "fork",
+   "fork_of": "joakimeriksson/fm1-emu",
+   "paths": [
+    "fm1-sid/",
+    "probes/"
+   ],
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "commit": "cf42d19a78b8cbfa158e6afd65da7554e3834c82",
+   "tree": "b6f8748c67cbf7e1f1cd62349132721c8d914737",
    "status": "scored"
   },
   {
@@ -4493,8 +5134,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "52687d82c53bae8124963705fba1e8e25a1ce60e",
-   "tree": "a95d939da84572e5ab84721722998bffa7371e6c",
+   "commit": "04cf468420f4325f6bdbbecfd59695b06c481a8a",
+   "tree": "66944f6e9153f10db0d0a3e734ba1546975f3448",
    "status": "scored"
   },
   {
@@ -4560,8 +5201,8 @@
    "fork_of": "hugelton/Felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "126da9dc2d9472dd49b500958ea95231f2075804",
-   "tree": "b6e99b0578e74365e2f8d4190a0a28b374aff42e",
+   "commit": "2579e55791df0ccc2d72f35177526248d75cbc79",
+   "tree": "e30ec6faf11d9fe4094995743ad48a95ad1f6147",
    "status": "scored"
   },
   {
@@ -4582,8 +5223,8 @@
    "fork_of": "hugelton/Felucca-WebApp",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "a7a9dbbb95bb9d54eaa7ddb5f84dd2a4f658908d",
-   "tree": "f0fff26cbcf33c71fa7d33876e4a805a26ba0d29",
+   "commit": "a881cb73ae66730f6c2a6bff14a2f170e09d7690",
+   "tree": "380d8af31da1a0d1071bc39d8cbf2526bf5ffd3a",
    "status": "scored"
   },
   {
@@ -4639,13 +5280,23 @@
    "status": "scored"
   },
   {
+   "repo": "konsumer/fm1buddy",
+   "url": "https://github.com/konsumer/fm1buddy",
+   "found_by": "search: mvave",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "f49ed130899f052be5fe333c6c89de7ba19303ec",
+   "tree": "7e3de165a1ccb759abac769255f75317a490325a",
+   "status": "scored"
+  },
+  {
    "repo": "konsumer/foma",
    "url": "https://github.com/konsumer/foma",
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "f39b49c492f3f0998ac3cbdcbed3fbda4c545574",
-   "tree": "6a71ddb31afeca62174d048b7940dec940ef4954",
+   "commit": "58e1e25df47cc251e43395b5657c89bdb123d55d",
+   "tree": "1f0c6a4c39b04aa6d6b5e9be3aa09c0f2e778bab",
    "status": "scored"
   },
   {
@@ -4654,8 +5305,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "6b788427e4a2abf269ac1b45374b7d2c63c70b62",
-   "tree": "ae5674406c12e7e83e1580321017442ea8a7c9e7",
+   "commit": "16991c7a439d32910d5840c6c73c308dd5f4d95f",
+   "tree": "e531f7ac687a743137101b8705ff3168284205dc",
    "status": "scored"
   },
   {
@@ -4680,7 +5331,7 @@
    "commit": "9b7e9b5cfd9b425e842d3390382472eb44ffb2c2",
    "tree": "b9928d9552c68586bdfbe8efec1dd1361fcb2c19",
    "status": "duplicate",
-   "same_tree_as": "aroum/fm1-custom-fw"
+   "same_tree_as": "dsablic/fm1-custom-fw"
   },
   {
    "repo": "kpalaniuk/gnomad-firmware",
@@ -4921,6 +5572,17 @@
    "status": "scored"
   },
   {
+   "repo": "luchak/felucca-bsp",
+   "url": "https://github.com/luchak/felucca-bsp",
+   "found_by": "fork",
+   "fork_of": "hugelton/felucca-bsp",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "commit": "4bd6d0bc07c43d28925514f05503b3337425b4d9",
+   "tree": "181fd6f76233dc08fe123ef00a03d88f69673c11",
+   "status": "scored"
+  },
+  {
    "repo": "luchak/fm1-base",
    "url": "https://github.com/luchak/fm1-base",
    "found_by": "fork",
@@ -4956,6 +5618,36 @@
    "licence_class": "gpl",
    "commit": "43044b417fe154de31d92e1069caf5ef0a2230d8",
    "tree": "a29057cebd32e0693d60b78561a9c5b4f1cbddf9",
+   "status": "scored"
+  },
+  {
+   "repo": "Luisnvb/fm1-shed",
+   "url": "https://github.com/Luisnvb/fm1-shed",
+   "found_by": "search: fm-1 firmware",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "commit": "7ca92305c7985397d4f6c269ddeeff043f72f23c",
+   "tree": "11103217f92c2223ae10acd31e19512b0cb5f682",
+   "status": "scored"
+  },
+  {
+   "repo": "Luisnvb/shed-web",
+   "url": "https://github.com/Luisnvb/shed-web",
+   "found_by": "search: m-vave",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "commit": "5c94ac3864a0f8a7dedbdbbdc47b57cdb7a4b9cc",
+   "tree": "f547b0b71691af7b344a200fd8ca35f465c758f3",
+   "status": "scored"
+  },
+  {
+   "repo": "LXXero/oplbox",
+   "url": "https://github.com/LXXero/oplbox",
+   "found_by": "search: fm-1 firmware",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "664a8bdb3f650f68c32a581fcb0eb55f7ab8d190",
+   "tree": "f5101f2438a2c321e621c5d0e6cd849f36fd5a7f",
    "status": "scored"
   },
   {
@@ -5040,6 +5732,15 @@
    "same_tree_as": "groundstation1/take-taker"
   },
   {
+   "repo": "mangogrape/Felucca",
+   "url": "https://github.com/mangogrape/Felucca",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "status": "unreachable"
+  },
+  {
    "repo": "manuelerdoes/Felucca-Engines",
    "url": "https://github.com/manuelerdoes/Felucca-Engines",
    "found_by": "fork",
@@ -5072,6 +5773,29 @@
    "commit": "ac468ff327761d3ea2e17993e4bd8bbb14c8fbfd",
    "tree": "446de0fe54a8b8a91e89a8f7adf945c9cab4de45",
    "status": "scored"
+  },
+  {
+   "repo": "MarcoCasanova00/JIANT-tekno-rework",
+   "url": "https://github.com/MarcoCasanova00/JIANT-tekno-rework",
+   "found_by": "fork",
+   "fork_of": "juanjiant-bit/JIANT",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "7ca82f66b8a6d6d7a7dbd11d947f83b678331d11",
+   "tree": "2f72fb3c89a0054ae9bfd59503d723e2f138ebaa",
+   "status": "scored"
+  },
+  {
+   "repo": "marcusnewmantraining/anvilxox",
+   "url": "https://github.com/marcusnewmantraining/anvilxox",
+   "found_by": "fork",
+   "fork_of": "charlesvestal/fm1-x0x",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "54194c54bb01e9d9b3fe9d641b3ddfa512ac04a3",
+   "tree": "eb62bba076671f5a11b577efa864b5ace56bf1a0",
+   "status": "duplicate",
+   "same_tree_as": "charlesvestal/fm1-x0x"
   },
   {
    "repo": "marekbujko/fm1-reader",
@@ -5349,8 +6073,18 @@
    "fork_of": "isod89/sloop-fm1",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "1ce6a8949a241d4111fe2ffa1f260e9ecd8745c6",
-   "tree": "ee416f0fdf8320cd51c423294ba8d7f3f7eefc2f",
+   "commit": "76eae6d6322cce4b75e3802d1ac565f191d431c5",
+   "tree": "3b4ff6fa654737dcf3642fa1dc7390931c949a2d",
+   "status": "scored"
+  },
+  {
+   "repo": "mgrolandi/fm1-mediacion",
+   "url": "https://github.com/mgrolandi/fm1-mediacion",
+   "found_by": "search: fm1",
+   "licence": null,
+   "licence_class": "none",
+   "commit": "5e9864294c66b3a158589193f21a548ce1034a87",
+   "tree": "63a43c28f269a78547591c86bdb0248ff21f776f",
    "status": "scored"
   },
   {
@@ -5359,8 +6093,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "aa186aa866f57ac5273eb561fd499237b654a171",
-   "tree": "52ce09863433b815b7abf187b1410539ce1e79ff",
+   "commit": "52565e26c34fa491fc146c185b45798b15d403a3",
+   "tree": "8bad1ebdd5614317f647e12bd38f19df0ed5e8fa",
    "status": "scored"
   },
   {
@@ -5444,8 +6178,30 @@
    "found_by": "search: felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "715d1ca97df392cb4246ac191e6345720769c795",
-   "tree": "94b80f2c5fc48976b39a411632ddce3d559d0857",
+   "commit": "2aaeae37eef590dacdac609e76d84fc821c5c698",
+   "tree": "b9537849ac6d6d47e21a33eea91cf11ec33b0b97",
+   "status": "scored"
+  },
+  {
+   "repo": "monoeater/fm1_open",
+   "url": "https://github.com/monoeater/fm1_open",
+   "found_by": "fork",
+   "fork_of": "m-vave/fm1_open",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "commit": "4c7496daac04a95ff10d1afdcc8f9ead2dbabc41",
+   "tree": "8b60b4861495daee0641e41af37a3ed08edb1101",
+   "status": "duplicate",
+   "same_tree_as": "m-vave/fm1_open"
+  },
+  {
+   "repo": "moocowblue/fm1-loom-editor",
+   "url": "https://github.com/moocowblue/fm1-loom-editor",
+   "found_by": "search: fm-1 firmware",
+   "licence": "AGPL-3.0",
+   "licence_class": "gpl",
+   "commit": "f5501d77562fb5219724f47fcff952fff05efc96",
+   "tree": "5fb4ee5162af2417ed97c256d11681c15a6fc4eb",
    "status": "scored"
   },
   {
@@ -5468,6 +6224,30 @@
    "commit": "f3f41a79ccdaf6635c0f58a42c3ec3dbaa625209",
    "tree": "1a644648d643ce9690a93341895a5cfc91e4dcbe",
    "status": "scored"
+  },
+  {
+   "repo": "MovLab2/ROM-1",
+   "url": "https://github.com/MovLab2/ROM-1",
+   "found_by": "fork",
+   "fork_of": "devrvega/ROM-1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "3ffaac77790f2b4ae9a2b0aa8dd00b6c70dc5185",
+   "tree": "ba5bdaf495537d7efb69c1f89ff1c7d919638387",
+   "status": "duplicate",
+   "same_tree_as": "devrvega/ROM-1"
+  },
+  {
+   "repo": "MPASTEAU/Felucca-Dubstep",
+   "url": "https://github.com/MPASTEAU/Felucca-Dubstep",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "63f88ec18b71c6ed4371d03d6f04dd93f4193ad3",
+   "tree": "d14ceaafc39a32980ba830b7e96dfc9d0232f53d",
+   "status": "duplicate",
+   "same_tree_as": "hugelton/Felucca"
   },
   {
    "repo": "mpereira/felucca-server",
@@ -5540,8 +6320,8 @@
    "fork_of": "isod89/sloop-fm1",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "a1c88d1b26e5c608babb396e0d47b17005ea82dd",
-   "tree": "e2a671645ea88e22481d0c70fe93c63700212139",
+   "commit": "f9aaaa7762321c94e3eeaafa3607e7313ccd4c2c",
+   "tree": "2a80c5aa760fd33da2ab8785b81f6ed90c620139",
    "status": "scored"
   },
   {
@@ -5550,8 +6330,8 @@
    "found_by": "search: m-vave",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "2c7fe329ed98db8875f65f4dcae0e77e20e989c2",
-   "tree": "0b30973b79dc3c915f0866dc03914d271cff18d5",
+   "commit": "f096a3b5f0b54e11ddba1962982e5e284a85afd1",
+   "tree": "e659a879c9cd7533ac309f255117e7253ce04a3e",
    "status": "scored"
   },
   {
@@ -5570,8 +6350,8 @@
    "found_by": "search: felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "f4f0bb458b45afaff4f7c843623f226d4dc62b92",
-   "tree": "0bc98632b33658c3be13c418a09af07a6660c5c3",
+   "commit": "48de4e27dbd17989de6cf3fdf433948b8a2b575b",
+   "tree": "fd8711a40bde74628fc09155c80fa16efd9f800b",
    "status": "scored"
   },
   {
@@ -5632,6 +6412,16 @@
    "same_tree_as": "babage/fm1_open"
   },
   {
+   "repo": "nokill-pedal-co/pocket-six",
+   "url": "https://github.com/nokill-pedal-co/pocket-six",
+   "found_by": "search: m-vave",
+   "licence": null,
+   "licence_class": "none",
+   "commit": "a6e0d13da05b90bd90ffdeff13dd7dfb0841a0af",
+   "tree": "c36902b0e8f06ff1a07654bb0395adb27fa8ead6",
+   "status": "scored"
+  },
+  {
    "repo": "NoodleSushi/dinghy",
    "url": "https://github.com/NoodleSushi/dinghy",
    "found_by": "fork",
@@ -5640,6 +6430,16 @@
    "licence_class": "gpl",
    "commit": "706403b816820c27378915c3fd37d8e7d9d80f07",
    "tree": "485f30a32f062c727548895a8395f85d9318f541",
+   "status": "scored"
+  },
+  {
+   "repo": "NorfolkHacker/acid-fm",
+   "url": "https://github.com/NorfolkHacker/acid-fm",
+   "found_by": "search: fm-1 firmware",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "061b4dc1c92651af61549dcbe7cbc400170e827e",
+   "tree": "09b93129a399fa6ed95e3a699416a5f292a4f554",
    "status": "scored"
   },
   {
@@ -5661,6 +6461,18 @@
    "commit": "92f923e0b9fe6101d5cd422cffa5946ce20d785a",
    "tree": "8c3d643784acdd86425a46042508283670aa3eac",
    "status": "scored"
+  },
+  {
+   "repo": "nSpecified/fm1-dub",
+   "url": "https://github.com/nSpecified/fm1-dub",
+   "found_by": "fork",
+   "fork_of": "sbegueria/fm1-dub",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "ed490917895803fa160bd53b21ad848cd7bbe04a",
+   "tree": "de7042906743a404f072090b6b30fab7dabac183",
+   "status": "duplicate",
+   "same_tree_as": "birkmann/fm1-dub"
   },
   {
    "repo": "nullbeing/fm1-amb",
@@ -5709,6 +6521,17 @@
    "same_tree_as": "balancechiang/fm1_alt"
   },
   {
+   "repo": "nvhhh/JIANT",
+   "url": "https://github.com/nvhhh/JIANT",
+   "found_by": "fork",
+   "fork_of": "juanjiant-bit/JIANT",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "6a346961f02b8946e61f57713bcf571b23ebfbfb",
+   "tree": "0d633688d5547699bc38bd7e5e81f4bfb6e5823c",
+   "status": "scored"
+  },
+  {
    "repo": "nylon-cat/ChoralRootFM1",
    "url": "https://github.com/nylon-cat/ChoralRootFM1",
    "found_by": "fork",
@@ -5738,8 +6561,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "cd6bd4b784cfc266ea5ddb9cb4ac22c3ed3c4e16",
-   "tree": "9b4f01fb35fed0bd1f990a470d04bf93f3cf1aea",
+   "commit": "d4fd1894596fe7950b3a33795baa5d303aac613f",
+   "tree": "369ca0ea4bb8ede8e3595e92c343a0cd7cf6b986",
    "status": "scored"
   },
   {
@@ -5748,8 +6571,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "a240bc182b55e17fadc004d17e0b64c9eb42185f",
-   "tree": "f23ec960d686550dbb99e7d193496cfc1e791385",
+   "commit": "f51bd68313f09a113b69ed0740a7866d912de8ba",
+   "tree": "40023d1764ed6df7f40de1d82c9f4b79402f536e",
    "status": "scored"
   },
   {
@@ -5759,8 +6582,8 @@
    "fork_of": "FicusFicusov/CoralFlower",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "9575631bd8f036463c4d16fdc84f632815b8fb74",
-   "tree": "da8f632dd9eb877f56f3c42b83742631c22fa2f8",
+   "commit": "fc9743f16225b10dae64318fab7ec2f5e4be284d",
+   "tree": "4fa4ee2a2cc2dcf3052b3acfec31c6775b3048a1",
    "status": "scored"
   },
   {
@@ -5769,8 +6592,8 @@
    "found_by": "search: felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "b12a484005d10359c3cd55eba4669c1b3259418a",
-   "tree": "4fbad83da95ff9af7630743fc5b6b209eba6b0bb",
+   "commit": "a5eb02a96b3fa9303bce0772315f9467382aa57c",
+   "tree": "6fc14dfacc632b930120b59240be7dd4c530bb63",
    "status": "scored"
   },
   {
@@ -5779,8 +6602,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": null,
    "licence_class": "none",
-   "commit": "93d20704821fbc3c9a25972c87c0a7b54f59b3ea",
-   "tree": "ca1cd578f951ab52109bc9c4967a5510f261860c",
+   "commit": "b7de29dafc350c96533a3670e74f5c516cd3d0af",
+   "tree": "3b6119ed5263b98edd99555322a1ce7c8268e524",
    "status": "scored"
   },
   {
@@ -5798,11 +6621,11 @@
   {
    "repo": "ocean/fm1-site",
    "url": "https://github.com/ocean/fm1-site",
-   "found_by": "search: fm1 synth",
+   "found_by": "search: fm-1 synth",
    "licence": "NOASSERTION",
    "licence_class": "other",
-   "commit": "f876bad3ae8d51fbb9a6eec7e453326e83e8462e",
-   "tree": "ae7413090ee70a2dfaa245a6604127ef3947532b",
+   "commit": "3d46f19e94f74e333887fa9f15fda6d84ff8c6f8",
+   "tree": "52ab6f6e0a0c25e99134646a4beec54318c55012",
    "status": "scored"
   },
   {
@@ -5811,8 +6634,8 @@
    "found_by": "search: m-vave",
    "licence": "MIT",
    "licence_class": "permissive",
-   "commit": "806af62318e153bffc1047ee0af71c35d79019a7",
-   "tree": "7ca5cf3d7abe60107b27422b592d636f1dd41b8d",
+   "commit": "280901c52ccdc60fa1a564590396350b7a6ad2b3",
+   "tree": "dbd6dfdf6b9070b6c34b903a0605d5fac662d928",
    "status": "scored"
   },
   {
@@ -5824,6 +6647,32 @@
    "licence_class": "gpl",
    "commit": "fa6d95aa4c28941d06c724385ed8bb96a880e8c9",
    "tree": "965633f8e2be643ee4be53605f017a41dc5865e3",
+   "status": "scored"
+  },
+  {
+   "repo": "oliver-lux/fm1-emu",
+   "url": "https://github.com/oliver-lux/fm1-emu",
+   "found_by": "fork",
+   "fork_of": "joakimeriksson/fm1-emu",
+   "paths": [
+    "fm1-sid/",
+    "probes/"
+   ],
+   "licence": "MIT",
+   "licence_class": "gpl",
+   "commit": "c1c045fc067da024d686e7a690806e2e55795042",
+   "tree": "c1b47a44dbec88a2d5f219a1c5f64a66ae50ab58",
+   "status": "duplicate",
+   "same_tree_as": "bitedits/fm1-emu"
+  },
+  {
+   "repo": "OllieNicklinUK/switchblade",
+   "url": "https://github.com/OllieNicklinUK/switchblade",
+   "found_by": "search: felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "9d0752714a93c0b905c8d8e7425b9ca67dae082d",
+   "tree": "1d911389abc388e7c96514fefa7565dc27e1eab5",
    "status": "scored"
   },
   {
@@ -5865,6 +6714,17 @@
    "tree": "174bf58c057c391bc14c1d0bf875b904041ca7cc",
    "status": "duplicate",
    "same_tree_as": "amalahama/sloop-SMK37"
+  },
+  {
+   "repo": "oMauNaProducer/5-Lab",
+   "url": "https://github.com/oMauNaProducer/5-Lab",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "e6b0883214acb677fbb8ddc9545928e6ac5762c4",
+   "tree": "2c0a37b5e9f464ed2484c0a33a9feb7c43284959",
+   "status": "scored"
   },
   {
    "repo": "omygolly/Felucca",
@@ -5919,8 +6779,8 @@
    "found_by": "search: m-vave",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "3133625de68efaaf495729a4323df8cdd19c0c3d",
-   "tree": "86b630034863a23d90cec67de866c91b899d67d5",
+   "commit": "654a89e2426672e3216fdfbc0ad4edbfd0691449",
+   "tree": "e9e311c18a50b95d1406449d07bd6b4d2bb6cfdd",
    "status": "scored"
   },
   {
@@ -5930,20 +6790,8 @@
    "fork_of": "genkigenki/fm1-to-smk37",
    "licence": "NOASSERTION",
    "licence_class": "other",
-   "commit": "54252ffa2219e3c9cd7eb70f4e99b361eaa048e1",
-   "tree": "adc1d91eec7972b4e904ed3b8b47cefec9245034",
-   "status": "duplicate",
-   "same_tree_as": "genkigenki/fm1-to-smk37"
-  },
-  {
-   "repo": "osmaav/melodee",
-   "url": "https://github.com/osmaav/melodee",
-   "found_by": "fork",
-   "fork_of": "genkigenki/melodee",
-   "licence": "GPL-3.0",
-   "licence_class": "gpl",
-   "commit": "fe0cca6c7d633ab12ca2cdd25d9575b81c66187a",
-   "tree": "8ce5354fad2b85e32e977785967b15e4cf9bbc52",
+   "commit": "e45acd7d17238a73aaaa17090974e96bb4ce2614",
+   "tree": "448b48b7eb2b0bed77102b1ff98228e7a025fb02",
    "status": "scored"
   },
   {
@@ -5997,8 +6845,8 @@
    "found_by": "search: mvave",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "db39e046e3efc817dc547b0ba9905a3afe9a4b37",
-   "tree": "d106d990fd4c3c2f48715233de933f8381bf4194",
+   "commit": "db59d585bffb0c544a0040cd3d9e9ecba8215c4d",
+   "tree": "439788353c2108e152fabb093fb9ab0147cfda38",
    "status": "scored"
   },
   {
@@ -6094,6 +6942,17 @@
    "same_tree_as": "CoydeLau/sloop-fm1"
   },
   {
+   "repo": "pedronogueiranunes/sloop-fm1",
+   "url": "https://github.com/pedronogueiranunes/sloop-fm1",
+   "found_by": "fork",
+   "fork_of": "isod89/sloop-fm1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "7d911ea74f7c6edbddd2dc5e8eecdb9cc1f1274e",
+   "tree": "f15082fc4fb17e09dbc3d59b87b76c010fcdf833",
+   "status": "scored"
+  },
+  {
    "repo": "pfkellogg/fm1-bonus-box",
    "url": "https://github.com/pfkellogg/fm1-bonus-box",
    "found_by": "search: m-vave",
@@ -6146,8 +7005,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "MPL-2.0",
    "licence_class": "other",
-   "commit": "be0653869d04394d0d4b9386f056cc092f398259",
-   "tree": "3076cc19f37d8f41ec5dccf9dcdae03fc8d00527",
+   "commit": "559bee12171ca7360b5a8c07fa9f6b9975ab22bd",
+   "tree": "a5802777b8bd1c38d38590f39e33cdd77b9cca43",
    "status": "scored"
   },
   {
@@ -6230,6 +7089,16 @@
    "same_tree_as": "jogo-jpn/sloop-fm1"
   },
   {
+   "repo": "poiw-org/fm1-registrations",
+   "url": "https://github.com/poiw-org/fm1-registrations",
+   "found_by": "search: fm1",
+   "licence": null,
+   "licence_class": "none",
+   "commit": "9398c8a0f77a941a23267d7f803cb5468529b867",
+   "tree": "9d31dac691a33a8cf4431f4d98b7cfce73cfd1bc",
+   "status": "scored"
+  },
+  {
    "repo": "pomegnechristianfrank-gif/site-web-FM1",
    "url": "https://github.com/pomegnechristianfrank-gif/site-web-FM1",
    "found_by": "search: fm1",
@@ -6298,8 +7167,8 @@
    "found_by": "search: felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "a528812d238a03a151de2ca1abc052552da90ebe",
-   "tree": "390e467636ef2bab35a81a767aab0391a73456b0",
+   "commit": "ff82f9ae8544e696490618b6052b133dca9c0ce2",
+   "tree": "f76a70f67f79dd0399354a60d4b25c6683e678ab",
    "status": "scored"
   },
   {
@@ -6323,14 +7192,35 @@
    "status": "scored"
   },
   {
+   "repo": "r7819smith-oss/slowmorph",
+   "url": "https://github.com/r7819smith-oss/slowmorph",
+   "found_by": "search: fm1 firmware",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "575cdc2946b45b5abd1346f4486c2dbdb0979948",
+   "tree": "1f66d4fdf07c9b9a37b88c45bfbceffb2a1e6c3d",
+   "status": "scored"
+  },
+  {
    "repo": "Rastapopolix/melodee-tess",
    "url": "https://github.com/Rastapopolix/melodee-tess",
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "7e1a9570bcfbe88553bf1e82d2accf9f0037da7c",
-   "tree": "a8c0b4c9aeb27d0d91293c9d36745c2a979196b1",
+   "commit": "72eba500063d41fb2ab36b3cd4cb0a31bd7b6c68",
+   "tree": "f8cea3be45eb1109c03d06f136765fa1cd5488c5",
    "status": "scored"
+  },
+  {
+   "repo": "Rastapopolix/tessera",
+   "url": "https://github.com/Rastapopolix/tessera",
+   "found_by": "search: fm-1 firmware",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "72eba500063d41fb2ab36b3cd4cb0a31bd7b6c68",
+   "tree": "f8cea3be45eb1109c03d06f136765fa1cd5488c5",
+   "status": "duplicate",
+   "same_tree_as": "Rastapopolix/melodee-tess"
   },
   {
    "repo": "raychour/Felucca",
@@ -6363,9 +7253,21 @@
    "fork_of": "charlesvestal/fm1-fomni",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "d0f66357c557c076fc2ac13836c9aaee1191f0c1",
-   "tree": "5f8a3c8d4fe72244fbc9a82d49b19c775c84acec",
+   "commit": "44d6a1296a05c241ce50b4d7c81b58a34429ea13",
+   "tree": "92da5739c54d10b420d9cf19fce01e647c6266d5",
    "status": "scored"
+  },
+  {
+   "repo": "RayDNoper/fm1-jambox",
+   "url": "https://github.com/RayDNoper/fm1-jambox",
+   "found_by": "fork",
+   "fork_of": "charlesvestal/fm1-fomni",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "44d6a1296a05c241ce50b4d7c81b58a34429ea13",
+   "tree": "92da5739c54d10b420d9cf19fce01e647c6266d5",
+   "status": "duplicate",
+   "same_tree_as": "RayDNoper/fm1-fomnium"
   },
   {
    "repo": "recursivefieldinstruments/melodee",
@@ -6436,7 +7338,7 @@
    "commit": "d44df7db09b98ccad2f1233b8f83f5f09c04829e",
    "tree": "8cefd253b92b544109a315fd2fb9ffcea7c429b6",
    "status": "duplicate",
-   "same_tree_as": "zvenson/dinghy"
+   "same_tree_as": "chasebrey-ops/dinghy"
   },
   {
    "repo": "Reytian/fm1-luogu",
@@ -6444,8 +7346,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "MPL-2.0",
    "licence_class": "other",
-   "commit": "94a2eea78d0925ac889eda849e64f6be95c496a4",
-   "tree": "0d9d831fa2f1579f17a361a6129b446c074bbb1b",
+   "commit": "7fd506a83c6f0a9f06dbd8da5d815f1ad59716e0",
+   "tree": "73bee2832669701c0ed1051aa2b4a1586303882e",
    "status": "scored"
   },
   {
@@ -6562,8 +7464,8 @@
    "fork_of": "joshbartlettband-web/felucca-rainbow",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "c893b18909c75e29f2452c626b7220df92e7a307",
-   "tree": "685b7e1b2e7ef0bbf434913b767f2e002977289a",
+   "commit": "04a86b44a26e70d5fbb75bc76c15a2e87712035d",
+   "tree": "724ed5a77b4316c8a6b6769fd379a7d83b89e7d3",
    "status": "scored"
   },
   {
@@ -6584,8 +7486,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "ab0f5c83d9c3b8cf10fd2f9ef3dc760a06c3abb3",
-   "tree": "6a53b5228d66254058b51be95164705f685f2663",
+   "commit": "53946ae207602716e684e3afadae473581802497",
+   "tree": "5fd24000b70123cc31615ca93f525046ad72f8f0",
    "status": "scored"
   },
   {
@@ -6594,8 +7496,8 @@
    "found_by": "search: fm1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "2432096ca97277b022feeda74095927756a2b73c",
-   "tree": "899226847ebb25f8095fe0a0b51088f3e636ce2f",
+   "commit": "1ce1a37afd0078bd0dee6a5a64a70a5f7b2f8391",
+   "tree": "4bb97046035c75ec107f233ac9a8e88b8b811b51",
    "status": "scored"
   },
   {
@@ -6605,10 +7507,7 @@
    "fork_of": "m-vave/fm1_open",
    "licence": "NOASSERTION",
    "licence_class": "other",
-   "commit": "5d3eac2573dbd054254fabda6fde099adc594348",
-   "tree": "c65adc911b04491e1bd8ffa564cffde4dce0ecda",
-   "status": "duplicate",
-   "same_tree_as": "babage/fm1_open"
+   "status": "unreachable"
   },
   {
    "repo": "RustyPawz/awesome-fm-1",
@@ -6641,8 +7540,8 @@
    "fork_of": "charlesvestal/fm1-amb",
    "licence": "GPL-3.0",
    "licence_class": "other",
-   "commit": "2c6c476503496d911afbde1a111f9f849b894294",
-   "tree": "6269ebb9b6f80120212a924d1f2f6e32fd7cd015",
+   "commit": "57c456db61826331d356458c9c1a136517da7cbf",
+   "tree": "049adfd3fd39bcfe11415fd80ea78c0c065290b3",
    "status": "scored"
   },
   {
@@ -6656,6 +7555,18 @@
    "tree": "745bae80b325f0bbd6750babb423987bab92fca1",
    "status": "duplicate",
    "same_tree_as": "ajsoriar/Felucca"
+  },
+  {
+   "repo": "ryancraigmartin/harbor-ios",
+   "url": "https://github.com/ryancraigmartin/harbor-ios",
+   "found_by": "fork",
+   "fork_of": "markterm/harbor",
+   "licence": null,
+   "licence_class": "none",
+   "commit": "7fd7b2810a115a40c2b8025d1ff106f8ef668073",
+   "tree": "1768eda6ea65ad13cdbcd195366c8c2077762679",
+   "status": "duplicate",
+   "same_tree_as": "markterm/harbor"
   },
   {
    "repo": "s0fx2/YamahaDX7_to_FM-1",
@@ -6689,6 +7600,30 @@
    "status": "scored"
   },
   {
+   "repo": "Saintpid/fm1_open",
+   "url": "https://github.com/Saintpid/fm1_open",
+   "found_by": "fork",
+   "fork_of": "m-vave/fm1_open",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "commit": "4c7496daac04a95ff10d1afdcc8f9ead2dbabc41",
+   "tree": "8b60b4861495daee0641e41af37a3ed08edb1101",
+   "status": "duplicate",
+   "same_tree_as": "m-vave/fm1_open"
+  },
+  {
+   "repo": "Saintpid/n001se",
+   "url": "https://github.com/Saintpid/n001se",
+   "found_by": "fork",
+   "fork_of": "jadamsowers/fm1-fimba",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "0485ed0d387ce78216428c7b19f97d77bbe10b4d",
+   "tree": "5c535c4e08739767d2fa6d2ddda9e8af42bc9131",
+   "status": "duplicate",
+   "same_tree_as": "jadamsowers/fm1-fimba"
+  },
+  {
    "repo": "Sanderat/Blight-",
    "url": "https://github.com/Sanderat/Blight-",
    "found_by": "search: felucca",
@@ -6716,8 +7651,8 @@
    "found_by": "search: fm-1 firmware",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "ed490917895803fa160bd53b21ad848cd7bbe04a",
-   "tree": "de7042906743a404f072090b6b30fab7dabac183",
+   "commit": "e6fe7b8f8f3114019bb36b5b536ad458eacd2c2d",
+   "tree": "ef25399903bd735f60c6355b1814388b97da9473",
    "status": "scored"
   },
   {
@@ -6794,8 +7729,8 @@
    "found_by": "search: m-vave",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "0fa627434b7aa549af94dc819540be41f6c4dcbc",
-   "tree": "a5866500907d13ea5bc6e587ee20e0cd683fc434",
+   "commit": "4ec334bba5c9ac2f15d2f66aa7de106b4bee54c8",
+   "tree": "ff34938b47b24dcdb243185a215177bfb3af0e28",
    "status": "scored"
   },
   {
@@ -6826,8 +7761,8 @@
    "fork_of": "keremimo/melodee",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "f95dcc2871f0a87fa5438f91a02719bdad98d73b",
-   "tree": "e7032f10ba79e26c089c0e930a52308a708b2df8",
+   "commit": "19271b03707c7a09a8c35ba522ff7456a91dc5b4",
+   "tree": "92376a1e6429eb97b8f323287b4aac5560c2729e",
    "status": "scored"
   },
   {
@@ -6890,6 +7825,17 @@
    "same_tree_as": "jean80it2/fm1-x0x"
   },
   {
+   "repo": "seclorum/fm1buddy.seclorum",
+   "url": "https://github.com/seclorum/fm1buddy.seclorum",
+   "found_by": "fork",
+   "fork_of": "konsumer/fm1buddy",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "8b0844bef1a9a5af0e608595520bf2d7e10f6dae",
+   "tree": "aabcfc01a6d469a196f15a49efe65fa5397a1293",
+   "status": "scored"
+  },
+  {
    "repo": "seclorum/lunar-modulator.seclorum",
    "url": "https://github.com/seclorum/lunar-modulator.seclorum",
    "found_by": "fork",
@@ -6944,7 +7890,7 @@
    "commit": "d44df7db09b98ccad2f1233b8f83f5f09c04829e",
    "tree": "8cefd253b92b544109a315fd2fb9ffcea7c429b6",
    "status": "duplicate",
-   "same_tree_as": "zvenson/dinghy"
+   "same_tree_as": "chasebrey-ops/dinghy"
   },
   {
    "repo": "shcherbakov7/hypno-1",
@@ -6970,13 +7916,37 @@
    "status": "scored"
   },
   {
+   "repo": "ShinobiFPV/Felucca",
+   "url": "https://github.com/ShinobiFPV/Felucca",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "63f88ec18b71c6ed4371d03d6f04dd93f4193ad3",
+   "tree": "d14ceaafc39a32980ba830b7e96dfc9d0232f53d",
+   "status": "duplicate",
+   "same_tree_as": "hugelton/Felucca"
+  },
+  {
+   "repo": "ShinobiFPV/Felucca-WebApp",
+   "url": "https://github.com/ShinobiFPV/Felucca-WebApp",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca-WebApp",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "b7947ad1da2017d211368610b5e96deabef4849a",
+   "tree": "8a12d634937170b1ce12d0c01a3e6b08fb7f2a40",
+   "status": "duplicate",
+   "same_tree_as": "hugelton/Felucca-WebApp"
+  },
+  {
    "repo": "SikkenWorks/B1-Drawbar-Organ",
    "url": "https://github.com/SikkenWorks/B1-Drawbar-Organ",
    "found_by": "search: fm1",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "0a37b92e2d32a1f93c4556bbc3af3a6cee7ac4f4",
-   "tree": "20ef3bb06f46c43343ebe775b2398e71b3a34689",
+   "commit": "82f01627ce4636dc92a6e08ca400a8418fc70d40",
+   "tree": "737cf511ad72e0011d4103ecc5c012425de963c3",
    "status": "scored"
   },
   {
@@ -6985,8 +7955,8 @@
    "found_by": "search: m-vave",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "e8586b3bdddbd24f5a68ef18aecafa1387b3419d",
-   "tree": "efa2e248a6e179eb3f3a8cb9ba5df24338dafcb5",
+   "commit": "a075544a67400660c97d4d54c12a358ca5d36aba",
+   "tree": "73257b9ac5840a02482a235676265cf97f837d69",
    "status": "scored"
   },
   {
@@ -7033,17 +8003,6 @@
    "status": "scored"
   },
   {
-   "repo": "sinscum/DIRGE-darksynth",
-   "url": "https://github.com/sinscum/DIRGE-darksynth",
-   "found_by": "fork",
-   "fork_of": "jasonpersinger/ghoulbox-fm1-dungeon-synth",
-   "licence": "GPL-3.0",
-   "licence_class": "gpl",
-   "commit": "d83a4886e06466069c16c46ec78365970cb4d75c",
-   "tree": "ede4dbfcffc635efbb69662d347a0f39a8eb5d09",
-   "status": "scored"
-  },
-  {
    "repo": "sirpearson/fm-1-monomachine",
    "url": "https://github.com/sirpearson/fm-1-monomachine",
    "found_by": "search: fm-1 firmware",
@@ -7051,6 +8010,52 @@
    "licence_class": "gpl",
    "commit": "527da33beb3dde611836cff376aee1b9a324949b",
    "tree": "ca36067b0d4e2fde9ef3bf65138607c99ef87283",
+   "status": "scored"
+  },
+  {
+   "repo": "sk8past/felucca-bsp",
+   "url": "https://github.com/sk8past/felucca-bsp",
+   "found_by": "fork",
+   "fork_of": "hugelton/felucca-bsp",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "commit": "d6b8f771795be04d77e15d72a79f474a723796d7",
+   "tree": "0272666d72a5aaa6c73ae5dcc3672fa6e6015d61",
+   "status": "duplicate",
+   "same_tree_as": "hugelton/felucca-bsp"
+  },
+  {
+   "repo": "sk8past/fm1-base",
+   "url": "https://github.com/sk8past/fm1-base",
+   "found_by": "fork",
+   "fork_of": "charlesvestal/fm1-base",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "commit": "aa2b3bc8f7900cd1820947cb93ca0e8ecc4189e7",
+   "tree": "850f55ce13e6a8f8c8adf0ba9c10db5f2eb61f7b",
+   "status": "duplicate",
+   "same_tree_as": "charlesvestal/fm1-base"
+  },
+  {
+   "repo": "sk8past/fm1-ctl",
+   "url": "https://github.com/sk8past/fm1-ctl",
+   "found_by": "fork",
+   "fork_of": "charlesvestal/fm1-ctl",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "commit": "e181b4a1ac1510ce18ebf6e271a143c2fe364ccd",
+   "tree": "cb6dd50f2d5bfb88fe84fa38326cc0a00ca5acd0",
+   "status": "duplicate",
+   "same_tree_as": "charlesvestal/fm1-ctl"
+  },
+  {
+   "repo": "slothpallas/mope-1",
+   "url": "https://github.com/slothpallas/mope-1",
+   "found_by": "search: m-vave",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "7c6490359acb93a71da8cb41aad083950dcd761f",
+   "tree": "2b1ad18077ac35c891aa683967fce18a151ceb5d",
    "status": "scored"
   },
   {
@@ -7066,7 +8071,7 @@
   {
    "repo": "smhgzll/sloopy-sloop-32",
    "url": "https://github.com/smhgzll/sloopy-sloop-32",
-   "found_by": "search: m-vave",
+   "found_by": "search: m-vave fm-1",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
    "commit": "a0c1cfc8562ca6c85c773e7ea7147eaaff3aae1d",
@@ -7237,13 +8242,24 @@
    "status": "scored"
   },
   {
+   "repo": "styvesgoupil/fm1-base",
+   "url": "https://github.com/styvesgoupil/fm1-base",
+   "found_by": "fork",
+   "fork_of": "charlesvestal/fm1-base",
+   "licence": "MPL-2.0",
+   "licence_class": "other",
+   "commit": "ced944368d99e1344865a64671b15b3e94b80776",
+   "tree": "7a4a3272f964874c19fc7638a1681113b905d1c3",
+   "status": "scored"
+  },
+  {
    "repo": "styvesgoupil/frasil",
    "url": "https://github.com/styvesgoupil/frasil",
    "found_by": "search: fm-1 firmware",
    "licence": "MPL-2.0",
    "licence_class": "other",
-   "commit": "a7313f27221f02d0d9b46b39c532118ca0223544",
-   "tree": "74288942414bfb9f8bf7636d7609855c2a6cb794",
+   "commit": "a850ef11a2d75d6bfd12bc95012859a46426e99b",
+   "tree": "55a6092b2240b2ef5022b4c4aa629c7bf84ad85e",
    "status": "scored"
   },
   {
@@ -7255,6 +8271,29 @@
    "licence_class": "none",
    "commit": "134bcc46f11d8bf0f4cc0e1e58cc9d102b3a40bf",
    "tree": "1351a7af89b0e351d453dbe191dc7f5afc84bfc1",
+   "status": "scored"
+  },
+  {
+   "repo": "swe24-phon/mvave-fm1-genmus",
+   "url": "https://github.com/swe24-phon/mvave-fm1-genmus",
+   "found_by": "fork",
+   "fork_of": "Rastapopolix/tessera",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "72eba500063d41fb2ab36b3cd4cb0a31bd7b6c68",
+   "tree": "f8cea3be45eb1109c03d06f136765fa1cd5488c5",
+   "status": "duplicate",
+   "same_tree_as": "Rastapopolix/melodee-tess"
+  },
+  {
+   "repo": "swe24-phon/mvave-fm1-testbed-mob",
+   "url": "https://github.com/swe24-phon/mvave-fm1-testbed-mob",
+   "found_by": "fork",
+   "fork_of": "HyruleanHero1988/FM-1-Swap",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "commit": "e8adbf45b0b3fe4c5b6c8ad95134bb78638ba6cf",
+   "tree": "84132d6dded584c6981093adb7bf2d1782862d97",
    "status": "scored"
   },
   {
@@ -7386,7 +8425,7 @@
    "commit": "9b7e9b5cfd9b425e842d3390382472eb44ffb2c2",
    "tree": "b9928d9552c68586bdfbe8efec1dd1361fcb2c19",
    "status": "duplicate",
-   "same_tree_as": "aroum/fm1-custom-fw"
+   "same_tree_as": "dsablic/fm1-custom-fw"
   },
   {
    "repo": "synthi/fm1-emu",
@@ -7425,8 +8464,7 @@
    "licence_class": "gpl",
    "commit": "03b0ad3c5c504c9116960c05936ab11924bc2a8d",
    "tree": "d6e0fa2a43a463b9951b5f49af14c99aa046a3d3",
-   "status": "duplicate",
-   "same_tree_as": "HolidayMan/fm1-ios"
+   "status": "scored"
   },
   {
    "repo": "synthi/fm1-to-smk37",
@@ -7447,10 +8485,10 @@
    "fork_of": "m-vave/fm1_open",
    "licence": "NOASSERTION",
    "licence_class": "other",
-   "commit": "4d266850f8a46bd5154a0d495c1f60317156c9f7",
-   "tree": "b65e6f4c892f1c5c3793e68444fcd8b25dd2b8b7",
+   "commit": "4c7496daac04a95ff10d1afdcc8f9ead2dbabc41",
+   "tree": "8b60b4861495daee0641e41af37a3ed08edb1101",
    "status": "duplicate",
-   "same_tree_as": "bbmusichun/fm1_open"
+   "same_tree_as": "m-vave/fm1_open"
   },
   {
    "repo": "synthi/grimm",
@@ -7481,21 +8519,22 @@
    "fork_of": "keremimo/melodee",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "16daf99ea797f2e4f6b5e40065942df3648d08b9",
-   "tree": "fe7c6262fa938fcbec146dee58273e0f8bf87e88",
+   "commit": "398ada1e09d864c12f3b778a43e45c7c2a8031b8",
+   "tree": "26f302f548d100b2d84d738e482e185dc0c66922",
    "status": "duplicate",
-   "same_tree_as": "ELI7VH/melodee"
+   "same_tree_as": "keremimo/melodee"
   },
   {
    "repo": "synthi/melodee-tess",
    "url": "https://github.com/synthi/melodee-tess",
    "found_by": "fork",
-   "fork_of": "Rastapopolix/melodee-tess",
+   "fork_of": "Rastapopolix/tessera",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "3e125e7836b00f18ce33e471935012ef9bfb447e",
-   "tree": "331a1ced669921d21d56b50702724e9ad19f9e2f",
-   "status": "scored"
+   "commit": "72eba500063d41fb2ab36b3cd4cb0a31bd7b6c68",
+   "tree": "f8cea3be45eb1109c03d06f136765fa1cd5488c5",
+   "status": "duplicate",
+   "same_tree_as": "Rastapopolix/melodee-tess"
   },
   {
    "repo": "synthi/niagara-drift",
@@ -7527,8 +8566,8 @@
    "fork_of": "nzimas/tonitor",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "964e3ec1e078191f3356bf5b0f7e764a357e9219",
-   "tree": "aeb481049de247d58c76ae5e468d52940e34969c",
+   "commit": "a240bc182b55e17fadc004d17e0b64c9eb42185f",
+   "tree": "f23ec960d686550dbb99e7d193496cfc1e791385",
    "status": "scored"
   },
   {
@@ -7620,8 +8659,8 @@
    "fork_of": "m-vave/fm1_open",
    "licence": "NOASSERTION",
    "licence_class": "other",
-   "commit": "1505d777590fe2207600e8678de95f998830f8f9",
-   "tree": "1ebee059df5fb537cb6e8e5704d20cf27983cafc",
+   "commit": "91268d9b5761d6478694a02de0c13591e97c16b1",
+   "tree": "84f23f822c7ba2b0c893d64474205cc266de8f29",
    "status": "scored"
   },
   {
@@ -7633,8 +8672,7 @@
    "licence_class": "permissive",
    "commit": "a7be23a05a2a7691c3f3c39fa4b5a9b20595c6f4",
    "tree": "1ee59e590d60d0fc81dd4b9953f0948114ff1e39",
-   "status": "duplicate",
-   "same_tree_as": "cicloid/awesome-fm-1"
+   "status": "scored"
   },
   {
    "repo": "TheShrimpBlimp/fm1-custom-fw",
@@ -7646,7 +8684,7 @@
    "commit": "9b7e9b5cfd9b425e842d3390382472eb44ffb2c2",
    "tree": "b9928d9552c68586bdfbe8efec1dd1361fcb2c19",
    "status": "duplicate",
-   "same_tree_as": "aroum/fm1-custom-fw"
+   "same_tree_as": "dsablic/fm1-custom-fw"
   },
   {
    "repo": "TheShrimpBlimp/pigeon",
@@ -7686,8 +8724,8 @@
    "fork_of": "hugelton/Felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "1ef13fed6d7055d2c865515c20e48c2971bae75f",
-   "tree": "7e9e1de9a53f31eda456cdd57c07ff0a129d12f9",
+   "commit": "1286a8c78b0f597a095bd5a103868354646b5334",
+   "tree": "4fa3868d7d585056102f15551bd0edc88207ff01",
    "status": "scored"
   },
   {
@@ -7701,6 +8739,41 @@
    "tree": "f830ace187f12b61e7a4f1cfe50f3369cd8193ca",
    "status": "duplicate",
    "same_tree_as": "AL-255/FM-1-RE"
+  },
+  {
+   "repo": "toitoinou/Felucca",
+   "url": "https://github.com/toitoinou/Felucca",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "63f88ec18b71c6ed4371d03d6f04dd93f4193ad3",
+   "tree": "d14ceaafc39a32980ba830b7e96dfc9d0232f53d",
+   "status": "duplicate",
+   "same_tree_as": "hugelton/Felucca"
+  },
+  {
+   "repo": "toitoinou/sloop-fm1",
+   "url": "https://github.com/toitoinou/sloop-fm1",
+   "found_by": "fork",
+   "fork_of": "isod89/sloop-fm1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "d89364253b79a5c6002c0d90c5f16b3c3c16ea9d",
+   "tree": "84f6dcf4178a48be7c549ec56493801c2933ef6d",
+   "status": "duplicate",
+   "same_tree_as": "isod89/sloop-fm1"
+  },
+  {
+   "repo": "TomPtherapy/moogi",
+   "url": "https://github.com/TomPtherapy/moogi",
+   "found_by": "fork",
+   "fork_of": "ruppert/fmini-1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "d97c5bec94608f490bd38dab75658530008c6b95",
+   "tree": "ca60ab11bdecb1dcf285419c10c788f4f85babfe",
+   "status": "scored"
   },
   {
    "repo": "TonyMilton/frodhes",
@@ -7750,6 +8823,27 @@
    "same_tree_as": "JB-Interactive/Felucca-Meow"
   },
   {
+   "repo": "TruBitTech/Felucca",
+   "url": "https://github.com/TruBitTech/Felucca",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "c13541bd456fe4f34b646e38eb9198ecf4dbd24c",
+   "tree": "6f65edd5ad22ab5762ca6ae9f87d5f5ecb4727ec",
+   "status": "scored"
+  },
+  {
+   "repo": "TruBitTech/pinhead",
+   "url": "https://github.com/TruBitTech/pinhead",
+   "found_by": "search: fm-1 firmware",
+   "licence": null,
+   "licence_class": "none",
+   "commit": "dfa4100dcc6ea38eb227b625a9a1be5fa431dd1e",
+   "tree": "69dd0873afce390eb23a6310652e968de88449a0",
+   "status": "scored"
+  },
+  {
    "repo": "trustcoinmining/FM1-DDR3MIG-ug586",
    "url": "https://github.com/trustcoinmining/FM1-DDR3MIG-ug586",
    "found_by": "search: fm1",
@@ -7777,6 +8871,16 @@
    "licence_class": "other",
    "commit": "a8802a6ca4c85505fb3213a21e185e3bd0ff3e90",
    "tree": "fab92511dcb17d9e7b2e18d7634b5e745678949f",
+   "status": "scored"
+  },
+  {
+   "repo": "TwistedGenetics/DREADNOUGHT",
+   "url": "https://github.com/TwistedGenetics/DREADNOUGHT",
+   "found_by": "search: fm1 synth",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "6f3a9963c0bb927abe78033e97509f6ea4db8444",
+   "tree": "26c75c6cffe23aef5dc8b8292bacfc2866b78571",
    "status": "scored"
   },
   {
@@ -7828,6 +8932,27 @@
    "same_tree_as": "abcdaniel/sloop-fm1"
   },
   {
+   "repo": "Umbrien/fm1-android",
+   "url": "https://github.com/Umbrien/fm1-android",
+   "found_by": "fork",
+   "fork_of": "HolidayMan/fm1-android",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "71abbe19873156c40c69a541ceea02c37013c9d2",
+   "tree": "89e8718f04c903c8ba47737c5b049ca3c12b723e",
+   "status": "scored"
+  },
+  {
+   "repo": "unclewayback/coracle",
+   "url": "https://github.com/unclewayback/coracle",
+   "found_by": "search: dinghy",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "3d34c1b9f35ed7555eff0d50de0ffe965bd4b08a",
+   "tree": "0336055bd5f5a50eb24de120d4d5ae2c4521df9d",
+   "status": "scored"
+  },
+  {
    "repo": "UnkleBlairy/BBL-WaveCusher",
    "url": "https://github.com/UnkleBlairy/BBL-WaveCusher",
    "found_by": "fork",
@@ -7860,6 +8985,18 @@
    "commit": "52562e73956448d8eb3c71995b88908fe051498e",
    "tree": "a197c4f0153942b32b974656550e12b29af13cca",
    "status": "scored"
+  },
+  {
+   "repo": "Vais96/Felucca",
+   "url": "https://github.com/Vais96/Felucca",
+   "found_by": "fork",
+   "fork_of": "hugelton/Felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "63f88ec18b71c6ed4371d03d6f04dd93f4193ad3",
+   "tree": "d14ceaafc39a32980ba830b7e96dfc9d0232f53d",
+   "status": "duplicate",
+   "same_tree_as": "hugelton/Felucca"
   },
   {
    "repo": "vasealiev/sloop-fm1",
@@ -7936,8 +9073,8 @@
    "found_by": "search: felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "8c392850ef67f244d07008a2168ff9d1d221a18f",
-   "tree": "d2499222fb6fa82ee46bb7710c11c00f1655bc6f",
+   "commit": "abb61a92c8f5440923a24c394c1a257b2c3a7214",
+   "tree": "ae7f4b8d9216a43fa0f6cfa39cb769d63eab5cd9",
    "status": "scored"
   },
   {
@@ -7959,8 +9096,19 @@
    "fork_of": "hugelton/Felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "ebdb3935ad75d3aa273a70b4ad2b9328236c29d4",
-   "tree": "735d933dc011abd4112c11216f1b7878c6252922",
+   "commit": "c0746da976c30d362a248698d8c982f9dac034a9",
+   "tree": "ac495e4c0e22a6a27740fdac82141a53071d103d",
+   "status": "scored"
+  },
+  {
+   "repo": "weavejam/fm1_open",
+   "url": "https://github.com/weavejam/fm1_open",
+   "found_by": "fork",
+   "fork_of": "m-vave/fm1_open",
+   "licence": "NOASSERTION",
+   "licence_class": "other",
+   "commit": "9b6b28f62c07e00c318103a2a384c1f211d53525",
+   "tree": "71f3d2dba2b8e088d7aa4a1aa35127321e283f1d",
    "status": "scored"
   },
   {
@@ -7970,8 +9118,8 @@
    "fork_of": "isod89/sloop-fm1",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "1bbdc6e0bc6f476709b28993fde6565628b327a5",
-   "tree": "649c26e48132da05c0e789e1dd2f945172a79f45",
+   "commit": "9744741ff444f289c7b55dc129770cec76a6cc6d",
+   "tree": "ece0abc166a4deb29386714230192ce8ebdc248a",
    "status": "scored"
   },
   {
@@ -8008,7 +9156,7 @@
    "commit": "d44df7db09b98ccad2f1233b8f83f5f09c04829e",
    "tree": "8cefd253b92b544109a315fd2fb9ffcea7c429b6",
    "status": "duplicate",
-   "same_tree_as": "zvenson/dinghy"
+   "same_tree_as": "chasebrey-ops/dinghy"
   },
   {
    "repo": "Wesleyx88/mvave-fm1-drone",
@@ -8263,8 +9411,8 @@
    "fork_of": "hugelton/Felucca",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "fc2b68d377bfea0554869d52a1c9046bfa5e73be",
-   "tree": "61a7ef6278454edd1adbf14f9a0d59f94ac1b52d",
+   "commit": "e1d49121e38e2f49de4aef7fadc445693ff6f92c",
+   "tree": "cf1ca3babfe44877b66b098a991fc945f77eae97",
    "status": "scored"
   },
   {
@@ -8276,6 +9424,29 @@
    "licence_class": "gpl",
    "commit": "91c9a78035b06973ff79cbe765d09d4deb9c31d8",
    "tree": "2efd7a5053b277e272e7e07b9ca37f4be5070dfd",
+   "status": "scored"
+  },
+  {
+   "repo": "Xanacognition/WND-1",
+   "url": "https://github.com/Xanacognition/WND-1",
+   "found_by": "fork",
+   "fork_of": "Guizmoh/Kawa-Tracker-Fm1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "047d21f6154ff6f86c7d3dc4b90f8d5e3320c300",
+   "tree": "18ddcee28ea690d98cfdcda0182574f8f7c7d7da",
+   "status": "duplicate",
+   "same_tree_as": "Guizmoh/Kawa-Tracker-Fm1"
+  },
+  {
+   "repo": "Xanacognition/XANOISE",
+   "url": "https://github.com/Xanacognition/XANOISE",
+   "found_by": "fork",
+   "fork_of": "juanjiant-bit/JIANT",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "55bece1568158d3c8466f8e15154999395f7472e",
+   "tree": "e069cbab457ec152ac7296b563c2f13ae17d5981",
    "status": "scored"
   },
   {
@@ -8442,6 +9613,16 @@
    "status": "scored"
   },
   {
+   "repo": "xoxoaudiolabs/FM-1-Companion",
+   "url": "https://github.com/xoxoaudiolabs/FM-1-Companion",
+   "found_by": "search: m-vave fm-1",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "8fbee8c3ddc6721d5cc9dc2133ebd3a051261e51",
+   "tree": "f246de4b674ace0fd5226e58274ba66a6659bd37",
+   "status": "scored"
+  },
+  {
    "repo": "xrcstrecords/fm1-amb",
    "url": "https://github.com/xrcstrecords/fm1-amb",
    "found_by": "fork",
@@ -8486,6 +9667,16 @@
    "same_tree_as": "CoydeLau/sloop-fm1"
   },
   {
+   "repo": "yentzee/My-Name-is-Mod",
+   "url": "https://github.com/yentzee/My-Name-is-Mod",
+   "found_by": "search: felucca",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "85a5132ea17e50114e27416b75c6cab12fa4c574",
+   "tree": "bf3f59f47f185149a7133ba08b9b38b9a67c5426",
+   "status": "scored"
+  },
+  {
    "repo": "yurazhlobin/sloop-fm1",
    "url": "https://github.com/yurazhlobin/sloop-fm1",
    "found_by": "fork",
@@ -8519,6 +9710,18 @@
    "commit": "39625601f0308e744d930d2e773100632166c4c9",
    "tree": "4a0d2126c1e2ad857de018bd27367a87e3d3d486",
    "status": "scored"
+  },
+  {
+   "repo": "zambari/x0z-fm1",
+   "url": "https://github.com/zambari/x0z-fm1",
+   "found_by": "fork",
+   "fork_of": "charlesvestal/fm1-x0x",
+   "licence": "GPL-3.0",
+   "licence_class": "gpl",
+   "commit": "54194c54bb01e9d9b3fe9d641b3ddfa512ac04a3",
+   "tree": "eb62bba076671f5a11b577efa864b5ace56bf1a0",
+   "status": "duplicate",
+   "same_tree_as": "charlesvestal/fm1-x0x"
   },
   {
    "repo": "zednaked/Felucca",
@@ -8564,7 +9767,7 @@
    "commit": "ec9e53721cc576816a5750220391f2d0217c01cb",
    "tree": "7f1484b732e07a039591a925406da5948c445221",
    "status": "duplicate",
-   "same_tree_as": "isod89/sloop-fm1"
+   "same_tree_as": "admali777/fm1-sloop-ui"
   },
   {
    "repo": "zisonzishen/crate-fm1",
@@ -8651,8 +9854,8 @@
    "seed": 2,
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "d44df7db09b98ccad2f1233b8f83f5f09c04829e",
-   "tree": "8cefd253b92b544109a315fd2fb9ffcea7c429b6",
+   "commit": "22acb9165ebc8baa712af3aff8c507e230c1e028",
+   "tree": "4c27c943b309514a8bda4cd4d45f60b0cf0a9f04",
    "status": "scored"
   },
   {
@@ -8682,8 +9885,8 @@
    "found_by": "search: m-vave",
    "licence": "GPL-3.0",
    "licence_class": "gpl",
-   "commit": "6dc9c5cfa84192b36eb1bc23a7f660babdd86462",
-   "tree": "71738df0e5101616ceb582d617533c834ed62969",
+   "commit": "7b8b97586ef87854d1859aad907e5f10ca49898d",
+   "tree": "bf915f6b71603ea2725570a60c79eef3af8906de",
    "status": "scored"
   },
   {
