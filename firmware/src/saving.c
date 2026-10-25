@@ -58,7 +58,7 @@ static int settings_ok(const struct midi_settings *m)
 
     if (m->version != MIDI_SETTINGS_VERSION || m->channel > 16 || m->bend_range > 24
         || m->routes > MIDI_CC_ROUTES || m->out_channel < 1 || m->out_channel > 16 || m->thru > 1
-        || m->local > 1 || m->reserved)
+        || m->local > 1 || m->knobs > 1)
         return 0;
     for (i = 0; i < MIDI_CC_ROUTES; i++)
         if (m->cc[i].cc > 119 || m->cc[i].to > MIDI_TO_KNOB4)
@@ -66,8 +66,9 @@ static int settings_ok(const struct midi_settings *m)
     return 1;
 }
 
-/* The settings record: version 2 as it is; version 1 into version 2,
- * with version 2's defaults for what it lacked. */
+/* The settings record: version 3 as it is; version 2 (M6b's; its last
+ * byte, always 0, is version 3's knobs: the macros) and version 1 (M6a's)
+ * into version 3, with its defaults for what they lacked. */
 static void load_settings(void)
 {
     u32 version;
@@ -76,6 +77,10 @@ static void load_settings(void)
     midi_settings_default(&s);
     if (n == (int)sizeof s && version == MIDI_SETTINGS_VERSION) {
         copy(&s, buf, sizeof s);
+    } else if (n == (int)sizeof s && version == 2 && buf[0] == 2) {
+        copy(&s, buf, sizeof s);
+        s.version = MIDI_SETTINGS_VERSION;
+        sb_store.loaded |= 4u;
     } else if (n == (int)SETTINGS_V1_BYTES && version == 1 && buf[0] == 1) {
         copy(&s, buf, SETTINGS_V1_BYTES);
         s.version = MIDI_SETTINGS_VERSION;

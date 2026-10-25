@@ -161,8 +161,8 @@ u32 fm_patch_sum(const u8 *p);
 #define FM_USER_SLOTS 16u
 #define FM_PROGRAMS   (FM_PATCHES + FM_USER_SLOTS)
 /* SAVE held with KEY1 to KEY16: the patch playing now saved to that slot;
- * SAVE and HOME held for FM_RESET_MS: the factory defaults. */
-#define FM_RESET_MS   2000u
+ * since M8a the factory defaults are the settings' last row, which SAVE
+ * confirms (M7 held SAVE and HOME for 2 s). */
 /* 1 if a valid patch was put in the slot. */
 int fm_user_set(u32 slot, const u8 *patch);
 /* Selects a program if it is one; 1 if it was. */

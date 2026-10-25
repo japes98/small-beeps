@@ -899,6 +899,56 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
   - **Next: M8, the UI and our own presets** (docs/M8-PROPOSAL.md, for
     the owner's review first).
 
+### M8a: the instrument's interface (firmware side)
+- Status 2026-10-25 (session M8a, firmware side, on the owner's Mac,
+  largely unattended): built in pull requests #111 (start; the store
+  moved to the unused region), #116 (M8's budgets), #117 (the screens'
+  framework), #118 (the loaded budget, for the macros), #119 (the
+  macros), #120 (EDIT), #121 (ENV), #122 (the loaded budget, for the
+  spectrum), #123 (the spectrum) and #124 (the settings), in that merge
+  order; the ARP proposal is #125 (docs/ARP-PROPOSAL.md). docs/M8-PROPOSAL.md with the owner's answers
+  (docs/prompts/M8a.md); docs/DESIGN-NOTES.md, M8a, has the details.
+  - **The store** now lives in the stock layout's unused region,
+    `0xFC000` to `0xFEFFF`, three sectors: the stock firmware's saved
+    patches are never touched. It still holds everything with room; its
+    wear life by M7's bound is a sixth of M7's (a heavy day's use: about
+    117 years).
+  - **Screens:** one at a time; HOME back to the patch view; every
+    screen a header, a body, an event line and the strip naming KNOB1 to
+    KNOB4 with their values; MASTER, PRESETS, OCT- and OCT+ the same
+    everywhere; only what changed redrawn, within M5's drawing budget,
+    rectangles for the live parts (`lcd_send_rect`). The engine owns the
+    state; main draws it. LEDs: the screen's button, the selected
+    operator's key at half.
+  - **The patch view:** the algorithm, the macros BRIGHT, COLOR, SHAPE
+    and MOTION (offsets, controllers 16 to 19; "Knobs: direct" in the
+    settings gives M5's controls back), and a live spectrum (our own
+    fixed-point FFT, 56 bars on a log axis, about 30 a second while
+    there is sound).
+  - **EDIT:** the algorithm with each operator's live level; SEL with
+    OP1 to OP6 picks one, KNOB1 to KNOB4 edit it over three pages.
+    **ENV:** the envelope to scale with the newest note's dot; SEL with
+    PIT the pitch envelope, with GLO the glide; edits as EDIT's, on a
+    copy of the program that SAVE writes.
+  - **Settings (GLO):** MIDI in and out channels, thru, local control,
+    bend range, the knobs, the store's use; factory reset with a
+    confirmation (SAVE), replacing M7's hold of SAVE and HOME.
+  - **Tests:** golden screens of every view; each control's effect
+    measured on the sound (the macros: upper partials, partials off the
+    harmonics, attack and release, the pitch's swing; every operator and
+    envelope edit; every setting); drawing within its budget and the
+    audio never late under the heaviest input; R-UI-1 to R-UI-14.
+  - **Fixed on the way:** M2's `gfx_line` never ended on about one line
+    in five (the envelope view found it); the frames' wakes replaced
+    the live parts'; events before main's loop were left waiting.
+  - **Costs:** code 36 KiB, static RAM 200 KiB (M8's budgets, #116);
+    steady state unchanged (1 880 a block); loaded 110 309, raised by
+    the macros' new meaning of the heaviest input (#118) and by the
+    spectrum (#122), whose cost under load is about four times its own
+    timing: not explained yet (a question for the owner).
+  - **Next: M8b, our own preset bank** (64 presets, docs/M8-PROPOSAL.md,
+    "Presets"): the owner listens before it merges. Then ARP, then SEQ.
+
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer (done; above).
 - **M2** screen (done; above).
@@ -908,8 +958,8 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
 - **M5** the FM engine (done; above).
 - **M6a** MIDI in (done; above). **M6b** MIDI out (done; above).
 - **M7** flash storage (done; above).
-- **M8** UI and original presets (no Yamaha factory voices) (next;
-  docs/M8-PROPOSAL.md).
+- **M8** UI and original presets (no Yamaha factory voices): M8a the
+  interface (above); M8b the preset bank (next; docs/M8-PROPOSAL.md).
 - **M9** packaging, and a raw-image boot path in the app (plan:
   docs/M9-PLAN.md, for the owner's review).
 

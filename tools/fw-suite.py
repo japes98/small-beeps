@@ -107,6 +107,7 @@ the suite through tools/fwtest (the pinned image), and then checks:
 Prints what it saw for the record, and exits 1 if anything failed.
 """
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -148,7 +149,9 @@ EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "complete
           "midijunk": "completed", "mididense": "completed", "midisustain": "completed",
           "midichan": "completed", "midipanel": "completed", "midilat": "completed",
           "midiout": "completed", "midiround": "completed", "midithru": "completed",
-          "midilocal": "completed", "midiburst": "completed", "midioutlat": "completed"}
+          "midilocal": "completed", "midiburst": "completed", "midioutlat": "completed",
+          "views": "completed", "viewsload": "completed", "macros": "completed", "edit": "completed", "env": "completed",
+          "spectrum": "completed", "settings": "completed"}
 
 MARKER = 0x44304253        # "SB0D", firmware/src/sb.h
 TICKS_PER_MS = 24000       # HW-13
@@ -593,6 +596,11 @@ POT_FIRST, POT_SETTLED = 1.5, 4.5
 LED_LAG_MS = 1.0           # from an event to its LED set by main
 LED_SHOW_MS = 1.01         # from input_led to the scan driving it: one scan
 LED_FULL_DUTY = (75, 92)   # thousandths: lit in 1 of 12 scan slots (83.3)
+# The keys script's LED changes: each of the 41 pressed and let go (82),
+# and since M8a three more as the screens change (ENV, EDIT, GLO, HOME
+# pressed in turn: HOME lit at the first event, then the previous screen's
+# button and OP1's key at half going dark or lit).
+LED_CALLS_KEYS = 85
 LED_STEP = 1000.0 / 96     # one eighth of that
 LED_STEP_TOL = 2
 EVENTS_DIR = "tests/fw/events"
@@ -710,28 +718,50 @@ def check_keys(case_dir):
                      " (HW-37), press and release; latency %.3f to %.3f ms"
                      % (min(l for l, _ in lats), max(h for _, h in lats)))
     lag = head["led_lag_max"] / TICKS_PER_MS
+    u = ui_record(case_dir)
     lines.append("  LEDs: %d set by main, at most %.4f ms after their event" % (head["led_calls"], lag))
-    if head["led_calls"] != 82 or lag > LED_LAG_MS:
-        problems.append("keys: %d LED calls (82 expected), longest %.3f ms after the event (at most %s)"
-                        % (head["led_calls"], lag, LED_LAG_MS))
-    # Each LED lit for every sample inside its key's hold, once the event
-    # and one scan are past, at a full share of its column's slot on
-    # average over the hold (one sample's share varies: samples come late
-    # while the core idles, docs/HARNESS.md "Time"); dark for every sample
-    # clear of the hold.
+    if head["led_calls"] != u["leds"] or head["led_calls"] != LED_CALLS_KEYS or lag > LED_LAG_MS:
+        problems.append("keys: %d LED calls (the screens counted %d, %d expected), longest %.3f ms after"
+                        " the event (at most %s)" % (head["led_calls"], u["leds"], LED_CALLS_KEYS, lag, LED_LAG_MS))
+    # Since M8a an LED is lit while its key is held, and also while its
+    # screen shows (HOME from the first event at 700 ms, then ENV, EDIT,
+    # GLO and HOME as each is pressed), and OP1's key at half while EDIT
+    # or ENV shows. Each LED lit for every sample inside its key's hold,
+    # once the event and one scan are past, at a full share of its
+    # column's slot on average over the hold (one sample's share varies:
+    # samples come late while the core idles, docs/HARNESS.md "Time");
+    # dark for every sample clear of the hold and of its screen.
+    screens = [(700, 8), (860, 4), (940, 6), (980, 7), (1020, 8)]
+    edges = [t for t, _ in screens]
+
+    def lit_by_screen(n, ms):
+        on = [b for t, b in screens if t <= ms]
+        if on and on[-1] == n:
+            return "full"
+        if n == OP1_KEY and on and on[-1] in (4, 6):
+            return "half"
+        return None
+
     prev, lit, dark, held = 0.0, 0, 0, {}
     for ms, duty in read_leds(case_dir):
+        near = any(t - 1 <= ms <= t + 6 for t in edges)
         for n in range(41):
             down = 700 + 40 * n
+            screen = lit_by_screen(n, ms)
             if prev >= down + KEY_LATENCY[1] + LED_LAG_MS + 1.1 and ms <= down + 20:
                 lit += 1
                 held.setdefault(n, []).append(duty[n])
                 if not duty[n]:
                     problems.append("leds: LED %d dark at %.0f ms while key %d is held" % (n, ms, n))
             elif ms <= down or prev >= down + 20 + KEY_LATENCY[1] + LED_LAG_MS + 1.1:
-                dark += 1
-                if duty[n]:
+                if near:
+                    continue
+                if screen and not duty[n]:
+                    problems.append("leds: LED %d dark at %.0f ms while its screen shows" % (n, ms))
+                elif screen is None and duty[n]:
                     problems.append("leds: LED %d at %.0f ms: %d, not dark" % (n, ms, duty[n]))
+                else:
+                    dark += screen is None
         prev = ms
     for n in range(41):
         mean = sum(held.get(n, [0])) / len(held.get(n, [0]))
@@ -740,7 +770,8 @@ def check_keys(case_dir):
     means = [sum(v) / len(v) for v in held.values()]
     if means:
         lines.append("  leds.csv: each LED's mean share while held %.1f to %.1f thousandths" % (min(means), max(means)))
-    lines.append("  leds.csv: %d samples lit as expected, %d dark as expected" % (lit, dark))
+    lines.append("  leds.csv: %d samples lit as expected, %d dark as expected; the screens' buttons lit while their"
+                 " screen shows, OP1's key at half on ENV and EDIT" % (lit, dark))
     if lit < 41:
         problems.append("keys: only %d LED samples inside holds" % lit)
     return problems[:20], lines
@@ -859,10 +890,10 @@ def check_ledshow(case_dir):
     from there to the scan's slot for that LED's column (R-LED-3)."""
     head, _, _ = input_record(os.path.join(case_dir, input_name("end")))
     lag, show = head["led_lag_max"] / TICKS_PER_MS, head["led_show_max"] / TICKS_PER_MS
-    lines = ["  82 LED changes: set by main at most %.4f ms after their event, then driven by the scan"
-             " at most %.4f ms later: %.4f ms from event to LED at most" % (lag, show, lag + show)]
-    if head["led_calls"] != 82 or not 0 < show <= LED_SHOW_MS or lag > LED_LAG_MS:
-        return ["ledshow: %d LED calls (82 expected); event to input_led %.4f ms (at most %s), input_led to"
+    lines = ["  %d LED changes: set by main at most %.4f ms after their event, then driven by the scan"
+             " at most %.4f ms later: %.4f ms from event to LED at most" % (LED_CALLS_KEYS, lag, show, lag + show)]
+    if head["led_calls"] != LED_CALLS_KEYS or not 0 < show <= LED_SHOW_MS or lag > LED_LAG_MS:
+        return ["ledshow: %d LED calls (85 expected); event to input_led %.4f ms (at most %s), input_led to"
                 " the scan %.4f ms (more than 0, at most %s)"
                 % (head["led_calls"], lag, LED_LAG_MS, show, LED_SHOW_MS)], lines
     return [], lines
@@ -2109,8 +2140,420 @@ AUDIO_CHECKS = {"tone": check_tone, "notes": check_notes, "audioload": check_aud
 AUDIO_CHECKS.update(MIDI_CHECKS)
 
 
-INPUT_CHECKS = {"keys": check_keys, "chords": check_chords, "encoders": check_encoders, "pot": check_pot,
+# --- The screens (M8a) ---------------------------------------------------
+
+UI_ADDR, UI_LEN = 0x01C00870, 0x60
+UI_MARKER = 0x38495553
+UI_FIELDS = ("marker screen seq shows frames items rows_sent item_max block_max over leds messages"
+             " live live_max item_max_part reserved macro0 macro1 macro2 macro3"
+             " spec_updates spec_silent spec_max spec_peak").split()
+UI_PATCH, UI_EDIT, UI_ENV, UI_SETTINGS = range(4)
+DRAW_TICKS = 4352          # views.c: drawing a block may take before no more parts start
+SCREEN_BUTTON = {UI_PATCH: 8, UI_EDIT: 6, UI_ENV: 4, UI_SETTINGS: 7}   # HOME, EDIT, ENV, GLO
+OP1_KEY = 15               # KEY2, the raised key labelled OP1
+
+
+def ui_record(case_dir, when="end"):
+    name = "ram-%08x-%x-%s.bin" % (UI_ADDR, UI_LEN, when if when == "end" else "%dms" % when)
+    with open(os.path.join(case_dir, name), "rb") as f:
+        u = dict(zip(UI_FIELDS, struct.unpack("<%dI" % len(UI_FIELDS), f.read()[:UI_LEN])))
+    u["macros"] = [m - (1 << 32) if m >= 1 << 31 else m for m in (u.pop("macro%d" % k) for k in range(4))]
+    return u
+
+
+def check_drawing(name, u, budget=True):
+    """Every part of a screen within the budget, and the block total
+    within two budgets (no part starts once a block's budget is spent).
+    A part's time is the time base's, so under load it includes the audio
+    interrupts that came meanwhile: there (budget False) it is reported,
+    not checked."""
+    problems = []
+    if u["marker"] != UI_MARKER:
+        problems.append("%s: no interface record" % name)
+    if budget and (u["item_max"] > DRAW_TICKS or u["block_max"] >= 2 * DRAW_TICKS):
+        problems.append("%s: the longest part %d time base ticks (part %d), a block's drawing %d; at most %d and"
+                        " under %d" % (name, u["item_max"], u["item_max_part"], u["block_max"], DRAW_TICKS,
+                                       2 * DRAW_TICKS))
+    return problems, ("  drawing: %d screens, %d frames, %d parts, %d rows sent; longest part %d ticks (part %d),"
+                      " most in a block %d (budget %d)" % (u["shows"], u["frames"], u["items"], u["rows_sent"],
+                                                          u["item_max"], u["item_max_part"], u["block_max"],
+                                                          DRAW_TICKS))
+
+
+def check_views(case_dir):
+    """The screens in turn (tests/fw/scripts/views.txt): each one when its
+    button is pressed, HOME back to the patch view, the controls that mean
+    the same on every screen, the screen's button lit and the selected
+    operator's key at half on EDIT and ENV; golden images of each."""
+    problems, lines = [], []
+    want = {850: UI_PATCH, 1150: UI_EDIT, 1450: UI_ENV, 1750: UI_SETTINGS, 2050: UI_SETTINGS, 2350: UI_PATCH}
+    for when, screen in sorted(want.items()):
+        u = ui_record(case_dir, when)
+        if u["screen"] != screen:
+            problems.append("views: at %d ms the screen is %d, expected %d" % (when, u["screen"], screen))
+    u = ui_record(case_dir)
+    more, line = check_drawing("views", u)
+    problems += more
+    lines.append(line)
+    if u["shows"] != 5:
+        problems.append("views: %d whole screens drawn, expected 5 (the first, then four changes)" % u["shows"])
+    f = fm_record(os.path.join(case_dir, fm_name()))
+    a = audio_record(os.path.join(case_dir, audio_name()))
+    if f["patch"] != 2 or a["octave"] != 1 or a["master"] != 700 * 700 * 16:
+        problems.append("views: on the settings screen PRESETS, OCT+ and MASTER gave program %d, octave %d,"
+                        " gain %d; expected 2, 1, %d" % (f["patch"], a["octave"], a["master"], 700 * 700 * 16))
+    # LEDs, sampled every 50 ms: clear of each change by 50 ms.
+    for ms, duty in read_leds(case_dir):
+        screen = None
+        for when, sc in ((650, UI_PATCH), (950, UI_EDIT), (1250, UI_ENV), (1550, UI_SETTINGS), (2150, UI_PATCH)):
+            if ms >= when:
+                screen = sc
+        # A sample's share is the LED's over the 50 ms before it.
+        if screen is None or any(t - 5 < ms < t + 60 for t in (600, 900, 1200, 1500, 1850, 2100)):
+            continue
+        for c in list(SCREEN_BUTTON.values()) + [OP1_KEY]:
+            lit = duty[c]
+            if c == SCREEN_BUTTON[screen]:
+                ok = LED_FULL_DUTY[0] <= lit <= LED_FULL_DUTY[1]
+            elif c == OP1_KEY and screen in (UI_EDIT, UI_ENV):
+                ok = LED_FULL_DUTY[0] / 2 - 10 <= lit <= LED_FULL_DUTY[1] / 2 + 10
+            else:
+                ok = lit == 0
+            if not ok:
+                problems.append("views: LED %d at %.0f ms: %d, wrong for screen %d" % (c, ms, lit, screen))
+    lines.append("  screens: patch, EDIT, ENV, settings, then HOME back; on the settings screen PRESETS, OCT+ and"
+                 " MASTER as everywhere; each screen's button lit, OP1's key at half on EDIT and ENV")
+    return problems[:20], lines
+
+
+def check_viewsload(case_dir):
+    """The screens changing every 100 ms under the heaviest input
+    (tests/fw/scripts/viewsload.txt): no underrun, every tick on time,
+    every part of every screen within the drawing budget."""
+    problems, lines, a, console, _ = check_audio_common("viewsload", case_dir)
+    more, tl = check_ticks_under_load("viewsload", case_dir)
+    problems += more
+    lines += tl
+    u = ui_record(case_dir)
+    more, line = check_drawing("viewsload", u, budget=False)
+    problems += more
+    lines.append(line + " (with the audio's interrupts)")
+    # 29 changes of screen, every 100 ms; while one is drawn the next may
+    # come, and the screen then shows the latest.
+    if u["shows"] < 25 or u["screen"] != UI_EDIT:
+        problems.append("viewsload: %d whole screens drawn, the last %d; expected at least 25, the last EDIT"
+                        % (u["shows"], u["screen"]))
+    f = fm_record(os.path.join(case_dir, fm_name()))
+    if f["voices_max"] != FM_VOICES:
+        problems.append("viewsload: %d voices at most, expected %d" % (f["voices_max"], FM_VOICES))
+    lines.append("  %d screens drawn under %d voices, longest fill %.1f us of a %.1f us block"
+                 % (u["shows"], f["voices_max"], a["fill_max"] / 24.0, BLOCK_TICKS / 24.0))
+    return problems, lines
+
+
+def check_macros(case_dir):
+    """The macros (tests/fw/scripts/macros.txt; R-UI-6, R-UI-7): each one's
+    effect on the same note, measured; back at 0 the note exactly as
+    before; their controllers out as the panel turned them, and one in."""
+    problems, lines, a, console, wav = check_audio_common("macros", case_dir)
+    if wav is None:
+        return problems + ["macros: no audio"], lines
+    x, ends = wav
+    f0 = aa.note_hz(70)
+    rate = aa.RATE
+
+    def onset(ms):
+        i = int(ms * rate / 1000)
+        while i < len(x) and not x[i]:
+            i += 1
+        return i
+
+    def seg(ms, n=8192):
+        i = onset(ms)
+        return x[i + 2048:i + 2048 + n]
+
+    bright = [aa.share_above(seg(t), 7.5 * f0) for t in (300, 900)]
+    color = [aa.inharmonicity(seg(t), f0) for t in (300, 1550)]
+    lines.append("  BRIGHT: the share above 7.5 f0 %.3f at 0, %.3f at +20" % tuple(bright))
+    lines.append("  COLOR: partials off the harmonics by %.3f f0 at 0, %.3f at +32" % tuple(color))
+    if not bright[1] > bright[0] + 0.1:
+        problems.append("macros: BRIGHT +20 did not raise the upper partials (%.3f, %.3f)" % tuple(bright))
+    if not (color[0] < 0.03 and color[1] > 0.1):
+        problems.append("macros: COLOR +32 did not move the partials off the harmonics (%.3f, %.3f)" % tuple(color))
+    a0, d0 = onset(300), onset(2200)
+    n = int(0.25 * rate)
+    if x[a0:a0 + n] != x[d0:d0 + n]:
+        problems.append("macros: with every macro back at 0 the note is not the same as before")
+    else:
+        lines.append("  back at 0: the note is the first one again, sample for sample (%d samples)" % n)
+    att = [aa.attack_ms(x[:onset(t) + int(0.9 * rate)], onset(t)) for t in (2650, 3550, 5000)]
+    rel = [aa.release_ms(x, int(t * rate / 1000) + int(0.004 * rate)) for t in (2950, 3850, 6400)]
+    lines.append("  SHAPE: attack to -3 dB %.1f / %.1f / %.1f ms, release to -60 dB %.0f / %.0f / %.0f ms"
+                 " (0, -64, +64)" % tuple(att + rel))
+    if not (att[1] <= att[0] and att[2] > 300 and att[0] < 20):
+        problems.append("macros: SHAPE's attacks %s, expected -64 no slower than 0, +64 over 300 ms" % att)
+    if not (rel[1] < rel[0] < rel[2] and rel[2] > 1000):
+        problems.append("macros: SHAPE's releases %s, expected -64 < 0 < +64, over 1 s" % rel)
+    swing = [aa.pitch_swing_cents(x, onset(t) + int(0.05 * rate), onset(t) + int(0.28 * rate))
+             for t in (2650,)] + [aa.pitch_swing_cents(x, onset(9600) + int(0.05 * rate), onset(9600) + int(0.9 * rate))]
+    lines.append("  MOTION: the pitch swings %.1f cents at 0, %.1f at +64" % tuple(swing))
+    if not (swing[0] < 2 and swing[1] > 30):
+        problems.append("macros: MOTION +64 swings the pitch %.1f cents (at 0 %.1f): expected over 30" % (swing[1], swing[0]))
+    u = ui_record(case_dir)
+    if u["macros"] != [0, 32, 0, 64]:
+        problems.append("macros: at the end the macros are %s, expected [0, 32, 0, 64] (COLOR from MIDI)" % u["macros"])
+    # Out: each macro's controller as the panel turned it, over the macros'
+    # spans (midi_model.MACRO_SPAN).
+    msgs = [m for _, m in wire_messages(wire_bytes(os.path.join(case_dir, "midi-out.csv")))[0] if m[0] == 0xB0]
+    want = []
+    for k, path in ((0, list(range(1, 21)) + list(range(19, -1, -1))),
+                    (1, list(range(1, 33)) + list(range(31, -1, -1))),
+                    (2, list(range(-1, -65, -1)) + list(range(-63, 65)) + list(range(63, -1, -1))),
+                    (3, list(range(1, 65)))):
+        vals, last = [], None
+        for p in path:
+            v = midi_model.knob_value(k, p, midi_model.MACRO_SPAN)
+            if v != last:
+                vals.append(v)
+                last = v
+        got = [m[2] for m in msgs if m[1] == 16 + k]
+        want.append(len(vals))
+        if got != vals:
+            problems.append("macros: controller %d out %s..., expected %s..." % (16 + k, got[:6], vals[:6]))
+    lines.append("  out: controllers 16 to 19, %s values, as the macros' spans give them" % want)
+    return problems[:20], lines
+
+
+def check_edit(case_dir):
+    """The operator view's editing (tests/fw/scripts/edit.txt; R-UI-9,
+    R-UI-10): each knob's effect on the same note, measured; SAVE writes
+    the edited patch; another program and back discards the edits."""
+    problems, lines, a, console, wav = check_audio_common("edit", case_dir)
+    if wav is None:
+        return problems + ["edit: no audio"], lines
+    x, ends = wav
+    rate = aa.RATE
+    f0 = aa.note_hz(70)
+
+    def onset(ms):
+        i = int(ms * rate / 1000)
+        while i < len(x) and not x[i]:
+            i += 1
+        return i
+
+    def fit(ms):
+        i = onset(ms) + int(0.05 * rate)
+        return aa.sine_fit(x[i:i + int(0.12 * rate)])
+
+    notes = {t: fit(t) for t in (400, 800, 1350, 2100, 2950, 3600, 4050, 5300)}
+    ref = notes[400]
+
+    def db(t):
+        return 20 * math.log10(notes[t]["amplitude"] / ref["amplitude"])
+
+    checks = [
+        ("E1 as stored: the note's pitch", ref["frequency"], f0, 0.5),
+        ("E2 RATIO 2.00: twice the pitch", notes[800]["frequency"], 2 * f0, 1.0),
+        ("E3 LEVEL 103: -18 dB", db(1350), -18.0, 0.5),
+        ("E4 DETUNE +50: cents", aa.cents(notes[2100]["frequency"], f0), 50.0, 2.0),
+        ("E5 MODE fixed: 440 Hz", notes[2950]["frequency"], 440.0, 0.5),
+        ("E6 HOLD 103: -18 dB held", db(3600), -18.0, 0.5),
+        ("E7 VELO 7: dB at velocity 100, against E6", db(4050) - db(3600), -20 * math.log10(2) * 27 * 8 / 127, 0.5),
+    ]
+    for name, got, want, tol in checks:
+        lines.append("  %s %.2f (expected %.2f)" % (name, got, want))
+        if abs(got - want) > tol:
+            problems.append("edit: %s %.2f, expected %.2f +- %s" % (name, got, want, tol))
+    n = int(0.2 * rate)
+    if x[onset(400):onset(400) + n] != x[onset(5300):onset(5300) + n]:
+        problems.append("edit: after another program and back the note is not the stored patch's")
+    else:
+        lines.append("  E8: another program and back: the stored patch again, sample for sample")
+    path = os.path.join(case_dir, "flash.bin")
+    with open(path, "rb") as f:
+        chip = f.read()
+    with open(path + ".sha256", "w") as f:
+        f.write("%s  flash.bin\n" % hashlib.sha256(chip).hexdigest())
+    os.remove(path)
+    saved = store_suite.st.Image(chip).get(store_suite.st.PATCH, 0)
+    want = bytearray(fm_patch.encode(fm_patch.TEST_PATCHES[0]))
+    want[fm_patch.OP_OFFSET + 5] = 7                      # operator 1: velocity
+    want[fm_patch.OP_OFFSET + 12] = 103                   # its held level
+    want[16] = 9                                          # the algorithm, turned once
+    s16 = fm_patch.fletcher16(want[:110])
+    want[110], want[111] = s16 & 0xFF, s16 >> 8
+    if not saved or saved[1] != bytes(want):
+        problems.append("edit: slot 1 holds %s, not the edited patch" % (saved and saved[1].hex()))
+    else:
+        lines.append("  SAVE with KEY1: slot 1 holds the edited patch (velocity 7, held 103, algorithm 9)")
+    f = fm_record(os.path.join(case_dir, fm_name()))
+    u = ui_record(case_dir)
+    if f["patch"] != 0 or f["algorithm"] != 8:
+        problems.append("edit: at the end program %d, algorithm %d; expected 0 and 8 (as stored)"
+                        % (f["patch"], f["algorithm"]))
+    more, line = check_drawing("edit", u)
+    problems += more
+    lines.append(line + "; %d live updates, the longest %d ticks" % (u["live"], u["live_max"]))
+    if not u["live"]:
+        problems.append("edit: no live updates of the operators' levels")
+    # OP2's key at half from SEL with OP2 (4420 ms) until HOME (4700).
+    for ms, duty in read_leds(case_dir):
+        if 4530 < ms < 4690 and not LED_FULL_DUTY[0] / 2 - 10 <= duty[17] <= LED_FULL_DUTY[1] / 2 + 10:
+            problems.append("edit: OP2's key at %.0f ms: %d, not half" % (ms, duty[17]))
+    return problems[:20], lines
+
+
+def check_env(case_dir):
+    """The envelope view's editing (tests/fw/scripts/env.txt; R-UI-11):
+    each knob's effect on the same note, measured, and the dot."""
+    problems, lines, a, console, wav = check_audio_common("env", case_dir)
+    if wav is None:
+        return problems + ["env: no audio"], lines
+    x, ends = wav
+    rate = aa.RATE
+    f0 = aa.note_hz(70)
+
+    def onset(ms):
+        i = int(ms * rate / 1000)
+        while i < len(x) and not x[i]:
+            i += 1
+        return i
+
+    att = [aa.attack_ms(x[:onset(t) + int(0.45 * rate)], onset(t)) for t in (800, 1900)]
+    rel = [aa.release_ms(x, int(t * rate / 1000) + int(0.004 * rate)) for t in (1300, 3000)]
+
+    def level(t):
+        i = onset(t) + int(0.4 * rate)
+        return aa.sine_fit(x[i:i + 2048])["amplitude"]
+
+    hold = 20 * math.log10(level(3300) / level(800))
+    i = onset(5800)
+    track = aa.pitch_track(x, i, i + int(0.4 * rate), step_ms=10, window_ms=20)
+    first, last = (12 * math.log2(track[k][1] / f0) for k in (0, -1))
+    lines.append("  ATTACK 40 -> 56: attack to -3 dB %.1f -> %.1f ms (x %.2f; the codes say x 4)"
+                 % (att[0], att[1], att[1] / att[0]))
+    lines.append("  RELEASE 64 -> 48: release to -60 dB %.1f -> %.1f ms (x %.2f; x 1/4)" % (rel[0], rel[1], rel[1] / rel[0]))
+    lines.append("  HOLD 87 -> 71: the held level %.2f dB (-12.04)" % hold)
+    lines.append("  pitch envelope (DEPTH 12, P0 -127, RATE1 56): %.1f semitones at 10 ms, %.2f at 390 ms"
+                 % (first, last))
+    if not 3.5 < att[1] / att[0] < 4.7:
+        problems.append("env: ATTACK +16 made the attack x %.2f, not about 4" % (att[1] / att[0]))
+    if not 0.2 < rel[1] / rel[0] < 0.33:
+        problems.append("env: RELEASE -16 made the release x %.2f, not about 1/4" % (rel[1] / rel[0]))
+    if abs(hold + 12.04) > 0.5:
+        problems.append("env: HOLD -16 made the held level %.2f dB, not -12.04" % hold)
+    if not (first < -8 and abs(last) < 0.05):
+        problems.append("env: the pitch envelope started %.1f and ended %.2f semitones off" % (first, last))
+    f = fm_record(os.path.join(case_dir, fm_name()))
+    if f["glide"] != 40:
+        problems.append("env: GLIDE +40 left the glide at %d" % f["glide"])
+    u = ui_record(case_dir)
+    more, line = check_drawing("env", u)
+    problems += more
+    lines.append(line + "; %d live updates (the dot), the longest %d ticks" % (u["live"], u["live_max"]))
+    if not u["live"]:
+        problems.append("env: the dot never moved")
+    return problems, lines
+
+
+SPEC_BAR_HZ = [200 * 100 ** (j / 56) for j in range(57)]   # spectrum.c's bars' edges
+
+
+def check_spectrum(case_dir):
+    """The patch view's live spectrum (tests/fw/scripts/spectrum.txt;
+    R-UI-12): the test tone's 1 kHz in its bar, the transforms at about 30
+    a second while there is sound, none at rest."""
+    problems, lines, a, console, _ = check_audio_common("spectrum", case_dir)
+    u1, u2, u3, u = (ui_record(case_dir, t) for t in (1300, 2000, 2900, "end"))
+    bar, height = u1["spec_peak"] & 0xFFFF, u1["spec_peak"] >> 16
+    want = next(j for j in range(56) if SPEC_BAR_HZ[j] <= 1000 < SPEC_BAR_HZ[j + 1])
+    lines.append("  the tone: the tallest bar %d (%.0f to %.0f Hz) at %d of 40; 1 kHz is bar %d"
+                 % (bar, SPEC_BAR_HZ[bar], SPEC_BAR_HZ[bar + 1], height, want))
+    if abs(bar - want) > 1 or height < 30:
+        problems.append("spectrum: the tone's tallest bar %d at %d, expected bar %d at 30 or more" % (bar, height, want))
+    rate = u1["spec_updates"] / 0.5
+    lines.append("  transforms: %d by 1 300 ms (from the tone at 800: %.0f a second), %d at 2 000, %d at 2 900, %d"
+                 " at the end; the longest %d ticks (three parts, with the audio's interrupts)"
+                 % (u1["spec_updates"], rate, u2["spec_updates"], u3["spec_updates"], u["spec_updates"], u["spec_max"]))
+    if not 20 <= rate <= 32:
+        problems.append("spectrum: %.0f transforms a second with the tone, expected about 30" % rate)
+    if u3["spec_updates"] != u2["spec_updates"] or u3["spec_peak"] or u2["spec_peak"]:
+        problems.append("spectrum: at rest the transforms went on (%d, %d) or the bars stayed up"
+                        % (u2["spec_updates"], u3["spec_updates"]))
+    if u["spec_updates"] <= u3["spec_updates"]:
+        problems.append("spectrum: the note after rest brought no transform")
+    more, line = check_drawing("spectrum", u)
+    return problems + more, lines + [line]
+
+
+def check_settings(case_dir):
+    """The settings screen (tests/fw/scripts/settings.txt; R-UI-13,
+    R-UI-14): each row's effect, and the factory reset asked, cancelled,
+    asked again and done."""
+    problems, lines, a, console, _ = check_audio_common("settings", case_dir)
+    m = midi_record(os.path.join(case_dir, midi_name()))
+    f = fm_record(os.path.join(case_dir, fm_name()))
+    msgs = [mm for _, mm in wire_messages(wire_bytes(os.path.join(case_dir, "midi-out.csv")))[0]]
+    want = [(0x92, 70, 100, 2), (0x92, 70, 0, 2), (0x91, 64, 100, 2), (0x81, 64, 0, 2), (0x92, 72, 100, 2),
+            (0x92, 72, 0, 2)]
+    got = [tuple(x) for x in msgs]
+    if got != want:
+        problems.append("settings: MIDI out %s, expected %s" % (got, want))
+    if m["filtered"] < 2 or m["notes_on"] != 2:
+        problems.append("settings: %d messages filtered, %d notes taken; expected 2 or more and 2 (channel 2)"
+                        % (m["filtered"], m["notes_on"]))
+    if f["notes"] != 3:
+        problems.append("settings: %d notes played, expected 3 (channel 2's, KEY18's, thru's; not KEY20's with"
+                        " local control off)" % f["notes"])
+    st_mid = struct.unpack_from("<29i", open(os.path.join(case_dir, "ram-01c00780-f0-2700ms.bin"), "rb").read())
+    st_end = struct.unpack_from("<29i", open(os.path.join(case_dir, "ram-01c00780-f0-end.bin"), "rb").read())
+    resets = store_suite.STORE_FIELDS.index("resets")
+    path = os.path.join(case_dir, "flash.bin")
+    with open(path, "rb") as fl:
+        chip = fl.read()
+    with open(path + ".sha256", "w") as fl:
+        fl.write("%s  flash.bin\n" % hashlib.sha256(chip).hexdigest())
+    os.remove(path)
+    live = sorted(store_suite.st.Image(chip).live())
+    if st_mid[resets] != 0 or st_end[resets] != 1 or live != ["reset"]:
+        problems.append("settings: resets %d after HOME, %d after SAVE, the store holds %s; expected 0, 1, the reset"
+                        % (st_mid[resets], st_end[resets], live))
+    lines.append("  in channel 2 (channel 1 filtered), out channel 3, thru, local off (KEY20 out, not played), bend"
+                 " 12, knobs direct; factory reset asked, HOME cancelled it, SAVE did it (one reset record)")
+    more, line = check_drawing("settings", ui_record(case_dir))
+    return problems + more, lines + [line]
+
+
+AUDIO_CHECKS["settings"] = check_settings
+AUDIO_CHECKS["spectrum"] = check_spectrum
+AUDIO_CHECKS["env"] = check_env
+AUDIO_CHECKS["edit"] = check_edit
+AUDIO_CHECKS["macros"] = check_macros
+AUDIO_CHECKS["viewsload"] = check_viewsload
+INPUT_CHECKS = {"views": check_views, "keys": check_keys, "chords": check_chords, "encoders": check_encoders, "pot": check_pot,
                 "leds": check_leds, "ledshow": check_ledshow}
+
+
+# Since M8a KNOB1 to KNOB4 are the macros unless the settings say "Knobs:
+# direct". The cases written for M5's and M6's controls (midiout,
+# midiround, midilocal) start from a flash chip holding settings that say
+# so, as a player who chose it would have: the store's own record,
+# written by tools/store.py (version 3, the default map, knobs direct).
+KNOBS_DIRECT = os.path.join("out", "fw", "knobs-direct.flash.bin")
+DEFAULT_ROUTES = ((1, 1), (7, 2), (11, 3), (64, 4), (16, 5), (17, 6), (18, 7), (19, 8), (5, 6), (74, 7))
+
+
+def settings_bytes(knobs):
+    """struct midi_settings, version 3: midi.c's defaults, with knobs."""
+    routes = [b for r in DEFAULT_ROUTES for b in r] + [0] * (2 * (16 - len(DEFAULT_ROUTES)))
+    return bytes([3, 0, 2, len(DEFAULT_ROUTES)] + routes + [1, 0, 1, knobs])
+
+
+def write_knobs_direct():
+    s = store_suite.st.Store()
+    s.put(store_suite.st.SETTINGS, 0, 3, settings_bytes(1))
+    with open(os.path.join(ROOT, KNOBS_DIRECT), "wb") as f:
+        f.write(s.chip())
 
 
 def build_tests(build):
@@ -2146,6 +2589,7 @@ def main():
         print("start slack: %d time base ticks (bss cleared before main starts the time base)" % START_SLACK)
     symbols = elf_symbols(os.path.join(a.build, "app.elf"))
     problems = build_tests(a.build)
+    write_knobs_direct()
 
     out = os.path.abspath(a.out)
     p = subprocess.run(["sh", "tools/fwtest", "suite", SUITE, "--out", out], cwd=ROOT,
