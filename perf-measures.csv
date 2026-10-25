@@ -52,3 +52,4 @@ e5ff5c918390661214813fa6c37830cacb73e7c3,2026-10-25T13:18:34Z,M8,loaded_per_peri
 7dab4d94374ffc0bed18d912995fd7d71a5e99e0,2026-10-25T13:19:22Z,M8,loaded_per_period,98295.803,instructions per audio block,131072,-8.252,yes
 7aeb6ea30bc188289299b100b1ae93526e7590f5,2026-10-25T13:20:06Z,M8,loaded_per_period,98295.803,instructions per audio block,139264,-8.252,no
 7abdb0fdabc2a97b52aefadfbb327c311bf1bf06,2026-10-25T13:21:14Z,M8,loaded_per_period,105501.023,instructions per audio block,139264,-1.527,no
+7d19f64194f10c476c602d10553ca115566ba228,2026-10-25T13:21:23Z,M8,loaded_per_period,104401.003,instructions per audio block,139264,-2.554,no

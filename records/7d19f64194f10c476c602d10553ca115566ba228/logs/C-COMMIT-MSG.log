@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 7abdb0fdabc2a97b52aefadfbb327c311bf1bf06..7d19f64194f10c476c602d10553ca115566ba228
+OK     05cf0b18c480 firmware: the operator view, live levels and editing (M8a, part 3)
+OK     3a5c91292659 tests: the edit case without its capture at 300 ms
+EXEMPT 277cbabc408a (merge) docs: merge m8a/macros into m8a/edit (M8a)
+EXEMPT 7d19f64194f1 (merge) Merge pull request #120 from japes98/m8a/edit
+4 commit(s) checked: PASS
+
+exit status 0

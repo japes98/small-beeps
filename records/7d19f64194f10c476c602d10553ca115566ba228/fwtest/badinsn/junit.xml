@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="1" failures="1">
+  <testsuite name="boot.badinsn" tests="1" failures="1">
+    <testcase classname="boot.badinsn" name="run">
+      <failure message="fault: core 0 at pc 0x01c2cb64: an instruction the emulated CPU cannot decode"/>
+    </testcase>
+  </testsuite>
+</testsuites>

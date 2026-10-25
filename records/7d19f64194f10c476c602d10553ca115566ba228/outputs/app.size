@@ -1,0 +1,7 @@
+code 30888
+data 80
+bss 165416
+image 30968
+stack 4096
+irq_stack 2048
+ram_code 30768
