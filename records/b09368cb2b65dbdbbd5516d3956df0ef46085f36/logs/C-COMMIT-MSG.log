@@ -1,0 +1,11 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range cfddc5346f7ac80376aba07655b475afb560efc0..b09368cb2b65dbdbbd5516d3956df0ef46085f36
+OK     c66f4ddb0ce4 docs: the flash's pins on the chip, and what start-up leaves alone (HW-85)
+OK     8c5d5a2ae409 docs: evening-1024's exposure, the pin and the flash pins
+EXEMPT 68f317d7ac06 (merge) docs: merge spec/evening-start into spec/flash-pins
+OK     37be435bf7d6 docs: HW-85 marks what rests on the AC7911B datasheet alone
+EXEMPT 0a1eb8203350 (merge) docs: merge spec/evening-start into spec/flash-pins
+EXEMPT a65621f54702 (merge) docs: merge spec/evening-start into spec/flash-pins
+EXEMPT b09368cb2b65 (merge) Merge pull request #113 from japes98/spec/flash-pins
+7 commit(s) checked: PASS
+
+exit status 0
