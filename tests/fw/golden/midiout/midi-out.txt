@@ -25,8 +25,8 @@
 1071.107 control-change ch 1 ctrl 18 value 55
 1079.811 control-change ch 1 ctrl 18 value 54
 1208.920 control-change ch 1 ctrl 19 value 73
-1216.173 control-change ch 1 ctrl 19 value 82
-1224.877 control-change ch 1 ctrl 19 value 91
+1216.174 control-change ch 1 ctrl 19 value 82
+1224.878 control-change ch 1 ctrl 19 value 91
 1232.131 control-change ch 1 ctrl 19 value 100
 1240.835 control-change ch 1 ctrl 19 value 109
 1248.088 control-change ch 1 ctrl 19 value 118
@@ -35,7 +35,7 @@
 1315.956 program-change ch 1 program 2
 1504.860 note-on ch 1 key 69 vel 100
 1604.953 note-on ch 1 key 69 vel 0
-1755.824 control-change ch 1 ctrl 126 value 1
+1755.825 control-change ch 1 ctrl 126 value 1
 1855.920 control-change ch 1 ctrl 127 value 0
 2108.333 control-change ch 1 ctrl 16 value 80
 2117.037 control-change ch 1 ctrl 16 value 83

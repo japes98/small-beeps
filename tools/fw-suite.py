@@ -102,7 +102,9 @@ the suite through tools/fwtest (the pinned image), and then checks:
   midiout's engine state and pitches; midithru passes on every message
   but the SysEx, in order; midilocal plays nothing from the panel while
   local control is off; midiburst's policy leaves no note on unended;
-  midioutlat's key-to-wire latency within MIDI_OUT_LATENCY_MS.
+  midioutlat's key-to-wire latency within MIDI_OUT_LATENCY_MS;
+  presetends: PRESETS stops at the ends (no program change, no note
+  cut, past either end).
 
 Prints what it saw for the record, and exits 1 if anything failed.
 """
@@ -150,6 +152,7 @@ EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "complete
           "midichan": "completed", "midipanel": "completed", "midilat": "completed",
           "midiout": "completed", "midiround": "completed", "midithru": "completed",
           "midilocal": "completed", "midiburst": "completed", "midioutlat": "completed",
+          "presetends": "completed",
           "views": "completed", "viewsload": "completed", "macros": "completed", "edit": "completed", "env": "completed",
           "spectrum": "completed", "settings": "completed"}
 
@@ -791,8 +794,8 @@ def check_chords(case_dir):
         problems.append("chords: the chattering key gave %s, not one press and one release" % k20)
     if any(e[1] == 21 and e[4] > 1150 * TICKS_PER_MS for e in log):
         problems.append("chords: the 1.5 ms glitch gave an event")
-    if (values[SELECT], values[PRESETS]) != (3, -3):
-        problems.append("chords: SELECT %d, PRESETS %d with keys held in their columns, not +3 and -3"
+    if (values[SELECT], values[PRESETS]) != (-3, 3):
+        problems.append("chords: SELECT %d, PRESETS %d with keys held in their columns, not -3 and +3"
                         % (values[SELECT], values[PRESETS]))
     lines.append("  no ghost at the rectangle's fourth corner; chatter gave one press and one release;"
                  " the glitch none; encoders exact with keys held in their columns")
@@ -2125,12 +2128,36 @@ def check_midioutlat(case_dir):
     return problems, lines
 
 
+def check_presetends(case_dir):
+    """PRESETS stops at the ends (tests/fw/scripts/presetends.txt): turned
+    down from the first program, or up from the last, it does nothing (the
+    held note sounds on, no program change goes out); up by 30 from the
+    first it stops at the last program that holds a patch."""
+    problems, lines, a, _, _ = check_audio_common("presetends", case_dir)
+    more, l2, o, msgs, _ = midi_out_common("presetends", case_dir)
+    problems, lines = problems + more, lines + l2
+    last = len(fm_patch.TEST_PATCHES) - 1
+    # fwtest turns the 30 detents one at a time: a program change each up
+    # to the last, then none.
+    problems += expect_messages("presetends", msgs, [(0x90, 53, 100)] + [(0xC0, n) for n in range(1, last + 1)]
+                                + [(0x90, 53, 0)], lines)
+    f450, f = fm_record(os.path.join(case_dir, fm_name("450ms"))), fm_record(os.path.join(case_dir, fm_name("end")))
+    if (f450["patch"], f450["voices0"] + f450["voices1"], f["patch"], f["notes"]) != (0, 1, last, 1):
+        problems.append("presetends: program %d with %d voices sounding after the turn down, program %d and %d notes"
+                        " at the end; expected 0, 1, %d, 1" % (f450["patch"], f450["voices0"] + f450["voices1"],
+                                                               f["patch"], f["notes"], last))
+    lines.append("  PRESETS down from 001: nothing (KEY1 sounds on); up 30: to %03d, a program change a detent"
+                 " until then; up again: nothing" % (last + 1))
+    return problems, lines
+
+
 MIDI_CHECKS = {"midimsg": check_midimsg, "midirun": midi_only("midirun"),
                "midisysex": midi_only("midisysex"), "midijunk": midi_only("midijunk", last_only=True),
                "mididense": check_mididense, "midisustain": check_midisustain,
                "midichan": check_midichan, "midipanel": check_midipanel, "midilat": check_midilat,
                "midiout": check_midiout, "midiround": check_midiround, "midithru": check_midithru,
-               "midilocal": check_midilocal, "midiburst": check_midiburst, "midioutlat": check_midioutlat}
+               "midilocal": check_midilocal, "midiburst": check_midiburst, "midioutlat": check_midioutlat,
+               "presetends": check_presetends}
 
 
 AUDIO_CHECKS = {"tone": check_tone, "notes": check_notes, "audioload": check_audioload,

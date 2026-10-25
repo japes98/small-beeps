@@ -819,14 +819,21 @@ static u32 program_ok(u32 n)
     return n < FM_PATCHES || (n < FM_PROGRAMS && (user_used >> (n - FM_PATCHES) & 1u));
 }
 
-/* delta programs on from n, over the programs there are, round the ends. */
+/* delta programs on from n, over the programs there are, stopping at the
+ * first and the last: no wrap from one end to the other, which jumps
+ * across the programs live (the owner's answer on #126). */
 static u32 program_step(u32 n, int delta)
 {
     while (delta) {
         int d = delta > 0 ? 1 : -1;
+        u32 m = n;
+
         do
-            n = (n + FM_PROGRAMS + (u32)d) % FM_PROGRAMS;
-        while (!program_ok(n));
+            m += (u32)d;
+        while (m < FM_PROGRAMS && !program_ok(m));
+        if (m >= FM_PROGRAMS)
+            break;
+        n = m;
         delta -= d;
     }
     return n;
@@ -1434,7 +1441,12 @@ static void events(void)
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_PLAY) {
             tone_state = tone_state == TONE_OFF || tone_state == TONE_RELEASE ? TONE_ATTACK : TONE_RELEASE;
         } else if (e.kind == INPUT_TURN && e.control == INPUT_PRESETS) {
-            panel_program = program_step(local ? patch_now : panel_program, (int)e.value);
+            u32 from = local ? patch_now : panel_program;
+            /* A turn on past an end does nothing: no notes cut, no
+             * edits lost, nothing sent (as a knob past its span). */
+            if (program_step(from, (int)e.value) == from)
+                continue;
+            panel_program = program_step(from, (int)e.value);
             if (local) {
                 all_off();
                 select_patch(panel_program);
