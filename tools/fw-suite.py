@@ -150,7 +150,7 @@ EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "complete
           "midichan": "completed", "midipanel": "completed", "midilat": "completed",
           "midiout": "completed", "midiround": "completed", "midithru": "completed",
           "midilocal": "completed", "midiburst": "completed", "midioutlat": "completed",
-          "views": "completed", "viewsload": "completed", "macros": "completed", "edit": "completed"}
+          "views": "completed", "viewsload": "completed", "macros": "completed", "edit": "completed", "env": "completed"}
 
 MARKER = 0x44304253        # "SB0D", firmware/src/sb.h
 TICKS_PER_MS = 24000       # HW-13
@@ -2401,6 +2401,60 @@ def check_edit(case_dir):
     return problems[:20], lines
 
 
+def check_env(case_dir):
+    """The envelope view's editing (tests/fw/scripts/env.txt; R-UI-11):
+    each knob's effect on the same note, measured, and the dot."""
+    problems, lines, a, console, wav = check_audio_common("env", case_dir)
+    if wav is None:
+        return problems + ["env: no audio"], lines
+    x, ends = wav
+    rate = aa.RATE
+    f0 = aa.note_hz(70)
+
+    def onset(ms):
+        i = int(ms * rate / 1000)
+        while i < len(x) and not x[i]:
+            i += 1
+        return i
+
+    att = [aa.attack_ms(x[:onset(t) + int(0.45 * rate)], onset(t)) for t in (800, 1900)]
+    rel = [aa.release_ms(x, int(t * rate / 1000) + int(0.004 * rate)) for t in (1300, 3000)]
+
+    def level(t):
+        i = onset(t) + int(0.4 * rate)
+        return aa.sine_fit(x[i:i + 2048])["amplitude"]
+
+    hold = 20 * math.log10(level(3300) / level(800))
+    i = onset(5800)
+    track = aa.pitch_track(x, i, i + int(0.4 * rate), step_ms=10, window_ms=20)
+    first, last = (12 * math.log2(track[k][1] / f0) for k in (0, -1))
+    lines.append("  ATTACK 40 -> 56: attack to -3 dB %.1f -> %.1f ms (x %.2f; the codes say x 4)"
+                 % (att[0], att[1], att[1] / att[0]))
+    lines.append("  RELEASE 64 -> 48: release to -60 dB %.1f -> %.1f ms (x %.2f; x 1/4)" % (rel[0], rel[1], rel[1] / rel[0]))
+    lines.append("  HOLD 87 -> 71: the held level %.2f dB (-12.04)" % hold)
+    lines.append("  pitch envelope (DEPTH 12, P0 -127, RATE1 56): %.1f semitones at 10 ms, %.2f at 390 ms"
+                 % (first, last))
+    if not 3.5 < att[1] / att[0] < 4.7:
+        problems.append("env: ATTACK +16 made the attack x %.2f, not about 4" % (att[1] / att[0]))
+    if not 0.2 < rel[1] / rel[0] < 0.33:
+        problems.append("env: RELEASE -16 made the release x %.2f, not about 1/4" % (rel[1] / rel[0]))
+    if abs(hold + 12.04) > 0.5:
+        problems.append("env: HOLD -16 made the held level %.2f dB, not -12.04" % hold)
+    if not (first < -8 and abs(last) < 0.05):
+        problems.append("env: the pitch envelope started %.1f and ended %.2f semitones off" % (first, last))
+    f = fm_record(os.path.join(case_dir, fm_name()))
+    if f["glide"] != 40:
+        problems.append("env: GLIDE +40 left the glide at %d" % f["glide"])
+    u = ui_record(case_dir)
+    more, line = check_drawing("env", u)
+    problems += more
+    lines.append(line + "; %d live updates (the dot), the longest %d ticks" % (u["live"], u["live_max"]))
+    if not u["live"]:
+        problems.append("env: the dot never moved")
+    return problems, lines
+
+
+AUDIO_CHECKS["env"] = check_env
 AUDIO_CHECKS["edit"] = check_edit
 AUDIO_CHECKS["macros"] = check_macros
 AUDIO_CHECKS["viewsload"] = check_viewsload

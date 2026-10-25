@@ -141,6 +141,9 @@ static u32 edited;
 /* Each operator's loudest gain now (2^-30), while the operator view shows
  * (ui.h); main draws them. */
 volatile s32 fm_op_level[FM_OPS];
+/* The envelope view's live dot (M8a part 4): where the last note started
+ * is in the envelope shown, while ENV shows. */
+volatile struct fm_env_dot fm_env_dot;
 static u32 user_used;
 volatile u32 fm_saved_seq[FM_USER_SLOTS], fm_saved_reset[FM_USER_SLOTS];
 volatile u32 fm_reset_seq;
@@ -983,10 +986,22 @@ static u32 ratio_step(u32 f, int d)
     return f;
 }
 
+/* After an edit: the copy's check sum, parsed again. */
+static void edit_done(void)
+{
+    u32 sum = fm_patch_sum(edit_raw);
+
+    edit_raw[FM_SUM_OFFSET] = (u8)sum;
+    edit_raw[FM_SUM_OFFSET + 1] = (u8)(sum >> 8);
+    patch_parse(&patches[patch_now], edit_raw);
+    edited = 1;
+    shaped_patch = 0xFFFFFFFFu;
+}
+
 static void edit_op(u32 knob, int d)
 {
     u8 *o = edit_raw + FM_OP_OFFSET + FM_OP_BYTES * fm_ui.op;
-    u32 f = (u32)o[FMO_FREQ] | (u32)o[FMO_FREQ + 1] << 8, sum;
+    u32 f = (u32)o[FMO_FREQ] | (u32)o[FMO_FREQ + 1] << 8;
 
     switch (fm_ui.page * 4u + knob) {
     case 0:   /* RATIO, or the fixed frequency a semitone a detent */
@@ -1028,12 +1043,31 @@ static void edit_op(u32 knob, int d)
     f = f < 1 ? 1 : f > 65535 ? 65535 : f;
     o[FMO_FREQ] = (u8)f;
     o[FMO_FREQ + 1] = (u8)(f >> 8);
-    sum = fm_patch_sum(edit_raw);
-    edit_raw[FM_SUM_OFFSET] = (u8)sum;
-    edit_raw[FM_SUM_OFFSET + 1] = (u8)(sum >> 8);
-    patch_parse(&patches[patch_now], edit_raw);
-    edited = 1;
-    shaped_patch = 0xFFFFFFFFu;
+    edit_done();
+}
+
+/* The envelope view's editing (M8a part 4): the selected operator's four
+ * rates or three levels, the pitch envelope's three rates and depth or
+ * four levels, or the glide time. */
+static void edit_env(u32 knob, int d)
+{
+    u8 *o = edit_raw + FM_OP_OFFSET + FM_OP_BYTES * fm_ui.op;
+
+    if (fm_ui.env == 0 && fm_ui.page == 0)
+        o[FMO_RATE + knob] = (u8)clamp(o[FMO_RATE + knob] + d, 0, 127);
+    else if (fm_ui.env == 0 && knob < 3)
+        o[FMO_ENV_LEVEL + knob] = (u8)clamp(o[FMO_ENV_LEVEL + knob] + d, 0, 127);
+    else if (fm_ui.env == 1 && fm_ui.page == 0 && knob < 3)
+        edit_raw[FMP_PITCH_RATE + knob] = (u8)clamp(edit_raw[FMP_PITCH_RATE + knob] + d, 0, 127);
+    else if (fm_ui.env == 1 && fm_ui.page == 0)
+        edit_raw[FMP_PITCH_DEPTH] = (u8)clamp(signed8(edit_raw[FMP_PITCH_DEPTH]) + d, -48, 48);
+    else if (fm_ui.env == 1)
+        edit_raw[FMP_PITCH_LEVEL + knob] = (u8)clamp(signed8(edit_raw[FMP_PITCH_LEVEL + knob]) + d, -127, 127);
+    else if (fm_ui.env == 2 && knob == 0)
+        edit_raw[FMP_GLIDE] = (u8)clamp(edit_raw[FMP_GLIDE] + d, 0, 127);
+    else
+        return;
+    edit_done();
 }
 
 /* KNOB1 to KNOB4 as the engine uses them (DESIGN-NOTES.md, M5, "The
@@ -1318,10 +1352,19 @@ static void events(void)
                 if (input_value(INPUT_SEL) && e.control >= INPUT_KEY_OP1 && e.control <= INPUT_KEY_POLY
                     && op_of_key(e.control) >= 0) {
                     fm_ui.op = (u8)op_of_key(e.control);
+                    if (fm_ui.env) {
+                        fm_ui.env = 0;   /* back to an operator's envelope */
+                        fm_ui.page = 0;
+                    }
                     key_note[k] = -1;
                     continue;
                 }
                 if (input_value(INPUT_SEL) && (e.control == INPUT_KEY_PIT || e.control == INPUT_KEY_GLO)) {
+                    /* The envelope view with the pitch envelope, or the
+                     * glide (M8a part 4). */
+                    fm_ui.screen = UI_ENV;
+                    fm_ui.env = e.control == INPUT_KEY_PIT ? 1 : 2;
+                    fm_ui.page = 0;
                     key_note[k] = -1;
                     continue;
                 }
@@ -1362,6 +1405,7 @@ static void events(void)
             fm_ui.screen = (u8)(e.control == INPUT_EDIT ? UI_EDIT : e.control == INPUT_ENV ? UI_ENV
                                 : e.control == INPUT_GLO ? UI_SETTINGS : UI_PATCH);
             fm_ui.page = 0;
+            fm_ui.env = 0;
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_OCT_DOWN) {
             octave -= octave > -OCTAVES;
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_OCT_UP) {
@@ -1384,6 +1428,9 @@ static void events(void)
             if (fm_ui.screen == UI_EDIT) {
                 if (local)
                     edit_op(k, e.value);
+            } else if (fm_ui.screen == UI_ENV) {
+                if (local)
+                    edit_env(k, e.value);
             } else {
                 const s8 (*span)[2] = spans();
                 knob_pos[k] = clamp(knob_pos[k] + e.value, span[k][0], span[k][1]);
@@ -1392,6 +1439,9 @@ static void events(void)
         } else if (e.kind == INPUT_TURN && e.control == INPUT_SELECT && fm_ui.screen == UI_EDIT) {
             /* SELECT steps through the operator view's three pages. */
             fm_ui.page = (u8)((fm_ui.page + 3u + (u32)(e.value > 0 ? 1 : 2)) % 3u);
+        } else if (e.kind == INPUT_TURN && e.control == INPUT_SELECT && fm_ui.screen == UI_ENV && fm_ui.env < 2) {
+            /* The envelope view's two pages: rates, then levels. */
+            fm_ui.page ^= 1;
         }
     }
     midi_poll();
@@ -1531,6 +1581,7 @@ void fm_block(s32 *out, u32 frames)
             sb_audio.engine[SYNTH_VOICES_ON] = 0;
             for (n = 0; n < FM_OPS; n++)
                 fm_op_level[n] = 0;
+            fm_env_dot.valid = 0;
         }
         return;
     }
@@ -1562,6 +1613,26 @@ void fm_block(s32 *out, u32 frames)
             sb_fm.wait_max = d;
         for (n = 0; n < AUDIO_FRAMES; n++)
             mix[0][n] += mix[1][n];
+    }
+    /* The envelope view's dot (M8a part 4), only while it shows: the
+     * newest note still sounding. */
+    if (fm_ui.screen == UI_ENV) {
+        u32 pick = FM_VOICES;
+        for (n = 0; n < FM_VOICES; n++)
+            if (voice[n].state == VOICE_ON && (pick == FM_VOICES || ctl[n].age > ctl[pick].age))
+                pick = n;
+        if (pick == FM_VOICES || fm_ui.env == 2) {
+            fm_env_dot.valid = 0;
+        } else if (fm_ui.env == 1) {
+            fm_env_dot.stage = ctl[pick].pitch_stage;
+            fm_env_dot.att = ctl[pick].pitch_level;
+            fm_env_dot.valid = 2;
+        } else {
+            const struct fm_op *o = &voice[pick].op[fm_ui.op];
+            fm_env_dot.stage = o->stage;
+            fm_env_dot.att = o->stage == ENV_ATTACK ? o->lin : o->att;
+            fm_env_dot.valid = o->stage != ENV_OFF;
+        }
     }
     /* The operator view's live levels (M8a), only while it shows. */
     if (fm_ui.screen == UI_EDIT) {

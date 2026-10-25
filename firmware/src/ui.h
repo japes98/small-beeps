@@ -51,6 +51,16 @@ u32 fm_user_used(void);             /* user slots holding a patch, bit n for slo
 /* Each operator's loudest gain now, 2^-30, written each block while the
  * operator view shows (since M8a part 3), 0 when nothing sounds. */
 extern volatile s32 fm_op_level[6];
+/* The envelope view's dot (since M8a part 4), written each block while
+ * ENV shows, for the newest note sounding: valid 0 (none), 1 (an
+ * operator's envelope: stage ENV_*, att its linear gain 2^-30 in the
+ * attack, else its attenuation in 2^-16 octaves) or 2 (the pitch
+ * envelope: stage 0 to 2, att its level in 2^-16 of a level). */
+struct fm_env_dot {
+    u32 valid, stage;
+    s32 att;
+};
+extern volatile struct fm_env_dot fm_env_dot;
 
 /* views.c, from main's loop: take the panel's events (LEDs, the event
  * line) and the engine's state, and draw what changed. view_message puts

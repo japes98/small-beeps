@@ -227,6 +227,34 @@ static void strip_edit(void)
     }
 }
 
+/* The envelope view's strip (M8a part 4). */
+static void strip_env(void)
+{
+    static const char *const rates[4] = { "ATTACK", "DECAY1", "DECAY2", "RELEASE" };
+    static const char *const levels[3] = { "PEAK", "D1 LEVEL", "HOLD" };
+    static const char *const prates[4] = { "RATE1", "RATE2", "RATE3", "DEPTH" };
+    static const char *const plevels[4] = { "P0", "P1", "P2", "P3" };
+    const u8 *o = op_bytes(ui.op);
+    u32 k;
+
+    for (k = 0; k < 4; k++) {
+        if (ui.env == 2 && k)
+            strip_text(k, "", "");
+        else if (ui.env == 2)
+            strip_set(0, "GLIDE", prog[FMP_GLIDE], 0);
+        else if (ui.env == 1 && !ui.page)
+            strip_set(k, prates[k], k < 3 ? prog[FMP_PITCH_RATE + k] : s8v(prog[FMP_PITCH_DEPTH]), k == 3);
+        else if (ui.env == 1)
+            strip_set(k, plevels[k], s8v(prog[FMP_PITCH_LEVEL + k]), 1);
+        else if (!ui.page)
+            strip_set(k, rates[k], o[FMO_RATE + k], 0);
+        else if (k < 3)
+            strip_set(k, levels[k], o[FMO_ENV_LEVEL + k], 0);
+        else
+            strip_text(k, "", "");
+    }
+}
+
 static void strip_work(void)
 {
     static const char *const macros[4] = { "BRIGHT", "COLOR", "SHAPE", "MOTION" };
@@ -234,6 +262,10 @@ static void strip_work(void)
 
     if (ui.screen == UI_EDIT) {
         strip_edit();
+        return;
+    }
+    if (ui.screen == UI_ENV) {
+        strip_env();
         return;
     }
     if (ui.knobs) {
@@ -275,9 +307,7 @@ static u32 body_work(void)
      * on its info line and strip, so an edit redraws only those. */
     if (ui.screen == UI_PATCH)
         h = mix(h, prog[FMP_FEEDBACK]);
-    else if (ui.screen == UI_ENV)
-        for (i = 0; i < FM_PATCH_BYTES; i++)
-            h = mix(h, prog[i]);
+    /* The envelope view's graph is its own part (graph_work). */
     if (ui.screen == UI_SETTINGS) {
         const u8 *s = (const u8 *)&midi_settings;
         for (i = 0; i < sizeof midi_settings; i++)
@@ -466,6 +496,231 @@ static void draw_meter(u32 i, u32 width)
     meter_drawn[i] = width;
 }
 
+/* --- The envelope view (M8a part 4) -------------------------------------
+ * The envelope drawn to scale: each stage's width is its time code (a
+ * code is 2^(t/8) ms, so the drawing's time axis is logarithmic, as the
+ * codes are), the held stage a fixed width; height is the level code (an
+ * eighth of an octave a step). A dot shows where the newest note is now;
+ * the pixels under it are kept, so moving it redraws and sends two small
+ * rectangles, never the graph. */
+#define GRAPH_X 8u
+#define GRAPH_Y (BODY_Y + 24u)
+#define GRAPH_W 224u
+#define GRAPH_H 112u
+#define HOLD_W  36u
+#define DOT     5u
+
+static u32 gx[6], gy[6], gn;          /* the graph's points as drawn */
+static int glevel[6];                 /* and their levels */
+static u32 graph_sig, graph_sig_marked;
+
+static u32 y_level(int level)         /* 0 to 127, bottom to top */
+{
+    return GRAPH_Y + GRAPH_H - 1u - (u32)level * (GRAPH_H - 1u) / 127u;
+}
+
+static u32 y_signed(int level)        /* -127 to 127 about the middle */
+{
+    return (u32)((int)(GRAPH_Y + GRAPH_H / 2u) - level * (int)(GRAPH_H / 2u - 1u) / 127);
+}
+
+static void graph_points(void)
+{
+    u32 i, total = 0, x = GRAPH_X, w[4];
+
+    if (ui.env == 0) {
+        const u8 *o = op_bytes(ui.op);
+        int lv[6] = { 0, o[FMO_ENV_LEVEL], o[FMO_ENV_LEVEL + 1], o[FMO_ENV_LEVEL + 2], o[FMO_ENV_LEVEL + 2], 0 };
+        for (i = 0; i < 4; i++)
+            total += w[i] = o[FMO_RATE + i] + 8u;
+        for (i = 0; i < 6; i++) {
+            gx[i] = x;
+            glevel[i] = lv[i];
+            gy[i] = y_level(lv[i]);
+            if (i < 3)
+                x += w[i] * (GRAPH_W - HOLD_W) / total;
+            else if (i == 3)
+                x += HOLD_W;
+            else
+                x += w[3] * (GRAPH_W - HOLD_W) / total;
+        }
+        gn = 6;
+    } else if (ui.env == 1) {
+        /* P0 at the note on, P1, P2 held, P3 after the release. */
+        int lv[5];
+        lv[0] = s8v(prog[FMP_PITCH_LEVEL]);
+        lv[1] = s8v(prog[FMP_PITCH_LEVEL + 1]);
+        lv[2] = lv[3] = s8v(prog[FMP_PITCH_LEVEL + 2]);
+        lv[4] = s8v(prog[FMP_PITCH_LEVEL + 3]);
+        for (i = 0; i < 3; i++)
+            total += w[i] = prog[FMP_PITCH_RATE + i] + 8u;
+        for (i = 0; i < 5; i++) {
+            gx[i] = x;
+            glevel[i] = lv[i];
+            gy[i] = y_signed(lv[i]);
+            if (i < 2)
+                x += w[i] * (GRAPH_W - HOLD_W) / total;
+            else if (i == 2)
+                x += HOLD_W;
+            else
+                x += w[2] * (GRAPH_W - HOLD_W) / total;
+        }
+        gn = 5;
+    } else {
+        /* Glide: from the last note's pitch to the new one's, over its
+         * time code. */
+        gx[0] = GRAPH_X;
+        gy[0] = GRAPH_Y + GRAPH_H - 1u;
+        gx[1] = GRAPH_X + (prog[FMP_GLIDE] + 8u) * (GRAPH_W - HOLD_W) / 135u;
+        gy[1] = GRAPH_Y;
+        gx[2] = GRAPH_X + GRAPH_W - 1u;
+        gy[2] = GRAPH_Y;
+        gn = 3;
+    }
+}
+
+static u32 graph_work(void)
+{
+    u32 h = 2166136261u, i;
+
+    if (ui.screen != UI_ENV)
+        return 0;
+    h = mix(h, ui.env);
+    h = mix(h, ui.op);
+    for (i = 0; i < FM_PATCH_BYTES; i++)
+        h = mix(h, prog[i]);
+    return h;
+}
+
+/* The dot as drawn, the pixels under it, and where it should be. */
+static u32 dot_x, dot_y, dot_on;
+static u16 dot_bg[DOT * DOT];
+static u32 dot_want_x, dot_want_y, dot_want_on;
+static char stage_text[6], stage_drawn[6];
+
+/* clear: 0 when the body's bands have just cleared it. */
+static void draw_graph(u32 clear)
+{
+    u32 i;
+
+    graph_points();
+    if (clear)
+        gfx_fill(GRAPH_X, GRAPH_Y, GRAPH_W, GRAPH_H, BLACK);
+    gfx_fill(GRAPH_X, ui.env == 1 ? y_signed(0) : GRAPH_Y + GRAPH_H - 1u, GRAPH_W, 1, DARK);
+    for (i = 0; i + 1 < gn; i++)
+        gfx_line((int)gx[i], (int)gy[i], (int)gx[i + 1], (int)gy[i + 1], CYAN);
+    if (ui.env == 2) {
+        char b[24];
+        u32 n = put(b, 0, "glide ");
+        n = decimal(b, n, prog[FMP_GLIDE], 0);
+        b[n] = 0;
+        text(GRAPH_X + GRAPH_W - 16 * FONT_CELL, GRAPH_Y + GRAPH_H - 20, b, GREY, 1);
+    }
+    dot_on = 0;
+    graph_sig_marked = graph_sig;
+}
+
+/* The level code of the dot's envelope now: 0 to 127 for an operator's,
+ * -127 to 127 for the pitch envelope. */
+static int dot_level(void)
+{
+    s32 a = fm_env_dot.att;
+
+    if (fm_env_dot.valid == 2)
+        return a / 65536;
+    if (fm_env_dot.stage == 0) {   /* the attack: a linear gain */
+        u32 lg, x;
+        if (a <= 0)
+            return 0;
+        lg = 31u - (u32)__builtin_clz((u32)a);
+        x = (30u - lg) * 16u - (lg >= 4 ? ((u32)a >> (lg - 4)) & 15u : 0);
+        return x >= 254 ? 0 : 127 - (int)(x / 2);
+    }
+    a = 127 - a / 8192;
+    return a < 0 ? 0 : a;
+}
+
+/* Where the dot goes: along its stage's segment by how far its level has
+ * come from the stage's start to its end (the held stage: its middle). */
+static void dot_work(void)
+{
+    static const char *const op_stages[5] = { "A", "D1", "D2", "HOLD", "R" };
+    static const char *const pitch_stages[3] = { "P1", "P2", "R" };
+    u32 seg;
+    int lv, from, to, frac;
+
+    dot_want_on = 0;
+    stage_text[0] = 0;
+    if (!fm_env_dot.valid || ui.env == 2 || (fm_env_dot.valid == 2) != (ui.env == 1))
+        return;
+    lv = dot_level();
+    if (ui.env == 0) {
+        seg = fm_env_dot.stage;
+        if (seg > 4)
+            return;
+        copy_text(stage_text, op_stages[seg]);
+        if (seg == 3) {
+            dot_want_x = (gx[3] + gx[4]) / 2;
+            dot_want_y = y_level(lv);
+            dot_want_on = 1;
+        }
+    } else {
+        seg = fm_env_dot.stage > 2 ? 2 : fm_env_dot.stage;
+        copy_text(stage_text, pitch_stages[seg]);
+        if (seg == 2)
+            seg = 3;   /* released: from the held end toward P3 */
+    }
+    if (!dot_want_on) {
+        from = glevel[seg];
+        to = glevel[seg + 1];
+        frac = to == from ? 256 : (lv - from) * 256 / (to - from);
+        frac = frac < 0 ? 0 : frac > 256 ? 256 : frac;
+        dot_want_x = gx[seg] + (u32)((int)(gx[seg + 1] - gx[seg]) * frac / 256);
+        dot_want_y = ui.env == 1 ? y_signed(lv) : y_level(lv);
+        dot_want_on = 1;
+    }
+    dot_want_x = dot_want_x < GRAPH_X + 2 ? GRAPH_X : dot_want_x - 2;
+    dot_want_y = dot_want_y < GRAPH_Y + 2 ? GRAPH_Y : dot_want_y - 2;
+    if (dot_want_x > GRAPH_X + GRAPH_W - DOT)
+        dot_want_x = GRAPH_X + GRAPH_W - DOT;
+    if (dot_want_y > GRAPH_Y + GRAPH_H - DOT)
+        dot_want_y = GRAPH_Y + GRAPH_H - DOT;
+}
+
+/* Puts back what was under the dot, draws it where it should be, and
+ * sends both small rectangles; and the stage's name beside the title. */
+static void dot_move(void)
+{
+    u32 r, i;
+
+    if (dot_on) {
+        for (r = 0; r < DOT; r++)
+            for (i = 0; i < DOT; i++)
+                sb_fb[(dot_y + r) * SCREEN_W + dot_x + i] = dot_bg[r * DOT + i];
+        lcd_send_rect(dot_x, dot_y, DOT, DOT);
+        dot_on = 0;
+    }
+    if (dot_want_on) {
+        dot_x = dot_want_x;
+        dot_y = dot_want_y;
+        for (r = 0; r < DOT; r++)
+            for (i = 0; i < DOT; i++)
+                dot_bg[r * DOT + i] = sb_fb[(dot_y + r) * SCREEN_W + dot_x + i];
+        gfx_fill(dot_x, dot_y, DOT, DOT, YELLOW);
+        lcd_send_rect(dot_x, dot_y, DOT, DOT);
+        dot_on = 1;
+    }
+    if (!same(stage_text, stage_drawn)) {
+        char b[12];
+        u32 n = put(b, 0, stage_text[0] ? "stage " : "");
+        n = put(b, n, stage_text);
+        pad(b, n, 10);
+        text(SCREEN_W - 4 - 10 * FONT_CELL, BODY_Y + 4, b, YELLOW, 1);
+        lcd_send_rect(SCREEN_W - 4 - 10 * FONT_CELL, BODY_Y + 4, 10 * FONT_CELL, FONT_H);
+        copy_text(stage_drawn, stage_text);
+    }
+}
+
 /* --- The bodies ---------------------------------------------------------- */
 
 static const u8 *op_bytes(u32 i)
@@ -573,26 +828,21 @@ static void draw_info(void)
 
 static void body_env(void)
 {
-    const u8 *o = op_bytes(ui.op);
-    char b[41];
-    u32 n, i;
+    char b[24];
+    u32 n;
 
-    n = put(b, 0, "ENV  OP");
-    n = decimal(b, n, ui.op + 1, 0);
+    if (ui.env == 0) {
+        n = put(b, 0, "ENV  OP");
+        n = decimal(b, n, ui.op + 1, 0);
+    } else {
+        n = put(b, 0, ui.env == 1 ? "PITCH ENV" : "GLIDE");
+    }
+    if (ui.env < 2)
+        n = put(b, n, ui.page ? "  levels" : "  rates");
     b[n] = 0;
     text(4, BODY_Y + 4, b, WHITE, 1);
-    n = put(b, 0, "rates");
-    for (i = 0; i < 4; i++) {
-        b[n++] = ' ';
-        n = decimal(b, n, o[FMO_RATE + i], 0);
-    }
-    n = put(b, n, "  levels");
-    for (i = 0; i < 3; i++) {
-        b[n++] = ' ';
-        n = decimal(b, n, o[FMO_ENV_LEVEL + i], 0);
-    }
-    b[n] = 0;
-    text(4, BODY_Y + 20, b, GREY, 1);
+    draw_graph(0);
+    stage_drawn[0] = 0;   /* the body cleared it */
 }
 
 /* The settings, one row each: a name, then the value. */
@@ -684,7 +934,10 @@ static void draw_body(void)
 #define ITEM_LINE   (1u << 10)
 #define ITEM_STRIP  (1u << 11)
 #define ITEM_INFO   (1u << 12)    /* the operator view's info line (M8a part 3) */
-#define ITEM_LIVE   (1u << 13)    /* the live parts: the operators' levels */
+#define ITEM_LIVE   (1u << 13)    /* the live parts: the operators' levels, the envelope's dot */
+#define ITEM_GRAPH  (3u << 14)    /* the envelope view's graph (M8a part 4): cleared in two halves, */
+#define ITEM_GRAPH_DRAW (1u << 16)  /* drawn, */
+#define ITEM_GRAPH_SEND (1u << 17)  /* and sent */
 #define ITEM_BODY_ALL (((1u << BANDS) - 1u) << ITEM_CLEAR0 | ITEM_BODY)
 
 static u32 dirty, shown, in_frame, frame_beat, draw_block, spent;
@@ -697,7 +950,10 @@ static void draw_live(void)
 {
     u32 i, t = sb_now();
 
-    for (i = 0; i < FM_OPS; i++)
+    if (ui.screen == UI_ENV)
+        dot_move();
+    else
+        for (i = 0; i < FM_OPS; i++)
         if (live_width[i] != meter_drawn[i]) {
             draw_meter(i, live_width[i]);
             lcd_send_rect(box_x[i] + 3, box_y[i] + box_h - 5, box_w - 6, 3);
@@ -729,8 +985,17 @@ static void draw_item(u32 bit)
     } else if (bit == 12) {
         draw_info();
         send(INFO_Y, FONT_H);
-    } else {
+    } else if (bit == 13) {
         draw_live();
+    } else if (bit < 16) {
+        gfx_fill(GRAPH_X, GRAPH_Y + (bit - 14) * (GRAPH_H / 2), GRAPH_W, GRAPH_H / 2, BLACK);
+        if (bit == 15)
+            dirty |= ITEM_GRAPH_DRAW;
+    } else if (bit == 16) {
+        draw_graph(0);
+        dirty |= ITEM_GRAPH_SEND;
+    } else {
+        send(GRAPH_Y, GRAPH_H);
     }
 }
 
@@ -858,6 +1123,7 @@ static void work(void)
     info_work();
     if (!same(info_text, info_drawn))
         dirty |= ITEM_INFO;
+    graph_sig = graph_work();
     /* Marked once a change: its parts may take several blocks. */
     body_sig = body_work();
     if (body_sig != body_sig_marked) {
@@ -867,6 +1133,11 @@ static void work(void)
         info_drawn[0] = 0;
         if (info_text[0])
             dirty |= ITEM_INFO;
+        /* A body draws its graph too. */
+        graph_sig_marked = graph_sig;
+    } else if (graph_sig != graph_sig_marked) {
+        graph_sig_marked = graph_sig;
+        dirty |= ITEM_GRAPH;
     }
 }
 
@@ -934,13 +1205,23 @@ static void live_work(void)
 {
     u32 beats = sb_beacon.beats, i, any = 0;
 
-    if (ui.screen != UI_EDIT || (dirty & (ITEM_BODY_ALL | (((1u << BANDS) - 1u) << ITEM_SEND0))))
+    if ((ui.screen != UI_EDIT && ui.screen != UI_ENV)
+        || (dirty & (ITEM_BODY_ALL | ITEM_GRAPH | ITEM_GRAPH_DRAW | ITEM_GRAPH_SEND
+                     | (((1u << BANDS) - 1u) << ITEM_SEND0))))
         return;
     if (beats - live_beat < LIVE_MS) {
         wake_at(live_beat + LIVE_MS);
         return;
     }
     live_beat = beats;
+    if (ui.screen == UI_ENV) {
+        dot_work();
+        if (dot_want_on != dot_on || (dot_on && (dot_want_x != dot_x || dot_want_y != dot_y))
+            || !same(stage_text, stage_drawn))
+            dirty |= ITEM_LIVE;
+        wake_at(live_beat + LIVE_MS);
+        return;
+    }
     for (i = 0; i < FM_OPS; i++) {
         live_width[i] = meter_width(fm_op_level[i], box_w - 6);
         any |= live_width[i] != meter_drawn[i];
