@@ -1398,6 +1398,19 @@ SR-3 wrote only its barrier-log row.*
   left for the next clean session.
 - Exposure: the spec side's usual material (the vendored emulator and
   `harness/`, the pinned toolchain, this repository).
+- fwtest 0.6.0's pin: the published image pulled; the firmware at main's
+  `1123eca` built in the build container and its suite run on 0.6.0 and
+  0.5.0 to compare.
+- The flash's pins (HW-85), all allowed sources: single files of the
+  pinned JieLi SDK through Gitee's contents API, and its file list through
+  Gitee's tree API (a blob-less fetch failed); the AC7911B datasheet,
+  found by web search; five FM-1-RE documents re-fetched by raw URL (as
+  P-51) and searched for pin names, of which `docs/io/09-storage.md`
+  (allowed to the spec side only since this session) was searched for
+  pin names alone (P-56). A Python virtual environment with `pypdf` in
+  the scratch folder, to read the datasheet's text.
+- From the firmware side's open pull requests (#111) it read only
+  `docs/SPEC-REQUESTS.md`, through GitHub's contents API.
 
 ## Corrections
 

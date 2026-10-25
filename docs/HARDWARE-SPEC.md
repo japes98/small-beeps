@@ -65,6 +65,7 @@ least significant. Register names are the JieLi SDK's.
 | SDK | JieLi AC79 SDK, `Jieli-Tech/fw-AC79_AIoT_SDK` (Gitee), commit `5fa84a9b2f723a5e9337ad79dc2ad741fc98fe2d`, Apache-2.0 (PROVENANCE P-2, P-10). `WL82.h` and `csfr.h` are vendored in `vendor/jieli-sdk/include_lib/driver/cpu/wl82/asm/`; the other files cited are at the same commit and path prefix. Line numbers refer to that commit. |
 | SDK63 | JieLi AC63 Bluetooth SDK, `https://github.com/Jieli-Tech/fw-AC63_BT_SDK`, commit `fdc018de81629e21e594d677cf05f87d288be0f0` (2025-03-18), Apache-2.0 (its `LICENSE`, SHA-256 `c71d239d…5d0ab4`) (PROVENANCE P-48). **Different chips:** its `cpu/br23/`, `cpu/br25/` and `cpu/bd29/` parts, not the FM-1's chip. Read file by file, not vendored; line numbers refer to that commit. |
 | RE | AL-255/FM-1-RE (GitHub, WTFPL), commit `ec832f281ca165a7d5e0722985f3acb1465046d5`: its hardware and boot documents `docs/reversing/01-hardware-map.md`, `docs/io/01-boot.md`, `docs/io/03-audio-dac.md`, `docs/io/08-display.md`, `docs/io/09-storage.md` (PROVENANCE P-9); since SR-8 also `docs/io/05-midi.md`, `docs/io/06-usb.md` and `docs/reversing/04-subsystems.md` (PROVENANCE P-41); since SR-9 also `docs/architecture.md`, `docs/io/11-ota-protocol.md`, `docs/io/12-v15-reflash-proof.md` and `docs/reversing/02-boot-and-runtime.md` (PROVENANCE P-51). Only their hardware facts are used here. Since evening-1024 `docs/io/09-storage.md` is for the spec side only (CONTRIBUTING.md); the firmware side takes its facts from here. |
+| JL7911B | Zhuhai Jieli Technology's "AC7911B Datasheet", V1.1, 2021-09-03, 16 pages, as LCSC serves it from `https://atta.szlcsc.com/upload/public/pdf/source/20241209/7B2C0C261932781E1CA5530337098F4C.pdf`, accessed 2026-10-25, SHA-256 `c7f35c89…2bf1022` (PROVENANCE P-56). The AC7911B is one of the AC791N's packages (the SDK builds its AC791N apps for it, `board_7911B_cfg.h`); which package the FM-1 carries is not known, so its pin numbers are not the FM-1's, only its pin functions are used. Page numbers as printed. |
 | DS | Sitronix ST7789V datasheet, version 1.3 (2014-03), 316 pages, from `https://www.newhavendisplay.com/appnotes/datasheets/LCDs/ST7789V.pdf`, SHA-256 `8ecf0e43…5d04ca1` (PROVENANCE P-11). Page numbers as printed. |
 | PUYA | Puya Semiconductor's P25Q80H datasheet ("Ultra Low Power, 8M-bit Serial Multi I/O Flash Memory"), Ver1.3, 2017-05-30, 71 pages, as LCSC serves it from `https://datasheet.lcsc.com/lcsc/PUYA-P25Q80H-SSH-IT_C194872.pdf`, accessed 2026-10-24, SHA-256 `d54401e9…bb12ea6c` (PROVENANCE P-53). Page numbers as printed. Not copied into this repository. It describes the part fwtest's chip identifies as (HW-76). |
 | PANEL | The FM-1's printed panel labels, from two sources that agree: the owner's screenshot of the F-Emulator app's panel with its default labels, `docs/sources/panel-app-default-labels.png` (secondary: the app's drawing of the panel); and M-VAVE's product photo of the FM-1, `https://www.m-vave.com/images/products/fm-1.webp` on `https://www.m-vave.com/product.html?id=fm-1`, accessed 2026-10-22, SHA-256 `e610a746…df14b95`, not copied into this repository (PROVENANCE P-12). Only the printed labels are taken from them. The owner chose these two sources. |
@@ -1424,7 +1425,8 @@ requests. Section 19 completes it (SR-9).
 Completes section 8 for SR-9. HW-76 to HW-79 are the chip and its flash
 part, HW-80 and HW-81 the FM-1's flash layout and what the boot chain and
 the update path need, HW-82 fwtest 0.5.0's flash, superseded by HW-83,
-fwtest 0.6.0's; HW-84 the code window's controller on the chip. Open:
+fwtest 0.6.0's; HW-84 the code window's controller on the chip; HW-85
+the flash's pins and what a firmware leaves alone at start-up. Open:
 Q-21 to Q-24.
 
 ### HW-76: The flash part's identity
@@ -1683,6 +1685,46 @@ Q-21 to Q-24.
 - Standing: confirmed (SDK, RE)
 - Needed by: M7 (real hardware), M9
 
+### HW-85: The flash's pins on the chip, and what a firmware leaves alone
+- Fact: On the chip the flash is on SPI0's port A, which the code
+  window's controller (`JL_SFC`, HW-84) uses too: chip select PD0, clock
+  PD4, data out (IO0) PD5, data in (IO1) PD1, and for quad transfers IO2
+  PD2 and IO3 PD3. SPI0's other port, C (PC5 chip select, PC3 clock, PC4,
+  PC0, PC1, PC2), is chosen by setting bit 5 of `JL_IOMAP->CON0`; port A
+  by clearing it (with bit 1 of `CON1` clear). From the AC7911B's
+  datasheet alone (JL7911B), not the SDK: PD0 is pulled up by default, so
+  the flash is deselected while nothing drives it, and on that package
+  PD6 is the flash's power gate (`SFGAT`); the pin assignment above also
+  agrees with that datasheet. The SDK's
+  board code leaves ports D, E, F and G alone ("the flash and SDRAM
+  ports... are controlled internally") even when it sets every other pin
+  to high impedance before power-off.
+  The requirements: at start-up, a firmware configures no pin of port D
+  (direction, pulls, drive, digital input, function) and never sets bit 5
+  of `JL_IOMAP->CON0` or bit 1 of `CON1`: the chip is running its code
+  from the flash through those pins. To work the flash itself it drives
+  the chip select through bit 0 of `JL_PORTD->OUT` only (as in fwtest,
+  HW-83), changing no other bit of `JL_PORTD`, and only once the code
+  window's controller has handed the flash over (still open, Q-22).
+  The SDK's loader settings name other pins for the loader's flash port
+  (`cpu/wl82/tools/isd_config_rule.c` lines 117-128: "CS:PD3 CLK:PD0" or
+  "CS:PA13 CLK:PD0"). Both the SDK's own SPI0 tables and the AC7911B's
+  pin list disagree with that comment and agree with each other, so this
+  entry follows them; the comment may come from another chip.
+- Sources: SDK `include_lib/driver/cpu/wl82/asm/spi.h` lines 151-178
+  (SPI0's two pin sets; the `JL_IOMAP` bits for port A and C) and 190-198
+  (the code window's controller on SPI0 with PD0 to PD5);
+  SDK `apps/demo/demo_DevKitBoard/board/wl82/DevKitBoard.c` lines 771-772
+  (ports D to G skipped: "flash sdram PD PE PF PG口不能进行配置,由内部完成控制");
+  SDK `cpu/wl82/tools/isd_config_rule.c` lines 117-128 (the loader's
+  port comment, which disagrees); JL7911B Table 1-1, page 9 (pins 37-41:
+  PD5 `SPI0_DOA`/`SFC_DOA`, PD4 `SPI0_CLKA`/`SFC_CLKA`, PD6 `SFGAT`, PD1
+  `SPI0_DIA`/`SFC_DIA`, PD0 `SPI0_CSA`/`SFC_CSA` with pull-up) and Table
+  2-4, page 12 (PB1 and PD0 pulled up by default); HW-83 (fwtest's chip
+  select is PD0).
+- Standing: confirmed (SDK, JL7911B; PD0's pull-up and PD6 from JL7911B alone)
+- Needed by: M7 (real hardware), M9
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -1834,15 +1876,17 @@ spec request can turn one into a fact.
 - **Q-21. The FM-1's flash part.** Which part the FM-1 carries: its
   JEDEC ID read on a unit (fwtest answers `85 60 14`, the Puya P25Q80H,
   HW-76), or the marking on the chip. If it differs, HW-77's times and
-  HW-78's rules need that part's datasheet. Settled by a probe on real
-  hardware or a photo of the board.
+  HW-78's rules need that part's datasheet. The SDK lists an AC791N
+  package with 1 MiB of flash inside it (`7911B8`, "内置flash",
+  `apps/demo/demo_uvc/board/wl82/board_7911B_cfg.h` lines 11-15), so the
+  FM-1's flash may have no package of its own to photograph. Settled by a
+  probe on real hardware or a photo of the board.
 - **Q-22. Working the flash directly on the chip.** How the code window's
   controller hands the flash to SPI0 and takes it back (the SDK does it in
-  its prebuilt library's enter and leave calls); which pins the flash
-  uses: fwtest takes PD0 as its chip select (HW-47), but the SDK's loader
-  settings name PD0 as the flash's clock and PD3 (or PA13) as its chip
-  select (`cpu/wl82/tools/isd_config_rule.c` lines 120-128), so driving
-  PD0 as a chip select on the chip may be wrong; SPI0's clock and mode
+  its prebuilt library's enter and leave calls); whether, once it has,
+  bit 0 of `JL_PORTD->OUT` reaches PD0 (the chip select, HW-85) or the
+  controller keeps driving it, and so whether PD0's direction must be set
+  for the handover and restored after; SPI0's clock and mode
   for those commands; whether the window caches the flash and what makes
   it see a change (the stock firmware synchronises the instruction cache
   after a program, HW-81); which bits of the controller's `CON` (HW-84)
