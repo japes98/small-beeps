@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 1123eca10f0fc97ae3943d632882c9527973858e..38d05b5d169ef6526c98e44033008c2c91956b7e
+OK     4d77883c27c3 sessions: archive M7's clean session; two reviewed hits
+OK     85c2b0da52e2 docs: session M8a's prompt and its EXPOSURE.md entry
+OK     7705340b243c firmware: the store moves to the unused region, 0xFC000 to 0xFEFFF
+OK     973074fd12ae docs: PROVENANCE, the store's region as P-58
+EXEMPT 38d05b5d169e (merge) Merge pull request #111 from japes98/m8a/store-region
+5 commit(s) checked: PASS
+
+exit status 0
