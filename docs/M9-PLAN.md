@@ -11,7 +11,9 @@ from HARDWARE-SPEC.md (HW-n), from FM-1-RE's boot, architecture and update
 documents (cited as RE, at the commit HARDWARE-SPEC.md's sources table
 names), from the JieLi AC79 SDK (cited as SDK, at its pinned commit), and
 from FM1 Open's terms files and file list only (docs/PLAN.md, Risks). It
-quotes no code from any of them. Decisions wanted are at the end.
+quotes no code from any of them. The owner answered its questions on
+2026-10-25 (recorded by session owner-answers-1025, at the end): M9 is
+the app release only (section 1); section 2 stays a plan for M10.
 
 M9 has two deliverables (docs/PLAN.md, "M1 to M9"): a release the
 F-Emulator app can run, and the groundwork for a package real hardware can
@@ -26,7 +28,7 @@ already makes it reproducibly (R-REPRO-3) as `app.bin`, with `app.elf`
 and a `SHA256SUMS` beside it.
 
 A release is a folder (and a `.zip` of it) attached to a signed git tag
-(`m9`, `v0.x.y`):
+(`m9`, `v0.x.y`; app releases start at 0.9.0, answer 6):
 
 | File | What |
 |------|------|
@@ -60,11 +62,15 @@ is missing. A CI job that rebuilds the tag and compares the hashes. A new
 requirement (R-REL-1, say): a release's image is byte-identical to the
 reproducible build of its tag, and its metadata and checksums match it.
 
-How the app takes it: the owner's app loads `*.bin` as today. Whether the
-app should read `release.json` (to show the version, or to refuse an
-image whose hash doesn't match) is the owner's call (question 1).
+How the app takes it: the app reads `release.json`, shows the release's
+version, and checks the image's SHA-256 against it (answer 1). That is
+the app's change, not the firmware's; the owner makes it in the app.
 
 ## 2. A package for real hardware (`.fwsc`)
+
+Not in M9 (answer 2): this section stays a plan until M10, which decides
+the boot area, the packaging tool and the version scheme (answers 3, 4
+and 6). A package keeps the stock user-patch region untouched (answer 5).
 
 ### What a stock package is
 
@@ -119,7 +125,7 @@ A package built the SDK's way, by its packaging tools, from our raw image:
   by the packaging tool; the boot area (`uboot.boot` and its
   configuration) as the loader we ship. A package that keeps the stock
   boot area and changes only the app area is the smallest change, if the
-  updater allows it (question 3).
+  updater allows it (question 3; decided at M10).
 - `ota.bin`: the update loader the stock updater stages. The SDK warns
   that an update across versions fails its file checks if the old and new
   loaders differ, or if the reserved and VM regions in the old and new
@@ -182,7 +188,8 @@ hashes, like the toolchain.
   (`jl_sfc_cipher`, base `0x4000`), not as a specification, so it would
   need a spec request first, and possibly the SDK's prebuilt code, which
   the firmware side may not read. The safer first step is the SDK's own
-  tool under Wine, pinned by hash, as a build step (question 4).
+  tool under Wine, pinned by hash, as a build step (question 4; decided
+  at M10, leaning towards our own packer).
 - **What the image must be on the chip,** none of which fwtest checks:
   the app area starts at `0x04120`, so the code window's address
   `0x02000000` is chip offset `0x4120` (HW-81), not `0x4000` as in
@@ -234,7 +241,9 @@ hashes, like the toolchain.
   Q-22). The two kinds of release are kept apart in their names and
   metadata.
 
-## 4. Questions for the owner
+## 4. The owner's answers (2026-10-25)
+
+The questions were:
 
 1. **The app and `release.json`.** Should the F-Emulator app read the
    metadata (show the version; check the hash), or keep loading a bare
@@ -257,3 +266,22 @@ hashes, like the toolchain.
    compares versions; a version above stock's (15) may be needed for the
    first install, and below it for a return to stock (RE records both
    directions working through the stock updater).
+
+The owner's answers (recorded by session owner-answers-1025,
+docs/prompts/owner-answers-1025.md):
+
+1. **`release.json`:** the app reads it, shows the version and checks the
+   image's hash.
+2. **Scope:** M9 is the app release only; the hardware package waits for
+   M10.
+3. **Boot area:** decided at M10.
+4. **The packaging tool:** decided at M10, leaning towards our own
+   packer (so the cipher's spec request comes first, then).
+5. **Stock patches:** a hardware package keeps the stock user-patch region
+   untouched.
+6. **Version numbers:** app releases start at 0.9.0; the hardware
+   packages' scheme is decided at M10.
+
+Still open: Q-24, whether an update erases past `0x93FFF` at all
+(answer 5 decides what our package does, not what the stock updater
+does).

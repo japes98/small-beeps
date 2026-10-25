@@ -947,7 +947,8 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
     spectrum (#122), whose cost under load is about four times its own
     timing: not explained yet (a question for the owner).
   - **Next: M8b, our own preset bank** (64 presets, docs/M8-PROPOSAL.md,
-    "Presets"): the owner listens before it merges. Then ARP, then SEQ.
+    "Presets"): the owner listens before it merges. Then ARP, M9 (the
+    app release), SEQ and FX (below, "After M8").
 
 ### M1 to M9 (firmware side)
 - **M1** boot: clocks, interrupts, timer (done; above).
@@ -960,11 +961,34 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
 - **M7** flash storage (done; above).
 - **M8** UI and original presets (no Yamaha factory voices): M8a the
   interface (above); M8b the preset bank (next; docs/M8-PROPOSAL.md).
-- **M9** packaging, and a raw-image boot path in the app (plan:
-  docs/M9-PLAN.md, for the owner's review).
+- **ARP** the arpeggiator (docs/ARP-PROPOSAL.md, with the owner's
+  answers), after M8.
+- **M9** the app release (docs/M9-PLAN.md, section 1, with the owner's
+  answers), after ARP; the hardware package waits for M10.
+- **SEQ** the sequencer, then **FX** the effects (below).
+
+### After M8: ARP, SEQ and FX
+The owner's answers (2026-10-25, recorded by session owner-answers-1025,
+docs/prompts/owner-answers-1025.md):
+- **The order after M8:** ARP, then SEQ, then FX. M9, the app release,
+  fits after ARP.
+- **FX v1,** three effects, designed from published literature only
+  (never another project's code):
+  - **Reverb:** a small feedback delay network of four delay lines,
+    mixed by a Hadamard matrix, with SIZE and DECAY.
+  - **Chorus:** stereo, one modulated delay a side, their LFOs in
+    opposite phase.
+  - **Delay:** stereo or ping-pong, its time synced to the ARP and SEQ
+    clock.
+- What each costs (core 0's or core 1's time, RAM for the delay lines),
+  where it sits after the voices, and its controls are FX's proposal,
+  for the owner's review first, as M8's and ARP's were.
 
 ### Level 2: real hardware
-- **M10** recovery kit.
+- **M10** recovery kit; it also decides the hardware package's boot
+  area, its packaging tool (leaning towards our own packer) and its
+  version scheme (docs/M9-PLAN.md, the owner's answers). A package keeps
+  the stock user-patch region untouched.
 - **M11** USB-MIDI and the update handler.
 - **M12** hardware checklist.
 
