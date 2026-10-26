@@ -91,9 +91,9 @@ fields:
 | `image.entry` | integer | yes | `33554432` (`0x02000000`, HW-2). |
 | `fwtest` | object | yes | The runner the release's tests passed on. |
 | `fwtest.version` | string | yes | fwtest's version (`fwtest version`), as `0.7.0`. |
-| `fwtest.image` | string | yes | The pinned image, as `config/fwtest-image` holds it at the tag (`ghcr.io/...@sha256:<64 hex>`). |
-| `record` | object | yes | The test record of the tag's commit (`tools/record.py`). |
-| `record.tree_sha256` | string | yes | The record's tree hash, 64 lowercase hex digits. |
+| `fwtest.image` | string | yes | The pinned image: the one line of `config/fwtest-image` at the tag that is not a comment (`ghcr.io/...@sha256:<64 hex>`). |
+| `record` | object | yes | The test record of the tag's commit: `records/<git_commit>/` on the `records` branch (R-REC-1, `tools/record.py`). The tag's commit must therefore be on main. |
+| `record.tree_sha256` | string | yes | The record's tree hash: the SHA-256 of that record's `SHA256SUMS` file (the hash of every file in it, as "tree hash" means for `vendor/emulator/`), 64 lowercase hex digits. Not the git tree ID that `report.json` holds as `tree`. |
 | `record.ci_run` | string | no | The URL of the CI run that made the record. |
 | `build` | object | no | How the image was built. |
 | `build.toolchain_sha256` | string | no | The pinned toolchain's SHA-256 (docs/TOOLCHAIN.md). |
