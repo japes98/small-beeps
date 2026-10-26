@@ -58,9 +58,8 @@
 #   every tick on time, both cores rendering.
 # audiogold (R-AUD-7): a note and the tone, the whole output against a
 #   golden WAV, exact. It moves whenever startup or the scan's timing
-#   moves a note by a block (later milestones will): run the suite, check
-#   that every other audio case passes, then copy audiogold/audio.wav
-#   over golden/audiogold/audio.wav in the same commit.
+#   moves a note by a block (later milestones will): run the suite, then
+#   tools/regolden.py (below).
 # underrun (R-AUD-3): a test build late for one block in 64: each counted
 #   and reported on the console, and the output goes on.
 # Since M5, the FM engine (scripts fm*.txt; the engine's record at
@@ -72,12 +71,37 @@
 # fmsteal (R-FM-4): 17 notes held on 16 voices, one stolen, no click.
 # fmvel (R-FM-3): a test build whose keys play five velocities.
 # fmgold, fmgold2 (R-FM-8, R-FM-9): every test patch against a golden WAV,
-#   twice: the same bytes both times. Regenerate it as audiogold's. The
-#   WAV ends when the run does, and a run that ends while core 0 waits
-#   ends late (docs/HARNESS.md, "Time"), so --ms keeps the end about 1 ms
-#   clear of the next half-buffer's end: at 4200 it fell within 2 us of
-#   one (4200.406), and fwtest 0.6.0's flash busy time, by moving core 0's
-#   instruction count, moved the end to before it, one block short.
+#   twice: the same bytes both times. Regenerate it as audiogold's. (At
+#   --ms 4200 the end fell within 2 us of a block's, and fwtest 0.6.0's
+#   flash busy time moved it to before it, one block short: the timing
+#   goldens' policy, below, came of that.)
+#
+# The timing goldens' policy (since overnight-1025; tools/goldtime.py,
+# docs/DESIGN-NOTES.md, "Timing goldens"):
+# - Every --ms of a case with --ipb ends at least 1 ms before the next
+#   audio block's end and 0.2 ms after the last one's (a run that ends
+#   while core 0 waits ends late, docs/HARNESS.md "Time"; a bigger image
+#   moves the blocks later), so a WAV or an end capture never gains or
+#   loses a block by a few microseconds. tools/fw-suite.py checks it from
+#   each run's ipb.csv and names the --ms to take instead (in the same
+#   block where it can be, which changes no golden).
+# - MIDI out's golden captures are in golden-midi/<case>/, not in the
+#   --golden folders: tools/fw-suite.py compares them, the same bytes in
+#   the same order, each within a block and two bytes (2.091 ms) of its
+#   golden time.
+# - The screens that show the live spectrum while a sound plays
+#   (macros, midipanel, spectrum) are in golden-live/<case>/:
+#   tools/fw-suite.py compares them exactly outside the spectrum's
+#   rectangle, which shows the sound's last few blocks (the spectrum
+#   case checks its bars through the interface's record).
+# - A golden that moved with the timing only is written again only by
+#   tools/regolden.py --out <the suite's --out> [--write]: it proves each
+#   change a pure time shift first (the same MIDI bytes; the same sounds,
+#   sample for sample, moved by whole frames; a live screen the same
+#   outside the spectrum) and writes nothing if any is not one (another
+#   screen, a console, a RAM capture: only if identical). A golden whose
+#   content changes is a change of behaviour, made by hand in the commit
+#   that changes the behaviour, which says so.
 #
 # NAME      EXPECT     IMAGE                          run options
 boot        completed  ../../out/fw/app.bin           --ms 5 --console --ram 0x01c00000:0x60@end --ram 0x01c00000:4@end --ram 0x01c7fc00:0x200@end --ram 0x01c7fe00:0x200@end --golden golden/boot
@@ -94,32 +118,32 @@ encoders    completed  ../../out/fw/app.bin           --ms 2300 --script scripts
 pot         completed  ../../out/fw/app.bin           --ms 1300 --script scripts/pot.txt --ram 0x01c00060:0x4f0@960 --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end
 leds        completed  ../../out/fw/test-leds.bin     --ms 1000 --leds-every 96 --ram 0x01c00000:0x60@end
 ledshow     completed  ../../out/fw/test-ledshow.bin  --ms 2400 --script scripts/keys.txt --ram 0x01c00060:0x4f0@end
-tone        completed  ../../out/fw/app.bin           --ms 2600 --script scripts/tone.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@end
-notes       completed  ../../out/fw/app.bin           --ms 3900 --script scripts/notes.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@end
+tone        completed  ../../out/fw/app.bin           --ms 2599.2 --script scripts/tone.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@end
+notes       completed  ../../out/fw/app.bin           --ms 3899 --script scripts/notes.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@end
 audioload   completed  ../../out/fw/app.bin           --ms 11000 --script scripts/audioload.txt --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@end
-audiogold   completed  ../../out/fw/app.bin           --ms 500 --script scripts/audiogold.txt --wav --ipb --console --ram 0x01c00550:0x40@end --golden golden/audiogold
-underrun    completed  ../../out/fw/test-underrun.bin --ms 500 --console --ipb --ram 0x01c00550:0x40@end
-fmbessel    completed  ../../out/fw/app.bin           --ms 1600 --script scripts/fmbessel.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
-fmenv       completed  ../../out/fw/app.bin           --ms 1400 --script scripts/fmenv.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
-fmmono      completed  ../../out/fw/app.bin           --ms 2000 --script scripts/fmmono.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
-fmsteal     completed  ../../out/fw/app.bin           --ms 1700 --script scripts/fmsteal.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
-fmvel       completed  ../../out/fw/test-velocity.bin --ms 2800 --script scripts/fmvel.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
-fmgold      completed  ../../out/fw/app.bin           --ms 4199 --script scripts/fmgold.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end --golden golden/fmgold
-fmgold2     completed  ../../out/fw/app.bin           --ms 4199 --script scripts/fmgold.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end --golden golden/fmgold
+audiogold   completed  ../../out/fw/app.bin           --ms 500.1 --script scripts/audiogold.txt --wav --ipb --console --ram 0x01c00550:0x40@end --golden golden/audiogold
+underrun    completed  ../../out/fw/test-underrun.bin --ms 500.1 --console --ipb --ram 0x01c00550:0x40@end
+fmbessel    completed  ../../out/fw/app.bin           --ms 1599.7 --script scripts/fmbessel.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
+fmenv       completed  ../../out/fw/app.bin           --ms 1399.5 --script scripts/fmenv.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
+fmmono      completed  ../../out/fw/app.bin           --ms 2000.1 --script scripts/fmmono.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
+fmsteal     completed  ../../out/fw/app.bin           --ms 1699.8 --script scripts/fmsteal.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
+fmvel       completed  ../../out/fw/test-velocity.bin --ms 2799.4 --script scripts/fmvel.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end
+fmgold      completed  ../../out/fw/app.bin           --ms 4199.3 --script scripts/fmgold.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end --golden golden/fmgold
+fmgold2     completed  ../../out/fw/app.bin           --ms 4199.3 --script scripts/fmgold.txt --wav --ipb --console --ram 0x01c00060:0x4f0@end --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c00000:0x60@end --golden golden/fmgold
 
 # midimsg, midirun, midisysex, midijunk, mididense, midisustain, midichan,
 #   midipanel, midilat (since M6a; R-MIDI-1 to R-MIDI-7): MIDI in, scripts
 #   written by tools/midi_scripts.py; each checked against tools/midi_model.py
 #   (tools/fw-suite.py). midipanel's screen at 900 ms against a golden image.
-midimsg     completed  ../../out/fw/app.bin           --ms 3100 --script scripts/midimsg.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
-midirun     completed  ../../out/fw/app.bin           --ms 900 --script scripts/midirun.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
-midisysex   completed  ../../out/fw/app.bin           --ms 2800 --script scripts/midisysex.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
-midijunk    completed  ../../out/fw/app.bin           --ms 1700 --script scripts/midijunk.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
-mididense   completed  ../../out/fw/app.bin           --ms 6500 --script scripts/mididense.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
-midisustain completed  ../../out/fw/app.bin           --ms 1700 --script scripts/midisustain.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@300 --ram 0x01c005d0:0x164@300 --ram 0x01c00590:0x40@560 --ram 0x01c005d0:0x164@560 --ram 0x01c00590:0x40@700 --ram 0x01c005d0:0x164@700 --ram 0x01c00590:0x40@1000 --ram 0x01c005d0:0x164@1000 --ram 0x01c00590:0x40@1300 --ram 0x01c005d0:0x164@1300
-midichan    completed  ../../out/fw/test-midich.bin   --ms 700 --script scripts/midichan.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
-midipanel   completed  ../../out/fw/app.bin           --ms 1300 --script scripts/midipanel.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@200 --ram 0x01c005d0:0x164@200 --ram 0x01c00590:0x40@300 --ram 0x01c005d0:0x164@300 --ram 0x01c00590:0x40@500 --ram 0x01c005d0:0x164@500 --ram 0x01c00590:0x40@600 --ram 0x01c005d0:0x164@600 --ram 0x01c00590:0x40@900 --ram 0x01c005d0:0x164@900 --lcd 900 --golden golden/midipanel
-midilat     completed  ../../out/fw/app.bin           --ms 3300 --script scripts/midilat.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
+midimsg     completed  ../../out/fw/app.bin           --ms 3099.7 --script scripts/midimsg.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
+midirun     completed  ../../out/fw/app.bin           --ms 899 --script scripts/midirun.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
+midisysex   completed  ../../out/fw/app.bin           --ms 2799.4 --script scripts/midisysex.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
+midijunk    completed  ../../out/fw/app.bin           --ms 1699.8 --script scripts/midijunk.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
+mididense   completed  ../../out/fw/app.bin           --ms 6500.1 --script scripts/mididense.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
+midisustain completed  ../../out/fw/app.bin           --ms 1699.8 --script scripts/midisustain.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@300 --ram 0x01c005d0:0x164@300 --ram 0x01c00590:0x40@560 --ram 0x01c005d0:0x164@560 --ram 0x01c00590:0x40@700 --ram 0x01c005d0:0x164@700 --ram 0x01c00590:0x40@1000 --ram 0x01c005d0:0x164@1000 --ram 0x01c00590:0x40@1300 --ram 0x01c005d0:0x164@1300
+midichan    completed  ../../out/fw/test-midich.bin   --ms 700.3 --script scripts/midichan.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
+midipanel   completed  ../../out/fw/app.bin           --ms 1299.4 --script scripts/midipanel.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@200 --ram 0x01c005d0:0x164@200 --ram 0x01c00590:0x40@300 --ram 0x01c005d0:0x164@300 --ram 0x01c00590:0x40@500 --ram 0x01c005d0:0x164@500 --ram 0x01c00590:0x40@600 --ram 0x01c005d0:0x164@600 --ram 0x01c00590:0x40@900 --ram 0x01c005d0:0x164@900 --lcd 900
+midilat     completed  ../../out/fw/app.bin           --ms 3299.9 --script scripts/midilat.txt --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00000:0x60@end
 
 # midiout, midiround, midithru, midilocal, midiburst, midioutlat (since M6b;
 #   R-MIDIOUT-1 to R-MIDIOUT-8): MIDI out, captured with --midi-out (fwtest
@@ -134,17 +158,18 @@ midilat     completed  ../../out/fw/app.bin           --ms 3300 --script scripts
 #   Since M8a these three start from a flash chip whose settings say
 #   "Knobs: direct" (out/fw/knobs-direct.flash.bin, tools/fw-suite.py), so
 #   KNOB1 to KNOB4 are M5's controls, as they were written for.
-#   midiout's golden capture and midiround's script move together: when
-#   midiout's output changes, check it by hand, copy midiout/midi-out.csv
-#   and .txt over golden/midiout/, then run tools/midi_scripts.py, in the
-#   same commit.
-midiout     completed  ../../out/fw/app.bin           --ms 2800 --flash ../../out/fw/knobs-direct.flash.bin --script scripts/midiout.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --golden golden/midiout
-midiround   completed  ../../out/fw/app.bin           --ms 2800 --flash ../../out/fw/knobs-direct.flash.bin --script scripts/midiround.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
-midithru    completed  ../../out/fw/test-midithru.bin --ms 600 --script scripts/midithru.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --golden golden/midithru
-midilocal   completed  ../../out/fw/app.bin           --ms 1400 --flash ../../out/fw/knobs-direct.flash.bin --script scripts/midilocal.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@700 --lcd 700 --golden golden/midilocal
-midiburst   completed  ../../out/fw/test-midiburst.bin --ms 1700 --script scripts/midiburst.txt --midi-out --console --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --golden golden/midiburst
-midioutlat  completed  ../../out/fw/app.bin           --ms 3200 --script scripts/midioutlat.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
-presetends  completed  ../../out/fw/app.bin           --ms 1700 --script scripts/presetends.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@450 --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
+#   midiout's golden capture (golden-midi/midiout/) and midiround's script
+#   move together: tools/regolden.py --write runs tools/midi_scripts.py
+#   when it writes midiout's capture again; a change of midiout's
+#   messages is made by hand, then tools/midi_scripts.py, in the same
+#   commit.
+midiout     completed  ../../out/fw/app.bin           --ms 2799.7 --flash ../../out/fw/knobs-direct.flash.bin --script scripts/midiout.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
+midiround   completed  ../../out/fw/app.bin           --ms 2799.7 --flash ../../out/fw/knobs-direct.flash.bin --script scripts/midiround.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
+midithru    completed  ../../out/fw/test-midithru.bin --ms 600.2 --script scripts/midithru.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
+midilocal   completed  ../../out/fw/app.bin           --ms 1399.8 --flash ../../out/fw/knobs-direct.flash.bin --script scripts/midilocal.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@700 --lcd 700 --golden golden/midilocal
+midiburst   completed  ../../out/fw/test-midiburst.bin --ms 1700 --script scripts/midiburst.txt --midi-out --console --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
+midioutlat  completed  ../../out/fw/app.bin           --ms 3199.8 --script scripts/midioutlat.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
+presetends  completed  ../../out/fw/app.bin           --ms 1699.8 --script scripts/presetends.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@450 --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
 
 # views, viewsload (since M8a; R-UI-1 to R-UI-5): the instrument's
 #   screens, with the interface's record at 0x01c00870 (tools/fw-suite.py).
@@ -152,9 +177,9 @@ presetends  completed  ../../out/fw/app.bin           --ms 1700 --script scripts
 #   settings screen, LEDs (golden images of each screen). viewsload: the
 #   screens changing every 100 ms under the heaviest input.
 views       completed  ../../out/fw/app.bin           --ms 2400 --script scripts/views.txt --leds-every 50 --lcd 850 --lcd 1150 --lcd 1450 --lcd 1750 --lcd 2050 --lcd 2350 --ram 0x01c00870:0x60@850 --ram 0x01c00870:0x60@1150 --ram 0x01c00870:0x60@1450 --ram 0x01c00870:0x60@1750 --ram 0x01c00870:0x60@2050 --ram 0x01c00870:0x60@2350 --ram 0x01c00870:0x60@end --ram 0x01c00590:0x40@end --ram 0x01c00550:0x40@end --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end --golden golden/views
-viewsload   completed  ../../out/fw/app.bin           --ms 3300 --script scripts/viewsload.txt --ipb --console --ram 0x01c00870:0x60@end --ram 0x01c00590:0x40@end --ram 0x01c00550:0x40@end --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end
-macros      completed  ../../out/fw/app.bin           --ms 11000 --script scripts/macros.txt --midi-out --wav --ipb --console --lcd 1800 --lcd 10400 --ram 0x01c00870:0x60@end --ram 0x01c00590:0x40@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --golden golden/macros
-edit        completed  ../../out/fw/app.bin           --ms 5700 --script scripts/edit.txt --wav --ipb --console --flash-out --leds-every 50 --lcd 1000 --lcd 4600 --ram 0x01c00870:0x60@end --ram 0x01c00590:0x40@end --ram 0x01c00550:0x40@end --ram 0x01c00780:0xf0@end --ram 0x01c00000:0x60@end --golden golden/edit
-env         completed  ../../out/fw/app.bin           --ms 7000 --script scripts/env.txt --wav --ipb --console --lcd 1000 --lcd 1400 --lcd 5960 --lcd 6950 --ram 0x01c00870:0x60@end --ram 0x01c00590:0x40@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --golden golden/env
-spectrum    completed  ../../out/fw/app.bin           --ms 3300 --script scripts/spectrum.txt --wav --ipb --console --lcd 1300 --lcd 2000 --ram 0x01c00870:0x60@1300 --ram 0x01c00870:0x60@2000 --ram 0x01c00870:0x60@2900 --ram 0x01c00870:0x60@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --golden golden/spectrum
+viewsload   completed  ../../out/fw/app.bin           --ms 3299.9 --script scripts/viewsload.txt --ipb --console --ram 0x01c00870:0x60@end --ram 0x01c00590:0x40@end --ram 0x01c00550:0x40@end --ram 0x01c00060:0x4f0@end --ram 0x01c00000:0x60@end
+macros      completed  ../../out/fw/app.bin           --ms 11000 --script scripts/macros.txt --midi-out --wav --ipb --console --lcd 1800 --lcd 10400 --ram 0x01c00870:0x60@end --ram 0x01c00590:0x40@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end
+edit        completed  ../../out/fw/app.bin           --ms 5699.3 --script scripts/edit.txt --wav --ipb --console --flash-out --leds-every 50 --lcd 1000 --lcd 4600 --ram 0x01c00870:0x60@end --ram 0x01c00590:0x40@end --ram 0x01c00550:0x40@end --ram 0x01c00780:0xf0@end --ram 0x01c00000:0x60@end --golden golden/edit
+env         completed  ../../out/fw/app.bin           --ms 6999.1 --script scripts/env.txt --wav --ipb --console --lcd 1000 --lcd 1400 --lcd 5960 --lcd 6950 --ram 0x01c00870:0x60@end --ram 0x01c00590:0x40@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --golden golden/env
+spectrum    completed  ../../out/fw/app.bin           --ms 3299.9 --script scripts/spectrum.txt --wav --ipb --console --lcd 1300 --lcd 2000 --ram 0x01c00870:0x60@1300 --ram 0x01c00870:0x60@2000 --ram 0x01c00870:0x60@2900 --ram 0x01c00870:0x60@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end
 settings    completed  ../../out/fw/app.bin           --ms 3400 --script scripts/settings.txt --midi-out --wav --ipb --console --flash-out --lcd 2300 --lcd 2550 --lcd 2750 --lcd 3300 --ram 0x01c00780:0xf0@2700 --ram 0x01c00780:0xf0@end --ram 0x01c00870:0x60@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00550:0x40@end --ram 0x01c00000:0x60@end --golden golden/settings

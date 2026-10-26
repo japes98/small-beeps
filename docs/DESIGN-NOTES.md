@@ -2499,6 +2499,14 @@ Our own design, from docs/ARP-PROPOSAL.md and the owner's answers there
   first note after none); a Stop (0xFC) when it stops or MIDI clock takes
   over; a Continue (0xFB) when the internal clock takes over again. While
   it follows MIDI clock it sends none (thru passes the sender's on, if on).
+  Since overnight-1025 (the owner's answer to ARP's question 4): none
+  either while a clock comes in that it doesn't follow (after a Stop, a
+  sender's clocks may go on, and with thru on a follower saw both). Any
+  0xF8 coming in stops ours (with a Stop, if it was running); ours
+  starts or continues only once 250 ms (ARP_LOST_BLOCKS) pass without
+  one, so after a Stop the arpeggiator plays on at once on the internal
+  tempo and its clock out continues 250 ms after the sender's last
+  clock (clock-quiet).
 - **The screen (ARP held):** the strip shows RATE, MODE, OCTAVES and GATE;
   SELECT pages to SWING, LATCH, TEMPO and MIDI OUT. The body shows the
   settings in words; the info line is its live part (every 50 ms when
@@ -2524,6 +2532,106 @@ Our own design, from docs/ARP-PROPOSAL.md and the owner's answers there
   KiB of static RAM in all. That matters beyond the budget: the start-up
   clears it before the time base starts, so more of it moves every
   event's time stamp later against fwtest's clock (about 2 us a KiB).
+
+### 2026-10-26 overnight-1025: timing goldens
+
+The owner's answer to ARP's question 6 ("timing goldens keep moving"):
+a policy, built in `tools/goldtime.py` and `tools/regolden.py`, and
+applied to the firmware suite's and the arpeggiator's cases
+(R-GOLD-1 to R-GOLD-3).
+
+- **Why they moved.** A bigger image starts a few microseconds later
+  (start-up clears more RAM before the time base starts, about 2 us a
+  KiB), and anything of ours that waits for an audio block (1.451 ms)
+  then sometimes waits one more: a MIDI byte taken a block later, a
+  note a block later, a MIDI out byte queued behind another (320 us).
+  And a run's end comes late while core 0 waits (docs/HARNESS.md,
+  "Time"), by an amount that moves with core 0's instructions, so a run
+  that ended near a block's end sometimes took that block and sometimes
+  didn't: a WAV a block longer or shorter. fmgold at `--ms 4200` ended
+  2 us from one.
+- **1. A run's end clears the blocks.** Every case that keeps its
+  blocks' times (`--ipb`) and is compared with a golden ends at least
+  `END_BEFORE_MS` (1 ms) before the next block's end, so a late end
+  takes no extra block, and `END_AFTER_MS` (0.2 ms, about 100 KiB of
+  start-up) after the last, so start-up moving the blocks later loses
+  none. A block is 1.451 ms, so the window is 0.25 ms wide; "1 ms clear"
+  on both sides cannot be had. `check_end` works it out from the run's
+  own `ipb.csv` and suggests the nearest tenth of a millisecond that
+  keeps it; tools/fw-suite.py and tools/arp_suite.py fail a case that
+  doesn't; the ends are put in the middle of their window (about 0.1 ms
+  of room each way) and in the same block as before where they can be,
+  so the runs take the blocks they took. 30 of the suite's cases and 24
+  of the arpeggiator's moved, each by about a millisecond or less (the
+  arpeggiator's in its `END_MS`: each run starts from its own
+  flash chip, so its blocks fall at their own times). The store's cases are left as they are: their goldens are
+  screens taken mid-run, which no end moves, and only one keeps
+  `ipb.csv` (a load test with no golden).
+- **2. MIDI out's captures, with a tolerance.** fwtest compares golden
+  files byte for byte, and `rel-percent` would let a byte written as
+  hex digits differ too, so midiout's, midithru's, midilocal's and
+  midiburst's captures moved to `tests/fw/golden-midi/`, which
+  tools/fw-suite.py compares itself: the same bytes in the same order
+  (and the same messages, decoded), each within `MIDI_TOL_MS`, 2.091
+  ms (a block and two bytes), of its golden time. The arpeggiator's
+  goldens were already without times.
+- **3. Written again only when proven a time shift.**
+  `tools/regolden.py --out <the suite's --out>` compares each golden
+  with the run's output of the same name and prints `same`, `shift` or
+  `REFUSED`; `--write` writes the shifts, and nothing at all if any is
+  refused. A shift is proven:
+  - for MIDI captures, by the same bytes (or messages) in the same
+    order, only their times moved;
+  - for a WAV, by the same sounds (runs of frames over +-1, parted by
+    128 quiet frames), in the same order, each sample for sample the
+    golden's, each moved by a whole number of frames (at most 1 024);
+    a sound cut by either run's end need only match as far as both go;
+  - for the arpeggiator's sound hashes (`--arp-out`, `--arp-old`, the
+    suite's outputs on the new and on the base image), by the base
+    run's WAV giving the golden hash and the two WAVs being a shift;
+  - for anything else (screens, consoles, RAM captures), only by being
+    identical.
+  A golden whose content changes is a change of behaviour: made in the
+  commit that changes the behaviour, which says so.
+  `tools/arp_suite.py --write-golden` now writes only goldens a run
+  doesn't have yet; `--replace` overwrites one that differs (a change
+  of behaviour).
+- **Live screens.** The patch view's live spectrum (views.c, `SPEC_X`,
+  `SPEC_Y`, 56 bars of 4 pixels, `SPEC_H`) shows the last few blocks of
+  sound, so a shift moves its bars: macros', midipanel's and spectrum's
+  screens moved to `tests/fw/golden-live/`, compared exactly outside that
+  rectangle (`compare_screen`); the spectrum case checks the bars through
+  the interface's record.
+- **The arpeggiator's inputs, off its grid.** Its runs let their keys go
+  exactly on a step (2 000 ms is 96 clock pulses, and every rate's hold a
+  whole number of steps), and one by one, 30 ms apart, so a step could
+  fall among them; the stuck run had panel events on 1/16 steps and two
+  keys pressed at the same instant. Which came first moved with a few
+  microseconds. The keys now go together, 10 ms (`OFF_GRID_MS`) after
+  the grid; stuck's later events 7 ms off it, its two keys 10 ms apart;
+  its golden messages were written again for that (a change of its
+  input), and it keeps no sound hash (its last notes are panel keys
+  whose starts and ends come by the key scan and the block, so their
+  lengths move by a scan).
+- **Proven on real outputs.** The clock-out change (this session) moved
+  the four MIDI captures by 1 us: `regolden` called each a shift; under
+  the tolerance they pass as they are. A test build, `SB_TEST_LATE_START`
+  (firmware/src/main.c), starts late, as a bigger image would:
+  - **About 0.4 ms late** (twice the 0.2 ms margin): every end check
+    fires, and `regolden` refused what is not a shift: fmgold (a note 98
+    frames longer: its start and end came by different paths), midiout
+    (the same messages, but two more status bytes: running status
+    follows the gaps between messages), the live screens (before they
+    were masked), and the arpeggiator's runs whose inputs sat on its
+    grid. That is the size of shift the policy does not absorb.
+  - **About 0.14 ms late** (the build as committed): every golden of the
+    firmware suite passes as it is (the MIDI captures moved by up to 1.3
+    ms, within the tolerance; the live screens the same outside the
+    spectrum; fmgold identical), and `regolden` proves all eight changed
+    files shifts. The arpeggiator's runs all pass. Only the end check
+    fires (0.18 to 0.2 ms after a block, under its 0.2): the early
+    warning, answered by moving `--ms` within its block, which changes no
+    golden.
 
 ### 2026-10-26 M8b: candidates 65 to 70
 

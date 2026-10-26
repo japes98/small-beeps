@@ -1721,8 +1721,13 @@ Q-21 to Q-24.
   PD5 `SPI0_DOA`/`SFC_DOA`, PD4 `SPI0_CLKA`/`SFC_CLKA`, PD6 `SFGAT`, PD1
   `SPI0_DIA`/`SFC_DIA`, PD0 `SPI0_CSA`/`SFC_CSA` with pull-up) and Table
   2-4, page 12 (PB1 and PD0 pulled up by default); HW-83 (fwtest's chip
-  select is PD0).
-- Standing: confirmed (SDK, JL7911B; PD0's pull-up and PD6 from JL7911B alone)
+  select is PD0). The owner accepts JL7911B (its pages marked
+  confidential, LCSC serving it publicly, P-56) as the source of the
+  three facts taken from it: PD0's pull-up, PD6 the flash's power gate,
+  and its pin list agreeing with the SDK's (2026-10-25, recorded by
+  session owner-answers-1025); each stays to be confirmed on real
+  hardware.
+- Standing: confirmed (SDK, JL7911B; PD0's pull-up, PD6 and the datasheet's pin list from JL7911B, which the owner accepts as a source; those three to be confirmed on real hardware)
 - Needed by: M7 (real hardware), M9
 
 ## Open questions

@@ -269,7 +269,7 @@ def midiround_from(csv_path):
             ms, b = line.strip().split(",")
             rows.append((float(ms), int(b, 16)))
     s = Script("midiround", "midiround (R-MIDIOUT-6): the round trip. midiout's golden MIDI out\n"
-               "(tests/fw/golden/midiout/midi-out.csv), each byte arriving at MIDI\n"
+               "(tests/fw/golden-midi/midiout/midi-out.csv), each byte arriving at MIDI\n"
                "in when midiout sent it: the engine plays the same notes, patch and\n"
                "knobs as midiout's panel did.")
     i = 0
@@ -283,7 +283,7 @@ def midiround_from(csv_path):
     return s
 
 
-MIDIOUT_GOLDEN = os.path.join(ROOT, "tests", "fw", "golden", "midiout", "midi-out.csv")
+MIDIOUT_GOLDEN = os.path.join(ROOT, "tests", "fw", "golden-midi", "midiout", "midi-out.csv")
 
 
 def midiround():

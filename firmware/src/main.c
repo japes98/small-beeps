@@ -206,6 +206,18 @@ int main(void)
 #if defined(SB_PROBE_STACK)
     sb_probe_stack();
 #endif
+#if defined(SB_TEST_LATE_START)
+    /* The timing goldens' policy (tools/goldtime.py): a start about
+     * 0.1 ms late, inside the 0.2 ms its run ends keep, as a bigger
+     * image's would be, so every block and event of ours moves later
+     * against the script; tools/regolden.py must prove each golden this
+     * moves a pure time shift. */
+    {
+        volatile u32 n;
+        for (n = 0; n < 5000u; n++)
+            ;
+    }
+#endif
 
     sb_irq_init();
     sb_irq_enable(SRC_TIMER0, sb_tick, PRIO_TICK);

@@ -1534,6 +1534,111 @@ SR-3 wrote only its barrier-log row.*
   - **Disk:** 9.1 GB free at the start, 8.3 GB at the lowest; stale
     `out/` folders removed as the session went.
 
+### Session owner-answers-1025 (the owner's answers to the ARP and M9 proposals, MIDI clock in the harness, spec requests)
+- Date: 2026-10-25 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.310 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `e9c791d0-c0ad-48c5-bdb9-ede17aa9736a`,
+  started by `/clear` at 13:23:41Z (banner `source: clear`,
+  `status: OK`), with the folder still at `1123eca`, before #110 had
+  reached it. The session therefore loaded the old settings
+  (`eaa5f875…`), which lack only #110's deny rule against cloning the
+  port repository, and keeps them while it runs.
+- Where it ran: the owner's Mac, in `~/<top>/spec`; 13:24:11Z:
+  `tools/spec-setup.sh` on main at `ce586704`, banner `status: OK`
+  (`84a7e56c…`); `tools/private-terms.local` exists (not opened). 11 GB
+  free at the start.
+- What it archived: evening-1024's transcript (`e7979b06`) into
+  `sessions/spec/`. `tools/check-transcripts.py` first failed on it: its
+  banner after a compaction (04:32:36Z) reported `CONFIG MISMATCH`, the
+  one evening-1024's own entry foresaw (Corrections, below).
+  `tools/check-transcripts.py` gained `ALLOWED_MISMATCH`, which allows
+  that one banner by its session, source and both hashes, for the owner
+  to approve by merging; then PASS (29 archived transcripts).
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository).
+- Section 2 (ahead of ARP): read `harness/src/` and the vendored
+  emulator's MIDI input to check how a script's MIDI bytes queue; added
+  a harness test and docs/HARNESS.md's "MIDI clock in and timing" (#129),
+  with no change to fwtest; `cargo test --release` in `harness/`.
+- Spec requests, every 20 minutes from 13:38Z to 21:43Z: only
+  `docs/SPEC-REQUESTS.md` on main and on the firmware side's open
+  branches (#126, #130 to #133), through GitHub's contents API, its blob
+  hash only; none new. Of those pull requests it also listed the changed
+  files' names, to check for conflicts.
+- At the end, the firmware side's latest open branch `arp/budgets`
+  (#133, which carries #130 to #132) was merged into this session's
+  start branch for EXPOSURE.md's conflict; its files were merged, not
+  reviewed. Free disk stayed between 7 and 11 GB.
+
+### Session overnight-1025 (the timing goldens' policy, M9's app release, six preset candidates)
+- Date: 2026-10-26 (UTC; the evening of 2026-10-25 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.310 (banner), unattended (a background session).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `4bb588e8-5900-430e-ae7a-c38dea0a337a`,
+  started by a `/clear` at 02:27:04Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `cf07f9e` and ended "no spec-side files on disk or
+  in .git"; `tools/clean-setup.sh` then installed `clean.json` (banner
+  `status: OK`); `tools/private-terms.local` exists (not opened); lazy
+  fetching off (`GIT_NO_LAZY_FETCH=1`). It archived ARP (`cd24c9a8`) into
+  `sessions/clean/`; every other clean session was already archived (an
+  older live transcript whose file time had changed was compared with its
+  archived copy: the same lines). `tools/check-transcripts.py` failed on
+  two of ARP's calls (a scratch worktree's sparse checkout, which names
+  the spec-side folders only to leave them out); six reviewed entries in
+  `sessions/REVIEWED.json`, for the owner's approval; then PASS. The Mac
+  had 7.3 GB free.
+- Reads: this file, CONTRIBUTING.md, sessions/README.md, docs/PLAN.md,
+  docs/M9-PLAN.md, docs/HARNESS.md ("Time", "Outputs", "MIDI output",
+  "MIDI clock in and timing", "Golden files", "Suites"), ARP's archived
+  transcript (its two flagged calls and its last message, for the
+  owner's questions), the m1 release's description and file names
+  (`gh release view`), and this repository's tools, tests, scripts,
+  workflows and firmware.
+- Later in the session:
+  - **Open spec pull request #136, docs only:** its description and file
+    list (names only), and through GitHub's contents API on its branch at
+    `1da34f9` one doc, docs/M9-PLAN.md (the release format 1.0), into the
+    session's temporary folder. Nothing fetched into `.git`. The
+    session's release tooling follows it. Of #134 and #137 (spec side)
+    only their titles and #134's file list (names).
+  - **Records, named files only, through GitHub's contents API:** the
+    `report.json` of main's `cf07f9e` and of m1's `9fe07f8` (the latter at
+    the records commit `a34b3f8`), `logs/C-FW-SUITE.log` of `cf07f9e`
+    (searched for fwtest's version: not in it), and a listing of the
+    records branch's `records/` folder at `a34b3f8` filtered to m1's entry
+    (its tree hash `a9839d5…`, as m1's release notes state). Nothing
+    fetched into `.git`.
+  - **The m1 release:** its SBOM (`m1-sbom.spdx.json`, our own) downloaded
+    into the session's temporary folder, to follow its form.
+  - **A dry run of the app release of m1** (`tools/release.sh m1 --version
+    0.1.0`, output in the session's temporary folder, nothing published):
+    `tools/reproduce`'s export of m1's files (never the spec-side folders;
+    git fetched m1's other files one at a time), two builds, fwtest 0.1.0's
+    image pulled by digest for its version, then removed. It rebuilt m1's
+    image byte for byte (`ee2ad8a0…`).
+  - **A scratch git worktree** in the session's temporary folder, of
+    `m8b/presets` (#126) for the preset candidates, sparse like this
+    folder (the patterns built from `config/spec-side-folders`; no
+    spec-side folder on disk, checked), with `tools/private-terms.local`
+    a symbolic link to this folder's (never opened).
+  - **fwtest 0.6.0** (the pinned image): the firmware suite and the ARP
+    suite on main's image, on this session's images, and on a test build
+    that starts late (`SB_TEST_LATE_START`, at about 0.4 and 0.14 ms).
+  - **Force-pushes:** none so far.
+  - **Disk:** 7.3 GB free at the start, 3.1 GB at the lowest (other
+    folders on the Mac grew meanwhile; this session's outputs were
+    cleared as it went).
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
@@ -1586,6 +1691,24 @@ SR-3 wrote only its barrier-log row.*
 - **What it was.** Free disk went down to 1.9 GB (the owner's
   correction), below the 2 GB at which a session is to stop its work.
 
+### 2026-10-25: evening-1024's mismatched banner
+*Written by session owner-answers-1025.*
+
+- **What happened.** Session evening-1024 installed `config/claude/spec.json`
+  (`eaa5f875…`) at its start, then added a deny rule to it (#110,
+  `84a7e56c…`: `Bash(git clone*small-beeps-ports*)`, the only change).
+  At 04:32:36Z, after a compaction, its banner (`source: compact`)
+  compared the running settings with the changed file and reported
+  `status: CONFIG MISMATCH`, saying to stop and tell the owner. The
+  session went on working and did not mention it; its entry above
+  foresaw the mismatch, but not this banner.
+- **What it means.** The settings in force were the older, looser ones:
+  every deny rule but the new one held. Nothing in its transcript clones
+  the port repository (`tools/check-transcripts.py` PASS).
+- **What changed.** `tools/check-transcripts.py`'s `ALLOWED_MISMATCH`
+  allows this one banner, by its session, `source`, settings hash and
+  config hash, all four exactly; any other mismatch still fails.
+
 ## Barrier log
 
 | When (UTC) | Folder | Settings SHA-256 | Event |
@@ -1627,6 +1750,8 @@ SR-3 wrote only its barrier-log row.*
 | 2026-10-24T13:01:56Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M6b starts; banner `status: OK`; `tools/clean-update.sh` found main at `663f135` and passed; M6a archived; `tools/check-transcripts.py` PASS with the 5 reviewed entries listed for the owner's approval |
 | 2026-10-24T14:13:39Z (session start, `/clear`) | `~/<top>/clean` | `aa535102…9f25ab` | Session M7 starts; banner `status: OK`; `tools/clean-update.sh` found main at `6ba587e` and passed; M6b archived; `tools/check-transcripts.py` PASS with the 2 reviewed entries listed for the owner's approval |
 | 2026-10-25T02:13:03Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session evening-1024 starts; banner `status: OK`. 02:13:28Z: `tools/spec-setup.sh`, banner `status: OK`; day-1024's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS; this entry written. `config/claude/spec.json` changes in this session (a deny rule added); the running session keeps the old settings, so its banner would show a mismatch until it restarts |
+| 2026-10-25T04:32:36Z | `~/<top>/spec` | `eaa5f875…ed542f810` | Session evening-1024, after a compaction: banner `status: CONFIG MISMATCH` (the running settings against #110's `config/claude/spec.json`, `84a7e56c…`); recorded by session owner-answers-1025 (Corrections) |
+| 2026-10-25T13:23:41Z (session start, `/clear`) | `~/<top>/spec` | `eaa5f875…ed542f810` | Session owner-answers-1025 starts; banner `status: OK` (the folder still at `1123eca`). 13:24:11Z: `tools/spec-setup.sh` on main at `ce586704`, banner `status: OK` (`84a7e56c…f947bc`); evening-1024's transcript archived into `sessions/spec/`; `tools/check-transcripts.py` PASS with `ALLOWED_MISMATCH`; this entry written. The running session keeps the old settings |
 
 ## Model cutoffs
 
