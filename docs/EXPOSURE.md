@@ -1573,6 +1573,30 @@ SR-3 wrote only its barrier-log row.*
   start branch for EXPOSURE.md's conflict; its files were merged, not
   reviewed. Free disk stayed between 7 and 11 GB.
 
+### Session spec-overnight-1025 (the app's USB patch note, M9's single-file release format, spec requests)
+- Date: 2026-10-26 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.310 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `98ff9a1a-2e3d-4ab8-b9ba-49f89dc695c5`,
+  started by `/clear` at 02:27:25Z (banner `source: clear`,
+  `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; 02:27:36Z:
+  `tools/spec-setup.sh` on main at `cf07f9e5`, banner `status: OK`
+  (`84a7e56c…`); `tools/private-terms.local` exists (not opened). 7.3 GB
+  free at the start.
+- What it archived: owner-answers-1025's transcript (`e9c791d0`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS (32 archived
+  transcripts).
+- The owner's decisions it records: owner-answers-1025's
+  `ALLOWED_MISMATCH` (Corrections, "evening-1024's mismatched banner") is
+  approved, by the merge of #127; a script event for a MIDI clock at a
+  given BPM is declined, not needed (HARNESS.md's "MIDI clock in and
+  timing" stays as written: generate the clock's `midi` lines).
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository).
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
