@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range a486b8e768217560fbc06defc33d78ca0c3d9d92..053e8c8cbc49b7dec117951b82cec618602ff524
+OK     4db1a99b66f2 config: ARP's budgets, more code for the presets with the arpeggiator
+EXEMPT 30994bb8b064 (merge) config: merge arp/arpeggiator (#132's rename) into arp/budgets
+EXEMPT eb30f6f920fc (merge) config: merge arp/arpeggiator (the ARP suite's goldens) into arp/budgets
+EXEMPT cc32f6e74ac7 (merge) config: merge arp/arpeggiator (keys-out, partial golden writes) into arp/budgets
+EXEMPT f08f318af37a (merge) config: merge arp/arpeggiator (PLAN.md and EXPOSURE.md) into arp/budgets
+EXEMPT 053e8c8cbc49 (merge) Merge pull request #133 from japes98/arp/budgets
+6 commit(s) checked: PASS
+
+exit status 0

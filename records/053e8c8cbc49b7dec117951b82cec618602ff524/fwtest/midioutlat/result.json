@@ -1,0 +1,78 @@
+{
+  "fwtest": {
+    "version": "0.6.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 45140,
+    "sha256": "984d924e6ccd58c7fdb8f49b53f955bfff84dfc72ac9c412eed41a524b1118fa"
+  },
+  "script_sha256": "eae426c380b579c7c9f7393fb2012aa46ec1f28ae5e1107104cd13b15d8fd724",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "3200.623",
+    "instructions": {
+      "core0": 14326820,
+      "core1": 42286
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 564524,
+        "sha256": "08ef7255b87fe02f64b5f825b3b1b773177a80e629e2a2722226d2600531b8d0"
+      },
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "ipb.csv",
+        "bytes": 46360,
+        "sha256": "e3a2ac8a61eddd5ec5cf9b5f715151a4fd0813af35e54e407b16dc6d77253c16"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 1412,
+        "sha256": "cadccef4d0a38ffd914d32a747071c09125dfa5047c309a8fe0a30bff7d13d3a"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 1428,
+        "sha256": "1b4639a91ba522b3b6be6ce7b717b277b490a9ce962e44cca7491d62f428054c"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "3d0ea9eb41bba148d6ab673e2abe33f0f7cd94c037e85854a27121cd9860062c"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "f5a4edb3823e5e2b90c8f3716cb086a13ed60e387cd5a986446c5553e0ccc6e7"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "3cc04718b0b3ba49ff0a7b3128d6d3d75227782747f022ea0af095589a0d955f"
+      },
+      {
+        "name": "ram-01c005d0-164-end.bin",
+        "bytes": 356,
+        "sha256": "548757c304868499670f44704c80fd8433da7e185e3747abd105892af58adc3c"
+      },
+      {
+        "name": "ram-01c00734-4c-end.bin",
+        "bytes": 76,
+        "sha256": "7ab072e1110d5ef6a26e1e8a8064a9f90b92455d00c97faca6c941016015b968"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
