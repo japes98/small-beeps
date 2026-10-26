@@ -10,7 +10,7 @@ runs check against the model instead; the screen's images; arp.json:
 the SHA-256 of each run's sound, from its first sample to its last, as
 tools/preset_suite.py keeps the presets').
 
-  arp_suite.py --image APP.bin --out DIR [--only NAME ...] [--write-golden]
+  arp_suite.py --image APP.bin --out DIR [--only NAME ...] [--write-golden [--replace]]
 
 The runs (R-ARP-1 to R-ARP-8):
 - mode-up ... mode-chord: each mode (2 octaves, 1/16, 120 beats a
@@ -39,6 +39,10 @@ The runs (R-ARP-1 to R-ARP-8):
 - local-off: local control off: its notes go out, the engine plays
   nothing.
 - clock-out: on the internal clock, Start, a 0xF8 a pulse, Stop.
+- clock-quiet: MIDI thru on; on the internal clock, then MIDI clock in
+  (Start, 1 s), Stop with the clock going on (0.6 s, ignored), then no
+  clock: none of our clocks goes out while the sender's come in (only
+  theirs, passed on), and ours continue 250 ms after its last.
 - stuck: modes, octaves and rates changed on the ARP screen while it
   plays, LATCH, the pedal, PRESETS to a program without it and back, a
   mono patch, ARP off: every note on MIDI out ends, nothing sounds or
@@ -68,6 +72,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import arp_model as am  # noqa: E402  (tools/, our own)
 import audio_analysis as aa  # noqa: E402
 import fm_patch  # noqa: E402
+import goldtime  # noqa: E402
 import store as st  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -110,11 +115,11 @@ def with_arp(p, **kw):
     return fm_patch.encode(q)
 
 
-def settings(tempo=120, arp_out=0, local=1):
+def settings(tempo=120, arp_out=0, local=1, thru=0):
     """struct midi_settings, version 4 (midi.h): the defaults but these."""
     routes = ((1, 1), (7, 2), (11, 3), (64, 4), (16, 5), (17, 6), (18, 7), (19, 8), (5, 6), (74, 7))
     r = [b for x in routes for b in x] + [0] * (2 * (16 - len(routes)))
-    return bytes([4, 0, 2, len(routes)] + r + [1, 0, local, 0, tempo, arp_out])
+    return bytes([4, 0, 2, len(routes)] + r + [1, thru, local, 0, tempo, arp_out])
 
 
 def chip(slots, settings_bytes=None):
@@ -129,10 +134,21 @@ def chip(slots, settings_bytes=None):
 
 # --- The runs ------------------------------------------------------------
 
+# Where a run's own length ends too near an audio block's end, the end
+# the timing goldens' policy takes instead (tools/goldtime.py, rule 1:
+# 1 ms before the next block's end, 0.2 ms after the last). Each run
+# starts from its own flash chip, so its blocks fall at their own times.
+END_MS = {"clock-out": 1700.1, "follow": 3599, "load": 10998.9, "minute": 60800.3, "mode-chord": 2708.9,
+          "mode-down": 2708.9, "mode-order": 2708.9, "mode-random": 2708.9, "mode-up": 2708.9,
+          "mode-updown": 2708.9, "rate-1-16": 3509.7, "rate-1-16d": 3509.7, "rate-1-16t": 3509.7,
+          "rate-1-2": 9009.1, "rate-1-32": 3384.9, "rate-1-4": 5259.2, "rate-1-4d": 7134.9, "rate-1-8": 3509.7,
+          "rate-1-8t": 3509.7, "save": 2000.1, "save-next": 2709.8, "screen": 3700.3, "stuck": 5799.7,
+          "swing": 2709.8}
+
 class Case:
     def __init__(self, name, ms, script, flash=None, rams=(), lcds=(), leds=False, flash_out=False, check=None,
                  golden=True, sound=True, **info):
-        self.name, self.ms, self.script, self.flash = name, ms, script, flash
+        self.name, self.ms, self.script, self.flash = name, END_MS.get(name, ms), script, flash
         self.rams, self.lcds, self.leds, self.flash_out = rams, lcds, leds, flash_out
         self.check, self.golden, self.info = check, golden, info
         # sound: the WAV's hash a golden too (not for MIDI clock in: which
@@ -147,7 +163,7 @@ class Case:
         with open(s, "w") as f:
             f.write("\n".join(self.script) + "\n")
         argv = ["sh", "tools/fwtest", "run", rel(image), "--ms", str(self.ms), "--script", rel(s), "--midi-out",
-                "--wav", "--console", "--ram", "0x%08x:0x%x@end" % (ARP_ADDR, ARP_LEN),
+                "--wav", "--ipb", "--console", "--ram", "0x%08x:0x%x@end" % (ARP_ADDR, ARP_LEN),
                 "--ram", "0x%08x:0x%x@end" % (AUDIO_ADDR, AUDIO_LEN), "--ram", "0x%08x:0x%x@end" % (FM_ADDR, FM_LEN)]
         for when in self.rams:
             argv += ["--ram", "0x%08x:0x%x@%s" % (ARP_ADDR, ARP_LEN, when)]
@@ -291,15 +307,20 @@ def common(name, d, code, log):
 # --- Checks ----------------------------------------------------------------
 
 HELD = [(67, 100), (60, 90), (64, 80)]      # G4, C4, E4, 30 ms apart, by MIDI in
-T_NOTES, HOLD_MS = 300, 2000
+# The keys are let go together, OFF_GRID_MS after a whole number of steps
+# of every rate, never on a step: there, which came first moved with a
+# few microseconds of the code's timing (the timing goldens' policy).
+OFF_GRID_MS = 10
+T_NOTES, HOLD_MS = 300, 2000 + OFF_GRID_MS
 
 
 def held_script(t=T_NOTES, hold=HOLD_MS, program=None):
     s = ["100 midi c0 %02x" % program] if program is not None else []
     for i, (n, v) in enumerate(HELD):
         s.append("%d midi 90 %02x %02x" % (t + 30 * i, n, v))
-    for i, (n, _) in enumerate(HELD):
-        s.append("%d midi 80 %02x 00" % (t + hold + 30 * i, n))
+    # All let go at once (nine bytes, 2.9 ms on the wire): no step falls
+    # among them, so every step has all three held or none.
+    s.append("%d midi %s" % (t + hold, " ".join("80 %02x 00" % n for n, _ in HELD)))
     return s
 
 
@@ -447,7 +468,7 @@ def cases():
         a = rate_settings(i)
         # 8 steps at least, at most 30 (the record logs the last 32).
         step_ms = am.RATE_PULSES[i] * 60000.0 / (24 * 120)
-        hold = int(min(max(HOLD_MS, 7.5 * step_ms), 30 * step_ms))
+        hold = int(min(max(2000, 7.5 * step_ms), 30 * step_ms)) + OFF_GRID_MS
         out.append(Case("rate-" + RATE_NAMES[i], T_NOTES + hold + 1200,
                         held_script(hold=hold, program=FIRST_SLOT + 6 + i), bank,
                         check=lambda n, d, a=a, hold=hold: check_steps(n, d, a, hold_ms=hold)))
@@ -467,7 +488,7 @@ def cases():
 
 def minute_case():
     a = dict(fm_patch.ARP_DEFAULT, on=True, gate=100)
-    script = ["100 midi c0 09", "300 midi 90 3c 64", "60300 midi 80 3c 00"]
+    script = ["100 midi c0 09", "300 midi 90 3c 64", "%d midi 80 3c 00" % (60300 + OFF_GRID_MS)]
 
     def check(name, d):
         p, lines = [], []
@@ -607,7 +628,7 @@ def out_cases():
     # The two keys 10 ms apart: at the same time their order on MIDI out
     # would be the scan's, which moves with the code's timing.
     keys = ["100 midi c0 09", "300 key %d down" % key(1), "310 key %d down" % key(8),
-            "1300 key %d up" % key(1), "1310 key %d up" % key(8)]
+            "%d key %d up" % (1300 + OFF_GRID_MS, key(1)), "%d key %d up" % (1310 + OFF_GRID_MS, key(8))]
 
     def check_keys(name, d):
         p = []
@@ -654,10 +675,54 @@ def out_cases():
         return p + balanced(name, msgs), ["  %s: on the internal clock: Start, %d clocks 20.833 ms apart on average,"
                                           " Stop with ARP off" % (name, len(between))]
 
+    # clock-quiet: Start and 120 beats a minute from 500 ms for 1 s, Stop,
+    # the clock on for 0.6 s (ignored), then none.
+    quiet_script = ["100 midi c0 09", "200 midi 90 3c 64", "210 midi 90 40 64", "500 midi fa"]
+    t0, period, ins = 505.0, 60000.0 / (24 * 120), []
+    for k in range(int(1600 / period)):
+        t = t0 + k * period
+        if ins and ins[-1] < 1505 <= t:
+            quiet_script.append("1505 midi fc")
+        quiet_script.append("%.3f midi f8" % t)
+        ins.append(t)
+    last_in = ins[-1]
+    # (note ons at velocity 0 to end them: what thru passes on, balanced() counts)
+    quiet_script += ["2900 midi 90 3c 00", "2900 midi 90 40 00"]
+
+    def check_clock_quiet(name, d):
+        p = []
+        msgs = midi_messages(d)
+        rt = [(t, m[1]) for m in msgs for t in [m[0]] if len(m) == 2 and m[1] >= 0xF8]
+        ours = {w: arp_record(d, w)["clocks_out"] for w in ("480", "1400", "2050", "2300")}
+        end = arp_record(d)["clocks_out"]
+        # (at 480 ms on the internal clock; from the first clock in, none)
+        if not ours["480"] or len(set(ours[w] for w in ("1400", "2050", "2300"))) != 1:
+            p.append("%s: our clocks out at 480, 1400, 2050, 2300 ms: %s; expected some, then none from 1400"
+                     % (name, [ours[w] for w in ("480", "1400", "2050", "2300")]))
+        # Every 0xF8 out is ours (the record counts them) or one passed on.
+        passed = len([1 for _, s_ in rt if s_ == 0xF8]) - end
+        if passed != len(ins):
+            p.append("%s: %d clocks out not ours, %d came in" % (name, passed, len(ins)))
+        conts = [t for t, s_ in rt if s_ == 0xFB and t > last_in]
+        want = last_in + 250
+        if len(conts) != 1 or not want - 2 * BLOCK_MS <= conts[0] <= want + 2 * BLOCK_MS:
+            p.append("%s: our Continue at %s ms, expected one 250 ms after the last clock in (%.1f)"
+                     % (name, [round(t, 2) for t in conts], want))
+        after = [t for t, s_ in rt if s_ == 0xF8 and conts and conts[0] <= t <= 2890]
+        want_n = round((2890 - conts[0]) / period) if conts else None
+        if want_n is None or abs(len(after) - want_n) > 1 or end - ours["2300"] < len(after):
+            p.append("%s: %d clocks of ours after the Continue (expected %s), the record %d"
+                     % (name, len(after), want_n, end - ours["2300"]))
+        return p + balanced(name, msgs), ["  %s: MIDI thru on: none of our clocks while the sender's came in"
+                                          " (%d passed on), ours continued %.1f ms after its last"
+                                          % (name, passed, (conts[0] - last_in) if conts else -1)]
+
     arp_btn = ["%d key %d down" % (1400, ARP_BUTTON), "%d key %d up" % (1460, ARP_BUTTON)]
     return [Case("keys-out", 1600, keys, chip([with_arp(CLICK)], settings(arp_out=1)), check=check_keys),
             Case("local-off", 1600, ["50 midi b0 7a 00"] + keys, chip([with_arp(CLICK)]), check=check_local),
-            Case("clock-out", 1700, keys + arp_btn, chip([with_arp(CLICK)]), check=check_clock_out)]
+            Case("clock-out", 1700, keys + arp_btn, chip([with_arp(CLICK)]), check=check_clock_out),
+            Case("clock-quiet", 3000, quiet_script, chip([with_arp(CLICK)], settings(thru=1)),
+                 rams=("480", "1400", "2050", "2300"), check=check_clock_quiet, sound=False)]
 
 
 def stuck_case():
@@ -665,6 +730,7 @@ def stuck_case():
     t = 300
     s = ["100 midi c0 09"]
     s += ["%d key %d down" % (t, key(k)) for k in (1, 5, 8)]
+    late = len(s) + 2                     # after its screen: 7 ms off the 1/16 grid (125 ms from 300)
     s += ["%d key %d down" % (600, ARP_BUTTON), "%d key %d up" % (1200, ARP_BUTTON)]     # its screen
     s += ["1300 enc %d +2" % ENC_KNOB[1], "1500 enc %d +1" % ENC_KNOB[2], "1700 enc %d +2" % ENC_KNOB[0]]
     s += ["1900 enc %d +1" % ENC_SELECT, "2000 enc %d +1" % ENC_KNOB[1]]                 # LATCH on
@@ -674,9 +740,11 @@ def stuck_case():
     s += ["3100 midi b0 40 00"]
     s += ["3300 enc %d -1" % ENC_PRESETS, "3600 enc %d +1" % ENC_PRESETS]                # off the slots, back
     s += ["3800 midi c0 0a"]                                                             # the mono patch
-    s += ["3900 key %d down" % key(1), "3900 key %d down" % key(5), "4500 key %d up" % key(5)]
+    # (10 ms apart: pressed together, which comes first is the scan's order)
+    s += ["3900 key %d down" % key(1), "3910 key %d down" % key(5), "4500 key %d up" % key(5)]
     s += ["4700 key %d down" % ARP_BUTTON, "4750 key %d up" % ARP_BUTTON]                # ARP off, KEY1 held
     s += ["5000 key %d up" % key(1)]
+    s = s[:late] + ["%d %s" % (int(e.split(" ", 1)[0]) + 7, e.split(" ", 1)[1]) for e in s[late:]]
     bank = chip([with_arp(CLICK), with_arp(fm_patch.TEST_PATCHES[3], mode=4, octaves=3)])
 
     def check(name, d):
@@ -687,7 +755,11 @@ def stuck_case():
         return p, ["  %s: mode, octaves, rate, LATCH, the pedal, PRESETS, a mono patch and ARP off while it"
                    " played: every note on MIDI out ended, nothing sounds or is held at the end (%d steps)"
                    % (name, r["steps"])]
-    return Case("stuck", 5800, s, bank, check=check)
+    # (no sound hash: its last notes are the panel's keys played as they
+    # are, their starts and ends taken by different paths, the key scan
+    # and the audio block, so their lengths move by a scan with the
+    # code's timing; what it checks is that every note ends)
+    return Case("stuck", 5800, s, bank, check=check, sound=False)
 
 
 def screen_case():
@@ -776,7 +848,7 @@ def load_case():
 
 # --- Running ----------------------------------------------------------------
 
-def run(image, out, only=None, write_golden=False):
+def run(image, out, only=None, write_golden=False, replace=False):
     """Runs and checks the cases (all, or those named): (problems, lines)."""
     todo = [c for c in cases() if only is None or c.name in only]
     for c in todo:
@@ -793,6 +865,8 @@ def run(image, out, only=None, write_golden=False):
             golden = json.load(f)
     for c, d, code, log in results:
         p = common(c.name, d, code, log)
+        # The timing goldens' policy (tools/goldtime.py): the end clear of the blocks.
+        p += goldtime.check_end(c.name, d, c.ms)[0]
         if not p:
             try:
                 more, l2 = c.check(c.name, d)
@@ -803,7 +877,10 @@ def run(image, out, only=None, write_golden=False):
         if c.golden and os.path.exists(os.path.join(d, "midi-out.txt")):
             got = messages_text(d)
             gpath = os.path.join(GOLDEN_DIR, c.name + ".midi.txt")
-            if write_golden:
+            if write_golden and os.path.exists(gpath) and open(gpath).read() != got and not replace:
+                p.append("%s: MIDI out's messages differ from %s; not written (a change of behaviour: --replace)"
+                         % (c.name, rel(gpath)))
+            elif write_golden:
                 os.makedirs(GOLDEN_DIR, exist_ok=True)
                 with open(gpath, "w") as f:
                     f.write(got)
@@ -821,11 +898,22 @@ def run(image, out, only=None, write_golden=False):
             os.makedirs(g, exist_ok=True)
             for n in os.listdir(d):
                 if n.startswith("lcd-"):
-                    shutil.copyfile(os.path.join(d, n), os.path.join(g, n))
+                    old = os.path.join(g, n)
+                    if os.path.exists(old) and not goldtime.identical(old, os.path.join(d, n)) and not replace:
+                        p.append("%s: %s differs from its golden image; not written (--replace)" % (c.name, n))
+                        continue
+                    shutil.copyfile(os.path.join(d, n), old)
         print("%-12s %s" % (c.name, "PASS" if not p else "FAIL"), flush=True)
         problems += p
     if write_golden:
         # The runs written now replace theirs; the others' (--only) stay.
+        # A hash that moved is written only with --replace (a change of
+        # behaviour); one that moved with the timing, by tools/regolden.py.
+        for k in sorted(sums):
+            if k in golden and golden[k] != sums[k] and not replace:
+                problems.append("%s: the WAV differs from its golden SHA-256; not written (tools/regolden.py, or"
+                                " --replace for a change of behaviour)" % k)
+                sums[k] = golden[k]
         golden.update(sums)
         golden["comment"] = "SHA-256 of each tools/arp_suite.py run's sound (wav_sha256)"
         with open(GOLDEN_SUMS, "w") as f:
@@ -839,9 +927,12 @@ def main():
     ap.add_argument("--image", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--only", nargs="*")
-    ap.add_argument("--write-golden", action="store_true")
+    ap.add_argument("--write-golden", action="store_true",
+                    help="write the goldens of runs that have none (new runs)")
+    ap.add_argument("--replace", action="store_true",
+                    help="with --write-golden, also those that differ: a change of behaviour, said so in its commit")
     a = ap.parse_args()
-    problems, lines = run(os.path.abspath(a.image), os.path.abspath(a.out), a.only, a.write_golden)
+    problems, lines = run(os.path.abspath(a.image), os.path.abspath(a.out), a.only, a.write_golden, a.replace)
     print("\n".join(lines))
     for q in problems:
         print("FAIL: " + q)
