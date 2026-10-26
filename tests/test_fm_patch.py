@@ -85,10 +85,12 @@ class FmPatchTest(unittest.TestCase):
 class PresetBankTest(unittest.TestCase):
     """Requirements: R-PRESET-1"""
 
-    def test_sixty_four_presets_eight_of_each_category(self):
-        self.assertEqual(len(fp.PRESETS), 64)
+    def test_sixty_four_presets_eight_of_each_category_then_six_candidates(self):
+        self.assertEqual(len(fp.PRESETS), 70)
         for c in range(len(fp.CATEGORIES)):
-            self.assertEqual(sum(1 for cat, _, _ in fp.PRESETS if cat == c), 8, fp.CATEGORIES[c])
+            self.assertEqual(sum(1 for cat, _, _ in fp.PRESETS[:64] if cat == c), 8, fp.CATEGORIES[c])
+        for n, (_, purpose, _) in enumerate(fp.PRESETS[64:], 65):
+            self.assertTrue(purpose.startswith("candidate %d," % n), purpose)
 
     def test_every_preset_is_valid_named_once_and_says_what_it_is_for(self):
         with open(os.path.join(ROOT, "firmware", "src", "fm.h")) as f:

@@ -245,10 +245,15 @@ def main():
             f.write(src)
         print("calibrate: TRIM rewritten for %d presets" % len(trims))
     if a.write_golden:
+        # The presets written now replace theirs; the others' (--only) stay.
+        old = {}
+        if os.path.exists(GOLDEN):
+            with open(GOLDEN) as f:
+                old = json.load(f)
+        old.update(sums)
+        old["comment"] = "SHA-256 of each preset's run in tools/preset_suite.py (its WAV's first HASH_FRAMES frames)"
         with open(GOLDEN, "w") as f:
-            json.dump({"comment": "SHA-256 of each preset's run in tools/preset_suite.py (its WAV's first"
-                                  " HASH_FRAMES frames)",
-                       **sums}, f, indent=2, sort_keys=True)
+            json.dump(old, f, indent=2, sort_keys=True)
             f.write("\n")
     if a.drop:
         os.makedirs(a.drop, exist_ok=True)
@@ -257,10 +262,20 @@ def main():
                " C5 and the C major chord held 1 s. Rendered by fwtest from the image the draft pull request"
                " builds; loudness is the reference note's loudest 20 ms.", "",
                "| # | Name | Category | What it is for | Loudness |", "|---|---|---|---|---|"]
+        # With --only, the other presets' rows (and WAVs) stay as they were.
+        kept = {}
+        old_index = os.path.join(a.drop, "INDEX.md")
+        if which is not None and os.path.exists(old_index):
+            with open(old_index) as f:
+                for line in f:
+                    cells = line.split("|")
+                    if len(cells) > 2 and cells[1].strip().isdigit():
+                        kept[int(cells[1])] = line.rstrip("\n")
         for n, name, cat, purpose, m in rows:
             fn = "%02d-%s.wav" % (n, "".join(c if c.isalnum() else "-" for c in name).strip("-").lower())
             shutil.copyfile(wavs[n - 1], os.path.join(a.drop, fn))
-            idx.append("| %d | [%s](%s) | %s | %s | %.1f dBFS |" % (n, name, fn, cat, purpose, m["loud_db"]))
+            kept[n] = "| %d | [%s](%s) | %s | %s | %.1f dBFS |" % (n, name, fn, cat, purpose, m["loud_db"])
+        idx += [kept[n] for n in sorted(kept)]
         with open(os.path.join(a.drop, "INDEX.md"), "w") as f:
             f.write("\n".join(idx) + "\n")
     for q in problems:

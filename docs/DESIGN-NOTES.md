@@ -2524,3 +2524,46 @@ Our own design, from docs/ARP-PROPOSAL.md and the owner's answers there
   KiB of static RAM in all. That matters beyond the budget: the start-up
   clears it before the time base starts, so more of it moves every
   event's time stamp later against fwtest's clock (about 2 us a KiB).
+
+### 2026-10-26 M8b: candidates 65 to 70
+
+The owner asked for presets covering the classic FM sounds, from known
+recipes, never copied: six new ones, P65 to P70 (programs 89 to 94),
+added after the 64 as candidates; the owner chooses which of the 64
+they replace, so none is removed here and the draft stays a draft. Each
+is built in `tools/fm_patch.py` from the recipe the owner named, with
+numbers chosen here and checked by measuring renders with
+`tools/preset_measure.py` (our own: one note at velocity 40 and 120);
+no voice bank, SysEx or published patch was opened, and the names are
+our own, none a factory name.
+
+- **What the measures showed first.** An operator's envelope levels
+  multiply its own level: a modulator at level 112 whose envelope holds
+  104 acts at 89 (index about 0.5), not 112. The first drafts, written
+  as if the envelope's levels were absolute, measured as near-sines;
+  the bank's existing presets are mellow by the same measure (Saw Lead's
+  second harmonic -11 dB at 500 ms). Second: two detuned carriers at the
+  same level cancel when they beat (12 to 25 dB swings), and the bank's
+  loudness trim, which raises every carrier, clips the main one at 127
+  and evens them out; so each candidate keeps its main carrier at 127
+  and its detuned partner 8 to 12 steps (6 to 9 dB) below, gets its
+  loudness from lower carrier velocity sensitivity rather than a trim,
+  and the trim is left at 0 (or -1, -2 where it lowers).
+- **The figures** (C4 at velocity 120, the basses an octave down;
+  brightness the power's spectral centroid in harmonics, 1 a sine; the
+  suite's loudness at velocity 100, target -25 +- 3 dBFS):
+
+| # | Name | Category | Recipe, as built | Measured |
+|---|---|---|---|---|
+| 65 | Tutti Swell | pads | three pairs: two near-unison carriers 7 cents apart (+4, -3) rising over about 0.5 s, and a brass-like pair (feedback 5) that barks in 2 ms and fades within a few hundred ms | -25.6 dBFS; within 3 dB of its peak after 357 ms (the pad rule's 50 ms); the stab alone at 10 ms, -15 dB under the full swell; brightness 1.9 at 5 ms (the stab), 1.0 at 50, 2.0 at 1.5 s; the unison's beating 5.9 dB |
+| 66 | Round Seq | bass | a 1:1 pair, its modulator at feedback 5 closing in about 40 ms like a filter envelope, over a sine an octave down | -27.8 dBFS; brightness 2.25 at 5 ms, 1.06 at 50 ms; velocity 40: 0.95 at 5 ms |
+| 67 | Neon Riff | leads | two bright 1:1 stacks of three 6 cents apart, the second 9 dB down, feedback 6, a fast attack that settles a little | -27.8 dBFS; attack under 1.5 ms; brightness 3.0 at 5 ms, 2.6 at 1.5 s; velocity 40: 1.0; beating 1.9 dB |
+| 68 | Steam Pipes | brass and winds | an almost pure carrier with a 0.15 s attack and a vibrato from a 5.5 Hz fixed-frequency modulator (the engine has no LFO); beside it a quiet breath: a low carrier noised by a ratio 3 modulator at feedback 7 | -24.7 dBFS; attack 147 ms; vibrato 5.5 Hz, 6.4 cents; breath 0.3% of the power off the harmonics (-25 dB) at 600 ms, and a breathy onset (brightness 10.7 at 5 ms, 1.2 from 300 ms) |
+| 69 | Hammer Keys | keys | three pairs, the second 3 cents up and 6 dB down, velocity 6 and 7 on the modulators, each index decaying with the note, the upper pair's carrier at 2.01 (-2 cents: about 6.6 cents sharp, a stretched partial) | -28.4 dBFS; down 21 dB at 500 ms, 43 dB at 1.9 s; brightness 2.1 at 5 ms, 1.7 at 50, 1.0 by 300; velocity 40: 1.03 at 5 ms; the stretched partial 5.9 dB under the 2nd harmonic (the other candidates' leakage at that frequency: -12 to -30 dB) |
+| 70 | Wire Bass | bass | one pair, the modulator at feedback 7 closing within about 5 ms from a bright bite to a still-wiry level | -24.7 dBFS; brightness 1.63 at 5 ms, 1.60 held (Round Seq's settles at 1.06); velocity 40: 1.0 |
+
+- **Their tests:** the preset suite's (R-PRESET-2 to R-PRESET-4): no
+  clipping, DC or click, the loudness, the category's shape (a bass's
+  power below 300 Hz, the pad's attack), all 16 voices without an
+  underrun, and the golden SHA-256 of each run. The WAVs are in
+  `~/<top>/drop/presets/` (65 to 70, INDEX.md).

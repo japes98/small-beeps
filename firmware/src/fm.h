@@ -198,7 +198,7 @@ u32 fm_patch_sum(const u8 *p);
 /* Since M8b the preset bank (patches.c, tools/fm_patch.py's PRESETS),
  * programs FM_PRESET0 to FM_PROGRAMS - 1, after the user slots, so the
  * slots keep M7's numbers (stored selections, MIDI program changes). */
-#define FM_PRESETS    64u
+#define FM_PRESETS    70u
 #define FM_PRESET0    (FM_PATCHES + FM_USER_SLOTS)
 #define FM_PROGRAMS   (FM_PRESET0 + FM_PRESETS)
 extern const u8 fm_presets[FM_PRESETS][FM_PATCH_BYTES];

@@ -151,7 +151,7 @@ TEST_PATCHES = [
 
 # The preset bank (M8b; docs/M8-PROPOSAL.md, "Presets"): 64 presets in 8
 # categories of 8, programs 25 to 88 after the test patches and the user
-# slots. Written from scratch here, as the test patches are: ratios,
+# slots; then six candidates, 65 to 70 (programs 89 to 94, below). Written from scratch here, as the test patches are: ratios,
 # levels and envelopes chosen by reasoning about each kind of sound, each
 # with a line saying what it is for. No voice bank or SysEx dump was
 # opened, converted or compared, and no names were borrowed. A modulator's
@@ -218,6 +218,7 @@ TRIM = {
         'Soft Lead': -9,
         'Space Pad': 9,
         'Square Lead': -11,
+        'Steam Pipes': -1,
         'Steel Str': 10,
         'String Pad': 1,
         'Sub Bass': -11,
@@ -233,6 +234,7 @@ TRIM = {
         'Warm Pad': -3,
         'Whistle': -10,
         'Wind': -3,
+        'Wire Bass': -2,
         'Wood Bass': 43,
 }
 
@@ -590,6 +592,64 @@ add(7, "a metal hit: an inharmonic strike that rings for a while",
         op(4.98, 96, rates=(0, 56, 80, 80), levels=(127, 60, 0)),
         op(6.33, 100, rates=(0, 48, 72, 80), levels=(127, 56, 0))], feedback=4))
 
+# --- candidates 65 to 70 (overnight-1025) ---------------------------------
+# Six more, for the owner to choose which of the 64 they replace (none is
+# removed here). Each is built from a general FM recipe the owner named
+# (the kind of sound and how FM makes it: detuned carriers, a feedback
+# stack, a decaying index, ...), with numbers chosen here and checked by
+# measuring the render (docs/DESIGN-NOTES.md, "M8b: candidates 65 to
+# 70"); no voice bank, SysEx or published patch was opened, and the names
+# are our own.
+add(4, "candidate 65, an orchestral swell: two near-unison carriers 7 cents apart rise slowly; a"
+       " brass-like layer barks at once and fades, so a short note is a stab and a long one swells",
+    patch("Tutti Swell", 3, [
+        op(1.0, 127, detune=4, velocity=1, rates=(70, 0, 0, 64)),
+        op(1.0, 104, velocity=3, rates=(66, 0, 0, 64)),
+        op(1.0, 115, detune=-3, velocity=1, rates=(72, 0, 0, 64)),
+        op(2.0, 94, velocity=3, rates=(70, 0, 0, 64)),
+        op(1.0, 120, velocity=2, rates=(8, 64, 74, 52), levels=(127, 108, 0)),
+        op(1.0, 116, velocity=6, rates=(12, 60, 70, 52), levels=(127, 110, 100))], feedback=5))
+add(1, "candidate 66, a round sequencer bass: a 1:1 pair whose feedback modulator closes fast"
+       " like a filter envelope, over a sine an octave down",
+    patch("Round Seq", 3, [
+        op(0.5, 112, rates=(0, 72, 88, 36), levels=(127, 112, 104)),
+        OFF, OFF, OFF,
+        op(1.0, 127, rates=(0, 70, 86, 36), levels=(127, 116, 108)),
+        op(1.0, 116, velocity=5, rates=(0, 64, 80, 36), levels=(127, 110, 106))], feedback=5, transpose=-12))
+add(5, "candidate 67, a punchy riff lead: two detuned bright stacks that bite at the attack and"
+       " settle a little, for short synth-brass riffs",
+    patch("Neon Riff", 2, [
+        op(1.0, 127, detune=3, rates=(4, 60, 0, 44), levels=(127, 120, 120)),
+        op(1.0, 118, velocity=4, rates=(0, 58, 0, 44), levels=(127, 118, 118)),
+        op(1.0, 106, velocity=4, rates=(0, 52, 0, 44), levels=(127, 116, 116)),
+        op(1.0, 115, detune=-3, rates=(4, 60, 0, 44), levels=(127, 120, 120)),
+        op(1.0, 116, velocity=4, rates=(0, 58, 0, 44), levels=(127, 116, 116)),
+        op(1.0, 108, velocity=3, rates=(0, 52, 0, 44), levels=(127, 118, 118))], feedback=6))
+add(3, "candidate 68, steam pipes: an almost pure carrier with a slow attack and a gentle vibrato"
+       " from a 5.5 Hz fixed modulator, beside a quiet breath: a low carrier noised by a"
+       " feedback-heavy modulator",
+    patch("Steam Pipes", 7, [
+        op(1.0, 127, velocity=1, rates=(62, 0, 0, 52)),
+        op(5.5, 80, mode=FIXED, rates=(72, 0, 0, 52)),
+        op(2.0, 82, rates=(60, 0, 0, 52)),
+        op(1.0, 106, velocity=2, rates=(48, 64, 0, 48), levels=(127, 120, 120)),
+        OFF,
+        op(3.0, 124, rates=(0, 0, 0, 48))], feedback=7))
+add(0, "candidate 69, an FM acoustic piano: three pairs a few cents apart, velocity to brightness,"
+       " the index falling as the note decays, the upper pair slightly stretched (inharmonic)",
+    patch("Hammer Keys", 3, [
+        op(1.0, 127, velocity=1, rates=(0, 68, 100, 56), levels=(127, 110, 0)),
+        op(1.0, 116, velocity=6, rates=(0, 76, 90, 56), levels=(127, 104, 0)),
+        op(1.0, 119, detune=3, velocity=1, rates=(0, 70, 100, 56), levels=(127, 110, 0)),
+        op(1.0, 112, velocity=6, rates=(0, 74, 88, 56), levels=(127, 102, 0)),
+        op(2.01, 115, detune=-2, velocity=2, rates=(0, 64, 92, 52), levels=(127, 104, 0)),
+        op(3.03, 108, velocity=7, rates=(0, 60, 80, 52), levels=(127, 96, 0))], feedback=2))
+add(1, "candidate 70, a wiry bass: one pair, its modulator at strong feedback closing fast, for a"
+       " thin, biting line",
+    patch("Wire Bass", 3, [
+        OFF, OFF, OFF, OFF,
+        op(1.0, 127, velocity=2, rates=(0, 72, 88, 36), levels=(127, 114, 106)),
+        op(1.0, 126, velocity=5, rates=(0, 40, 64, 36), levels=(127, 108, 104))], feedback=7, transpose=-12))
 
 
 def fletcher16(data):
