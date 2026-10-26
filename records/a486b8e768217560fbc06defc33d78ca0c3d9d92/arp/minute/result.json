@@ -1,0 +1,68 @@
+{
+  "fwtest": {
+    "version": "0.6.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 45140,
+    "sha256": "984d924e6ccd58c7fdb8f49b53f955bfff84dfc72ac9c412eed41a524b1118fa"
+  },
+  "script_sha256": "72e7f90508d428d342b5e14f331619f4be084eaf728177b412604c7c8a480d29",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "60800.680",
+    "instructions": {
+      "core0": 290249857,
+      "core1": 846808
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 10729260,
+        "sha256": "66bc6bcbdf065e8aa73bae11715788e9e8c9afba2d816f089ef1f3e727e23a40"
+      },
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 68267,
+        "sha256": "198aa991b8bb9da899150a25a08ed449633e7b0351407f0e3215b4b514da9217"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 89736,
+        "sha256": "d4d392723c5e0919c3b4d5474c4486e85033b616ecce70f521996358f2ff3c60"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "2e75a0326340c4ee9dd08dd869b21e9f3186e5ee046cdc58656b55cd37ad8fa5"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "e902392e8a8a54d858986cabf8ef5aa0693f8ab62dc79b51cf5ed0784118d5f7"
+      },
+      {
+        "name": "ram-01c008d0-e0-1000ms.bin",
+        "bytes": 224,
+        "sha256": "44e5817e10cca30d4ae0d6bec3bf425722f75e2357be07543f86ff224c77f118"
+      },
+      {
+        "name": "ram-01c008d0-e0-end.bin",
+        "bytes": 224,
+        "sha256": "3462e0a8d4379527ea751d9e9f2f934d97aa270e859a75bd5689a86108545814"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

@@ -1,0 +1,10 @@
+204.817 note-on ch 1 key 53 vel 100
+507.690 program-change ch 1 program 1
+514.943 program-change ch 1 program 2
+523.647 program-change ch 1 program 3
+530.900 program-change ch 1 program 4
+539.604 program-change ch 1 program 5
+546.858 program-change ch 1 program 6
+555.562 program-change ch 1 program 7
+562.815 program-change ch 1 program 8
+1405.965 note-on ch 1 key 53 vel 0

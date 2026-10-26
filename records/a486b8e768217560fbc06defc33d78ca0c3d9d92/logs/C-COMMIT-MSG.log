@@ -1,0 +1,13 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range fe6cae1687752b07c8996a8a9a0fd371240b6a9f..a486b8e768217560fbc06defc33d78ca0c3d9d92
+OK     88117dde857a firmware: the arpeggiator (ARP), its settings in the patch and the settings
+OK     4deb4d779d0a tests: the arpeggiator's suite against its model (C-ARP); patch and settings versions
+OK     b4debffdcaef tests: keys taps ARP twice; goldens moved by ARP's later start re-recorded
+OK     97fe3aa7c916 docs: ARP's design, requirements R-ARP-1 to R-ARP-8, formats, PLAN, EXPOSURE
+OK     70dda3b78f37 firmware: arp.c's count of keys down renamed (C-SEP-TERMS)
+OK     ae826538d28a tests: the ARP suite's goldens hold on any program list and code timing
+OK     25497f0e520f tests: keys-out's two keys 10 ms apart; a part of the ARP suite written alone keeps the rest
+OK     f7cad8458627 docs: PLAN.md names #132 and #133; EXPOSURE.md's artifact logs and the drop build
+EXEMPT a486b8e76821 (merge) Merge pull request #132 from japes98/arp/arpeggiator
+9 commit(s) checked: PASS
+
+exit status 0
