@@ -1688,6 +1688,21 @@ SR-3 wrote only its barrier-log row.*
 - Section 2 (M9's release format, #136): docs/M9-PLAN.md and the clean
   side's committed prompt on its open branch, to match the fields its
   release tooling expects.
+- Section 3 (the watch): docs/SPEC-REQUESTS.md, that file only, on main
+  and on each of the clean side's open branches, every 20 minutes from
+  02:43Z to 10:44Z (27 checks): unchanged throughout (blob `7ba8c928`), no
+  new requests.
+- Also read of the clean side's open PRs: their titles and file lists
+  (#135, #138, #139, #140), #140's `tools/fm1img.py` (its constants and
+  checks, against format 1.0: they match), and, while merging, their
+  docs/EXPOSURE.md entry and the files where the branches meet
+  (PROVENANCE.md, docs/PLAN.md, docs/REQUIREMENTS.md; no overlap).
+- End: the clean side's chain (tip `099b4199`, #140) merged into #134,
+  then #134 into #137; one conflict, this file's two new entries, both
+  kept. The local fwtest image, the firmware worktree and the suite
+  outputs were deleted after use. Disk: 7.3 GB free at the start, 3.5 GB
+  at the lowest (other folders on the Mac grew meanwhile), 3.9 GB at the
+  end.
 
 ## Corrections
 
