@@ -1630,11 +1630,25 @@ SR-3 wrote only its barrier-log row.*
     `m8b/presets` (#126) for the preset candidates, sparse like this
     folder (the patterns built from `config/spec-side-folders`; no
     spec-side folder on disk, checked), with `tools/private-terms.local`
-    a symbolic link to this folder's (never opened).
+    a symbolic link to this folder's (never opened); removed at the end.
+    And `tools/reproduce --export-only` of #126's head (`c8e2594`) into
+    the temporary folder, to build its image as a base (no spec-side
+    folder in it, checked).
+  - **Merging this session's branches into `m8b/presets`** staged main's
+    changes under the spec-side folders since #126's last merge (main's
+    spec pull requests): the merge's `git status` showed one such path's
+    name; git took them by object ID, lazy fetching off. The barrier
+    check of `tools/clean-update.sh` (every branch, the worktree too)
+    found no spec-side contents on disk or in `.git` afterwards.
   - **fwtest 0.6.0** (the pinned image): the firmware suite and the ARP
     suite on main's image, on this session's images, and on a test build
     that starts late (`SB_TEST_LATE_START`, at about 0.4 and 0.14 ms).
-  - **Force-pushes:** none so far.
+  - **The presets draft's listening set** (`~/<top>/drop/presets/`):
+    the six candidates rendered there (`65-...wav` to `70-...wav`) and
+    added to INDEX.md; the 64 others left as they were (their sound's
+    hashes unchanged).
+  - **Force-pushes:** none (commits amended only before their first
+    push).
   - **Disk:** 7.3 GB free at the start, 3.1 GB at the lowest (other
     folders on the Mac grew meanwhile; this session's outputs were
     cleared as it went).
