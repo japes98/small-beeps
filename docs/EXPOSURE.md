@@ -1507,9 +1507,32 @@ SR-3 wrote only its barrier-log row.*
 - Later in the session:
   - **fwtest 0.6.0** (the pinned image, already pulled): the firmware
     suite, and single cases with `tools/fwtest run`.
-  - **A scratch git worktree** in the session's temporary folder, for
-    the arpeggiator while the suite ran here (sparse like this folder:
-    no spec-side folder on disk, checked).
+  - **Two scratch git worktrees** in the session's temporary folder:
+    one for the arpeggiator, one for #131's last commit while the suite
+    ran here. Both sparse like this folder (no spec-side folder on disk,
+    checked). In each, `tools/private-terms.local` was a symbolic link to
+    this folder's, so the commit hook checked the terms (never opened).
+    Both worktrees and links are removed at the end.
+  - **CI:** the runs of #131, #126 and #132 read with `gh run view
+    --log` (the logs only). For #132's two C-SEP-TERMS failures, the
+    runs' report artifacts' zips were fetched three times in all (the
+    first run's twice, the second's once) through GitHub's API into the
+    session's temporary folder, and only `logs/C-SEP-TERMS.log` was read
+    from it (`unzip -p`, to the terminal; the first time its file list
+    was filtered for that name with `grep`, only that line printed;
+    nothing else extracted), the zip deleted at once each time. The hits
+    were one of our own names in arp.c (found by hashing the flagged
+    line's words; renamed, and the name kept out of every text since),
+    then that rename's own commit message (reworded and force-pushed to
+    #132's and #133's branches, unmerged).
+  - **The presets draft's listening set** (`~/<top>/drop/presets/`):
+    not re-rendered (no preset's sound changed; the preset suite 64 of
+    64 on #126 with #131).
+  - **The drop build:** `~/<top>/drop/small-beeps-25497f0.bin` (#132's
+    image, built again from its head in the worktree: the same bytes as
+    the build the suites ran) and its SHA-256 beside it.
+  - **Disk:** 9.1 GB free at the start, 8.3 GB at the lowest; stale
+    `out/` folders removed as the session went.
 
 ## Corrections
 

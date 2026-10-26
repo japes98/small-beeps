@@ -64,9 +64,9 @@ and out: zlib's).
 
 | Kind | What | Payload, its version |
 |-----:|------|----------------------|
-| 1 | a user slot's patch | the 112-byte patch (docs/PATCH-FORMAT.md), version 1 |
+| 1 | a user slot's patch | the 112-byte patch (docs/PATCH-FORMAT.md): version 2 (since ARP), the record's version the patch's own; a version 1 patch (before ARP) is read as version 2 with the arpeggiator's defaults, and stays version 1 in the store until the slot is saved again |
 | 2 | the patch selection | 4 bytes: the program (0 to 8 the test patches, 9 to 24 the user slots), then 0, 0, 0; version 1 |
-| 3 | the settings | `struct midi_settings` (`firmware/src/midi.h`): version 3 (since M8a), 40 bytes, its last byte the knobs' mode (0: the macros, 1: direct); version 2 (M6b's), the same 40 bytes with that byte 0, is read as version 3 with the macros; version 1 (M6a's), 36 bytes, is read as version 3 with its defaults for the out channel (1), thru (off), local control (on) and the knobs (the macros) |
+| 3 | the settings | `struct midi_settings` (`firmware/src/midi.h`): version 4 (since ARP), 42 bytes: version 3's 40, then the internal tempo (40 to 240 beats a minute) and what MIDI out sends while the arpeggiator runs (0: its notes, 1: the keys held). Version 3 (M8a's), 40 bytes, its last byte the knobs' mode (0: the macros, 1: direct), is read as version 4 with 120 beats a minute and the arpeggiator's notes; version 2 (M6b's), the same 40 bytes with that byte 0, likewise with the macros; version 1 (M6a's), 36 bytes, with its defaults for the out channel (1), thru (off), local control (on) and the knobs (the macros) too |
 | 4 | a reset | none; version 0. Every record older than it is void |
 
 ## Reading
