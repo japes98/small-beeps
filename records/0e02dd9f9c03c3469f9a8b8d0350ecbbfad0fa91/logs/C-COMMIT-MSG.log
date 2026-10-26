@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range ce586704776589bcb536fafeceda4280a460fa00..0e02dd9f9c03c3469f9a8b8d0350ecbbfad0fa91
+OK     0b4efac5191f config: pin fwtest 0.6.0; fmgold ends 1 ms clear of a block
+OK     d6e929fd2cbd sessions: archive M8a's clean session; this session's prompt
+OK     bbe2da0f4675 docs: EXPOSURE.md for fwtest-060-and-presets; M8a's disk corrected
+EXEMPT 0e02dd9f9c03 (merge) Merge pull request #130 from japes98/m8b/fwtest-060
+4 commit(s) checked: PASS
+
+exit status 0

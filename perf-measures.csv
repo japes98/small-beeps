@@ -63,3 +63,4 @@ b09368cb2b65dbdbbd5516d3956df0ef46085f36,2026-10-25T13:25:08Z,M8,loaded_per_peri
 b5b938aaf5c10b89f3a0da03d58af9fc40e0648e,2026-10-25T13:25:16Z,M8,loaded_per_period,110280.261,instructions per audio block,147456,2.501,no
 ce586704776589bcb536fafeceda4280a460fa00,2026-10-25T13:25:15Z,M8,loaded_per_period,110280.261,instructions per audio block,147456,2.501,no
 053e8c8cbc49b7dec117951b82cec618602ff524,2026-10-26T02:15:49Z,ARP,loaded_per_period,109459.238,instructions per audio block,147456,0.489,yes
+0e02dd9f9c03c3469f9a8b8d0350ecbbfad0fa91,2026-10-26T02:17:12Z,M8,loaded_per_period,108926.753,instructions per audio block,147456,0.000,yes
