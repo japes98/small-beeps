@@ -144,6 +144,7 @@ midithru    completed  ../../out/fw/test-midithru.bin --ms 600 --script scripts/
 midilocal   completed  ../../out/fw/app.bin           --ms 1400 --flash ../../out/fw/knobs-direct.flash.bin --script scripts/midilocal.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --ram 0x01c00590:0x40@700 --lcd 700 --golden golden/midilocal
 midiburst   completed  ../../out/fw/test-midiburst.bin --ms 1700 --script scripts/midiburst.txt --midi-out --console --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end --golden golden/midiburst
 midioutlat  completed  ../../out/fw/app.bin           --ms 3200 --script scripts/midioutlat.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
+presetends  completed  ../../out/fw/app.bin           --ms 1700 --script scripts/presetends.txt --midi-out --wav --ipb --console --ram 0x01c00550:0x40@end --ram 0x01c00590:0x40@450 --ram 0x01c00590:0x40@end --ram 0x01c005d0:0x164@end --ram 0x01c00734:0x4c@end --ram 0x01c00000:0x60@end
 
 # views, viewsload (since M8a; R-UI-1 to R-UI-5): the instrument's
 #   screens, with the interface's record at 0x01c00870 (tools/fw-suite.py).
