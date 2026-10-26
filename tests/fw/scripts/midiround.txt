@@ -4,7 +4,7 @@
 # Written by tools/midi_scripts.py; don't edit by hand.
 #
 # midiround (R-MIDIOUT-6): the round trip. midiout's golden MIDI out
-# (tests/fw/golden/midiout/midi-out.csv), each byte arriving at MIDI
+# (tests/fw/golden-midi/midiout/midi-out.csv), each byte arriving at MIDI
 # in when midiout sent it: the engine plays the same notes, patch and
 # knobs as midiout's panel did.
 #

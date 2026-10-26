@@ -15,6 +15,7 @@ path = [
   "config/emulator-terms-reviewed.json",
   "audit/*.json",
   "config/budgets.json",
+  "config/releases.json",
   "vendor/jieli-sdk/SHA256SUMS",
 ]
 precedence = "aggregate"
@@ -99,7 +100,7 @@ SPDX-License-Identifier = "MIT"
 # The firmware suite's golden files: outputs of fwtest, checked by hand
 # when they were made (tests/fw/boot.suite).
 [[annotations]]
-path = ["tests/fw/golden/**"]
+path = ["tests/fw/golden/**", "tests/fw/golden-midi/**", "tests/fw/golden-live/**"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 japes98"
 SPDX-License-Identifier = "MIT"

@@ -962,9 +962,10 @@ with `fwtest`. Design choices explained in docs/DESIGN-NOTES.md.
 - **M8** UI and original presets (no Yamaha factory voices): M8a the
   interface (above); M8b the preset bank (next; docs/M8-PROPOSAL.md).
 - **ARP** the arpeggiator (docs/ARP-PROPOSAL.md, with the owner's
-  answers), after M8.
+  answers), after M8 (done; below).
 - **M9** the app release (docs/M9-PLAN.md, section 1, with the owner's
-  answers), after ARP; the hardware package waits for M10.
+  answers), after ARP (built; below); the hardware package waits for
+  M10.
 - **SEQ** the sequencer, then **FX** the effects (below).
 
 ### After M8: ARP, SEQ and FX
@@ -1028,7 +1029,61 @@ docs/prompts/owner-answers-1025.md):
     109 459 (+0.7%); the heaviest input with CHORD at its fastest: no
     underrun. With the presets (#126) the code passes M8's 48 KiB: #133
     (ARP's budgets, code 56 KiB) comes between #132 and #126.
-  - **Next: M9, the app release** (docs/M9-PLAN.md), then SEQ, then FX.
+  - **Open items** (the ARP session's questions; the owner's answers of
+    2026-10-25, recorded by session overnight-1025,
+    docs/prompts/overnight-1025.md):
+    - ARP on or off stays with each patch (PRESETS to a patch without it
+      turns it off).
+    - TEMPO and MIDI OUT's choice (the arpeggiator's notes, or the keys
+      held) belong to the instrument, not the patch.
+    - The clock has stopped at a MIDI Stop, or after 250 ms without a
+      clock; the definition stands.
+    - While an external clock is coming in, our own MIDI clock out is
+      suppressed, also after a Stop while the sender's clocks go on
+      (with MIDI thru on, a follower saw both); built and tested by
+      overnight-1025.
+    - keys.txt tapping ARP on and off is fine.
+    - Timing goldens: a policy (overnight-1025, docs/DESIGN-NOTES.md,
+      "Timing goldens").
+    - A session may force-push its own unmerged branches, if it records
+      that in docs/EXPOSURE.md.
+    - Not answered yet: the stack (576 of the 768-byte budget; SEQ will
+      probably need a raise), and the vendor compiler's one crash while
+      building a test image in parallel runs (not seen again).
+  - **Next: M9, the app release** (docs/M9-PLAN.md; below), then SEQ,
+    then FX.
+
+### M9: the app release (firmware side)
+- Status 2026-10-26 (session overnight-1025, firmware side, on the
+  owner's Mac, unattended): built in its pull request, cumulative on the
+  session's others; docs/M9-PLAN.md, section 1, with the owner's answers,
+  and its release format 1.0 (the spec side's #136, followed as at
+  `1da34f9`); docs/RELEASING.md says how a release is cut, checked and
+  loaded into the app.
+  - **What a release holds:** `small-beeps-X.Y.Z.fm1img` (release.json
+    and the raw image in one file, the one a user needs), the raw image,
+    `release.json`, the ELF, an SPDX 2.3 SBOM, LICENSE, NOTICE and
+    SHA256SUMS. App releases start at 0.9.0; `config/releases.json`
+    lists each tag's version (`m9`: 0.9.0).
+  - **How it is made:** `tools/release.sh TAG` refuses a tag GitHub
+    doesn't show as Verified, exports the tag's files (never the
+    spec-side folders), builds them twice with the tag's own build
+    script (the same bytes, and the record's), asks the record's fwtest
+    for its version, and runs `tools/release.py build` twice (the same
+    bytes) and `verify`; `tools/fm1img.py` is the reference reader, the
+    app's seven checks in order. `.github/workflows/release.yml` does
+    this on a tag's push (or by hand) and attaches the files to the
+    tag's release, making a missing one as a draft; it never makes a
+    tag and never replaces a file.
+  - **Tests:** C-RELEASE (a release made twice from build A, byte for
+    byte the same, verified) and the unit tests (reproducibility, the
+    hashes, format 1.0's fields and bytes, the reader's checks in order,
+    refusals). R-REL-1 to R-REL-3. A dry run on the signed tag m1
+    (version 0.1.0, not published) rebuilt m1's image byte for byte
+    (`ee2ad8a0…`) and passed every check.
+  - **Not done tonight:** no release made. Tags m2 to m8 aren't signed,
+    and none is listed in `config/releases.json`.
+  - **Next: SEQ**, then FX.
 
 ## Risks
 

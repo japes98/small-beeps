@@ -126,9 +126,26 @@ import fm_patch  # noqa: E402  (tools/, our own, since M5)
 import midi_model  # noqa: E402  (tools/, our own, since M6a)
 import midi_scripts  # noqa: E402  (tools/, our own, since M6a)
 import store_suite  # noqa: E402  (tools/, our own, since M7)
+import goldtime  # noqa: E402  (tools/, our own, since overnight-1025)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SUITE = "tests/fw/boot.suite"
+# MIDI out's golden captures, compared here with goldtime's tolerance
+# rather than by fwtest, byte for byte (since overnight-1025).
+MIDI_GOLDEN = os.path.join("tests", "fw", "golden-midi")
+# Screens that show the live spectrum, compared here outside it.
+LIVE_GOLDEN = os.path.join("tests", "fw", "golden-live")
+
+
+def suite_ms(path=SUITE):
+    """Each case's --ms in the suite file."""
+    out = {}
+    with open(os.path.join(ROOT, path)) as f:
+        for line in f:
+            w = line.split()
+            if w and not w[0].startswith("#") and "--ms" in w:
+                out[w[0]] = float(w[w.index("--ms") + 1])
+    return out
 IMAGE = os.path.join("out", "fw", "app.bin")
 # Test images: name -> define (firmware/src/probe.c).
 TEST_BUILDS = {"test-fault": "SB_TEST_FAULT", "test-stray": "SB_TEST_STRAY",
@@ -2642,6 +2659,7 @@ def main():
         problems.append("fwtest suite exited %d" % p.returncode)
 
     steady = {}
+    ends_asked = suite_ms()
     for name in EXPECT:
         path = os.path.join(out, name, "result.json")
         if not os.path.exists(path):
@@ -2687,6 +2705,19 @@ def main():
                 more, lines = AUDIO_CHECKS[name](case_dir)
             except (OSError, ValueError) as e:
                 more, lines = ["%s: %s" % (name, e)], []
+        # The timing goldens' policy (tools/goldtime.py): the run's end
+        # clear of the blocks; MIDI out against its golden capture.
+        if name in ends_asked:
+            m, line = goldtime.check_end(name, case_dir, ends_asked[name])
+            more, lines = more + m, lines + ([line] if line else [])
+        gm = os.path.join(ROOT, MIDI_GOLDEN, name)
+        if os.path.isdir(gm):
+            m, line = goldtime.compare_midi(name, case_dir, gm)
+            more, lines = more + m, lines + [line]
+        gl = os.path.join(ROOT, LIVE_GOLDEN, name)
+        for png in sorted(os.listdir(gl)) if os.path.isdir(gl) else []:
+            m, line = goldtime.compare_screen(name, os.path.join(gl, png), os.path.join(case_dir, png))
+            more, lines = more + m, lines + ([line] if line else [])
         problems += more
         if lines:
             print("\n".join(lines))
