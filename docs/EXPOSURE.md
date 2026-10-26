@@ -1596,6 +1596,18 @@ SR-3 wrote only its barrier-log row.*
   timing" stays as written: generate the clock's `midi` lines).
 - Exposure: the spec side's usual material (the vendored emulator and
   `harness/`, the pinned toolchain, this repository).
+- Section 1 (the app's USB note): read the owner's drop file
+  `~/<top>/drop/emulator-patches/usb-port-done.md` only, nothing else in
+  that folder; the SDK's file list (Gitee's tree API) and three USB
+  headers (Gitee's blobs API) into a scratch folder; FM-1-RE's
+  `docs/io/06-usb.md` by raw URL; a GitHub code search of the AC63 SDK for
+  `MACK` (P-59). Built the harness's test images with the pinned
+  toolchain, a local fwtest image (`harness/ci.sh image`), and the
+  firmware at main in a scratch worktree; ran the firmware suite on the
+  pinned and the local image (the USB pull request's commit message).
+- Section 2 (M9's release format, #136): docs/M9-PLAN.md and the clean
+  side's committed prompt on its open branch, to match the fields its
+  release tooling expects.
 
 ## Corrections
 

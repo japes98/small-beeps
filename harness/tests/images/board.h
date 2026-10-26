@@ -61,6 +61,10 @@ typedef int s32;
 #define UART1_TXCNT REG(0x12118u)
 #define IRQ_UART1 20u
 
+/* The USB core's access port (lib.rs, Region::Usb): index << 8 | byte, bit
+   14 a read; bit 15 set when the access is done, a read's byte in 0-7. */
+#define USB_PORT REG(0x11804u)
+
 /* TIMER4, the 24 MHz time base (periph.rs): CON bit 0 runs it. */
 #define T4_CON REG(0x10800u)
 #define T4_CNT REG(0x10804u)
