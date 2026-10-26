@@ -638,9 +638,9 @@ add(3, "candidate 68, steam pipes: an almost pure carrier with a slow attack and
 add(0, "candidate 69, an FM acoustic piano: three pairs a few cents apart, velocity to brightness,"
        " the index falling as the note decays, the upper pair slightly stretched (inharmonic)",
     patch("Hammer Keys", 3, [
-        op(1.0, 127, velocity=1, rates=(0, 68, 100, 56), levels=(127, 110, 0)),
+        op(1.0, 127, rates=(0, 68, 100, 56), levels=(127, 110, 0)),
         op(1.0, 116, velocity=6, rates=(0, 76, 90, 56), levels=(127, 104, 0)),
-        op(1.0, 119, detune=3, velocity=1, rates=(0, 70, 100, 56), levels=(127, 110, 0)),
+        op(1.0, 119, detune=3, rates=(0, 70, 100, 56), levels=(127, 110, 0)),
         op(1.0, 112, velocity=6, rates=(0, 74, 88, 56), levels=(127, 102, 0)),
         op(2.01, 115, detune=-2, velocity=2, rates=(0, 64, 92, 52), levels=(127, 104, 0)),
         op(3.03, 108, velocity=7, rates=(0, 60, 80, 52), levels=(127, 96, 0))], feedback=2))
