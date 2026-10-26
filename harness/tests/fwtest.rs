@@ -124,6 +124,30 @@ fn inputs_from_a_script() {
     assert_eq!(output(&r, "ram-01c00200-8-end.bin"), &[0x90, 0x3c, 0x64, 0x80, 0x3c, 0, 0, 0]);
 }
 
+/// HARNESS.md ("Input scripts", "MIDI clock in"): an event's bytes wait
+/// behind bytes still on the wire, so a clock byte due mid-message
+/// arrives after it; written inside the message, it arrives there.
+#[test]
+fn midi_bytes_queue_behind_the_wire() {
+    let mut o = opts(10);
+    o.script = script::parse("1 midi 90 3c 64\n1.1 midi f8\n3 midi 90 f8 3c 64\n").unwrap();
+    o.ram = vec![
+        (OUTBUF, 8, When::At(1_500)),
+        (OUTBUF, 8, When::At(2_200)),
+        (OUTBUF, 8, When::At(2_300)),
+        (OUTBUF, 8, When::At(3_700)),
+        (OUTBUF, 8, When::End),
+    ];
+    let r = run(&image("midi"), &o).unwrap();
+    // 1.1 ms's clock byte would arrive at 1.42 on an idle wire; it waits for 0x64 (1.96)
+    assert_eq!(output(&r, "ram-01c00200-8-1.500ms.bin"), &[0x90, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(output(&r, "ram-01c00200-8-2.200ms.bin"), &[0x90, 0x3c, 0x64, 0, 0, 0, 0, 0]);
+    assert_eq!(output(&r, "ram-01c00200-8-2.300ms.bin"), &[0x90, 0x3c, 0x64, 0xf8, 0, 0, 0, 0]);
+    // inside the message: 0x90 at 3.32, 0xf8 at 3.64
+    assert_eq!(output(&r, "ram-01c00200-8-3.700ms.bin"), &[0x90, 0x3c, 0x64, 0xf8, 0x90, 0xf8, 0, 0]);
+    assert_eq!(output(&r, "ram-01c00200-8-end.bin"), &[0x90, 0x3c, 0x64, 0xf8, 0x90, 0xf8, 0x3c, 0x64]);
+}
+
 /// HARNESS.md ("MIDI output"): UART1's transmit side. Bytes from a DMA or a
 /// BUF write go out one per 320 us, after any still going; nothing with the
 /// UART off; the transmit pending (and its interrupt) when the last has
