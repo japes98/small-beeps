@@ -20,7 +20,9 @@
  * - MIDI clock out: while it runs on the internal clock, a 0xF8 a pulse,
  *   a Start when its pattern and grid start again (with that pulse's
  *   0xF8), a Stop when it stops or MIDI clock takes over, a Continue when
- *   the internal clock takes over again.
+ *   the internal clock takes over again. While a clock comes in, followed
+ *   or not (after a Stop the sender's clocks may go on), it stays quiet:
+ *   it starts or continues only once ARP_LOST_BLOCKS pass without one.
  * - A step falls on its frame within the audio block: the engine starts
  *   and releases its notes at that frame (fm.h, struct fm_voice's
  *   pending start or release; fm.c renders the block in two parts).
