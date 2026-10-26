@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 0e02dd9f9c03c3469f9a8b8d0350ecbbfad0fa91..fe6cae1687752b07c8996a8a9a0fd371240b6a9f
+OK     88564e3c7f77 sessions: archive fwtest-060-and-presets' clean session; this session's prompt
+OK     5eb20afe109e firmware: PRESETS stops at the ends instead of wrapping round them
+OK     96cde9b91ef9 docs: EXPOSURE.md for the ARP session
+OK     36283e56baa4 tests: presetends turns PRESETS up by 100, past any bank's end
+EXEMPT fe6cae168775 (merge) Merge pull request #131 from japes98/m8b/presets-ends
+5 commit(s) checked: PASS
+
+exit status 0

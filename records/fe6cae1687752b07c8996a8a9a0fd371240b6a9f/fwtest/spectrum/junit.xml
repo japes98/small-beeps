@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="3" failures="0">
+  <testsuite name="boot.spectrum" tests="3" failures="0">
+    <testcase classname="boot.spectrum" name="run"/>
+    <testcase classname="boot.spectrum" name="golden lcd-1300ms.png"/>
+    <testcase classname="boot.spectrum" name="golden lcd-2000ms.png"/>
+  </testsuite>
+</testsuites>
