@@ -1,0 +1,114 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The app release of a signed milestone tag (docs/RELEASING.md; R-REL-1 to
+# R-REL-3). Builds it with tools/release.sh (main's tools; the tag's own
+# files and build script) and attaches it to the tag's GitHub release, a
+# draft made here if the release doesn't exist yet. It never makes a tag
+# (`gh release create --verify-tag` refuses a missing one), refuses a tag
+# GitHub doesn't show as Verified or that config/releases.json gives no
+# version, and never replaces a file a release already has.
+name: release
+
+on:
+  push:
+    tags: ["m*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The signed tag to release (config/releases.json must list it)"
+        required: true
+      publish:
+        description: "Attach the files to the release (otherwise only the workflow's artifact)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      # main's tools, whatever the tag (older tags have no release tools).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: The tag
+        id: tag
+        env:
+          TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+        run: |
+          set -eu
+          case "$TAG" in m[0-9]*) ;; *) echo "::error::not a milestone tag: $TAG"; exit 1 ;; esac
+          git fetch --no-tags origin "+refs/tags/$TAG:refs/tags/$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: The records branch
+        run: git fetch --no-tags origin +refs/heads/records:refs/remotes/origin/records
+
+      - name: Build the release (tools/release.sh)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: sh tools/release.sh "$TAG" --out out/release --records-ref origin/records
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ steps.tag.outputs.tag }}
+          path: out/release
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: github.event_name == 'push' || inputs.publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: release-${{ needs.build.outputs.tag }}
+          path: release
+
+      - name: Attach to the tag's release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          set -eu
+          version=$(python3 -c 'import json; print(json.load(open("release/release.json"))["version"])')
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            {
+              echo "The app release $version of \`$TAG\`, for the F-Emulator app (docs/RELEASING.md)."
+              echo
+              echo "Built by the release workflow from the signed tag's commit and checked against its test record;"
+              echo "\`release.json\` names the commit, the record's tree hash and the fwtest it passed on;"
+              echo "the app opens \`small-beeps-$version.fm1img\` (docs/M9-PLAN.md, \"The release format\")."
+              echo
+              echo '```'
+              cat release/SHA256SUMS
+              echo '```'
+            } > notes.md
+            gh release create "$TAG" --verify-tag --draft --title "$TAG: small-beeps $version" --notes-file notes.md
+          fi
+          have=$(gh release view "$TAG" --json assets --jq '.assets[].name')
+          for f in release/*; do
+            if printf '%s\n' "$have" | grep -qxF "$(basename "$f")"; then
+              echo "::error::$TAG's release already has $(basename "$f"); not replaced"
+              exit 1
+            fi
+          done
+          gh release upload "$TAG" release/*
