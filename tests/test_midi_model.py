@@ -160,7 +160,7 @@ class MidiOutTest(unittest.TestCase):
     def test_round_trip_script_is_midiouts_capture(self):
         s = ms.midiround()
         b = ms.stream(os.path.join(ms.SCRIPTS, "midiround.txt"))
-        with open(os.path.join(ROOT, "tests", "fw", "golden", "midiout", "midi-out.csv")) as f:
+        with open(os.path.join(ROOT, "tests", "fw", "golden-midi", "midiout", "midi-out.csv")) as f:
             rows = [l.strip().split(",") for l in f][1:]
         self.assertEqual([(round(float(t), 3), int(h, 16)) for t, h in rows], b)
         self.assertTrue(s.lines)
