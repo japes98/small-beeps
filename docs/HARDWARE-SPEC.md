@@ -1747,8 +1747,7 @@ has (HARNESS.md, "USB").
   it polls the word until bit 15 (`MACK`) is set, and a read's byte is in
   bits 0-7. The FM-1's stock firmware uses the port this way.
   The requirement: a firmware that touches the USB core bounds every
-  poll of bit 15 (the firmwares the app's note looked at all bound theirs) and
-  does not depend on how long an access takes. A firmware that leaves USB alone needs nothing.
+  poll of bit 15 and does not depend on how long an access takes. A firmware that leaves USB alone needs nothing.
   In fwtest (0.7.0) every access is done at once, the interrupt flags
   read 0 and no bus event ever happens (HARNESS.md, "USB").
 - Sources: SDK `WL82.h` lines 15-16 (`lsfr_base`, `map_adr`) and 464-485
