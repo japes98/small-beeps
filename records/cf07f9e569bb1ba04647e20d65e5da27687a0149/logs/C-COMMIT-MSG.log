@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range fca1df6b20eae628d983a81fa9dfea71d3680690..cf07f9e569bb1ba04647e20d65e5da27687a0149
+OK     becacbd26398 harness: MIDI clock in and timing, documented and tested
+EXEMPT cf07f9e569bb (merge) Merge pull request #129 from japes98/spec/harness-midi-clock
+2 commit(s) checked: PASS
+
+exit status 0

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="3" failures="0">
+  <testsuite name="boot.macros" tests="3" failures="0">
+    <testcase classname="boot.macros" name="run"/>
+    <testcase classname="boot.macros" name="golden lcd-10400ms.png"/>
+    <testcase classname="boot.macros" name="golden lcd-1800ms.png"/>
+  </testsuite>
+</testsuites>
