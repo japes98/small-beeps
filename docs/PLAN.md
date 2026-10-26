@@ -1028,6 +1028,27 @@ docs/prompts/owner-answers-1025.md):
     109 459 (+0.7%); the heaviest input with CHORD at its fastest: no
     underrun. With the presets (#126) the code passes M8's 48 KiB: #133
     (ARP's budgets, code 56 KiB) comes between #132 and #126.
+  - **Open items** (the ARP session's questions; the owner's answers of
+    2026-10-25, recorded by session overnight-1025,
+    docs/prompts/overnight-1025.md):
+    - ARP on or off stays with each patch (PRESETS to a patch without it
+      turns it off).
+    - TEMPO and MIDI OUT's choice (the arpeggiator's notes, or the keys
+      held) belong to the instrument, not the patch.
+    - The clock has stopped at a MIDI Stop, or after 250 ms without a
+      clock; the definition stands.
+    - While an external clock is coming in, our own MIDI clock out is
+      suppressed, also after a Stop while the sender's clocks go on
+      (with MIDI thru on, a follower saw both); built and tested by
+      overnight-1025.
+    - keys.txt tapping ARP on and off is fine.
+    - Timing goldens: a policy (overnight-1025, docs/DESIGN-NOTES.md,
+      "Timing goldens").
+    - A session may force-push its own unmerged branches, if it records
+      that in docs/EXPOSURE.md.
+    - Not answered yet: the stack (576 of the 768-byte budget; SEQ will
+      probably need a raise), and the vendor compiler's one crash while
+      building a test image in parallel runs (not seen again).
   - **Next: M9, the app release** (docs/M9-PLAN.md), then SEQ, then FX.
 
 ## Risks

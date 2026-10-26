@@ -1573,6 +1573,38 @@ SR-3 wrote only its barrier-log row.*
   start branch for EXPOSURE.md's conflict; its files were merged, not
   reviewed. Free disk stayed between 7 and 11 GB.
 
+### Session overnight-1025 (the timing goldens' policy, M9's app release, six preset candidates)
+- Date: 2026-10-26 (UTC; the evening of 2026-10-25 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.310 (banner), unattended (a background session).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `4bb588e8-5900-430e-ae7a-c38dea0a337a`,
+  started by a `/clear` at 02:27:04Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `cf07f9e` and ended "no spec-side files on disk or
+  in .git"; `tools/clean-setup.sh` then installed `clean.json` (banner
+  `status: OK`); `tools/private-terms.local` exists (not opened); lazy
+  fetching off (`GIT_NO_LAZY_FETCH=1`). It archived ARP (`cd24c9a8`) into
+  `sessions/clean/`; every other clean session was already archived (an
+  older live transcript whose file time had changed was compared with its
+  archived copy: the same lines). `tools/check-transcripts.py` failed on
+  two of ARP's calls (a scratch worktree's sparse checkout, which names
+  the spec-side folders only to leave them out); six reviewed entries in
+  `sessions/REVIEWED.json`, for the owner's approval; then PASS. The Mac
+  had 7.3 GB free.
+- Reads: this file, CONTRIBUTING.md, sessions/README.md, docs/PLAN.md,
+  docs/M9-PLAN.md, docs/HARNESS.md ("Time", "Outputs", "MIDI output",
+  "MIDI clock in and timing", "Golden files", "Suites"), ARP's archived
+  transcript (its two flagged calls and its last message, for the
+  owner's questions), the m1 release's description and file names
+  (`gh release view`), and this repository's tools, tests, scripts,
+  workflows and firmware.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
