@@ -1,0 +1,6 @@
+50 midi b0 7a 00
+100 midi c0 09
+300 key 14 down
+310 key 21 down
+1300 key 14 up
+1310 key 21 up
