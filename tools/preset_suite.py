@@ -7,7 +7,7 @@ shipping image, through MIDI in: a program change, a reference note (C4
 at velocity 100, held 2 s, then 1 s to fade), then a short phrase (C4 E4
 G4 C5, then the C major chord held 1 s). Four runs at a time.
 
-  preset_suite.py --image APP.bin --out DIR [--drop DIR] [--write-golden]
+  preset_suite.py --image APP.bin --out DIR [--drop DIR] [--write-golden [--replace]]
 
 Each reference note is checked:
 - no clipping (no sample at 16-bit full scale) and no DC (the held note's
@@ -220,7 +220,11 @@ def main():
     ap.add_argument("--image", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--drop")
-    ap.add_argument("--write-golden", action="store_true")
+    ap.add_argument("--write-golden", action="store_true",
+                    help="write the hashes of presets that have none (new presets)")
+    ap.add_argument("--replace", action="store_true",
+                    help="with --write-golden, also those that differ: a change of sound, said so in its commit"
+                         " (one that moved with the timing only: tools/regolden.py)")
     ap.add_argument("--only", type=int, nargs="*")
     ap.add_argument("--calibrate", action="store_true",
                     help="rewrite tools/fm_patch.py's TRIM toward TARGET_DB from this render")
@@ -250,6 +254,12 @@ def main():
         if os.path.exists(GOLDEN):
             with open(GOLDEN) as f:
                 old = json.load(f)
+        for k in sorted(sums):
+            if k in old and old[k] != sums[k] and not a.replace:
+                print("FAIL: %s: the WAV differs from its golden SHA-256; not written (tools/regolden.py, or"
+                      " --replace)" % k)
+                problems.append(k)
+                sums[k] = old[k]
         old.update(sums)
         old["comment"] = "SHA-256 of each preset's run in tools/preset_suite.py (its WAV's first HASH_FRAMES frames)"
         with open(GOLDEN, "w") as f:

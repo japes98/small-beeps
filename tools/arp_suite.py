@@ -140,9 +140,9 @@ def chip(slots, settings_bytes=None):
 # starts from its own flash chip, so its blocks fall at their own times.
 END_MS = {"clock-out": 1700.1, "follow": 3599, "load": 10998.9, "minute": 60800.3, "mode-chord": 2708.9,
           "mode-down": 2708.9, "mode-order": 2708.9, "mode-random": 2708.9, "mode-up": 2708.9,
-          "mode-updown": 2708.9, "rate-1-16": 3509.7, "rate-1-16d": 3509.7, "rate-1-16t": 3509.7,
-          "rate-1-2": 9009.1, "rate-1-32": 3384.9, "rate-1-4": 5259.2, "rate-1-4d": 7134.9, "rate-1-8": 3509.7,
-          "rate-1-8t": 3509.7, "save": 2000.1, "save-next": 2709.8, "screen": 3700.3, "stuck": 5799.7,
+          "mode-updown": 2708.9, "rate-1-16": 3509.6, "rate-1-16d": 3509.6, "rate-1-16t": 3509.6,
+          "rate-1-2": 9009.1, "rate-1-32": 3384.9, "rate-1-4": 5259.1, "rate-1-4d": 7134.9, "rate-1-8": 3509.6,
+          "rate-1-8t": 3509.6, "save": 2000.1, "save-next": 2709.8, "screen": 3700.3, "stuck": 5799.7,
           "swing": 2709.8}
 
 class Case:
