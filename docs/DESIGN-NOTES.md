@@ -2498,6 +2498,14 @@ Our own design, from docs/ARP-PROPOSAL.md and the owner's answers there
   first note after none); a Stop (0xFC) when it stops or MIDI clock takes
   over; a Continue (0xFB) when the internal clock takes over again. While
   it follows MIDI clock it sends none (thru passes the sender's on, if on).
+  Since overnight-1025 (the owner's answer to ARP's question 4): none
+  either while a clock comes in that it doesn't follow (after a Stop, a
+  sender's clocks may go on, and with thru on a follower saw both). Any
+  0xF8 coming in stops ours (with a Stop, if it was running); ours
+  starts or continues only once 250 ms (ARP_LOST_BLOCKS) pass without
+  one, so after a Stop the arpeggiator plays on at once on the internal
+  tempo and its clock out continues 250 ms after the sender's last
+  clock (clock-quiet).
 - **The screen (ARP held):** the strip shows RATE, MODE, OCTAVES and GATE;
   SELECT pages to SWING, LATCH, TEMPO and MIDI OUT. The body shows the
   settings in words; the info line is its live part (every 50 ms when

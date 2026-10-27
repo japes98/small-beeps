@@ -39,6 +39,10 @@ The runs (R-ARP-1 to R-ARP-8):
 - local-off: local control off: its notes go out, the engine plays
   nothing.
 - clock-out: on the internal clock, Start, a 0xF8 a pulse, Stop.
+- clock-quiet: MIDI thru on; on the internal clock, then MIDI clock in
+  (Start, 1 s), Stop with the clock going on (0.6 s, ignored), then no
+  clock: none of our clocks goes out while the sender's come in (only
+  theirs, passed on), and ours continue 250 ms after its last.
 - stuck: modes, octaves and rates changed on the ARP screen while it
   plays, LATCH, the pedal, PRESETS to a program without it and back, a
   mono patch, ARP off: every note on MIDI out ends, nothing sounds or
@@ -111,11 +115,11 @@ def with_arp(p, **kw):
     return fm_patch.encode(q)
 
 
-def settings(tempo=120, arp_out=0, local=1):
+def settings(tempo=120, arp_out=0, local=1, thru=0):
     """struct midi_settings, version 4 (midi.h): the defaults but these."""
     routes = ((1, 1), (7, 2), (11, 3), (64, 4), (16, 5), (17, 6), (18, 7), (19, 8), (5, 6), (74, 7))
     r = [b for x in routes for b in x] + [0] * (2 * (16 - len(routes)))
-    return bytes([4, 0, 2, len(routes)] + r + [1, 0, local, 0, tempo, arp_out])
+    return bytes([4, 0, 2, len(routes)] + r + [1, thru, local, 0, tempo, arp_out])
 
 
 def chip(slots, settings_bytes=None):
@@ -671,10 +675,54 @@ def out_cases():
         return p + balanced(name, msgs), ["  %s: on the internal clock: Start, %d clocks 20.833 ms apart on average,"
                                           " Stop with ARP off" % (name, len(between))]
 
+    # clock-quiet: Start and 120 beats a minute from 500 ms for 1 s, Stop,
+    # the clock on for 0.6 s (ignored), then none.
+    quiet_script = ["100 midi c0 09", "200 midi 90 3c 64", "210 midi 90 40 64", "500 midi fa"]
+    t0, period, ins = 505.0, 60000.0 / (24 * 120), []
+    for k in range(int(1600 / period)):
+        t = t0 + k * period
+        if ins and ins[-1] < 1505 <= t:
+            quiet_script.append("1505 midi fc")
+        quiet_script.append("%.3f midi f8" % t)
+        ins.append(t)
+    last_in = ins[-1]
+    # (note ons at velocity 0 to end them: what thru passes on, balanced() counts)
+    quiet_script += ["2900 midi 90 3c 00", "2900 midi 90 40 00"]
+
+    def check_clock_quiet(name, d):
+        p = []
+        msgs = midi_messages(d)
+        rt = [(t, m[1]) for m in msgs for t in [m[0]] if len(m) == 2 and m[1] >= 0xF8]
+        ours = {w: arp_record(d, w)["clocks_out"] for w in ("480", "1400", "2050", "2300")}
+        end = arp_record(d)["clocks_out"]
+        # (at 480 ms on the internal clock; from the first clock in, none)
+        if not ours["480"] or len(set(ours[w] for w in ("1400", "2050", "2300"))) != 1:
+            p.append("%s: our clocks out at 480, 1400, 2050, 2300 ms: %s; expected some, then none from 1400"
+                     % (name, [ours[w] for w in ("480", "1400", "2050", "2300")]))
+        # Every 0xF8 out is ours (the record counts them) or one passed on.
+        passed = len([1 for _, s_ in rt if s_ == 0xF8]) - end
+        if passed != len(ins):
+            p.append("%s: %d clocks out not ours, %d came in" % (name, passed, len(ins)))
+        conts = [t for t, s_ in rt if s_ == 0xFB and t > last_in]
+        want = last_in + 250
+        if len(conts) != 1 or not want - 2 * BLOCK_MS <= conts[0] <= want + 2 * BLOCK_MS:
+            p.append("%s: our Continue at %s ms, expected one 250 ms after the last clock in (%.1f)"
+                     % (name, [round(t, 2) for t in conts], want))
+        after = [t for t, s_ in rt if s_ == 0xF8 and conts and conts[0] <= t <= 2890]
+        want_n = round((2890 - conts[0]) / period) if conts else None
+        if want_n is None or abs(len(after) - want_n) > 1 or end - ours["2300"] < len(after):
+            p.append("%s: %d clocks of ours after the Continue (expected %s), the record %d"
+                     % (name, len(after), want_n, end - ours["2300"]))
+        return p + balanced(name, msgs), ["  %s: MIDI thru on: none of our clocks while the sender's came in"
+                                          " (%d passed on), ours continued %.1f ms after its last"
+                                          % (name, passed, (conts[0] - last_in) if conts else -1)]
+
     arp_btn = ["%d key %d down" % (1400, ARP_BUTTON), "%d key %d up" % (1460, ARP_BUTTON)]
     return [Case("keys-out", 1600, keys, chip([with_arp(CLICK)], settings(arp_out=1)), check=check_keys),
             Case("local-off", 1600, ["50 midi b0 7a 00"] + keys, chip([with_arp(CLICK)]), check=check_local),
-            Case("clock-out", 1700, keys + arp_btn, chip([with_arp(CLICK)]), check=check_clock_out)]
+            Case("clock-out", 1700, keys + arp_btn, chip([with_arp(CLICK)]), check=check_clock_out),
+            Case("clock-quiet", 3000, quiet_script, chip([with_arp(CLICK)], settings(thru=1)),
+                 rams=("480", "1400", "2050", "2300"), check=check_clock_quiet, sound=False)]
 
 
 def stuck_case():

@@ -54,9 +54,12 @@ static void busy(void)
 {
     arp_busy = running | ext;
 }
-/* MIDI clock out: running (a Start sent and no Stop since), and a Start
- * due at the next block (the grid starting again at pulse 0). */
-static u32 out_running, out_start;
+/* MIDI clock out: running (a Start sent and no Stop since), a Start due
+ * at the next block (the grid starting again at pulse 0), and a Continue
+ * due once the external clock is quiet. While a clock comes in, followed
+ * or not (after a Stop the sender's clocks may go on, and MIDI thru passes
+ * them on), ours stays quiet: the last block one came in (heard). */
+static u32 out_running, out_start, out_resume, heard, last_heard_block;
 static u32 arrival[25], arrivals;
 static u32 ext_rate;
 
@@ -117,6 +120,13 @@ static void clock_out_stop(void)
         clock_out(MIDI_STOP);
     out_running = 0;
     out_start = 0;
+    out_resume = 0;
+}
+
+/* No clock has come in for ARP_LOST_BLOCKS (or none ever). */
+static u32 quiet(u32 block)
+{
+    return !heard || block - last_heard_block > ARP_LOST_BLOCKS;
 }
 
 void arp_patch_of(const u8 *b, struct arp_patch *a)
@@ -348,10 +358,15 @@ void arp_block(u32 block)
         sb_arp.losses++;
         sb_arp.clock = 0;
         busy();
-        if (running && !out_start) {
+        if (running && !out_start)
+            out_resume = 1;
+    }
+    if (!ext && quiet(block)) {
+        if (out_resume && running) {
             clock_out(MIDI_CONTINUE);
             out_running = 1;
         }
+        out_resume = 0;
     }
     if (!running || (ext && armed))
         return;
@@ -359,6 +374,10 @@ void arp_block(u32 block)
     sb_arp.tempo_x10 = r * 10u / ARP_UNIT_FRAME;
     /* MIDI clock out, on the internal clock: a Start with pulse 0's
      * clock, then a clock each pulse the position passes this block. */
+    if (!ext && out_start && !quiet(block)) {
+        out_start = 0;
+        out_resume = 1;
+    }
     if (!ext && out_start) {
         clock_out(MIDI_START);
         clock_out(MIDI_CLOCK);
@@ -421,8 +440,16 @@ void arp_clock(u32 status, u32 block)
 {
     switch (status) {
     case MIDI_CLOCK:
-        if (ignoring)
+        heard = 1;
+        last_heard_block = block;
+        if (ignoring) {
+            /* Not followed, but coming in: ours stops until it is quiet. */
+            if (out_running) {
+                clock_out_stop();
+                out_resume = running;
+            }
             return;
+        }
         if (!ext || armed) {
             /* Following MIDI clock from here: a Start's first clock is
              * pulse 0 (the pattern starts again); otherwise the clock
@@ -471,11 +498,10 @@ void arp_clock(u32 status, u32 block)
         break;
     case MIDI_STOP:
         /* The clock has stopped: the internal tempo takes over from here,
-         * and clocks are ignored until a Start or Continue. */
-        if (ext && running) {
-            clock_out(MIDI_CONTINUE);
-            out_running = 1;
-        }
+         * and clocks are ignored until a Start or Continue; our clock out
+         * continues once none has come in for ARP_LOST_BLOCKS. */
+        if (ext && running)
+            out_resume = 1;
         ext = 0;
         armed = 0;
         ignoring = 1;
