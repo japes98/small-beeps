@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="3" failures="0">
+  <testsuite name="boot.midiout" tests="3" failures="0">
+    <testcase classname="boot.midiout" name="run"/>
+    <testcase classname="boot.midiout" name="golden midi-out.csv"/>
+    <testcase classname="boot.midiout" name="golden midi-out.txt"/>
+  </testsuite>
+</testsuites>

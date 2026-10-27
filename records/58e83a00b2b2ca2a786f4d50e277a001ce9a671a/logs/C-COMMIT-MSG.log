@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range cf07f9e569bb1ba04647e20d65e5da27687a0149..58e83a00b2b2ca2a786f4d50e277a001ce9a671a
+OK     1b44e0a02dbf sessions: ARP archived; overnight-1025 starts; the owner's answers to ARP's questions
+EXEMPT 58e83a00b2b2 (merge) Merge pull request #135 from japes98/overnight-1025/start
+2 commit(s) checked: PASS
+
+exit status 0
