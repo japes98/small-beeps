@@ -28,31 +28,35 @@ them, against upstream with fwtest's 0001 and 0002.
 |--------|-----|------|------|--------|-----|
 | 0001 | none | The workspace manifest lists only the three vendored crates | build | yes | not needed: only for fwtest's three-crate copy |
 | 0002 | B | A write to the LCD's SPI port's control register replaces it, so its interrupt enable can be cleared (SR-3) | bug fix | yes (0.2.0) | yes (its base) |
-| 0003 | none | The block moves with a register base run in all eight modes (SR-7) | bug fix | yes (0.3.0) | no: to apply (harness/upstream/fm1-emu-block-moves.md) |
+| 0003 | applied (`b6eced1`) | The block moves with a register base run in all eight modes (SR-7) | bug fix | yes (0.3.0) | yes (harness/upstream/fm1-emu-block-moves.md) |
 | 0004 | 0003 (A) | A dual-issue pair's head among the 4-byte ALU forms with no table class holds its result until after the pair | bug fix | yes (0.4.0) | yes |
-| 0005 | none | The rotate right by a register runs, as a pair's head too | gap | yes (0.4.0) | no: to apply (harness/upstream/fm1-emu-undecoded-forms.md) |
-| 0006 | none | The 4-byte push and pop of any register list run, not only lists from r0 | gap | yes (0.4.0) | no: to apply (same note) |
+| 0005 | applied (`2eab4fc`) | The rotate right by a register runs, as a pair's head too | gap | yes (0.4.0) | yes (harness/upstream/fm1-emu-undecoded-forms.md) |
+| 0006 | applied (`e2bbc4e`) | The 4-byte push and pop of any register list run, not only lists from r0 | gap | yes (0.4.0) | yes (same note) |
 | 0007 | 0004 (C) | Peripheral addresses looked up before the memories | speed only | yes (0.4.0) | yes |
 | 0008 | 0005 (D) | Code blocks in RAM found current by a count of writes to code, on every build | speed only | yes (0.4.0) | yes |
-| 0009 | none | The MIDI output: the UART's transmit side sends bytes at the wire's pace and keeps them with their times, and its pending flag rises when the last has gone (it used to finish at once and send nothing) | model | yes (0.5.0) | no: to apply, with the bytes sent to CoreMIDI (harness/upstream/fm1-emu-midi-out.md) |
-| 0010 | none | The flash chip: the P25Q80H's command rules (write enable, start on chip select high, a program wraps within its page, the other erase sizes); with a timing set, busy times (status bit 0, other commands ignored); an operations log; a power cut that keeps the part done; a record of code-window reads while busy | model | yes (0.6.0; fwtest sets the datasheet's maximum times and ends a run on window use while busy) | no: to apply, the timing the owner's choice (harness/upstream/fm1-emu-flash-busy.md) |
-| 0011 | none | A dual-issue pair whose halves write one register keeps the head's result (it kept the second half's) | bug fix | yes (0.6.0) | no: to apply (harness/upstream/fm1-emu-pair-same-register.md) |
+| 0009 | applied (`a78092f`) | The MIDI output: the UART's transmit side sends bytes at the wire's pace and keeps them with their times, and its pending flag rises when the last has gone (it used to finish at once and send nothing) | model | yes (0.5.0) | yes (harness/upstream/fm1-emu-midi-out.md) |
+| 0010 | applied (`67ae970`) | The flash chip: the P25Q80H's command rules (write enable, start on chip select high, a program wraps within its page, the other erase sizes); with a timing set, busy times (status bit 0, other commands ignored); an operations log; a power cut that keeps the part done; a record of code-window reads while busy | model | yes (0.6.0; fwtest sets the datasheet's maximum times and ends a run on window use while busy) | yes: the rules; the timing is off by default (harness/upstream/fm1-emu-flash-busy.md) |
+| 0011 | applied (`38d767a`) | A dual-issue pair whose halves write one register keeps the head's result (it kept the second half's) | bug fix | yes (0.6.0) | yes (harness/upstream/fm1-emu-pair-same-register.md) |
 | 0012 | its own (branch `stock-016`, `f60b86b`) | The USB core's register access port answers: an access is done at once, a read gives the byte last written to its index, the interrupt flags read as nothing pending (it used to keep the word as written, so every access waited out the firmware's own timeout) | model | yes (0.7.0) | yes: the app's change, which fwtest's was written from (its behaviour-only note, PROVENANCE P-59; harness/upstream/fm1-emu-usb-port.md) |
 | none | 0006 (E) | Boot a raw image | the app's loader | no: fwtest has its own (in `harness/`, docs/HARNESS.md "The raw image") | yes |
 | none | not a patch | Two pattern guards rewritten so the crates build on an older Rust | build | no: fwtest builds on Rust 1.99 | yes |
 
 **2026-10-27, from the app session, through the owner (recorded by
-session spec-answers-a1):** the app reports that it already has fwtest's
-0003, 0005, 0006 and 0009, and is now applying 0010 (its rules, with the
-timing off by default) and 0011. The table above is left as it was until
-the app confirms, with its commits; that confirmation is pending.
+session spec-1027):** the app confirms, with the commits on its
+`ios-app` branch named in the table, that it has fwtest's 0003, 0005,
+0006, 0009, 0010 (its rules; the timing off by default), 0011 and 0012
+(`f60b86b`). It replaces the dated note session spec-answers-a1 left
+here. The app is now at fwtest 0.7.0's emulator but for its own raw-image
+loader and its rewrite for an older Rust (the last two rows). This side
+doesn't open the app's branch; the commits are the app session's.
 
 fwtest 0004, 0007 and 0008 are the app's 0003, 0004 and 0005 as they
 stand: their added and removed lines are byte for byte the app's, only the
-line offsets refreshed for fwtest's 0003. Once the app applies fwtest's
-0003, 0005 and 0006, the two are the same source but for the app's
-raw-image loader and its Rust 1.94 rewrite (which, its notes say, changes
-nothing that decodes). That was checked on the app's patches as the owner
+line offsets refreshed for fwtest's 0003. With fwtest's 0003, 0005 and
+0006 now applied (the app's report above), the two are the same emulator
+but for the app's raw-image loader and its Rust 1.94 rewrite (which, its
+notes say, changes nothing that decodes); this side has not compared the
+app's branch itself. That was checked on the app's patches as the owner
 dropped them, not on its branch, which this side doesn't open: on upstream
 with them, fwtest's three apply with line offsets only, the crates' own
 tests pass, and the core crate is then byte for byte fwtest's. fwtest's
@@ -67,9 +71,28 @@ boots every firmware from its package through the same crates (its
 fwtest does so from 0.8.0 (`--package`, docs/HARNESS.md "Packages"),
 with checks of its own on top and without the stock-firmware extras the
 app and the web build add (a default patch bank in a blank user region,
-the other board). Whether the app's package path is upstream's unchanged
-is to confirm: the owner has asked the app session (recorded by session
-spec-answers-a1); this side doesn't open the app's branch.
+the other board).
+
+**The app's path (confirmed).** From the app session's own description,
+relayed by the owner on 2026-10-27 (recorded by session spec-1027; this
+side doesn't open the app's branch, and the description is of behaviour
+only): the app loads a `.fwsc` through upstream's package reader, the
+conversion to the flash image and the stock boot, all unchanged from
+upstream `43ed558`. Around them:
+
+- **Before the reader** it refuses, with a message: a file over 16 MiB; a
+  package under 960 bytes or over 8 MiB; a catalog download whose SHA-256
+  differs from the catalog's; an M-VAVE version newer than 015, by the
+  package's own name.
+- **The reader:** a package that crashes the reader is refused as
+  malformed.
+- **The user-patch area:** the app loads no patch bank of its own into
+  it; the defaults are filled as upstream does.
+- **After boot:** the firmware's own saved flash sectors are written over
+  the image, after checks (whole 4 KiB sectors, in range, none repeated).
+- **Running:** the interpreted CPU, idle skipping, and each firmware at
+  its own measured clock.
+
 docs/A1-PLAN.md tests a package of ours in all three.
 
 ## How each was checked

@@ -2047,7 +2047,14 @@ named; all multi-byte fields are little-endian.
   `config/fwtest-image` pins 0.8.0, `tools/fwtest` refuses the option.
 - Sources: the emulator's package path (vendor/emulator, read for this);
   HARNESS ("Packages"); fwtest's harness tests on test packages made from
-  HW-87 to HW-91 alone (harness/tests/).
+  HW-87 to HW-91 alone (harness/tests/). The app's part, "for the owner
+  to confirm" above, is **confirmed** by the app session's own
+  description of its path (behaviour only; the owner's relay,
+  2026-10-27, recorded by session spec-1027): the reader, the conversion
+  to the flash image and the stock boot unchanged from upstream
+  `43ed558`, with checks of its own around them (EMULATOR-PARITY.md,
+  "Packages"). The fact's text is left as written (a fact is never
+  edited in place).
 - Standing: emulator-only (with the harness's own tests)
 - Needed by: A1
 
