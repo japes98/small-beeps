@@ -1,0 +1,5 @@
+100 midi c0 09
+300 key 14 down
+310 key 21 down
+1310 key 14 up
+1320 key 21 up

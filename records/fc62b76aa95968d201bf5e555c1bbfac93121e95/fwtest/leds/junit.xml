@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="1" failures="0">
+  <testsuite name="boot.leds" tests="1" failures="0">
+    <testcase classname="boot.leds" name="run"/>
+  </testsuite>
+</testsuites>

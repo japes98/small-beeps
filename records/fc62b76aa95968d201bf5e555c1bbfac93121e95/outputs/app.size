@@ -1,0 +1,7 @@
+code 45144
+data 80
+bss 169328
+image 45224
+stack 4096
+irq_stack 2048
+ram_code 45024
