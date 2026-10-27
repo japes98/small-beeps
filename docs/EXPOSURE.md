@@ -1752,6 +1752,24 @@ SR-3 wrote only its barrier-log row.*
     build's lines naming its pinned base images, fwtest's compile line
     and version line, and the first lines of the push step's script;
     the second, the push step's digest only.
+  - **fwtest 0.6.0 and 0.7.0** (pinned images, pulled by digest): the
+    firmware suite (with the store's cases) and the ARP suite on main's
+    image, once on each, outputs in the session's temporary folder and
+    under `out/pin-check/` (gitignored; the ARP suite's image and outputs
+    must be inside the folder), compared file by file, then deleted. The
+    0.6.0 ARP run named its image by `FWTEST_IMAGE`.
+  - **m1's record, a named file only:** `records/9fe07f8…/report.json`
+    through GitHub's contents API on the records branch, into the
+    temporary folder, for a local dry run of the app release of m1
+    (`tools/release.sh m1 --version 0.1.0`, nothing published; the
+    record's tree hash given as a stand-in, as a clean folder must give
+    it by hand). It rebuilt m1's image byte for byte (`ee2ad8a0…`), and
+    the same run with `GITHUB_ACTIONS=true` stopped at the unpinned build
+    image, as it should. m1's release notes read for the hash (not in
+    them).
+  - **Force-pushes:** none.
+  - **Disk:** 3.8 GB free at the start; 23 GB from shortly after (other
+    folders on the Mac shrank meanwhile).
 
 ## Corrections
 
