@@ -267,9 +267,9 @@ def main():
             f.write("\n")
     if a.drop:
         os.makedirs(a.drop, exist_ok=True)
-        idx = ["# The preset bank (M8b, a draft): what to listen to", "",
+        idx = ["# The preset bank (M8b): what to listen to", "",
                "Each WAV: a program change, then C4 held 2 s (the reference note) and 1 s to fade, then C4 E4 G4"
-               " C5 and the C major chord held 1 s. Rendered by fwtest from the image the draft pull request"
+               " C5 and the C major chord held 1 s. Rendered by fwtest from the image the pull request"
                " builds; loudness is the reference note's loudest 20 ms.", "",
                "| # | Name | Category | What it is for | Loudness |", "|---|---|---|---|---|"]
         # With --only, the other presets' rows (and WAVs) stay as they were.

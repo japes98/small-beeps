@@ -2720,12 +2720,14 @@ applied to the firmware suite's and the arpeggiator's cases
   absolute address in the boot code would need care); running the whole
   suite twice (as long again, for the same evidence).
 
-### 2026-10-26 M8b: candidates 65 to 70
+### 2026-10-26 M8b: presets 65 to 70
 
 The owner asked for presets covering the classic FM sounds, from known
 recipes, never copied: six new ones, P65 to P70 (programs 89 to 94),
-added after the 64 as candidates; the owner chooses which of the 64
-they replace, so none is removed here and the draft stays a draft. Each
+added after the 64 as candidates, for the owner to choose which of the
+64 they would replace. **2026-10-27 (clean-1027), the owner's
+decision:** this is a sample firmware, so no preset notes are needed and
+all 70 stay, as they are; the bank is ready for review. Each
 is built in `tools/fm_patch.py` from the recipe the owner named, with
 numbers chosen here and checked by measuring renders with
 `tools/preset_measure.py` (our own: one note at velocity 40 and 120);
