@@ -629,6 +629,12 @@ digest, so a firmware test always names the exact runner it used.
 - 0.7.0: the USB core's register access port answers at once (bit 15
   set), a read giving the byte last written to its index and the
   interrupt flags 0 ("USB").
+  Published from main at `d28ec99c` (#137's merge, 2026-10-27) as
+  `ghcr.io/japes98/small-beeps@sha256:d7804526c77422395d191416cd84f461f14aae3ce3352fe127b4c5b623a2677e`.
+  Its pin is the clean side's pull request, not the spec side's: the clean
+  side opens it and runs its store and firmware tests on that branch
+  before the owner merges (the owner's answer, recorded by session
+  spec-a1-fwsc).
 - 0.6.0: the flash chip takes the P25Q80H's maximum times and keeps busy
   meanwhile, needs a write enable, wraps a program within its page and
   knows the 256-byte, 32 KiB and whole-chip erases; running or reading
