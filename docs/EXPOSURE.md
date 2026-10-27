@@ -1837,6 +1837,33 @@ SR-3 wrote only its barrier-log row.*
   - **Disk:** 3.8 GB free at the start; 23 GB from shortly after (other
     folders on the Mac shrank meanwhile).
 
+### Session spec-answers-a1 (the owner's answers to spec-a1-fwsc's questions, a parity note)
+- Date: 2026-10-27 (UTC; the evening of 2026-10-26 local time)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.311 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `6fd5a71c-53d5-4b70-b151-fe03bb59a4cf`,
+  started by `/clear` at 03:01:44Z (banner `source: clear`,
+  `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; the role file says
+  `spec`. 03:01:56Z: `tools/spec-setup.sh`, banner `status: OK`
+  (`84a7e56c…`); main at `88bc8325` (#141 to #146 merged);
+  `tools/private-terms.local` exists (not opened). 20 GB free at the
+  start.
+- What it archived: spec-a1-fwsc's transcript (`4030c83c`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS (36 archived
+  transcripts).
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository). Never opened,
+  fetched or searched M-VAVE's stock firmware files or any disassembly of
+  them.
+- Sections 1 and 2: this repository only (its docs, and spec-a1-fwsc's
+  archived transcript for its final questions). No downloads, no other
+  source opened; nothing run but the repository's checks
+  (`check-transcripts`, `check-emulator-terms`, `check-private`).
+- Disk: 20 GB free at the start and at the end.
+
 ### Session clean-a1-packager (fwtest 0.8.0's pin, the build's identity, Phase A1's `.fwsc` packager)
 - Date: 2026-10-27 (UTC; the evening of 2026-10-26 local time)
 - Role: firmware side (clean).
