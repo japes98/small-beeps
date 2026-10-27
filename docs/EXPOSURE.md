@@ -1765,6 +1765,55 @@ SR-3 wrote only its barrier-log row.*
 - Disk: 2.8 GB free at the start (above the 2 GB stop), 24 GB once other
   folders on the Mac shrank, 22 GB at the end.
 
+### Session clean-pin-answers (fwtest 0.7.0's pin, the owner's answers to overnight-1025's questions)
+- Date: 2026-10-27 (UTC; the evening of 2026-10-26 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.311 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `b46c273c-270e-40c1-b2fc-24573aac19a6`,
+  started by a `/clear` at 01:36:15Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `9082712` and ended "no spec-side files on disk or
+  in .git" (it re-runs `tools/clean-setup.sh`, which installed
+  `clean.json`); `tools/private-terms.local` exists (not opened); lazy
+  fetching off (`GIT_NO_LAZY_FETCH=1`). It archived overnight-1025
+  (`4bb588e8`) into `sessions/clean/`; every other clean session was
+  already archived (one older live transcript's file time had changed;
+  its entries' times end on 2026-10-22, as its archived copy's).
+  `tools/check-transcripts.py` failed on five of overnight-1025's calls:
+  four name the spec-side folders only as `:!` pathspecs or name the
+  emulator app in a doc's text; the fifth is the file list below. Five
+  reviewed entries in `sessions/REVIEWED.json`, for the owner's approval;
+  then PASS. The Mac had 3.8 GB free.
+- **A line overnight-1025's entry lacks** (it said so in its last
+  message): late in that session it also printed the changed-file list of
+  the spec side's #137 (`gh pr view 137 --json files`, names only). Its
+  filter was meant to drop spec-side paths and missed one of the three
+  folders, so four of the names printed were of files under a spec-side
+  folder (names only; nothing opened or fetched). Its entry above stays
+  as written; this line completes it.
+- Reads: this file, CONTRIBUTING.md, sessions/README.md,
+  sessions/REVIEWED.json, overnight-1025's transcript (its five flagged
+  calls and the one call's output, in the archived copy; its last
+  message, for the owner's questions, in the original under
+  `~/.claude/projects/`, which is the same session unredacted),
+  docs/PLAN.md, docs/M9-PLAN.md ("The release format"), docs/HARNESS.md
+  (the versions' list), docs/EMULATOR-PARITY.md (0012),
+  docs/TOOLCHAIN.md, docs/DESIGN-NOTES.md, docs/RELEASING.md, and this
+  repository's tools, tests, workflows and firmware.
+- Later in the session:
+  - **fwtest 0.7.0's digest:** from the log of the image workflow's run
+    on main's `d28ec99` (#137's merge), through `grep`. The first grep
+    (for "digest", "0.7.0" or "@sha256") printed 20 lines: the image
+    build's lines naming its pinned base images, fwtest's compile line
+    and version line, and the first lines of the push step's script;
+    the second, the push step's digest only.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
