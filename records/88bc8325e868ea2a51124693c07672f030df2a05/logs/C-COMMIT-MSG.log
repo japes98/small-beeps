@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range a1e77cca40296e3d8f8f9afd85f15ccb9c33d646..88bc8325e868ea2a51124693c07672f030df2a05
+OK     55201e670753 tests: a failed run end names the exact --ms and where it goes
+OK     bc35bdb762fb tools: releases skip unlisted tags; CI builds in a pinned build image
+OK     f8e4e8ce35ad docs: the owner's answers to overnight-1025's questions
+OK     75c7055ba4ba docs: EXPOSURE.md, the rest of clean-pin-answers's session
+EXEMPT d0304a9b829d (merge) Merge remote-tracking branch 'origin/pin-answers/start' into fix146
+EXEMPT 88bc8325e868 (merge) Merge pull request #146 from japes98/pin-answers/owner-answers
+6 commit(s) checked: PASS
+
+exit status 0
