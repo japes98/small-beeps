@@ -1110,14 +1110,14 @@ docs/prompts/owner-answers-1025.md):
          blobs into one before, docs/EXPOSURE.md, M1). The workflow reads
          it in CI; given by hand only for a local dry run
          (docs/RELEASING.md).
-       - `build.container`: in CI the release builds in the build image
-         pinned by registry digest and records that digest; a local
-         image ID only for a local dry run, marked as one. Open: no such
-         pinned image exists, and docs/TOOLCHAIN.md keeps the image off
-         every registry (the toolchain's terms are unknown). Until the
-         owner decides, a CI release stops with a message saying so
-         (`config/build-image` says `unpublished`); local dry runs work
-         and say what they are (docs/RELEASING.md, "The build image").
+       - `build.container`: the image is never published (the
+         toolchain's terms are unknown). A release records the build's
+         identity instead (the owner's answer, 2026-10-27, option (b)):
+         the base image's digest and the SHA-256 of the build Dockerfile
+         and of the toolchain (`config/build-image`); a CI release checks
+         the tag's Dockerfile against it before it builds, and builds the
+         image fresh. A local image ID only for a local dry run, marked
+         as one (docs/RELEASING.md, "The build image").
     7. The stack: raised when SEQ needs it, with a measured high-water
        mark in the record. The compiler crash: its details logged if it
        recurs, nothing else.

@@ -17,19 +17,20 @@ a signed milestone tag carries, for the F-Emulator app.
       output, REPORT the tag's commit's test record
       (records/<commit>/report.json), RECORD-SUMS-SHA256 the SHA-256 of
       that record's SHA256SUMS (the format's record.tree_sha256), TIME the
-      tag's commit's time (the SBOM's only date), REF the build image
-      the image was built in (build.container): in CI the one pinned by
-      registry digest (`ghcr.io/...@sha256:<64 hex>`), in a local dry run
-      `local-dry-run:` and the local image's ID (the owner's answer,
-      2026-10-26). Stops if the record is not PASS, is another commit's,
+      tag's commit's time (the SBOM's only date), REF what the image was
+      built in (build.container): in CI the build's identity
+      (`build-identity:dockerfile-sha256=<hex>,toolchain-sha256=<hex>,
+      base=<image>@sha256:<hex>`, config/build-image; the owner's answer,
+      2026-10-27), in a local dry run `local-dry-run:` and the local
+      image's ID (the owner's answer, 2026-10-26). Stops if the record is not PASS, is another commit's,
       or names other outputs than the build's.
   release.py verify [--publish] DIR
       Checks a release folder: release.json (format 1.0's fields, as a
       writer must write them, and its exact bytes), the .fm1img by the
       app's checks in order (tools/fm1img.py), its release.json and image
       byte for byte the loose files, and SHA256SUMS. With --publish also
-      that it was built in a build image pinned by registry digest (a
-      local dry run is never published).
+      that it names a build identity (a local dry run is never
+      published).
   release.py selftest --build DIR --out DIR
       C-RELEASE: a release made twice from build DIR with a stand-in
       record (this tree's own files), byte for byte the same, verified.
@@ -54,12 +55,16 @@ NAME = "small-beeps"
 REPO = "https://github.com/japes98/small-beeps"
 
 
-# build.container (the owner's answer, 2026-10-26): a release built in CI
-# names the build image pinned by registry digest; one built locally names
-# the local image's ID behind DRY_RUN, a dry run's mark, and is never
-# published (verify(publish=True)). Format 1.0 lets a writer add no field,
-# so the mark is in the value.
-REGISTRY_REF = re.compile(r"^[a-z0-9.-]+(/[a-z0-9._-]+)+@sha256:[0-9a-f]{64}$")
+# build.container: a release built in CI names the build's identity (the
+# owner's answer, 2026-10-27; config/build-image): the SHA-256 of the
+# tag's tools/Dockerfile, the toolchain's SHA-256 and the base image's
+# registry digest, the image itself never published. One built locally
+# names the local image's ID behind DRY_RUN, a dry run's mark, and is
+# never published (verify(publish=True); the owner's answer, 2026-10-26).
+# Format 1.0 lets a writer add no field, so both are in the value.
+IDENTITY = "build-identity:"
+IDENTITY_REF = re.compile(r"^" + IDENTITY + r"dockerfile-sha256=[0-9a-f]{64},toolchain-sha256=[0-9a-f]{64},"
+                          r"base=[a-z0-9./_-]+(:[A-Za-z0-9._-]+)?@sha256:[0-9a-f]{64}$")
 DRY_RUN = "local-dry-run:"
 LOCAL_ID = re.compile(r"^" + DRY_RUN + r"sha256:[0-9a-f]{64}$")
 
@@ -222,9 +227,10 @@ def build(a):
     with open(a.report) as f:
         report = json.load(f)
     problems = check_record(report, a.commit, outputs)
-    if not (REGISTRY_REF.match(a.build_container) or LOCAL_ID.match(a.build_container)):
-        problems.append("--build-container %s: neither a registry digest (host/name@sha256:<64 hex>) nor %s"
-                        "sha256:<64 hex>" % (a.build_container, DRY_RUN))
+    if not (IDENTITY_REF.match(a.build_container) or LOCAL_ID.match(a.build_container)):
+        problems.append("--build-container %s: neither a build identity (%sdockerfile-sha256=...,"
+                        "toolchain-sha256=...,base=...@sha256:...) nor %ssha256:<64 hex>"
+                        % (a.build_container, IDENTITY, DRY_RUN))
     if problems:
         return problems
     meta = metadata(a, image, report, a.src, sizes(a.build))
@@ -248,7 +254,7 @@ def build(a):
 
 def verify(d, publish=False):
     """Problems of a release folder (R-REL-1, R-REL-2); with publish, also
-    one not built in a build image pinned by registry digest."""
+    one that names no build identity."""
     try:
         mb = read(os.path.join(d, "release.json"))
         meta = json.loads(mb)
@@ -258,9 +264,9 @@ def verify(d, publish=False):
     if mb != fm1img.dumps(meta):
         p.append("release.json: not format 1.0's exact bytes")
     container = meta.get("build", {}).get("container", "") if isinstance(meta.get("build"), dict) else ""
-    if publish and not REGISTRY_REF.match(container):
+    if publish and not IDENTITY_REF.match(container):
         p.append("build.container %r: %s" % (container, "a local dry run, never published" if LOCAL_ID.match(container)
-                                             else "not a build image pinned by registry digest"))
+                                             else "not a build identity"))
     if p:
         return p
     fn = files(meta["version"])
