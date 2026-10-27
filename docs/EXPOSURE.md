@@ -1959,6 +1959,13 @@ SR-3 wrote only its barrier-log row.*
     (they printed nothing). How clean-pin-answers pushed was read from
     its archived transcript with `git show a1/start:…` (its push
     commands only).
+  - **#153's C-SEP-TERMS failure:** read first from `gh run view --log`
+    (result lines only), then one named file of the CI report artifact:
+    its zip fetched by GitHub's API into the temporary folder,
+    `unzip -p … logs/C-SEP-TERMS.log` (nothing else extracted), the zip
+    deleted at once. The log gives places and hashes only; the four
+    words, all names this session chose, were found by hashing the
+    flagged lines' own words, and renamed. The log copy was deleted.
   - **Force-pushes:** none.
   - **Disk:** 20 GB free at the start; 19 GB at the lowest.
 
