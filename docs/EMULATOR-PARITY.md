@@ -41,6 +41,12 @@ them, against upstream with fwtest's 0001 and 0002.
 | none | 0006 (E) | Boot a raw image | the app's loader | no: fwtest has its own (in `harness/`, docs/HARNESS.md "The raw image") | yes |
 | none | not a patch | Two pattern guards rewritten so the crates build on an older Rust | build | no: fwtest builds on Rust 1.99 | yes |
 
+**2026-10-27, from the app session, through the owner (recorded by
+session spec-answers-a1):** the app reports that it already has fwtest's
+0003, 0005, 0006 and 0009, and is now applying 0010 (its rules, with the
+timing off by default) and 0011. The table above is left as it was until
+the app confirms, with its commits; that confirmation is pending.
+
 fwtest 0004, 0007 and 0008 are the app's 0003, 0004 and 0005 as they
 stand: their added and removed lines are byte for byte the app's, only the
 line offsets refreshed for fwtest's 0003. Once the app applies fwtest's
