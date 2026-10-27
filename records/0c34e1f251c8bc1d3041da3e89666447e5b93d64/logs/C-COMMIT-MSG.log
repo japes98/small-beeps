@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 6efd02198beef1c341a28c7899ce8ae1e8dfafad..0c34e1f251c8bc1d3041da3e89666447e5b93d64
+OK     70af2c5e7b71 sessions: owner-answers-1025 archived; spec-overnight-1025 starts
+EXEMPT ab835089e8d5 (merge) sessions: the clean side's overnight-1025 chain merged in (#135, #138, #139, #140)
+EXEMPT 0c34e1f251c8 (merge) Merge pull request #134 from japes98/spec/start-1025b
+3 commit(s) checked: PASS
+
+exit status 0
