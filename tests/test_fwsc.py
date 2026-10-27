@@ -14,15 +14,15 @@ class FwscTest(unittest.TestCase):
     """Requirements: R-PKG-1"""
 
     def test_jieli_crc_and_mask_by_hw_87(self):
-        self.assertEqual(fw.crc16(b"123456789"), 0x31C3)
+        self.assertEqual(fw.jieli_crc(b"123456789"), 0x31C3)
         self.assertEqual(fw.mask(b"\0" * 4, 0xFFFF), bytes([0xFF, 0xDF, 0x9F, 0x1F]))
-        self.assertEqual(fw.mask(fw.mask(APP, 0x1234), 0x1234), APP)
+        self.assertEqual(fw.mask(fw.mask(APP, 0x2B5D), 0x2B5D), APP)
 
-    def test_chip_key_by_hw_90(self):
-        self.assertEqual(fw.chip_key(bytes(32)), 0xFFFF)                  # s 0 -> 0x55; 0 < 0x55: every bit
-        self.assertEqual(fw.chip_key(bytes([0xFF] * 16 + [0] * 16)), 0)   # s 0xF0 -> 0xAA; 0xFF >= 0xAA
+    def test_key_from_block_by_hw_90(self):
+        self.assertEqual(fw.key_from_block(bytes(32)), 0xFFFF)                  # s 0 -> 0x55; 0 < 0x55: every bit
+        self.assertEqual(fw.key_from_block(bytes([0xFF] * 16 + [0] * 16)), 0)   # s 0xF0 -> 0xAA; 0xFF >= 0xAA
         kb = bytes([0x20] + [0] * 30 + [0x40])                            # s 0x20; bit 15: 0x40 ^ 0x20 >= 0x20
-        self.assertEqual(fw.chip_key(kb), 0x7FFF)
+        self.assertEqual(fw.key_from_block(kb), 0x7FFF)
 
     def test_a_package_reads_back_as_written(self):
         p = fw.pack(APP, "small-beeps-0.9.0")
@@ -32,7 +32,7 @@ class FwscTest(unittest.TestCase):
         self.assertEqual(r["area"], 0x4000)
         self.assertEqual(r["entry"], 0x02000120)
         self.assertEqual(r["app"], APP)
-        self.assertEqual(r["key"], fw.chip_key(fw.KEY_BLOCK))
+        self.assertEqual(r["key"], fw.key_from_block(fw.KEY_BLOCK))
 
     def test_layout_by_hw_88_to_hw_91(self):
         p = fw.pack(APP, "small-beeps-0.9.0")
@@ -48,10 +48,10 @@ class FwscTest(unittest.TestCase):
         # Every CRC by HW-87's rule, the heads masked one by one.
         for at in (0, 32, 64):
             h = fw.mask(fi[at:at + 32], fw.HEADER_KEY)
-            self.assertEqual(struct.unpack_from("<H", h)[0], fw.crc16(h[2:]), at)
-        area = fw.scramble(fi[0x4000:], fw.chip_key(fw.KEY_BLOCK))
+            self.assertEqual(struct.unpack_from("<H", h)[0], fw.jieli_crc(h[2:]), at)
+        area = fw.scramble(fi[0x4000:], fw.key_from_block(fw.KEY_BLOCK))
         for at in (0, 32):
-            self.assertEqual(struct.unpack_from("<H", area, at)[0], fw.crc16(area[at + 2:at + 32]), at)
+            self.assertEqual(struct.unpack_from("<H", area, at)[0], fw.jieli_crc(area[at + 2:at + 32]), at)
         app = fw.HEAD.unpack(area[32:64])
         self.assertEqual((app[2], app[3], app[4], app[6], app[7].rstrip(b"\0")), (0x120, len(APP), 0x82, 1, b"app.bin"))
         self.assertEqual(area[0x120:], APP)

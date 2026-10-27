@@ -73,7 +73,7 @@ HEAD = struct.Struct("<HHIIBBH16s")         # hdrcrc, datacrc, offset, length, a
 FLASH_HEAD = struct.Struct("<HH4sIBBBB16s")  # crc, size4burner, VID, flash size, fs version, align, reserved, options, PID
 KEY_NAME = b"isd_config.ini"
 AREA_NAME, AREA_ATTR = b"app_dir_head", 0x81
-FLASH_SIZE = 0x100000                       # the FM-1's 1 MiB flash chip (HW-77)
+CHIP_BYTES = 0x100000                       # the FM-1's 1 MiB flash chip (HW-77)
 KEY_BLOCK_AT = 0x60                         # right after the directory's two heads
 
 # HW-90, HW-91: the app area, its directory, the app.
@@ -101,13 +101,13 @@ def _crc_table():
     return t
 
 
-CRC_TABLE = _crc_table()
+JIELI_CRC_TABLE = _crc_table()
 
 
-def crc16(b, crc=0):
+def jieli_crc(b, crc=0):
     """JieLi's CRC-16 (HW-87): polynomial 0x1021, from 0, MSB first."""
     for x in b:
-        crc = ((crc << 8) & 0xFFFF) ^ CRC_TABLE[(crc >> 8) ^ x]
+        crc = ((crc << 8) & 0xFFFF) ^ JIELI_CRC_TABLE[(crc >> 8) ^ x]
     return crc
 
 
@@ -120,7 +120,7 @@ def mask(b, seed):
     return bytes(out)
 
 
-def chip_key(kb):
+def key_from_block(kb):
     """The chip key from a key block's 32 bytes (HW-90)."""
     s = sum(kb[:16]) % 256
     s = 0xAA if s >= 0xE0 else 0x55 if s <= 0x10 else s
@@ -134,13 +134,13 @@ def scramble(area, key):
 
 def head(name, offset, length, data, attr=0, last=0):
     """A directory head (HW-89), unmasked, its CRCs filled."""
-    b = HEAD.pack(0, crc16(data), offset, length, attr, 0, last, name)
-    return struct.pack("<H", crc16(b[2:])) + b[2:]
+    b = HEAD.pack(0, jieli_crc(data), offset, length, attr, 0, last, name)
+    return struct.pack("<H", jieli_crc(b[2:])) + b[2:]
 
 
 def with_crc(b):
     """A structure whose CRC-16 sits in its first two bytes (HW-87)."""
-    return struct.pack("<H", crc16(b[2:])) + b[2:]
+    return struct.pack("<H", jieli_crc(b[2:])) + b[2:]
 
 
 def identity_problems(identity):
@@ -156,14 +156,14 @@ def identity_problems(identity):
 
 def flash_image(app, key_block=KEY_BLOCK, area=AREA):
     """The flash image (HW-89, HW-90): boot area, then the app area."""
-    key = chip_key(key_block)
+    key = key_from_block(key_block)
     app_head = head(APP_NAME, DIR_SIZE, len(app), app, APP_ATTR, last=1)
     rest = app_head.ljust(DIR_SIZE - CHUNK, b"\0") + app
     area_len = CHUNK + len(rest)
     area_head = head(b"", 0, area_len, rest)
     stored = scramble(area_head + rest, key)
-    kb = key_block + struct.pack("<H", crc16(key_block))
-    flash = with_crc(FLASH_HEAD.pack(0, 0, b"\0" * 4, FLASH_SIZE, 0, 0, 0, 0, b"\0" * 16))
+    kb = key_block + struct.pack("<H", jieli_crc(key_block))
+    flash = with_crc(FLASH_HEAD.pack(0, 0, b"\0" * 4, CHIP_BYTES, 0, 0, 0, 0, b"\0" * 16))
     d1 = head(KEY_NAME, KEY_BLOCK_AT, len(kb), kb)
     d2 = head(AREA_NAME, area, area_len, stored, AREA_ATTR, last=1)
     boot = b"".join(mask(h, HEADER_KEY) for h in (flash, d1, d2)) + kb
@@ -205,7 +205,7 @@ def check(blob):
         raise ValueError("1: too short for an FM-1 update package (.fwsc)")
     logical = b"".join(blob[BLOCK * i:BLOCK * i + BLOCK_DATA] for i in range(BLOCKS))
     hdr = mask(logical[:HEADER_SIZE], HEADER_KEY)
-    if struct.unpack_from("<H", hdr)[0] != crc16(hdr[2:]):
+    if struct.unpack_from("<H", hdr)[0] != jieli_crc(hdr[2:]):
         raise ValueError("1: not an FM-1 update package (.fwsc)")
     # The identity: every marker read back, less the trailing run of 0x7D
     # (fwtest's reading, seen in its outputs: a 0x7D marker before another
@@ -246,10 +246,10 @@ def check(blob):
     if not keys or area_head is None:
         raise ValueError("3: no chip key or app area in the flash image")
     good = [h for h in keys if h[2] + 34 <= len(fi)
-            and struct.unpack_from("<H", fi, h[2] + 32)[0] == crc16(fi[h[2]:h[2] + 32])]
+            and struct.unpack_from("<H", fi, h[2] + 32)[0] == jieli_crc(fi[h[2]:h[2] + 32])]
     kh = good[0] if good else keys[-1]
     kb = fi[kh[2]:kh[2] + 32].ljust(32, b"\0")
-    key = chip_key(kb)
+    key = key_from_block(kb)
     # 4. The app area inside the flash image.
     a = area_head[2]
     if a + CHUNK > len(fi):
@@ -312,7 +312,7 @@ def _flash_head(blob, at, edit):
 
 def _area(blob, edit):
     b = bytearray(blob)
-    o, key = DATA_FILE + AREA, chip_key(KEY_BLOCK)
+    o, key = DATA_FILE + AREA, key_from_block(KEY_BLOCK)
     area = bytearray(scramble(b[o:], key))
     edit(area)
     b[o:] = scramble(bytes(area), key)
@@ -344,7 +344,7 @@ def broken(app, identity="small-beeps-0.0.0"):
     return [
         (1, "short", good[:HEADER_FILE - 60]),
         (1, "header-crc", _relogical(good, crc_off)),
-        (2, "no-flash-image", _relogical(good, lambda h, e: (no_flash(h, e), _set(h, 0, struct.pack("<H", crc16(bytes(h[2:]))))))),
+        (2, "no-flash-image", _relogical(good, lambda h, e: (no_flash(h, e), _set(h, 0, struct.pack("<H", jieli_crc(bytes(h[2:]))))))),
         (2, "truncated", _relogical(good, lambda h, e: past_end(h, e))),
         (3, "no-key-block", _flash_head(good, 32, lambda h: _set(h, 16, b"isd_config.txt\0\0"))),
         (3, "no-app-area", _flash_head(good, 64, lambda h: _set(h, 12, b"\x80"))),
