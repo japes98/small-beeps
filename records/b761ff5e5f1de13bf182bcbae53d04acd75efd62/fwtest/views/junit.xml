@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="7" failures="0">
+  <testsuite name="boot.views" tests="7" failures="0">
+    <testcase classname="boot.views" name="run"/>
+    <testcase classname="boot.views" name="golden lcd-1150ms.png"/>
+    <testcase classname="boot.views" name="golden lcd-1450ms.png"/>
+    <testcase classname="boot.views" name="golden lcd-1750ms.png"/>
+    <testcase classname="boot.views" name="golden lcd-2050ms.png"/>
+    <testcase classname="boot.views" name="golden lcd-2350ms.png"/>
+    <testcase classname="boot.views" name="golden lcd-850ms.png"/>
+  </testsuite>
+</testsuites>
