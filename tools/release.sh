@@ -23,11 +23,12 @@
 # 4. The tag's files, exported as tools/reproduce does (never the
 #    spec-side folders), built twice by their own tools/build.sh at two
 #    source paths: the same bytes both times, and the record's. In CI
-#    (GITHUB_ACTIONS) they build in the build image pinned by registry
-#    digest (config/build-image, main's), pulled by that digest, labelled
-#    with the SHA-256 of the tag's tools/Dockerfile, and named as the
-#    tag's build script names its image, and release.json's
-#    build.container is that digest; with none pinned, it stops. Run by
+#    (GITHUB_ACTIONS) the build's identity comes first (config/build-image,
+#    main's; the owner's answer, 2026-10-27): the tag's tools/Dockerfile
+#    must have the SHA-256, the base image digest and the toolchain
+#    SHA-256 it names, or the release stops; the image is then built fresh
+#    from that Dockerfile (it is never published), and release.json's
+#    build.container records the identity (`build-identity:...`). Run by
 #    hand it is a local dry run: the local image, its ID in
 #    build.container behind `local-dry-run:` (the owner's answer,
 #    2026-10-26; docs/RELEASING.md, "The build image").
@@ -86,23 +87,28 @@ fi
 [ -n "$sums" ] || fail "--report needs --record-sums-sha256"
 echo "record:  records/$commit/, its SHA256SUMS $sums"
 
-# 4. The tag's files, built twice, in the pinned build image in CI.
+# 4. The tag's files, built twice; in CI from the build's identity.
 sh "$ROOT/tools/reproduce" --export-only "$commit" "$work/src"
 itag=$(sh "$work/src/tools/build.sh" image-tag)
-pin=$(grep -v '^#' "$ROOT/config/build-image" | grep . | head -1)
 if [ "${GITHUB_ACTIONS:-}" = true ]; then
-    case "$pin" in
-        *@sha256:????????????????????????????????????????????????????????????????) ;;
-        *) fail "in CI a release builds in the build image pinned by registry digest, and config/build-image pins none ($pin): docs/TOOLCHAIN.md keeps that image off every registry; the owner's decision (docs/RELEASING.md, \"The build image\")" ;;
-    esac
-    docker pull -q "$pin" >/dev/null
-    # Built from the tag's own Dockerfile: the image says which, by its hash.
-    want=$("$PY" -I -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' \
+    # The build's identity (config/build-image, main's; the owner's answer,
+    # 2026-10-27): the tag's Dockerfile must be the one it names, with its
+    # base image and toolchain, before anything is built. The image is then
+    # built fresh from it, never pulled.
+    ident() { awk -v k="$1" '$1 == k { print $2 }' "$ROOT/config/build-image"; }
+    base=$(ident base) dockerfile=$(ident dockerfile) toolchain=$(ident toolchain)
+    [ -n "$base" ] && [ -n "$dockerfile" ] && [ -n "$toolchain" ] \
+        || fail "config/build-image gives no build identity (base, dockerfile, toolchain)"
+    have=$("$PY" -I -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' \
         "$work/src/tools/Dockerfile")
-    have=$(docker image inspect --format '{{index .Config.Labels "small-beeps.dockerfile-sha256"}}' "$pin")
-    [ "$have" = "$want" ] || fail "the pinned build image was built from a Dockerfile of SHA-256 ${have:-(no label)}; $tag's is $want"
-    docker tag "$pin" "$itag"
-    container=$pin
+    [ "$have" = "$dockerfile" ] || fail "$tag's tools/Dockerfile has SHA-256 $have, not the build identity's $dockerfile"
+    have=$(sed -n 's/^ARG BASE=//p' "$work/src/tools/Dockerfile" | head -1)
+    [ "$have" = "$base" ] || fail "$tag's tools/Dockerfile builds on ${have:-(none)}, not the build identity's $base"
+    have=$(sed -n 's/^ARG TOOLCHAIN_SHA256=//p' "$work/src/tools/Dockerfile" | head -1)
+    [ "$have" = "$toolchain" ] || fail "$tag's tools/Dockerfile checks the toolchain against ${have:-(none)}, not the build identity's $toolchain"
+    echo "identity: base $base, Dockerfile $dockerfile, toolchain $toolchain: $tag's"
+    sh "$work/src/tools/build.sh" image
+    container=build-identity:dockerfile-sha256=$dockerfile,toolchain-sha256=$toolchain,base=$base
 fi
 sh "$work/src/tools/build.sh" build --out "$work/b1"
 sh "$work/src/tools/build.sh" build --out "$work/b2" --src-mount /tmp/elsewhere/small-beeps-src-b

@@ -9,9 +9,12 @@
 # GitHub doesn't show as Verified, and never replaces a file a release
 # already has. A tag config/releases.json doesn't list gets no release:
 # the run says so in a notice and succeeds (the owner's answer,
-# 2026-10-26: m2 to m8 get no versions). It builds in the build image
-# pinned by registry digest (config/build-image) and publishes only a
-# release that names it (tools/release.py verify --publish).
+# 2026-10-26: m2 to m8 get no versions). Before it builds, it checks the
+# tag's build Dockerfile against the build's identity (config/build-image:
+# the base image's registry digest, the Dockerfile's and the toolchain's
+# SHA-256; the owner's answer, 2026-10-27), builds the image fresh from it
+# (never published), and publishes only a release that records that
+# identity (tools/release.py verify --publish).
 name: release
 
 on:
@@ -106,12 +109,13 @@ jobs:
         run: |
           set -eu
           version=$(python3 -c 'import json; print(json.load(open("release/release.json"))["version"])')
-          # Only a release built in the pinned build image (tools/release.py
-          # verify --publish checks the same): never a local dry run.
+          # Only a release that records the build's identity
+          # (tools/release.py verify --publish checks the same): never a
+          # local dry run.
           container=$(python3 -c 'import json; print(json.load(open("release/release.json")).get("build", {}).get("container", ""))')
           case "$container" in
-            *@sha256:*) ;;
-            *) echo "::error::build.container is '$container', not a pinned build image: not published"; exit 1 ;;
+            build-identity:*) ;;
+            *) echo "::error::build.container is '$container', not a build identity: not published"; exit 1 ;;
           esac
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             {

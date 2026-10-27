@@ -34,7 +34,8 @@ class ReleaseTest(unittest.TestCase):
     """Requirements: R-REL-1, R-REL-2"""
 
     COMMIT = "1" * 40
-    PINNED = "ghcr.io/o/r-build@sha256:" + "5" * 64
+    PINNED = ("build-identity:dockerfile-sha256=" + "5" * 64 + ",toolchain-sha256=" + "7" * 64
+              + ",base=debian:bookworm-slim@sha256:" + "8" * 64)
 
     def make(self, d, name, report=None, version="0.9.0", container=PINNED):
         build = os.path.join(d, "build")
@@ -118,9 +119,9 @@ class ReleaseTest(unittest.TestCase):
         self.assertEqual(fm.field_problems(m), [])
 
     def test_the_build_image_a_ci_release_names_and_a_dry_runs_mark(self):
-        # The owner's answer (2026-10-26): in CI the build image pinned by
-        # registry digest, recorded; a local image's ID only in a local dry
-        # run, marked as one, and never published.
+        # The owner's answers: in CI the build's identity, recorded
+        # (2026-10-27); a local image's ID only in a local dry run, marked
+        # as one, and never published (2026-10-26).
         with tempfile.TemporaryDirectory() as d:
             p, o = self.make(d, "ci")
             self.assertEqual(p, [])
@@ -132,15 +133,25 @@ class ReleaseTest(unittest.TestCase):
             self.assertEqual(json.load(open(os.path.join(o, "release.json")))["build"]["container"], local)
             self.assertEqual(rel.verify(o), [])
             self.assertIn("dry run", " ".join(rel.verify(o, publish=True)))
-            for bad in ("sha256:" + "6" * 64, "small-beeps-build:2f1adc7009fddc03", "ghcr.io/o/r-build:latest"):
+            for bad in ("sha256:" + "6" * 64, "small-beeps-build:2f1adc7009fddc03", "ghcr.io/o/r-build:latest",
+                        "ghcr.io/o/r-build@sha256:" + "5" * 64, self.PINNED.replace(",base=", ",")):
                 self.assertTrue(self.make(d, "bad", container=bad)[0], bad)
             self.assertFalse(os.path.exists(os.path.join(d, "bad")))
 
-    def test_no_build_image_is_pinned_until_the_owner_decides(self):
+    def test_the_build_identity_is_this_trees_own(self):
+        # config/build-image (the owner's answer, 2026-10-27): the base
+        # image's digest, the Dockerfile's SHA-256 and the toolchain's, as
+        # tools/Dockerfile and docs/TOOLCHAIN.md have them.
         with open(os.path.join(ROOT, "config", "build-image")) as f:
-            pin = [l.strip() for l in f if l.strip() and not l.startswith("#")]
-        self.assertEqual(len(pin), 1)
-        self.assertTrue(pin[0] == "unpublished" or rel.REGISTRY_REF.match(pin[0]), pin[0])
+            pin = dict(l.split() for l in f if l.strip() and not l.startswith("#"))
+        self.assertEqual(sorted(pin), ["base", "dockerfile", "toolchain"])
+        df = open(os.path.join(ROOT, "tools", "Dockerfile"), "rb").read()
+        self.assertEqual(pin["dockerfile"], hashlib.sha256(df).hexdigest())
+        self.assertIn(("\nARG BASE=%s\n" % pin["base"]).encode(), df)
+        self.assertIn(("\nARG TOOLCHAIN_SHA256=%s\n" % pin["toolchain"]).encode(), df)
+        self.assertIn(pin["toolchain"], open(os.path.join(ROOT, "docs", "TOOLCHAIN.md")).read())
+        self.assertTrue(rel.IDENTITY_REF.match("%sdockerfile-sha256=%s,toolchain-sha256=%s,base=%s" % (
+            rel.IDENTITY, pin["dockerfile"], pin["toolchain"], pin["base"])))
 
     def test_releases_list_starts_at_0_9_0(self):
         v = json.load(open(os.path.join(ROOT, "config", "releases.json")))["versions"]
@@ -228,16 +239,22 @@ class WorkflowTest(unittest.TestCase):
             self.assertIn("if: steps.tag.outputs.skip == 'false'", st, st.splitlines()[0])
         self.assertIn("if: needs.build.outputs.skip == 'false' &&", wf[wf.index("\n  publish:"):])
 
-    def test_ci_builds_in_the_pinned_image_and_publishes_only_its_releases(self):
+    def test_ci_checks_the_build_identity_first_and_publishes_only_its_releases(self):
         wf = open(os.path.join(ROOT, ".github", "workflows", "release.yml")).read()
         sh = open(os.path.join(ROOT, "tools", "release.sh")).read()
         self.assertIn('"$ROOT/config/build-image"', sh)
         self.assertIn('if [ "${GITHUB_ACTIONS:-}" = true ]', sh)
-        self.assertIn('docker tag "$pin" "$itag"', sh)
+        ci = sh[sh.index('if [ "${GITHUB_ACTIONS:-}" = true ]'):]
+        for check in ("$dockerfile", "$base", "$toolchain"):
+            self.assertLess(ci.index('fail "$tag\'s tools/Dockerfile'), ci.index('build.sh" image'), check)
+            self.assertIn('= "%s" ] || fail' % check, ci)
+        self.assertLess(ci.index('build.sh" image'), ci.index('build.sh" build'))
+        self.assertNotIn("docker pull", sh)
+        self.assertIn("container=build-identity:", sh)
         self.assertIn('--build-container "$container"', sh)
         self.assertIn("container=local-dry-run:", sh)
         pub = wf[wf.index("\n  publish:"):]
-        self.assertLess(pub.index("*@sha256:*) ;;"), pub.index("gh release upload"))
+        self.assertLess(pub.index("build-identity:*) ;;"), pub.index("gh release upload"))
 
 
 if __name__ == "__main__":
