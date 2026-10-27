@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range ecd9fb8b47ec958be2ab44d279e8873681cfb080..00e8708a5644638a1298bd19a6f1cec35e2d4752
+OK     ad4dd08aa259 config: pin fwtest 0.7.0 (the USB core's register access port)
+EXEMPT 00e8708a5644 (merge) Merge pull request #144 from japes98/pin/fwtest-070
+2 commit(s) checked: PASS
+
+exit status 0
