@@ -12,7 +12,8 @@ a signed milestone tag carries, for the F-Emulator app.
       DIR gets the release's files (files() below): the raw image (the
       build's app.bin, byte for byte), its ELF, release.json, the
       .fm1img holding both (tools/fm1img.py), an SPDX 2.3 SBOM, the
-      licence and notices as at the tag, and SHA256SUMS. SRC is the tag's
+      licence and notices as at the tag, since A1 the .fwsc of the
+      build's package link if it has one (tools/fwsc.py), and SHA256SUMS. SRC is the tag's
       files (tools/reproduce --export-only), BUILD its tools/build.sh
       output, REPORT the tag's commit's test record
       (records/<commit>/report.json), RECORD-SUMS-SHA256 the SHA-256 of
@@ -49,6 +50,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fm1img  # noqa: E402  (tools/, our own)
+import fwsc  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NAME = "small-beeps"
@@ -69,6 +71,13 @@ DRY_RUN = "local-dry-run:"
 LOCAL_ID = re.compile(r"^" + DRY_RUN + r"sha256:[0-9a-f]{64}$")
 
 
+def package_identity(version):
+    """The .fwsc's identity: small-beeps-<version>, or small-beeps where
+    that is longer than a package's 19 characters (HW-88)."""
+    i = "%s-%s" % (NAME, version)
+    return i if len(i) <= fwsc.IDENTITY_MAX else NAME
+
+
 def sha256(b):
     return hashlib.sha256(b).hexdigest()
 
@@ -82,7 +91,8 @@ def files(version):
     """The release's files, by kind."""
     return {"bin": "%s-%s.bin" % (NAME, version), "elf": "%s-%s.elf" % (NAME, version),
             "fm1img": "%s-%s.fm1img" % (NAME, version), "sbom": "%s-%s.spdx.json" % (NAME, version),
-            "json": "release.json", "license": "LICENSE", "notice": "NOTICE"}
+            "json": "release.json", "license": "LICENSE", "notice": "NOTICE",
+            "fwsc": "%s-%s.fwsc" % (NAME, version)}
 
 
 def sizes(build):
@@ -244,6 +254,15 @@ def build(a):
     for k in ("license", "notice"):
         if os.path.exists(os.path.join(a.src, fn[k])):
             out[fn[k]] = read(os.path.join(a.src, fn[k]))
+    # Since A1, a build with the package link gives the .fwsc too
+    # (tools/fwsc.py; docs/A1-PLAN.md): for tools that take packages, not
+    # the app's release format. An older tag's build has none.
+    pkg = os.path.join(a.build, "app-pkg.bin")
+    if os.path.exists(pkg):
+        try:
+            out[fn["fwsc"]] = fwsc.pack(read(pkg), package_identity(a.version))
+        except ValueError as e:
+            return ["%s: %s" % (fn["fwsc"], e)]
     os.makedirs(a.out, exist_ok=True)
     out["SHA256SUMS"] = sums(out)
     for n, b in out.items():
@@ -282,6 +301,13 @@ def verify(d, publish=False):
         p.append("no %s" % fn["fm1img"])
     except ValueError as e:
         p.append("%s: check %s" % (fn["fm1img"], e))
+    if os.path.exists(os.path.join(d, fn["fwsc"])):
+        try:
+            r = fwsc.check(read(os.path.join(d, fn["fwsc"])))
+            if r["identity"] != package_identity(meta["version"]):
+                p.append("%s: identity %r, not this release's" % (fn["fwsc"], r["identity"]))
+        except ValueError as e:
+            p.append("%s: check %s" % (fn["fwsc"], e))
     try:
         listed = {}
         for line in read(os.path.join(d, "SHA256SUMS")).decode("ascii").splitlines():

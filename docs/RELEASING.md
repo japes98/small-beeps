@@ -9,7 +9,9 @@ How an app release is cut, checked and loaded into the F-Emulator app.
 The format (`release.json` and the `.fm1img`, format 1.0): docs/M9-PLAN.md,
 section 1, "The release format" (the spec side's, pull request #136).
 The plan and the owner's answers: the same document. A hardware package
-(`.fwsc`) is not this: it waits for M10.
+(`.fwsc`) is not this: it waits for M10. Since A1 a release carries a
+`.fwsc` for the emulated load paths too (below), checked by
+`tools/fwsc.py`, the reference reader of fwtest's package checks.
 
 ## What a release holds
 
@@ -19,6 +21,7 @@ The plan and the owner's answers: the same document. A hardware package
 | `small-beeps-X.Y.Z.bin` | the raw image, byte for byte the build's `app.bin`, linked at `0x02000000` |
 | `release.json` | the metadata, byte for byte the copy in the `.fm1img` |
 | `small-beeps-X.Y.Z.elf` | the same build's ELF, for symbols |
+| `small-beeps-X.Y.Z.fwsc` | since A1: the same code as an update package (`.fwsc`), for tools that take packages, the upstream web build among them (tools/fwsc.py; docs/A1-PLAN.md). Packed from the build's package link, linked at `0x02000120` (HW-91); a tag built before A1 has none. Not for real hardware (M10) |
 | `small-beeps-X.Y.Z.spdx.json` | an SPDX 2.3 SBOM: the firmware, the SDK headers, the toolchain (a build tool), each source file of the image with its SHA-256 |
 | `LICENSE`, `NOTICE` | as at the tag |
 | `SHA256SUMS` | every file above, in `sha256sum`'s format |

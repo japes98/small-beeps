@@ -2671,3 +2671,50 @@ applied to the firmware suite's and the arpeggiator's cases
        the code's timing put it; at 1 600 the note has ended and the
        screen holds still. The dot stays checked at 1 000 ms, where it
        rests at the hold.
+
+### 2026-10-27 A1: the firmware as a `.fwsc`
+- Facts: HW-87 to HW-93; docs/HARNESS.md, "Packages" (PROVENANCE P-61);
+  our own runs in fwtest 0.8.0 (P-62). docs/A1-PLAN.md, Note A1-1.
+- Reasoning:
+  - **One linker script, two links.** `firmware/app.ld`'s image origin is
+    a symbol, `0x02000000` unless `tools/build.sh` passes
+    `--defsym=IMAGE_ORIGIN=0x02000120` for the package link (HW-91), and
+    the image's length shrinks by the difference, so both end before the
+    stock user patch region. Since M7 only the boot code runs from the
+    window and everything else runs from RAM, so the two links differ
+    only in the boot code's own addresses: the build fails unless what
+    goes to RAM is byte for byte the same in both (the firmware's build;
+    a `--define` test build may differ, as the store's wipe test reads a
+    link symbol), the boot code is as long, and the package's `_start`
+    is at `0x02000120`. The raw image is
+    unchanged (the same `app.bin` as before A1; the ELF gains the origin
+    symbol). The window shows flash `0x4000 + n` at `0x02000000 + n` in
+    both paths, so the store's wipe test, the one place that turns a link
+    address into a chip offset, holds for either.
+  - **The packager writes only what the facts give.** One entry, the
+    flash image; in it the flash header, two directory heads, our own
+    key block and the app area at `0x4000`, ending at the app's last
+    byte, so a package writes nothing past it (not the stock patches at
+    `0xEA000`, not our store at `0xFC000`). Every field the facts leave
+    open is 0 and listed in `tools/fwsc.py`'s docstring; the flash size
+    is the chip's 1 MiB. The flash image starts at file offset 1024, so
+    the byte at 1007 (a 21st block's marker's place, HW-88) is 0. The
+    identity is `small-beeps-<version>`, checked to be at most 19
+    printable characters, not another board's, and with no character
+    whose marker would be `0x7D`.
+  - **The reader is fwtest's order, in fwtest's words.** HW-93 gives the
+    emulator's five steps; fwtest adds four (HARNESS.md). The reader
+    follows fwtest's nine and, where HARNESS.md names a check without
+    its message, uses the words fwtest printed (P-62), so C-PACKAGE can
+    ask that fwtest's refusal and the reader's are the same text.
+  - **The test compares, not re-goldens.** C-PACKAGE runs eight of the
+    suite's cases on `app.bin` twice, raw and from the package, and asks
+    for the same outputs byte for byte, with two stated exceptions (the
+    r0 block, which must be HARNESS.md's boot block; the flash chip below
+    `0xEA000`, which holds each path's own image). The goldens stay
+    C-FW-SUITE's. Cases on test builds and on generated flash files are
+    left out: they test the firmware, not the load path.
+- Alternatives: a second linker script (two files to keep in step); a
+  position-independent image (the toolchain's support unknown, and every
+  absolute address in the boot code would need care); running the whole
+  suite twice (as long again, for the same evidence).

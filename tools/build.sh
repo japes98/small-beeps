@@ -18,6 +18,10 @@
 #                                             firmware's
 #   tools/build.sh inside SRC OUT             (runs inside the container)
 #
+# The outputs: app.elf and app.bin (the raw image, linked at 0x02000000),
+# app.size, and since A1 (not for --demo) app-pkg.elf and app-pkg.bin, the
+# same objects linked at 0x02000120 for a .fwsc (tools/fwsc.py; HW-91).
+#
 # Builds are deterministic (R-REPRO-3): fixed SOURCE_DATE_EPOCH (set in the
 # image), no network, relative source paths with -fdebug-prefix-map, sorted
 # output lists, and a check that no output contains the source mount path.
@@ -194,7 +198,16 @@ cmd_inside() {
     objcopy -O binary -j .text "$out/app.elf" "$obj/text.bin"
     objcopy -O binary -j .data "$out/app.elf" "$obj/data.bin"
     cat "$obj/text.bin" "$obj/data.bin" > "$out/app.bin"
-    rm "$obj/text.bin" "$obj/data.bin"
+    # The package link (Phase A1, HW-91): the same objects, linked where a
+    # package's app.bin runs, 0x120 past the window's start; its raw image
+    # is what tools/fwsc.py packs into a .fwsc. Not for a demo.
+    if [ -z "${SB_DEMO:-}" ]; then
+        ld -nostdlib --no-undefined --orphan-handling=error --defsym=IMAGE_ORIGIN=0x02000120 \
+            -T firmware/app.ld -o "$out/app-pkg.elf" $objs
+        objcopy -O binary -j .text "$out/app-pkg.elf" "$obj/pkg-text.bin"
+        objcopy -O binary -j .data "$out/app-pkg.elf" "$obj/pkg-data.bin"
+        cat "$obj/pkg-text.bin" "$obj/pkg-data.bin" > "$out/app-pkg.bin"
+    fi
     set +x
     write_size "$out/app.elf" > "$out/app.size"
     cat "$out/app.size"
@@ -202,6 +215,21 @@ cmd_inside() {
     if [ "$(wc -c < "$out/app.bin")" -ne "$image" ]; then
         echo "FAIL: app.bin is not the $image bytes app.ld lays out" >&2; exit 1
     fi
+    # Nothing in the firmware may depend on which link it is (A1-1): what
+    # runs from RAM is byte for byte the same in both, the boot code (run
+    # from the window) is as long, and the package's starts at 0x02000120.
+    # The RAM check is the firmware's, not a test build's: the store's wipe
+    # test (SB_TEST_STORE_WIPE) turns a link symbol into a chip offset.
+    if [ -z "${SB_DEMO:-}" ]; then
+        [ -n "${SB_DEFINES:-}" ] || cmp "$obj/data.bin" "$obj/pkg-data.bin" \
+            || { echo "FAIL: the package link's RAM code and data differ from the raw image's" >&2; exit 1; }
+        [ "$(wc -c < "$obj/pkg-text.bin")" -eq "$(wc -c < "$obj/text.bin")" ] \
+            || { echo "FAIL: the package link's boot code is not as long as the raw image's" >&2; exit 1; }
+        [ "$(nm "$out/app-pkg.elf" | awk '$3 == "_start" { print $1 }')" = 02000120 ] \
+            || { echo "FAIL: the package link's _start is not at 0x02000120" >&2; exit 1; }
+        rm "$obj/pkg-text.bin" "$obj/pkg-data.bin"
+    fi
+    rm "$obj/text.bin" "$obj/data.bin"
     # No output may contain the absolute source path.
     for f in $(find "$out" -type f | LC_ALL=C sort); do
         if grep -q -F "$src" "$f"; then
