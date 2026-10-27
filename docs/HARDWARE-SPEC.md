@@ -1730,6 +1730,42 @@ Q-21 to Q-24.
 - Standing: confirmed (SDK, JL7911B; PD0's pull-up, PD6 and the datasheet's pin list from JL7911B, which the owner accepts as a source; those three to be confirmed on real hardware)
 - Needed by: M7 (real hardware), M9
 
+## 20. The USB core's register port (the F-Emulator app's note)
+
+HW-86 confirms, from the SDK and RE, the behaviour the F-Emulator app
+found missing in the emulator (PROVENANCE P-59), which fwtest 0.7.0 now
+has (HARNESS.md, "USB").
+
+### HW-86: The USB core's registers through one port, `JL_USB->CON1`
+- Fact: The chip's USB device core is MUSB-style, with byte registers by
+  index: 0 `FADDR`, 1 `POWER`, 2 and 3 `INTRTX1/2`, 4 and 5 `INTRRX1/2`,
+  6 `INTRUSB`, 7 to 11 the matching interrupt enables, 12 and 13 the frame
+  number, 14 `INDEX`, 15 `DEVCTL`, 16 onwards the endpoint registers. A
+  firmware reaches them through one word, `JL_USB->CON1` at `0x11804`
+  (`JL_USB` at `0x11800`): to write, it writes `index << 8 | byte` with
+  bit 14 (`MC_RNW`) clear; to read, `index << 8` with bit 14 set; then
+  it polls the word until bit 15 (`MACK`) is set, and a read's byte is in
+  bits 0-7. The FM-1's stock firmware uses the port this way.
+  The requirement: a firmware that touches the USB core bounds every
+  poll of bit 15 and does not depend on how long an access takes. A firmware that leaves USB alone needs nothing.
+  In fwtest (0.7.0) every access is done at once, the interrupt flags
+  read 0 and no bus event ever happens (HARNESS.md, "USB").
+- Sources: SDK `WL82.h` lines 15-16 (`lsfr_base`, `map_adr`) and 464-485
+  (`JL_USB`, `CON1` its second word); SDK
+  `include_lib/driver/cpu/wl82/asm/usb.h` lines 42-44 (`USB_CON1`:
+  `MC_RNW` 14, `MACK` 15) and 148-150 (`musb_read_usb`,
+  `musb_write_usb`; their code is in the SDK's prebuilt libraries, not
+  opened); SDK `include_lib/driver/device/usb/usb_phy.h` lines 61-90 (the
+  `MUSB_*` indexes); RE `docs/io/06-usb.md` §2.1 (the indexed access,
+  `(idx<<8)|val` with completion on the halfword's sign bit, and the same
+  index map, in the stock firmware); SDK63 `include_lib/driver/cpu/br23/asm/usb.h`
+  and four other chips' (`MACK` 15 there too; corroboration only).
+- Standing: confirmed (SDK, RE). Not from the sources: what the chip's
+  registers read before a write and the time an access takes; RE calls
+  bit 2 of `0x11800` the port's busy bit, which the SDK names `USB_NRST`
+  (open, unused by fwtest).
+- Needed by: M9 (the app's emulator), USB MIDI (not planned)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A

@@ -411,6 +411,22 @@ from the two sections above, in one place.
   ("MIDI output"); a burst of a chord's note ons spreads 320 µs a byte,
   and a test of its timing allows for that.
 
+## USB
+
+fwtest has no USB bus: no host, no cable, no bus events (reset, connect,
+suspend, start of frame) and no endpoint data, so USB MIDI and USB audio
+do nothing in it. The USB core's register access port answers at once:
+an access written to it (`index << 8 | byte`, bit 14 set for a read) reads
+back with bit 15 (done) set, and a read gives in bits 0-7 the byte last
+written to that index (0 before any write), except the interrupt flags
+(indexes 2 to 6), which read 0: nothing is pending (`HARDWARE-SPEC.md`,
+HW-86). No interrupt is raised. A firmware that sets up its USB device
+gets through the setup, and one that waits for a bus event waits forever,
+as on a unit with no cable.
+
+From fwtest 0.7.0. Before it, bit 15 never set, so every access waited
+out the firmware's own poll limit.
+
 ## Outcomes and exit codes
 
 | Exit | Outcome | When |
@@ -610,6 +626,9 @@ differ, that is a bug in fwtest: report it.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.7.0: the USB core's register access port answers at once (bit 15
+  set), a read giving the byte last written to its index and the
+  interrupt flags 0 ("USB").
 - 0.6.0: the flash chip takes the P25Q80H's maximum times and keeps busy
   meanwhile, needs a write enable, wraps a program within its page and
   knows the 256-byte, 32 KiB and whole-chip erases; running or reading

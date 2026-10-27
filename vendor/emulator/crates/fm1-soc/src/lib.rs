@@ -188,6 +188,8 @@ pub struct Soc {
     /// erase or program: on the chip the window can't be served then (the runner decides what
     /// that means; fwtest ends the run).
     pub window_read_busy: Option<u32>,
+    /// The USB core's registers behind its access port (0x11804), a byte each by index.
+    usb_regs: [u8; 64],
 }
 
 fn dbg_line(addr: u32) -> &'static str {
@@ -276,6 +278,7 @@ impl Soc {
             flaky_core1: None,
             p33: Default::default(),
             window_read_busy: None,
+            usb_regs: [0; 64],
         }
     }
 
@@ -702,6 +705,19 @@ impl Soc {
             }
             // (the second USB PHY ready: bit 4 of its control word, once it is powered up)
             Region::Usb if addr == 0x16800 => self.sfr_get(addr) | 0x10,
+            // the USB core's access port: `index << 8 | byte`, bit 14 a read; bit 15 (done) is
+            // set as soon as the access is written, and a read's byte is in bits 0-7. With
+            // nothing on the bus no interrupt flag (indexes 2-6) is pending.
+            Region::Usb if addr == 0x11804 => {
+                let v = self.sfr_get(addr);
+                if v & 0x4000 != 0 {
+                    let index = ((v >> 8) & 0x3f) as usize;
+                    let byte = if (2..=6).contains(&index) { 0 } else { self.usb_regs[index] };
+                    (v & !0xff) | byte as u32 | 0x8000
+                } else {
+                    v | 0x8000
+                }
+            }
             Region::Iomap | Region::Usb | Region::Clk => self.sfr_get(addr),
             // JL_ANA (analog: WLA, DAC trim). 0x11978 is the DAC trim measurement after the
             // strobe at the same word: bit 5 = conversion done, bits 8-15 = the value (mid
@@ -863,6 +879,9 @@ impl Soc {
                 if addr == 0x16a0c && self.board == Board::Smk37 {
                     self.periph.smk.commons = value;
                 }
+                if addr == 0x11804 && value & 0x4000 == 0 {
+                    self.usb_regs[((value >> 8) & 0x3f) as usize] = value as u8;
+                }
                 self.sfr_set(addr, value)
             }
             Region::Uart1 => {
@@ -993,6 +1012,22 @@ pub fn write_boot_info(soc: &mut Soc, at: u32, flash: &[u8]) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    /// The USB core's access port answers: bit 15 set once an access is written, a read's byte
+    /// in bits 0-7 (the last written to that index), the interrupt flags (2-6) read as 0.
+    #[test]
+    fn usb_port_answers() {
+        let mut soc = Soc::new(0x8000, vec![]);
+        soc.write32(0x11804, 0x0b5a);
+        assert_eq!(soc.read32(0x11804) & 0x8000, 0x8000, "a write's done");
+        soc.write32(0x11804, 0x4b00);
+        assert_eq!(soc.read32(0x11804), 0xcb5a, "index 11 reads back");
+        soc.write32(0x11804, 0x06ff);
+        soc.write32(0x11804, 0x4600);
+        assert_eq!(soc.read32(0x11804), 0xc600, "no interrupt flag pending");
+        soc.write32(0x11804, 0x4100);
+        assert_eq!(soc.read32(0x11804), 0xc100, "an index never written reads 0");
+        assert_eq!(soc.read16(0x11804), 0xc100, "as a halfword too");
+    }
     /// A block over RAM re-entered after a store patched its code runs the new code, interpreted
     /// and compiled by the JIT (blocks over RAM skip their byte compare while the bus's count of
     /// code-word writes is unchanged, so every store to a code word must be counted).

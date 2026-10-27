@@ -37,6 +37,7 @@ them, against upstream with fwtest's 0001 and 0002.
 | 0009 | none | The MIDI output: the UART's transmit side sends bytes at the wire's pace and keeps them with their times, and its pending flag rises when the last has gone (it used to finish at once and send nothing) | model | yes (0.5.0) | no: to apply, with the bytes sent to CoreMIDI (harness/upstream/fm1-emu-midi-out.md) |
 | 0010 | none | The flash chip: the P25Q80H's command rules (write enable, start on chip select high, a program wraps within its page, the other erase sizes); with a timing set, busy times (status bit 0, other commands ignored); an operations log; a power cut that keeps the part done; a record of code-window reads while busy | model | yes (0.6.0; fwtest sets the datasheet's maximum times and ends a run on window use while busy) | no: to apply, the timing the owner's choice (harness/upstream/fm1-emu-flash-busy.md) |
 | 0011 | none | A dual-issue pair whose halves write one register keeps the head's result (it kept the second half's) | bug fix | yes (0.6.0) | no: to apply (harness/upstream/fm1-emu-pair-same-register.md) |
+| 0012 | its own (branch `stock-016`, `f60b86b`) | The USB core's register access port answers: an access is done at once, a read gives the byte last written to its index, the interrupt flags read as nothing pending (it used to keep the word as written, so every access waited out the firmware's own timeout) | model | yes (0.7.0) | yes: the app's change, which fwtest's was written from (its behaviour-only note, PROVENANCE P-59; harness/upstream/fm1-emu-usb-port.md) |
 | none | 0006 (E) | Boot a raw image | the app's loader | no: fwtest has its own (in `harness/`, docs/HARNESS.md "The raw image") | yes |
 | none | not a patch | Two pattern guards rewritten so the crates build on an older Rust | build | no: fwtest builds on Rust 1.99 | yes |
 
@@ -129,6 +130,15 @@ three need nothing newer than the Rust the app builds with.
   differ only in the version). The harness's suite and the spec
   experiments: only `flashrw` (now 15 ms of erase and program where it
   ran 5 ms) and E-22 change.
+- **0012 (the USB core's port, session spec-overnight-1025).** The
+  app's change, written for fwtest from the app's behaviour-only note
+  (PROVENANCE P-59); the port's bits and register indexes confirmed from
+  the SDK's headers and FM-1-RE (HARDWARE-SPEC.md, HW-86). Its crate test
+  and harness test fail without it. The firmware's
+  suite at `cf07f9e5` on fwtest 0.6.0 (pinned) and 0.7.0 (local build):
+  every output fwtest writes is byte for byte the same (2 202 files;
+  `result.json` differs only in the version): our firmware doesn't use
+  USB.
 - **The firmware.** The same comparison between fwtest 0.3.0's emulator
   and 0.4.0's (0004 to 0008): no output of the three suites changed.
 
