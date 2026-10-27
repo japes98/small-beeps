@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The build container image (tools/Dockerfile) a release builds in, in CI,
+# pinned by registry digest (the owner's answer, 2026-10-26;
+# docs/RELEASING.md, "The build image"): `ghcr.io/<owner>/<name>@sha256:<64
+# hex digits>`, or `unpublished`, and then tools/release.sh stops in CI.
+# The image holds the vendor toolchain, which docs/TOOLCHAIN.md keeps off
+# every registry, so none is pinned until the owner decides.
+unpublished
