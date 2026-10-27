@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range fc62b76aa95968d201bf5e555c1bbfac93121e95..ecd9fb8b47ec958be2ab44d279e8873681cfb080
+OK     21bc47ec288c docs: the update package's facts and Phase A1's note (HW-87 to HW-93)
+OK     eb54c8b0ed5f harness: fwtest 0.8.0 boots update packages (--package)
+OK     e81350f4ea57 docs: spec-a1-fwsc's exposure entry finished
+EXEMPT ecd9fb8b47ec (merge) Merge pull request #143 from japes98/spec/a1-fwsc
+4 commit(s) checked: PASS
+
+exit status 0
