@@ -1157,6 +1157,41 @@
       "rule": "F-11",
       "reason": "A `git worktree add --no-checkout` of an existing branch into the session's temporary folder, `git sparse-checkout set` with patterns that leave the three spec-side folders out, then `ls -d` of the three names to confirm none is on disk (it lists no contents), then edits to a suite file and tools/fw-suite.py. Nothing under the folders was opened, listed or fetched.",
       "added_by": "session overnight-1025 (clean side, claude-opus-5-5), 2026-10-26"
+    },
+    {
+      "session": "4bb588e8-5900-430e-ae7a-c38dea0a337a",
+      "tool_use_id": "toolu_015gUQEiyDSgTA6wL3tyULDo",
+      "rule": "F-11",
+      "reason": "`ls` of tests/fw/golden/'s own folders, then `git log --oneline` of tests/fw/golden with the `:!` pathspecs that leave the three spec-side folders out. The names occur only as exclusions; nothing under them was opened, listed or fetched.",
+      "added_by": "session clean-pin-answers (clean side, claude-opus-5-5), 2026-10-27"
+    },
+    {
+      "session": "4bb588e8-5900-430e-ae7a-c38dea0a337a",
+      "tool_use_id": "toolu_01VmdQNzpfiPrN3Tfwk9eUcW",
+      "rule": "F-11",
+      "reason": "`git show --stat` of four commits, limited to tests/ with the `:!` pathspecs that leave the three spec-side folders out. The names occur only as exclusions; nothing under them was opened, listed or fetched.",
+      "added_by": "session clean-pin-answers (clean side, claude-opus-5-5), 2026-10-27"
+    },
+    {
+      "session": "4bb588e8-5900-430e-ae7a-c38dea0a337a",
+      "tool_use_id": "toolu_01QcYb2FJXEtZQdYcfb77mbC",
+      "rule": "F-6",
+      "reason": "A Python edit of docs/RELEASING.md whose new text names the F-Emulator app (where a release is loaded). It wrote our own doc only; the emulator's repository was not opened, fetched or searched.",
+      "added_by": "session clean-pin-answers (clean side, claude-opus-5-5), 2026-10-27"
+    },
+    {
+      "session": "4bb588e8-5900-430e-ae7a-c38dea0a337a",
+      "tool_use_id": "toolu_01Qm5cqqK4aLjz1rWziE3Rqq",
+      "rule": "F-11",
+      "reason": "`git grep -l` for a check ID over this folder's own files, with the `:!` pathspecs that leave the three spec-side folders out. The names occur only as exclusions; nothing under them was opened, listed or fetched.",
+      "added_by": "session clean-pin-answers (clean side, claude-opus-5-5), 2026-10-27"
+    },
+    {
+      "session": "4bb588e8-5900-430e-ae7a-c38dea0a337a",
+      "tool_use_id": "toolu_012mewYSRcR7mUF7jpwbXWz3",
+      "rule": "F-11",
+      "reason": "`gh pr checks` of #126 and #140, `gh pr list`, then `gh pr view 137 --json files`: the changed-file list of the spec side's #137, names only, filtered with `grep -v` meant to drop spec-side paths. The filter missed one of the three folders, so four file names under a spec-side folder were printed (names only, no contents); nothing was opened or fetched. The session noted it too late for its own entry; docs/EXPOSURE.md records it (session clean-pin-answers).",
+      "added_by": "session clean-pin-answers (clean side, claude-opus-5-5), 2026-10-27"
     }
   ]
 }
