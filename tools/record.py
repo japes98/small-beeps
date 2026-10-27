@@ -79,7 +79,7 @@ CHECKS = [
               "R-AUDIT-5", "R-PERF-4", "R-BUILD-1", "R-FM-1", "R-FM-7", "R-MIDI-1", "R-MIDI-4",
               "R-MIDIOUT-2", "R-MIDIOUT-6", "R-STORE-1", "R-STORE-3", "R-STORE-4", "R-STORE-5",
               "R-STORE-6", "R-STORE-8", "R-UI-6", "R-UI-7", "R-UI-8", "R-ARP-1", "R-ARP-2", "R-ARP-7",
-              "R-GOLD-1", "R-GOLD-2", "R-GOLD-3"],
+              "R-GOLD-1", "R-GOLD-2", "R-GOLD-3", "R-REL-1", "R-REL-2", "R-REL-3"],
      "cmd": [PY, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"]},
     {"id": "C-REUSE", "title": "reuse lint (SPDX licence and copyright on every file)",
      "reqs": ["R-LIC-1", "R-LIC-2"], "cmd": ["reuse", "lint"]},
@@ -150,6 +150,11 @@ CHECKS = [
      "reqs": ["R-ARP-1", "R-ARP-2", "R-ARP-3", "R-ARP-4", "R-ARP-5", "R-ARP-6", "R-ARP-7", "R-ARP-8", "R-GOLD-1"],
      "cmd": lambda: [PY, "-I", "tools/arp_suite.py", "--image", os.path.join(OUT, "build-a", "app.bin"),
                      "--out", os.path.join(OUT, "arp")]},
+    # M9's app release: made twice from build A, the same bytes, verified.
+    {"id": "C-RELEASE", "title": "The app release from build A, made twice: byte for byte the same; release.json format 1.0; the .fm1img passes the app's checks in order (tools/release.py selftest)",
+     "reqs": ["R-REL-1", "R-REL-2"],
+     "cmd": lambda: [PY, "-I", "tools/release.py", "selftest", "--build", os.path.join(OUT, "build-a"),
+                     "--out", os.path.join(OUT, "release")]},
     # Performance (M0e): size, RAM, stack high-water and speed, gated.
     {"id": "C-PERF", "title": "Firmware size, RAM, stack high-water and instructions per period, within budget and the 3% speed gate",
      "reqs": ["R-PERF-1", "R-PERF-2", "R-PERF-3", "R-LCD-6", "R-MIDIOUT-3", "R-UI-4", "R-ARP-8"], "cmd": _perf_cmd},

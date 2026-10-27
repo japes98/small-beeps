@@ -15,6 +15,7 @@ path = [
   "config/emulator-terms-reviewed.json",
   "audit/*.json",
   "config/budgets.json",
+  "config/releases.json",
   "vendor/jieli-sdk/SHA256SUMS",
 ]
 precedence = "aggregate"
