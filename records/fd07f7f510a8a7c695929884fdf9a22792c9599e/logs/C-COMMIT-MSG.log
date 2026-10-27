@@ -1,0 +1,15 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 231338d9a3f8a352dc6d02aaa67ec8387d3ed6e3..fd07f7f510a8a7c695929884fdf9a22792c9599e
+EXEMPT c7363f3681de (merge) tools: a1/fwsc takes the build identity's branch
+OK     9ee35ea36833 firmware: a second link at 0x02000120, for a package's app
+OK     0e80b393075d tools: fwsc.py, the .fwsc packager and reference reader
+OK     b7b367ed1108 tools: C-PACKAGE, the firmware booted from its .fwsc in fwtest
+OK     91518ce5bdad tools: a release carries the .fwsc when its build has the package link
+OK     b54bd1cd72b2 docs: PROVENANCE P-61, P-62 and the A1 design note
+OK     11bad68b2e7d tools: the release's .fwsc identity fits a package's 19 characters
+OK     82ac7b2c1cfe tools: the two links' RAM check is the firmware build's only
+OK     32eb1a3404ea tools: fwsc.py's names kept clear of C-SEP-TERMS
+EXEMPT 594e93c6b6d1 (merge) Merge remote-tracking branch 'origin/main' into fix153
+EXEMPT fd07f7f510a8 (merge) Merge pull request #153 from japes98/a1/fwsc
+11 commit(s) checked: PASS
+
+exit status 0
