@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range c664ce142d5cab95336ddf6768ad137525889a37..231338d9a3f8a352dc6d02aaa67ec8387d3ed6e3
+OK     97fc25cf4552 tools: a release records the build's identity, checked before it builds
+EXEMPT 231338d9a3f8 (merge) Merge pull request #151 from japes98/a1/build-identity
+2 commit(s) checked: PASS
+
+exit status 0
