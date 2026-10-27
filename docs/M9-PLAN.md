@@ -27,50 +27,231 @@ flat binary fwtest runs, linked to start at `0x02000000` (HW-1). The build
 already makes it reproducibly (R-REPRO-3) as `app.bin`, with `app.elf`
 and a `SHA256SUMS` beside it.
 
-A release is a folder (and a `.zip` of it) attached to a signed git tag
-(`m9`, `v0.x.y`; app releases start at 0.9.0, answer 6):
+A release is a set of files attached to a GitHub release made from a
+signed git tag (`m9`, `v0.x.y`; app releases start at 0.9.0, answer 6).
+"The release format" below defines them exactly; this is the list:
 
 | File | What |
 |------|------|
+| `small-beeps-<version>.fm1img` | **the one file a user needs**: `release.json` and the raw image in one container, which the app opens with one tap |
 | `small-beeps-<version>.bin` | the raw image, byte for byte the build's `app.bin` |
+| `release.json` | the metadata, byte for byte the copy inside the `.fm1img` |
 | `small-beeps-<version>.elf` | the same build's ELF, for symbols (optional for users) |
-| `release.json` | metadata, below |
 | `SHA256SUMS` | SHA-256 of every file above, in `sha256sum` format |
 | `LICENSE`, `NOTICE` | this repository's licence and notices, as at the tag |
 | `RELEASE-NOTES.md` | what changed, the test record's CI run, known limits |
 
-`release.json`, one object:
-
-- `name`, `version` (semantic), `git_commit` (full SHA), `tag`;
-- `image`: file name, size, SHA-256, `load_address` `0x02000000`,
-  `entry` `0x02000000` (HW-1, HW-2), `ram_used` (data + bss + stacks,
-  from the build's size report);
-- `toolchain`: the pinned toolchain's SHA-256 (docs/TOOLCHAIN.md) and the
-  build container's image digest (R-REPRO-2);
-- `fwtest`: the pinned image digest the release's suite ran on, and the
-  CI run that recorded it;
-- `store`: the store's chip region and format version
-  (docs/STORE-FORMAT.md), so a user knows whether saved patches carry
-  over between releases;
-- `targets`: `["f-emulator-app"]` for this release kind.
-
 What the firmware side needs: nothing new in the firmware. A
 `tools/release.sh` that runs `tools/build.sh build`, checks the outputs
 against the commit's CI record (`tools/reproduce`, R-REPRO-4), writes
-`release.json` and `SHA256SUMS`, and stops if the tree is dirty or the tag
+`release.json`, the `.fm1img` and `SHA256SUMS` (below), and stops if the tree is dirty or the tag
 is missing. A CI job that rebuilds the tag and compares the hashes. A new
 requirement (R-REL-1, say): a release's image is byte-identical to the
 reproducible build of its tag, and its metadata and checksums match it.
 
-How the app takes it: the app reads `release.json`, shows the release's
-version, and checks the image's SHA-256 against it (answer 1). That is
+How the app takes it: the app opens the `.fm1img`, reads its
+`release.json`, shows the release's version, and checks the image's
+SHA-256 against it (answer 1; "How the app verifies it", below). That is
 the app's change, not the firmware's; the owner makes it in the app.
+
+The `.fm1img` is the release format for our firmware. The stock package
+format (`.fwsc`, section 2) is accepted for compatibility: Phase A1
+(docs/A1-PLAN.md) builds our firmware into a standard `.fwsc` too, so it
+loads wherever a stock package does, but a release's metadata and
+checksums live in the `.fm1img` (the owner's decision, recorded by session
+spec-a1-fwsc).
+
+### The release format (format 1.0)
+
+Written by the spec side (session spec-overnight-1025) for the firmware
+side's release tooling and the F-Emulator app to build to. "Must" is a
+rule a writer or reader breaks only by changing the format's version.
+Numbers in the container are little-endian; offsets and sizes are in
+bytes.
+
+**Why a container of our own, not a zip.** iOS has no public API that
+reads a zip archive, so the app would need a zip reader of its own, and
+Files offers to expand a file it knows as a zip archive instead of handing
+it to the app. A fixed header and two byte ranges take a few lines to read
+and verify, and are reproducible byte for byte without fixing timestamps
+or compression settings.
+
+#### `release.json`
+
+One JSON object (RFC 8259), UTF-8 without a byte-order mark. Format 1.0's
+fields:
+
+| Field | Type | Required | What |
+|-------|------|----------|------|
+| `format` | object `{"major": int, "minor": int}` | yes | The release format's version: `{"major": 1, "minor": 0}`. Must equal the container header's. |
+| `kind` | string | yes | `"app"`: a release for the F-Emulator app. (`"hardware"` is kept for M10's packages; a reader of format 1 refuses any other value.) |
+| `name` | string | yes | `"small-beeps"`. |
+| `version` | string | yes | The release's version, Semantic Versioning 2.0.0 without build metadata (`MAJOR.MINOR.PATCH`, optionally `-prerelease`), from 0.9.0 (answer 6). |
+| `tag` | string | yes | The signed git tag the release was built from (`v0.9.0`, `m9`). |
+| `git_commit` | string | yes | The tag's commit, 40 lowercase hex digits. |
+| `targets` | array of strings | yes | Where it runs: `["f-emulator-app"]`. A reader that is not one of the targets refuses the release. |
+| `image` | object | yes | The raw image, below. |
+| `image.file` | string | yes | Its file name in the release, `small-beeps-<version>.bin`: ASCII letters, digits, `.`, `-` and `_` only, no path. |
+| `image.size` | integer | yes | Its size in bytes, 1 to 1 032 192 (docs/HARNESS.md, "The raw image"). |
+| `image.sha256` | string | yes | Its SHA-256, 64 lowercase hex digits. |
+| `image.load_address` | integer | yes | `33554432` (`0x02000000`, HW-1). |
+| `image.entry` | integer | yes | `33554432` (`0x02000000`, HW-2). |
+| `fwtest` | object | yes | The runner the release's tests passed on. |
+| `fwtest.version` | string | yes | fwtest's version (`fwtest version`), as `0.7.0`. |
+| `fwtest.image` | string | yes | The pinned image: the one line of `config/fwtest-image` at the tag that is not a comment (`ghcr.io/...@sha256:<64 hex>`). |
+| `record` | object | yes | The test record of the tag's commit: `records/<git_commit>/` on the `records` branch (R-REC-1, `tools/record.py`). The tag's commit must therefore be on main. |
+| `record.tree_sha256` | string | yes | The record's tree hash: the SHA-256 of that record's `SHA256SUMS` file (the hash of every file in it, as "tree hash" means for `vendor/emulator/`), 64 lowercase hex digits. Not the git tree ID that `report.json` holds as `tree`. |
+| `record.ci_run` | string | no | The URL of the CI run that made the record. |
+| `build` | object | no | How the image was built. |
+| `build.toolchain_sha256` | string | no | The pinned toolchain's SHA-256 (docs/TOOLCHAIN.md). |
+| `build.container` | string | no | The build container's image digest (R-REPRO-2). |
+| `build.ram_used` | integer | no | RAM the image uses (data, bss and stacks), from the build's size report. |
+| `store` | object | no | The patch store the image keeps (docs/STORE-FORMAT.md). |
+| `store.format_version` | integer | no | The store format's version, so a user knows whether saved patches carry over. |
+| `store.offset`, `store.size` | integer | no | Its flash region, a chip offset and a size in bytes. |
+
+Rules:
+
+- **No time and no host details.** No field holds a build date, a time, a
+  user or machine name or a local path: the file must come out the same
+  from every rebuild of the tag. The date is the tag's.
+- **Exact bytes.** Exactly what Python's
+  `json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=True) + "\n"`
+  writes: keys sorted, two-space indent, ASCII only, one final newline.
+  Integers in decimal (JSON has no hex). At most 65 536 bytes.
+- **Unknown fields.** A writer of format 1.0 writes only the fields above.
+  A reader ignores fields it doesn't know (a later 1.x may add optional
+  ones) and refuses a release that lacks a required field or has one of
+  the wrong type.
+- The loose `release.json` in the release is byte for byte the one inside
+  the `.fm1img`.
+
+#### The `.fm1img` container
+
+File name `small-beeps-<version>.fm1img`. Three parts, in this order, and
+nothing after the last:
+
+1. **The header**, 64 bytes in format 1.0:
+
+   | Offset | Size | Field | Format 1.0 value |
+   |--------|------|-------|------------------|
+   | 0 | 8 | magic | the bytes `46 4D 31 49 4D 47 0D 0A` (`FM1IMG`, CR, LF) |
+   | 8 | 2 | `format_major` | 1 |
+   | 10 | 2 | `format_minor` | 0 |
+   | 12 | 4 | `header_size` | 64 |
+   | 16 | 4 | `json_offset` | 64 (= `header_size`) |
+   | 20 | 4 | `json_size` | the size of `release.json` |
+   | 24 | 4 | `image_offset` | `json_offset + json_size`, rounded up to a multiple of 16 |
+   | 28 | 4 | `image_size` | the raw image's size |
+   | 32 | 32 | `payload_sha256` | SHA-256 of every byte from `header_size` to the end of the file |
+
+2. **`release.json`**, `json_size` bytes at `json_offset`, then zero bytes
+   up to `image_offset` (0 to 15 of them).
+3. **The raw image**, `image_size` bytes at `image_offset`, byte for byte
+   `image.file`. The file ends at `image_offset + image_size`.
+
+The magic's CR LF catches a file mangled by a text-mode transfer; the
+16-byte alignment is for convenience only. One input gives one file:
+there is no timestamp, compression or optional padding to vary.
+
+#### The format's version
+
+- `format_major` changes when a reader of the old version would read the
+  file wrongly: the header's layout, the parts' order, a required field's
+  meaning, or a new required field. A reader refuses a major it doesn't
+  know ("this release needs a newer app").
+- `format_minor` changes for additions an older reader may ignore: an
+  optional `release.json` field, or header bytes after offset 64 (a
+  larger `header_size`; `payload_sha256` still covers everything from
+  `header_size` on). A reader takes any minor of a major it knows; it
+  locates every part by the header's offsets and sizes, never by
+  assuming 64.
+- `release.json`'s `format` always equals the header's two numbers.
+- This document is the format's definition; a change to it changes the
+  version as above and says what changed.
+
+#### How the app verifies it
+
+In this order, stopping at the first failure with a message naming it,
+and never running an image that failed a step:
+
+1. The file is at least 64 bytes and starts with the magic. (Otherwise:
+   not a small-beeps release.)
+2. `format_major` is 1. (Otherwise: needs a newer app.)
+3. The header is consistent: `header_size` >= 64; `json_offset` >=
+   `header_size`; `json_size` is 2 to 65 536; `image_offset` >=
+   `json_offset + json_size`; `image_size` is 1 to 1 032 192;
+   `image_offset + image_size` is exactly the file's size; every sum
+   computed without overflow.
+4. The SHA-256 of bytes `header_size` to the end equals `payload_sha256`
+   (the file was not damaged in transfer).
+5. `release.json` parses as one JSON object in UTF-8 with every required
+   field of the right type; its `format` equals the header's; `kind` is
+   `"app"`; `targets` holds `"f-emulator-app"`.
+6. `image.size` equals `image_size`, and the SHA-256 of the image's bytes
+   equals `image.sha256`.
+7. `image.load_address` and `image.entry` are both `33554432`.
+
+Then the app shows `name`, `version` and the first 12 digits of
+`git_commit`, and boots the image as it boots a raw `.bin` today. A bare
+`.bin` still opens as before, with no version shown.
+
+What the checks prove: that the file is whole and the image is the one
+its metadata names. They don't prove who made it: the hashes travel in
+the same file. Authenticity comes from the signed tag and the
+reproducible build: anyone can rebuild the tag and compare `image.sha256`
+and the `.fm1img`'s own SHA-256 with `SHA256SUMS` (R-REPRO-4). Signing the
+container itself is left for a later major version if it is ever needed.
+
+#### Opening it in one tap (iOS)
+
+What the app declares, so that a `.fm1img` from Files, AirDrop, Mail or a
+Safari download opens in it directly:
+
+- An **exported type** (`UTExportedTypeDeclarations`) with the
+  identifier `io.github.japes98.fm1img` (the owner's choice, recorded by
+  session spec-a1-fwsc): the format is this open project's, under MIT,
+  not the app's, so any app or emulator may declare the same identifier.
+  Filename extension `fm1img`, conforming to `public.data` only. Not
+  `public.zip-archive` or `public.archive`: it isn't one, and Files would
+  offer to expand it.
+- An **imported type** (`UTImportedTypeDeclarations`) for the stock
+  firmware package: identifier `io.github.japes98.fwsc`, filename
+  extension `fwsc`, conforming to `public.data`. It is a declaration so
+  the app can open such files, not a claim to own the format, which is
+  JieLi's update package (section 2). A document type for it with
+  `LSHandlerRank` `Alternate`, so the app never takes over another
+  app's files (the owner confirmed `Alternate`; recorded by session
+  spec-answers-a1).
+- A **document type** (`CFBundleDocumentTypes`) for `io.github.japes98.fm1img` with
+  `LSHandlerRank` `Owner`, so the app is the default for it.
+- `LSSupportsOpeningDocumentsInPlace` true (the app's choice, recorded
+  by session spec-answers-a1): a file opened from Files stays where it
+  is, so opened firmwares don't pile up in the app's own folder next to
+  the user's recordings. The app reads it in place, as a security-scoped
+  URL, and handles it where it handles an opened URL, running the checks
+  above. AirDrop and Mail still hand the app a copy.
+- On GitHub the file is served as `application/octet-stream`; the
+  extension, not the type, makes iOS hand it to the app.
+
+#### What the release tooling checks
+
+The firmware side's release tool (and its tests) must show: building the
+same tag twice gives byte-identical `.fm1img`, `.bin` and `release.json`;
+the container passes every check above; its `release.json` and image are
+byte for byte the loose files; `SHA256SUMS` matches every file. A small
+reference reader in `tools/` that runs the checks above in the same order
+lets the tests and the app's author agree on them.
 
 ## 2. A package for real hardware (`.fwsc`)
 
 Not in M9 (answer 2): this section stays a plan until M10, which decides
 the boot area, the packaging tool and the version scheme (answers 3, 4
 and 6). A package keeps the stock user-patch region untouched (answer 5).
+Phase A1 (docs/A1-PLAN.md, session spec-a1-fwsc) comes first: our
+firmware as a standard package for the emulated load paths only, from
+HARDWARE-SPEC.md HW-87 to HW-93, which correct two points below (the
+CRC's start value, the window's address).
 
 ### What a stock package is
 
@@ -85,13 +266,15 @@ From RE `docs/architecture.md` §2 and `docs/io/11-ota-protocol.md`:
 - The header is encrypted with the fixed header key `0xFFFF` and holds a
   header CRC, a list CRC, the image size, the entry count and eight
   entries: `flash.bin`, `info.log`, `USR`, the loader's configuration
-  file (an `.ini`), `ota.bin`, `script.ver`, `blimit.bin`, `tail.bin`. CRCs are JieLi's CRC-16
-  (CRC-16/CCITT-FALSE).
+  file (an `.ini`), `ota.bin`, `script.ver`, `blimit.bin`, `tail.bin`. CRCs are JieLi's CRC-16,
+  with the CRC-16/XMODEM parameters (starting from 0), not CCITT-FALSE as
+  first written here after RE (HW-87).
 - `flash.bin` is the flash image from `0x00000` to `0x93FFF` (HW-80): a
   flash header, the second-stage loader `uboot.boot` from `0x000A0`, the
   loader's configuration (the same `.ini`, which carries the chip key
   `0x980F`) from `0x038D0`, then from `0x04000` the app area: a file
-  directory, `app.bin` from `0x04120`, `cfg_tool.bin`, and a `cfg` entry.
+  directory, `app.bin` from `0x04120` (window address `0x02000120`,
+  HW-91), `cfg_tool.bin`, and a `cfg` entry.
   The app area is encrypted with the chip key (HW-81).
 - `ota.bin` in the package is the update loader the device stages: a
   nested bootable image (`usb_hid_ota.bin`, LZ4-compressed blocks, two
@@ -177,6 +360,15 @@ entries (Apache-2.0, M-VAVE's copyright as `THIRD_PARTY.md` gives it); our
 them. Nobody opens or disassembles them: they are named binaries with
 hashes, like the toolchain.
 
+**Not vendored (the owner's answer, recorded by session
+spec-answers-a1):** no M-VAVE binary goes into the repository, FM1 Open's
+boot files included, Apache-2.0 or not; so the table and the vendoring
+steps above are not carried out, and none of the emulated load paths
+needs them (HW-93). The candidates for a hardware package are the SDK's
+own `uboot.boot` and `ota.bin` (Apache-2.0, JieLi's), which a release
+package may carry with the SDK's licence and a `NOTICE` entry
+(docs/A1-PLAN.md, "Loaders").
+
 ### What the firmware side would need
 
 - **The packaging tool.** JieLi's tools are Windows programs with no
@@ -184,16 +376,17 @@ hashes, like the toolchain.
   Linux container needs Wine, or a reimplementation of the package format
   from RE's description (the UFW header, the 48-byte blocks, the CRCs,
   the chip-key cipher of the app area). A reimplementation is ours and
-  testable; but the chip-key cipher is described in FM-1-RE only by name
-  (`jl_sfc_cipher`, base `0x4000`), not as a specification, so it would
-  need a spec request first, and possibly the SDK's prebuilt code, which
-  the firmware side may not read. The safer first step is the SDK's own
+  testable; the chip-key cipher, which FM-1-RE names only, is now
+  HW-90 (from the emulator's documented behaviour, emulator-only), so
+  Phase A1's packer needs no spec request for the emulated paths; whether
+  the chip accepts it is Q-26. The safer first step for hardware is the SDK's own
   tool under Wine, pinned by hash, as a build step (question 4; decided
   at M10, leaning towards our own packer).
 - **What the image must be on the chip,** none of which fwtest checks:
-  the app area starts at `0x04120`, so the code window's address
-  `0x02000000` is chip offset `0x4120` (HW-81), not `0x4000` as in
-  fwtest; the loader passes a boot block in r0 (HW-4, Q-11); the window
+  the window starts at the app area, flash `0x4000`, and the app, at
+  `0x4120`, runs from `0x02000120`, so a package's app is linked there,
+  not at `0x02000000` as fwtest's raw image is (HW-91, which supersedes
+  HW-81's `0x4120`); the loader passes a boot block in r0 (HW-91, Q-11); the window
   is cached and encrypted (HW-81, HW-84); start-up must leave the flash's
   pins alone (HW-85). A spec request before M9's hardware half: what the
   loader expects at the app's first bytes (the stock app's header), and
@@ -252,7 +445,8 @@ The questions were:
    the hardware package left as this plan until M10's recovery kit
    exists? (Recommended.)
 3. **Boot area.** Should a hardware package carry its own boot area
-   (`uboot.boot` and its configuration from FM1 Open) or keep the unit's
+   (the SDK's `uboot.boot` and its configuration; not FM1 Open's, the
+   owner's answer recorded by session spec-answers-a1) or keep the unit's
    stock boot area and replace only the app area, if the updater allows
    it?
 4. **The packaging tool.** JieLi's Windows tools under Wine in the pinned
@@ -285,3 +479,16 @@ docs/prompts/owner-answers-1025.md):
 Still open: Q-24, whether an update erases past `0x93FFF` at all
 (answer 5 decides what our package does, not what the stock updater
 does).
+
+## 5. To confirm on a real FM-1 (Phase B)
+
+Things fwtest and the app cannot settle, kept for the first tests on a
+unit (Phase B). Each item names where it is
+recorded.
+
+- **The USB access port's "busy" bit.** FM-1-RE names a bit of the word
+  before the USB core's access port that port's "busy" bit; the SDK names
+  the same bit as the core's reset. Neither the app nor fwtest models a
+  busy bit, and the owner keeps the question open (recorded by session
+  spec-a1-fwsc): `harness/upstream/fm1-emu-usb-port.md`, "Left open";
+  HARDWARE-SPEC.md HW-86.

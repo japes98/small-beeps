@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The build's identity a release builds with (the owner's answer,
+# 2026-10-27, option (b); docs/RELEASING.md, "The build image"). The build
+# image itself is never published: it holds the vendor toolchain, which
+# docs/TOOLCHAIN.md keeps off every registry. A CI release builds it fresh
+# from the tag's own tools/Dockerfile, and first checks that Dockerfile
+# against these three lines (tools/release.sh), then records them in
+# release.json's build.container:
+#   base        the base image's registry digest (the Dockerfile's BASE)
+#   dockerfile  the SHA-256 of tools/Dockerfile
+#   toolchain   the toolchain archive's SHA-256 (docs/TOOLCHAIN.md; the
+#               Dockerfile's TOOLCHAIN_SHA256, which its build checks)
+# A pull request that changes tools/Dockerfile changes these with it;
+# C-UNIT checks they are this tree's own.
+base debian:bookworm-slim@sha256:ec31d744f83f4a73447ba045aaab9409997efe5cc706eca4890c1be36cc1606a
+dockerfile 2f1adc7009fddc03e8d23912161bdd8c89e67a0408c1d072e3e6c14f4339ad24
+toolchain f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958

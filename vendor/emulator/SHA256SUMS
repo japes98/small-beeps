@@ -16,7 +16,7 @@ f28133c7c313de7d6c6132c14734810c08e1a3aac36bce70c2c38a7ac5446a55  crates/fm1-soc
 b54841a9de92bf1cc1ab9e73bd89a7689778a18908bd0e429743caa191b0a7d3  crates/fm1-soc/src/flaky.rs
 091c4189809ad24936572dfd2ae30ba305c856663f95f126410e214e52bb2302  crates/fm1-soc/src/fwsc.rs
 f50418d6a45da15da8cc0f5b514ee35889f65b780062f3d8deba6f0f5859521d  crates/fm1-soc/src/lcd.rs
-53faf849a19ecf74bfb74daddff7c508ce4f036618faa12a01948e97af17510e  crates/fm1-soc/src/lib.rs
+410de7175f78f219a2cd40bccdba718ffa1189942729d84d5f731127f849ee4f  crates/fm1-soc/src/lib.rs
 881962867e6217afb03c354e19745b5916f5acfac66437e41ebe69b8eb5985fe  crates/fm1-soc/src/machine.rs
 87a8a619261966c8386df9e7c97599f9c18b40a1f4a0d4229be8be30b8ed3d5a  crates/fm1-soc/src/p33.rs
 06c401fa551dd40197477bead22bf0e6e659a7ab1fcadf6bf86c3f34552c8baa  crates/fm1-soc/src/periph.rs
@@ -35,3 +35,4 @@ beb37801c42a1e54882023f7ca8fdee65f886e19c1f861db3514803659462ab1  patches/0008-r
 d2bca936a5a550af2729fd8d6203ce158d408d00a67c96c32bf3ec82e5a23c94  patches/0009-midi-out-transmit-side.patch
 cf71696b55979a7dffde6b54892ac0d5be4b58b4cc457e08e05439c767bf78be  patches/0010-flash-chip-busy-times-and-power-cut.patch
 7e275740d9e487a33334831ff6e28d7abcfd01f19132631d9a8f27829cea297b  patches/0011-pair-head-wins-over-its-second-half.patch
+be6eae45c5cbe5c80988df54896386d6a6d32bb615b996079fdf257ebe8fdde5  patches/0012-usb-port-answers.patch

@@ -52,6 +52,11 @@ and as a pair head) can go with it: in 0.3.0's emulator two of its 25
 cases saw the new value (`94 f1 51 63` and `c8 f1 53 63`), so which words
 reach the fallback depends on the registers, not only the family.
 
+The app's USB port fix (its branch `stock-016`, `f60b86b`) is fwtest's
+0012 since 0.7.0 (session spec-overnight-1025), written here from the
+app's behaviour-only note, not its code: the two should behave the same
+(`fm1-emu-usb-port.md`), though the lines differ.
+
 ## Two things in the drop to look at
 
 - The app's `0006-raw-image-boot.patch` inserts `RAW_IMAGE_MAX`,

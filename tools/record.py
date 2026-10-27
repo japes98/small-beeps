@@ -82,7 +82,7 @@ CHECKS = [
               "R-MIDIOUT-2", "R-MIDIOUT-6", "R-STORE-1", "R-STORE-3", "R-STORE-4", "R-STORE-5",
               "R-STORE-6", "R-STORE-8", "R-UI-6", "R-UI-7", "R-UI-8", "R-PRESET-1", "R-ARP-1", "R-ARP-2",
               "R-ARP-7",
-              "R-GOLD-1", "R-GOLD-2", "R-GOLD-3", "R-REL-1", "R-REL-2", "R-REL-3"],
+              "R-GOLD-1", "R-GOLD-2", "R-GOLD-3", "R-REL-1", "R-REL-2", "R-REL-3", "R-PKG-1"],
      "cmd": [PY, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"]},
     {"id": "C-REUSE", "title": "reuse lint (SPDX licence and copyright on every file)",
      "reqs": ["R-LIC-1", "R-LIC-2"], "cmd": ["reuse", "lint"]},
@@ -158,6 +158,11 @@ CHECKS = [
      "reqs": ["R-ARP-1", "R-ARP-2", "R-ARP-3", "R-ARP-4", "R-ARP-5", "R-ARP-6", "R-ARP-7", "R-ARP-8", "R-GOLD-1"],
      "cmd": lambda: [PY, "-I", "tools/arp_suite.py", "--image", os.path.join(OUT, "build-a", "app.bin"),
                      "--out", os.path.join(OUT, "arp")]},
+    # Phase A1: the firmware's .fwsc in fwtest's package path (docs/A1-PLAN.md).
+    {"id": "C-PACKAGE", "title": "The firmware as a .fwsc: packed from build A's package link, it boots in fwtest's package path as the raw image does in the suite's main cases, and fwtest refuses each broken package at the reader's check (tools/package_suite.py)",
+     "reqs": ["R-PKG-1", "R-PKG-2"],
+     "cmd": lambda: [PY, "-I", "tools/package_suite.py", "--build", os.path.join(OUT, "build-a"),
+                     "--out", os.path.join(OUT, "package")]},
     # M9's app release: made twice from build A, the same bytes, verified.
     {"id": "C-RELEASE", "title": "The app release from build A, made twice: byte for byte the same; release.json format 1.0; the .fm1img passes the app's checks in order (tools/release.py selftest)",
      "reqs": ["R-REL-1", "R-REL-2"],
@@ -175,7 +180,7 @@ CHECKS = [
      "cmd": lambda: [PY, "-I", "tools/plaits-bench.py", "run", "--out", os.path.join(OUT, "plaits"),
                      "--perf", os.path.join(OUT, "perf", "perf.json")]},
     # The harness (spec side): skipped where harness/ isn't on disk.
-    {"id": "C-HARNESS-SCOPE", "title": "The harness uses no update-package or stock-boot paths",
+    {"id": "C-HARNESS-SCOPE", "title": "The harness uses no stock-boot path (packages only through the package reader)",
      "reqs": ["R-HARN-9"], "needs": "harness", "cmd": ["sh", "harness/ci.sh", "scope"]},
     {"id": "C-HARNESS-IMAGES", "title": "Harness test images rebuild identically with the pinned toolchain",
      "reqs": ["R-HARN-8"], "needs": "harness", "cmd": ["sh", "harness/tests/images/build.sh", "--check"]},

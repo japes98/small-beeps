@@ -1047,9 +1047,9 @@ docs/prompts/owner-answers-1025.md):
       "Timing goldens").
     - A session may force-push its own unmerged branches, if it records
       that in docs/EXPOSURE.md.
-    - Not answered yet: the stack (576 of the 768-byte budget; SEQ will
-      probably need a raise), and the vendor compiler's one crash while
-      building a test image in parallel runs (not seen again).
+    - The stack (576 of the 768-byte budget) and the vendor compiler's
+      one crash while building a test image in parallel runs (not seen
+      again): answered on 2026-10-26, under M9's open items below.
   - **Next: M9, the app release** (docs/M9-PLAN.md; below), then SEQ,
     then FX.
 
@@ -1083,6 +1083,44 @@ docs/prompts/owner-answers-1025.md):
     (`ee2ad8a0…`) and passed every check.
   - **Not done tonight:** no release made. Tags m2 to m8 aren't signed,
     and none is listed in `config/releases.json`.
+  - **Open items** (overnight-1025's questions; the owner's answers of
+    2026-10-26, recorded by session clean-pin-answers,
+    docs/prompts/clean-pin-answers.md):
+    1. Steam Pipes' breath (#126's P68: a full-level feedback modulator
+       on a quiet second carrier, about 25 dB under the pipe): accepted
+       for now. The owner decides by ear, with the preset notes.
+    2. Tutti Swell (#126's P65) stays a pad, its stab 15 dB under the
+       swell; the owner may move it after listening.
+    3. The run-end check (the timing goldens' rule 1) keeps failing CI,
+       since the fix is mechanical; its message now gives the exact
+       replacement `--ms` and where to make it (docs/DESIGN-NOTES.md,
+       "Timing goldens").
+    4. The four exceptions to "goldens re-recorded only by the tool" are
+       accepted; docs/DESIGN-NOTES.md, "Timing goldens", lists each with
+       its reason.
+    5. The 250 ms before our clock out resumes after the sender stops:
+       accepted, and documented (docs/DESIGN-NOTES.md, "ARP", MIDI clock
+       out).
+    6. Releases:
+       - m2 to m8 get no versions. The release workflow skips a tag that
+         `config/releases.json` doesn't list, with a notice, and
+         succeeds.
+       - `record.tree_sha256`: the records branch is not added to a clean
+         folder's allowed fetches (a wholesale fetch brought spec-side
+         blobs into one before, docs/EXPOSURE.md, M1). The workflow reads
+         it in CI; given by hand only for a local dry run
+         (docs/RELEASING.md).
+       - `build.container`: the image is never published (the
+         toolchain's terms are unknown). A release records the build's
+         identity instead (the owner's answer, 2026-10-27, option (b)):
+         the base image's digest and the SHA-256 of the build Dockerfile
+         and of the toolchain (`config/build-image`); a CI release checks
+         the tag's Dockerfile against it before it builds, and builds the
+         image fresh. A local image ID only for a local dry run, marked
+         as one (docs/RELEASING.md, "The build image").
+    7. The stack: raised when SEQ needs it, with a measured high-water
+       mark in the record. The compiler crash: its details logged if it
+       recurs, nothing else.
   - **Next: SEQ**, then FX.
 
 ## Risks

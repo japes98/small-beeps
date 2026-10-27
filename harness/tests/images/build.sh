@@ -14,16 +14,18 @@ set -eu
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../.." && pwd)
-IMAGES="heartbeat halt wild hang console lcd leds keys pot midi midiout audio spi1irq"
+IMAGES="heartbeat halt wild hang console lcd leds keys pot midi midiout audio spi1irq usbport"
 # C with code in RAM (image-ram.ld, flash.h)
 RAM_IMAGES="flashrw flashcall flashload flashirq flashkeep flashhelper"
 # built with the firmware's CPU flags (tools/build.sh, CPU), as the firmware is
 FW_IMAGES="blockc rotc"
+# C linked where a package's app runs (image-pkg.ld), for tests/package.rs
+PKG_IMAGES="pkgapp"
 # assembly, linked after start.S like the C images
 ASM_IMAGES="blockmv pairhead rotr pushpop ramcode pairwaw"
 # assembly with its own _start, linked alone
 RAW_IMAGES="sr7"
-ALL="$IMAGES $RAM_IMAGES $FW_IMAGES $ASM_IMAGES $RAW_IMAGES"
+ALL="$IMAGES $RAM_IMAGES $FW_IMAGES $PKG_IMAGES $ASM_IMAGES $RAW_IMAGES"
 
 inside() {
     out=$1
@@ -34,6 +36,13 @@ inside() {
         # shellcheck disable=SC2086
         clang $flags -c "$n.c" -o "$out/$n.o"
         ld -nostdlib -T image.ld -o "$out/$n.elf" "$out/start.o" "$out/$n.o"
+        objcopy -O binary -j .text "$out/$n.elf" "$out/$n.bin"
+        rm "$out/$n.o" "$out/$n.elf"
+    done
+    for n in $PKG_IMAGES; do
+        # shellcheck disable=SC2086
+        clang $flags -c "$n.c" -o "$out/$n.o"
+        ld -nostdlib -T image-pkg.ld -o "$out/$n.elf" "$out/start.o" "$out/$n.o"
         objcopy -O binary -j .text "$out/$n.elf" "$out/$n.bin"
         rm "$out/$n.o" "$out/$n.elf"
     done

@@ -1653,6 +1653,322 @@ SR-3 wrote only its barrier-log row.*
     folders on the Mac grew meanwhile; this session's outputs were
     cleared as it went).
 
+### Session spec-overnight-1025 (the app's USB patch note, M9's single-file release format, spec requests)
+- Date: 2026-10-26 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.310 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `98ff9a1a-2e3d-4ab8-b9ba-49f89dc695c5`,
+  started by `/clear` at 02:27:25Z (banner `source: clear`,
+  `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; 02:27:36Z:
+  `tools/spec-setup.sh` on main at `cf07f9e5`, banner `status: OK`
+  (`84a7e56c…`); `tools/private-terms.local` exists (not opened). 7.3 GB
+  free at the start.
+- What it archived: owner-answers-1025's transcript (`e9c791d0`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS (32 archived
+  transcripts).
+- The owner's decisions it records: owner-answers-1025's
+  `ALLOWED_MISMATCH` (Corrections, "evening-1024's mismatched banner") is
+  approved, by the merge of #127; a script event for a MIDI clock at a
+  given BPM is declined, not needed (HARNESS.md's "MIDI clock in and
+  timing" stays as written: generate the clock's `midi` lines).
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository).
+- Section 1 (the app's USB note): read the owner's drop file
+  `~/<top>/drop/emulator-patches/usb-port-done.md` only, nothing else in
+  that folder; the SDK's file list (Gitee's tree API) and three USB
+  headers (Gitee's blobs API) into a scratch folder; FM-1-RE's
+  `docs/io/06-usb.md` by raw URL; a GitHub code search of the AC63 SDK for
+  `MACK` (P-59). Built the harness's test images with the pinned
+  toolchain, a local fwtest image (`harness/ci.sh image`), and the
+  firmware at main in a scratch worktree; ran the firmware suite on the
+  pinned and the local image (the USB pull request's commit message).
+- Section 2 (M9's release format, #136): docs/M9-PLAN.md and the clean
+  side's committed prompt on its open branch, to match the fields its
+  release tooling expects.
+- Section 3 (the watch): docs/SPEC-REQUESTS.md, that file only, on main
+  and on each of the clean side's open branches, every 20 minutes from
+  02:43Z to 10:44Z (27 checks): unchanged throughout (blob `7ba8c928`), no
+  new requests.
+- Also read of the clean side's open PRs: their titles and file lists
+  (#135, #138, #139, #140), #140's `tools/fm1img.py` (its constants and
+  checks, against format 1.0: they match), and, while merging, their
+  docs/EXPOSURE.md entry and the files where the branches meet
+  (PROVENANCE.md, docs/PLAN.md, docs/REQUIREMENTS.md; no overlap).
+- End: the clean side's chain (tip `099b4199`, #140) merged into #134,
+  then #134 into #137; one conflict, this file's two new entries, both
+  kept. The local fwtest image, the firmware worktree and the suite
+  outputs were deleted after use. Disk: 7.3 GB free at the start, 3.5 GB
+  at the lowest (other folders on the Mac grew meanwhile), 3.9 GB at the
+  end.
+
+### Session spec-a1-fwsc (the owner's answers to spec-overnight-1025, Phase A1: our firmware as a `.fwsc` package)
+- Date: 2026-10-27 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.311 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `4030c83c-4fbc-479f-8903-779f366fe66d`,
+  started by `/clear` at 01:18:21Z (banner `source: clear`,
+  `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; 01:19:05Z:
+  `tools/spec-setup.sh` on main at `90827129`, banner `status: OK`
+  (`84a7e56c…`); `tools/private-terms.local` exists (not opened). 2.8 GB
+  free at the start.
+- What it archived: spec-overnight-1025's transcript (`98ff9a1a`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS (34 archived
+  transcripts).
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository). Never opened,
+  fetched or searched M-VAVE's stock firmware files or any disassembly of
+  them.
+- Section 1 (the owner's answers): this repository only; the
+  fwtest-image workflow's log for #137's merge (run 40431196083: 0.7.0
+  published, its digest).
+- Section 2 (Phase A1), what it read:
+  - JieLi AC79 SDK (P-2), the pinned commit, through Gitee's tree, blobs
+    and raw-file APIs into a scratch folder, not vendored: read
+    `cpu/wl82/tools/download.c`, `download_linux.c`,
+    `isd_config_rule.c`, `note.txt`, `script.ver`,
+    `packufw/source/JLpack.cpp`, `packufw/example/JLpack.bat`,
+    `cpu/wl82/sdk_ld_sfc.c` and `include_lib/system/boot.h`; downloaded
+    but not read `isd_config_rule_loader.c`, `生成升级固件.bat`,
+    `include_lib/update/update_loader_download.h` and
+    `doc/stuff/ISD_CONFIG.INI配置文件说明.pdf` (no PDF reader on the Mac).
+    The commit's file list (tree API).
+  - AL-255/FM-1-RE (P-51), the pinned commit, by raw URL:
+    `docs/architecture.md`, `docs/io/01-boot.md`,
+    `docs/io/11-ota-protocol.md`, `docs/io/12-v15-reflash-proof.md`,
+    `docs/reversing/02-boot-and-runtime.md`. `01-boot.md` quotes
+    disassembly of the stock app in places; it is one of the allowed
+    documents, and none of its code was used, only its addresses' +0x120
+    finding. The current `docs/` and `docs/io/` listings, names only
+    (they include its disassembly documents and an OTA loader document,
+    none opened).
+  - The emulator upstream (P-7), at the pinned commit, by raw URL, new
+    spec-side exposure: `web/fwsc.js` (the web build's package reader;
+    the same at `master` `a374e75e`) and `web/main.js` (its page), and
+    the `web/` listing, names only. The GPL package code that
+    `fwsc.js`'s comment names was not opened, nor any other file there.
+  - The vendored emulator's package path, and `harness/` (this side's
+    usual material).
+  - Never opened, fetched or searched: any stock package, FM1 Open's
+    files, any disassembly or function database.
+- Section 2, what it ran: the harness's tests natively and in the
+  container (`harness/ci.sh test`), a local fwtest 0.8.0 image
+  (`harness/ci.sh image`) for the suite (`harness/ci.sh suite`), the test
+  images rebuilt with the pinned toolchain (`build.sh`, then
+  `--check`), the tools' unit tests, `reuse lint` (in `fsfe/reuse:5`).
+  The local images and the scratch outputs were deleted after use.
+- Disk: 2.8 GB free at the start (above the 2 GB stop), 24 GB once other
+  folders on the Mac shrank, 22 GB at the end.
+
+### Session clean-pin-answers (fwtest 0.7.0's pin, the owner's answers to overnight-1025's questions)
+- Date: 2026-10-27 (UTC; the evening of 2026-10-26 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.311 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `b46c273c-270e-40c1-b2fc-24573aac19a6`,
+  started by a `/clear` at 01:36:15Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `9082712` and ended "no spec-side files on disk or
+  in .git" (it re-runs `tools/clean-setup.sh`, which installed
+  `clean.json`); `tools/private-terms.local` exists (not opened); lazy
+  fetching off (`GIT_NO_LAZY_FETCH=1`). It archived overnight-1025
+  (`4bb588e8`) into `sessions/clean/`; every other clean session was
+  already archived (one older live transcript's file time had changed;
+  its entries' times end on 2026-10-22, as its archived copy's).
+  `tools/check-transcripts.py` failed on five of overnight-1025's calls:
+  four name the spec-side folders only as `:!` pathspecs or name the
+  emulator app in a doc's text; the fifth is the file list below. Five
+  reviewed entries in `sessions/REVIEWED.json`, for the owner's approval;
+  then PASS. The Mac had 3.8 GB free.
+- **A line overnight-1025's entry lacks** (it said so in its last
+  message): late in that session it also printed the changed-file list of
+  the spec side's #137 (`gh pr view 137 --json files`, names only). Its
+  filter was meant to drop spec-side paths and missed one of the three
+  folders, so four of the names printed were of files under a spec-side
+  folder (names only; nothing opened or fetched). Its entry above stays
+  as written; this line completes it.
+- Reads: this file, CONTRIBUTING.md, sessions/README.md,
+  sessions/REVIEWED.json, overnight-1025's transcript (its five flagged
+  calls and the one call's output, in the archived copy; its last
+  message, for the owner's questions, in the original under
+  `~/.claude/projects/`, which is the same session unredacted),
+  docs/PLAN.md, docs/M9-PLAN.md ("The release format"), docs/HARNESS.md
+  (the versions' list), docs/EMULATOR-PARITY.md (0012),
+  docs/TOOLCHAIN.md, docs/DESIGN-NOTES.md, docs/RELEASING.md, and this
+  repository's tools, tests, workflows and firmware.
+- Later in the session:
+  - **fwtest 0.7.0's digest:** from the log of the image workflow's run
+    on main's `d28ec99` (#137's merge), through `grep`. The first grep
+    (for "digest", "0.7.0" or "@sha256") printed 20 lines: the image
+    build's lines naming its pinned base images, fwtest's compile line
+    and version line, and the first lines of the push step's script;
+    the second, the push step's digest only.
+  - **fwtest 0.6.0 and 0.7.0** (pinned images, pulled by digest): the
+    firmware suite (with the store's cases) and the ARP suite on main's
+    image, once on each, outputs in the session's temporary folder and
+    under `out/pin-check/` (gitignored; the ARP suite's image and outputs
+    must be inside the folder), compared file by file, then deleted. The
+    0.6.0 ARP run named its image by `FWTEST_IMAGE`. One `grep -r` over
+    this folder for the old pin was denied by Claude Code's permission
+    check and never ran; a `git grep` of tracked files, with the
+    spec-side folders left out, did the same.
+  - **m1's record, a named file only:** `records/9fe07f8…/report.json`
+    through GitHub's contents API on the records branch, into the
+    temporary folder, for a local dry run of the app release of m1
+    (`tools/release.sh m1 --version 0.1.0`, nothing published; the
+    record's tree hash given as a stand-in, as a clean folder must give
+    it by hand). It rebuilt m1's image byte for byte (`ee2ad8a0…`), and
+    the same run with `GITHUB_ACTIONS=true` stopped at the unpinned build
+    image, as it should. m1's release notes read for the hash (not in
+    them). The dry run pulled fwtest 0.1.0's image (`fa74baf9…`, the one
+    m1's record names) by digest, removed afterwards with the session's
+    other outputs.
+  - **Force-pushes:** none.
+  - **Disk:** 3.8 GB free at the start; 23 GB from shortly after (other
+    folders on the Mac shrank meanwhile).
+
+### Session spec-answers-a1 (the owner's answers to spec-a1-fwsc's questions, a parity note)
+- Date: 2026-10-27 (UTC; the evening of 2026-10-26 local time)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.311 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `6fd5a71c-53d5-4b70-b151-fe03bb59a4cf`,
+  started by `/clear` at 03:01:44Z (banner `source: clear`,
+  `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; the role file says
+  `spec`. 03:01:56Z: `tools/spec-setup.sh`, banner `status: OK`
+  (`84a7e56c…`); main at `88bc8325` (#141 to #146 merged);
+  `tools/private-terms.local` exists (not opened). 20 GB free at the
+  start.
+- What it archived: spec-a1-fwsc's transcript (`4030c83c`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS (36 archived
+  transcripts).
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository). Never opened,
+  fetched or searched M-VAVE's stock firmware files or any disassembly of
+  them.
+- Sections 1 and 2: this repository only (its docs, and spec-a1-fwsc's
+  archived transcript for its final questions). No downloads, no other
+  source opened; nothing run but the repository's checks
+  (`check-transcripts`, `check-emulator-terms`, `check-private`).
+- Disk: 20 GB free at the start and at the end.
+
+### Session clean-a1-packager (fwtest 0.8.0's pin, the build's identity, Phase A1's `.fwsc` packager)
+- Date: 2026-10-27 (UTC; the evening of 2026-10-26 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.311 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `581bd4e1-c017-41a5-9331-a48f0fdcfc90`,
+  started by a `/clear` at 03:01:26Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `88bc832` (#146's merge) and ended "no spec-side
+  files on disk or in .git"; `tools/private-terms.local` exists (not
+  opened); lazy fetching off (`GIT_NO_LAZY_FETCH=1`). It archived
+  clean-pin-answers (`b46c273c`) into `sessions/clean/`; every other
+  clean session was already archived (M0d's live transcript's file time
+  had changed again; its entries end on 2026-10-22, as its archived
+  copy's). `tools/check-transcripts.py` failed on three of
+  clean-pin-answers' calls, each naming the spec-side folders only as
+  `:!` pathspecs that leave them out of a `git log` or `git show --stat`;
+  three reviewed entries in `sessions/REVIEWED.json`, for the owner's
+  approval; then PASS. The Mac had 20 GB free.
+- **The owner's answer 2** (this session's prompt): overnight-1025's
+  names-only listing of #137's changed files is approved and recorded as
+  it is, a real names-only listing (clean-pin-answers' entry above and its
+  `REVIEWED.json` entry), not a false positive. Neither is changed.
+- Reads: this file, CONTRIBUTING.md, sessions/README.md,
+  sessions/REVIEWED.json, clean-pin-answers' three flagged calls (in the
+  archived copy), docs/A1-PLAN.md, docs/HARDWARE-SPEC.md section 21
+  (HW-87 to HW-93), docs/HARNESS.md ("Running it", "The raw image",
+  "Packages", "Versions"), docs/RELEASING.md, docs/TOOLCHAIN.md,
+  docs/M9-PLAN.md ("The release format"), docs/REQUIREMENTS.md,
+  PROVENANCE.md, four docs on the spec side's open #148 (`docs/A1-PLAN.md`,
+  `docs/HARNESS.md`, `docs/REQUIREMENTS.md`, `docs/M9-PLAN.md`, by name
+  through GitHub's contents API, diffed against main; they change no
+  fact this session uses), and this repository's tools, tests, workflows and
+  firmware.
+- Later in the session:
+  - **fwtest 0.8.0's digest:** from the log of the image workflow's run
+    on main's `ecd9fb8` (#143's merge), through `grep -o` for the
+    published reference and fwtest's version only. The run on `fc62b76`
+    (#142's merge) was read the same way: it pushed a 0.7.0 image of
+    another digest (`26102ae9…`) than the pinned `d7804526…`.
+  - **fwtest 0.7.0 and 0.8.0** (pinned images, pulled by digest): the
+    firmware suite (with the store's cases) and the ARP suite on main's
+    image, once on each, outputs under `out/pin-check/` (gitignored),
+    compared file by file, then deleted. The first 0.7.0 firmware run
+    is void: the session changed branches while it was still building
+    its test images, so some were built from this session's A1
+    `tools/build.sh`. Two failed: test-storebusy (a shell syntax error,
+    the script replaced while it was read) and test-storewipe (the A1
+    RAM check, since narrowed to the firmware build). It was run again
+    on an untouched tree.
+  - **The spec side's open pull requests:** `gh pr view 147/148/149
+    --json files`, filtered by `jq` to paths under `docs/` and `config/`
+    and PROVENANCE.md only, so nothing else was printed; then the four
+    docs named above, by name.
+  - **A1:** the package link prototyped in a scratch copy of `firmware/`,
+    `vendor/jieli-sdk/` and the build script in the session's temporary
+    folder, then built here. fwtest 0.8.0 run on our packages and on
+    broken ones (P-62), outputs under `out/` (gitignored).
+  - **m1's record, a named file only:** `records/9fe07f8…/report.json`
+    through GitHub's contents API on the records branch, into the
+    temporary folder, for the local dry run of m1
+    (`tools/release.sh m1 --version 0.1.0`, main's tools, nothing
+    published; the record's tree hash given as 64 zeros, a stand-in, as
+    a clean folder must give it by hand). It rebuilt m1's image byte for
+    byte (`ee2ad8a0…`) and pulled fwtest 0.1.0's image by digest. The
+    `.fm1img` (`355208eb…`) copied to `~/<top>/drop/releases/`. The same
+    run on the identity branch with `GITHUB_ACTIONS=true` checked the
+    identity and built the image fresh (its release deleted); with the
+    Dockerfile hash changed by one digit it stopped before building.
+  - **`drop/releases/stand-in.fm1img`:** tested by name with `test -f`
+    (the folder not listed), then `tools/fm1img.py` on it; only its
+    reader's one-line result printed.
+  - **A blocked command:** while resolving a merge of main into
+    `a1/start`, an `ls` of the spec-side transcript folder was sent
+    together with a `grep` of docs/EXPOSURE.md. Claude Code's deny rule
+    blocked it and it never ran; nothing under the folder was listed or
+    opened. The merge itself staged #147's new spec-side transcript by
+    name (`git status` printed its two file names); its contents were
+    never on disk or in `.git` (the barrier check after the merge: 0).
+  - **Pushing:** the first pushes stopped with "could not fetch … from
+    promisor remote": git checked a branch tip GitHub advertised that this
+    folder had not fetched, and lazy fetching is off. A plain
+    `GIT_NO_LAZY_FETCH=1 git fetch -q origin` fixed it; the barrier check
+    after it found no spec-side file in `.git`. Looking for the object
+    first, `git ls-tree -r` over main's last 20 commits and `git rev-list
+    --objects --all --missing=allow-any` walked trees that include
+    spec-side paths, each piped straight into a `grep` for the one hash
+    (they printed nothing). How clean-pin-answers pushed was read from
+    its archived transcript with `git show a1/start:…` (its push
+    commands only).
+  - **#153's C-SEP-TERMS failure:** read first from `gh run view --log`
+    (result lines only), then one named file of the CI report artifact:
+    its zip fetched by GitHub's API into the temporary folder,
+    `unzip -p … logs/C-SEP-TERMS.log` (nothing else extracted), the zip
+    deleted at once. The log gives places and hashes only; the four
+    words, all names this session chose, were found by hashing the
+    flagged lines' own words, and renamed. The log copy was deleted.
+  - **Force-pushes:** none.
+  - **Disk:** 20 GB free at the start; 19 GB at the lowest.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

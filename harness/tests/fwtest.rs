@@ -209,6 +209,25 @@ fn spi1_interrupt_follows_con_bit_13() {
     assert_eq!(&w[6..8], &[2, 0xa000], "a byte with bit 13 set: one");
 }
 
+/// HARNESS.md ("USB"): the USB core's access port answers at once (bit 15
+/// set), a read gives the byte last written to its index, and the
+/// interrupt flags (indexes 2-6) read 0 (vendor patch 0012; fwtest 0.6.0
+/// never set bit 15, so every access waited out the firmware's timeout).
+#[test]
+fn usb_port_answers() {
+    let mut o = opts(1);
+    o.ram = vec![(OUT0, 40, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("usbport"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-28-end.bin"));
+    assert_eq!(&w[0..2], &[0, 0x8b5a], "a write: done at once");
+    assert_eq!(&w[2..4], &[0, 0xcb5a], "a read of index 11: its byte");
+    assert_eq!(&w[4..6], &[0, 0x86ff], "a write to an interrupt flag");
+    assert_eq!(&w[6..8], &[0, 0xc600], "a read of index 6: nothing pending");
+    assert_eq!(&w[8..10], &[0, 0xc100], "a read of an index never written: 0");
+}
+
 /// R-HARN-11: the block moves with a register base, every mode (SR-7): the
 /// lowest register at the lowest address, `[-rN]` ending just below the
 /// base, the base kept unless `++` / `--` moves it past the block, and every

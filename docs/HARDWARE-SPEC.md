@@ -26,7 +26,9 @@ part (open: Q-12), and section 17 for MIDI output (open: Q-20). Session
 pin-050 (spec side, 2026-10-24) added section 18, the UART as another
 JieLi chip's open driver sets it up (SDK63), for Q-12 and Q-20, which stay
 open. Session day-1024 (spec side, 2026-10-24) added section 19, flash
-storage, for SR-9 (open: Q-21 to Q-24).
+storage, for SR-9 (open: Q-21 to Q-24). Session spec-a1-fwsc (spec side, 2026-10-27)
+added section 21, the update package and the loader chain, for Phase A1
+(open: Q-25, Q-26); its HW-91 supersedes HW-81.
 
 ## How to read it
 
@@ -1598,7 +1600,8 @@ Q-21 to Q-24.
   `0x4120` + `0x02000000`; the app area encrypted with the chip key from
   `0x4000`); RE `docs/io/09-storage.md` §1 (the cache synchronised after a
   program; writes below the encrypted region's end scrambled); HW-5.
-- Standing: confirmed (RE)
+- Standing: superseded by HW-91 (its window address is wrong: the window
+  starts at flash `0x4000`; its other points stand, restated there)
 - Needed by: M7
 
 ### HW-82: The flash chip in fwtest 0.5.0
@@ -1729,6 +1732,324 @@ Q-21 to Q-24.
   hardware.
 - Standing: confirmed (SDK, JL7911B; PD0's pull-up, PD6 and the datasheet's pin list from JL7911B, which the owner accepts as a source; those three to be confirmed on real hardware)
 - Needed by: M7 (real hardware), M9
+
+## 20. The USB core's register port (the F-Emulator app's note)
+
+HW-86 confirms, from the SDK and RE, the behaviour the F-Emulator app
+found missing in the emulator (PROVENANCE P-59), which fwtest 0.7.0 now
+has (HARNESS.md, "USB").
+
+### HW-86: The USB core's registers through one port, `JL_USB->CON1`
+- Fact: The chip's USB device core is MUSB-style, with byte registers by
+  index: 0 `FADDR`, 1 `POWER`, 2 and 3 `INTRTX1/2`, 4 and 5 `INTRRX1/2`,
+  6 `INTRUSB`, 7 to 11 the matching interrupt enables, 12 and 13 the frame
+  number, 14 `INDEX`, 15 `DEVCTL`, 16 onwards the endpoint registers. A
+  firmware reaches them through one word, `JL_USB->CON1` at `0x11804`
+  (`JL_USB` at `0x11800`): to write, it writes `index << 8 | byte` with
+  bit 14 (`MC_RNW`) clear; to read, `index << 8` with bit 14 set; then
+  it polls the word until bit 15 (`MACK`) is set, and a read's byte is in
+  bits 0-7. The FM-1's stock firmware uses the port this way.
+  The requirement: a firmware that touches the USB core bounds every
+  poll of bit 15 and does not depend on how long an access takes. A firmware that leaves USB alone needs nothing.
+  In fwtest (0.7.0) every access is done at once, the interrupt flags
+  read 0 and no bus event ever happens (HARNESS.md, "USB").
+- Sources: SDK `WL82.h` lines 15-16 (`lsfr_base`, `map_adr`) and 464-485
+  (`JL_USB`, `CON1` its second word); SDK
+  `include_lib/driver/cpu/wl82/asm/usb.h` lines 42-44 (`USB_CON1`:
+  `MC_RNW` 14, `MACK` 15) and 148-150 (`musb_read_usb`,
+  `musb_write_usb`; their code is in the SDK's prebuilt libraries, not
+  opened); SDK `include_lib/driver/device/usb/usb_phy.h` lines 61-90 (the
+  `MUSB_*` indexes); RE `docs/io/06-usb.md` §2.1 (the indexed access,
+  `(idx<<8)|val` with completion on the halfword's sign bit, and the same
+  index map, in the stock firmware); SDK63 `include_lib/driver/cpu/br23/asm/usb.h`
+  and four other chips' (`MACK` 15 there too; corroboration only).
+- Standing: confirmed (SDK, RE). Not from the sources: what the chip's
+  registers read before a write and the time an access takes; RE calls
+  bit 2 of `0x11800` the port's busy bit, which the SDK names `USB_NRST`
+  (open, unused by fwtest).
+- Needed by: M9 (the app's emulator), USB MIDI (not planned)
+
+## 21. The update package (`.fwsc`) and the loader chain (Phase A1)
+
+What a JieLi update package for the FM-1 is, byte by byte, as far as the
+allowed sources give it, and what each step that loads one checks: the
+emulator's package path (which the upstream web build and fwtest's
+`--package` share, and the F-Emulator app is taken to; HW-93) and the chip's own chain
+(HW-92). Written by session spec-a1-fwsc for a packager of our own
+(docs/A1-PLAN.md). No stock package was opened for it; what only a stock
+file could show is left open (Q-25, Q-26). HW-91 corrects HW-81's
+window address. Offsets are in bytes from the start of the structure
+named; all multi-byte fields are little-endian.
+
+### HW-87: JieLi's CRC-16 and the header mask
+- Fact: Two rules recur in the package:
+  - **CRC-16** ("JieLi's CRC-16" below): polynomial `0x1021`, initial
+    value 0, bits taken most significant first, no reflection, no final
+    XOR (the CRC-16/XMODEM parameters). Check value: the ASCII bytes
+    `123456789` give `0x31C3`. A structure's own CRC sits in its first
+    two bytes and covers the rest of it, from byte 2 to its end.
+  - **The mask** with a 16-bit seed: keep a 16-bit value `k`, starting at
+    the seed; XOR each byte, in order, with `k`'s low 8 bits; after each
+    byte, shift `k` left by one, keeping 16 bits, and if `k`'s top bit was
+    1 before the shift, XOR it with `0x1021`. The mask is its own inverse.
+    The first four mask bytes from seed `0xFFFF` are `FF DF 9F 1F`. The
+    "header key `0xFFFF`" below is this mask with seed `0xFFFF`.
+  M9-PLAN.md called the CRC CRC-16/CCITT-FALSE (initial value `0xFFFF`),
+  after RE; that is wrong for these structures: the SDK's own packer and
+  the emulator's package path start from 0.
+- Sources: SDK `cpu/wl82/tools/packufw/source/JLpack.cpp` lines 23-44
+  (the CRC: table of `0x1021` multiples, initial 0) and 181, 198 (a
+  head's CRC over the head after its first two bytes, stored first); RE
+  `docs/io/11-ota-protocol.md`, "The .fwsc logical image" (the header key
+  `0xFFFF`) and "Known open items" (`jl_crc16` named CCITT-FALSE); the
+  emulator's package path (HW-93: the mask, and CRCs from 0 that pass on
+  the stock packages it boots).
+- Standing: confirmed (SDK for the CRC; the mask emulator-only, its seed
+  RE)
+- Needed by: A1
+
+### HW-88: The package file: header blocks, header, entries
+- Fact: A package is a header in blocks, then data:
+  - **Blocks.** The file's first 960 bytes are 20 blocks of 48 (`0x30`)
+    bytes. In each block the first 47 (`0x2F`) bytes are header data and
+    the last is a marker. The 20 data parts, in order, make the **logical
+    header** (940 bytes). Everything from file offset 960 on is data,
+    plain. The **logical image** is the logical header followed by the
+    file from offset 960: logical offset `n` is file offset `n + 20` for
+    `n` ≥ 940.
+  - **Markers.** Block `i`'s marker (file offset `48·i + 47`) is the
+    package's identity's character `i` plus `i + 1` (modulo 256) while
+    the identity lasts, and `0x7D` after it; the stock FM-1 package's
+    identity is its name (`FM-1_0nn`, 8 characters, so blocks 8 to 19
+    carry `0x7D`). The emulator reads the identity back from the markers;
+    one that starts with `SMK`, `MKE` or `STARRYKEY` (any case) makes it
+    boot the SMK-37 keyboard instead of the FM-1, and if the data byte at
+    file offset 1007 (where a 21st block's marker would be) is `0x7D` it
+    first tries a longer header, then falls back to 20 blocks. So an FM-1
+    package's identity is ASCII, at most 19 characters (ending the
+    markers with `0x7D`, as stock does), and starts with none of those.
+  - **Header.** The logical header's first 64 (`0x40`) bytes are masked
+    with the header key (HW-87). Unmasked: bytes 0-1 the header's
+    CRC-16 over bytes 2-63; bytes 8-9 the entry count. RE names the
+    header's fields, in order, header CRC, list CRC, image size and entry
+    count; where the list CRC and the image size sit, and what they
+    cover, is not given (Q-25).
+  - **Entries.** Entry `k` is the 80 (`0x50`) bytes at logical offset
+    `64 + 80·k`, masked on its own with the header key. Unmasked: bytes
+    0-1 its type, type 0 being the **flash image**; bytes 8-11 its data's
+    logical offset; bytes 12-15 its data's length. Its name, its CRC and
+    its other fields are not given (Q-25). The stock package has eight
+    entries, the flash image (`flash.bin`), `info.log`, `USR`, the
+    loader's configuration (`isd_config.ini`), the update loader
+    (`ota.bin`), `script.ver`, `blimit.bin` and `tail.bin`; the SDK's
+    packaging adds the update loader as type 100 and `script.ver` (the
+    packaging tool's version, `AC791N-v0.01-cfg_tool-v0.10` in the SDK)
+    to the package before turning it into the update file.
+  The emulator's package path reads only the header's CRC, the entry
+  count and the first type-0 entry; a package for it needs no other
+  entry. What the chip's updater needs is Q-26.
+- Sources: RE `docs/io/11-ota-protocol.md`, "The .fwsc logical image"
+  (the 20 blocks, 47 + 1 bytes, the logical image, the header's fields,
+  the eight entries); RE `docs/architecture.md` §2 (a UFW package for the
+  chip "AC791N"); SDK `cpu/wl82/tools/download.c` lines 258-264 (the
+  update loader added with `-type 100`, then `script.ver`, then the
+  conversion to the update file) and `cpu/wl82/tools/script.ver`; the
+  emulator's package path (the markers, the identity, the field offsets
+  read, the board chosen by the identity).
+- Standing: confirmed (RE) for the blocks and the logical image; the
+  markers, the entry's field offsets and the header's emulator-only
+- Needed by: A1
+
+### HW-89: The flash image: its header and directory
+- Fact: The flash image (the type-0 entry's data) is written to the
+  flash chip from offset 0 (the stock one covers `0x00000`-`0x93FFF`,
+  HW-80). It starts with 32-byte heads, each masked on its own with the
+  header key (HW-87):
+  - **The flash header**, the head at offset 0: unmasked, bytes 0-1 its
+    CRC-16 over bytes 2-31; 2-3 a size for the programmer
+    (`size4burner`); 4-7 the VID (4 bytes); 8-11 the flash size; 12 the
+    file system's version; 13 an alignment, in units of 256 bytes; 14
+    reserved; 15 a special-options byte; 16-31 the PID (16 bytes). The
+    emulator's package path copies it, unmasked, into the boot block
+    (HW-91) and checks nothing in it.
+  - **Directory heads**, from offset 32, one after another, until the
+    first with a non-zero "last" field. Unmasked, each is: bytes 0-1 its
+    CRC-16 over bytes 2-31; 2-3 its data's CRC-16; 4-7 its data's flash
+    offset; 8-11 its data's length; 12 its attribute; 13 reserved; 14-15
+    "last" (non-zero on the directory's last head); 16-31 its name, ASCII,
+    padded with zero bytes.
+  Two heads are required, found by name (the first match wins):
+  - `isd_config.ini`, the loader's configuration: at its data's offset,
+    32 bytes (the **key block**, HW-90) and right after them their
+    CRC-16 (2 bytes). These are stored as they are, not masked.
+  - `app_dir_head` with attribute `0x81`: its offset is the start of the
+    **app area** (HW-90). FM-1-RE calls the app area's table
+    `app_area_head`; the name the readers match is `app_dir_head`.
+  The stock directory also has the second-stage loader `uboot.boot` at
+  flash offset `0xA0` (which the mask ROM loads, HW-92) and the loader's
+  configuration at `0x38D0` (HW-80). The emulator's package path checks
+  no head's CRC or its data's CRC; whether the chip's loader does is Q-26.
+  A packager fills them by the rule above.
+- Sources: SDK `include_lib/system/boot.h` lines 46-56 (`struct
+  flash_head`, the flash header's fields); RE `docs/io/11-ota-protocol.md`,
+  "Known open items" (a 32-byte head of this layout, `hdrcrc`,
+  `datacrc`, offset, length, attribute, reserved, last, name, with its
+  data CRC over the data, on the update loader); RE `docs/architecture.md`
+  §2 (the directory's entries and offsets in the stock image) and RE
+  `docs/io/01-boot.md` §3 (`app_area_head`); the emulator's package path
+  (the heads masked one by one, the two names, attribute `0x81`, the key
+  block's CRC, the walk to the last head).
+- Standing: confirmed (SDK, RE) for the layouts; the names the readers
+  match and the masking of each head emulator-only
+- Needed by: A1
+
+### HW-90: The app area: the chip key and its scrambling
+- Fact: The app area starts at the `app_dir_head` head's offset `A`
+  (`0x4000` on the FM-1; HW-91 says why it must be). It is scrambled
+  with a 16-bit **chip key**:
+  - **The key from the key block** (the 32 bytes `b[0]`-`b[31]` of
+    HW-89): let `s` be the sum of `b[0]`-`b[15]` modulo 256; if `s` ≥
+    `0xE0`, take `s` = `0xAA`; else if `s` ≤ `0x10`, take `s` = `0x55`.
+    Then bit `i` of the key (`i` = 0 to 15) is 1 when `b[16 + i]` XOR
+    `b[15 − i]` is less than `s`, else 0. Any key block gives a key; the
+    stock package's gives `0x980F`.
+  - **The scrambling.** From `A`, the area is cut into 32-byte chunks;
+    the chunk at offset `r` from `A` (`r` = 0, 32, 64, …) is masked
+    (HW-87) with the seed `key XOR (r / 4)`, keeping 16 bits; the last
+    chunk may be shorter. The first chunk is the **area head**, a 32-byte
+    head (HW-89's layout, not masked again) whose length field (bytes
+    8-11) is the length of the scrambled area from `A`, the area head
+    included. Bytes past that length are left as they are.
+  - **The area's directory**, once unscrambled: 32-byte heads from `A +
+    32`, each in HW-89's layout but not masked, until the first with a
+    non-zero "last" field or the area's end. `app.bin`, with attribute
+    `0x82`, is the app: its offset is from `A`, and its length the app's
+    length. The stock directory also lists `cfg_tool.bin` and `cfg`
+    (offsets from `A`) and the reserved regions `VM`, `PRCT`, `BTIF` and
+    `USR` (whose offsets are flash offsets). With the area head and eight
+    heads the directory is `0x120` bytes, so the stock `app.bin` is at
+    `A + 0x120` (flash `0x4120`).
+  For the chip, the key must be the chip's own (Q-26); for the three
+  emulated load paths any key works, as long as the area is scrambled
+  with the key its key block gives.
+- Sources: RE `docs/architecture.md` §2 (the app area chip-key encrypted,
+  base `0x4000`; the chip key `0x980F` in the stock configuration; the
+  directory, `app.bin` at `0x4120`) and RE `docs/io/01-boot.md` §3 and
+  §5 (the table is `0x120` bytes); the emulator's package path (the key's
+  derivation, the per-chunk seed, the area head's length, the
+  directory's names and attribute `0x82` as the web build's reader
+  requires it, offsets from `A`).
+- Standing: emulator-only (the derivation and the scrambling); confirmed
+  (RE) for the area's place, its directory and the stock key
+- Needed by: A1
+
+### HW-91: The code window and the app's entry, corrected
+- Fact: On the chip, and in the emulator's package path:
+  - The code window `0x02000000` shows the app area **from its start**:
+    window address `0x02000000 + n` is flash offset `0x4000 + n`, the
+    area head first. The stock `app.bin` at flash `0x4120` is at window
+    address `0x02000120`, and runs there.
+  - The app's entry is its first byte: the window's start plus `app.bin`'s
+    offset in the area, `0x02000120` for a directory of `0x120` bytes. An
+    app in a package is therefore linked to run at `0x02000000` plus its
+    offset in the area (the SDK links its apps at `0x02000120`), not at
+    `0x02000000` as fwtest's raw images are (HW-1, HW-5). A raw image
+    and a package's app are two links of the same code.
+  - The loader starts the app with r0 pointing at a boot block (Q-11):
+    in the SDK's layout, a pointer to a copy of the flash header (HW-89),
+    the window's flash offset (`0x4000`), the app's window address
+    (`0x02000000`), the chip ID (16 bits), a trim value (16 bits) and 8
+    bytes of Bluetooth address. The emulator's package path builds this
+    block with the chip ID, trim and address 0.
+  - Still true from HW-81: the area is encrypted with the chip's key and
+    the window shows it decrypted, so plain bytes written over SPI0 into
+    the area read back changed through the window; the stock firmware
+    synchronises the instruction cache after a program (Q-22); address
+    a store by chip offset and read it with the flash's read command over
+    SPI0, not through the window.
+  In the emulator's package path the app area must start at flash
+  `0x4000`: the window's flash offset is fixed there. Supersedes HW-81,
+  whose window address (`0x02000000` = flash `0x4120`) came from FM-1-RE's
+  memory map; FM-1-RE's own boot document finds the stock app's absolute
+  addresses `0x120` above where its map puts them, and the container's
+  entry point at `0x02000120`.
+- Sources: SDK `cpu/wl82/tools/isd_config_rule.c` line 84 (`ENTRY=0x2000120`,
+  the entry in flash mode) and `cpu/wl82/sdk_ld_sfc.c` line 36 (the code
+  linked from `0x2000120`); SDK `include_lib/system/boot.h` lines 15-18
+  and 58-64 (`sfc_info`: the flash address and the app's address, "from
+  uboot"; the boot device structure that holds it); RE `docs/io/01-boot.md` §3 and §5 (the
+  container's entry point `0x02000120`, and the stock app's absolute
+  addresses `0x120` above its map's); RE `docs/architecture.md` §2 (the
+  map HW-81 took); the emulator's package path (the window from flash
+  `0x4000`, the entry, the boot block).
+- Standing: confirmed (SDK, RE)
+- Needed by: A1, M9
+
+### HW-92: The loader chain on the chip, and what each step checks
+- Fact: On the chip, from power-on:
+  1. The mask ROM loads the second-stage loader `uboot.boot` from flash
+     offset `0xA0` into RAM (its header gives the load address,
+     `0x01C02000`; the SDK's packaging passes the same address) and runs
+     it.
+  2. `uboot.boot` reads its configuration and the flash directory
+     (HW-89), finds the app area, sets up the code window and its
+     decryption, and jumps to the app's entry (HW-91) with r0 pointing
+     at the boot block.
+  3. The app runs from the window.
+  What steps 1 and 2 check before going on (CRCs, the key, the
+  directory, a version) is not given by the allowed sources: the SDK
+  ships both as binaries, and FM-1-RE says only that the loader "maps
+  and verifies" the app (Q-26). An update goes another way: the running
+  firmware's updater checks the package and stages the update loader
+  (`ota.bin`), which writes the flash image (M9-PLAN.md §2); what they
+  check is not all known either (Q-26). fwtest and the emulators run
+  neither the mask ROM nor `uboot.boot` (HW-93).
+- Sources: RE `docs/architecture.md` §3 (the chain; the loader at `0xA0`)
+  and RE `docs/io/01-boot.md` §3 (the load address `0x01C02000` in the
+  loader's header; "maps/verifies"); SDK `cpu/wl82/tools/download.c` line
+  223 (`-boot 0x1c02000`, `-uboot uboot.boot`); RE
+  `docs/io/11-ota-protocol.md`, "Session flow" and "Known open items"
+  (the update's two steps; its checks not all found).
+- Standing: confirmed (RE, SDK) for the steps; their checks open
+- Needed by: A1 (what the emulated paths skip), M10
+
+### HW-93: The package path in fwtest and the emulators
+- Fact: The upstream web build and fwtest's `--package` (HARNESS.md,
+  "Packages") load a package through the same reader, the emulator
+  crates', in the host, in place of the chip's steps 1 and 2 (HW-92); the
+  F-Emulator app is taken to use that reader unchanged
+  (EMULATOR-PARITY.md, "Packages"; for the owner to confirm). The reader
+  checks, in this order, and refuses the package at the first failure:
+  1. The header's CRC (HW-88).
+  2. A type-0 entry whose data lies inside the file.
+  3. In the flash image's directory (HW-89): an `isd_config.ini` head and
+     an `app_dir_head` head with attribute `0x81`. When no key block's CRC
+     checks, the reader still takes the key of the last `isd_config.ini`
+     head seen; fwtest refuses the package.
+  4. The app area's length (HW-90) inside the flash image.
+  5. An `app.bin` in the area's directory; fwtest, like the web build's
+     own reader, also needs its attribute `0x82`.
+  fwtest also refuses an app area that does not start at `0x4000` (the
+  emulators would show the wrong bytes in the window) and a package whose
+  identity is another board's (HW-88). Then they boot: the flash chip
+  holds the flash image from offset 0, and the rest of the chip is
+  erased; the window shows the app area unscrambled, from flash `0x4000`
+  to the flash image's end, and the chip directly beyond it; core 0
+  starts at the app's entry (HW-91) with r0 pointing at the boot block.
+  The emulator's own package boot also gives the `USR` region (HW-80), if
+  the directory names one and it is blank, a default patch bank of its
+  own; fwtest leaves it as the package has it. Nothing checks a directory
+  head's CRC, a data CRC, the list CRC or the other entries (Q-25, Q-26).
+  Unlike the chip, the flash chip holds the app area scrambled, so SPI0
+  reads of the area give the scrambled bytes, and bytes a firmware
+  programs into the area show through the window as written, not
+  decrypted (HW-91). fwtest has `--package` from 0.8.0; until
+  `config/fwtest-image` pins 0.8.0, `tools/fwtest` refuses the option.
+- Sources: the emulator's package path (vendor/emulator, read for this);
+  HARNESS ("Packages"); fwtest's harness tests on test packages made from
+  HW-87 to HW-91 alone (harness/tests/).
+- Standing: emulator-only (with the harness's own tests)
+- Needed by: A1
 
 ## Open questions
 
@@ -1912,3 +2233,20 @@ spec request can turn one into a fact.
   mark a region to be kept. Decides whether stored patches survive an
   update. Settled in M9, from FM-1-RE's update documents and the SDK's
   packaging settings (HW-80's sources), or by a test on real hardware.
+- **Q-25. The package's fields no load path reads.** Where the package
+  header's list CRC and image size sit and what they cover; an entry's
+  name, CRC and other fields; what the flash header's fields must hold
+  for the chip; the directory heads' attributes other than `0x81` and
+  `0x82`. The allowed sources name these fields but do not place or
+  define them, and none of the emulated load paths reads them (HW-88,
+  HW-89, HW-93). They could be learned from a stock package, which no
+  session opens, or from the SDK's packaging tools run on our own input
+  (M10, the owner's answer 4 in M9-PLAN.md). A packager fills them by the
+  head rule of HW-87 and HW-89 where that rule applies, and records the
+  rest as unknown.
+- **Q-26. What the chip's loaders and updater check.** What the mask ROM
+  and `uboot.boot` check before running the next step (CRCs, the key
+  block, the directory), whether the chip key is the same on every unit,
+  and what the stock updater and the update loader `ota.bin` accept
+  (HW-92; FM-1-RE has not found all of the updater's check). Settled only
+  on a unit (Phase B; M9-PLAN.md section 5) or by JieLi's documentation.

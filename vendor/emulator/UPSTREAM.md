@@ -12,7 +12,7 @@ SPDX-FileCopyrightText: 2026 japes98
 - Licence: MIT, copyright 2026 Joakim Eriksson (`LICENSE` here, copied
   unmodified).
 - What: `crates/fm1-isa`, `crates/fm1-core` and `crates/fm1-soc`, at the
-  same paths, unmodified but for the patches below (0002 to 0009: bug
+  same paths, unmodified but for the patches below (0002 to 0012: bug
   fixes, two speed-only changes and MIDI out) and the workspace manifest
   `Cargo.toml` (patched, 0001). docs/EMULATOR-PARITY.md compares them with
   the F-Emulator app's.
@@ -113,6 +113,26 @@ Applied in file-name order by the fetch script, after checkout:
   (`Periph::midi_take_sent`), for fwtest's `--midi-out` and the app's
   MIDI output (`harness/upstream/fm1-emu-midi-out.md`). The harness test
   `transmits_midi` and the suite case `midiout` check it.
+- `patches/0010-flash-chip-busy-times-and-power-cut.patch` and
+  `patches/0011-pair-head-wins-over-its-second-half.patch` (session
+  day-1024, 2026-10-24; our own, PROVENANCE P-54): the flash chip's
+  command rules, busy times, operations log and power cut; a dual-issue
+  pair whose halves write one register keeps the head's result. Their own
+  headers and `harness/upstream/fm1-emu-flash-busy.md`,
+  `harness/upstream/fm1-emu-pair-same-register.md` describe them (fwtest
+  0.6.0). (Listed here by session spec-overnight-1025.)
+- `patches/0012-usb-port-answers.patch` (session spec-overnight-1025,
+  2026-10-26; the F-Emulator app's change, from its behaviour-only note,
+  PROVENANCE P-59): `crates/fm1-soc/src/lib.rs`, the USB core's access
+  port at 0x11804 (`JL_USB->CON1`): reading it gives the last value
+  written with bit 15 (`MACK`, done) set; for a read (bit 14 set)
+  bits 0-7 hold the byte last written to that index, the interrupt flags
+  (indexes 2-6) 0. Upstream kept the word as plain storage, so a firmware
+  waited out its own timeout on every access. The crate test and the
+  harness test `usb_port_answers` (image `tests/images/usbport.c`, suite
+  case `usbport`) fail without it (`harness/upstream/fm1-emu-usb-port.md`;
+  fwtest 0.7.0). Licence: the owner confirmed the note is covered by MIT
+  on the same terms as P-47 (recorded by session spec-a1-fwsc).
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
 and the harness suite gave byte-identical outputs (284 files) from fwtest

@@ -22,7 +22,16 @@
 #    state it).
 # 4. The tag's files, exported as tools/reproduce does (never the
 #    spec-side folders), built twice by their own tools/build.sh at two
-#    source paths: the same bytes both times, and the record's.
+#    source paths: the same bytes both times, and the record's. In CI
+#    (GITHUB_ACTIONS) the build's identity comes first (config/build-image,
+#    main's; the owner's answer, 2026-10-27): the tag's tools/Dockerfile
+#    must have the SHA-256, the base image digest and the toolchain
+#    SHA-256 it names, or the release stops; the image is then built fresh
+#    from that Dockerfile (it is never published), and release.json's
+#    build.container records the identity (`build-identity:...`). Run by
+#    hand it is a local dry run: the local image, its ID in
+#    build.container behind `local-dry-run:` (the owner's answer,
+#    2026-10-26; docs/RELEASING.md, "The build image").
 # 5. fwtest's version: the record's fwtest image, asked (tools/fwtest).
 # 6. tools/release.py build, twice: the same bytes; then verify.
 set -eu
@@ -78,11 +87,39 @@ fi
 [ -n "$sums" ] || fail "--report needs --record-sums-sha256"
 echo "record:  records/$commit/, its SHA256SUMS $sums"
 
-# 4. The tag's files, built twice.
+# 4. The tag's files, built twice; in CI from the build's identity.
 sh "$ROOT/tools/reproduce" --export-only "$commit" "$work/src"
+itag=$(sh "$work/src/tools/build.sh" image-tag)
+if [ "${GITHUB_ACTIONS:-}" = true ]; then
+    # The build's identity (config/build-image, main's; the owner's answer,
+    # 2026-10-27): the tag's Dockerfile must be the one it names, with its
+    # base image and toolchain, before anything is built. The image is then
+    # built fresh from it, never pulled.
+    ident() { awk -v k="$1" '$1 == k { print $2 }' "$ROOT/config/build-image"; }
+    base=$(ident base) dockerfile=$(ident dockerfile) toolchain=$(ident toolchain)
+    [ -n "$base" ] && [ -n "$dockerfile" ] && [ -n "$toolchain" ] \
+        || fail "config/build-image gives no build identity (base, dockerfile, toolchain)"
+    have=$("$PY" -I -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' \
+        "$work/src/tools/Dockerfile")
+    [ "$have" = "$dockerfile" ] || fail "$tag's tools/Dockerfile has SHA-256 $have, not the build identity's $dockerfile"
+    have=$(sed -n 's/^ARG BASE=//p' "$work/src/tools/Dockerfile" | head -1)
+    [ "$have" = "$base" ] || fail "$tag's tools/Dockerfile builds on ${have:-(none)}, not the build identity's $base"
+    have=$(sed -n 's/^ARG TOOLCHAIN_SHA256=//p' "$work/src/tools/Dockerfile" | head -1)
+    [ "$have" = "$toolchain" ] || fail "$tag's tools/Dockerfile checks the toolchain against ${have:-(none)}, not the build identity's $toolchain"
+    echo "identity: base $base, Dockerfile $dockerfile, toolchain $toolchain: $tag's"
+    sh "$work/src/tools/build.sh" image
+    container=build-identity:dockerfile-sha256=$dockerfile,toolchain-sha256=$toolchain,base=$base
+fi
 sh "$work/src/tools/build.sh" build --out "$work/b1"
 sh "$work/src/tools/build.sh" build --out "$work/b2" --src-mount /tmp/elsewhere/small-beeps-src-b
+if [ "${GITHUB_ACTIONS:-}" != true ]; then
+    container=local-dry-run:$(docker image inspect --format '{{.Id}}' "$itag")
+    echo "DRY RUN: built in the local image $itag; release.json's build.container says so, and it is never published"
+fi
+echo "build:   $container"
 cmp "$work/b1/app.bin" "$work/b2/app.bin" || fail "the two builds differ"
+[ ! -e "$work/b1/app-pkg.bin" ] || cmp "$work/b1/app-pkg.bin" "$work/b2/app-pkg.bin" \
+    || fail "the two builds' package links differ"
 
 # 5. fwtest's version, of the image the record names.
 fwimage=$("$PY" -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["environment"]["fwtest_image"])' "$report")
@@ -94,7 +131,7 @@ created=$(TZ=UTC git -C "$ROOT" log -1 --date=format-local:%Y-%m-%dT%H:%M:%SZ --
 for d in r1 r2; do
     "$PY" -I "$ROOT/tools/release.py" build --tag "$tag" --version "$version" --commit "$commit" \
         --src "$work/src" --build "$work/b1" --report "$report" --record-sums-sha256 "$sums" \
-        --fwtest-version "$fwver" --created "$created" --out "$work/$d"
+        --fwtest-version "$fwver" --created "$created" --build-container "$container" --out "$work/$d"
 done
 diff -r "$work/r1" "$work/r2" >/dev/null || fail "the two releases differ"
 "$PY" -I "$ROOT/tools/release.py" verify "$work/r1"

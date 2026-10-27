@@ -36,9 +36,16 @@ ENTRY(_start)
 STORE_BASE = 0xFC000;
 USER_REGION = 0xEA000;
 
+/* Where the image's first byte runs (Phase A1, HW-91): the raw image at
+ * the window's start; the package link (tools/build.sh, with
+ * --defsym=IMAGE_ORIGIN=0x02000120) where a package's app.bin runs, past
+ * the app area's 0x120-byte directory. The same code either way: only the
+ * boot code runs from the window, and it addresses the rest by symbols. */
+IMAGE_ORIGIN = DEFINED(IMAGE_ORIGIN) ? IMAGE_ORIGIN : 0x02000000;
+
 MEMORY
 {
-    IMAGE (rx)  : ORIGIN = 0x02000000, LENGTH = 0xEA000 - 0x4000   /* USER_REGION - 0x4000 */
+    IMAGE (rx)  : ORIGIN = IMAGE_ORIGIN, LENGTH = 0xEA000 - 0x4000 - (IMAGE_ORIGIN - 0x02000000)   /* to USER_REGION */
     RAM   (rwx) : ORIGIN = 0x01C00000, LENGTH = 0x0007FC00
 }
 

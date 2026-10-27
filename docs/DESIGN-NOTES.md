@@ -2506,7 +2506,11 @@ Our own design, from docs/ARP-PROPOSAL.md and the owner's answers there
   starts or continues only once 250 ms (ARP_LOST_BLOCKS) pass without
   one, so after a Stop the arpeggiator plays on at once on the internal
   tempo and its clock out continues 250 ms after the sender's last
-  clock (clock-quiet).
+  clock (clock-quiet). So a follower downstream sees a gap of 250 ms in
+  the clock even when the sender stopped cleanly: ours can't tell a
+  sender that stopped its clock from one that keeps it running after a
+  Stop until 250 ms pass without a clock. The owner accepted the gap
+  (2026-10-26, overnight-1025's question 5).
 - **The screen (ARP held):** the strip shows RATE, MODE, OCTAVES and GATE;
   SELECT pages to SWING, LATCH, TEMPO and MIDI OUT. The body shows the
   settings in words; the info line is its live part (every 50 ms when
@@ -2632,6 +2636,89 @@ applied to the firmware suite's and the arpeggiator's cases
     fires (0.18 to 0.2 ms after a block, under its 0.2): the early
     warning, answered by moving `--ms` within its block, which changes no
     golden.
+- **The owner's answers (2026-10-26, overnight-1025's questions 3 and
+  4; recorded by clean-pin-answers).**
+  - **The end check keeps failing CI**, since its fix is mechanical. Its
+    message gives the fix in one step: the exact replacement and where
+    it goes, `in tests/fw/boot.suite, line N: change --ms A to --ms B`
+    for the firmware suite's cases, `in tools/arp_suite.py, END_MS: set
+    "name": B` for the arpeggiator's (`goldtime.check_end`'s `where`).
+    The replacement is `suggest_end`'s, so it takes the same blocks
+    where it can and changes no golden; a rule 1 failure is never fixed
+    by writing a golden again.
+  - **The four exceptions** to "written again only by tools/regolden.py",
+    accepted, each a change of what a case compares or of its input,
+    never of a golden's content to match new behaviour:
+    1. *The live screens.* The five screens of macros, midipanel and
+       spectrum that show the patch view's live spectrum are compared
+       exactly outside its rectangle (`LIVE`), not byte for byte. Why:
+       the bars show the last few blocks of sound, so any shift of a
+       sound moves them, and no shift can be proven of an image. The
+       bars themselves are still checked, through the interface's record
+       (the spectrum case).
+    2. *stuck's sound hash, dropped.* Why: its last notes are panel keys
+       whose starts and ends come by the key scan and the audio block,
+       so their lengths move by a scan with the code's timing; its MIDI
+       messages and no-stuck-notes checks stay.
+    3. *The arpeggiator's inputs, moved off its grid* (its keys let go
+       together, 10 ms after a step; stuck's later events 7 ms off the
+       grid and its two keys 10 ms apart), and their golden messages
+       written again by hand, as a change of the test's input. Why: on
+       the grid, which came first, a step or a key, moved with a few
+       microseconds.
+    4. *env's screen at 1 400 ms, moved to 1 600 ms* (draft #126's,
+       landing with it), its golden written from that image's run. Why:
+       at 1 400 the envelope's dot was moving (the release), drawn where
+       the code's timing put it; at 1 600 the note has ended and the
+       screen holds still. The dot stays checked at 1 000 ms, where it
+       rests at the hold.
+
+### 2026-10-27 A1: the firmware as a `.fwsc`
+- Facts: HW-87 to HW-93; docs/HARNESS.md, "Packages" (PROVENANCE P-61);
+  our own runs in fwtest 0.8.0 (P-62). docs/A1-PLAN.md, Note A1-1.
+- Reasoning:
+  - **One linker script, two links.** `firmware/app.ld`'s image origin is
+    a symbol, `0x02000000` unless `tools/build.sh` passes
+    `--defsym=IMAGE_ORIGIN=0x02000120` for the package link (HW-91), and
+    the image's length shrinks by the difference, so both end before the
+    stock user patch region. Since M7 only the boot code runs from the
+    window and everything else runs from RAM, so the two links differ
+    only in the boot code's own addresses: the build fails unless what
+    goes to RAM is byte for byte the same in both (the firmware's build;
+    a `--define` test build may differ, as the store's wipe test reads a
+    link symbol), the boot code is as long, and the package's `_start`
+    is at `0x02000120`. The raw image is
+    unchanged (the same `app.bin` as before A1; the ELF gains the origin
+    symbol). The window shows flash `0x4000 + n` at `0x02000000 + n` in
+    both paths, so the store's wipe test, the one place that turns a link
+    address into a chip offset, holds for either.
+  - **The packager writes only what the facts give.** One entry, the
+    flash image; in it the flash header, two directory heads, our own
+    key block and the app area at `0x4000`, ending at the app's last
+    byte, so a package writes nothing past it (not the stock patches at
+    `0xEA000`, not our store at `0xFC000`). Every field the facts leave
+    open is 0 and listed in `tools/fwsc.py`'s docstring; the flash size
+    is the chip's 1 MiB. The flash image starts at file offset 1024, so
+    the byte at 1007 (a 21st block's marker's place, HW-88) is 0. The
+    identity is `small-beeps-<version>`, checked to be at most 19
+    printable characters, not another board's, and with no character
+    whose marker would be `0x7D`.
+  - **The reader is fwtest's order, in fwtest's words.** HW-93 gives the
+    emulator's five steps; fwtest adds four (HARNESS.md). The reader
+    follows fwtest's nine and, where HARNESS.md names a check without
+    its message, uses the words fwtest printed (P-62), so C-PACKAGE can
+    ask that fwtest's refusal and the reader's are the same text.
+  - **The test compares, not re-goldens.** C-PACKAGE runs eight of the
+    suite's cases on `app.bin` twice, raw and from the package, and asks
+    for the same outputs byte for byte, with two stated exceptions (the
+    r0 block, which must be HARNESS.md's boot block; the flash chip below
+    `0xEA000`, which holds each path's own image). The goldens stay
+    C-FW-SUITE's. Cases on test builds and on generated flash files are
+    left out: they test the firmware, not the load path.
+- Alternatives: a second linker script (two files to keep in step); a
+  position-independent image (the toolchain's support unknown, and every
+  absolute address in the boot code would need care); running the whole
+  suite twice (as long again, for the same evidence).
 
 ### 2026-10-26 M8b: candidates 65 to 70
 

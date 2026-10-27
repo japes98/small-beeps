@@ -8,23 +8,30 @@ a signed milestone tag carries, for the F-Emulator app.
   release.py build --tag TAG --version X.Y.Z --commit SHA --src DIR
                    --build DIR --report REPORT.json --record-sums-sha256 HEX
                    --fwtest-version "fwtest 0.6.0 (...)" --created TIME
-                   --out DIR
+                   --build-container REF --out DIR
       DIR gets the release's files (files() below): the raw image (the
       build's app.bin, byte for byte), its ELF, release.json, the
       .fm1img holding both (tools/fm1img.py), an SPDX 2.3 SBOM, the
-      licence and notices as at the tag, and SHA256SUMS. SRC is the tag's
+      licence and notices as at the tag, since A1 the .fwsc of the
+      build's package link if it has one (tools/fwsc.py), and SHA256SUMS. SRC is the tag's
       files (tools/reproduce --export-only), BUILD its tools/build.sh
       output, REPORT the tag's commit's test record
       (records/<commit>/report.json), RECORD-SUMS-SHA256 the SHA-256 of
       that record's SHA256SUMS (the format's record.tree_sha256), TIME the
-      tag's commit's time (the SBOM's only date). Stops if the record is
-      not PASS, is another commit's, or names other outputs than the
-      build's.
-  release.py verify DIR
+      tag's commit's time (the SBOM's only date), REF what the image was
+      built in (build.container): in CI the build's identity
+      (`build-identity:dockerfile-sha256=<hex>,toolchain-sha256=<hex>,
+      base=<image>@sha256:<hex>`, config/build-image; the owner's answer,
+      2026-10-27), in a local dry run `local-dry-run:` and the local
+      image's ID (the owner's answer, 2026-10-26). Stops if the record is not PASS, is another commit's,
+      or names other outputs than the build's.
+  release.py verify [--publish] DIR
       Checks a release folder: release.json (format 1.0's fields, as a
       writer must write them, and its exact bytes), the .fm1img by the
       app's checks in order (tools/fm1img.py), its release.json and image
-      byte for byte the loose files, and SHA256SUMS.
+      byte for byte the loose files, and SHA256SUMS. With --publish also
+      that it names a build identity (a local dry run is never
+      published).
   release.py selftest --build DIR --out DIR
       C-RELEASE: a release made twice from build DIR with a stand-in
       record (this tree's own files), byte for byte the same, verified.
@@ -43,10 +50,32 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fm1img  # noqa: E402  (tools/, our own)
+import fwsc  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NAME = "small-beeps"
 REPO = "https://github.com/japes98/small-beeps"
+
+
+# build.container: a release built in CI names the build's identity (the
+# owner's answer, 2026-10-27; config/build-image): the SHA-256 of the
+# tag's tools/Dockerfile, the toolchain's SHA-256 and the base image's
+# registry digest, the image itself never published. One built locally
+# names the local image's ID behind DRY_RUN, a dry run's mark, and is
+# never published (verify(publish=True); the owner's answer, 2026-10-26).
+# Format 1.0 lets a writer add no field, so both are in the value.
+IDENTITY = "build-identity:"
+IDENTITY_REF = re.compile(r"^" + IDENTITY + r"dockerfile-sha256=[0-9a-f]{64},toolchain-sha256=[0-9a-f]{64},"
+                          r"base=[a-z0-9./_-]+(:[A-Za-z0-9._-]+)?@sha256:[0-9a-f]{64}$")
+DRY_RUN = "local-dry-run:"
+LOCAL_ID = re.compile(r"^" + DRY_RUN + r"sha256:[0-9a-f]{64}$")
+
+
+def package_identity(version):
+    """The .fwsc's identity: small-beeps-<version>, or small-beeps where
+    that is longer than a package's 19 characters (HW-88)."""
+    i = "%s-%s" % (NAME, version)
+    return i if len(i) <= fwsc.IDENTITY_MAX else NAME
 
 
 def sha256(b):
@@ -62,7 +91,8 @@ def files(version):
     """The release's files, by kind."""
     return {"bin": "%s-%s.bin" % (NAME, version), "elf": "%s-%s.elf" % (NAME, version),
             "fm1img": "%s-%s.fm1img" % (NAME, version), "sbom": "%s-%s.spdx.json" % (NAME, version),
-            "json": "release.json", "license": "LICENSE", "notice": "NOTICE"}
+            "json": "release.json", "license": "LICENSE", "notice": "NOTICE",
+            "fwsc": "%s-%s.fwsc" % (NAME, version)}
 
 
 def sizes(build):
@@ -136,8 +166,7 @@ def metadata(a, image, report, src, size):
                                                                             gh["GITHUB_RUN_ID"])
     if toolchain_sha256(src):
         meta["build"]["toolchain_sha256"] = toolchain_sha256(src)
-    if env.get("build_image_id"):
-        meta["build"]["container"] = env["build_image_id"]
+    meta["build"]["container"] = a.build_container
     store = store_format(src)
     if store:
         meta["store"] = store
@@ -208,6 +237,10 @@ def build(a):
     with open(a.report) as f:
         report = json.load(f)
     problems = check_record(report, a.commit, outputs)
+    if not (IDENTITY_REF.match(a.build_container) or LOCAL_ID.match(a.build_container)):
+        problems.append("--build-container %s: neither a build identity (%sdockerfile-sha256=...,"
+                        "toolchain-sha256=...,base=...@sha256:...) nor %ssha256:<64 hex>"
+                        % (a.build_container, IDENTITY, DRY_RUN))
     if problems:
         return problems
     meta = metadata(a, image, report, a.src, sizes(a.build))
@@ -221,6 +254,15 @@ def build(a):
     for k in ("license", "notice"):
         if os.path.exists(os.path.join(a.src, fn[k])):
             out[fn[k]] = read(os.path.join(a.src, fn[k]))
+    # Since A1, a build with the package link gives the .fwsc too
+    # (tools/fwsc.py; docs/A1-PLAN.md): for tools that take packages, not
+    # the app's release format. An older tag's build has none.
+    pkg = os.path.join(a.build, "app-pkg.bin")
+    if os.path.exists(pkg):
+        try:
+            out[fn["fwsc"]] = fwsc.pack(read(pkg), package_identity(a.version))
+        except ValueError as e:
+            return ["%s: %s" % (fn["fwsc"], e)]
     os.makedirs(a.out, exist_ok=True)
     out["SHA256SUMS"] = sums(out)
     for n, b in out.items():
@@ -229,8 +271,9 @@ def build(a):
     return []
 
 
-def verify(d):
-    """Problems of a release folder (R-REL-1, R-REL-2)."""
+def verify(d, publish=False):
+    """Problems of a release folder (R-REL-1, R-REL-2); with publish, also
+    one that names no build identity."""
     try:
         mb = read(os.path.join(d, "release.json"))
         meta = json.loads(mb)
@@ -239,6 +282,10 @@ def verify(d):
     p = fm1img.field_problems(meta, writer=True)
     if mb != fm1img.dumps(meta):
         p.append("release.json: not format 1.0's exact bytes")
+    container = meta.get("build", {}).get("container", "") if isinstance(meta.get("build"), dict) else ""
+    if publish and not IDENTITY_REF.match(container):
+        p.append("build.container %r: %s" % (container, "a local dry run, never published" if LOCAL_ID.match(container)
+                                             else "not a build identity"))
     if p:
         return p
     fn = files(meta["version"])
@@ -254,6 +301,13 @@ def verify(d):
         p.append("no %s" % fn["fm1img"])
     except ValueError as e:
         p.append("%s: check %s" % (fn["fm1img"], e))
+    if os.path.exists(os.path.join(d, fn["fwsc"])):
+        try:
+            r = fwsc.check(read(os.path.join(d, fn["fwsc"])))
+            if r["identity"] != package_identity(meta["version"]):
+                p.append("%s: identity %r, not this release's" % (fn["fwsc"], r["identity"]))
+        except ValueError as e:
+            p.append("%s: check %s" % (fn["fwsc"], e))
     try:
         listed = {}
         for line in read(os.path.join(d, "SHA256SUMS")).decode("ascii").splitlines():
@@ -284,7 +338,7 @@ def selftest(a):
     os.makedirs(out)
     report = {"commit": "0" * 40, "overall": "PASS",
               "outputs": {n: sha256(read(os.path.join(a.build, n))) for n in ("app.bin", "app.elf")},
-              "environment": {"build_image_id": "sha256:" + "0" * 64}}
+              "environment": {}}
     rp = os.path.join(out, "report.json")
     with open(rp, "wb") as f:
         f.write(fm1img.dumps(report))
@@ -292,7 +346,8 @@ def selftest(a):
     for k in ("a", "b"):
         ns = argparse.Namespace(tag="m0", version="0.0.0-selftest", commit="0" * 40, src=ROOT, build=a.build,
                                 report=rp, record_sums_sha256="0" * 64, fwtest_version="fwtest 0.0.0 (selftest)",
-                                created="1970-01-01T00:00:00Z", out=os.path.join(out, k))
+                                created="1970-01-01T00:00:00Z", build_container=DRY_RUN + "sha256:" + "0" * 64,
+                                out=os.path.join(out, k))
         p += ["build %s: %s" % (k, q) for q in build(ns)]
     if not p:
         p += same_tree(os.path.join(out, "a"), os.path.join(out, "b"))
@@ -310,9 +365,10 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build")
     for k in ("tag", "version", "commit", "src", "build", "report", "record-sums-sha256", "fwtest-version",
-              "created", "out"):
+              "created", "build-container", "out"):
         b.add_argument("--" + k, required=True)
     v = sub.add_parser("verify")
+    v.add_argument("--publish", action="store_true")
     v.add_argument("dir")
     s = sub.add_parser("selftest")
     s.add_argument("--build", required=True)
@@ -320,7 +376,7 @@ def main():
     a = ap.parse_args()
     if a.cmd == "selftest":
         return selftest(a)
-    p = build(a) if a.cmd == "build" else verify(a.dir)
+    p = build(a) if a.cmd == "build" else verify(a.dir, a.publish)
     for q in p:
         print("FAIL: " + q)
     print("release %s: %s" % (a.cmd, "FAIL" if p else "OK"))

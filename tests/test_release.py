@@ -34,8 +34,10 @@ class ReleaseTest(unittest.TestCase):
     """Requirements: R-REL-1, R-REL-2"""
 
     COMMIT = "1" * 40
+    PINNED = ("build-identity:dockerfile-sha256=" + "5" * 64 + ",toolchain-sha256=" + "7" * 64
+              + ",base=debian:bookworm-slim@sha256:" + "8" * 64)
 
-    def make(self, d, name, report=None, version="0.9.0"):
+    def make(self, d, name, report=None, version="0.9.0", container=PINNED):
         build = os.path.join(d, "build")
         if not os.path.exists(build):
             fake_build(build)
@@ -44,7 +46,7 @@ class ReleaseTest(unittest.TestCase):
             json.dump(report or report_of(build, self.COMMIT), f)
         a = argparse.Namespace(tag="m9", version=version, commit=self.COMMIT, src=ROOT, build=build, report=rp,
                                record_sums_sha256="3" * 64, fwtest_version="fwtest 0.6.0 (emulator 43ed55800648)",
-                               created="2026-10-26T00:00:00Z", out=os.path.join(d, name))
+                               created="2026-10-26T00:00:00Z", build_container=container, out=os.path.join(d, name))
         return rel.build(a), a.out
 
     def test_reproducible_byte_for_byte_and_verified(self):
@@ -116,6 +118,58 @@ class ReleaseTest(unittest.TestCase):
         m["later"] = 1                        # a reader ignores a field it doesn't know
         self.assertEqual(fm.field_problems(m), [])
 
+    def test_the_build_image_a_ci_release_names_and_a_dry_runs_mark(self):
+        # The owner's answers: in CI the build's identity, recorded
+        # (2026-10-27); a local image's ID only in a local dry run, marked
+        # as one, and never published (2026-10-26).
+        with tempfile.TemporaryDirectory() as d:
+            p, o = self.make(d, "ci")
+            self.assertEqual(p, [])
+            self.assertEqual(json.load(open(os.path.join(o, "release.json")))["build"]["container"], self.PINNED)
+            self.assertEqual(rel.verify(o, publish=True), [])
+            local = rel.DRY_RUN + "sha256:" + "6" * 64
+            p, o = self.make(d, "local", container=local)
+            self.assertEqual(p, [])
+            self.assertEqual(json.load(open(os.path.join(o, "release.json")))["build"]["container"], local)
+            self.assertEqual(rel.verify(o), [])
+            self.assertIn("dry run", " ".join(rel.verify(o, publish=True)))
+            for bad in ("sha256:" + "6" * 64, "small-beeps-build:2f1adc7009fddc03", "ghcr.io/o/r-build:latest",
+                        "ghcr.io/o/r-build@sha256:" + "5" * 64, self.PINNED.replace(",base=", ",")):
+                self.assertTrue(self.make(d, "bad", container=bad)[0], bad)
+            self.assertFalse(os.path.exists(os.path.join(d, "bad")))
+
+    def test_a_build_with_the_package_link_gives_the_fwsc(self):
+        # Since A1 (docs/A1-PLAN.md): the .fwsc beside the .fm1img, read
+        # back by tools/fwsc.py, named after the release; none without it.
+        fw = load_tool("fwsc.py")
+        with tempfile.TemporaryDirectory() as d:
+            p, o = self.make(d, "old")
+            self.assertEqual(p, [])
+            self.assertFalse(any(n.endswith(".fwsc") for n in os.listdir(o)))
+            with open(os.path.join(d, "build", "app-pkg.bin"), "wb") as f:
+                f.write(b"\x04\x05\x06" * 1000)
+            p, o = self.make(d, "new")
+            self.assertEqual(p, [])
+            self.assertEqual(rel.verify(o), [])
+            r = fw.check(open(os.path.join(o, "small-beeps-0.9.0.fwsc"), "rb").read())
+            self.assertEqual((r["identity"], r["app"]), ("small-beeps-0.9.0", b"\x04\x05\x06" * 1000))
+            self.assertIn("small-beeps-0.9.0.fwsc", open(os.path.join(o, "SHA256SUMS")).read())
+
+    def test_the_build_identity_is_this_trees_own(self):
+        # config/build-image (the owner's answer, 2026-10-27): the base
+        # image's digest, the Dockerfile's SHA-256 and the toolchain's, as
+        # tools/Dockerfile and docs/TOOLCHAIN.md have them.
+        with open(os.path.join(ROOT, "config", "build-image")) as f:
+            pin = dict(l.split() for l in f if l.strip() and not l.startswith("#"))
+        self.assertEqual(sorted(pin), ["base", "dockerfile", "toolchain"])
+        df = open(os.path.join(ROOT, "tools", "Dockerfile"), "rb").read()
+        self.assertEqual(pin["dockerfile"], hashlib.sha256(df).hexdigest())
+        self.assertIn(("\nARG BASE=%s\n" % pin["base"]).encode(), df)
+        self.assertIn(("\nARG TOOLCHAIN_SHA256=%s\n" % pin["toolchain"]).encode(), df)
+        self.assertIn(pin["toolchain"], open(os.path.join(ROOT, "docs", "TOOLCHAIN.md")).read())
+        self.assertTrue(rel.IDENTITY_REF.match("%sdockerfile-sha256=%s,toolchain-sha256=%s,base=%s" % (
+            rel.IDENTITY, pin["dockerfile"], pin["toolchain"], pin["base"])))
+
     def test_releases_list_starts_at_0_9_0(self):
         v = json.load(open(os.path.join(ROOT, "config", "releases.json")))["versions"]
         self.assertEqual(v.get("m9"), "0.9.0")
@@ -186,6 +240,38 @@ class WorkflowTest(unittest.TestCase):
         self.assertNotIn("git push", wf + sh)
         self.assertNotIn("--clobber", wf)
         self.assertIn(".verification.verified", sh)
+
+    def test_a_tag_not_listed_is_skipped_with_a_notice(self):
+        # The owner's answer (2026-10-26): m2 to m8 get no versions; their
+        # tags' runs succeed, saying why nothing was built.
+        wf = open(os.path.join(ROOT, ".github", "workflows", "release.yml")).read()
+        build = wf[wf.index("\n  build:"):wf.index("\n  publish:")]
+        steps = build.split("\n      - ")[1:]
+        tag = [i for i, st in enumerate(steps) if st.startswith("name: The tag")][0]
+        self.assertIn("config/releases.json", steps[tag])
+        self.assertIn("::notice::", steps[tag])
+        self.assertIn('echo "skip=true" >> "$GITHUB_OUTPUT"\n            exit 0', steps[tag])
+        self.assertLess(steps[tag].index("skip=true"), steps[tag].index("git fetch"))
+        for st in steps[tag + 1:]:
+            self.assertIn("if: steps.tag.outputs.skip == 'false'", st, st.splitlines()[0])
+        self.assertIn("if: needs.build.outputs.skip == 'false' &&", wf[wf.index("\n  publish:"):])
+
+    def test_ci_checks_the_build_identity_first_and_publishes_only_its_releases(self):
+        wf = open(os.path.join(ROOT, ".github", "workflows", "release.yml")).read()
+        sh = open(os.path.join(ROOT, "tools", "release.sh")).read()
+        self.assertIn('"$ROOT/config/build-image"', sh)
+        self.assertIn('if [ "${GITHUB_ACTIONS:-}" = true ]', sh)
+        ci = sh[sh.index('if [ "${GITHUB_ACTIONS:-}" = true ]'):]
+        for check in ("$dockerfile", "$base", "$toolchain"):
+            self.assertLess(ci.index('fail "$tag\'s tools/Dockerfile'), ci.index('build.sh" image'), check)
+            self.assertIn('= "%s" ] || fail' % check, ci)
+        self.assertLess(ci.index('build.sh" image'), ci.index('build.sh" build'))
+        self.assertNotIn("docker pull", sh)
+        self.assertIn("container=build-identity:", sh)
+        self.assertIn('--build-container "$container"', sh)
+        self.assertIn("container=local-dry-run:", sh)
+        pub = wf[wf.index("\n  publish:"):]
+        self.assertLess(pub.index("build-identity:*) ;;"), pub.index("gh release upload"))
 
 
 if __name__ == "__main__":

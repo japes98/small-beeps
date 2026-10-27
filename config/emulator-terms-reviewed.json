@@ -20,6 +20,16 @@
       "sha256_16": "45732e3d51d5cc39",
       "reason": "The firmware side's own name (M7) for the part of its code that the linker places in RAM and the start-up copies there: the linker symbols around it in firmware/app.ld, the line tools/build.sh adds to app.size and tools/perf.py reads, and the docs and commit messages that describe them. Chosen as the plain description of what it is; not taken from the emulator, which the firmware side never reads.",
       "added_by": "session M7 (firmware side, claude-opus-5-5), 2026-10-24"
+    },
+    {
+      "sha256_16": "bb8bab01be9363ac",
+      "reason": "The base of the loader configuration file's name in docs/HARDWARE-SPEC.md (HW-89, HW-93): the JieLi SDK's packaging scripts generate and pass a file of that name (cpu/wl82/tools/isd_config_rule.c, download.c), and FM-1-RE's update documents list it among the package's entries; a name stored in the package format, not taken from the emulator's code.",
+      "added_by": "session spec-a1-fwsc (spec side), 2026-10-27"
+    },
+    {
+      "sha256_16": "069eb8fccfc59d3f",
+      "reason": "The name a flash image's directory head carries for the app area, in docs/HARDWARE-SPEC.md (HW-89, HW-90, HW-93): a string stored in the update package that every load path matches, so a packager must write it (a format literal, the emulator's documented behaviour, standing emulator-only); FM-1-RE names the same table differently, which the entry notes.",
+      "added_by": "session spec-a1-fwsc (spec side), 2026-10-27"
     }
   ]
 }
