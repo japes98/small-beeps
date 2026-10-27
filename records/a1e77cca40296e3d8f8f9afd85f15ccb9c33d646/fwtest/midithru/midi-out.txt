@@ -1,0 +1,22 @@
+103.277 note-on ch 1 key 60 vel 100
+103.597 clock
+104.237 note-on ch 1 key 64 vel 100 (running status)
+106.172 note-on ch 2 key 53 vel 100
+109.069 control-change ch 1 ctrl 1 value 20
+109.881 clock
+110.841 control-change ch 5 ctrl 1 value 40
+111.970 pitch-bend ch 5 value 12000
+133.420 program-change ch 5 program 3
+165.650 note-on ch 5 key 72 vel 90
+165.970 clock
+167.099 note-off ch 5 key 72 vel 0
+169.998 note-on ch 2 key 53 vel 0
+217.871 song-position 144
+218.191 start
+219.321 note-on ch 1 key 60 vel 0
+219.961 note-on ch 1 key 64 vel 0 (running status)
+304.912 note-on ch 2 key 55 vel 100
+311.525 clock
+311.845 clock
+312.165 stop
+355.683 note-on ch 2 key 55 vel 0

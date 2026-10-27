@@ -1,0 +1,73 @@
+{
+  "fwtest": {
+    "version": "0.7.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 45224,
+    "sha256": "7c41f08af3fb45adcc557a1c91d854255338e229ca8be2e08c9cee14f1ac61c2"
+  },
+  "script_sha256": "f297f8e75fbea303d016bb2578c21c88f6848d3f40dc8e755da9d2af3dfe3563",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "2000.142",
+    "instructions": {
+      "core0": 4928101,
+      "core1": 14887
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 352812,
+        "sha256": "5ed4566c61d1c3c2bbe94016e70e04c0cc60e7b9426491069d83b7a2634710dc"
+      },
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "52a3402878b28c96cf741e470ae59ad6cf2803436c5c2d68c23e9486dcac31b0"
+      },
+      {
+        "name": "ipb.csv",
+        "bytes": 27190,
+        "sha256": "e12b114257d65ac125b67d5929f9ab272fb8fc5479f56b8dea359908ea6c6c90"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 936,
+        "sha256": "825df803c7d126a9ec822490ec35409d49663f17b34756e2589adaf928add362"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 1168,
+        "sha256": "59110b7be2db1689ec9c4216183831d5836fdd0e14d3cbed7bceee2e6a56c79f"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "8a8dee253ffa787358410ee3b594084d1493391092c0cfaf59b00a0beec143f6"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "79b0196a3c63a7b7f96c4f7f9ed986791b481fdcea9adb98c103d4ab7a896e9b"
+      },
+      {
+        "name": "ram-01c008d0-e0-end.bin",
+        "bytes": 224,
+        "sha256": "842c46de645243b84a4a13cf6c50f5cdacb82c305030daf56bc5169547d36f6b"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
