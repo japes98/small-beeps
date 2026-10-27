@@ -1837,6 +1837,138 @@ SR-3 wrote only its barrier-log row.*
   - **Disk:** 3.8 GB free at the start; 23 GB from shortly after (other
     folders on the Mac shrank meanwhile).
 
+### Session spec-answers-a1 (the owner's answers to spec-a1-fwsc's questions, a parity note)
+- Date: 2026-10-27 (UTC; the evening of 2026-10-26 local time)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.311 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `6fd5a71c-53d5-4b70-b151-fe03bb59a4cf`,
+  started by `/clear` at 03:01:44Z (banner `source: clear`,
+  `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; the role file says
+  `spec`. 03:01:56Z: `tools/spec-setup.sh`, banner `status: OK`
+  (`84a7e56c…`); main at `88bc8325` (#141 to #146 merged);
+  `tools/private-terms.local` exists (not opened). 20 GB free at the
+  start.
+- What it archived: spec-a1-fwsc's transcript (`4030c83c`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS (36 archived
+  transcripts).
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository). Never opened,
+  fetched or searched M-VAVE's stock firmware files or any disassembly of
+  them.
+- Sections 1 and 2: this repository only (its docs, and spec-a1-fwsc's
+  archived transcript for its final questions). No downloads, no other
+  source opened; nothing run but the repository's checks
+  (`check-transcripts`, `check-emulator-terms`, `check-private`).
+- Disk: 20 GB free at the start and at the end.
+
+### Session clean-a1-packager (fwtest 0.8.0's pin, the build's identity, Phase A1's `.fwsc` packager)
+- Date: 2026-10-27 (UTC; the evening of 2026-10-26 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.311 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `581bd4e1-c017-41a5-9331-a48f0fdcfc90`,
+  started by a `/clear` at 03:01:26Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `88bc832` (#146's merge) and ended "no spec-side
+  files on disk or in .git"; `tools/private-terms.local` exists (not
+  opened); lazy fetching off (`GIT_NO_LAZY_FETCH=1`). It archived
+  clean-pin-answers (`b46c273c`) into `sessions/clean/`; every other
+  clean session was already archived (M0d's live transcript's file time
+  had changed again; its entries end on 2026-10-22, as its archived
+  copy's). `tools/check-transcripts.py` failed on three of
+  clean-pin-answers' calls, each naming the spec-side folders only as
+  `:!` pathspecs that leave them out of a `git log` or `git show --stat`;
+  three reviewed entries in `sessions/REVIEWED.json`, for the owner's
+  approval; then PASS. The Mac had 20 GB free.
+- **The owner's answer 2** (this session's prompt): overnight-1025's
+  names-only listing of #137's changed files is approved and recorded as
+  it is, a real names-only listing (clean-pin-answers' entry above and its
+  `REVIEWED.json` entry), not a false positive. Neither is changed.
+- Reads: this file, CONTRIBUTING.md, sessions/README.md,
+  sessions/REVIEWED.json, clean-pin-answers' three flagged calls (in the
+  archived copy), docs/A1-PLAN.md, docs/HARDWARE-SPEC.md section 21
+  (HW-87 to HW-93), docs/HARNESS.md ("Running it", "The raw image",
+  "Packages", "Versions"), docs/RELEASING.md, docs/TOOLCHAIN.md,
+  docs/M9-PLAN.md ("The release format"), docs/REQUIREMENTS.md,
+  PROVENANCE.md, four docs on the spec side's open #148 (`docs/A1-PLAN.md`,
+  `docs/HARNESS.md`, `docs/REQUIREMENTS.md`, `docs/M9-PLAN.md`, by name
+  through GitHub's contents API, diffed against main; they change no
+  fact this session uses), and this repository's tools, tests, workflows and
+  firmware.
+- Later in the session:
+  - **fwtest 0.8.0's digest:** from the log of the image workflow's run
+    on main's `ecd9fb8` (#143's merge), through `grep -o` for the
+    published reference and fwtest's version only. The run on `fc62b76`
+    (#142's merge) was read the same way: it pushed a 0.7.0 image of
+    another digest (`26102ae9…`) than the pinned `d7804526…`.
+  - **fwtest 0.7.0 and 0.8.0** (pinned images, pulled by digest): the
+    firmware suite (with the store's cases) and the ARP suite on main's
+    image, once on each, outputs under `out/pin-check/` (gitignored),
+    compared file by file, then deleted. The first 0.7.0 firmware run
+    is void: the session changed branches while it was still building
+    its test images, so some were built from this session's A1
+    `tools/build.sh`. Two failed: test-storebusy (a shell syntax error,
+    the script replaced while it was read) and test-storewipe (the A1
+    RAM check, since narrowed to the firmware build). It was run again
+    on an untouched tree.
+  - **The spec side's open pull requests:** `gh pr view 147/148/149
+    --json files`, filtered by `jq` to paths under `docs/` and `config/`
+    and PROVENANCE.md only, so nothing else was printed; then the four
+    docs named above, by name.
+  - **A1:** the package link prototyped in a scratch copy of `firmware/`,
+    `vendor/jieli-sdk/` and the build script in the session's temporary
+    folder, then built here. fwtest 0.8.0 run on our packages and on
+    broken ones (P-62), outputs under `out/` (gitignored).
+  - **m1's record, a named file only:** `records/9fe07f8…/report.json`
+    through GitHub's contents API on the records branch, into the
+    temporary folder, for the local dry run of m1
+    (`tools/release.sh m1 --version 0.1.0`, main's tools, nothing
+    published; the record's tree hash given as 64 zeros, a stand-in, as
+    a clean folder must give it by hand). It rebuilt m1's image byte for
+    byte (`ee2ad8a0…`) and pulled fwtest 0.1.0's image by digest. The
+    `.fm1img` (`355208eb…`) copied to `~/<top>/drop/releases/`. The same
+    run on the identity branch with `GITHUB_ACTIONS=true` checked the
+    identity and built the image fresh (its release deleted); with the
+    Dockerfile hash changed by one digit it stopped before building.
+  - **`drop/releases/stand-in.fm1img`:** tested by name with `test -f`
+    (the folder not listed), then `tools/fm1img.py` on it; only its
+    reader's one-line result printed.
+  - **A blocked command:** while resolving a merge of main into
+    `a1/start`, an `ls` of the spec-side transcript folder was sent
+    together with a `grep` of docs/EXPOSURE.md. Claude Code's deny rule
+    blocked it and it never ran; nothing under the folder was listed or
+    opened. The merge itself staged #147's new spec-side transcript by
+    name (`git status` printed its two file names); its contents were
+    never on disk or in `.git` (the barrier check after the merge: 0).
+  - **Pushing:** the first pushes stopped with "could not fetch … from
+    promisor remote": git checked a branch tip GitHub advertised that this
+    folder had not fetched, and lazy fetching is off. A plain
+    `GIT_NO_LAZY_FETCH=1 git fetch -q origin` fixed it; the barrier check
+    after it found no spec-side file in `.git`. Looking for the object
+    first, `git ls-tree -r` over main's last 20 commits and `git rev-list
+    --objects --all --missing=allow-any` walked trees that include
+    spec-side paths, each piped straight into a `grep` for the one hash
+    (they printed nothing). How clean-pin-answers pushed was read from
+    its archived transcript with `git show a1/start:…` (its push
+    commands only).
+  - **#153's C-SEP-TERMS failure:** read first from `gh run view --log`
+    (result lines only), then one named file of the CI report artifact:
+    its zip fetched by GitHub's API into the temporary folder,
+    `unzip -p … logs/C-SEP-TERMS.log` (nothing else extracted), the zip
+    deleted at once. The log gives places and hashes only; the four
+    words, all names this session chose, were found by hashing the
+    flagged lines' own words, and renamed. The log copy was deleted.
+  - **Force-pushes:** none.
+  - **Disk:** 20 GB free at the start; 19 GB at the lowest.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

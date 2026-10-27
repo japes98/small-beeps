@@ -1192,6 +1192,27 @@
       "rule": "F-11",
       "reason": "`gh pr checks` of #126 and #140, `gh pr list`, then `gh pr view 137 --json files`: the changed-file list of the spec side's #137, names only, filtered with `grep -v` meant to drop spec-side paths. The filter missed one of the three folders, so four file names under a spec-side folder were printed (names only, no contents); nothing was opened or fetched. The session noted it too late for its own entry; docs/EXPOSURE.md records it (session clean-pin-answers).",
       "added_by": "session clean-pin-answers (clean side, claude-opus-5-5), 2026-10-27"
+    },
+    {
+      "session": "b46c273c-270e-40c1-b2fc-24573aac19a6",
+      "tool_use_id": "toolu_019fhtd4HKTm3sw7XBSgcWjV",
+      "rule": "F-11",
+      "reason": "`git log --format` subjects of main and origin/main, then `git show --stat` of one commit with the `:!` pathspecs that leave the three spec-side folders out. The names occur only as exclusions; nothing under them was opened, listed or fetched.",
+      "added_by": "session clean-a1-packager (clean side, claude-opus-5-5), 2026-10-27"
+    },
+    {
+      "session": "b46c273c-270e-40c1-b2fc-24573aac19a6",
+      "tool_use_id": "toolu_01Auc6zP9ofWkVyoKHyu19aJ",
+      "rule": "F-11",
+      "reason": "`git log -1 --format=%B` of one commit (its message), then `git show --stat` of it limited to tests with the `:!` pathspecs that leave the three spec-side folders out. The names occur only as exclusions; nothing under them was opened, listed or fetched.",
+      "added_by": "session clean-a1-packager (clean side, claude-opus-5-5), 2026-10-27"
+    },
+    {
+      "session": "b46c273c-270e-40c1-b2fc-24573aac19a6",
+      "tool_use_id": "toolu_014fzsqFXd4VaW6nBsijbXGw",
+      "rule": "F-11",
+      "reason": "`grep -rn` over tests/fw/scripts and tools/fw-suite.py, then `git log --all --format` subjects with `--grep`, with the `:!` pathspecs that leave the three spec-side folders out (subjects only, no file contents). The names occur only as exclusions; nothing under them was opened, listed or fetched.",
+      "added_by": "session clean-a1-packager (clean side, claude-opus-5-5), 2026-10-27"
     }
   ]
 }

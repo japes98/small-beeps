@@ -87,7 +87,7 @@ unit; nobody installs one on a unit in A1.
    Files; the firmware starts as it does from the `.fm1img` of the same
    tag. The owner records the result in the release notes. (The app's
    package path is taken to be upstream's unchanged; docs/EMULATOR-PARITY.md,
-   "Packages", asks the owner to confirm.)
+   "Packages": to confirm, asked of the app session.)
 3. **The upstream web build** (by hand, the owner, or a spec-side
    session; not the firmware side): open the `.fwsc` with the hosted
    page's "Open .fwsc…" button; the firmware starts. The page's own
@@ -111,8 +111,9 @@ passes.
   Whether a stock unit accepts them is unknown (M9-PLAN.md section 2;
   Q-26).
 - **Not used:** FM1 Open's boot and update files (M-VAVE's, Apache-2.0):
-  on hold, since the owner's A1 prompt keeps every M-VAVE binary out of
-  the repository; M-VAVE's stock package and anything from it: never.
+  the owner keeps every M-VAVE binary out of the repository, these
+  included (recorded by session spec-answers-a1); M-VAVE's stock package
+  and anything from it: never.
 - The SDK's packaging programs are Windows binaries; A1 doesn't need
   them.
 
@@ -122,6 +123,7 @@ passes.
    path; fwtest 0.8.0 is then published from main).
 2. The firmware side pins fwtest 0.7.0 (its pull request, as the owner
    decided), then 0.8.0 (a pin pull request after the image is
-   published; the owner says which side opens it).
+   published; the clean side opens it too, the owner's answer recorded
+   by session spec-answers-a1).
 3. The firmware side builds Note A1-1 and its CI case; the owner checks
    the app and the web build by hand.

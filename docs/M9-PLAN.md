@@ -221,12 +221,16 @@ Safari download opens in it directly:
   the app can open such files, not a claim to own the format, which is
   JieLi's update package (section 2). A document type for it with
   `LSHandlerRank` `Alternate`, so the app never takes over another
-  app's files.
+  app's files (the owner confirmed `Alternate`; recorded by session
+  spec-answers-a1).
 - A **document type** (`CFBundleDocumentTypes`) for `io.github.japes98.fm1img` with
   `LSHandlerRank` `Owner`, so the app is the default for it.
-- `LSSupportsOpeningDocumentsInPlace` false, so the app gets its own copy
-  (AirDrop and Mail deliver one anyway), and handles it where it handles
-  an opened URL, running the checks above.
+- `LSSupportsOpeningDocumentsInPlace` true (the app's choice, recorded
+  by session spec-answers-a1): a file opened from Files stays where it
+  is, so opened firmwares don't pile up in the app's own folder next to
+  the user's recordings. The app reads it in place, as a security-scoped
+  URL, and handles it where it handles an opened URL, running the checks
+  above. AirDrop and Mail still hand the app a copy.
 - On GitHub the file is served as `application/octet-stream`; the
   extension, not the type, makes iOS hand it to the app.
 
@@ -356,13 +360,14 @@ entries (Apache-2.0, M-VAVE's copyright as `THIRD_PARTY.md` gives it); our
 them. Nobody opens or disassembles them: they are named binaries with
 hashes, like the toolchain.
 
-**On hold (session spec-a1-fwsc):** the owner's A1 prompt says no
-M-VAVE binary goes into the repository, which this session reads as
-covering FM1 Open's boot files too, Apache-2.0 or not; so they are not
-vendored, and none of the emulated load paths needs them (HW-93). The
-candidates for a hardware package are the SDK's own `uboot.boot` and
-`ota.bin` (Apache-2.0, JieLi's), which a release package may carry with
-the SDK's licence and a `NOTICE` entry (docs/A1-PLAN.md, "Loaders").
+**Not vendored (the owner's answer, recorded by session
+spec-answers-a1):** no M-VAVE binary goes into the repository, FM1 Open's
+boot files included, Apache-2.0 or not; so the table and the vendoring
+steps above are not carried out, and none of the emulated load paths
+needs them (HW-93). The candidates for a hardware package are the SDK's
+own `uboot.boot` and `ota.bin` (Apache-2.0, JieLi's), which a release
+package may carry with the SDK's licence and a `NOTICE` entry
+(docs/A1-PLAN.md, "Loaders").
 
 ### What the firmware side would need
 
@@ -440,7 +445,8 @@ The questions were:
    the hardware package left as this plan until M10's recovery kit
    exists? (Recommended.)
 3. **Boot area.** Should a hardware package carry its own boot area
-   (`uboot.boot` and its configuration from FM1 Open) or keep the unit's
+   (the SDK's `uboot.boot` and its configuration; not FM1 Open's, the
+   owner's answer recorded by session spec-answers-a1) or keep the unit's
    stock boot area and replace only the app area, if the updater allows
    it?
 4. **The packaging tool.** JieLi's Windows tools under Wine in the pinned
