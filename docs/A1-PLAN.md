@@ -87,8 +87,8 @@ unit; nobody installs one on a unit in A1.
    Files; the firmware starts as it does from the `.fm1img` of the same
    tag. The owner records the result in the release notes. (The app's
    package path is upstream's unchanged, with checks of its own around
-   it; confirmed by the app session, 2026-10-27; docs/EMULATOR-PARITY.md,
-   "Packages".)
+   it; confirmed by the app session, 2026-10-27; HARDWARE-SPEC.md HW-94,
+   docs/EMULATOR-PARITY.md "Packages".)
 3. **The upstream web build** (by hand, the owner, or a spec-side
    session; not the firmware side): open the `.fwsc` with the hosted
    page's "Open .fwsc…" button; the firmware starts. The page's own

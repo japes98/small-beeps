@@ -37,7 +37,7 @@ them, against upstream with fwtest's 0001 and 0002.
 | 0009 | applied (`a78092f`) | The MIDI output: the UART's transmit side sends bytes at the wire's pace and keeps them with their times, and its pending flag rises when the last has gone (it used to finish at once and send nothing) | model | yes (0.5.0) | yes (harness/upstream/fm1-emu-midi-out.md) |
 | 0010 | applied (`67ae970`) | The flash chip: the P25Q80H's command rules (write enable, start on chip select high, a program wraps within its page, the other erase sizes); with a timing set, busy times (status bit 0, other commands ignored); an operations log; a power cut that keeps the part done; a record of code-window reads while busy | model | yes (0.6.0; fwtest sets the datasheet's maximum times and ends a run on window use while busy) | yes: the rules; the timing is off by default (harness/upstream/fm1-emu-flash-busy.md) |
 | 0011 | applied (`38d767a`) | A dual-issue pair whose halves write one register keeps the head's result (it kept the second half's) | bug fix | yes (0.6.0) | yes (harness/upstream/fm1-emu-pair-same-register.md) |
-| 0012 | its own (branch `stock-016`, `f60b86b`) | The USB core's register access port answers: an access is done at once, a read gives the byte last written to its index, the interrupt flags read as nothing pending (it used to keep the word as written, so every access waited out the firmware's own timeout) | model | yes (0.7.0) | yes: the app's change, which fwtest's was written from (its behaviour-only note, PROVENANCE P-59; harness/upstream/fm1-emu-usb-port.md) |
+| 0012 | its own (`f60b86b`, on its `ios-app` branch; first on `stock-016`) | The USB core's register access port answers: an access is done at once, a read gives the byte last written to its index, the interrupt flags read as nothing pending (it used to keep the word as written, so every access waited out the firmware's own timeout) | model | yes (0.7.0) | yes: the app's change, which fwtest's was written from (its behaviour-only note, PROVENANCE P-59; harness/upstream/fm1-emu-usb-port.md) |
 | none | 0006 (E) | Boot a raw image | the app's loader | no: fwtest has its own (in `harness/`, docs/HARNESS.md "The raw image") | yes |
 | none | not a patch | Two pattern guards rewritten so the crates build on an older Rust | build | no: fwtest builds on Rust 1.99 | yes |
 
@@ -76,7 +76,7 @@ the other board).
 **The app's path (confirmed).** From the app session's own description,
 relayed by the owner on 2026-10-27 (recorded by session spec-1027; this
 side doesn't open the app's branch, and the description is of behaviour
-only): the app loads a `.fwsc` through upstream's package reader, the
+only; HARDWARE-SPEC.md HW-94): the app loads a `.fwsc` through upstream's package reader, the
 conversion to the flash image and the stock boot, all unchanged from
 upstream `43ed558`. Around them:
 

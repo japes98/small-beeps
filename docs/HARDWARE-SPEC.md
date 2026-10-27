@@ -1774,7 +1774,7 @@ has (HARNESS.md, "USB").
 What a JieLi update package for the FM-1 is, byte by byte, as far as the
 allowed sources give it, and what each step that loads one checks: the
 emulator's package path (which the upstream web build and fwtest's
-`--package` share, and the F-Emulator app is taken to; HW-93) and the chip's own chain
+`--package` share, and the F-Emulator app too, HW-93 and HW-94) and the chip's own chain
 (HW-92). Written by session spec-a1-fwsc for a packager of our own
 (docs/A1-PLAN.md). No stock package was opened for it; what only a stock
 file could show is left open (Q-25, Q-26). HW-91 corrects HW-81's
@@ -2048,14 +2048,33 @@ named; all multi-byte fields are little-endian.
 - Sources: the emulator's package path (vendor/emulator, read for this);
   HARNESS ("Packages"); fwtest's harness tests on test packages made from
   HW-87 to HW-91 alone (harness/tests/). The app's part, "for the owner
-  to confirm" above, is **confirmed** by the app session's own
-  description of its path (behaviour only; the owner's relay,
-  2026-10-27, recorded by session spec-1027): the reader, the conversion
-  to the flash image and the stock boot unchanged from upstream
-  `43ed558`, with checks of its own around them (EMULATOR-PARITY.md,
-  "Packages"). The fact's text is left as written (a fact is never
-  edited in place).
+  to confirm" above, is settled by HW-94 (2026-10-27); the fact's text
+  is left as written.
 - Standing: emulator-only (with the harness's own tests)
+- Needed by: A1
+
+### HW-94: The F-Emulator app's package path
+- Fact: The F-Emulator app loads a package through the emulator crates'
+  package reader, their conversion to the flash image and their stock
+  boot, all unchanged from upstream `43ed558`, so a package boots in it as
+  in the upstream web build (HW-93's checks and boot). Around them, the
+  app adds checks of its own:
+  1. Before the reader, it refuses, with a message, a file over 16 MiB, a
+     package under 960 bytes or over 8 MiB, a catalog download whose
+     SHA-256 differs from the catalog's, and an M-VAVE version newer than
+     015 (by the package's own name).
+  2. A package that crashes the reader is refused as malformed.
+  3. It loads no patch bank of its own into the user-patch area (`USR`,
+     HW-80); the defaults are filled as upstream does.
+  4. After boot, the firmware's own saved flash sectors are written over
+     the image, after checks: whole 4 KiB sectors, in range, none
+     repeated.
+  It then runs the interpreted CPU, with idle skipping, each firmware at
+  its own measured clock. This settles HW-93's "for the owner to confirm".
+- Sources: the app session's own description of its path, behaviour only,
+  relayed by the owner on 2026-10-27 (recorded by session spec-1027; this
+  side doesn't open the app's branch); EMULATOR-PARITY.md, "Packages".
+- Standing: emulator-only (the app's own report)
 - Needed by: A1
 
 ## Open questions
