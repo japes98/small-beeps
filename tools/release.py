@@ -71,6 +71,13 @@ DRY_RUN = "local-dry-run:"
 LOCAL_ID = re.compile(r"^" + DRY_RUN + r"sha256:[0-9a-f]{64}$")
 
 
+def package_identity(version):
+    """The .fwsc's identity: small-beeps-<version>, or small-beeps where
+    that is longer than a package's 19 characters (HW-88)."""
+    i = "%s-%s" % (NAME, version)
+    return i if len(i) <= fwsc.IDENTITY_MAX else NAME
+
+
 def sha256(b):
     return hashlib.sha256(b).hexdigest()
 
@@ -253,7 +260,7 @@ def build(a):
     pkg = os.path.join(a.build, "app-pkg.bin")
     if os.path.exists(pkg):
         try:
-            out[fn["fwsc"]] = fwsc.pack(read(pkg), "%s-%s" % (NAME, a.version))
+            out[fn["fwsc"]] = fwsc.pack(read(pkg), package_identity(a.version))
         except ValueError as e:
             return ["%s: %s" % (fn["fwsc"], e)]
     os.makedirs(a.out, exist_ok=True)
@@ -297,7 +304,7 @@ def verify(d, publish=False):
     if os.path.exists(os.path.join(d, fn["fwsc"])):
         try:
             r = fwsc.check(read(os.path.join(d, fn["fwsc"])))
-            if r["identity"] != "%s-%s" % (NAME, meta["version"]):
+            if r["identity"] != package_identity(meta["version"]):
                 p.append("%s: identity %r, not this release's" % (fn["fwsc"], r["identity"]))
         except ValueError as e:
             p.append("%s: check %s" % (fn["fwsc"], e))
