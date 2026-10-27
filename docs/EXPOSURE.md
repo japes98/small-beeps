@@ -1704,6 +1704,28 @@ SR-3 wrote only its barrier-log row.*
   at the lowest (other folders on the Mac grew meanwhile), 3.9 GB at the
   end.
 
+### Session spec-a1-fwsc (the owner's answers to spec-overnight-1025, Phase A1: our firmware as a `.fwsc` package)
+- Date: 2026-10-27 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.311 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `4030c83c-4fbc-479f-8903-779f366fe66d`,
+  started by `/clear` at 01:18:21Z (banner `source: clear`,
+  `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; 01:19:05Z:
+  `tools/spec-setup.sh` on main at `90827129`, banner `status: OK`
+  (`84a7e56c…`); `tools/private-terms.local` exists (not opened). 2.8 GB
+  free at the start.
+- What it archived: spec-overnight-1025's transcript (`98ff9a1a`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS (34 archived
+  transcripts).
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository). Never opened,
+  fetched or searched M-VAVE's stock firmware files or any disassembly of
+  them.
+- (Filled in as the session goes; finished at its end.)
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
