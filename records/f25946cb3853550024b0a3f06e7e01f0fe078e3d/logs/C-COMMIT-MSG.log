@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 80dfdff2c348903cc64981324675d781166aee20..f25946cb3853550024b0a3f06e7e01f0fe078e3d
+OK     97658db509fa firmware: no clock out of ours while a MIDI clock comes in, followed or not
+EXEMPT f25946cb3853 (merge) Merge pull request #139 from japes98/arp/clock-out-quiet
+2 commit(s) checked: PASS
+
+exit status 0
