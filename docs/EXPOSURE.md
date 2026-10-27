@@ -1903,6 +1903,52 @@ SR-3 wrote only its barrier-log row.*
   through GitHub's contents API, diffed against main; they change no
   fact this session uses), and this repository's tools, tests, workflows and
   firmware.
+- Later in the session:
+  - **fwtest 0.8.0's digest:** from the log of the image workflow's run
+    on main's `ecd9fb8` (#143's merge), through `grep -o` for the
+    published reference and fwtest's version only. The run on `fc62b76`
+    (#142's merge) was read the same way: it pushed a 0.7.0 image of
+    another digest (`26102ae9…`) than the pinned `d7804526…`.
+  - **fwtest 0.7.0 and 0.8.0** (pinned images, pulled by digest): the
+    firmware suite (with the store's cases) and the ARP suite on main's
+    image, once on each, outputs under `out/pin-check/` (gitignored),
+    compared file by file, then deleted. The first 0.7.0 firmware run
+    is void: the session changed branches while it was still building
+    its test images, so some were built from this session's A1
+    `tools/build.sh` (one failed); it was run again on an untouched
+    tree.
+  - **A1:** the package link prototyped in a scratch copy of `firmware/`,
+    `vendor/jieli-sdk/` and the build script in the session's temporary
+    folder, then built here. fwtest 0.8.0 run on our packages and on
+    broken ones (P-62), outputs under `out/` (gitignored).
+  - **m1's record, a named file only:** `records/9fe07f8…/report.json`
+    through GitHub's contents API on the records branch, into the
+    temporary folder, for the local dry run of m1
+    (`tools/release.sh m1 --version 0.1.0`, main's tools, nothing
+    published; the record's tree hash given as 64 zeros, a stand-in, as
+    a clean folder must give it by hand). It rebuilt m1's image byte for
+    byte (`ee2ad8a0…`) and pulled fwtest 0.1.0's image by digest. The
+    `.fm1img` (`355208eb…`) copied to `~/<top>/drop/releases/`. The same
+    run on the identity branch with `GITHUB_ACTIONS=true` checked the
+    identity and built the image fresh (its release deleted); with the
+    Dockerfile hash changed by one digit it stopped before building.
+  - **`drop/releases/stand-in.fm1img`:** tested by name with `test -f`
+    (the folder not listed), then `tools/fm1img.py` on it; only its
+    reader's one-line result printed.
+  - **A blocked command:** while resolving a merge of main into
+    `a1/start`, an `ls` of the spec-side transcript folder was sent
+    together with a `grep` of docs/EXPOSURE.md. Claude Code's deny rule
+    blocked it and it never ran; nothing under the folder was listed or
+    opened. The merge itself staged #147's new spec-side transcript by
+    name (`git status` printed its two file names); its contents were
+    never on disk or in `.git` (the barrier check after the merge: 0).
+  - **Pushing:** the first pushes stopped with "could not fetch … from
+    promisor remote": git checked a branch tip GitHub advertised that this
+    folder had not fetched, and lazy fetching is off. A plain
+    `GIT_NO_LAZY_FETCH=1 git fetch -q origin` fixed it; the barrier check
+    after it found no spec-side file in `.git`.
+  - **Force-pushes:** none.
+  - **Disk:** 20 GB free at the start; 19 GB at the lowest.
 
 ## Corrections
 
