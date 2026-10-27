@@ -1115,6 +1115,48 @@
       "rule": "F-9",
       "reason": "Appends a line to the session's memory index whose text names the folder (a note to fetch only named files from CI artifacts), then checks a PR's CI and the free disk. Nothing under the folder was opened, listed or fetched.",
       "added_by": "session M8a (clean side, claude-opus-5-5), 2026-10-25"
+    },
+    {
+      "session": "cd24c9a8-eea5-478d-999a-cfff4f352a34",
+      "tool_use_id": "toolu_01GZbM8XNgckbeuwMT8thJ2F",
+      "rule": "F-8",
+      "reason": "A `git worktree add --no-checkout` of a new branch into the session's temporary folder, then `git sparse-checkout set` with patterns that leave the three spec-side folders out before the first checkout, then `ls` of the worktree's top level, vendor/ and sessions/ to confirm they are absent. The names occur only as exclusions; nothing under them was opened, listed or fetched.",
+      "added_by": "session overnight-1025 (clean side, claude-opus-5-5), 2026-10-26"
+    },
+    {
+      "session": "cd24c9a8-eea5-478d-999a-cfff4f352a34",
+      "tool_use_id": "toolu_01GZbM8XNgckbeuwMT8thJ2F",
+      "rule": "F-9",
+      "reason": "A `git worktree add --no-checkout` of a new branch into the session's temporary folder, then `git sparse-checkout set` with patterns that leave the three spec-side folders out before the first checkout, then `ls` of the worktree's top level, vendor/ and sessions/ to confirm they are absent. The names occur only as exclusions; nothing under them was opened, listed or fetched.",
+      "added_by": "session overnight-1025 (clean side, claude-opus-5-5), 2026-10-26"
+    },
+    {
+      "session": "cd24c9a8-eea5-478d-999a-cfff4f352a34",
+      "tool_use_id": "toolu_01GZbM8XNgckbeuwMT8thJ2F",
+      "rule": "F-11",
+      "reason": "A `git worktree add --no-checkout` of a new branch into the session's temporary folder, then `git sparse-checkout set` with patterns that leave the three spec-side folders out before the first checkout, then `ls` of the worktree's top level, vendor/ and sessions/ to confirm they are absent. The names occur only as exclusions; nothing under them was opened, listed or fetched.",
+      "added_by": "session overnight-1025 (clean side, claude-opus-5-5), 2026-10-26"
+    },
+    {
+      "session": "cd24c9a8-eea5-478d-999a-cfff4f352a34",
+      "tool_use_id": "toolu_01STp553ApDK1Z1V75NkrBBP",
+      "rule": "F-8",
+      "reason": "A `git worktree add --no-checkout` of an existing branch into the session's temporary folder, `git sparse-checkout set` with patterns that leave the three spec-side folders out, then `ls -d` of the three names to confirm none is on disk (it lists no contents), then edits to a suite file and tools/fw-suite.py. Nothing under the folders was opened, listed or fetched.",
+      "added_by": "session overnight-1025 (clean side, claude-opus-5-5), 2026-10-26"
+    },
+    {
+      "session": "cd24c9a8-eea5-478d-999a-cfff4f352a34",
+      "tool_use_id": "toolu_01STp553ApDK1Z1V75NkrBBP",
+      "rule": "F-9",
+      "reason": "A `git worktree add --no-checkout` of an existing branch into the session's temporary folder, `git sparse-checkout set` with patterns that leave the three spec-side folders out, then `ls -d` of the three names to confirm none is on disk (it lists no contents), then edits to a suite file and tools/fw-suite.py. Nothing under the folders was opened, listed or fetched.",
+      "added_by": "session overnight-1025 (clean side, claude-opus-5-5), 2026-10-26"
+    },
+    {
+      "session": "cd24c9a8-eea5-478d-999a-cfff4f352a34",
+      "tool_use_id": "toolu_01STp553ApDK1Z1V75NkrBBP",
+      "rule": "F-11",
+      "reason": "A `git worktree add --no-checkout` of an existing branch into the session's temporary folder, `git sparse-checkout set` with patterns that leave the three spec-side folders out, then `ls -d` of the three names to confirm none is on disk (it lists no contents), then edits to a suite file and tools/fw-suite.py. Nothing under the folders was opened, listed or fetched.",
+      "added_by": "session overnight-1025 (clean side, claude-opus-5-5), 2026-10-26"
     }
   ]
 }
