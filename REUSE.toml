@@ -82,11 +82,13 @@ SPDX-FileCopyrightText = "2026 japes98"
 SPDX-License-Identifier = "MIT"
 
 # The harness's generated and binary files: test images built from the
-# sources beside them, golden outputs, test data, the lockfile.
+# sources beside them, golden outputs, test data, the test package made
+# by tests/package.rs, the lockfile.
 [[annotations]]
 path = [
   "harness/Cargo.lock",
   "harness/tests/images/*.bin",
+  "harness/tests/packages/*.fwsc",
   "harness/tests/images/SHA256SUMS",
   "harness/tests/golden/**",
   "harness/tests/data/**",

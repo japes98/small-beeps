@@ -244,6 +244,10 @@ lets the tests and the app's author agree on them.
 Not in M9 (answer 2): this section stays a plan until M10, which decides
 the boot area, the packaging tool and the version scheme (answers 3, 4
 and 6). A package keeps the stock user-patch region untouched (answer 5).
+Phase A1 (docs/A1-PLAN.md, session spec-a1-fwsc) comes first: our
+firmware as a standard package for the emulated load paths only, from
+HARDWARE-SPEC.md HW-87 to HW-93, which correct two points below (the
+CRC's start value, the window's address).
 
 ### What a stock package is
 
@@ -258,13 +262,15 @@ From RE `docs/architecture.md` §2 and `docs/io/11-ota-protocol.md`:
 - The header is encrypted with the fixed header key `0xFFFF` and holds a
   header CRC, a list CRC, the image size, the entry count and eight
   entries: `flash.bin`, `info.log`, `USR`, the loader's configuration
-  file (an `.ini`), `ota.bin`, `script.ver`, `blimit.bin`, `tail.bin`. CRCs are JieLi's CRC-16
-  (CRC-16/CCITT-FALSE).
+  file (an `.ini`), `ota.bin`, `script.ver`, `blimit.bin`, `tail.bin`. CRCs are JieLi's CRC-16,
+  with the CRC-16/XMODEM parameters (starting from 0), not CCITT-FALSE as
+  first written here after RE (HW-87).
 - `flash.bin` is the flash image from `0x00000` to `0x93FFF` (HW-80): a
   flash header, the second-stage loader `uboot.boot` from `0x000A0`, the
   loader's configuration (the same `.ini`, which carries the chip key
   `0x980F`) from `0x038D0`, then from `0x04000` the app area: a file
-  directory, `app.bin` from `0x04120`, `cfg_tool.bin`, and a `cfg` entry.
+  directory, `app.bin` from `0x04120` (window address `0x02000120`,
+  HW-91), `cfg_tool.bin`, and a `cfg` entry.
   The app area is encrypted with the chip key (HW-81).
 - `ota.bin` in the package is the update loader the device stages: a
   nested bootable image (`usb_hid_ota.bin`, LZ4-compressed blocks, two
@@ -350,6 +356,14 @@ entries (Apache-2.0, M-VAVE's copyright as `THIRD_PARTY.md` gives it); our
 them. Nobody opens or disassembles them: they are named binaries with
 hashes, like the toolchain.
 
+**On hold (session spec-a1-fwsc):** the owner's A1 prompt says no
+M-VAVE binary goes into the repository, which this session reads as
+covering FM1 Open's boot files too, Apache-2.0 or not; so they are not
+vendored, and none of the emulated load paths needs them (HW-93). The
+candidates for a hardware package are the SDK's own `uboot.boot` and
+`ota.bin` (Apache-2.0, JieLi's), which a release package may carry with
+the SDK's licence and a `NOTICE` entry (docs/A1-PLAN.md, "Loaders").
+
 ### What the firmware side would need
 
 - **The packaging tool.** JieLi's tools are Windows programs with no
@@ -357,16 +371,17 @@ hashes, like the toolchain.
   Linux container needs Wine, or a reimplementation of the package format
   from RE's description (the UFW header, the 48-byte blocks, the CRCs,
   the chip-key cipher of the app area). A reimplementation is ours and
-  testable; but the chip-key cipher is described in FM-1-RE only by name
-  (`jl_sfc_cipher`, base `0x4000`), not as a specification, so it would
-  need a spec request first, and possibly the SDK's prebuilt code, which
-  the firmware side may not read. The safer first step is the SDK's own
+  testable; the chip-key cipher, which FM-1-RE names only, is now
+  HW-90 (from the emulator's documented behaviour, emulator-only), so
+  Phase A1's packer needs no spec request for the emulated paths; whether
+  the chip accepts it is Q-26. The safer first step for hardware is the SDK's own
   tool under Wine, pinned by hash, as a build step (question 4; decided
   at M10, leaning towards our own packer).
 - **What the image must be on the chip,** none of which fwtest checks:
-  the app area starts at `0x04120`, so the code window's address
-  `0x02000000` is chip offset `0x4120` (HW-81), not `0x4000` as in
-  fwtest; the loader passes a boot block in r0 (HW-4, Q-11); the window
+  the window starts at the app area, flash `0x4000`, and the app, at
+  `0x4120`, runs from `0x02000120`, so a package's app is linked there,
+  not at `0x02000000` as fwtest's raw image is (HW-91, which supersedes
+  HW-81's `0x4120`); the loader passes a boot block in r0 (HW-91, Q-11); the window
   is cached and encrypted (HW-81, HW-84); start-up must leave the flash's
   pins alone (HW-85). A spec request before M9's hardware half: what the
   loader expects at the app's first bytes (the stock app's header), and

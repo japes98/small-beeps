@@ -52,6 +52,19 @@ with them, fwtest's three apply with line offsets only, the crates' own
 tests pass, and the core crate is then byte for byte fwtest's. fwtest's
 three need nothing newer than the Rust the app builds with.
 
+## Packages
+
+Both load an update package (`.fwsc`) through upstream's package reader,
+which no patch here changes; so does the upstream web build, whose page
+boots every firmware from its package through the same crates (its
+`web/fwsc.js` at the pinned commit, read for Phase A1; PROVENANCE P-60).
+fwtest does so from 0.8.0 (`--package`, docs/HARNESS.md "Packages"),
+with checks of its own on top and without the stock-firmware extras the
+app and the web build add (a default patch bank in a blank user region,
+the other board). Whether the app's package path is upstream's unchanged
+is the owner's to confirm; this side doesn't open the app's branch.
+docs/A1-PLAN.md tests a package of ours in all three.
+
 ## How each was checked
 
 - **0004 (the pair heads).** From the vendor toolchain (PROVENANCE P-40):

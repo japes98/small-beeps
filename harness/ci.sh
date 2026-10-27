@@ -13,7 +13,8 @@
 #                                    container, harness/tests mounted
 #                                    read-only at MOUNT; outputs in OUT
 #   harness/ci.sh scope              the harness never uses the vendored
-#                                    crates' update-package or stock-boot paths
+#                                    crates' stock-boot path or other boards
+#                                    (packages only through their reader)
 #   harness/ci.sh context            write the build context (a tar) to stdout
 set -eu
 
@@ -77,8 +78,14 @@ case "${1:-}" in
             suite "$mount/harness.suite" --out /out/suite ;;
     scope)
         # file names and counts only: CI logs must not quote harness or emulator source
-        if grep -c -E 'fwsc|stock_from_package|stock_boot|write_boot_info|smk|Smk37|flaky' "$ROOT"/harness/src/*.rs | grep -v ':0$'; then
-            echo "scope: FAIL, the harness names the update-package, stock-boot or other-board paths" >&2
+        # since A1 a package goes through the reader (fwsc::unpack) and the boot
+        # block (write_boot_info) only, never the stock path's extras
+        if grep -c -E 'stock_from_package|stock_boot|usr_fill_defaults|usr_load_syx|usr_offset|smk|Smk37|flaky' "$ROOT"/harness/src/*.rs | grep -v ':0$'; then
+            echo "scope: FAIL, the harness names the stock-boot or other-board paths" >&2
+            exit 1
+        fi
+        if grep -o -h -E 'fwsc::[a-z_]+' "$ROOT"/harness/src/*.rs | sort -u | grep -v -x -E 'fwsc::unpack'; then
+            echo "scope: FAIL, the harness uses more of the package module than its reader" >&2
             exit 1
         fi
         echo "scope: PASS (harness/src uses none of them)" ;;
