@@ -1858,6 +1858,11 @@ SR-3 wrote only its barrier-log row.*
   `harness/`, the pinned toolchain, this repository). Never opened,
   fetched or searched M-VAVE's stock firmware files or any disassembly of
   them.
+- Sections 1 and 2: this repository only (its docs, and spec-a1-fwsc's
+  archived transcript for its final questions). No downloads, no other
+  source opened; nothing run but the repository's checks
+  (`check-transcripts`, `check-emulator-terms`, `check-private`).
+- Disk: 20 GB free at the start and at the end.
 
 ## Corrections
 
