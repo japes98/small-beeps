@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 0c34e1f251c8bc1d3041da3e89666447e5b93d64..d28ec99c5fca38f8b909a8188d7c3ea168bce343
+OK     34d79620f594 harness: fwtest 0.7.0, the USB core's register access port answers
+OK     2d72d05b43bb docs: HW-86 keeps to its sources; the app parity note lists 0012
+EXEMPT c4c17d2777fc (merge) sessions: spec/start-1025b merged in, with the clean side's overnight-1025 chain
+OK     fa78bfcb96c6 docs: spec-overnight-1025's exposure entry finished (the watch, the merges)
+EXEMPT d28ec99c5fca (merge) Merge pull request #137 from japes98/spec/usb-port
+5 commit(s) checked: PASS
+
+exit status 0

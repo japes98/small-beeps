@@ -1,0 +1,11 @@
+{
+  "commit": "0000000000000000000000000000000000000000",
+  "environment": {
+    "build_image_id": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "outputs": {
+    "app.bin": "7c41f08af3fb45adcc557a1c91d854255338e229ca8be2e08c9cee14f1ac61c2",
+    "app.elf": "ff2ca7a616e40b929e92119dfdb5afa597c9a4a83e2b032a12ac23dddf5205b6"
+  },
+  "overall": "PASS"
+}
