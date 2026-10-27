@@ -54,7 +54,22 @@ class EndTest(unittest.TestCase):
                 self.assertEqual(gt.check_end("x", d, want)[0], [])
                 p, _ = gt.check_end("x", d, t)
                 if p:
-                    self.assertIn("try --ms %s" % gt.fmt_ms(want), p[0])
+                    self.assertIn("fix: replace --ms %s with --ms %s" % (gt.fmt_ms(t), gt.fmt_ms(want)), p[0])
+
+    def test_a_failed_end_says_the_exact_fix_and_where(self):
+        # The owner's answer (2026-10-26): the check keeps failing CI, and
+        # its message gives the replacement --ms in one step.
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "ipb.csv"), "w") as f:
+                f.write("block,end_ms,core0,core1\n")
+                for k, e in enumerate(self.ENDS):
+                    f.write("%d,%.3f,1,1\n" % (k, e))
+            t = round(self.ENDS[20] + 0.05, 3)
+            want = gt.fmt_ms(gt.suggest_end(self.ENDS, t))
+            p, _ = gt.check_end("x", d, t, lambda ms: "in FILE, line 7: change --ms %s to --ms %s" % (gt.fmt_ms(t), ms))
+            self.assertEqual(len(p), 1)
+            self.assertTrue(p[0].endswith("fix: in FILE, line 7: change --ms %s to --ms %s" % (gt.fmt_ms(t), want)), p[0])
+            self.assertEqual(gt.check_end("x", d, float(want))[0], [])
 
     def test_no_ipb_no_check(self):
         with tempfile.TemporaryDirectory() as d:

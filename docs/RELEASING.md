@@ -34,32 +34,38 @@ so the same tag gives the same bytes (R-REL-1).
    audit; `tools/reproduce <commit>` says REPRODUCED).
 2. **Its version is listed.** A pull request adds the tag and its version
    to `config/releases.json` (`"m9": "0.9.0"` is there already). A tag not
-   listed gets no release.
-3. **Sign and push the tag** on that commit, as CONTRIBUTING.md says
+   listed gets no release: the workflow's run for it says so in a notice
+   and succeeds, building nothing. m2 to m8 stay unlisted (the owner's
+   answer, 2026-10-26).
+3. **The build image is pinned** (`config/build-image`; "The build
+   image", below). Until it is, the workflow stops at the build.
+4. **Sign and push the tag** on that commit, as CONTRIBUTING.md says
    ("SSH signing for milestone tags"): `git tag -s m9 -m "m9"`, then
    `git push origin m9`. GitHub must show it as **Verified**.
-4. **The release workflow** (`.github/workflows/release.yml`) runs on the
+5. **The release workflow** (`.github/workflows/release.yml`) runs on the
    tag's push. It:
+   - takes the version from `config/releases.json` (main's), and skips
+     a tag it doesn't list, with a notice;
    - checks the tag is annotated and that GitHub verifies its signature,
      and refuses it otherwise;
-   - takes the version from `config/releases.json` (main's);
    - reads the record `records/<commit>/report.json` from the records
      branch, and the SHA-256 of the record's `SHA256SUMS`
      (`record.tree_sha256`; the audit adds files beside it later, never to
      it);
    - exports the tag's files (`tools/reproduce`'s way: never the
      spec-side folders) and builds them twice with the tag's own
-     `tools/build.sh`, at two source paths: the same bytes, and the
-     record's;
+     `tools/build.sh`, at two source paths, in the build image pinned by
+     registry digest: the same bytes, and the record's;
    - asks the record's fwtest image for its version;
    - runs `tools/release.py build` twice (the same bytes), then
      `tools/release.py verify` and `tools/fm1img.py` (the app's checks, in
      the app's order);
-   - uploads the files as the run's artifact, then attaches them to the
-     tag's GitHub release. If the release doesn't exist yet it makes it,
+   - uploads the files as the run's artifact, then, if `release.json`'s
+     `build.container` is a registry digest (never a local dry run's),
+     attaches them to the tag's GitHub release. If the release doesn't exist yet it makes it,
      as a **draft**, with `gh release create --verify-tag`, which refuses
      to make a tag. It never replaces a file a release already has.
-5. **Publish the draft** after a look: its title, the notes (they list
+6. **Publish the draft** after a look: its title, the notes (they list
    SHA256SUMS), the files. Add the milestone's own notes as for m0
    and m1 if wanted.
 
@@ -69,10 +75,34 @@ at "no record": run the workflow again by hand (Actions, "release",
 same by hand works for any listed, signed tag; with "publish" unticked
 it only makes the artifact.
 
-Tags m2 and later were not signed when this was written (2026-10-26),
-and none is listed in `config/releases.json`, so none gets a release
-until the owner signs it and lists it. The m0 and m1 releases were made
-by hand and are left as they are.
+Tags m2 to m8 get no app release (the owner's answer, 2026-10-26): they
+stay out of `config/releases.json`, and a push of one of them runs the
+workflow to a notice and a success. The m0 and m1 releases were made by
+hand and are left as they are.
+
+## The build image
+
+`release.json`'s `build.container` names the build container the image
+was built in (the owner's answer, 2026-10-26):
+
+- **In CI** (the release workflow), the build image pinned by registry
+  digest in `config/build-image` (main's): `tools/release.sh` pulls it by
+  that digest, checks that its label `small-beeps.dockerfile-sha256` is
+  the SHA-256 of the tag's own `tools/Dockerfile`, names it as the tag's
+  build script names its image (so the build runs in it), and records
+  the digest (`ghcr.io/...@sha256:<64 hex>`). With no image pinned it
+  stops, saying why.
+- **By hand** it is a local dry run: the local image `tools/build.sh`
+  builds, its ID recorded as `local-dry-run:sha256:<64 hex>`. The script
+  prints `DRY RUN`, `tools/release.py verify --publish` refuses such a
+  release, and the workflow's publish job never attaches one. Format 1.0
+  lets a writer add no field, so the mark is in the field's value.
+
+**Not pinned yet.** The build image holds JieLi's toolchain, whose
+licence terms are unknown, and docs/TOOLCHAIN.md keeps it off every
+registry. So `config/build-image` says `unpublished`, and a CI release
+stops at the build until the owner decides how the image is to be
+pinned (docs/PLAN.md, M9's open items). Local dry runs work as before.
 
 ## Checking one (anyone)
 
@@ -97,11 +127,19 @@ Then check it is the tag's build:
   PASS.
 
 Or make the whole release again, byte for byte:
-`tools/release.sh m9 --out DIR`, then compare the two folders. In a clean
-folder, which never fetches the records branch and of a record fetches
-only `report.json`, `report.md` and logs, give `--report` (that
-`report.json`, fetched by name) and `--record-sums-sha256` (the
-release's `record.tree_sha256`).
+`tools/release.sh m9 --out DIR`, then compare the two folders (all but
+`release.json`'s `build.container`, the `.fm1img` and `SHA256SUMS` match
+unless it runs in the same pinned image; the image, ELF and SBOM always
+do).
+
+**`record.tree_sha256` in a clean folder.** The workflow reads it in CI,
+from the records branch. A clean folder never fetches that branch, and
+it is not added to the clean folder's allowed fetches (a wholesale
+fetch of it once brought spec-side files into one; docs/EXPOSURE.md,
+M1, and the owner's answer, 2026-10-26). So by hand, only for a local
+dry run: give `--report` (the record's `report.json`, fetched by name)
+and `--record-sums-sha256` (the hash, from the release's
+`record.tree_sha256` or a milestone's release notes).
 
 ## Loading one into the app
 

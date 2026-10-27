@@ -866,7 +866,8 @@ def run(image, out, only=None, write_golden=False, replace=False):
     for c, d, code, log in results:
         p = common(c.name, d, code, log)
         # The timing goldens' policy (tools/goldtime.py): the end clear of the blocks.
-        p += goldtime.check_end(c.name, d, c.ms)[0]
+        p += goldtime.check_end(c.name, d, c.ms,
+                                lambda ms, n=c.name: 'in tools/arp_suite.py, END_MS: set "%s": %s' % (n, ms))[0]
         if not p:
             try:
                 more, l2 = c.check(c.name, d)

@@ -34,8 +34,9 @@ class ReleaseTest(unittest.TestCase):
     """Requirements: R-REL-1, R-REL-2"""
 
     COMMIT = "1" * 40
+    PINNED = "ghcr.io/o/r-build@sha256:" + "5" * 64
 
-    def make(self, d, name, report=None, version="0.9.0"):
+    def make(self, d, name, report=None, version="0.9.0", container=PINNED):
         build = os.path.join(d, "build")
         if not os.path.exists(build):
             fake_build(build)
@@ -44,7 +45,7 @@ class ReleaseTest(unittest.TestCase):
             json.dump(report or report_of(build, self.COMMIT), f)
         a = argparse.Namespace(tag="m9", version=version, commit=self.COMMIT, src=ROOT, build=build, report=rp,
                                record_sums_sha256="3" * 64, fwtest_version="fwtest 0.6.0 (emulator 43ed55800648)",
-                               created="2026-10-26T00:00:00Z", out=os.path.join(d, name))
+                               created="2026-10-26T00:00:00Z", build_container=container, out=os.path.join(d, name))
         return rel.build(a), a.out
 
     def test_reproducible_byte_for_byte_and_verified(self):
@@ -116,6 +117,31 @@ class ReleaseTest(unittest.TestCase):
         m["later"] = 1                        # a reader ignores a field it doesn't know
         self.assertEqual(fm.field_problems(m), [])
 
+    def test_the_build_image_a_ci_release_names_and_a_dry_runs_mark(self):
+        # The owner's answer (2026-10-26): in CI the build image pinned by
+        # registry digest, recorded; a local image's ID only in a local dry
+        # run, marked as one, and never published.
+        with tempfile.TemporaryDirectory() as d:
+            p, o = self.make(d, "ci")
+            self.assertEqual(p, [])
+            self.assertEqual(json.load(open(os.path.join(o, "release.json")))["build"]["container"], self.PINNED)
+            self.assertEqual(rel.verify(o, publish=True), [])
+            local = rel.DRY_RUN + "sha256:" + "6" * 64
+            p, o = self.make(d, "local", container=local)
+            self.assertEqual(p, [])
+            self.assertEqual(json.load(open(os.path.join(o, "release.json")))["build"]["container"], local)
+            self.assertEqual(rel.verify(o), [])
+            self.assertIn("dry run", " ".join(rel.verify(o, publish=True)))
+            for bad in ("sha256:" + "6" * 64, "small-beeps-build:2f1adc7009fddc03", "ghcr.io/o/r-build:latest"):
+                self.assertTrue(self.make(d, "bad", container=bad)[0], bad)
+            self.assertFalse(os.path.exists(os.path.join(d, "bad")))
+
+    def test_no_build_image_is_pinned_until_the_owner_decides(self):
+        with open(os.path.join(ROOT, "config", "build-image")) as f:
+            pin = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+        self.assertEqual(len(pin), 1)
+        self.assertTrue(pin[0] == "unpublished" or rel.REGISTRY_REF.match(pin[0]), pin[0])
+
     def test_releases_list_starts_at_0_9_0(self):
         v = json.load(open(os.path.join(ROOT, "config", "releases.json")))["versions"]
         self.assertEqual(v.get("m9"), "0.9.0")
@@ -186,6 +212,32 @@ class WorkflowTest(unittest.TestCase):
         self.assertNotIn("git push", wf + sh)
         self.assertNotIn("--clobber", wf)
         self.assertIn(".verification.verified", sh)
+
+    def test_a_tag_not_listed_is_skipped_with_a_notice(self):
+        # The owner's answer (2026-10-26): m2 to m8 get no versions; their
+        # tags' runs succeed, saying why nothing was built.
+        wf = open(os.path.join(ROOT, ".github", "workflows", "release.yml")).read()
+        build = wf[wf.index("\n  build:"):wf.index("\n  publish:")]
+        steps = build.split("\n      - ")[1:]
+        tag = [i for i, st in enumerate(steps) if st.startswith("name: The tag")][0]
+        self.assertIn("config/releases.json", steps[tag])
+        self.assertIn("::notice::", steps[tag])
+        self.assertIn('echo "skip=true" >> "$GITHUB_OUTPUT"\n            exit 0', steps[tag])
+        self.assertLess(steps[tag].index("skip=true"), steps[tag].index("git fetch"))
+        for st in steps[tag + 1:]:
+            self.assertIn("if: steps.tag.outputs.skip == 'false'", st, st.splitlines()[0])
+        self.assertIn("if: needs.build.outputs.skip == 'false' &&", wf[wf.index("\n  publish:"):])
+
+    def test_ci_builds_in_the_pinned_image_and_publishes_only_its_releases(self):
+        wf = open(os.path.join(ROOT, ".github", "workflows", "release.yml")).read()
+        sh = open(os.path.join(ROOT, "tools", "release.sh")).read()
+        self.assertIn('"$ROOT/config/build-image"', sh)
+        self.assertIn('if [ "${GITHUB_ACTIONS:-}" = true ]', sh)
+        self.assertIn('docker tag "$pin" "$itag"', sh)
+        self.assertIn('--build-container "$container"', sh)
+        self.assertIn("container=local-dry-run:", sh)
+        pub = wf[wf.index("\n  publish:"):]
+        self.assertLess(pub.index("*@sha256:*) ;;"), pub.index("gh release upload"))
 
 
 if __name__ == "__main__":

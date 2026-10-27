@@ -22,7 +22,15 @@
 #    state it).
 # 4. The tag's files, exported as tools/reproduce does (never the
 #    spec-side folders), built twice by their own tools/build.sh at two
-#    source paths: the same bytes both times, and the record's.
+#    source paths: the same bytes both times, and the record's. In CI
+#    (GITHUB_ACTIONS) they build in the build image pinned by registry
+#    digest (config/build-image, main's), pulled by that digest, labelled
+#    with the SHA-256 of the tag's tools/Dockerfile, and named as the
+#    tag's build script names its image, and release.json's
+#    build.container is that digest; with none pinned, it stops. Run by
+#    hand it is a local dry run: the local image, its ID in
+#    build.container behind `local-dry-run:` (the owner's answer,
+#    2026-10-26; docs/RELEASING.md, "The build image").
 # 5. fwtest's version: the record's fwtest image, asked (tools/fwtest).
 # 6. tools/release.py build, twice: the same bytes; then verify.
 set -eu
@@ -78,10 +86,31 @@ fi
 [ -n "$sums" ] || fail "--report needs --record-sums-sha256"
 echo "record:  records/$commit/, its SHA256SUMS $sums"
 
-# 4. The tag's files, built twice.
+# 4. The tag's files, built twice, in the pinned build image in CI.
 sh "$ROOT/tools/reproduce" --export-only "$commit" "$work/src"
+itag=$(sh "$work/src/tools/build.sh" image-tag)
+pin=$(grep -v '^#' "$ROOT/config/build-image" | grep . | head -1)
+if [ "${GITHUB_ACTIONS:-}" = true ]; then
+    case "$pin" in
+        *@sha256:????????????????????????????????????????????????????????????????) ;;
+        *) fail "in CI a release builds in the build image pinned by registry digest, and config/build-image pins none ($pin): docs/TOOLCHAIN.md keeps that image off every registry; the owner's decision (docs/RELEASING.md, \"The build image\")" ;;
+    esac
+    docker pull -q "$pin" >/dev/null
+    # Built from the tag's own Dockerfile: the image says which, by its hash.
+    want=$("$PY" -I -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' \
+        "$work/src/tools/Dockerfile")
+    have=$(docker image inspect --format '{{index .Config.Labels "small-beeps.dockerfile-sha256"}}' "$pin")
+    [ "$have" = "$want" ] || fail "the pinned build image was built from a Dockerfile of SHA-256 ${have:-(no label)}; $tag's is $want"
+    docker tag "$pin" "$itag"
+    container=$pin
+fi
 sh "$work/src/tools/build.sh" build --out "$work/b1"
 sh "$work/src/tools/build.sh" build --out "$work/b2" --src-mount /tmp/elsewhere/small-beeps-src-b
+if [ "${GITHUB_ACTIONS:-}" != true ]; then
+    container=local-dry-run:$(docker image inspect --format '{{.Id}}' "$itag")
+    echo "DRY RUN: built in the local image $itag; release.json's build.container says so, and it is never published"
+fi
+echo "build:   $container"
 cmp "$work/b1/app.bin" "$work/b2/app.bin" || fail "the two builds differ"
 
 # 5. fwtest's version, of the image the record names.
@@ -94,7 +123,7 @@ created=$(TZ=UTC git -C "$ROOT" log -1 --date=format-local:%Y-%m-%dT%H:%M:%SZ --
 for d in r1 r2; do
     "$PY" -I "$ROOT/tools/release.py" build --tag "$tag" --version "$version" --commit "$commit" \
         --src "$work/src" --build "$work/b1" --report "$report" --record-sums-sha256 "$sums" \
-        --fwtest-version "$fwver" --created "$created" --out "$work/$d"
+        --fwtest-version "$fwver" --created "$created" --build-container "$container" --out "$work/$d"
 done
 diff -r "$work/r1" "$work/r2" >/dev/null || fail "the two releases differ"
 "$PY" -I "$ROOT/tools/release.py" verify "$work/r1"

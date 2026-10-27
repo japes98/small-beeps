@@ -8,7 +8,7 @@ a signed milestone tag carries, for the F-Emulator app.
   release.py build --tag TAG --version X.Y.Z --commit SHA --src DIR
                    --build DIR --report REPORT.json --record-sums-sha256 HEX
                    --fwtest-version "fwtest 0.6.0 (...)" --created TIME
-                   --out DIR
+                   --build-container REF --out DIR
       DIR gets the release's files (files() below): the raw image (the
       build's app.bin, byte for byte), its ELF, release.json, the
       .fm1img holding both (tools/fm1img.py), an SPDX 2.3 SBOM, the
@@ -17,14 +17,19 @@ a signed milestone tag carries, for the F-Emulator app.
       output, REPORT the tag's commit's test record
       (records/<commit>/report.json), RECORD-SUMS-SHA256 the SHA-256 of
       that record's SHA256SUMS (the format's record.tree_sha256), TIME the
-      tag's commit's time (the SBOM's only date). Stops if the record is
-      not PASS, is another commit's, or names other outputs than the
-      build's.
-  release.py verify DIR
+      tag's commit's time (the SBOM's only date), REF the build image
+      the image was built in (build.container): in CI the one pinned by
+      registry digest (`ghcr.io/...@sha256:<64 hex>`), in a local dry run
+      `local-dry-run:` and the local image's ID (the owner's answer,
+      2026-10-26). Stops if the record is not PASS, is another commit's,
+      or names other outputs than the build's.
+  release.py verify [--publish] DIR
       Checks a release folder: release.json (format 1.0's fields, as a
       writer must write them, and its exact bytes), the .fm1img by the
       app's checks in order (tools/fm1img.py), its release.json and image
-      byte for byte the loose files, and SHA256SUMS.
+      byte for byte the loose files, and SHA256SUMS. With --publish also
+      that it was built in a build image pinned by registry digest (a
+      local dry run is never published).
   release.py selftest --build DIR --out DIR
       C-RELEASE: a release made twice from build DIR with a stand-in
       record (this tree's own files), byte for byte the same, verified.
@@ -47,6 +52,16 @@ import fm1img  # noqa: E402  (tools/, our own)
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NAME = "small-beeps"
 REPO = "https://github.com/japes98/small-beeps"
+
+
+# build.container (the owner's answer, 2026-10-26): a release built in CI
+# names the build image pinned by registry digest; one built locally names
+# the local image's ID behind DRY_RUN, a dry run's mark, and is never
+# published (verify(publish=True)). Format 1.0 lets a writer add no field,
+# so the mark is in the value.
+REGISTRY_REF = re.compile(r"^[a-z0-9.-]+(/[a-z0-9._-]+)+@sha256:[0-9a-f]{64}$")
+DRY_RUN = "local-dry-run:"
+LOCAL_ID = re.compile(r"^" + DRY_RUN + r"sha256:[0-9a-f]{64}$")
 
 
 def sha256(b):
@@ -136,8 +151,7 @@ def metadata(a, image, report, src, size):
                                                                             gh["GITHUB_RUN_ID"])
     if toolchain_sha256(src):
         meta["build"]["toolchain_sha256"] = toolchain_sha256(src)
-    if env.get("build_image_id"):
-        meta["build"]["container"] = env["build_image_id"]
+    meta["build"]["container"] = a.build_container
     store = store_format(src)
     if store:
         meta["store"] = store
@@ -208,6 +222,9 @@ def build(a):
     with open(a.report) as f:
         report = json.load(f)
     problems = check_record(report, a.commit, outputs)
+    if not (REGISTRY_REF.match(a.build_container) or LOCAL_ID.match(a.build_container)):
+        problems.append("--build-container %s: neither a registry digest (host/name@sha256:<64 hex>) nor %s"
+                        "sha256:<64 hex>" % (a.build_container, DRY_RUN))
     if problems:
         return problems
     meta = metadata(a, image, report, a.src, sizes(a.build))
@@ -229,8 +246,9 @@ def build(a):
     return []
 
 
-def verify(d):
-    """Problems of a release folder (R-REL-1, R-REL-2)."""
+def verify(d, publish=False):
+    """Problems of a release folder (R-REL-1, R-REL-2); with publish, also
+    one not built in a build image pinned by registry digest."""
     try:
         mb = read(os.path.join(d, "release.json"))
         meta = json.loads(mb)
@@ -239,6 +257,10 @@ def verify(d):
     p = fm1img.field_problems(meta, writer=True)
     if mb != fm1img.dumps(meta):
         p.append("release.json: not format 1.0's exact bytes")
+    container = meta.get("build", {}).get("container", "") if isinstance(meta.get("build"), dict) else ""
+    if publish and not REGISTRY_REF.match(container):
+        p.append("build.container %r: %s" % (container, "a local dry run, never published" if LOCAL_ID.match(container)
+                                             else "not a build image pinned by registry digest"))
     if p:
         return p
     fn = files(meta["version"])
@@ -284,7 +306,7 @@ def selftest(a):
     os.makedirs(out)
     report = {"commit": "0" * 40, "overall": "PASS",
               "outputs": {n: sha256(read(os.path.join(a.build, n))) for n in ("app.bin", "app.elf")},
-              "environment": {"build_image_id": "sha256:" + "0" * 64}}
+              "environment": {}}
     rp = os.path.join(out, "report.json")
     with open(rp, "wb") as f:
         f.write(fm1img.dumps(report))
@@ -292,7 +314,8 @@ def selftest(a):
     for k in ("a", "b"):
         ns = argparse.Namespace(tag="m0", version="0.0.0-selftest", commit="0" * 40, src=ROOT, build=a.build,
                                 report=rp, record_sums_sha256="0" * 64, fwtest_version="fwtest 0.0.0 (selftest)",
-                                created="1970-01-01T00:00:00Z", out=os.path.join(out, k))
+                                created="1970-01-01T00:00:00Z", build_container=DRY_RUN + "sha256:" + "0" * 64,
+                                out=os.path.join(out, k))
         p += ["build %s: %s" % (k, q) for q in build(ns)]
     if not p:
         p += same_tree(os.path.join(out, "a"), os.path.join(out, "b"))
@@ -310,9 +333,10 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build")
     for k in ("tag", "version", "commit", "src", "build", "report", "record-sums-sha256", "fwtest-version",
-              "created", "out"):
+              "created", "build-container", "out"):
         b.add_argument("--" + k, required=True)
     v = sub.add_parser("verify")
+    v.add_argument("--publish", action="store_true")
     v.add_argument("dir")
     s = sub.add_parser("selftest")
     s.add_argument("--build", required=True)
@@ -320,7 +344,7 @@ def main():
     a = ap.parse_args()
     if a.cmd == "selftest":
         return selftest(a)
-    p = build(a) if a.cmd == "build" else verify(a.dir)
+    p = build(a) if a.cmd == "build" else verify(a.dir, a.publish)
     for q in p:
         print("FAIL: " + q)
     print("release %s: %s" % (a.cmd, "FAIL" if p else "OK"))

@@ -2505,7 +2505,11 @@ Our own design, from docs/ARP-PROPOSAL.md and the owner's answers there
   starts or continues only once 250 ms (ARP_LOST_BLOCKS) pass without
   one, so after a Stop the arpeggiator plays on at once on the internal
   tempo and its clock out continues 250 ms after the sender's last
-  clock (clock-quiet).
+  clock (clock-quiet). So a follower downstream sees a gap of 250 ms in
+  the clock even when the sender stopped cleanly: ours can't tell a
+  sender that stopped its clock from one that keeps it running after a
+  Stop until 250 ms pass without a clock. The owner accepted the gap
+  (2026-10-26, overnight-1025's question 5).
 - **The screen (ARP held):** the strip shows RATE, MODE, OCTAVES and GATE;
   SELECT pages to SWING, LATCH, TEMPO and MIDI OUT. The body shows the
   settings in words; the info line is its live part (every 50 ms when
@@ -2631,3 +2635,39 @@ applied to the firmware suite's and the arpeggiator's cases
     fires (0.18 to 0.2 ms after a block, under its 0.2): the early
     warning, answered by moving `--ms` within its block, which changes no
     golden.
+- **The owner's answers (2026-10-26, overnight-1025's questions 3 and
+  4; recorded by clean-pin-answers).**
+  - **The end check keeps failing CI**, since its fix is mechanical. Its
+    message gives the fix in one step: the exact replacement and where
+    it goes, `in tests/fw/boot.suite, line N: change --ms A to --ms B`
+    for the firmware suite's cases, `in tools/arp_suite.py, END_MS: set
+    "name": B` for the arpeggiator's (`goldtime.check_end`'s `where`).
+    The replacement is `suggest_end`'s, so it takes the same blocks
+    where it can and changes no golden; a rule 1 failure is never fixed
+    by writing a golden again.
+  - **The four exceptions** to "written again only by tools/regolden.py",
+    accepted, each a change of what a case compares or of its input,
+    never of a golden's content to match new behaviour:
+    1. *The live screens.* The five screens of macros, midipanel and
+       spectrum that show the patch view's live spectrum are compared
+       exactly outside its rectangle (`LIVE`), not byte for byte. Why:
+       the bars show the last few blocks of sound, so any shift of a
+       sound moves them, and no shift can be proven of an image. The
+       bars themselves are still checked, through the interface's record
+       (the spectrum case).
+    2. *stuck's sound hash, dropped.* Why: its last notes are panel keys
+       whose starts and ends come by the key scan and the audio block,
+       so their lengths move by a scan with the code's timing; its MIDI
+       messages and no-stuck-notes checks stay.
+    3. *The arpeggiator's inputs, moved off its grid* (its keys let go
+       together, 10 ms after a step; stuck's later events 7 ms off the
+       grid and its two keys 10 ms apart), and their golden messages
+       written again by hand, as a change of the test's input. Why: on
+       the grid, which came first, a step or a key, moved with a few
+       microseconds.
+    4. *env's screen at 1 400 ms, moved to 1 600 ms* (draft #126's,
+       landing with it), its golden written from that image's run. Why:
+       at 1 400 the envelope's dot was moving (the release), drawn where
+       the code's timing put it; at 1 600 the note has ended and the
+       screen holds still. The dot stays checked at 1 000 ms, where it
+       rests at the hold.

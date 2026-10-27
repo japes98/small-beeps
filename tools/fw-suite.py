@@ -137,15 +137,23 @@ MIDI_GOLDEN = os.path.join("tests", "fw", "golden-midi")
 LIVE_GOLDEN = os.path.join("tests", "fw", "golden-live")
 
 
-def suite_ms(path=SUITE):
-    """Each case's --ms in the suite file."""
+def suite_ms(path=SUITE, lines=None):
+    """Each case's --ms in the suite file (and, into lines if given, the
+    line it is on, for the end check's fix)."""
     out = {}
     with open(os.path.join(ROOT, path)) as f:
-        for line in f:
+        for n, line in enumerate(f, 1):
             w = line.split()
             if w and not w[0].startswith("#") and "--ms" in w:
                 out[w[0]] = float(w[w.index("--ms") + 1])
+                if lines is not None:
+                    lines[w[0]] = n
     return out
+
+
+def end_fix(name, asked_ms, line):
+    """Where a case's end goes, for goldtime.check_end's message."""
+    return lambda ms: "in %s, line %d: change --ms %s to --ms %s" % (SUITE, line, goldtime.fmt_ms(asked_ms), ms)
 IMAGE = os.path.join("out", "fw", "app.bin")
 # Test images: name -> define (firmware/src/probe.c).
 TEST_BUILDS = {"test-fault": "SB_TEST_FAULT", "test-stray": "SB_TEST_STRAY",
@@ -2659,7 +2667,8 @@ def main():
         problems.append("fwtest suite exited %d" % p.returncode)
 
     steady = {}
-    ends_asked = suite_ms()
+    ends_line = {}
+    ends_asked = suite_ms(lines=ends_line)
     for name in EXPECT:
         path = os.path.join(out, name, "result.json")
         if not os.path.exists(path):
@@ -2708,7 +2717,8 @@ def main():
         # The timing goldens' policy (tools/goldtime.py): the run's end
         # clear of the blocks; MIDI out against its golden capture.
         if name in ends_asked:
-            m, line = goldtime.check_end(name, case_dir, ends_asked[name])
+            m, line = goldtime.check_end(name, case_dir, ends_asked[name],
+                                         end_fix(name, ends_asked[name], ends_line[name]))
             more, lines = more + m, lines + ([line] if line else [])
         gm = os.path.join(ROOT, MIDI_GOLDEN, name)
         if os.path.isdir(gm):

@@ -70,9 +70,11 @@ def end_margins(ends, asked_ms):
     return asked_ms - last, nxt - asked_ms
 
 
-def check_end(name, case_dir, asked_ms):
+def check_end(name, case_dir, asked_ms, where=None):
     """Rule 1 for one run: problems (empty if it holds, or if the run kept
-    no ipb.csv), and a line saying the margins."""
+    no ipb.csv), and a line saying the margins. A problem gives the fix in
+    one step (the owner's answer, 2026-10-26): the exact replacement end,
+    and where it goes if where(new_ms) says ("in FILE, ...")."""
     ends = block_ends(case_dir)
     if not ends:
         return [], None
@@ -80,9 +82,14 @@ def check_end(name, case_dir, asked_ms):
     line = "  %s: ends %.3f ms after a block, %.3f ms before the next" % (name, after, before)
     if after < END_AFTER_MS or before < END_BEFORE_MS:
         ok = suggest_end(ends, asked_ms)
-        return ["%s: --ms %s ends %.3f ms after a block and %.3f before the next; the policy needs %.1f and %.1f"
-                " (try --ms %s)" % (name, fmt_ms(asked_ms), after, before, END_AFTER_MS, END_BEFORE_MS,
-                                    fmt_ms(ok) if ok is not None else "?")], line
+        if ok is None:
+            fix = "no end within 1.4 ms of it keeps the policy: look at the run's ipb.csv"
+        elif where:
+            fix = "fix: %s" % where(fmt_ms(ok))
+        else:
+            fix = "fix: replace --ms %s with --ms %s" % (fmt_ms(asked_ms), fmt_ms(ok))
+        return ["%s: --ms %s ends %.3f ms after a block and %.3f before the next; the policy needs %.1f and %.1f;"
+                " %s" % (name, fmt_ms(asked_ms), after, before, END_AFTER_MS, END_BEFORE_MS, fix)], line
     return [], line
 
 
