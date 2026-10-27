@@ -653,6 +653,8 @@ digest, so a firmware test always names the exact runner it used.
 
 - 0.8.0: update packages: `--package` boots a `.fwsc` through the
   emulator's package path, with fwtest's own checks ("Packages").
+  Its pin is the clean side's pull request too, opened once the image is
+  published (the owner's answer, recorded by session spec-answers-a1).
 - 0.7.0: the USB core's register access port answers at once (bit 15
   set), a read giving the byte last written to its index and the
   interrupt flags 0 ("USB").

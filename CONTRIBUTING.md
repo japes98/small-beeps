@@ -132,6 +132,19 @@ was used) and name the ID in the commit's `Sources:` field:
 - a porter's reports in `ports/` (measurements and API requests, in
   general terms; CONTRIBUTING.md, "Roles").
 
+### Spec side and the stock firmware
+
+The spec side never opens, fetches or searches M-VAVE's stock firmware
+files or any disassembly or function database of them (FM-1-RE's
+`firmware-images/` and disassembly material included). A
+reverse-engineering document that cites them is not covered: the spec
+side may read FM-1-RE's documents that quote disassembly in places (its
+`docs/io/01-boot.md`, for one) and take facts only from them, never
+code, confirming each with the SDK or another source where it can (as
+HW-91's `+0x120` is confirmed by the SDK's entry point and linker
+script). The owner's answer, 2026-10-27, recorded by session
+spec-answers-a1. The firmware side's limits above stay as they are.
+
 ### Barriers
 
 - **Clean folder.** `tools/clean-setup.sh [DIR]` creates the clean working

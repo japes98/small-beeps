@@ -62,7 +62,8 @@ fwtest does so from 0.8.0 (`--package`, docs/HARNESS.md "Packages"),
 with checks of its own on top and without the stock-firmware extras the
 app and the web build add (a default patch bank in a blank user region,
 the other board). Whether the app's package path is upstream's unchanged
-is the owner's to confirm; this side doesn't open the app's branch.
+is to confirm: the owner has asked the app session (recorded by session
+spec-answers-a1); this side doesn't open the app's branch.
 docs/A1-PLAN.md tests a package of ours in all three.
 
 ## How each was checked
