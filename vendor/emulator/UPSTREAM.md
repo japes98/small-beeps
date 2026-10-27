@@ -131,7 +131,8 @@ Applied in file-name order by the fetch script, after checkout:
   waited out its own timeout on every access. The crate test and the
   harness test `usb_port_answers` (image `tests/images/usbport.c`, suite
   case `usbport`) fail without it (`harness/upstream/fm1-emu-usb-port.md`;
-  fwtest 0.7.0).
+  fwtest 0.7.0). Licence: the owner confirmed the note is covered by MIT
+  on the same terms as P-47 (recorded by session spec-a1-fwsc).
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
 and the harness suite gave byte-identical outputs (284 files) from fwtest

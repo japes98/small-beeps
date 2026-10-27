@@ -167,7 +167,7 @@ CHECKS = [
      "cmd": lambda: [PY, "-I", "tools/plaits-bench.py", "run", "--out", os.path.join(OUT, "plaits"),
                      "--perf", os.path.join(OUT, "perf", "perf.json")]},
     # The harness (spec side): skipped where harness/ isn't on disk.
-    {"id": "C-HARNESS-SCOPE", "title": "The harness uses no update-package or stock-boot paths",
+    {"id": "C-HARNESS-SCOPE", "title": "The harness uses no stock-boot path (packages only through the package reader)",
      "reqs": ["R-HARN-9"], "needs": "harness", "cmd": ["sh", "harness/ci.sh", "scope"]},
     {"id": "C-HARNESS-IMAGES", "title": "Harness test images rebuild identically with the pinned toolchain",
      "reqs": ["R-HARN-8"], "needs": "harness", "cmd": ["sh", "harness/tests/images/build.sh", "--check"]},
