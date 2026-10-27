@@ -218,8 +218,10 @@ cmd_inside() {
     # Nothing in the firmware may depend on which link it is (A1-1): what
     # runs from RAM is byte for byte the same in both, the boot code (run
     # from the window) is as long, and the package's starts at 0x02000120.
+    # The RAM check is the firmware's, not a test build's: the store's wipe
+    # test (SB_TEST_STORE_WIPE) turns a link symbol into a chip offset.
     if [ -z "${SB_DEMO:-}" ]; then
-        cmp "$obj/data.bin" "$obj/pkg-data.bin" \
+        [ -n "${SB_DEFINES:-}" ] || cmp "$obj/data.bin" "$obj/pkg-data.bin" \
             || { echo "FAIL: the package link's RAM code and data differ from the raw image's" >&2; exit 1; }
         [ "$(wc -c < "$obj/pkg-text.bin")" -eq "$(wc -c < "$obj/text.bin")" ] \
             || { echo "FAIL: the package link's boot code is not as long as the raw image's" >&2; exit 1; }

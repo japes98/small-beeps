@@ -2683,8 +2683,10 @@ applied to the firmware suite's and the arpeggiator's cases
     stock user patch region. Since M7 only the boot code runs from the
     window and everything else runs from RAM, so the two links differ
     only in the boot code's own addresses: the build fails unless what
-    goes to RAM is byte for byte the same in both, the boot code is as
-    long, and the package's `_start` is at `0x02000120`. The raw image is
+    goes to RAM is byte for byte the same in both (the firmware's build;
+    a `--define` test build may differ, as the store's wipe test reads a
+    link symbol), the boot code is as long, and the package's `_start`
+    is at `0x02000120`. The raw image is
     unchanged (the same `app.bin` as before A1; the ELF gains the origin
     symbol). The window shows flash `0x4000 + n` at `0x02000000 + n` in
     both paths, so the store's wipe test, the one place that turns a link
