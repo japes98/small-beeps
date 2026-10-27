@@ -1724,7 +1724,46 @@ SR-3 wrote only its barrier-log row.*
   `harness/`, the pinned toolchain, this repository). Never opened,
   fetched or searched M-VAVE's stock firmware files or any disassembly of
   them.
-- (Filled in as the session goes; finished at its end.)
+- Section 1 (the owner's answers): this repository only; the
+  fwtest-image workflow's log for #137's merge (run 40431196083: 0.7.0
+  published, its digest).
+- Section 2 (Phase A1), what it read:
+  - JieLi AC79 SDK (P-2), the pinned commit, through Gitee's tree, blobs
+    and raw-file APIs into a scratch folder, not vendored: read
+    `cpu/wl82/tools/download.c`, `download_linux.c`,
+    `isd_config_rule.c`, `note.txt`, `script.ver`,
+    `packufw/source/JLpack.cpp`, `packufw/example/JLpack.bat`,
+    `cpu/wl82/sdk_ld_sfc.c` and `include_lib/system/boot.h`; downloaded
+    but not read `isd_config_rule_loader.c`, `生成升级固件.bat`,
+    `include_lib/update/update_loader_download.h` and
+    `doc/stuff/ISD_CONFIG.INI配置文件说明.pdf` (no PDF reader on the Mac).
+    The commit's file list (tree API).
+  - AL-255/FM-1-RE (P-51), the pinned commit, by raw URL:
+    `docs/architecture.md`, `docs/io/01-boot.md`,
+    `docs/io/11-ota-protocol.md`, `docs/io/12-v15-reflash-proof.md`,
+    `docs/reversing/02-boot-and-runtime.md`. `01-boot.md` quotes
+    disassembly of the stock app in places; it is one of the allowed
+    documents, and none of its code was used, only its addresses' +0x120
+    finding. The current `docs/` and `docs/io/` listings, names only
+    (they include its disassembly documents and an OTA loader document,
+    none opened).
+  - The emulator upstream (P-7), at the pinned commit, by raw URL, new
+    spec-side exposure: `web/fwsc.js` (the web build's package reader;
+    the same at `master` `a374e75e`) and `web/main.js` (its page), and
+    the `web/` listing, names only. The GPL package code that
+    `fwsc.js`'s comment names was not opened, nor any other file there.
+  - The vendored emulator's package path, and `harness/` (this side's
+    usual material).
+  - Never opened, fetched or searched: any stock package, FM1 Open's
+    files, any disassembly or function database.
+- Section 2, what it ran: the harness's tests natively and in the
+  container (`harness/ci.sh test`), a local fwtest 0.8.0 image
+  (`harness/ci.sh image`) for the suite (`harness/ci.sh suite`), the test
+  images rebuilt with the pinned toolchain (`build.sh`, then
+  `--check`), the tools' unit tests, `reuse lint` (in `fsfe/reuse:5`).
+  The local images and the scratch outputs were deleted after use.
+- Disk: 2.8 GB free at the start (above the 2 GB stop), 24 GB once other
+  folders on the Mac shrank, 22 GB at the end.
 
 ## Corrections
 
