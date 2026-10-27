@@ -1915,8 +1915,14 @@ SR-3 wrote only its barrier-log row.*
     compared file by file, then deleted. The first 0.7.0 firmware run
     is void: the session changed branches while it was still building
     its test images, so some were built from this session's A1
-    `tools/build.sh` (one failed); it was run again on an untouched
-    tree.
+    `tools/build.sh`. Two failed: test-storebusy (a shell syntax error,
+    the script replaced while it was read) and test-storewipe (the A1
+    RAM check, since narrowed to the firmware build). It was run again
+    on an untouched tree.
+  - **The spec side's open pull requests:** `gh pr view 147/148/149
+    --json files`, filtered by `jq` to paths under `docs/` and `config/`
+    and PROVENANCE.md only, so nothing else was printed; then the four
+    docs named above, by name.
   - **A1:** the package link prototyped in a scratch copy of `firmware/`,
     `vendor/jieli-sdk/` and the build script in the session's temporary
     folder, then built here. fwtest 0.8.0 run on our packages and on
@@ -1946,7 +1952,13 @@ SR-3 wrote only its barrier-log row.*
     promisor remote": git checked a branch tip GitHub advertised that this
     folder had not fetched, and lazy fetching is off. A plain
     `GIT_NO_LAZY_FETCH=1 git fetch -q origin` fixed it; the barrier check
-    after it found no spec-side file in `.git`.
+    after it found no spec-side file in `.git`. Looking for the object
+    first, `git ls-tree -r` over main's last 20 commits and `git rev-list
+    --objects --all --missing=allow-any` walked trees that include
+    spec-side paths, each piped straight into a `grep` for the one hash
+    (they printed nothing). How clean-pin-answers pushed was read from
+    its archived transcript with `git show a1/start:…` (its push
+    commands only).
   - **Force-pushes:** none.
   - **Disk:** 20 GB free at the start; 19 GB at the lowest.
 
