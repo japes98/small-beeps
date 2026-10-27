@@ -34,6 +34,12 @@ in its own pull request, with a new SHA-256 here.
   repository, not in releases, and not pushed to any registry. CI builds the
   image fresh every run. `.gitignore` excludes `*.tar.xz`, and check
   C-NO-TOOLCHAIN fails if any tracked file looks like part of the toolchain.
+- A release records the build's identity instead of an image (the owner's
+  answer, 2026-10-27): the base image's digest, the SHA-256 of
+  `tools/Dockerfile` and the archive's SHA-256 above, in
+  `config/build-image`. A CI release checks the tag's Dockerfile against
+  it before it builds, and builds the image fresh (docs/RELEASING.md,
+  "The build image").
 - We compile with `clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11
   -ffreestanding -nostdlib` and link with the toolchain's `ld`. Since M5
   `-mcpu=r3 -mfprev1` build for the chip's CPU model and its

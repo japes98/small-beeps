@@ -37,8 +37,9 @@ so the same tag gives the same bytes (R-REL-1).
    listed gets no release: the workflow's run for it says so in a notice
    and succeeds, building nothing. m2 to m8 stay unlisted (the owner's
    answer, 2026-10-26).
-3. **The build image is pinned** (`config/build-image`; "The build
-   image", below). Until it is, the workflow stops at the build.
+3. **The build's identity matches** (`config/build-image`; "The build
+   image", below): a pull request that changes `tools/Dockerfile`
+   changes it with it, so the tag's Dockerfile is the one it names.
 4. **Sign and push the tag** on that commit, as CONTRIBUTING.md says
    ("SSH signing for milestone tags"): `git tag -s m9 -m "m9"`, then
    `git push origin m9`. GitHub must show it as **Verified**.
@@ -53,15 +54,16 @@ so the same tag gives the same bytes (R-REL-1).
      (`record.tree_sha256`; the audit adds files beside it later, never to
      it);
    - exports the tag's files (`tools/reproduce`'s way: never the
-     spec-side folders) and builds them twice with the tag's own
-     `tools/build.sh`, at two source paths, in the build image pinned by
-     registry digest: the same bytes, and the record's;
+     spec-side folders), checks the tag's `tools/Dockerfile` against the
+     build's identity, builds the image fresh from it, and builds the
+     files twice with the tag's own `tools/build.sh`, at two source
+     paths: the same bytes, and the record's;
    - asks the record's fwtest image for its version;
    - runs `tools/release.py build` twice (the same bytes), then
      `tools/release.py verify` and `tools/fm1img.py` (the app's checks, in
      the app's order);
    - uploads the files as the run's artifact, then, if `release.json`'s
-     `build.container` is a registry digest (never a local dry run's),
+     `build.container` is a build identity (never a local dry run's),
      attaches them to the tag's GitHub release. If the release doesn't exist yet it makes it,
      as a **draft**, with `gh release create --verify-tag`, which refuses
      to make a tag. It never replaces a file a release already has.
@@ -82,27 +84,38 @@ hand and are left as they are.
 
 ## The build image
 
-`release.json`'s `build.container` names the build container the image
-was built in (the owner's answer, 2026-10-26):
+The build image holds JieLi's toolchain, whose licence terms are unknown,
+so docs/TOOLCHAIN.md keeps it off every registry, and it is never
+published. A release records the build's identity instead (the owner's
+answer, 2026-10-27, option (b)):
 
-- **In CI** (the release workflow), the build image pinned by registry
-  digest in `config/build-image` (main's): `tools/release.sh` pulls it by
-  that digest, checks that its label `small-beeps.dockerfile-sha256` is
-  the SHA-256 of the tag's own `tools/Dockerfile`, names it as the tag's
-  build script names its image (so the build runs in it), and records
-  the digest (`ghcr.io/...@sha256:<64 hex>`). With no image pinned it
-  stops, saying why.
+- **The identity** is `config/build-image`'s three lines: the base
+  image's registry digest (the Dockerfile's `BASE`), the SHA-256 of
+  `tools/Dockerfile`, and the toolchain archive's SHA-256
+  (docs/TOOLCHAIN.md; the Dockerfile's `TOOLCHAIN_SHA256`). Together
+  they fix what the image holds: the Dockerfile pins the base by digest
+  and its packages by a snapshot.debian.org date, and its build checks
+  the toolchain against that hash. C-UNIT checks the three are this
+  tree's own, so a pull request that changes the Dockerfile changes them
+  too.
+- **In CI** (the release workflow), `tools/release.sh` reads the identity
+  from main's `config/build-image`, checks the tag's `tools/Dockerfile`
+  against all three **before it builds** (any mismatch stops the release,
+  naming it), then builds the image fresh from that Dockerfile and the
+  release in it. `release.json`'s `build.container` records the identity
+  as `build-identity:dockerfile-sha256=<64 hex>,toolchain-sha256=<64
+  hex>,base=<image>@sha256:<64 hex>`, and `build.toolchain_sha256` the
+  toolchain's hash as before. Format 1.0 lets a writer add no field, so
+  the identity is in the field's value.
 - **By hand** it is a local dry run: the local image `tools/build.sh`
   builds, its ID recorded as `local-dry-run:sha256:<64 hex>`. The script
   prints `DRY RUN`, `tools/release.py verify --publish` refuses such a
-  release, and the workflow's publish job never attaches one. Format 1.0
-  lets a writer add no field, so the mark is in the field's value.
+  release, and the workflow's publish job attaches only a release whose
+  `build.container` is a build identity.
 
-**Not pinned yet.** The build image holds JieLi's toolchain, whose
-licence terms are unknown, and docs/TOOLCHAIN.md keeps it off every
-registry. So `config/build-image` says `unpublished`, and a CI release
-stops at the build until the owner decides how the image is to be
-pinned (docs/PLAN.md, M9's open items). Local dry runs work as before.
+Anyone can rebuild the same image from the tag: `tools/build.sh image`
+in an export of it, after checking its Dockerfile's SHA-256 is the
+release's `dockerfile-sha256`.
 
 ## Checking one (anyone)
 
