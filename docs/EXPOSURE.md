@@ -1837,6 +1837,46 @@ SR-3 wrote only its barrier-log row.*
   - **Disk:** 3.8 GB free at the start; 23 GB from shortly after (other
     folders on the Mac shrank meanwhile).
 
+### Session clean-a1-packager (fwtest 0.8.0's pin, the build's identity, Phase A1's `.fwsc` packager)
+- Date: 2026-10-27 (UTC; the evening of 2026-10-26 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.311 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `581bd4e1-c017-41a5-9331-a48f0fdcfc90`,
+  started by a `/clear` at 03:01:26Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `88bc832` (#146's merge) and ended "no spec-side
+  files on disk or in .git"; `tools/private-terms.local` exists (not
+  opened); lazy fetching off (`GIT_NO_LAZY_FETCH=1`). It archived
+  clean-pin-answers (`b46c273c`) into `sessions/clean/`; every other
+  clean session was already archived (M0d's live transcript's file time
+  had changed again; its entries end on 2026-10-22, as its archived
+  copy's). `tools/check-transcripts.py` failed on three of
+  clean-pin-answers' calls, each naming the spec-side folders only as
+  `:!` pathspecs that leave them out of a `git log` or `git show --stat`;
+  three reviewed entries in `sessions/REVIEWED.json`, for the owner's
+  approval; then PASS. The Mac had 20 GB free.
+- **The owner's answer 2** (this session's prompt): overnight-1025's
+  names-only listing of #137's changed files is approved and recorded as
+  it is, a real names-only listing (clean-pin-answers' entry above and its
+  `REVIEWED.json` entry), not a false positive. Neither is changed.
+- Reads: this file, CONTRIBUTING.md, sessions/README.md,
+  sessions/REVIEWED.json, clean-pin-answers' three flagged calls (in the
+  archived copy), docs/A1-PLAN.md, docs/HARDWARE-SPEC.md section 21
+  (HW-87 to HW-93), docs/HARNESS.md ("Running it", "The raw image",
+  "Packages", "Versions"), docs/RELEASING.md, docs/TOOLCHAIN.md,
+  docs/M9-PLAN.md ("The release format"), docs/REQUIREMENTS.md,
+  PROVENANCE.md, four docs on the spec side's open #148 (`docs/A1-PLAN.md`,
+  `docs/HARNESS.md`, `docs/REQUIREMENTS.md`, `docs/M9-PLAN.md`, by name
+  through GitHub's contents API, diffed against main; they change no
+  fact this session uses), and this repository's tools, tests, workflows and
+  firmware.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
