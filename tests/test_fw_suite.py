@@ -435,3 +435,21 @@ class KnobsDirectTest(unittest.TestCase):
         self.assertEqual(routes, fw.DEFAULT_ROUTES)
         b = fw.settings_bytes(1)
         self.assertEqual((len(b), b[0], b[3], b[-1]), (40, 3, len(routes), 1))
+
+
+class EndFixTest(unittest.TestCase):
+    """Requirements: R-GOLD-1 (a failed end check names the line of the
+    suite to change and the exact --ms; the owner's answer, 2026-10-26)."""
+
+    def test_the_fix_names_the_cases_own_line(self):
+        lines = {}
+        ms = fw.suite_ms(lines=lines)
+        self.assertEqual(ms, fw.suite_ms())
+        with open(os.path.join(ROOT, fw.SUITE)) as f:
+            text = f.read().splitlines()
+        for name in ("fmgold", "env"):
+            w = text[lines[name] - 1].split()
+            self.assertEqual((w[0], float(w[w.index("--ms") + 1])), (name, ms[name]))
+        fix = fw.end_fix("env", ms["env"], lines["env"])("6999.3")
+        self.assertEqual(fix, "in tests/fw/boot.suite, line %d: change --ms %s to --ms 6999.3"
+                         % (lines["env"], w[w.index("--ms") + 1]))
