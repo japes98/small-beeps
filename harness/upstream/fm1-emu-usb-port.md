@@ -71,4 +71,6 @@ access polled at most 1000 times; without the patch every poll runs out).
 
 FM-1-RE names bit 2 of the word before it (0x11800, `CON0`) the port's
 "busy" bit; the SDK names that bit `USB_NRST` (the core's reset). Neither
-the app nor fwtest models a busy bit.
+the app nor fwtest models a busy bit. It stays open (the owner's answer,
+recorded by session spec-a1-fwsc), on the list of things to confirm on a
+real FM-1 (docs/M9-PLAN.md, "To confirm on a real FM-1 (Phase B)").

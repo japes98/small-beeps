@@ -54,6 +54,13 @@ How the app takes it: the app opens the `.fm1img`, reads its
 SHA-256 against it (answer 1; "How the app verifies it", below). That is
 the app's change, not the firmware's; the owner makes it in the app.
 
+The `.fm1img` is the release format for our firmware. The stock package
+format (`.fwsc`, section 2) is accepted for compatibility: Phase A1
+(docs/A1-PLAN.md) builds our firmware into a standard `.fwsc` too, so it
+loads wherever a stock package does, but a release's metadata and
+checksums live in the `.fm1img` (the owner's decision, recorded by session
+spec-a1-fwsc).
+
 ### The release format (format 1.0)
 
 Written by the spec side (session spec-overnight-1025) for the firmware
@@ -201,12 +208,21 @@ container itself is left for a later major version if it is ever needed.
 What the app declares, so that a `.fm1img` from Files, AirDrop, Mail or a
 Safari download opens in it directly:
 
-- An **exported type** (`UTExportedTypeDeclarations`) with an identifier
-  under the app's own bundle identifier (the owner's choice, say
-  `<bundle id>.fm1img`), filename extension `fm1img`, conforming to
-  `public.data` only. Not `public.zip-archive` or `public.archive`: it
-  isn't one, and Files would offer to expand it.
-- A **document type** (`CFBundleDocumentTypes`) for that identifier with
+- An **exported type** (`UTExportedTypeDeclarations`) with the
+  identifier `io.github.japes98.fm1img` (the owner's choice, recorded by
+  session spec-a1-fwsc): the format is this open project's, under MIT,
+  not the app's, so any app or emulator may declare the same identifier.
+  Filename extension `fm1img`, conforming to `public.data` only. Not
+  `public.zip-archive` or `public.archive`: it isn't one, and Files would
+  offer to expand it.
+- An **imported type** (`UTImportedTypeDeclarations`) for the stock
+  firmware package: identifier `io.github.japes98.fwsc`, filename
+  extension `fwsc`, conforming to `public.data`. It is a declaration so
+  the app can open such files, not a claim to own the format, which is
+  JieLi's update package (section 2). A document type for it with
+  `LSHandlerRank` `Alternate`, so the app never takes over another
+  app's files.
+- A **document type** (`CFBundleDocumentTypes`) for `io.github.japes98.fm1img` with
   `LSHandlerRank` `Owner`, so the app is the default for it.
 - `LSSupportsOpeningDocumentsInPlace` false, so the app gets its own copy
   (AirDrop and Mail deliver one anyway), and handles it where it handles
@@ -442,3 +458,16 @@ docs/prompts/owner-answers-1025.md):
 Still open: Q-24, whether an update erases past `0x93FFF` at all
 (answer 5 decides what our package does, not what the stock updater
 does).
+
+## 5. To confirm on a real FM-1 (Phase B)
+
+Things fwtest and the app cannot settle, kept for the first tests on a
+unit (Phase B). Each item names where it is
+recorded.
+
+- **The USB access port's "busy" bit.** FM-1-RE names a bit of the word
+  before the USB core's access port that port's "busy" bit; the SDK names
+  the same bit as the core's reset. Neither the app nor fwtest models a
+  busy bit, and the owner keeps the question open (recorded by session
+  spec-a1-fwsc): `harness/upstream/fm1-emu-usb-port.md`, "Left open";
+  HARDWARE-SPEC.md HW-86.
