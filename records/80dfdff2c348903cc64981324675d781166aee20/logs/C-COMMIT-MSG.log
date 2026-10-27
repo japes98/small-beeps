@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 58e83a00b2b2ca2a786f4d50e277a001ce9a671a..80dfdff2c348903cc64981324675d781166aee20
+OK     ed4a48c8704d tests: the timing goldens' policy, applied to the suite's and ARP's cases
+EXEMPT 80dfdff2c348 (merge) Merge pull request #138 from japes98/timing/goldens-policy
+2 commit(s) checked: PASS
+
+exit status 0

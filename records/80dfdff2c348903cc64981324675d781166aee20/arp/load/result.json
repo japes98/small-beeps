@@ -1,0 +1,68 @@
+{
+  "fwtest": {
+    "version": "0.6.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 45140,
+    "sha256": "984d924e6ccd58c7fdb8f49b53f955bfff84dfc72ac9c412eed41a524b1118fa"
+  },
+  "script_sha256": "256c325784e4372785eaa35426f97a06d1358cc5539cb50efd7ee74920f06f39",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "10998.900",
+    "instructions": {
+      "core0": 809404399,
+      "core1": 601020099
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 1940780,
+        "sha256": "85338f4f041f06627e482e872639d07837ebbc02adb58a854165b5f49a92b808"
+      },
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "ipb.csv",
+        "bytes": 198865,
+        "sha256": "f8abdf9da1aee7e17880b24223490feace1172a6869fd8e554db208e1ea34a4b"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 348532,
+        "sha256": "361c1af9496edcb6c836476618c09af89881a78ced609260e4d31d5beec640b2"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 739979,
+        "sha256": "357c8fececa16c44e084c3cc1f94af6b2173276f9abca64fd9abac92a12548b8"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "8b3235ecc2e7b0107ee2d1c2b68febf420d7ee8d16488791a7ca472d9d4d40b7"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "41ef4703498053025198b9fb44c27efbbbeee14d1dba40eb5a190b43ac7db3fe"
+      },
+      {
+        "name": "ram-01c008d0-e0-end.bin",
+        "bytes": 224,
+        "sha256": "5504139b7bbb554f8dd41180affceac04f212034e051c596210d5271b5c3d298"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
