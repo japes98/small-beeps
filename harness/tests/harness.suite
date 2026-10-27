@@ -25,3 +25,4 @@ flashload fault     images/flashload.bin --ms 20
 flashhelper fault   images/flashhelper.bin --ms 20 --ram 0x01c00100:12@end --golden golden/flashhelper
 flashirq  fault     images/flashirq.bin --ms 60 --ram 0x01c00100:0x20@end --golden golden/flashirq
 flashkeep power-cut images/flashkeep.bin --power-cut 30 --flash-log --ram 0x01c00100:8@end --golden golden/flashkeep
+package   completed packages/pkgapp.fwsc --package --ms 2 --ram 0x01c00100:12@end --golden golden/package

@@ -30,7 +30,7 @@
 
 use fm1_core::{Cpu, CoreError};
 use fm1_soc::machine::{self, Core1Bus};
-use fm1_soc::{FlashTiming, Soc, FLASH_SIZE, OVL_BASE, RAM_BASE, SRAM2_BASE, VEC_BASE, XIP_BASE, XIP_FLASH_OFFSET};
+use fm1_soc::{fwsc, FlashTiming, Soc, FLASH_SIZE, OVL_BASE, RAM_BASE, SRAM2_BASE, VEC_BASE, XIP_BASE, XIP_FLASH_OFFSET};
 
 /// RAM given to the image, as upstream's raw-image default.
 pub const RAM_SIZE: usize = 1 << 20;
@@ -113,6 +113,58 @@ impl Board {
         Ok(Board { soc, cpu0, cpu1: None, pending_tick: false, image_len: image.len() as u32, blocks: Vec::new(), halves_seen: 0 })
     }
 
+    /// Boots an update package (`--package`, HARNESS.md "Packages") the way upstream's
+    /// package path does (`fm1_soc::fwsc::unpack`, then the window, the chip and the SPL's
+    /// boot block as upstream's package boot sets them), with stricter checks of our own and without
+    /// that path's stock-firmware extras: no default patch bank in a blank USR region, no
+    /// other board. Upstream's checks come first, in its order, with its messages.
+    pub fn boot_package(pkg: &[u8], flash: Option<&[u8]>) -> Result<(Board, Package), String> {
+        if let Some(f) = flash {
+            if f.len() > FLASH_SIZE {
+                return Err(format!("the flash file is {} bytes; the chip holds {}", f.len(), FLASH_SIZE));
+            }
+        }
+        let u = fwsc::unpack(pkg).map_err(|e| format!("the package is refused: {e}"))?;
+        let refuse = |why: String| Err(format!("the package is refused: {why}"));
+        if u.raw.len() > FLASH_SIZE {
+            return refuse(format!("its flash image is {} bytes; the chip holds {}", u.raw.len(), FLASH_SIZE));
+        }
+        // upstream takes an isd_config.ini blob whose CRC fails when none checks; we don't
+        if !config_crc_checks(&u.raw) {
+            return refuse("no isd_config.ini key block's CRC checks".into());
+        }
+        if u.area != XIP_FLASH_OFFSET {
+            return refuse(format!("its app area starts at flash {:#x}, not {:#x}", u.area, XIP_FLASH_OFFSET));
+        }
+        let app = u.entry("app.bin").expect("unpack found app.bin");
+        if app.flags != 0x82 {
+            return refuse(format!("app.bin's attribute is {:#04x}, not 0x82", app.flags));
+        }
+        if fm1_soc::Board::of_identity(&u.identity) != fm1_soc::Board::Fm1 {
+            return refuse(format!("its identity {:?} is another board's", u.identity));
+        }
+        let mut chip = vec![0xffu8; FLASH_SIZE];
+        if let Some(f) = flash {
+            chip[..f.len()].copy_from_slice(f);
+        }
+        chip[..u.raw.len()].copy_from_slice(&u.raw);
+        let entry = XIP_BASE + app.offset as u32;
+        let window = u.xip.len() as u32;
+        let mut soc = Soc::new(RAM_SIZE, u.xip);
+        soc.periph.skip_idle = true;
+        soc.xip_flash = true;
+        soc.flash.timing = FlashTiming { program: FLASH_PROGRAM_MS * CYCLES_PER_MS, erase: FLASH_ERASE_MS * CYCLES_PER_MS };
+        soc.flash.load(&chip);
+        let mut cpu0 = Cpu::new(entry);
+        cpu0.user = true;
+        cpu0.jit_on = false;
+        // where the raw path puts its block: upstream's block is 24 bytes and the flash
+        // header's 32 after it
+        cpu0.regs[0] = fm1_soc::write_boot_info(&mut soc, RAM_BASE + 0x7fc00, &chip);
+        let board = Board { soc, cpu0, cpu1: None, pending_tick: false, image_len: window, blocks: Vec::new(), halves_seen: 0 };
+        Ok((board, Package { identity: u.identity, entry, area: u.area as u32 }))
+    }
+
     pub fn cycles(&self) -> u64 {
         self.soc.periph.cycles
     }
@@ -192,6 +244,58 @@ impl Board {
     pub fn word(&mut self, addr: u32) -> Option<u32> {
         self.read_ram(addr, 4).map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
     }
+}
+
+/// What `boot_package` found: the identity the header blocks' markers spell, the app's
+/// entry and the app area's flash offset.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Package {
+    pub identity: String,
+    pub entry: u32,
+    pub area: u32,
+}
+
+/// Whether some `isd_config.ini` head in the flash image's directory points at a 32-byte
+/// key block followed by its CRC-16. The walk and the rules are `fwsc::unpack`'s (heads
+/// of 32 bytes from offset 32, each masked from 0xFFFF, the name at +16, the offset at
+/// +4, "last" at +14), which keeps them private.
+fn config_crc_checks(raw: &[u8]) -> bool {
+    let mut o = 32;
+    while o + 32 <= raw.len() {
+        let mut h = [0u8; 32];
+        h.copy_from_slice(&raw[o..o + 32]);
+        mask(&mut h, 0xffff);
+        let name: Vec<u8> = h[16..].iter().copied().take_while(|&c| c != 0).collect();
+        let at = u32::from_le_bytes([h[4], h[5], h[6], h[7]]) as usize;
+        if name == b"isd_config.ini" && at + 34 <= raw.len() && crc16(&raw[at..at + 32]) == u16::from_le_bytes([raw[at + 32], raw[at + 33]]) {
+            return true;
+        }
+        if u16::from_le_bytes([h[14], h[15]]) != 0 {
+            return false;
+        }
+        o += 32;
+    }
+    false
+}
+
+/// The CRC-16 keystream mask (upstream's package module has its own, private).
+fn mask(buf: &mut [u8], mut key: u16) {
+    for b in buf {
+        *b ^= key as u8;
+        key = (key << 1) ^ if key & 0x8000 != 0 { 0x1021 } else { 0 };
+    }
+}
+
+/// CRC-16, polynomial 0x1021 from 0 (upstream's package module has its own, private).
+fn crc16(buf: &[u8]) -> u16 {
+    let mut crc = 0u16;
+    for &b in buf {
+        crc ^= (b as u16) << 8;
+        for _ in 0..8 {
+            crc = if crc & 0x8000 != 0 { (crc << 1) ^ 0x1021 } else { crc << 1 };
+        }
+    }
+    crc
 }
 
 /// Upstream's `fm1_soc::machine::run_blocks` (MIT), unchanged but for the

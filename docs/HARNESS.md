@@ -54,6 +54,29 @@ tools/fwtest --image        # the pinned image reference
 | Core 0 at the start | User mode. Every register is 0, both stack pointers included (set your own stacks first), except `r0` = `0x01C7FC00`: a 64-byte block of zeros whose first word holds `0x01C7FC40`. |
 | Core 1 | Does not run until the image releases it (`HARDWARE-SPEC.md` says how). Then it runs alongside core 0 (below, "Time"). |
 
+## Packages
+
+From 0.8.0, `fwtest run PACKAGE --package` takes an update package (a
+`.fwsc`, HARDWARE-SPEC.md HW-87 to HW-91) instead of a raw image and
+boots it the way the emulator's package path does, the one the F-Emulator
+app and the upstream web build use (HW-93). Nothing runs the chip's mask
+ROM or its second-stage loader: fwtest does their part itself, checks the
+package first, and then starts the app. Every other option works as with
+a raw image.
+
+| Rule | Value |
+|------|-------|
+| Checks | In this order; the first that fails refuses the package, and fwtest stops with a usage error (exit 2) whose message starts `the package is refused:` and names the check: the header's CRC (`too short for`, `not an FM-1 update package`); a flash image entry inside the file (`no flash image`, `truncated package`); a key block and an app area in the flash image's directory (`no chip key or app area`); the app area inside the flash image; an `app.bin` in the area (`no app.bin`); a key block whose CRC checks; the app area at flash `0x4000`; `app.bin`'s attribute `0x82`; an identity that is not another board's. |
+| The flash chip | 1 MiB. Erased, or `--flash FILE`'s bytes; then the package's flash image is written over it from offset 0, as an update writes it. The rest is kept. |
+| The code window | Shows the app area from flash `0x4000`, unscrambled, up to the flash image's end; past it, the flash chip as with a raw image. Changes the app makes to the chip show through the window. |
+| Entry | Core 0 starts at `0x02000000` plus `app.bin`'s offset in the area (`0x02000120` for the SDK's directory), in user mode, every register 0 but `r0`. Link the package's app there (HW-91). |
+| `r0` | `0x01C7FC00`: the boot block (HW-91): the address of the flash header's copy (`0x01C7FC18`), the window's flash offset (`0x4000`), the window's address (`0x02000000`), then 12 bytes of 0 (chip ID, trim, address), then the flash header's 32 bytes, unmasked. |
+| The `USR` region | Left as the package and `--flash` give it. (The app and the web build fill a blank one with a default patch bank; fwtest doesn't.) |
+| The app area on the chip | Held scrambled, as the package has it: reads of the area over SPI0 give the scrambled bytes, and bytes a firmware programs into the area show through the window as written (on the chip they would read back decrypted, `HARDWARE-SPEC.md` HW-91). Keep a store out of the app area. |
+| `result.json` | `run.package`: the identity, the app area's flash offset and the entry. |
+| Which fwtest | From 0.8.0. Until `config/fwtest-image` pins 0.8.0, `tools/fwtest` stops at `--package` as an unknown option. |
+| Not checked | A directory head's CRC, a data CRC, the list CRC, the other entries, the flash header's fields (HW-93; Q-25, Q-26). A package that passes here may still be refused by the chip. |
+
 ## The flash chip
 
 Since 0.6.0 fwtest's flash chip behaves as the P25Q80H's datasheet says
@@ -238,6 +261,7 @@ source 16, whatever `CON` was written to afterwards (SR-3).
 
 ```
 fwtest run IMAGE --ms MS --out DIR [options]
+fwtest run PACKAGE --package --ms MS --out DIR [options]
 fwtest suite FILE --out DIR
 fwtest version
 ```
@@ -246,6 +270,7 @@ fwtest version
 
 | Option | What it does |
 |--------|--------------|
+| `--package` | The input is an update package, not a raw image ("Packages"). |
 | `--ms MS` | Run for MS emulated milliseconds (up to three decimals). Required, unless `--power-cut` is given. |
 | `--power-cut MS` | Run for MS emulated milliseconds, then end as a power cut: the flash keeps only the part done of an erase or program in progress, and `flash.bin` is saved ("The flash chip"). In place of `--ms`. |
 | `--out DIR` | Write the outputs here. Required; must be empty or new. |
@@ -626,9 +651,17 @@ differ, that is a bug in fwtest: report it.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.8.0: update packages: `--package` boots a `.fwsc` through the
+  emulator's package path, with fwtest's own checks ("Packages").
 - 0.7.0: the USB core's register access port answers at once (bit 15
   set), a read giving the byte last written to its index and the
   interrupt flags 0 ("USB").
+  Published from main at `d28ec99c` (#137's merge, 2026-10-27) as
+  `ghcr.io/japes98/small-beeps@sha256:d7804526c77422395d191416cd84f461f14aae3ce3352fe127b4c5b623a2677e`.
+  Its pin is the clean side's pull request, not the spec side's: the clean
+  side opens it and runs its store and firmware tests on that branch
+  before the owner merges (the owner's answer, recorded by session
+  spec-a1-fwsc).
 - 0.6.0: the flash chip takes the P25Q80H's maximum times and keeps busy
   meanwhile, needs a write enable, wraps a program within its page and
   knows the 256-byte, 32 KiB and whole-chip erases; running or reading
