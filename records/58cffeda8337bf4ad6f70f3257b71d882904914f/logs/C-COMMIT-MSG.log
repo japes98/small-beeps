@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 908271299d35983711f263b92c44c14e21336aee..58cffeda8337bf4ad6f70f3257b71d882904914f
+OK     de32c9c6f869 sessions: spec-a1-fwsc starts (the last spec transcript, its prompt)
+OK     6664ff58ac4e docs: spec-a1-fwsc's exposure entry (started)
+EXEMPT 58cffeda8337 (merge) Merge pull request #141 from japes98/spec/a1-start
+3 commit(s) checked: PASS
+
+exit status 0

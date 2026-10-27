@@ -1,0 +1,384 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/fw-suite.py --build /home/runner/work/small-beeps/small-beeps/out/58cffeda8337bf4ad6f70f3257b71d882904914f/build-a --out /home/runner/work/small-beeps/small-beeps/out/58cffeda8337bf4ad6f70f3257b71d882904914f/fwtest
+image size: code 45144, data 80, bss 169328, image 45224, stack 4096, irq_stack 2048, ram_code 45024
+start slack: 12940 time base ticks (bss cleared before main starts the time base)
+built test-badinsn (-DSB_TEST_BADINSN)
+built test-fault (-DSB_TEST_FAULT)
+built test-flood (-DSB_TEST_FLOOD)
+built test-leds (-DSB_TEST_LEDS)
+built test-ledshow (-DSB_TEST_LED_SHOW)
+built test-midiburst (-DSB_TEST_MIDI_BURST)
+built test-midich (-DSB_TEST_MIDI_CHANNEL)
+built test-midithru (-DSB_TEST_MIDI_THRU)
+built test-storebusy (-DSB_TEST_STORE_BUSY)
+built test-storecut (-DSB_TEST_STORE_CUT)
+built test-storewipe (-DSB_TEST_STORE_WIPE)
+built test-stray (-DSB_TEST_STRAY)
+built test-underrun (-DSB_TEST_UNDERRUN)
+built test-velocity (-DSB_TEST_VELOCITY)
+Unable to find image 'ghcr.io/japes98/small-beeps@sha256:8402225f79ae01306cab6a25b2776369c52fd1ffc1c71eb1556a94c0c2b8a116' locally
+ghcr.io/japes98/small-beeps@sha256:8402225f79ae01306cab6a25b2776369c52fd1ffc1c71eb1556a94c0c2b8a116: Pulling from japes98/small-beeps
+fb02902e2fd3: Pulling fs layer
+caa5f63db0f2: Pulling fs layer
+5f8acc1ce7fe: Pulling fs layer
+2f6bc28ded2b: Pulling fs layer
+cb89efa62d5a: Pulling fs layer
+256806b5bc41: Pulling fs layer
+2f6bc28ded2b: Waiting
+cb89efa62d5a: Waiting
+256806b5bc41: Waiting
+5f8acc1ce7fe: Verifying Checksum
+5f8acc1ce7fe: Download complete
+caa5f63db0f2: Verifying Checksum
+caa5f63db0f2: Download complete
+2f6bc28ded2b: Verifying Checksum
+2f6bc28ded2b: Download complete
+fb02902e2fd3: Download complete
+cb89efa62d5a: Verifying Checksum
+cb89efa62d5a: Download complete
+256806b5bc41: Verifying Checksum
+256806b5bc41: Download complete
+fb02902e2fd3: Pull complete
+caa5f63db0f2: Pull complete
+5f8acc1ce7fe: Pull complete
+2f6bc28ded2b: Pull complete
+cb89efa62d5a: Pull complete
+256806b5bc41: Pull complete
+Digest: sha256:8402225f79ae01306cab6a25b2776369c52fd1ffc1c71eb1556a94c0c2b8a116
+Status: Downloaded newer image for ghcr.io/japes98/small-beeps@sha256:8402225f79ae01306cab6a25b2776369c52fd1ffc1c71eb1556a94c0c2b8a116
+fwtest suite: PASS
+boot: completed at 5.092 ms, 186959 instructions on core 0
+  golden console.txt: match
+  golden ram-01c00000-4-end.bin: match
+  golden ram-01c7fc00-200-end.bin: match
+  clock: 240 time base ticks for 2402 cycles; 4 ticks by the end
+  first tick by 24307 time base ticks (1.013 ms)
+  vector table: 128 of 128 slots as built (tick 0x01c2ee18, SPI1 0x01c2ebaa, scan 0x01c2e4d2, audio 0x01c2a05a, stubs from 0x01c2a13a)
+heartbeat: completed at 1250.174 ms, 2688506 instructions on core 0
+  1ms    seq     2  beats     1  ticks     24307 (1.013 ms)  copy b     1     24307
+  10ms   seq    20  beats    10  ticks    240316 (10.013 ms)  copy b    10    240316
+  100ms  seq   198  beats    99  ticks   2376405 (99.017 ms)  copy b    99   2376405
+  500ms  seq  1000  beats   500  ticks  12000806 (500.034 ms)  copy b   500  12000806
+  end    seq  2498  beats  1249  ticks  29977555 (1249.065 ms)  copy b  1249  29977555
+  ticks 1249, interval 24001 to 24001 time base ticks (jitter 0); the idle loop's wait returned 6819 times in its first 500 ticks
+heartbeat2: completed at 2250.409 ms, 3983616 instructions on core 0
+  1ms    seq     2  beats     1  ticks     24307 (1.013 ms)  copy b     1     24307
+  10ms   seq    20  beats    10  ticks    240316 (10.013 ms)  copy b    10    240316
+  100ms  seq   198  beats    99  ticks   2376405 (99.017 ms)  copy b    99   2376405
+  500ms  seq  1000  beats   500  ticks  12000806 (500.034 ms)  copy b   500  12000806
+  end    seq  4498  beats  2249  ticks  53978555 (2249.106 ms)  copy b  2249  53978555
+  ticks 2249, interval 24001 to 24001 time base ticks (jitter 0); the idle loop's wait returned 20475 times in its first 1500 ticks
+  steady state: 1295110 instructions for 1000 ticks between the two heartbeat runs: 1295.110 a tick (M0's polling heartbeat: 356.9 a period)
+screen: completed at 1600.481 ms, 3141485 instructions on core 0
+  golden lcd-1500ms.png: match
+  golden lcd-300ms.png: match
+  golden lcd-800ms.png: match
+   300 ms: screen 1, heartbeat shown 0 s, beats 300
+   800 ms: screen 2, heartbeat shown 0 s, beats 799
+  1500 ms: screen 2, heartbeat shown 1 s, beats 1499
+flood: completed at 1500.000 ms, 241393911 instructions on core 0
+  ticks 1499, interval 24001 to 24002 time base ticks (jitter 1), during 233587 whole frames
+  a whole frame: 99 time base ticks (4.12 us) from its window to its last transfer started; 1033 core-0 instructions a frame over the run
+fault: halt at 1.523 ms, 185962 instructions on core 0
+  golden console.txt: match
+  halt: reason 3, source 1, reti 0x00000000
+stray: halt at 0.766 ms, 183887 instructions on core 0
+  golden console.txt: match
+  halt: reason 1, source 127, reti 0x01c2f83c
+badinsn: fault at 0.757 ms, 181820 instructions on core 0
+keys: completed at 2400.162 ms, 12439941 instructions on core 0
+  41 keys and buttons, each alone: fwtest key n at its HW-35 contact gave control n (HW-37), press and release; latency 2.500 to 4.033 ms
+  LEDs: 85 set by main, at most 0.0032 ms after their event
+  leds.csv: each LED's mean share while held 76.0 to 90.0 thousandths
+  leds.csv: 84 samples lit as expected, 18695 dark as expected; the screens' buttons lit while their screen shows, OP1's key at half on ENV and EDIT
+chords: completed at 1300.555 ms, 5573938 instructions on core 0
+  golden lcd-1050ms.png: match
+  32 events, 0 dropped
+  no ghost at the rectangle's fourth corner; chatter gave one press and one release; the glitch none; encoders exact with keys held in their columns
+encoders: completed at 2300.179 ms, 8201422 instructions on core 0
+  14 slow detents: fwtest encoder n gave its control (HW-39), +1 clockwise; latency -0.295 to 0.991 ms
+  positions at the end: SELECT +45, PRESETS +15, ALGORITHM -20, KNOB1 +25, KNOB2 -25, KNOB3 +20, KNOB4 -20 (330 events, 0 dropped)
+  ticks 2299, interval 24001 to 24001 time base ticks (jitter 0)
+pot: completed at 1300.556 ms, 3742229 instructions on core 0
+  step to  300 at 700 ms: 4 events, the first -0.465 to 0.074 ms after, 300 reached 2.537 to 3.076 ms after
+  step to    0 at 750 ms: 4 events, the first -0.444 to 0.095 ms after, 0 reached 2.557 to 3.096 ms after
+  step to 1023 at 800 ms: 4 events, the first -0.424 to 0.115 ms after, 1023 reached 2.577 to 3.116 ms after
+  step to  512 at 850 ms: 4 events, the first -0.404 to 0.135 ms after, 512 reached 2.597 to 3.136 ms after
+  no events while the reading wandered by 2 at rest; the sweep rose in 128 events to 1023
+leds: completed at 1000.268 ms, 2370966 instructions on core 0
+  41 LEDs at 9 brightness steps: every sample within 1.25 thousandths of n/8 x 1000/12
+ledshow: completed at 2400.160 ms, 12523322 instructions on core 0
+  85 LED changes: set by main at most 0.0085 ms after their event, then driven by the scan at most 0.9980 ms later: 1.0065 ms from event to LED at most
+tone: completed at 2599.549 ms, 10688502 instructions on core 0
+  audio: 1791 blocks filled (fwtest: 1791), 0 underruns, longest fill 15.3 us, 4 events to the engine
+  audio.wav: 114624 frames (header 44100 Hz; measured at 44117.647 Hz)
+  test tone: 1000.000000 Hz (-0.00000 cents), -6.021 dBFS, THD+N -92.2 dB, from 105.227 to 2325.858 ms; silence (every sample 0) before and after
+  tone: ends 0.299 ms after a block, 1.152 ms before the next
+notes: completed at 3900.070 ms, 15229951 instructions on core 0
+  audio: 2687 blocks filled (fwtest: 2687), 0 underruns, longest fill 24.7 us, 36 events to the engine
+  audio.wav: 171968 frames (header 44100 Hz; measured at 44117.647 Hz)
+  the time base started at 0.502 ms of fwtest's time
+  note  60 (KEY8): 261.6256 Hz (-0.0001 cents), -14.284 dBFS (MASTER 900: -14.283), THD+N -83.8 dB, sound 5.227 ms after the key, 1.595 ms after its event
+  note  69 (KEY17): 440.0000 Hz (-0.0000 cents), -14.284 dBFS (MASTER 900: -14.283), THD+N -83.6 dB, sound 5.611 ms after the key, 1.986 ms after its event
+  note  53 (KEY1): 174.6130 Hz (-0.0109 cents), -14.284 dBFS (MASTER 900: -14.283), THD+N -83.8 dB, sound 6.018 ms after the key, 2.565 ms after its event
+  note  79 (KEY27): 783.9887 Hz (-0.0047 cents), -14.284 dBFS (MASTER 900: -14.283), THD+N -83.8 dB, sound 6.379 ms after the key, 2.600 ms after its event
+  note  69 (KEY17): 440.0000 Hz (-0.0000 cents), -12.041 dBFS (MASTER 1023: -12.041), THD+N -86.0 dB, sound 5.313 ms after the key, 2.207 ms after its event
+  note  69 (KEY17): 440.0000 Hz (-0.0000 cents), -24.082 dBFS (MASTER 512: -24.082), THD+N -74.0 dB, sound 5.720 ms after the key, 2.453 ms after its event
+  note 103 (KEY27): 3135.9550 Hz (-0.0047 cents), -24.082 dBFS (MASTER 512: -24.082), THD+N -74.0 dB, sound 4.822 ms after the key, 1.481 ms after its event
+  note  29 (KEY1): 43.6532 Hz (-0.0112 cents), -24.082 dBFS (MASTER 512: -24.082), THD+N -74.0 dB, sound 5.681 ms after the key, 2.186 ms after its event
+  latency: key to sound 4.822 to 6.379 ms, press event to sound 1.481 to 2.600 ms; every sample between the notes 0
+  notes: ends 0.302 ms after a block, 1.149 ms before the next
+audioload: completed at 11000.000 ms, 787875102 instructions on core 0
+  audio: 7581 blocks filled (fwtest: 7582), 0 underruns, longest fill 437.8 us, 18255 events to the engine
+  ticks 10999, interval 24001 to 24002 time base ticks (jitter 1)
+  11.00 s of audio under load: 886 notes (862 took a sounding voice), 18255 events to the engine, 17649 to main; longest fill 437.8 us of a 1450.7 us block
+  FM: 16 voices at most, 862 stolen; core 1 rendered 7504 blocks (584468278 instructions); core 0 waited for it at most 8.0 us
+  audioload: ends 0.289 ms after a block, 1.162 ms before the next
+audiogold: completed at 500.538 ms, 2263038 instructions on core 0
+  golden audio.wav: match
+  audio: 344 blocks filled (fwtest: 344), 0 underruns, longest fill 21.9 us, 4 events to the engine
+  audio.wav: 22016 frames (header 44100 Hz; measured at 44117.647 Hz)
+  audiogold: ends 0.314 ms after a block, 1.137 ms before the next
+underrun: completed at 500.124 ms, 3625364 instructions on core 0
+  audio: 344 blocks filled (fwtest: 344), 5 underruns, longest fill 1759.1 us, 0 events to the engine
+  5 blocks late on purpose: 5 underruns counted, 5 reported (AUDIO UNDERRUN 0001, AUDIO UNDERRUN 0002, AUDIO UNDERRUN 0003, ...)
+  underrun: ends 0.314 ms after a block, 1.137 ms before the next
+fmbessel: completed at 1600.565 ms, 7876970 instructions on core 0
+  audio: 1102 blocks filled (fwtest: 1102), 0 underruns, longest fill 27.8 us, 3 events to the engine
+  audio.wav: 70528 frames (header 44100 Hz; measured at 44117.647 Hz)
+  index 1.57080 (pi/2): sidebands -4 to 4 within 0.0021 dB of |J_n|, -5 -0.134 dB, +5 +0.001 dB; their total 6328.11 (-0.0000 dB of the carrier's level)
+  fmbessel: ends 0.309 ms after a block, 1.142 ms before the next
+fmenv: completed at 1400.318 ms, 5613402 instructions on core 0
+  audio: 964 blocks filled (fwtest: 964), 0 underruns, longest fill 22.2 us, 4 events to the engine
+  audio.wav: 61696 frames (header 44100 Hz; measured at 44117.647 Hz)
+  stages end at 31.14, 44.03, 60.02 ms (nominal 32.00, 44.00, 60.00); halfway through the attack 0.5186 of the peak; held -30.104 dB (-30.103); decay 1 1498.9 dB/s (1505.1); decay 2 749.3 dB/s (752.6); release 375.6 dB/s (376.3)
+  fmenv: ends 0.301 ms after a block, 1.150 ms before the next
+fmmono: completed at 2000.600 ms, 9318507 instructions on core 0
+  audio: 1378 blocks filled (fwtest: 1378), 0 underruns, longest fill 27.0 us, 7 events to the engine
+  audio.wav: 88192 frames (header 44100 Hz; measured at 44117.647 Hz)
+  one sound, 1 note started; held notes within 0.0141 semitones, the glides (181.0 ms) within 0.048 of a straight line; level +0.138 dB across the legato note
+  fmmono: ends 0.325 ms after a block, 1.126 ms before the next
+fmsteal: completed at 1700.586 ms, 17462845 instructions on core 0
+  audio: 1171 blocks filled (fwtest: 1171), 0 underruns, longest fill 123.2 us, 38 events to the engine
+  audio.wav: 74944 frames (header 44100 Hz; measured at 44117.647 Hz)
+  17 notes, 1 took a sounding voice, at most 16 voices at once (0 and 0 on the cores at the end of the last block with notes); largest second difference 7 (bound 110.3)
+  fmsteal: ends 0.313 ms after a block, 1.138 ms before the next
+fmvel: completed at 2800.129 ms, 10688257 instructions on core 0
+  audio: 1929 blocks filled (fwtest: 1929), 0 underruns, longest fill 24.8 us, 18 events to the engine
+  audio.wav: 123456 frames (header 44100 Hz; measured at 44117.647 Hz)
+  level against velocity 127, dB (expected): 127: +0.000 (-0.000), 100: -10.220 (-10.240), 64: -23.863 (-23.893), 32: -36.009 (-36.029), 1: -47.773 (-47.785)
+  fmvel: ends 0.307 ms after a block, 1.144 ms before the next
+fmgold: completed at 4199.774 ms, 25292855 instructions on core 0
+  golden audio.wav: match
+  audio: 2894 blocks filled (fwtest: 2894), 0 underruns, longest fill 56.0 us, 28 events to the engine
+  audio.wav: 185216 frames (header 44100 Hz; measured at 44117.647 Hz)
+  fmgold: ends 0.314 ms after a block, 1.137 ms before the next
+fmgold2: completed at 4199.774 ms, 25292855 instructions on core 0
+  golden audio.wav: match
+  audio: 2894 blocks filled (fwtest: 2894), 0 underruns, longest fill 56.0 us, 28 events to the engine
+  audio.wav: 185216 frames (header 44100 Hz; measured at 44117.647 Hz)
+  the second run's audio.wav is byte for byte the first's
+  fmgold2: ends 0.314 ms after a block, 1.137 ms before the next
+midimsg: completed at 3099.749 ms, 12096660 instructions on core 0
+  audio: 2136 blocks filled (fwtest: 2136), 0 underruns, longest fill 37.8 us, 0 events to the engine
+  audio.wav: 136704 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi: 144 bytes, 49 messages (0 realtime), 0 SysEx (0 bytes, 0 too long, 0 cut), 0 orphans, 0 undefined, 0 cut, 0 filtered; 11 note ons, 8 offs; model: same
+  bent to notes 66.000, 76.998 (66, 77 asked); vibrato +-0.491 semitones; volume and expression -16.06 dB (-16.06); silent 6 ms after all sound off; program 8 in force
+  midimsg: ends 0.319 ms after a block, 1.132 ms before the next
+midirun: completed at 899.534 ms, 3694399 instructions on core 0
+  audio: 619 blocks filled (fwtest: 619), 0 underruns, longest fill 35.7 us, 0 events to the engine
+  audio.wav: 39616 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi: 62 bytes, 50 messages (41 realtime), 0 SysEx (0 bytes, 0 too long, 0 cut), 0 orphans, 0 undefined, 0 cut, 0 filtered; 3 note ons, 3 offs; model: same
+  3 note ons checked: each sounds within 3.0 ms
+  midirun: ends 0.281 ms after a block, 1.170 ms before the next
+midisysex: completed at 2800.046 ms, 6779135 instructions on core 0
+  audio: 1929 blocks filled (fwtest: 1929), 0 underruns, longest fill 26.5 us, 0 events to the engine
+  audio.wav: 123456 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi: 6621 bytes, 89 messages (40 realtime), 42 SysEx (6473 bytes, 1 too long, 1 cut), 0 orphans, 1 undefined, 0 cut, 0 filtered; 4 note ons, 4 offs; model: same
+  4 note ons checked: each sounds within 3.0 ms
+  midisysex: ends 0.307 ms after a block, 1.144 ms before the next
+midijunk: completed at 1700.021 ms, 19972501 instructions on core 0
+  audio: 1171 blocks filled (fwtest: 1171), 0 underruns, longest fill 239.4 us, 0 events to the engine
+  audio.wav: 74944 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi: 3623 bytes, 1040 messages (65 realtime), 18 SysEx (16 bytes, 0 too long, 18 cut), 82 orphans, 60 undefined, 332 cut, 0 filtered; 62 note ons, 88 offs; model: same
+  1 note ons checked: each sounds within 3.0 ms
+  midijunk: ends 0.313 ms after a block, 1.138 ms before the next
+mididense: completed at 6500.696 ms, 124019350 instructions on core 0
+  audio: 4480 blocks filled (fwtest: 4480), 0 underruns, longest fill 104.6 us, 0 events to the engine
+  audio.wav: 286720 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi: 18794 bytes, 7360 messages (0 realtime), 0 SysEx (0 bytes, 0 too long, 0 cut), 0 orphans, 0 undefined, 0 cut, 0 filtered; 3272 note ons, 3272 offs; model: same
+  16 voices at most; 3272 notes started; longest fill 104.6 us
+  mididense: ends 0.357 ms after a block, 1.094 ms before the next
+midisustain: completed at 1700.022 ms, 8003867 instructions on core 0
+  audio: 1171 blocks filled (fwtest: 1171), 0 underruns, longest fill 37.3 us, 2 events to the engine
+  audio.wav: 74944 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi: 36 bytes, 12 messages (0 realtime), 0 SysEx (0 bytes, 0 too long, 0 cut), 0 orphans, 0 undefined, 0 cut, 0 filtered; 4 note ons, 3 offs; model: same
+  300 ms: 1 held, pedal 1, 1 sounding; 560 ms: 2 held, pedal 1, 3 sounding; 700 ms: 3 held, pedal 1, 3 sounding; 1000 ms: 0 held, pedal 0, 0 sounding; 1300 ms: 1 held, pedal 1, 1 sounding
+  midisustain: ends 0.313 ms after a block, 1.138 ms before the next
+midichan: completed at 701.288 ms, 2889082 instructions on core 0
+  audio: 482 blocks filled (fwtest: 482), 0 underruns, longest fill 21.0 us, 0 events to the engine
+  audio.wav: 30848 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi: 171 bytes, 62 messages (0 realtime), 0 SysEx (0 bytes, 0 too long, 0 cut), 0 orphans, 0 undefined, 0 cut, 60 filtered; 1 note ons, 1 offs; model: same
+  midichan: ends 0.322 ms after a block, 1.129 ms before the next
+midipanel: completed at 1300.361 ms, 6391942 instructions on core 0
+  audio: 895 blocks filled (fwtest: 895), 0 underruns, longest fill 33.4 us, 6 events to the engine
+  audio.wav: 57280 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi: 24 bytes, 8 messages (0 realtime), 0 SysEx (0 bytes, 0 too long, 0 cut), 0 orphans, 0 undefined, 0 cut, 0 filtered; 4 note ons, 4 offs; model: same
+  voices sounding at 200 ms: 1, 300 ms: 1, 500 ms: 1, 600 ms: 1, 900 ms: 3
+  midipanel: ends 0.297 ms after a block, 1.154 ms before the next
+  midipanel: lcd-900ms.png as its golden image outside the live spectrum (0 pixels in it differ)
+midilat: completed at 3300.163 ms, 14884701 instructions on core 0
+  audio: 2274 blocks filled (fwtest: 2274), 0 underruns, longest fill 23.4 us, 0 events to the engine
+  audio.wav: 145536 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi: 120 bytes, 40 messages (0 realtime), 0 SysEx (0 bytes, 0 too long, 0 cut), 0 orphans, 0 undefined, 0 cut, 0 filtered; 20 note ons, 20 offs; model: same
+  latency, last byte to first sample: 1.638 to 2.817 ms, mean 2.226 (bound 3.0), 20 notes
+  midilat: ends 0.327 ms after a block, 1.124 ms before the next
+midiout: completed at 2800.407 ms, 9581715 instructions on core 0
+  audio: 1929 blocks filled (fwtest: 1929), 0 underruns, longest fill 45.0 us, 77 events to the engine
+  audio.wav: 123456 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi out: 174 bytes in 56 transfers (longest 7), 60 messages, 4 status bytes left out, 0 merged, 0 dropped (0 note offs with them, 0 lost), at most 3 waiting
+  the 60 messages expected, in order
+  midiout: ends 0.330 ms after a block, 1.121 ms before the next
+  midiout: MIDI out as its golden capture, every byte within 0.001 ms (tolerance 2.091)
+midiround: completed at 2800.239 ms, 9609634 instructions on core 0
+  audio: 1929 blocks filled (fwtest: 1929), 0 underruns, longest fill 38.3 us, 0 events to the engine
+  audio.wav: 123456 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi: 174 bytes, 60 messages (0 realtime), 0 SysEx (0 bytes, 0 too long, 0 cut), 0 orphans, 0 undefined, 0 cut, 0 filtered; 6 note ons, 6 offs; model: same
+  the engine at the end as midiout's: patch 2, algorithm 8, mono 0, pitch_knob 24, glide 0, depth -10, feedback 7, notes 6
+  notes alone, pitch midiout/midiround: 53.00/53.00, 74.02/74.00, 91.00/91.00
+  midiround: ends 0.330 ms after a block, 1.121 ms before the next
+midithru: completed at 601.081 ms, 3144432 instructions on core 0
+  audio: 413 blocks filled (fwtest: 413), 0 underruns, longest fill 40.6 us, 4 events to the engine
+  audio.wav: 26432 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi: 43 bytes, 19 messages (7 realtime), 1 SysEx (4 bytes, 0 too long, 0 cut), 0 orphans, 0 undefined, 0 cut, 0 filtered; 3 note ons, 3 offs; model: same
+  midi out: 49 bytes in 14 transfers (longest 6), 22 messages, 2 status bytes left out, 0 merged, 0 dropped (0 note offs with them, 0 lost), at most 3 waiting
+  thru: 18 messages passed on in order (7 realtime), 1 SysEx not; the panel's 4 once each
+  midithru: ends 0.318 ms after a block, 1.133 ms before the next
+  midithru: MIDI out as its golden capture, every byte within 0.001 ms (tolerance 2.091)
+midilocal: completed at 1400.679 ms, 4624577 instructions on core 0
+  golden lcd-700ms.png: match
+  audio: 964 blocks filled (fwtest: 964), 0 underruns, longest fill 24.9 us, 15 events to the engine
+  audio.wav: 61696 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi: 12 bytes, 4 messages (0 realtime), 0 SysEx (0 bytes, 0 too long, 0 cut), 0 orphans, 0 undefined, 0 cut, 0 filtered; 1 note ons, 1 offs; model: same
+  midi out: 42 bytes in 15 transfers (longest 3), 15 messages, 0 status bytes left out, 0 merged, 0 dropped (0 note offs with them, 0 lost), at most 1 waiting
+  the 15 messages expected, in order
+  sounds at 803.3, 1105.0 ms; pitch 67.00 (MIDI 67, KNOB1 not taken), 66.00 (key 60 + KNOB1 6)
+  midilocal: ends 0.323 ms after a block, 1.128 ms before the next
+  midilocal: MIDI out as its golden capture, every byte within 0.001 ms (tolerance 2.091)
+midiburst: completed at 1700.605 ms, 4737882 instructions on core 0
+  midi out: 77 bytes in 10 transfers (longest 12), 36 messages, 31 status bytes left out, 28 merged, 18 dropped (16 note offs with them, 0 lost), at most 32 waiting
+  burst: 16 of its 32 notes sent, each ended; the panel's 2 keys after it sent
+  midiburst: MIDI out as its golden capture, every byte within 0.001 ms (tolerance 2.091)
+midioutlat: completed at 3200.623 ms, 14326891 instructions on core 0
+  audio: 2205 blocks filled (fwtest: 2205), 0 underruns, longest fill 24.4 us, 40 events to the engine
+  audio.wav: 141120 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi out: 120 bytes in 40 transfers (longest 3), 40 messages, 0 status bytes left out, 0 merged, 0 dropped (0 note offs with them, 0 lost), at most 1 waiting
+  latency, key down to the note on's first start bit: 3.180 to 4.908 ms, mean 4.114 (bound 6.5)
+  midioutlat: ends 0.323 ms after a block, 1.128 ms before the next
+presetends: completed at 1700.188 ms, 5584543 instructions on core 0
+  audio: 1171 blocks filled (fwtest: 1171), 0 underruns, longest fill 28.5 us, 105 events to the engine
+  audio.wav: 74944 frames (header 44100 Hz; measured at 44117.647 Hz)
+  midi out: 22 bytes in 10 transfers (longest 3), 10 messages, 0 status bytes left out, 0 merged, 0 dropped (0 note offs with them, 0 lost), at most 1 waiting
+  the 10 messages expected, in order
+  PRESETS down from 001: nothing (KEY1 sounds on); up 100: to program 8, a program change a detent until then; up again: nothing
+  presetends: ends 0.313 ms after a block, 1.138 ms before the next
+views: completed at 2400.160 ms, 5486439 instructions on core 0
+  golden lcd-1150ms.png: match
+  golden lcd-1450ms.png: match
+  golden lcd-1750ms.png: match
+  golden lcd-2050ms.png: match
+  golden lcd-2350ms.png: match
+  golden lcd-850ms.png: match
+  drawing: 5 screens, 11 frames, 91 parts, 1810 rows sent; longest part 3786 ticks (part 11), most in a block 7340 (budget 4352)
+  screens: patch, EDIT, ENV, settings, then HOME back; on the settings screen PRESETS, OCT+ and MASTER as everywhere; each screen's button lit, OP1's key at half on EDIT and ENV
+viewsload: completed at 3299.900 ms, 189652548 instructions on core 0
+  audio: 2273 blocks filled (fwtest: 2274), 0 underruns, longest fill 437.8 us, 318 events to the engine
+  ticks 3299, interval 24001 to 24002 time base ticks (jitter 1)
+  drawing: 28 screens, 102 frames, 750 parts, 13456 rows sent; longest part 11839 ticks (part 11), most in a block 12334 (budget 4352) (with the audio's interrupts)
+  28 screens drawn under 16 voices, longest fill 437.8 us of a 1450.7 us block
+  viewsload: ends 0.327 ms after a block, 1.124 ms before the next
+macros: completed at 11000.333 ms, 47436110 instructions on core 0
+  audio: 7582 blocks filled (fwtest: 7582), 0 underruns, longest fill 31.9 us, 442 events to the engine
+  audio.wav: 485248 frames (header 44100 Hz; measured at 44117.647 Hz)
+  BRIGHT: the share above 7.5 f0 0.067 at 0, 0.373 at +20
+  COLOR: partials off the harmonics by 0.005 f0 at 0, 0.291 at +32
+  back at 0: the note is the first one again, sample for sample (11029 samples)
+  SHAPE: attack to -3 dB 2.9 / 0.0 / 636.8 ms, release to -60 dB 41 / 17 / 2520 ms (0, -64, +64)
+  MOTION: the pitch swings 0.0 cents at 0, 49.8 at +64
+  out: controllers 16 to 19, [40, 64, 254, 63] values, as the macros' spans give them
+  macros: ends 0.289 ms after a block, 1.162 ms before the next
+  macros: lcd-10400ms.png as its golden image outside the live spectrum (0 pixels in it differ)
+  macros: lcd-1800ms.png as its golden image outside the live spectrum (0 pixels in it differ)
+edit: completed at 5700.292 ms, 19676045 instructions on core 0
+  golden lcd-1000ms.png: match
+  golden lcd-4600ms.png: match
+  audio: 3928 blocks filled (fwtest: 3928), 0 underruns, longest fill 41.7 us, 217 events to the engine
+  audio.wav: 251392 frames (header 44100 Hz; measured at 44117.647 Hz)
+  E1 as stored: the note's pitch 466.16 (expected 466.16)
+  E2 RATIO 2.00: twice the pitch 932.32 (expected 932.33)
+  E3 LEVEL 103: -18 dB -18.06 (expected -18.00)
+  E4 DETUNE +50: cents 49.98 (expected 50.00)
+  E5 MODE fixed: 440 Hz 440.00 (expected 440.00)
+  E6 HOLD 103: -18 dB held -18.06 (expected -18.00)
+  E7 VELO 7: dB at velocity 100, against E6 -10.24 (expected -10.24)
+  E8: another program and back: the stored patch again, sample for sample
+  SAVE with KEY1: slot 1 holds the edited patch (velocity 7, held 103, algorithm 9)
+  drawing: 2 screens, 132 frames, 339 parts, 4462 rows sent; longest part 3779 ticks (part 11), most in a block 6712 (budget 4352); 20 live updates, the longest 88 ticks
+  edit: ends 0.325 ms after a block, 1.126 ms before the next
+env: completed at 6999.807 ms, 30909340 instructions on core 0
+  golden lcd-1000ms.png: match
+  golden lcd-1400ms.png: match
+  golden lcd-5900ms.png: match
+  golden lcd-6950ms.png: match
+  audio: 4824 blocks filled (fwtest: 4824), 0 underruns, longest fill 29.9 us, 307 events to the engine
+  audio.wav: 308736 frames (header 44100 Hz; measured at 44117.647 Hz)
+  ATTACK 40 -> 56: attack to -3 dB 21.8 -> 89.9 ms (x 4.13; the codes say x 4)
+  RELEASE 64 -> 48: release to -60 dB 177.0 -> 47.9 ms (x 0.27; x 1/4)
+  HOLD 87 -> 71: the held level -12.04 dB (-12.04)
+  pitch envelope (DEPTH 12, P0 -127, RATE1 56): -9.6 semitones at 10 ms, -0.00 at 390 ms
+  drawing: 2 screens, 184 frames, 1095 parts, 21760 rows sent; longest part 3787 ticks (part 11), most in a block 6351 (budget 4352); 30 live updates (the dot), the longest 511 ticks
+  env: ends 0.327 ms after a block, 1.124 ms before the next
+spectrum: completed at 3300.413 ms, 8722483 instructions on core 0
+  audio: 2274 blocks filled (fwtest: 2274), 0 underruns, longest fill 24.4 us, 8 events to the engine
+  audio.wav: 145536 frames (header 44100 Hz; measured at 44117.647 Hz)
+  the tone: the tallest bar 19 (954 to 1036 Hz) at 39 of 40; 1 kHz is bar 19
+  transforms: 15 by 1 300 ms (from the tone at 800: 30 a second), 22 at 2 000, 22 at 2 900, 31 at the end; the longest 2971 ticks (three parts, with the audio's interrupts)
+  drawing: 1 screens, 38 frames, 142 parts, 1480 rows sent; longest part 3778 ticks (part 11), most in a block 6294 (budget 4352)
+  spectrum: ends 0.327 ms after a block, 1.124 ms before the next
+  spectrum: lcd-1300ms.png as its golden image outside the live spectrum (0 pixels in it differ)
+  spectrum: lcd-2000ms.png as its golden image outside the live spectrum (0 pixels in it differ)
+settings: completed at 3400.455 ms, 10596713 instructions on core 0
+  golden lcd-2300ms.png: match
+  golden lcd-2550ms.png: match
+  golden lcd-2750ms.png: match
+  golden lcd-3300ms.png: match
+  audio: 2343 blocks filled (fwtest: 2343), 0 underruns, longest fill 21.9 us, 38 events to the engine
+  audio.wav: 149952 frames (header 44100 Hz; measured at 44117.647 Hz)
+  in channel 2 (channel 1 filtered), out channel 3, thru, local off (KEY20 out, not played), bend 12, knobs direct; factory reset asked, HOME cancelled it, SAVE did it (one reset record)
+  drawing: 4 screens, 31 frames, 310 parts, 6491 rows sent; longest part 3841 ticks (part 11), most in a block 6948 (budget 4352)
+  settings: ends 0.331 ms after a block, 1.120 ms before the next
+store persist: PASS
+  persist: slot 1 saved with algorithm 10 (was 8), program 3, local off; the next start loaded all three (store read in 274.0 us) and played slot 1 as program 9
+store sweep: PASS
+  sweep: the save took 28 commands (1 erase, 27 page programs; 17 records copied); cut at 109 points (81 mid-program), 29 torn images made, 109 distinct images; every start after them agreed with tools/store.py and saved again
+store reset: PASS
+  reset: asked on the settings' last row and confirmed with SAVE, slot 1, the selection and the settings were voided by one record and the next start loaded nothing; cancelled with HOME, nothing changed
+store corrupt: PASS
+  corrupt: 2 damaged records and 15 garbage blocks ignored, 1 unknown record kept out, the older slot 1 read; a save after it went in
+store full: PASS
+  full: every sector in use and no room to move slot 1 out of the next one: the save was refused (result -2), reported, and nothing written
+store wear: PASS
+  wear: 36 saves erased sectors [0, 1] in ring order, 18 records copied, the stock user patch region unchanged; the selection, turned 24 times in 6 s, was written 4 times
+store migrate: PASS
+  migrate: a version 1 patch in slot 1 played as version 2 with the arpeggiator's defaults; SAVE to slot 2 wrote it as version 2, slot 1 left as it was
+  migrate: version 1 settings (channel 10, bend 12) and version 2 (with thru on) taken as version 4; a change wrote version 4 with them kept, its defaults added, the knobs the macros, 120 beats a minute, the arpeggiator's notes out
+store busy: PASS
+  audio: 3445 blocks filled (fwtest: 3445), 0 underruns, longest fill 404.8 us, 8133 events to the engine
+  ticks 4999, interval 24001 to 24002 time base ticks (jitter 1)
+  busy: audioload's input with SAVE held 3 times: 24 saves (1 erases, 38 page programs), the longest 18.1 ms; 0 underruns; core 0 101685 instructions a block on average, 192824 at most
+store wipe: PASS
+  audio: 3445 blocks filled (fwtest: 3445), 0 underruns, longest fill 404.8 us, 8133 events to the engine
+  ticks 4999, interval 24001 to 24002 time base ticks (jitter 1)
+  wipe: audioload's input with SAVE held 3 times: 24 saves (13 erases, 38 page programs), the longest 18.1 ms; 0 underruns; core 0 101430 instructions a block on average, 191945 at most
+fw suite: PASS
+
+exit status 0
