@@ -30,10 +30,13 @@ pub mod exit {
 pub const USAGE: &str = "\
 usage:
   fwtest run IMAGE --ms MS --out DIR [options]
+  fwtest run PACKAGE --package --ms MS --out DIR [options]
   fwtest suite FILE --out DIR
   fwtest version
 
 run options:
+  --package              the input is an update package (.fwsc), booted as the
+                         package path does
   --script FILE          timed inputs (keys, encoders, pot, MIDI)
   --flash FILE           initial contents of the flash chip
   --ram ADDR:LEN@WHEN    save LEN bytes of RAM at ADDR (hex with 0x, or decimal)
@@ -142,6 +145,7 @@ pub fn parse_run(args: &[String], base: &Path) -> Result<RunArgs, String> {
             "--console" => opt.console = true,
             "--midi-out" => opt.midi_out = true,
             "--halt-ok" => opt.halt_ok = true,
+            "--package" => opt.package = true,
             s if s.starts_with("--") => return Err(format!("unknown option {s}")),
             s if image.is_none() => image = Some(path(&s.to_string())),
             s => return Err(format!("unexpected argument {s:?}")),

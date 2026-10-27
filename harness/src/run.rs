@@ -4,7 +4,7 @@
 //! stop on a fault, halt, hang or the time limit, and describe the outcome.
 
 use crate::formats::{self, Json};
-use crate::machine::{Board, Stop, CYCLES_PER_MS, SLICE};
+use crate::machine::{Board, Package, Stop, CYCLES_PER_MS, SLICE};
 use crate::script;
 use std::collections::BTreeMap;
 
@@ -49,6 +49,9 @@ pub struct Options {
     /// of an operation then in progress that was done) and the flash chip is saved.
     pub power_cut: bool,
     pub flash_log: bool,
+    /// `--package`: the input is an update package, booted through the package path
+    /// (`Board::boot_package`), not a raw image.
+    pub package: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -101,6 +104,8 @@ pub struct Report {
     pub unmodelled: Vec<(u32, bool, u64)>,
     pub midi_dropped: u64,
     pub midi_out_dropped: u64,
+    /// What a package run booted (`--package`).
+    pub package: Option<Package>,
 }
 
 const LEDS: usize = script::KEYS as usize;
@@ -120,7 +125,12 @@ fn lcd_png(board: &Board) -> Vec<u8> {
 
 /// Runs `image` with `opt`. Errors are bad input (a capture outside RAM).
 pub fn run(image: &[u8], opt: &Options) -> Result<Report, String> {
-    let mut board = Board::boot(image, opt.flash_in.as_deref())?;
+    let (mut board, package) = if opt.package {
+        let (b, p) = Board::boot_package(image, opt.flash_in.as_deref())?;
+        (b, Some(p))
+    } else {
+        (Board::boot(image, opt.flash_in.as_deref())?, None)
+    };
     for e in &opt.script {
         board.soc.periph.script.push_back((e.cycle, e.action.clone()));
     }
@@ -267,6 +277,7 @@ pub fn run(image: &[u8], opt: &Options) -> Result<Report, String> {
         unmodelled: seen.into_iter().map(|((a, w), n)| (a, w, n)).collect(),
         midi_dropped: board.soc.periph.midi_dropped(),
         midi_out_dropped: board.soc.periph.midi_out_dropped(),
+        package,
     })
 }
 
@@ -309,7 +320,7 @@ pub fn report_json(r: &Report) -> Json {
         ("access", Json::str(if *w { "write" } else { "read" })),
         ("count", Json::Int(*n as i64)),
     ])).collect();
-    Json::obj(vec![
+    let mut fields = vec![
         ("outcome", Json::str(r.outcome.name())),
         ("detail", Json::str(r.outcome.detail())),
         ("emulated_ms", Json::str(format!("{}.{:03}", r.end_us / 1000, r.end_us % 1000))),
@@ -318,5 +329,13 @@ pub fn report_json(r: &Report) -> Json {
         ("midi_out_bytes_dropped", Json::Int(r.midi_out_dropped as i64)),
         ("unmodelled_accesses", Json::Arr(unmod)),
         ("outputs", Json::Arr(outs)),
-    ])
+    ];
+    if let Some(p) = &r.package {
+        fields.insert(0, ("package", Json::obj(vec![
+            ("identity", Json::str(p.identity.clone())),
+            ("app_area", Json::str(format!("{:#07x}", p.area))),
+            ("entry", Json::str(format!("{:#010x}", p.entry))),
+        ])));
+    }
+    Json::obj(fields)
 }
