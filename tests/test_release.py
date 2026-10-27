@@ -138,6 +138,23 @@ class ReleaseTest(unittest.TestCase):
                 self.assertTrue(self.make(d, "bad", container=bad)[0], bad)
             self.assertFalse(os.path.exists(os.path.join(d, "bad")))
 
+    def test_a_build_with_the_package_link_gives_the_fwsc(self):
+        # Since A1 (docs/A1-PLAN.md): the .fwsc beside the .fm1img, read
+        # back by tools/fwsc.py, named after the release; none without it.
+        fw = load_tool("fwsc.py")
+        with tempfile.TemporaryDirectory() as d:
+            p, o = self.make(d, "old")
+            self.assertEqual(p, [])
+            self.assertFalse(any(n.endswith(".fwsc") for n in os.listdir(o)))
+            with open(os.path.join(d, "build", "app-pkg.bin"), "wb") as f:
+                f.write(b"\x04\x05\x06" * 1000)
+            p, o = self.make(d, "new")
+            self.assertEqual(p, [])
+            self.assertEqual(rel.verify(o), [])
+            r = fw.check(open(os.path.join(o, "small-beeps-0.9.0.fwsc"), "rb").read())
+            self.assertEqual((r["identity"], r["app"]), ("small-beeps-0.9.0", b"\x04\x05\x06" * 1000))
+            self.assertIn("small-beeps-0.9.0.fwsc", open(os.path.join(o, "SHA256SUMS")).read())
+
     def test_the_build_identity_is_this_trees_own(self):
         # config/build-image (the owner's answer, 2026-10-27): the base
         # image's digest, the Dockerfile's SHA-256 and the toolchain's, as

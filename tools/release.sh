@@ -118,6 +118,8 @@ if [ "${GITHUB_ACTIONS:-}" != true ]; then
 fi
 echo "build:   $container"
 cmp "$work/b1/app.bin" "$work/b2/app.bin" || fail "the two builds differ"
+[ ! -e "$work/b1/app-pkg.bin" ] || cmp "$work/b1/app-pkg.bin" "$work/b2/app-pkg.bin" \
+    || fail "the two builds' package links differ"
 
 # 5. fwtest's version, of the image the record names.
 fwimage=$("$PY" -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["environment"]["fwtest_image"])' "$report")
