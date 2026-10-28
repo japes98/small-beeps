@@ -1,0 +1,7 @@
+code 54416
+data 80
+bss 162336
+image 54496
+stack 4096
+irq_stack 2048
+ram_code 54296

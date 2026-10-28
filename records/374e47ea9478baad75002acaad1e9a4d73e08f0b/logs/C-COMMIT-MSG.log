@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 84e1abe94c1910ee218abebce9f37a5de9a8edf1..374e47ea9478baad75002acaad1e9a4d73e08f0b
+OK     9324c1acc271 sessions: spec-1027 starts (the last spec transcript, its prompt)
+EXEMPT e9ce179d1d36 (merge) sessions: clean's seams/wbcheck (#158, with #154 and #126) merged in
+EXEMPT e97a6c931747 (merge) sessions: clean's seams/platform (#161, with #154, #126, #158 to #160) merged in
+EXEMPT 22174e0292e8 (merge) sessions: clean's seams/guide (#168, with #154, #126, #158 to #167) merged in
+EXEMPT e29f3ab475de (merge) Merge remote-tracking branch 'origin/seams/guide' into w
+EXEMPT 374e47ea9478 (merge) Merge pull request #155 from japes98/spec/1027-start
+6 commit(s) checked: PASS
+
+exit status 0
