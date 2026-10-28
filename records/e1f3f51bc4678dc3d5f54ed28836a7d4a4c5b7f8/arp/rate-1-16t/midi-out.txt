@@ -1,0 +1,217 @@
+102.259 start
+102.579 clock
+122.551 clock
+142.861 clock
+164.621 clock
+184.930 clock
+205.239 clock
+226.999 clock
+247.309 clock
+267.618 clock
+289.378 clock
+302.441 start
+302.761 clock
+303.721 note-on ch 1 key 67 vel 100
+322.744 clock
+343.695 note-on ch 1 key 67 vel 0
+344.015 clock
+364.813 clock
+385.768 note-on ch 1 key 64 vel 80
+386.088 clock
+405.432 clock
+427.834 note-on ch 1 key 64 vel 0
+428.154 clock
+447.501 clock
+468.456 note-on ch 1 key 67 vel 100
+468.776 clock
+489.571 clock
+510.522 note-on ch 1 key 67 vel 0
+510.842 clock
+530.189 clock
+552.595 note-on ch 1 key 60 vel 90
+552.915 clock
+572.259 clock
+594.660 note-on ch 1 key 60 vel 0
+594.980 clock
+614.327 clock
+635.282 note-on ch 1 key 64 vel 80
+635.602 clock
+656.398 clock
+677.348 note-on ch 1 key 64 vel 0
+677.668 clock
+697.015 clock
+719.421 note-on ch 1 key 67 vel 100
+719.741 clock
+739.086 clock
+760.036 note-on ch 1 key 67 vel 0
+760.356 clock
+781.154 clock
+802.109 note-on ch 1 key 60 vel 90
+802.429 clock
+823.224 clock
+844.175 note-on ch 1 key 60 vel 0
+844.495 clock
+863.842 clock
+886.248 note-on ch 1 key 64 vel 80
+886.568 clock
+905.912 clock
+926.863 note-on ch 1 key 64 vel 0
+927.183 clock
+947.981 clock
+968.936 note-on ch 1 key 67 vel 100
+969.256 clock
+988.600 clock
+1011.002 note-on ch 1 key 67 vel 0
+1011.322 clock
+1030.669 clock
+1053.074 note-on ch 1 key 60 vel 90
+1053.394 clock
+1072.739 clock
+1093.690 note-on ch 1 key 60 vel 0
+1094.010 clock
+1114.807 clock
+1135.762 note-on ch 1 key 64 vel 80
+1136.082 clock
+1155.427 clock
+1177.828 note-on ch 1 key 64 vel 0
+1178.148 clock
+1197.495 clock
+1218.450 note-on ch 1 key 67 vel 100
+1218.770 clock
+1239.566 clock
+1260.516 note-on ch 1 key 67 vel 0
+1260.836 clock
+1280.183 clock
+1302.589 note-on ch 1 key 60 vel 90
+1302.909 clock
+1322.254 clock
+1344.655 note-on ch 1 key 60 vel 0
+1344.975 clock
+1364.322 clock
+1385.277 note-on ch 1 key 64 vel 80
+1385.597 clock
+1406.392 clock
+1427.343 note-on ch 1 key 64 vel 0
+1427.663 clock
+1447.010 clock
+1469.416 note-on ch 1 key 67 vel 100
+1469.736 clock
+1489.080 clock
+1510.031 note-on ch 1 key 67 vel 0
+1510.351 clock
+1531.149 clock
+1552.104 note-on ch 1 key 60 vel 90
+1552.424 clock
+1573.219 clock
+1594.170 note-on ch 1 key 60 vel 0
+1594.490 clock
+1613.837 clock
+1636.242 note-on ch 1 key 64 vel 80
+1636.562 clock
+1655.907 clock
+1676.858 note-on ch 1 key 64 vel 0
+1677.178 clock
+1697.975 clock
+1718.930 note-on ch 1 key 67 vel 100
+1719.250 clock
+1738.595 clock
+1760.996 note-on ch 1 key 67 vel 0
+1761.316 clock
+1780.663 clock
+1803.069 note-on ch 1 key 60 vel 90
+1803.389 clock
+1822.734 clock
+1843.684 note-on ch 1 key 60 vel 0
+1844.004 clock
+1864.802 clock
+1885.757 note-on ch 1 key 64 vel 80
+1886.077 clock
+1905.422 clock
+1927.823 note-on ch 1 key 64 vel 0
+1928.143 clock
+1947.490 clock
+1968.445 note-on ch 1 key 67 vel 100
+1968.765 clock
+1989.560 clock
+2010.511 note-on ch 1 key 67 vel 0
+2010.831 clock
+2030.178 clock
+2052.584 note-on ch 1 key 60 vel 90
+2052.904 clock
+2072.248 clock
+2094.650 note-on ch 1 key 60 vel 0
+2094.970 clock
+2114.317 clock
+2135.272 note-on ch 1 key 64 vel 80
+2135.592 clock
+2156.387 clock
+2177.338 note-on ch 1 key 64 vel 0
+2177.658 clock
+2197.005 clock
+2219.410 note-on ch 1 key 67 vel 100
+2219.730 clock
+2239.075 clock
+2260.026 note-on ch 1 key 67 vel 0
+2260.346 clock
+2281.143 clock
+2302.098 note-on ch 1 key 60 vel 90
+2302.418 clock
+2323.214 clock
+2344.164 note-on ch 1 key 60 vel 0
+2344.484 clock
+2363.831 clock
+2385.592 clock
+2405.901 clock
+2426.210 clock
+2447.970 clock
+2468.280 clock
+2488.589 clock
+2510.349 clock
+2530.658 clock
+2552.419 clock
+2572.727 clock
+2593.037 clock
+2614.797 clock
+2635.106 clock
+2655.415 clock
+2677.175 clock
+2697.485 clock
+2717.794 clock
+2739.554 clock
+2759.863 clock
+2780.173 clock
+2801.933 clock
+2822.242 clock
+2844.002 clock
+2864.311 clock
+2884.621 clock
+2906.381 clock
+2926.690 clock
+2946.999 clock
+2968.760 clock
+2989.069 clock
+3009.378 clock
+3031.138 clock
+3051.448 clock
+3073.207 clock
+3093.517 clock
+3113.826 clock
+3135.586 clock
+3155.895 clock
+3176.205 clock
+3197.965 clock
+3218.274 clock
+3238.583 clock
+3260.343 clock
+3280.653 clock
+3302.413 clock
+3322.722 clock
+3343.031 clock
+3364.791 clock
+3385.101 clock
+3405.410 clock
+3427.170 clock
+3447.479 clock
+3467.789 clock
+3489.549 clock
+3509.858 clock

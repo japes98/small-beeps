@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 6007000aa524b431bb438aa4972e476da325d861..e1f3f51bc4678dc3d5f54ed28836a7d4a4c5b7f8
+OK     cc2c27029743 store: saves that survive a power cut (BR-12)
+OK     42844026ab55 tools: the big perf probe's start-up work past the count's variation
+OK     0db61898490c tests: a power-cut save whose old parts are copied forward mid-rewrite
+EXEMPT e1f3f51bc467 (merge) Merge pull request #170 from japes98/store/atomic
+4 commit(s) checked: PASS
+
+exit status 0

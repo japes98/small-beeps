@@ -1,0 +1,13 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/seams_suite.py --build /home/runner/work/small-beeps/small-beeps/out/e1f3f51bc4678dc3d5f54ed28836a7d4a4c5b7f8/build-a --out /home/runner/work/small-beeps/small-beeps/out/e1f3f51bc4678dc3d5f54ed28836a7d4a4c5b7f8/seams
+ownbase: the test build refused; build A passed the check
+outside: 5 symbols from the folder; three places, the same bytes; probe.c left out, build A's image
+engine: init once before the ticks and the audio; 1585 blocks of 64 frames; 7 serves (seconds 2); 2 presses; core 1 did 1585 jobs, none wrong, its vector word restored; the square wave at 2048; the instrument never ran
+platform: linked without the instrument (15132 bytes of code), its records in place
+platform: init once before the ticks and the audio; 1585 blocks of 64 frames; 7 serves (seconds 2); 2 presses; core 1 did 1585 jobs, none wrong, its vector word restored; the square wave at 2048; the instrument never ran
+sysex: 4104 data bytes in order through the tap (a clock byte inside handed on as a message); the work in the serve; a second message cut by 0x90
+rawout: 600 bytes in order with 198 clocks inside; then 19 notes, the first with its status; 300 clocks in all, none dropped
+store: 4 096 bytes written, read at start-up; a rewrite refused as full, nothing written, the old one kept; a reset voids both; 5 000 bytes alone, 5904 refused as full; tools/store.py agrees
+powercut: large: 27 commands (1 erases), 108 cuts, old 106, new 2; mid: 47 commands (2 erases, 7 old parts copied), 188 cuts, old 186, new 2; small: 41 commands (1 erases), 164 cuts, old 162, new 2; patch: 41 commands (1 erases), 164 cuts, old 161, new 3; never neither, never a mix; tools/store.py agrees
+seams suite: PASS
+
+exit status 0
