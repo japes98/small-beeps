@@ -480,16 +480,30 @@ cmd_inside() {
     # conditional blocks in the Plaits demo's hardware-float builds as 68
     # such stores, and let those builds through as an exception; read as
     # compiled, they hold none, and there is no exception.)
+    # One exception: the bad instruction test build (SB_TEST_BADINSN,
+    # tools/fw-suite.py) holds bytes no CPU decodes on purpose, in
+    # probe.o's sb_test_badinsn, to test fwtest's fault outcome; there, and
+    # only there, they are listed and allowed.
     wb=0 unread=0
     for o in $objs $rt; do
         cpu=$(awk -F'|' -v o="$o" '$1 == o { print $2 }' "$obj/cpu.list")
         r=0
         # shellcheck disable=SC2086
-        objdump -d $cpu "$o" | perl tools/ownbase.pl "$(basename "$o")" || r=$?
+        found=$(objdump -d $cpu "$o" | perl tools/ownbase.pl "$(basename "$o")") || r=$?
+        [ -z "$found" ] || echo "$found"
         case $r in
             0) ;;
             1) wb=$((wb + 1)) ;;
-            *) unread=$((unread + 1)) ;;
+            *)
+                case " ${SB_DEFINES:-} " in
+                    *" SB_TEST_BADINSN "*)
+                        if [ "$(basename "$o")" = probe.o ] \
+                            && ! echo "$found" | grep -v -q '^probe\.o: sb_test_badinsn+0x[0-9a-f]* (\.text[^)]*): unreadable$'; then
+                            echo "ownbase check: probe.o's sb_test_badinsn unreadable on purpose, allowed in the SB_TEST_BADINSN test build"
+                            continue
+                        fi ;;
+                esac
+                unread=$((unread + 1)) ;;
         esac
     done
     awk -F'|' '{ n[$2 == "" ? "no CPU options" : $2]++ } END { for (d in n) print n[d], d }' "$obj/cpu.list" \
