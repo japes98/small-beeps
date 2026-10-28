@@ -2985,3 +2985,44 @@ C-SEAMS) and its part below.
   triple: core 1 starts, does exactly one job a block, every answer
   right and in time, and the vector word holds its stub again, with the
   instrument linked and with the platform alone.
+
+#### The C++ runtime and `mem*`, the platform's (BR-4, R-RT-1)
+
+- **What moved.** M4b wrote a small runtime for the Plaits demo:
+  `memcpy`, `memmove` and `memset` (byte by byte), what C++ needs
+  (`__cxa_pure_virtual`, `operator delete`, each a halt if reached), the
+  soft-float routines, and freestanding headers (`<algorithm>`,
+  `<cmath>`, `<math.h>`, `<stddef.h>`, `<inttypes.h>`). They are now the
+  platform's, in `firmware/runtime/` (the headers in
+  `firmware/runtime/include/`), with a `<string.h>` declaring the three
+  `mem*` functions. Only `plaits_pre.h`, which is Plaits' own, stays
+  with the demo.
+- **An archive, so the firmware gets nothing it doesn't call.** The
+  build links every object it is given (no `--gc-sections`), so
+  `mem.c` as a plain object would add code to the firmware, which needs
+  none. The runtime is built into `libsb_runtime.a` (`ar` in its
+  deterministic mode) and the link takes it last: a member comes in only
+  when something calls it. The firmware calls none, so its image is the
+  same bytes; C-SEAMS checks build A has none of them. Its C is built
+  without the float instructions, as soft-float's must be (and as the
+  demo's C always was).
+- **Two things C++ needed that the demo never did.** A static object
+  with a destructor registers it with `__cxa_atexit` (the link failed
+  without it): the runtime now has it, keeping nothing, as the firmware
+  never exits. And the toolchain puts static objects' constructors in
+  `.ctors`, which the platform never ran (with `--orphan-handling=error`
+  such an object failed the link): `platform.ld` now gathers them, and
+  `main()`, built with `SB_ENGINE_EXTERNAL`, runs them (last first, as
+  `.ctors` is run) before the engine's init. The base has none, so its
+  layout and its image are unchanged.
+- **Include path.** Outside sources (BR-5), C and C++, and the demo's
+  C++ get `-Ifirmware/runtime/include`; the base's own C does not need
+  it.
+- **Tested** (C-SEAMS, cases engine and platform): the test engine's
+  init calls C++ (`tests/seams/engine/sb_test_runtime.cc`) with a
+  virtual class, `std::sort`, `memcpy`, `memmove` and `memset` with
+  lengths known only at run time, a static object built by its
+  constructor and one with a destructor; its result is the expected
+  1301, the runtime's members are in its ELF, with the instrument linked
+  and with the platform alone. The Plaits demo builds and runs on the
+  platform's runtime (C-PLAITS-BENCH).
