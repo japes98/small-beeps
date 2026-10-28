@@ -445,8 +445,10 @@ an issue or a pull request against docs/HARNESS.md.
     For the same C storing the moved pointer (`*q = q`) it did not use
     the form in any function tried. Its assembler takes every such form
     without a warning. The toolchain ships no documentation of its
-    instructions, and the SDK's own assembly is version stamps only, so
-    neither says more.
+    instructions; the SDK's `.S` files are version stamps only, and the C
+    and header files searched (its CPU and system folders, 128 of 189
+    fetched) hold no inline assembly, so neither says more. Its prebuilt
+    libraries were not disassembled.
   - **What the chip stores is not established without a unit:** Q-27,
     for Phase B. The compiler's intent is strong evidence, since the vendor
     ships it for this chip, but it is not a measurement.

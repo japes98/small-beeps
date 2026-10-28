@@ -2113,8 +2113,10 @@ on small-beeps). What the chip itself stores is open (Q-27).
   compiler's code for C with known results (harness/tests/images/selfc.c
   and the session's own functions), built with `-mcpu=r3 -mfprev1` at
   `-Os` and `-O2` (PROVENANCE P-63). The toolchain ships no documentation
-  of its instructions, and the SDK's own assembly (version stamps only)
-  shows nothing either way. fwtest's harness test on the images
+  of its instructions; the SDK's `.S` files are version stamps only, and
+  the C and header files fetched from its `cpu/wl82/`,
+  `include_lib/driver/cpu/wl82/` and `include_lib/system/` (128 of the
+  189 there) hold no inline assembly, so the SDK shows nothing either way. fwtest's harness test on the images
   `selfstore.S` and `selfc.c` (harness/tests/images/).
 - Standing: emulator-only (the toolchain's use of the form; the chip's
   behaviour is Q-27)
@@ -2323,8 +2325,9 @@ spec request can turn one into a fact.
   the base as it was for `[++rN=k] = rN`, `[rN++=k] = rN` and their byte
   and halfword forms, as the toolchain's compiler relies on and fwtest
   0.9.0 does (HW-95), or the moved base, or something else, for a number
-  and a register step alike. No allowed source settles it: the toolchain
-  ships no instruction documentation and the SDK shows none of these
-  forms. Settled by a probe on real hardware (Phase B; M9-PLAN.md
+  and a register step alike. No allowed source searched settles it: the
+  toolchain ships no instruction documentation, and the SDK's sources
+  searched (HW-95) hold no assembly using them; its prebuilt libraries
+  were not disassembled. Settled by a probe on real hardware (Phase B; M9-PLAN.md
   section 5). Related: a write-back load into its own base, and a block
   move whose base is in its list (Q-19).

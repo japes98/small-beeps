@@ -517,8 +517,9 @@ computes what the chip does. An instruction neither check held can still
 end a run as a fault ("Outcomes and exit codes"): report it as SR-7 was,
 with its bytes and the smallest image that shows it.
 
-No known gaps since fwtest 0.6.0 (0.5.0 and earlier: the pairs below,
-"Both halves writing one register"). In 0.3.0 and earlier two forms ended the run as
+No known gaps since fwtest 0.9.0 (0.8.0 and earlier: a store of its own
+base, below; 0.5.0 and earlier: the pairs below, "Both halves writing one
+register"). In 0.3.0 and earlier two forms ended the run as
 a fault, "an instruction the emulated CPU cannot decode"; 0.4.0 runs them,
 and one more change makes dual-issue pairs behave as the compiler expects:
 

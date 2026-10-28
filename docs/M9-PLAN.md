@@ -504,6 +504,13 @@ recorded.
   busy bit, and the owner keeps the question open (recorded by session
   spec-a1-fwsc): `harness/upstream/fm1-emu-usb-port.md`, "Left open";
   HARDWARE-SPEC.md HW-86.
+- **A store of its own base (SR-10).** What the chip stores for
+  `[++rN=k] = rN`, `[rN++=k] = rN` and their byte and halfword forms: the
+  base as it was (as the toolchain's compiler relies on, and fwtest does
+  from 0.9.0) or the moved base. A short probe image of our own, its
+  stores read back over the debug channel, settles it (HARDWARE-SPEC.md
+  HW-95, Q-27; docs/SPEC-REQUESTS.md SR-10). Until then the firmware
+  side's build refuses the form (R-BUILD-3).
 
 ### Candidates to evaluate (Phase B)
 
