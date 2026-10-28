@@ -2046,10 +2046,14 @@ SR-3 wrote only its barrier-log row.*
   prebuilt libraries not opened or disassembled. main's firmware built
   (`tools/build.sh build`) and its disassembly scanned. No downloads of
   any other kind.
+- The firmware suite run twice (pinned 0.8.0, local 0.9.0) from a separate
+  worktree of main (`fd07f7f5`), in the scratch folder, removed after.
+  A first pair of runs from this checkout was discarded: branches were
+  switched under it.
 - Clean's open pull requests: their file lists and the lines they add to
   the shared files (PROVENANCE.md, REQUIREMENTS.md, SPEC-REQUESTS.md),
   read to keep IDs apart and to merge; their firmware changes not read.
-- Disk: 14 GB free at the start; 13 GB at the lowest.
+- Disk: 14 GB free at the start; 9.4 GB at the lowest.
 
 ## Corrections
 
