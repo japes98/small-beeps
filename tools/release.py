@@ -177,7 +177,7 @@ def sbom(meta, src, created):
     """An SPDX 2.3 SBOM: the firmware, the SDK headers it is built with,
     the toolchain (a build tool), and every source file of the image.
     Its one date is the tag's commit's (created), so it is reproducible."""
-    names = ["firmware/app.ld"] + sorted("firmware/src/" + n for n in os.listdir(os.path.join(src, "firmware", "src")))
+    names = ["firmware/app.ld", "firmware/platform.ld"] + sorted("firmware/src/" + n for n in os.listdir(os.path.join(src, "firmware", "src")))
     names = [n for n in names if os.path.isfile(os.path.join(src, n))]
     sdk = None
     srcmd = os.path.join(src, "vendor", "jieli-sdk", "SOURCE.md")
