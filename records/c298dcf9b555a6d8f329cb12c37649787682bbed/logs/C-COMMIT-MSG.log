@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range cc64bd3690236823067ca466fa20188e37453a89..c298dcf9b555a6d8f329cb12c37649787682bbed
+OK     f24238c0e817 harness: the fwtest image rebuilds the same; C-HARNESS-IMAGE-REPRO
+EXEMPT df24e83356ec (merge) sessions: spec/1027-answers merged into spec/1027-image-repro (the chain, cumulative)
+EXEMPT c10958aad6d5 (merge) sessions: spec/1027-answers merged into spec/1027-image-repro (the chain, cumulative)
+EXEMPT 652f5eb242f4 (merge) sessions: spec/1027-answers merged into spec/1027-image-repro (the chain, cumulative)
+EXEMPT 7d0620b10f62 (merge) Merge remote-tracking branch 'origin/spec/1027-answers' into w
+EXEMPT c298dcf9b555 (merge) Merge pull request #157 from japes98/spec/1027-image-repro
+6 commit(s) checked: PASS
+
+exit status 0
