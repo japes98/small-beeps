@@ -83,7 +83,7 @@ CHECKS = [
               "R-STORE-6", "R-STORE-8", "R-UI-6", "R-UI-7", "R-UI-8", "R-PRESET-1", "R-ARP-1", "R-ARP-2",
               "R-ARP-7",
               "R-GOLD-1", "R-GOLD-2", "R-GOLD-3", "R-REL-1", "R-REL-2", "R-REL-3", "R-PKG-1",
-              "R-BUILD-3", "R-STORE-10"],
+              "R-BUILD-3", "R-STORE-10", "R-STORE-11"],
      "cmd": [PY, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"]},
     {"id": "C-REUSE", "title": "reuse lint (SPDX licence and copyright on every file)",
      "reqs": ["R-LIC-1", "R-LIC-2"], "cmd": ["reuse", "lint"]},
@@ -165,9 +165,9 @@ CHECKS = [
      "cmd": lambda: [PY, "-I", "tools/package_suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "package")]},
     # The seams for firmwares built on small-beeps (clean-1027).
-    {"id": "C-SEAMS", "title": "Seams for firmwares built on small-beeps: the build's write-back store check, outside sources, the engine seam, the platform alone, core 1's start, the runtime, the SysEx tap, raw MIDI out, the store's firmware kinds (tools/seams_suite.py)",
+    {"id": "C-SEAMS", "title": "Seams for firmwares built on small-beeps: the build's write-back store check, outside sources, the engine seam, the platform alone, core 1's start, the runtime, the SysEx tap, raw MIDI out, the store's firmware kinds, saves cut by a power cut (tools/seams_suite.py)",
      "reqs": ["R-BUILD-3", "R-BUILD-4", "R-ENG-1", "R-PLAT-1", "R-CORE-1", "R-RT-1", "R-MIDI-8",
-              "R-MIDIOUT-9", "R-STORE-10"],
+              "R-MIDIOUT-9", "R-STORE-10", "R-STORE-11"],
      "cmd": lambda: [PY, "-I", "tools/seams_suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "seams")]},
     # M9's app release: made twice from build A, the same bytes, verified.

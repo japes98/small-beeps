@@ -3,6 +3,7 @@
 import os
 import random
 import re
+import struct
 import unittest
 import zlib
 
@@ -30,7 +31,9 @@ class StoreFormatTest(unittest.TestCase):
                             ("STORE_MAX_PAYLOAD", st.MAX_PAYLOAD), ("STORE_PATCH", st.PATCH),
                             ("STORE_SELECTION", st.SELECTION), ("STORE_SETTINGS", st.SETTINGS),
                             ("STORE_RESET", st.RESET)):
-            m = re.search(r"#define %s\s+(0x[0-9A-Fa-f]+|\d+)u" % name, h)
+            # The shipping region's, not the wide region test build's (BR-12).
+            m = re.search(r"#define %s\s+(0x[0-9A-Fa-f]+|\d+)u" % name, h.split("#else", 1)[-1]
+                          if name in ("STORE_BASE", "STORE_SIZE") else h)
             self.assertIsNotNone(m, name)
             self.assertEqual(int(m.group(1), 0), value, name)
         for name, value in (("SECTOR_MAGIC", st.SECTOR_MAGIC), ("RECORD_MAGIC", st.RECORD_MAGIC),
@@ -178,17 +181,37 @@ if __name__ == "__main__":
     unittest.main()
 
 
+def fill_head(s, size, r=0):
+    """Saves (the settings, then one filler payload to the byte) until the
+    ring has wrapped and the head has no room for a record of size bytes."""
+    while True:
+        room = st.SECTOR - s.append
+        if s.head_seq >= st.SECTORS + 1 and room < size:
+            return
+        if s.head_seq < st.SECTORS + 1 or room >= st.record_size(42) + size:
+            s.put(st.SETTINGS, 0, 4, bytes([r % 256]) * 42)
+            r += 1
+        else:
+            s.put_fw(0x82, 0, 1, bytes(room - 24))      # a record of room bytes
+
+
 class FirmwareKindsTest(unittest.TestCase):
-    """Requirements: R-STORE-10"""
+    """Requirements: R-STORE-10, R-STORE-11"""
 
     def test_constants_agree_with_the_firmware(self):
         h = source("src/store.h")
         for name, value in (("STORE_FW_KIND_FIRST", st.FW_KIND_FIRST), ("STORE_FW_KIND_LAST", st.FW_KIND_LAST),
                             ("STORE_FW_TAG", st.TAG), ("STORE_FW_PART", st.PART_DATA),
-                            ("STORE_FW_PARTS", st.FW_PARTS), ("STORE_FW_KEYS", st.FW_KEYS)):
+                            ("STORE_FW_PARTS", st.FW_PARTS), ("STORE_FW_KEYS", st.FW_KEYS),
+                            ("STORE_FW_PAYLOADS", st.FW_PAYLOADS)):
             m = re.search(r"#define %s\s+(0x[0-9A-Fa-f]+|\d+)u" % name, h)
             self.assertIsNotNone(m, name)
             self.assertEqual(int(m.group(1), 0), value, name)
+        # The wide region test build's region (BR-12): WIDE_SECTORS ending
+        # where today's ends.
+        wide = re.search(r"#if defined\(SB_TEST_STORE_WIDE\)(.*?)#else", h, re.S).group(1)
+        self.assertIn("#define STORE_BASE       0x%Xu" % st.region_base(st.WIDE_SECTORS), wide)
+        self.assertIn("#define STORE_SIZE       0x%Xu" % (st.WIDE_SECTORS * st.SECTOR), wide)
 
     def test_a_payload_in_parts_reads_back_whole(self):
         s = st.Store()
@@ -201,21 +224,91 @@ class FirmwareKindsTest(unittest.TestCase):
         self.assertEqual(sum(1 for f in img.fw if f), 9 + 1)    # 4 096 bytes in 9 parts, and 1
         self.assertIsNone(img.get_fw(0x80, 6))
 
-    def test_a_write_cut_part_way_is_never_read_mixed(self):
+    def _cut_everywhere(self, sectors, before, put, old, new, step=1):
+        """Every state a cut can leave during the save `put` makes from
+        `before`: each payload in `old` and `new` ((kind, id) to (version,
+        bytes) or None; a base kind's id below 0x100) reads old or new,
+        whole; the old until a moment, then the new."""
+        s = st.Store(before, sectors)
+        s.commands = []
+        put(s)
+        seen = []
+        for i, done, chip in st.cut_states(before, s.commands, step):
+            img = st.Image(chip, sectors)
+            now = []
+            for key in old:
+                kind, ident = key
+                got = img.get_fw(kind, ident) if st.fw_kind(kind) else img.get(kind, ident)
+                self.assertIn(got, (old[key], new[key]),
+                              "0x%02x/%d after %d commands and %d bytes" % (kind, ident, i, done))
+                now.append(got == new[key] and old[key] != new[key])
+            seen.append(tuple(now))
+        for k in range(len(old)):
+            col = [n[k] for n in seen]
+            self.assertEqual(col, sorted(col), "a payload went back from new to old")
+            self.assertTrue(col[-1] or list(old.values())[k] == list(new.values())[k])
+        return s.commands
+
+    def test_a_large_rewrite_cut_anywhere_is_old_or_new(self):
+        # BR-12: 3 400 bytes (7 parts) rewritten in today's region after
+        # four writes, where the ring copies the old write's parts forward
+        # while the new one is under way; every byte of every command.
         s = st.Store()
-        s.put_fw(0x80, 0, 1, bytes([1]) * 3000)
+        s.put_fw(0x81, 0, 1, b"small")
+        for _ in range(4):
+            s.put_fw(0x80, 0, 1, bytes([1]) * 3400)
+        tag, start = struct.pack("<I", s._commit(0x80, 0)[3]), s.next_seq
+        commands = self._cut_everywhere(
+            st.SECTORS, s.chip(), lambda t: t.put_fw(0x80, 0, 1, bytes([2]) * 3400),
+            {(0x80, 0): (1, bytes([1]) * 3400), (0x81, 0): (1, b"small")},
+            {(0x80, 0): (1, bytes([2]) * 3400), (0x81, 0): (1, b"small")})
+        self.assertTrue(any(c[0] == "erase" for c in commands))     # it took a new sector
+        after = st.Image(st.apply(s.chip(), commands))
+        copies = [r for r in after.records if r[3] == 0x80 and r[6][:st.TAG] == tag and r[2] >= start]
+        self.assertGreater(len(copies), 0, "no old part copied forward during the rewrite")
+
+    def test_a_4096_byte_rewrite_beside_the_full_store_cut_anywhere(self):
+        # The wide region: the base's full store, then 4 096 bytes rewritten
+        # until a rewrite takes a new sector and compacts; every 4th byte.
+        s = st.Store(sectors=st.WIDE_SECTORS)
+        for i in range(16):
+            s.put(st.PATCH, i, 2, patch(i))
+        s.put(st.SELECTION, 0, 1, b"\x05\0\0\0")
+        s.put(st.SETTINGS, 0, 4, bytes(42))
+        s.put_fw(0x80, 7, 1, bytes([1]) * 4096)
+        s.put_fw(0x80, 7, 1, bytes([2]) * 4096)
+        old = {(0x80, 7): (1, bytes([2]) * 4096), (st.PATCH, 3): (2, patch(3))}
+        new = {(0x80, 7): (1, bytes([3]) * 4096), (st.PATCH, 3): (2, patch(3))}
+        commands = self._cut_everywhere(st.WIDE_SECTORS, s.chip(),
+                                        lambda t: t.put_fw(0x80, 7, 1, bytes([3]) * 4096), old, new, step=4)
+        self.assertTrue(any(c[0] == "erase" for c in commands))
+
+    def test_a_small_save_cut_anywhere_is_old_or_new(self):
+        # A patch and a one-part payload, each saved as the head fills, so
+        # the save opens a new sector and compacts the next.
+        for put, key, old, new in (
+                (lambda t: t.put(st.PATCH, 3, 2, patch(9)), (st.PATCH, 3), (2, patch(3)), (2, patch(9))),
+                (lambda t: t.put_fw(0x81, 0, 1, b"new one"), (0x81, 0), (1, b"old"), (1, b"new one"))):
+            s = st.Store()
+            for i in range(16):
+                s.put(st.PATCH, i, 2, patch(i))
+            s.put_fw(0x81, 0, 1, b"old")
+            fill_head(s, st.record_size(112) if key[0] == st.PATCH else st.record_size(st.TAG + 7))
+            commands = self._cut_everywhere(st.SECTORS, s.chip(), put, {key: old}, {key: new})
+            self.assertTrue(any(c[0] == "erase" for c in commands))
+
+    def test_a_rewrite_that_cant_fit_is_refused_before_anything_is_written(self):
+        # In today's region 4 096 bytes are written once, and a rewrite,
+        # which needs room for both, is refused with the old one kept.
+        s = st.Store()
+        s.put_fw(0x80, 0, 1, bytes([1]) * 4096)
         before = s.chip()
         s.commands = []
-        s.put_fw(0x80, 0, 1, bytes([2]) * 3000)
-        old, new = (1, bytes([1]) * 3000), (1, bytes([2]) * 3000)
-        seen = []
-        for cut in range(len(s.commands) + 1):
-            got = st.Image(st.apply(before, s.commands[:cut])).get_fw(0x80, 0)
-            self.assertTrue(got in (old, new, None), "a mixed payload after %d commands" % cut)
-            seen.append("old" if got == old else "new" if got == new else "none")
-        # The old one until the first new part is whole, then none until
-        # the last is, then the new one.
-        self.assertEqual([k for i, k in enumerate(seen) if i == 0 or seen[i - 1] != k], ["old", "none", "new"])
+        with self.assertRaises(RuntimeError):
+            s.put_fw(0x80, 0, 1, bytes([2]) * 4096)
+        self.assertEqual(s.commands, [])
+        self.assertEqual(st.Image(s.chip()).get_fw(0x80, 0), (1, bytes([1]) * 4096))
+        self.assertEqual(s.chip(), before)
 
     def test_fewer_parts_leave_the_old_ones_dead(self):
         s = st.Store()
@@ -224,7 +317,7 @@ class FirmwareKindsTest(unittest.TestCase):
         img = st.Image(s.chip())
         self.assertEqual(img.get_fw(0x80, 0), (1, b"short"))
         self.assertEqual(sum(1 for f in img.fw if f), 1)
-        self.assertEqual(img.counts.get("stale"), 6)
+        self.assertEqual(img.counts.get("stale"), 7)    # the old write's 7 records
 
     def test_a_reset_voids_them(self):
         s = st.Store()
@@ -235,23 +328,34 @@ class FirmwareKindsTest(unittest.TestCase):
         self.assertIsNone(img.get_fw(0x90, 1))
         self.assertIsNone(img.get(st.PATCH, 2))
 
-    def test_what_todays_region_holds(self):
-        # Alone: 5 396 bytes, rewritten again and again; one more is too many.
-        s = st.Store()
-        for r in range(40):
-            s.put_fw(0x80, 0, 1, bytes([r]) * 5396)
-        self.assertEqual(st.Image(s.chip()).get_fw(0x80, 0), (1, bytes([39]) * 5396))
-        with self.assertRaises(RuntimeError):
-            t = st.Store()
-            for r in range(40):
-                t.put_fw(0x80, 0, 1, bytes([r]) * 5397)
-        # Beside the base's full store, saved in between: 2 952 bytes.
-        s = st.Store()
+    def _beside(self, sectors, size):
+        s = st.Store(sectors=sectors)
         for i in range(16):
             s.put(st.PATCH, i, 2, patch(i))
         s.put(st.SELECTION, 0, 1, b"\x05\0\0\0")
         s.put(st.SETTINGS, 0, 4, bytes(42))
         for r in range(40):
-            s.put_fw(0x80, 0, 1, bytes([r]) * 2952)
+            s.put_fw(0x80, 0, 1, bytes([r]) * size)
             s.put(st.PATCH, r % 16, 2, patch(r % 7))
-        self.assertEqual(st.Image(s.chip()).get_fw(0x80, 0), (1, bytes([39]) * 2952))
+        return st.Image(s.chip(), sectors).get_fw(0x80, 0)
+
+    def test_what_the_regions_hold(self):
+        # BR-12: a rewrite needs room for the old payload and the new.
+        # Alone in today's region: 3 920 bytes, rewritten again and again;
+        # one more is too many.
+        s = st.Store()
+        for r in range(40):
+            s.put_fw(0x80, 0, 1, bytes([r]) * 3920)
+        self.assertEqual(st.Image(s.chip()).get_fw(0x80, 0), (1, bytes([39]) * 3920))
+        with self.assertRaises(RuntimeError):
+            t = st.Store()
+            for r in range(40):
+                t.put_fw(0x80, 0, 1, bytes([r]) * 3921)
+        # Beside the base's full store, saved in between: 2 316 bytes in
+        # today's; 4 096 needs the wide region's 5 sectors (4 too few).
+        self.assertEqual(self._beside(st.SECTORS, 2316), (1, bytes([39]) * 2316))
+        with self.assertRaises(RuntimeError):
+            self._beside(st.SECTORS, 2317)
+        self.assertEqual(self._beside(st.WIDE_SECTORS, 4096), (1, bytes([39]) * 4096))
+        with self.assertRaises(RuntimeError):
+            self._beside(4, 4096)
