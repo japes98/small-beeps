@@ -3131,9 +3131,10 @@ C-SEAMS) and its part below.
   (the model checks every cut point: old, then none, then new; fwtest's
   power cut checks one on the firmware). A firmware that can't do without
   its payload writes it again; the store never hands it half of each.
-- **Why not keep the old one through the whole write.** That needs room
-  for two copies of the payload at once, and the three sectors don't
-  have it: the ring needs a sector's worth free to move on, so about two
+- **Why not keep the old one through the whole write.** (Since
+  clean-1028 it does: BR-12, "Saves that survive a power cut", below.)
+  That needs room for two copies of the payload at once, and the three
+  sectors don't have it: the ring needs a sector's worth free to move on, so about two
   sectors (8 160 bytes) hold everything live, and two copies of 4 096
   bytes are 8 192 before any header. Writing part by part needs room for
   one new part beside everything live.
@@ -3175,3 +3176,114 @@ C-SEAMS) and its part below.
   and the small one stays; rewritten after the cut; a reset voids both;
   then alone, 5 000 bytes written and read back and 5 904 refused as
   full. The model reads what the firmware does after every run.
+
+### 2026-10-28 clean-1028: saves that survive a power cut (BR-12, R-STORE-11)
+
+- **What.** A firmware built on the base asked that a save survive a
+  power cut: whenever the power goes during a save, the next start finds
+  the complete old payload or the complete new one, never neither and
+  never a mix, large records (BR-9) included.
+- **What was already so.** The store appends and never rewrites a byte
+  (M7): a record counts only once its CRC holds, and of a key's records
+  the newest valid one is read, so a record cut short leaves the one
+  before it. The base's records and a firmware kind's one-part payload
+  (up to 492 bytes) are one record each, so their saves were atomic
+  already; the ring's moves (a sector erased, its header, the live
+  records copied forward) never touch the only copy of a live record
+  (M7, "Append only, CRC on everything" and "The ring and its
+  compaction"; the sweep case cut them at every command with a halting
+  test build). This session tests that with fwtest's power cut at
+  every command (below). A payload in parts was not: once the new
+  write's first part was whole the old payload was gone, and nothing
+  read until the last part was (clean-1027's choice, for room).
+- **How: the last part commits the write.** Of the choices the request
+  named (a second copy, a log, alternating slots), this is the second
+  copy, kept in the ring itself: the old write's parts stay live (copied
+  forward by the ring like any live record) until the new write is
+  committed, and the commit is the new write's last part, which the
+  store writes only once every other part of the write reads back as the
+  payload it holds (each part is also read back as it is written). At
+  start-up the store finds, of each payload, the write with the highest
+  tag whose last part is valid and newer than the newest reset (its
+  committed write), and takes that write's parts and no other. A write
+  cut before its last part is whole leaves the old one committed; one
+  cut after leaves the new one. No new record type and no byte of the
+  format changes (docs/STORE-FORMAT.md): a write's last part already
+  carried its tag, index and count, and clean-1027 wrote it last too.
+- **Why not a log or alternating slots.** Both need the same room (the
+  old payload stays whole until the new one is) and more machinery: a
+  log needs its own record type and replay; alternating slots fixed
+  places in a store whose records have none. The ring's copy-forward
+  already keeps whatever is live.
+- **Start-up reads the sectors holding a firmware kind's record three
+  times** (store.c, `scan`): first the base's keys as before, and which
+  sectors hold firmware kinds; then the committed writes (one place per
+  payload, 32 of them, `STORE_FW_PAYLOADS`); then their parts (32
+  places, `STORE_FW_KEYS`, as before). Taking each part's newest record
+  in one pass, as before, can't tell the committed write from a newer one
+  cut short; tables of every write seen would grow with each cut. A
+  firmware with none of these kinds reads each sector once, as before.
+- **The space it costs.** A rewrite needs room for the whole new payload
+  beside everything live, the old payload included, where clean-1027
+  needed room for one new part. The ring keeps a sector free to move on,
+  so the live records fit in the other sectors (each less its 16-byte
+  header), and a part can't leave its sector: a 4 096-byte payload (9
+  parts, 4 608 bytes as records) needs 9 216 bytes during a rewrite,
+  more than today's two working sectors (8 160). From `tools/store.py`'s
+  model, which the firmware's images match:
+
+  | Region | Alone, rewritten 40 times | Beside the base's full store and a small payload (100 random histories) | 4 096 bytes beside the base's full store (300 histories) |
+  |-------:|------:|------:|------:|
+  | 3 sectors (today's) | 3 920 bytes | 1 664 bytes | never |
+  | 4 sectors | 4 904 | 3 300 | never |
+  | 5 sectors (`SB_TEST_STORE_WIDE`) | 5 904 (the most a payload takes) | 4 948 | every one |
+
+  ("Beside the base's full store": all 16 user slots, the selection and
+  the settings, then 60 rewrites with up to five of the base's saves and
+  sometimes a payload of up to 400 bytes between them.) So for a
+  4 096-byte payload the store region must grow from 3 sectors to 4 (4
+  KiB more) for a firmware that keeps nothing else, and to 5 (8 KiB
+  more) beside the base's full store. Where those sectors go is the
+  owner's decision (BR-9 left it open): the unused region is 3 sectors
+  (HW-80), so a larger one takes the end of the stock firmware's user
+  patch region below it, or another place. Today's region stays as it
+  is; the wide region test build takes its 5 sectors from 0xFA000, which
+  only a test may do.
+- **Refused before writing.** A rewrite that can't fit (everything live
+  and the new records together more than the sectors but one hold) is
+  refused at once, `STORE_ERR_FULL`, and nothing is written: in today's
+  region a 4 096-byte rewrite is (C-SEAMS, case store). A write refused
+  part way (the ring's layout left no room after all; the model never
+  found one) drops its new parts and keeps the old payload
+  (`sb_store_fw.abandoned` counts them).
+- **Tested.** The model in C-UNIT: every state a cut can leave, every
+  byte of every flash command (`tools/store.py`'s `cut_states`, which
+  leaves the chip as fwtest's cut does), of a 3 000-byte rewrite in
+  today's region, a 4 096-byte one beside the base's full store in the
+  wide region (every fourth byte), and a patch and a one-part payload
+  saved when the head is full: always old or new, whole, the old until
+  a moment and then the new; and what each region holds (the table's
+  first two columns). The firmware in C-SEAMS (case powercut): three
+  saves on the test engine, each from the base's full store with the
+  head placed so the save takes a new sector and compacts (4 096 bytes
+  on the wide region test build; 300 bytes and a patch on today's), each
+  cut by fwtest's `--power-cut` just after each flash command starts,
+  halfway, just before it ends, and between commands; the firmware
+  started again from each cut's flash reads the old payload or the new
+  one, whole, never another, and the others unchanged.
+  In this session's run: the 4 096-byte rewrite 27 commands (one
+  erase), 108 cuts, the old payload after 106 and the new after the
+  last 2; the 300-byte payload 41 commands (one erase, the compaction's
+  copies), 164 cuts, old 162, new 2; the patch 41 commands, 164 cuts,
+  old 161, new 3; tools/store.py read each cut's flash as the firmware
+  did. Case store's rewrite in today's region is refused with nothing
+  written. Without this change the model's cut test finds no payload
+  part way, as clean-1027 said it would.
+- **The image changes** (code 55 108 bytes, from 54 416; RAM 272 bytes
+  more: the payload table and the start-up's bookkeeping). The base's own
+  start-up reads each sector once, as before (no firmware kind's
+  record): the store read 275.2 us at the next start in the persist
+  case (276.7 before). Start-up 2 854 instructions more (1 070 789);
+  steady state and loaded per period no slower (1 884.6 and 108 944,
+  from 1 886.0 and 109 125); stack 572 bytes at most (544). Every budget
+  holds; the firmware suite and the ARP suite pass as before.

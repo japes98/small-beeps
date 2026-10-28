@@ -21,7 +21,11 @@
  * record (kind CONTROL_KIND, written by the suite between runs) asks in
  * its first serve: writes payloads of the firmware kinds, large and
  * small, or a reset; and records what it read at start-up and what its
- * write read back.
+ * write read back. Since BR-12 a step of 0x80 or more waits for the
+ * first key press (so a run without one only reads the store at
+ * start-up): a payload rewritten, large or small, or a user slot's patch
+ * (the base's kind), for the suite to cut the power part way; and it
+ * records a user slot's patch at start-up too.
  */
 
 #include "audio.h"
@@ -81,6 +85,10 @@ struct sb_test_engine_record {
     s32 put2_result;    /* step 5's second, refused */
     u32 put_len;        /* what it read back */
     u32 put_sum;
+    /* Since BR-12: */
+    u32 boot_patch;     /* STORE_PATCH, PATCH_SLOT at start-up */
+    u32 boot_patch_sum;
+    u32 stepped;        /* the block in which the serve did the step, or 0 */
 };
 
 u32 sb_test_runtime(void);
@@ -102,6 +110,9 @@ static u32 phase;
 #define LARGE_LEN    4096u
 #define SMALL_LEN    10u
 #define HUGE_LEN     5000u
+#define SMALL2_LEN   300u            /* the small payload rewritten (BR-12): still one part */
+#define PATCH_SLOT   3u
+#define PATCH_LEN    112u
 static u8 store_buf[STORE_FW_MAX];
 
 static void pattern(u32 p, u32 len)
@@ -147,6 +158,26 @@ static void store_step(void)
         pattern(6, STORE_FW_MAX);
         sb_test_engine.put2_result = store_put(HUGE_KIND, 1, 1, store_buf, STORE_FW_MAX);
         sb_test_engine.put_len = read_back(HUGE_KIND, 0, &sb_test_engine.put_sum);
+    } else if (s == 0x83) {
+        /* BR-12, on the first key press: the large payload rewritten,
+         * pattern 3 (on the wide region test build). */
+        pattern(3, LARGE_LEN);
+        sb_test_engine.put_result = store_put(LARGE_KIND, LARGE_ID, 1, store_buf, LARGE_LEN);
+        sb_test_engine.put_len = read_back(LARGE_KIND, LARGE_ID, &sb_test_engine.put_sum);
+    } else if (s == 0x86) {
+        /* The small payload rewritten, pattern 10, longer. */
+        pattern(10, SMALL2_LEN);
+        sb_test_engine.put_result = store_put(SMALL_KIND, 0, 1, store_buf, SMALL2_LEN);
+        sb_test_engine.put_len = read_back(SMALL_KIND, 0, &sb_test_engine.put_sum);
+    } else if (s == 0x87) {
+        /* A user slot's patch rewritten (the base's kind), pattern 12. */
+        u32 version;
+        int n;
+
+        pattern(12, PATCH_LEN);
+        sb_test_engine.put_result = store_put(STORE_PATCH, PATCH_SLOT, 2, store_buf, PATCH_LEN);
+        n = store_get(STORE_PATCH, PATCH_SLOT, store_buf, PATCH_LEN, &version);
+        sb_test_engine.put_len = n < 0 ? 0xFFFFFFFFu : (u32)n;
     }
 }
 
@@ -242,6 +273,15 @@ void sb_engine_init(void)
     }
     sb_test_engine.boot_large = read_back(LARGE_KIND, LARGE_ID, &sb_test_engine.boot_large_sum);
     sb_test_engine.boot_small = read_back(SMALL_KIND, 0, &sb_test_engine.boot_small_sum);
+    {
+        u32 version, i, sum = 0;
+        int n = store_get(STORE_PATCH, PATCH_SLOT, store_buf, PATCH_LEN, &version);
+
+        for (i = 0; n > 0 && i < (u32)n; i++)
+            sum += store_buf[i] * (i + 1);
+        sb_test_engine.boot_patch = n < 0 ? 0xFFFFFFFFu : (u32)n;
+        sb_test_engine.boot_patch_sum = sum;
+    }
     sb_test_engine.core1 = (u32)sb_core1_start(core1_loop, core1_stack + sizeof core1_stack / sizeof core1_stack[0]);
 }
 
@@ -296,9 +336,13 @@ void sb_engine_block(s32 *out, u32 frames)
 void sb_engine_serve(void)
 {
     /* The store's step, in the first serve (main's loop: the flash may
-     * keep it waiting). */
-    if (!sb_test_engine.serves)
+     * keep it waiting); since BR-12 a step of 0x80 or more in the first
+     * serve after a key press. */
+    if (!sb_test_engine.stepped && (sb_test_engine.step < 0x80u ? !sb_test_engine.serves
+                                    : sb_test_engine.presses > 0)) {
+        sb_test_engine.stepped = sb_audio.blocks + 1;
         store_step();
+    }
     sb_test_engine.serves++;
     sb_test_engine.serve_seconds = sb_seconds;
     sb_test_engine.serve_presses = sb_test_engine.presses;
