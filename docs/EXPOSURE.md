@@ -2216,6 +2216,35 @@ SR-3 wrote only its barrier-log row.*
   hardware-float build compiles it and read both ways; ld 2.26's
   `DEFINED()` with a symbol set before an `INCLUDE`; clang's `-###` for
   each flag form.
+- **#172 (BR-13):** build A, the Plaits demo and its `PLAITS_HWFLOAT`
+  build, and the float-heavy fixture, built from this folder and from a
+  copy of main's tools (to see main's check misread the fixture); seams
+  case ownbase from a copy. #172's first CI run failed C-FW-SUITE (read
+  from the run's log through a filter printing only its checks' result
+  lines): the new refusal of unreadable code refused the firmware suite's
+  bad instruction test build, whose bytes are undecodable on purpose;
+  allowed there alone, its second run passed.
+- **store/region (the store region):** from copies of the tree in the
+  job's temporary folder, one suite at a time: the seams suite (all ten
+  cases; the power-cut case first on its own, where only its new
+  model-against-firmware check failed, comparing a page program's byte
+  where fwtest logs its page, fixed), the firmware suite, the ARP suite,
+  the package and preset suites, and perf (no baseline here: the
+  records' image isn't in this folder). The firmware suite's first run
+  failed fmgold and fmgold2 (a note's release within 10 us of a block
+  edge, moved across by the larger image); main's firmware was built in
+  a copy to show both images give either output by that edge, and the
+  script's release moved off it. Model figures from tools/store.py, on
+  this branch's model and main's.
+- **An attempt that fetched nothing:** to build main's firmware, `git
+  archive main` was run into the job's temporary folder; it needed a
+  blob the clean folder leaves out, git's lazy fetching is off, and it
+  stopped (`could not fetch ... from promisor remote`): nothing was
+  fetched or written. Main's `firmware/` and two tools were then taken
+  with `git checkout main --` in a copy of this folder, whose files are
+  all clean-side.
+- Force-pushes: none.
+- Disk: 6.1 GB free at the start; 4.5 GB at the lowest.
 
 ## Corrections
 
