@@ -2004,7 +2004,8 @@ SR-3 wrote only its barrier-log row.*
   output", "Outcomes and exit codes", "Instructions", "Golden files"),
   docs/STORE-FORMAT.md, docs/TOOLCHAIN.md, docs/RELEASING.md ("Loading
   one into the app"), docs/DESIGN-NOTES.md and docs/REQUIREMENTS.md (the
-  parts these changes touch), README.md, `audit/audit.json`, #126's
+  parts these changes touch), docs/PLAN.md and docs/M8-PROPOSAL.md (a
+  search for the presets' wording), README.md, `audit/audit.json`, #126's
   description, and this repository's firmware, tools and tests. Nothing
   fetched from outside the repository but the build image's own
   downloads.
@@ -2043,9 +2044,17 @@ SR-3 wrote only its barrier-log row.*
   - **Rebases:** BR-4 to the guide, before any of them was pushed, onto
     BR-3's golden commit. **Force-pushes:** none.
   - **GitHub:** `gh pr create`, `edit`, `ready`, `checks`, `view` of this
-    session's pull requests and #126; `gh pr list` once at the start
-    (titles and branch names only). No spec-side branch was fetched or
-    opened.
+    session's pull requests and #126; `gh run list` and `gh run view`
+    (result lines) of their CI runs; `gh api` for the one report
+    artifact above. `gh pr list` twice (numbers, titles or branch names
+    only), which showed the spec side's open #155 to #157 and #162. Of
+    those four, `gh pr view --json files` filtered by `jq` to eleven
+    shared file names this session's pull requests change (README.md,
+    docs/EXPOSURE.md, docs/REQUIREMENTS.md, docs/DESIGN-NOTES.md,
+    docs/STORE-FORMAT.md, docs/HARNESS.md, PROVENANCE.md,
+    sessions/REVIEWED.json, tools/build.sh, tools/record.py,
+    tools/store.py), to predict merge conflicts: file names only, nothing
+    else printed. No spec-side branch was fetched or opened.
   - **Disk:** 14 GB free at the start; 8.5 GB at the lowest.
 
 ## Corrections
