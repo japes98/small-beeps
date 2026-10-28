@@ -166,7 +166,7 @@ CHECKS = [
                      "--out", os.path.join(OUT, "package")]},
     # The seams for firmwares built on small-beeps (clean-1027).
     {"id": "C-SEAMS", "title": "Seams for firmwares built on small-beeps: the build's write-back store check, outside sources, the engine seam, the platform alone, core 1's start, the runtime (tools/seams_suite.py)",
-     "reqs": ["R-BUILD-3", "R-BUILD-4", "R-ENG-1", "R-PLAT-1", "R-CORE1-1", "R-RT-1"],
+     "reqs": ["R-BUILD-3", "R-BUILD-4", "R-ENG-1", "R-PLAT-1", "R-CORE-1", "R-RT-1"],
      "cmd": lambda: [PY, "-I", "tools/seams_suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "seams")]},
     # M9's app release: made twice from build A, the same bytes, verified.
