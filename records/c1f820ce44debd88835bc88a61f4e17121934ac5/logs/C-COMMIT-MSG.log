@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range fd07f7f510a8a7c695929884fdf9a22792c9599e..c1f820ce44debd88835bc88a61f4e17121934ac5
+OK     08e925c7f7b5 sessions: clean-a1-packager archived; clean-1027 starts
+EXEMPT c1f820ce44de (merge) Merge pull request #154 from japes98/c1027/start
+2 commit(s) checked: PASS
+
+exit status 0
