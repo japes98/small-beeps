@@ -305,9 +305,10 @@ build_demo_plaits() {
         o="$obj/$(echo "$s" | tr / _ | sed 's/\.[cS]$/.o/')"
         case "$s" in
             # shellcheck disable=SC2086
-            *.S) set -x; clang $ASFLAGS $defs -c "$s" -o "$o"; set +x ;;
+            *.S) set -x; clang $ASFLAGS $defs -c "$s" -o "$o"; set +x; note_cpu "$o" "$ASFLAGS" ;;
             # shellcheck disable=SC2086,SC2046
-            *) set -x; clang $(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//') -c "$s" -o "$o"; set +x ;;
+            *) set -x; clang $(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//') -c "$s" -o "$o"; set +x
+               note_cpu "$o" "$(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//')" ;;
         esac
         objs="$objs $o"
     done
@@ -315,12 +316,14 @@ build_demo_plaits() {
         o="$obj/$(echo "$s" | tr / _ | sed 's/\.cc$/.o/')"
         # shellcheck disable=SC2086
         set -x; $CXX -Os -Wall -Wextra -Werror -c "$s" -o "$o"; set +x
+        note_cpu "$o" "$CXX"
         objs="$objs $o"
     done
     for s in $(find vendor/plaits -name '*.cc' | LC_ALL=C sort); do
         o="$obj/$(echo "$s" | tr / _ | sed 's/\.cc$/.o/')"
         # shellcheck disable=SC2086
         $CXX -O2 -w -c "$s" -o "$o"
+        note_cpu "$o" "$CXX"
         objs="$objs $o"
     done
     echo "built $(find vendor/plaits -name '*.cc' | wc -l) vendored Plaits files"
@@ -358,14 +361,37 @@ build_outside() {
         for s in $(cd "$m" && find . -name '*.c' -o -name '*.S' -o -name '*.cc' | sed 's|^\./||' | LC_ALL=C sort); do
             o="$obj/src${k}_$(echo "$s" | tr / _ | sed 's/\.[cS]$/.o/; s/\.cc$/.o/')"
             case "$s" in
-                *.S) fl=$(folder_flags asflags "$r/$s"); set -x; clang $ASFLAGS -I"$r" $fl -c "$r/$s" -o "$o"; set +x ;;
-                *.cc) fl=$(folder_flags cxxflags "$r/$s"); set -x; clang $CXXFLAGS -I"$r" $fl -c "$r/$s" -o "$o"; set +x ;;
+                *.S) fl=$(folder_flags asflags "$r/$s"); set -x; clang $ASFLAGS -I"$r" $fl -c "$r/$s" -o "$o"; set +x
+                     note_cpu "$o" "$ASFLAGS $fl" ;;
+                *.cc) fl=$(folder_flags cxxflags "$r/$s"); set -x; clang $CXXFLAGS -I"$r" $fl -c "$r/$s" -o "$o"; set +x
+                      note_cpu "$o" "$CXXFLAGS $fl" ;;
                 *) fl=$(folder_flags cflags "$r/$s")
-                   set -x; clang $CFLAGS -Ifirmware/runtime/include -I"$r" $fl -c "$r/$s" -o "$o"; set +x ;;
+                   set -x; clang $CFLAGS -Ifirmware/runtime/include -I"$r" $fl -c "$r/$s" -o "$o"; set +x
+                   note_cpu "$o" "$CFLAGS $fl" ;;
             esac
             objs="$objs $o"
         done
     done
+}
+
+# The CPU and its features that the compile flags $2 give, as objdump's
+# options, noted for the object $1 (BR-13): the write-back store check
+# disassembles each object as it was compiled, or a float instruction
+# (the fprev1 feature's) reads as an unknown one and the bytes after it
+# as others. Clang's own reading of the flags (its -### line), so
+# -mcpu, -mfprev1, -mno-fprev1 and -Xclang -target-feature all count.
+# (It sets cpu: sh has no local variables, and the callers use d.)
+note_cpu() {
+    # shellcheck disable=SC2086
+    cpu=$(clang -### $2 -x c -c /dev/null 2>&1 | tail -n 1 | awk '{
+        n = split($0, a, "\" \"")
+        for (i = 1; i < n; i++) {
+            if (a[i] == "-target-cpu") c = " -mcpu=" a[i + 1]
+            if (a[i] == "-target-feature") f = f (f == "" ? "" : ",") a[i + 1]
+        }
+        print c (f == "" ? "" : " -mattr=" f)
+    }')
+    echo "$1|${cpu# }" >> "$obj/cpu.list"
 }
 
 # The platform's runtime (firmware/runtime/, BR-4): memcpy, memmove and
@@ -379,9 +405,10 @@ build_runtime() {
         o="$obj/runtime_$(basename "$s" | sed 's/\.c$/.o/; s/\.cc$/.o/')"
         case "$s" in
             # shellcheck disable=SC2086
-            *.cc) set -x; clang $CXXFLAGS -c "$s" -o "$o"; set +x ;;
+            *.cc) set -x; clang $CXXFLAGS -c "$s" -o "$o"; set +x; note_cpu "$o" "$CXXFLAGS" ;;
             # shellcheck disable=SC2086,SC2046
-            *) set -x; clang $(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//') -c "$s" -o "$o"; set +x ;;
+            *) set -x; clang $(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//') -c "$s" -o "$o"; set +x
+               note_cpu "$o" "$(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//')" ;;
         esac
         rt="$rt $o"
     done
@@ -432,9 +459,9 @@ cmd_inside() {
         esac
         o="$obj/$(basename "$s" | sed 's/\.[cS]$/.o/')"
         case "$s" in
-            *.S) set -x; clang $ASFLAGS -c "$s" -o "$o"; set +x ;;
+            *.S) set -x; clang $ASFLAGS -c "$s" -o "$o"; set +x; note_cpu "$o" "$ASFLAGS" ;;
             # shellcheck disable=SC2086
-            *) set -x; clang $CFLAGS -c "$s" -o "$o"; set +x ;;
+            *) set -x; clang $CFLAGS -c "$s" -o "$o"; set +x; note_cpu "$o" "$CFLAGS" ;;
         esac
         objs="$objs $o"
     done
@@ -445,23 +472,35 @@ cmd_inside() {
     build_runtime
     # No store that writes back into the register it stores (since
     # clean-1027; tools/ownbase.pl, R-BUILD-3): every object's code is
-    # checked before anything is linked, so no image holds one. One
-    # exception: the Plaits demo's measurement builds with the hardware
-    # float instructions (PLAITS_HWFLOAT, which only fwtest ever runs),
-    # where the compiler puts such stores in the vendored Plaits; there
-    # they are listed and counted, not refused.
-    wb=0
+    # checked before anything is linked, so no image holds one. Each
+    # object is disassembled with the CPU and features it was compiled for
+    # (since BR-13, note_cpu), and code the disassembler can't read fails
+    # the build: the check can't vouch for code it misreads. (Until BR-13
+    # the check disassembled without them, read the float feature's
+    # conditional blocks in the Plaits demo's hardware-float builds as 68
+    # such stores, and let those builds through as an exception; read as
+    # compiled, they hold none, and there is no exception.)
+    wb=0 unread=0
     for o in $objs $rt; do
-        objdump -d "$o" | perl tools/ownbase.pl "$(basename "$o")" || wb=$((wb + 1))
-    done
-    if [ "$wb" -ne 0 ]; then
-        case " ${SB_DEMO:-}:${SB_DEFINES:-} " in
-            *plaits:*" PLAITS_HWFLOAT "*)
-                echo "ownbase check: $wb objects with such stores (above), allowed in a PLAITS_HWFLOAT measurement build" ;;
-            *)
-                echo "FAIL: a store writes back into the register it stores (above; tools/ownbase.pl)" >&2
-                exit 1 ;;
+        cpu=$(awk -F'|' -v o="$o" '$1 == o { print $2 }' "$obj/cpu.list")
+        r=0
+        # shellcheck disable=SC2086
+        objdump -d $cpu "$o" | perl tools/ownbase.pl "$(basename "$o")" || r=$?
+        case $r in
+            0) ;;
+            1) wb=$((wb + 1)) ;;
+            *) unread=$((unread + 1)) ;;
         esac
+    done
+    awk -F'|' '{ n[$2 == "" ? "no CPU options" : $2]++ } END { for (d in n) print n[d], d }' "$obj/cpu.list" \
+        | LC_ALL=C sort -k2 | while read -r k d; do echo "ownbase check: $k objects disassembled with $d"; done
+    if [ "$unread" -ne 0 ]; then
+        echo "FAIL: $unread objects hold code the disassembler can't read (above; tools/ownbase.pl)" >&2
+        exit 1
+    fi
+    if [ "$wb" -ne 0 ]; then
+        echo "FAIL: a store writes back into the register it stores (above; tools/ownbase.pl)" >&2
+        exit 1
     fi
     set -x
     # shellcheck disable=SC2086

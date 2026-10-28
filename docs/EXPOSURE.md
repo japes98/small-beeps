@@ -2177,6 +2177,46 @@ SR-3 wrote only its barrier-log row.*
   first push).
 - Disk: 7 GB free at the start; 5 GB at the lowest.
 
+### Session clean-store-region (each firmware chooses its own store region, BR-13's write-back check)
+- Date: 2026-10-28 (UTC; the afternoon and evening of 2026-10-28 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.312 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `264a9b42-e7d0-4570-86ec-6938ca430c38`,
+  started by a `/clear` at 20:56:55Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `e90f07c4` (#171's merge; #169 to #171 merged) and
+  ended "no spec-side files on disk or in .git";
+  `tools/private-terms.local` exists (not opened); lazy fetching off
+  (`GIT_NO_LAZY_FETCH=1`). It archived clean-1028 (`f7d5db1b`) into
+  `sessions/clean/`; every other clean session was already archived.
+  `tools/check-transcripts.py`: 23 archived transcripts, PASS; clean-1028's
+  marks were report-only mentions, so no reviewed entries were added. The
+  Mac had 6.1 GB free.
+- A spec session works at the same time; this session opens none of its
+  branches.
+- Reads: this file, docs/HARDWARE-SPEC.md (HW-80, HW-87 to HW-94, for
+  where the app area ends), docs/SPEC-REQUESTS.md (its rules, SR-10 as a
+  model), docs/STORE-FORMAT.md, docs/DESIGN-NOTES.md, docs/REQUIREMENTS.md
+  and docs/BUILDING-ON-SMALL-BEEPS.md (the parts these changes touch),
+  #171's description (as a model), and this repository's firmware, tools
+  and tests. Nothing fetched from outside the repository.
+- GitHub: open pull requests listed with their file lists (none open,
+  twice: before numbering SR-11 and before pushing); #171's description;
+  this session's pull requests opened. No CI artifact or log fetched.
+- Toolchain probes, in the build image from the job's temporary folder:
+  the disassembler on a float-heavy test object with and without the CPU
+  options (BR-13), every float add, subtract, multiply and divide form
+  assembled and read both ways, one vendored Plaits object compiled as the
+  hardware-float build compiles it and read both ways; ld 2.26's
+  `DEFINED()` with a symbol set before an `INCLUDE`; clang's `-###` for
+  each flag form.
+
 ### Session spec-isa-audit (does fwtest run every instruction form the toolchain can emit)
 - Date: 2026-10-28 (UTC)
 - Role: **spec side (exposed).** Never writes firmware.
