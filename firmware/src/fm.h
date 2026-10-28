@@ -11,8 +11,8 @@
  *
  * fm.c renders voices (either core); fm_play.c is the engine's control
  * side on core 0: events, voice allocation, the controls and the block
- * callback the audio layer calls (audio.h); core1.S and fm_play.c start
- * core 1 and hand it its voices each block.
+ * callback the audio layer calls (audio.h); fm_play.c starts core 1
+ * (through the platform, core1.h) and hands it its voices each block.
  */
 
 #ifndef FM_H
@@ -230,8 +230,7 @@ void fm_note_off(int note);
  * n / 32 (since M6a; written by the engine, read by the screen). */
 extern volatile u32 fm_midi_notes[4];
 
-/* Core 1 (core1.S, fm_play.c). */
-void fm_core1_entry(void);
+/* Core 1's loop (fm_play.c), started by sb_core1_start (core1.h). */
 void fm_core1_main(void) __attribute__((noreturn));
 
 /* The engine's record, at a fixed place right after the audio record

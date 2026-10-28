@@ -30,6 +30,11 @@
  *   code window (firmware/app.ld).
  * - Every flash access goes through SPI0 (HW-47); the window is never
  *   read for the store.
+ * - Since clean-1027 (BR-9) kinds STORE_FW_KIND_FIRST to
+ *   STORE_FW_KIND_LAST are kept for firmwares built on the base: any id
+ *   (0 to 255), a payload of up to STORE_FW_MAX bytes, written as up to
+ *   STORE_FW_PARTS records of STORE_FW_PART bytes (its parts) and read
+ *   whole or not at all (below).
  */
 
 #ifndef STORE_H
@@ -58,6 +63,32 @@
 #define STORE_SLOTS      16u
 #define STORE_MAX_PAYLOAD 112u
 
+/* Kinds for firmwares built on the base (BR-9; docs/STORE-FORMAT.md):
+ * store_put and store_get take them with any id from 0 to 255 and a
+ * payload of up to STORE_FW_MAX bytes. The store writes it as parts,
+ * records of up to STORE_FW_PART bytes of it, each after a tag (the
+ * write's own number, STORE_FW_TAG bytes), in order; it reads every part
+ * of the newest write together, or nothing, never a mix of two writes:
+ * cut short (power lost), a write leaves the old payload until its
+ * first part is whole, then none until it is written again.
+ * Replacing a payload needs room for one new part beside everything
+ * live. Today's three sectors hold, and rewrite as often as asked, one
+ * payload of up to 5 396 bytes with nothing else stored (a 4 096-byte
+ * one with room to spare); beside the base's full store (16 user slots,
+ * the selection and the settings, saved in between) how much fits
+ * depends on how the records fall in the sectors: 2 952 bytes in every
+ * history tools/store.py's model tried, 4 096 not reliably
+ * (docs/DESIGN-NOTES.md, "Storage for large records"). Past what fits a
+ * write is refused (STORE_ERR_FULL). STORE_FW_KEYS parts are kept track
+ * of at once. A reset voids these kinds too. */
+#define STORE_FW_KIND_FIRST 0x80u
+#define STORE_FW_KIND_LAST  0xFEu
+#define STORE_FW_TAG     4u
+#define STORE_FW_PART    492u        /* a part's record: 512 bytes */
+#define STORE_FW_PARTS   12u
+#define STORE_FW_MAX     (STORE_FW_PARTS * STORE_FW_PART)   /* 5 904 */
+#define STORE_FW_KEYS    32u
+
 #define STORE_SELECTION_VERSION 1u
 struct store_selection {
     u8 program;       /* the program the panel or MIDI chose: 0 to FM_PROGRAMS - 1 */
@@ -78,10 +109,21 @@ struct store_selection {
 #define STORE_ERR_PART   -4   /* the chip is not the part the store knows (HW-76): never written */
 #define STORE_PART       0x856014u   /* the JEDEC ID of the P25Q80H (HW-76, HW-77) */
 
+/* The firmware kinds' counts (BR-9), for the tests, by its symbol (the
+ * store's record below ends where the next begins). */
+struct sb_store_fw_record {
+    u32 parts_live;     /* parts kept track of */
+    u32 stale;          /* parts found at start-up not of their payload's newest write */
+    u32 payloads;       /* payloads written whole since start-up */
+    u32 parts_written;  /* parts written since start-up */
+};
+extern volatile struct sb_store_fw_record sb_store_fw;
+
 /* Reads the region and finds every key's newest valid record. */
 void store_init(void);
 /* Copies the newest valid record of (kind, id) to buf (up to max bytes);
- * returns its length and sets *version, or -1 if there is none. */
+ * returns its length and sets *version, or -1 if there is none. For a
+ * firmware kind, the newest whole payload. */
 int store_get(u32 kind, u32 id, u8 *buf, u32 max, u32 *version);
 /* Appends a record; STORE_OK once it is written and read back. */
 int store_put(u32 kind, u32 id, u32 version, const u8 *payload, u32 len);

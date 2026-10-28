@@ -109,6 +109,12 @@ int midi_screen_take(u32 *note)
  * skipped (and how long it is so far). */
 static u8 status, need, have, data[2];
 static u32 sysex, sysex_len;
+static midi_sysex_fn sysex_tap;
+
+void midi_sysex_tap(midi_sysex_fn tap)
+{
+    sysex_tap = tap;
+}
 
 void midi_parser_reset(void)
 {
@@ -185,6 +191,8 @@ int midi_parse(u8 b, struct midi_msg *m)
         sb_midi.realtime++;
         log_msg(m);
         if (b == MIDI_RESET) {
+            if (sysex && sysex_tap)
+                sysex_tap(MIDI_SYSEX_CUT, b);
             end_pending();
             midi_parser_reset();
         }
@@ -194,6 +202,8 @@ int midi_parse(u8 b, struct midi_msg *m)
         u8 n = data_bytes(b);
         int done = 0;
 
+        if (sysex && sysex_tap)
+            sysex_tap(b == MIDI_EOX ? MIDI_SYSEX_END : MIDI_SYSEX_CUT, b);
         if (b == MIDI_EOX && sysex) {
             /* The end of a SysEx: handed on with its length (7 bits a
              * byte, capped), for the log only. */
@@ -215,6 +225,8 @@ int midi_parse(u8 b, struct midi_msg *m)
             sysex = 1;
             sysex_len = 0;
             sb_midi.sysex++;
+            if (sysex_tap)
+                sysex_tap(MIDI_SYSEX_BEGIN, b);
         } else if (b == MIDI_EOX) {
             if (!done)
                 sb_midi.undefined++;      /* an EOX with no SysEx */
@@ -238,6 +250,8 @@ int midi_parse(u8 b, struct midi_msg *m)
         sb_midi.sysex_bytes++;
         if (sysex_len == MIDI_SYSEX_LIMIT + 1)
             sb_midi.sysex_long++;
+        if (sysex_tap)
+            sysex_tap(MIDI_SYSEX_DATA, b);
         return 0;
     }
     if (!status) {
