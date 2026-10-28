@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range c594899396ef7131cc55f7e6743d3f613259ad37..4aa8a472b1d045e1fe96a9c85fd480fe0115910d
+OK     367730c89bb9 firmware: core 1's start and hand-over are the platform's (BR-3)
+OK     2843beb08870 tests: midiout's golden chord order, after BR-3's start-up
+EXEMPT 40154875eab2 (merge) tools: merge seams/platform into seams/core1
+OK     f0aff91c66e6 docs: core 1's requirement is R-CORE-1
+EXEMPT 4aa8a472b1d0 (merge) Merge pull request #163 from japes98/seams/core1
+5 commit(s) checked: PASS
+
+exit status 0

@@ -1,0 +1,7 @@
+code 11488
+data 40
+bss 134052
+image 11528
+stack 4096
+irq_stack 2048
+ram_code 11368

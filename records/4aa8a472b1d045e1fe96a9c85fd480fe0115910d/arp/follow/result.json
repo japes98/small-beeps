@@ -1,0 +1,73 @@
+{
+  "fwtest": {
+    "version": "0.8.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 53108,
+    "sha256": "203f527fcd7cdf251fdd838e3b9b1af94beecb4560625766430601c250c66161"
+  },
+  "script_sha256": "0d9a69ba6de38e1d219b4565ee447612b0014a73b4c4bde2fd826c35a891df15",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "3599.802",
+    "instructions": {
+      "core0": 10510134,
+      "core1": 4782212
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 634924,
+        "sha256": "c1691e2cc621163ae239a0abe33e7553a5ce31b179c1fad6e7caece9703053ad"
+      },
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "ipb.csv",
+        "bytes": 54850,
+        "sha256": "f45701f54f076e74b98aece485523bafd755fd92417c7563bdee487bdd50f0db"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 1754,
+        "sha256": "409932228f69e75a26658c35936b69f87450713fdeca3717dd4eb1ca363803ba"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 1823,
+        "sha256": "46b4046000eee778077cfd69f85efb2c81233aca230d71e7a4d98bd98c7833f1"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "33082306599e7eeefb29843a0c5b6431f7f48499945df860d1331c7528e6fad7"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "df5750b1a72676b9d2346e252177e2f93b547b09b3fa641b8987ef30c30e5e1e"
+      },
+      {
+        "name": "ram-01c008d0-e0-3000ms.bin",
+        "bytes": 224,
+        "sha256": "20d935fd936f6abf574b294d75e88651458b9a584300b73ed8028c4b0bd08fb8"
+      },
+      {
+        "name": "ram-01c008d0-e0-end.bin",
+        "bytes": 224,
+        "sha256": "5d1b3bd7e3060a6e5fe479fca7e27b4bf31245332168fcbff9513bb833e5f774"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

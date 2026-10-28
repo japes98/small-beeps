@@ -1,0 +1,53 @@
+{
+  "fwtest": {
+    "version": "0.8.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "test-midiburst.bin",
+    "bytes": 53228,
+    "sha256": "9f377a15a511c3653dbab0d732d045f597b0b13b1084bab44aecb304899f8a78"
+  },
+  "script_sha256": "23cba0e5d7046c4139d77f58ffd5caa407a3b3fbeecb04cca079e328ef7ffff4",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "1700.160",
+    "instructions": {
+      "core0": 4731262,
+      "core1": 3419638
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 932,
+        "sha256": "89a49b772a33d854066e6abb3976903dc6f12f7d05049599940c44ac32bc68c5"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 1823,
+        "sha256": "59453718d7dbff4f0f148b766894502738e0a009fee36e683781e0eb38f01e99"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "6d42a430e94819e18f664d4fda054058c09f17195e539acee3427f635d3dcbb5"
+      },
+      {
+        "name": "ram-01c00734-4c-end.bin",
+        "bytes": 76,
+        "sha256": "f1c76208fee0cb3562d30f543505d0ac5a6afd685bba78722f4296758027cfcc"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

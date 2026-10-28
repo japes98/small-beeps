@@ -1,0 +1,112 @@
+$ sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/plaits-work/demo-a --demo plaits
+_demos_plaits_bench.o /tmp/small-beeps-obj/firmware_demos_plaits_plaits_demo.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_mem.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_softfloat.o /tmp/small-beeps-obj/firmware_demos_plaits_sftest.o /tmp/small-beeps-obj/firmware_demos_plaits_plaits_voice.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_cxx.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_chords_chord_bank.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_additive_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_bass_drum_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_chord_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_fm_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_grain_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_hi_hat_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_modal_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_noise_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_particle_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_snare_drum_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_speech_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_string_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_swarm_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_virtual_analog_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_waveshaping_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_wavetable_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_chiptune_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_phase_distortion_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_six_op_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_string_machine_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_virtual_analog_vcf_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_wave_terrain_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_fm_algorithms.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_fm_dx_units.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_modal_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_resonator.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_string.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_string_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_controller.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_phonemes.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_words.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_naive_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_sam_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_resources.o /tmp/small-beeps-obj/vendor_plaits_stmlib_dsp_units.o /tmp/small-beeps-obj/vendor_plaits_stmlib_utils_random.o
++ objcopy -O binary -j .text /out/app.elf /tmp/small-beeps-obj/text.bin
++ objcopy -O binary -j .data /out/app.elf /tmp/small-beeps-obj/data.bin
++ cat /tmp/small-beeps-obj/text.bin /tmp/small-beeps-obj/data.bin
++ [ -z plaits ]
++ set +x
+code 243444
+data 84
+bss 211704
+image 243528
+stack 4096
+irq_stack 2048
+ram_code 243324
+a6de938bb30b5fa07263b200c667e0f55b36b30f0a1c1aacb442e7e484d34ad9  app.bin
+cd62961e194bd4f092af30c550e5d94e527e3cb679bc243cd345520f73fc1460  app.elf
+29dd0cdc5f4743a0c771dfc0aa3acf33ea5cc1bb8262b6a9b80bd289c1512c2d  app.size
+
+exit status 0
+$ sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/plaits-work/demo-b --demo plaits
+_demos_plaits_bench.o /tmp/small-beeps-obj/firmware_demos_plaits_plaits_demo.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_mem.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_softfloat.o /tmp/small-beeps-obj/firmware_demos_plaits_sftest.o /tmp/small-beeps-obj/firmware_demos_plaits_plaits_voice.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_cxx.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_chords_chord_bank.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_additive_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_bass_drum_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_chord_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_fm_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_grain_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_hi_hat_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_modal_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_noise_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_particle_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_snare_drum_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_speech_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_string_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_swarm_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_virtual_analog_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_waveshaping_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_wavetable_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_chiptune_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_phase_distortion_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_six_op_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_string_machine_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_virtual_analog_vcf_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_wave_terrain_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_fm_algorithms.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_fm_dx_units.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_modal_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_resonator.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_string.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_string_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_controller.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_phonemes.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_words.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_naive_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_sam_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_resources.o /tmp/small-beeps-obj/vendor_plaits_stmlib_dsp_units.o /tmp/small-beeps-obj/vendor_plaits_stmlib_utils_random.o
++ objcopy -O binary -j .text /out/app.elf /tmp/small-beeps-obj/text.bin
++ objcopy -O binary -j .data /out/app.elf /tmp/small-beeps-obj/data.bin
++ cat /tmp/small-beeps-obj/text.bin /tmp/small-beeps-obj/data.bin
++ [ -z plaits ]
++ set +x
+code 243444
+data 84
+bss 211704
+image 243528
+stack 4096
+irq_stack 2048
+ram_code 243324
+a6de938bb30b5fa07263b200c667e0f55b36b30f0a1c1aacb442e7e484d34ad9  app.bin
+cd62961e194bd4f092af30c550e5d94e527e3cb679bc243cd345520f73fc1460  app.elf
+29dd0cdc5f4743a0c771dfc0aa3acf33ea5cc1bb8262b6a9b80bd289c1512c2d  app.size
+
+exit status 0
+$ sh tools/fwtest run out/plaits-work/demo-a/app.bin --out /home/runner/work/small-beeps/small-beeps/out/plaits-work/live-soft --ms 1000 --wav --script out/plaits-work/live-soft.txt --ram 0x01c00550:0x40@300 --ram 0x01c00550:0x40@end
+fwtest: completed (exit 0)
+
+exit status 0
+$ sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/plaits-work/demo-hw --demo plaits --define PLAITS_HWFLOAT
+j/firmware_demos_plaits_runtime_mem.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_softfloat.o /tmp/small-beeps-obj/firmware_demos_plaits_sftest.o /tmp/small-beeps-obj/firmware_demos_plaits_plaits_voice.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_cxx.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_chords_chord_bank.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_additive_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_bass_drum_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_chord_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_fm_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_grain_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_hi_hat_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_modal_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_noise_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_particle_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_snare_drum_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_speech_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_string_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_swarm_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_virtual_analog_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_waveshaping_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_wavetable_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_chiptune_engine.oownbase check: 17 objects with such stores (above), allowed in a PLAITS_HWFLOAT measurement build
+ /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_phase_distortion_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_six_op_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_string_machine_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_virtual_analog_vcf_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_wave_terrain_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_fm_algorithms.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_fm_dx_units.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_modal_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_resonator.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_string.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_string_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_controller.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_phonemes.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_words.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_naive_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_sam_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_resources.o /tmp/small-beeps-obj/vendor_plaits_stmlib_dsp_units.o /tmp/small-beeps-obj/vendor_plaits_stmlib_utils_random.o
++ objcopy -O binary -j .text /out/app.elf /tmp/small-beeps-obj/text.bin
++ objcopy -O binary -j .data /out/app.elf /tmp/small-beeps-obj/data.bin
++ cat /tmp/small-beeps-obj/text.bin /tmp/small-beeps-obj/data.bin
++ [ -z plaits ]
++ set +x
+code 216672
+data 84
+bss 211704
+image 216756
+stack 4096
+irq_stack 2048
+ram_code 216552
+986b65d2fa55f953e78da07b908ec07328e469b590c3b5989aa6315a7e61c81e  app.bin
+76ff5665226f2e9205c3a1fbaaddd4c9f8459b809e2136608ed0bcf5e2e4ee84  app.elf
+0d97fa7ecc95f42b74db64c7fc270729d54670c43d883910f45d9c2d32310086  app.size
+
+exit status 0
+$ sh tools/fwtest run out/plaits-work/demo-hw/app.bin --out /home/runner/work/small-beeps/small-beeps/out/plaits-work/live-hw --ms 1000 --wav --script out/plaits-work/live-hw.txt --ram 0x01c00550:0x40@300 --ram 0x01c00550:0x40@end
+fwtest: completed (exit 0)
+
+exit status 0
+$ sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/plaits-work/bench-soft --demo plaits --define PLAITS_BENCH
+_demos_plaits_bench.o /tmp/small-beeps-obj/firmware_demos_plaits_plaits_demo.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_mem.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_softfloat.o /tmp/small-beeps-obj/firmware_demos_plaits_sftest.o /tmp/small-beeps-obj/firmware_demos_plaits_plaits_voice.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_cxx.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_chords_chord_bank.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_additive_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_bass_drum_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_chord_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_fm_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_grain_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_hi_hat_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_modal_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_noise_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_particle_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_snare_drum_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_speech_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_string_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_swarm_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_virtual_analog_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_waveshaping_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_wavetable_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_chiptune_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_phase_distortion_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_six_op_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_string_machine_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_virtual_analog_vcf_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_wave_terrain_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_fm_algorithms.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_fm_dx_units.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_modal_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_resonator.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_string.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_string_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_controller.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_phonemes.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_words.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_naive_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_sam_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_resources.o /tmp/small-beeps-obj/vendor_plaits_stmlib_dsp_units.o /tmp/small-beeps-obj/vendor_plaits_stmlib_utils_random.o
++ objcopy -O binary -j .text /out/app.elf /tmp/small-beeps-obj/text.bin
++ objcopy -O binary -j .data /out/app.elf /tmp/small-beeps-obj/data.bin
++ cat /tmp/small-beeps-obj/text.bin /tmp/small-beeps-obj/data.bin
++ [ -z plaits ]
++ set +x
+code 245368
+data 88
+bss 220120
+image 245456
+stack 4096
+irq_stack 2048
+ram_code 245248
+4faa18a7da169008cb6b0b8e7d4565487d4d0505c5fbc2fc2acd56541468561d  app.bin
+281c7d0301c830d5c5b010475dbc2a8e529e0d70052b28ce8c53f986c87fbe09  app.elf
+6abdb63ef9473ad8508bc862144ba9a417b41fcdb53fedb3a4ad6f7e00eb0fa4  app.size
+
+exit status 0
+$ sh tools/fwtest run out/plaits-work/bench-soft/app.bin --out /home/runner/work/small-beeps/small-beeps/out/plaits-work/run-soft --ms 60000 --console --halt-ok
+fwtest: halt (exit 0)
+
+exit status 0
+$ sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/plaits-work/bench-hw --demo plaits --define PLAITS_BENCH --define PLAITS_HWFLOAT
+_demos_plaits_bench.o /tmp/small-beeps-obj/firmware_demos_plaits_plaits_demo.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_mem.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_softfloat.o /tmp/small-beeps-obj/firmware_demos_plaits_sftest.o /tmp/small-beeps-obj/firmware_demos_plaits_plaits_voice.o /tmp/small-beeps-obj/firmware_demos_plaits_runtime_cxx.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_chords_chord_bank.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_additive_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_bass_drum_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_chord_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_fm_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_grain_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_hi_hat_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_modal_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_noise_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_particle_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_snare_drum_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_speech_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_string_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_swarm_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_virtual_analog_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_waveshaping_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine_wavetable_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_chiptune_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_phase_distortion_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_six_op_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_string_machine_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_virtual_analog_vcf_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_engine2_wave_terrain_engine.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_fm_algorithms.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_fm_dx_units.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_modal_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_resonator.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_string.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_physical_modelling_string_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_controller.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_phonemes.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_lpc_speech_synth_words.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_naive_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_speech_sam_speech_synth.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_dsp_voice.o /tmp/small-beeps-obj/vendor_plaits_eurorack_plaits_resources.o /tmp/small-beeps-obj/vendor_plaits_stmlib_dsp_units.o /tmp/small-beeps-obj/vendor_plaits_stmlib_utils_random.o
++ objcopy -O binary -j .text /out/app.elf /tmp/small-beeps-obj/text.bin
++ objcopy -O binary -j .data /out/app.elf /tmp/small-beeps-obj/data.bin
++ cat /tmp/small-beeps-obj/text.bin /tmp/small-beeps-obj/data.bin
++ [ -z plaits ]
++ set +x
+code 218592
+data 88
+bss 220120
+image 218680
+stack 4096
+irq_stack 2048
+ram_code 218472
+90b0509512fccf4de56b698e1af2ed90ea8082ece5c22db5a7bce3e2eb0d6256  app.bin
+a5e4101279283191d5fda574f547cb275e82b55e99345d947d7d2f40bbd8066b  app.elf
+1a2ee63d036d4e0da517cd6d240263c248c1a8bce4d344cedfb512d4e7ab49ba  app.size
+
+exit status 0
+$ sh tools/fwtest run out/plaits-work/bench-hw/app.bin --out /home/runner/work/small-beeps/small-beeps/out/plaits-work/run-hw --ms 60000 --console --halt-ok
+fwtest: halt (exit 0)
+
+exit status 0
