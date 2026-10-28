@@ -1,0 +1,35 @@
+$ sh tools/check-clean-folder.sh
+absent:   vendor/emulator
+absent:   harness
+absent:   sessions/spec
+no blobs (after setup): vendor/emulator (40 files at HEAD)
+no blobs (after setup): harness (223 files at HEAD)
+no blobs (after setup): sessions/spec (35 files at HEAD)
+settings: config/claude/clean.json
+denied:   Read(./vendor/emulator/**)
+denied:   Read(./harness/**)
+denied:   Read(./sessions/spec/**)
+inside:   C-UNIT         PASS   10.2s  Unit tests of the tools
+inside:   C-TRANSCRIPTS  PASS    2.3s  Archived session transcripts: banners and forbidden material
+inside:   C-SEP-TERMS    PASS    0.0s  No emulator-only identifiers outside the spec side's folders
+inside:   C-SPEC-LINT    PASS    0.0s  docs/HARDWARE-SPEC.md: every entry has an ID, fact, sources, standing; no code; IDs kept
+inside:   C-CLEAN-FOLDER SKIP    0.0s  A fresh clean folder has no spec-side files and denies them
+inside:   C-FWTEST-PIN   PASS    0.0s  tools/fwtest runs an image pinned by digest
+inside:   C-EMU-PIN      PASS    0.0s  Vendored emulator crates match the pinned upstream commit
+git log -p: needed no excluded file
+no blobs (after the tools and git log -p): vendor/emulator (40 files at HEAD)
+no blobs (after the tools and git log -p): harness (223 files at HEAD)
+no blobs (after the tools and git log -p): sessions/spec (35 files at HEAD)
+update:   clean folder at b44c2ae; no spec-side files on disk or in .git
+no blobs (after an update): vendor/emulator (40 files at HEAD)
+no blobs (after an update): harness (223 files at HEAD)
+no blobs (after an update): sessions/spec (35 files at HEAD)
+update across a change to both folders: clean folder at 324f83f; no spec-side files on disk or in .git
+no blobs (update across a change to both folders): 0 present
+control: a merge with its summary fetched 6 of their blobs, as expected
+no blobs (tools/reproduce's export, lazy fetching on): 0 present
+control: git archive with exclude pathspecs fetched 294 spec-side blobs, as expected
+a spec-side output reached through another branch: clean-update.sh stopped, as it should
+clean folder: PASS
+
+exit status 0

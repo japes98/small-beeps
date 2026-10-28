@@ -1,0 +1,74 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/preset_suite.py --image /home/runner/work/small-beeps/small-beeps/out/b44c2ae37001be536964190e20136923ced8124b/build-a/app.bin --out /home/runner/work/small-beeps/small-beeps/out/b44c2ae37001be536964190e20136923ced8124b/presets
+P01 Tine Piano   keys                    -23.5 dBFS  attack    0.0 ms  2 s  -32.3 dB  below 300 Hz 100%  16 voices  237 us  PASS
+P02 Bright EP    keys                    -24.1 dBFS  attack    1.5 ms  2 s  -31.6 dB  below 300 Hz 100%  16 voices  237 us  PASS
+P03 Drawbars     keys                    -24.7 dBFS  attack    5.8 ms  2 s    0.0 dB  below 300 Hz  33%  16 voices  308 us  PASS
+P04 Perc Organ   keys                    -24.6 dBFS  attack    2.9 ms  2 s   -2.6 dB  below 300 Hz  50%  16 voices  266 us  PASS
+P05 Funk Clav    keys                    -26.5 dBFS  attack    0.0 ms  2 s  -69.6 dB  below 300 Hz 100%  16 voices  151 us  PASS
+P06 Harpsichord  keys                    -23.7 dBFS  attack    1.5 ms  2 s  -72.3 dB  below 300 Hz  86%  16 voices  359 us  PASS
+P07 Toy Piano    keys                    -26.9 dBFS  attack    0.0 ms  2 s  -73.0 dB  below 300 Hz  87%  16 voices  237 us  PASS
+P08 Soft Keys    keys                    -25.3 dBFS  attack    1.5 ms  2 s  -23.3 dB  below 300 Hz  99%  16 voices  193 us  PASS
+P09 FM Bass      bass                    -24.2 dBFS  attack    0.0 ms  2 s  -11.6 dB  below 300 Hz 100%  16 voices  193 us  PASS
+P10 Slap Bass    bass                    -26.8 dBFS  attack    0.0 ms  2 s  -31.8 dB  below 300 Hz 100%  16 voices  197 us  PASS
+P11 Sub Bass     bass                    -25.1 dBFS  attack    1.5 ms  2 s    0.0 dB  below 300 Hz 100%  16 voices  149 us  PASS
+P12 Wood Bass    bass                    -24.9 dBFS  attack    0.0 ms  2 s  -71.7 dB  below 300 Hz 100%  16 voices  193 us  PASS
+P13 Saw Bass     bass                    -24.4 dBFS  attack    1.5 ms  2 s   -5.8 dB  below 300 Hz 100%  16 voices  268 us  PASS
+P14 Rubber Bass  bass                    -25.3 dBFS  attack    4.4 ms  2 s  -19.5 dB  below 300 Hz 100%  16 voices  153 us  PASS
+P15 Pluck Bass   bass                    -25.0 dBFS  attack    0.0 ms  2 s  -71.4 dB  below 300 Hz 100%  16 voices  151 us  PASS
+P16 Fretless     bass                    -25.1 dBFS  attack    4.4 ms  2 s  -14.2 dB  below 300 Hz 100%  16 voices   27 us  PASS
+P17 Tubular      bells and mallets       -24.1 dBFS  attack    2.9 ms  2 s  -35.2 dB  below 300 Hz  40%  16 voices  324 us  PASS
+P18 Glock        bells and mallets       -23.6 dBFS  attack    0.0 ms  2 s  -73.1 dB  below 300 Hz   0%  16 voices  237 us  PASS
+P19 Vibes        bells and mallets       -23.7 dBFS  attack    0.0 ms  2 s  -42.0 dB  below 300 Hz  99%  16 voices  237 us  PASS
+P20 Marimba      bells and mallets       -25.9 dBFS  attack    1.5 ms  2 s  -74.3 dB  below 300 Hz 100%  16 voices  236 us  PASS
+P21 Music Box    bells and mallets       -23.8 dBFS  attack    0.0 ms  2 s  -65.4 dB  below 300 Hz   0%  16 voices  237 us  PASS
+P22 Church Bell  bells and mallets       -24.7 dBFS  attack    0.0 ms  2 s  -27.4 dB  below 300 Hz  92%  16 voices  320 us  PASS
+P23 Crystal      bells and mallets       -23.5 dBFS  attack    2.9 ms  2 s  -50.9 dB  below 300 Hz  91%  16 voices  237 us  PASS
+P24 Kalimba      bells and mallets       -25.4 dBFS  attack    0.0 ms  2 s  -71.7 dB  below 300 Hz 100%  16 voices  237 us  PASS
+P25 Brass        brass and winds         -26.9 dBFS  attack   11.6 ms  2 s   -6.7 dB  below 300 Hz  94%  16 voices  192 us  PASS
+P26 Trumpet      brass and winds         -27.9 dBFS  attack    7.3 ms  2 s   -4.9 dB  below 300 Hz  97%  16 voices  195 us  PASS
+P27 Horns        brass and winds         -24.7 dBFS  attack   33.4 ms  2 s   -8.9 dB  below 300 Hz  64%  16 voices  317 us  PASS
+P28 Reed Sax     brass and winds         -23.0 dBFS  attack    2.9 ms  2 s    0.0 dB  below 300 Hz  99%  16 voices  194 us  PASS
+P29 Flute        brass and winds         -25.8 dBFS  attack   14.5 ms  2 s   -0.1 dB  below 300 Hz  80%  16 voices  305 us  PASS
+P30 Clarinet     brass and winds         -25.2 dBFS  attack    7.3 ms  2 s    0.0 dB  below 300 Hz  99%  16 voices  149 us  PASS
+P31 Oboe         brass and winds         -22.9 dBFS  attack    7.3 ms  2 s   -1.0 dB  below 300 Hz  83%  16 voices  234 us  PASS
+P32 Harmonica    brass and winds         -22.7 dBFS  attack    2.9 ms  2 s   -0.1 dB  below 300 Hz  37%  16 voices  232 us  PASS
+P33 Warm Pad     pads                    -24.7 dBFS  attack  951.6 ms  2 s   -5.1 dB  below 300 Hz 100%  16 voices  314 us  PASS
+P34 String Pad   pads                    -24.7 dBFS  attack  813.8 ms  2 s   -0.0 dB  below 300 Hz 100%  16 voices  346 us  PASS
+P35 Choir        pads                    -24.9 dBFS  attack  864.6 ms  2 s   -4.8 dB  below 300 Hz 100%  16 voices  311 us  PASS
+P36 Glass Pad    pads                    -24.2 dBFS  attack  416.3 ms  2 s   -0.8 dB  below 300 Hz  91%  16 voices  314 us  PASS
+P37 Dark Pad     pads                    -25.3 dBFS  attack 1077.8 ms  2 s    0.0 dB  below 300 Hz 100%  16 voices  231 us  PASS
+P38 Sweep Pad    pads                    -25.3 dBFS  attack  483.1 ms  2 s   -0.0 dB  below 300 Hz 100%  16 voices  231 us  PASS
+P39 Space Pad    pads                    -24.2 dBFS  attack 1383.9 ms  2 s    0.0 dB  below 300 Hz  79%  16 voices  314 us  PASS
+P40 Organ Pad    pads                    -24.0 dBFS  attack  365.6 ms  2 s   -0.0 dB  below 300 Hz  40%  16 voices  266 us  PASS
+P41 Square Lead  leads                   -25.1 dBFS  attack    0.0 ms  2 s    0.0 dB  below 300 Hz  25%  16 voices   27 us  PASS
+P42 Saw Lead     leads                   -25.0 dBFS  attack    1.5 ms  2 s   -2.2 dB  below 300 Hz  98%  16 voices   31 us  PASS
+P43 Sync Lead    leads                   -24.7 dBFS  attack    0.0 ms  2 s    0.0 dB  below 300 Hz  11%  16 voices   27 us  PASS
+P44 Whistle      leads                   -24.8 dBFS  attack   11.6 ms  2 s    0.0 dB  below 300 Hz   0%  16 voices   21 us  PASS
+P45 Fat Lead     leads                   -25.2 dBFS  attack    2.9 ms  2 s   -1.1 dB  below 300 Hz   2%  16 voices   52 us  PASS
+P46 Pipe Lead    leads                   -25.0 dBFS  attack    7.3 ms  2 s    0.0 dB  below 300 Hz  92%  16 voices   37 us  PASS
+P47 Chip Lead    leads                   -24.8 dBFS  attack    0.0 ms  2 s    0.0 dB  below 300 Hz  31%  16 voices   27 us  PASS
+P48 Soft Lead    leads                   -24.7 dBFS  attack    5.8 ms  2 s    0.0 dB  below 300 Hz  89%  16 voices   26 us  PASS
+P49 Pluck        plucks and strings      -25.8 dBFS  attack    2.9 ms  2 s  -70.8 dB  below 300 Hz 100%  16 voices  151 us  PASS
+P50 Nylon Gtr    plucks and strings      -25.0 dBFS  attack    2.9 ms  2 s  -72.6 dB  below 300 Hz  76%  16 voices  282 us  PASS
+P51 Harp         plucks and strings      -23.5 dBFS  attack    0.0 ms  2 s  -61.5 dB  below 300 Hz 100%  16 voices  237 us  PASS
+P52 Koto         plucks and strings      -24.6 dBFS  attack    0.0 ms  2 s  -70.6 dB  below 300 Hz 100%  16 voices  153 us  PASS
+P53 Buzz Sitar   plucks and strings      -23.2 dBFS  attack    0.0 ms  2 s  -57.0 dB  below 300 Hz  81%  16 voices  236 us  PASS
+P54 Twang        plucks and strings      -25.9 dBFS  attack    0.0 ms  2 s  -73.3 dB  below 300 Hz  94%  16 voices  236 us  PASS
+P55 Pizzicato    plucks and strings      -26.3 dBFS  attack    2.9 ms  2 s  -73.6 dB  below 300 Hz  82%  16 voices  236 us  PASS
+P56 Steel Str    plucks and strings      -23.9 dBFS  attack    2.9 ms  2 s  -62.7 dB  below 300 Hz  90%  16 voices  237 us  PASS
+P57 Kick         percussion and effects  -22.8 dBFS  attack    0.0 ms  2 s  -74.3 dB  below 300 Hz 100%  16 voices  106 us  PASS
+P58 Snare        percussion and effects  -28.0 dBFS  attack    0.0 ms  2 s  -74.9 dB  below 300 Hz  78%  16 voices  268 us  PASS
+P59 Tom          percussion and effects  -25.1 dBFS  attack    0.0 ms  2 s  -70.5 dB  below 300 Hz 100%  16 voices  153 us  PASS
+P60 Hi-Hat       percussion and effects  -25.6 dBFS  attack    0.0 ms  2 s  -75.2 dB  below 300 Hz   0%  16 voices  320 us  PASS
+P61 Cowbell      percussion and effects  -26.5 dBFS  attack    0.0 ms  2 s  -71.1 dB  below 300 Hz  50%  16 voices  146 us  PASS
+P62 Laser        percussion and effects  -24.7 dBFS  attack    0.0 ms  2 s    0.0 dB  below 300 Hz   1%  16 voices  153 us  PASS
+P63 Wind         percussion and effects  -25.1 dBFS  attack 1412.9 ms  2 s    0.0 dB  below 300 Hz  80%  16 voices  180 us  PASS
+P64 Metal Hit    percussion and effects  -25.2 dBFS  attack    0.0 ms  2 s  -52.9 dB  below 300 Hz  73%  16 voices  353 us  PASS
+P65 Tutti Swell  pads                    -25.6 dBFS  attack  368.5 ms  2 s   -0.0 dB  below 300 Hz  98%  16 voices  350 us  PASS
+P66 Round Seq    bass                    -27.8 dBFS  attack    0.0 ms  2 s  -11.3 dB  below 300 Hz 100%  16 voices  225 us  PASS
+P67 Neon Riff    leads                   -27.8 dBFS  attack    2.9 ms  2 s   -4.9 dB  below 300 Hz  67%  16 voices  358 us  PASS
+P68 Steam Pipes  brass and winds         -24.7 dBFS  attack  150.9 ms  2 s    0.0 dB  below 300 Hz  97%  16 voices  307 us  PASS
+P69 Hammer Keys  keys                    -27.1 dBFS  attack    2.9 ms  2 s  -44.5 dB  below 300 Hz  91%  16 voices  356 us  PASS
+P70 Wire Bass    bass                    -24.7 dBFS  attack    0.0 ms  2 s  -15.7 dB  below 300 Hz  99%  16 voices  186 us  PASS
+presets: 70 of 70 pass
+
+exit status 0
