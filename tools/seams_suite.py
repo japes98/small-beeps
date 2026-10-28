@@ -31,17 +31,34 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   image; a folder holding the base, a folder inside firmware/ and a base
   file that isn't one are refused.
 
+- engine (R-ENG-1): the engine seam. A test engine from outside
+  firmware/ (tests/seams/engine/, built with SB_ENGINE_EXTERNAL) runs in
+  fwtest for 2.3 s with two key taps (tests/seams/scripts/engine.txt):
+  its record (read by its ELF symbol) shows its init called once, before
+  the tick's interrupts and the audio started; every audio block given
+  to its block callback (as many as the audio record counts, 64 frames
+  each); its serve called before the loop and on the wakes (the two
+  whole seconds, the taps), seeing both taps its block callback took;
+  its square wave in the audio, with no underrun; and the base's
+  instrument never started (the FM engine's record still zero). The
+  Plaits demo is an engine on the same seam (C-PLAITS-BENCH).
+
 Prints what each case saw, and exits 1 if any failed.
 """
 
 import argparse
 import hashlib
 import importlib.util
+import json
 import os
 import re
 import shutil
+import struct
 import subprocess
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import audio_analysis as aa  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -67,6 +84,25 @@ def fw_suite():
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     return m
+
+
+def fwtest(image, out, log, *opts):
+    """Runs fwtest on image (a path inside the repository); returns
+    result.json."""
+    shutil.rmtree(out, ignore_errors=True)
+    sh(["sh", "tools/fwtest", "run", os.path.relpath(image, ROOT), "--out", os.path.relpath(out, ROOT)]
+       + list(opts), log, check=False)
+    with open(os.path.join(out, "result.json")) as f:
+        return json.load(f)
+
+
+def ram(out, addr, length, when="end"):
+    with open(os.path.join(out, "ram-%08x-%x-%s.bin" % (addr, length, when)), "rb") as f:
+        return f.read()
+
+
+def words(data, fields):
+    return dict(zip(fields, struct.unpack("<%dI" % len(fields), data[:4 * len(fields)])))
 
 
 def sha256(path):
@@ -149,9 +185,60 @@ def case_outside(a, work, log):
     return problems
 
 
+# --- engine ---------------------------------------------------------------
+
+ENGINE_FIELDS = ("marker", "inits", "init_ticks", "init_blocks", "blocks", "frames", "serves",
+                 "serve_seconds", "presses", "serve_presses")
+ENGINE_MARKER = 0x31474E45   # "ENG1"
+AUDIO_ADDR, AUDIO_FIELDS = 0x01c00550, ("marker", "start", "blocks", "underruns")
+ENGINE_MS = 2300
+
+
+def case_engine(a, work, log):
+    problems = []
+    b = os.path.join(work, "build")
+    build(b, log, "--src", "tests/seams/engine", "--define", "SB_ENGINE_EXTERNAL")
+    syms = fw_suite().elf_symbols(os.path.join(b, "app.elf"))
+    rec, fm = syms["sb_test_engine"], syms["sb_fm"]
+    run = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), run, log, "--ms", str(ENGINE_MS),
+               "--script", "tests/seams/scripts/engine.txt", "--wav",
+               "--ram", "0x%08x:%d@end" % (rec, 4 * len(ENGINE_FIELDS)),
+               "--ram", "0x%08x:64@end" % fm, "--ram", "0x%08x:16@end" % AUDIO_ADDR)
+    if r["run"]["outcome"] != "completed" or r["run"].get("unmodelled_accesses"):
+        return ["the run: %s (%s), unmodelled %s" % (r["run"]["outcome"], r["run"].get("detail"),
+                                                     r["run"].get("unmodelled_accesses"))]
+    e = words(ram(run, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS)
+    au = words(ram(run, AUDIO_ADDR, 16), AUDIO_FIELDS)
+    want = {"marker": ENGINE_MARKER, "inits": 1, "init_ticks": 0, "init_blocks": 0,
+            "serve_seconds": 2, "presses": 2, "serve_presses": 2}
+    for k, v in want.items():
+        if e[k] != v:
+            problems.append("%s is %d, not %d" % (k, e[k], v))
+    if e["blocks"] != au["blocks"] or e["frames"] != 64 * e["blocks"]:
+        problems.append("blocks %d (frames %d), the audio record's %d" % (e["blocks"], e["frames"], au["blocks"]))
+    if au["underruns"]:
+        problems.append("%d underruns" % au["underruns"])
+    # Before the loop, the two seconds, the two taps' presses and releases.
+    if e["serves"] < 5:
+        problems.append("serve called %d times, fewer than 5" % e["serves"])
+    if any(ram(run, fm, 64)):
+        problems.append("the FM engine's record is not zero: the instrument ran")
+    _, left, _ = aa.read_wav(os.path.join(run, "audio.wav"))
+    tail = left[-20000:]
+    peak = max(abs(s) for s in tail)
+    if not 1900 <= peak <= 2200:
+        problems.append("the square wave's level in the audio is %d, not about 2048" % peak)
+    print("engine: init once before the ticks and the audio; %d blocks of 64 frames; %d serves (seconds %d);"
+          " %d presses; the square wave at %d; the instrument never ran" % (
+              e["blocks"], e["serves"], e["serve_seconds"], e["presses"], peak))
+    return problems
+
+
 CASES = [
     ("ownbase", case_ownbase),
     ("outside", case_outside),
+    ("engine", case_engine),
 ]
 
 

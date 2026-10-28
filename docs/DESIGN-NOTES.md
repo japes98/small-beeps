@@ -2849,3 +2849,44 @@ C-SEAMS) and its part below.
   first time (`tools/build.sh image`) and runs everything inside it, so
   the firmware gets the same toolchain and the same deterministic build
   (docs/BUILDING-ON-SMALL-BEEPS.md).
+
+#### The engine seam (BR-1, R-ENG-1)
+
+- **What.** Built with `SB_ENGINE_EXTERNAL`, `main()` leaves out the
+  base's FM engine and its store start-up (`fm_init()`, `store_boot()`)
+  and the instrument's loop work (the screens, the store's writes), and
+  calls three functions the firmware built on the base defines
+  (`firmware/src/engine.h`):
+  - `sb_engine_init()`, once, where `fm_init()` is called: after the time
+    base, the tick's and SPI1's handlers and the panel's scan, before
+    interrupts are on and before the audio starts;
+  - `sb_engine_block()`, the block callback `audio_start()` gets: core 0,
+    the audio interrupt, every block;
+  - `sb_engine_serve()`, from main's loop: once before it begins, then
+    on every wake that found work (a change of `sb_work`: the whole
+    seconds, the panel's events, anything the engine adds itself).
+  Everything else main does stays the platform's: the tick, the screen's
+  start (pattern, then the test screen with its heartbeat), the loop and
+  its counts in the beacon.
+- **Without the switch nothing changes:** the default path's code is the
+  same text, and the image is the same bytes (`da13d093…`).
+- **Why three functions and not a table of pointers:** a build switch and
+  link-time names cost nothing at run time, keep the default image as it
+  was, and make a missing function a link error rather than a jump to
+  nowhere. The block callback is the engine's own function, so the audio
+  interrupt calls it as directly as it calls `fm_block` today.
+- **The Plaits demo is a user** (M4b's load test): it defines the three
+  in `firmware/demos/plaits/plaits_demo.c` (its bench, which never
+  returns, runs from its init, where `main()` called it before) and the
+  demo build defines `SB_ENGINE_EXTERNAL`. Its screen no longer shows the
+  instrument's views after a touch (they never belonged to it); it keeps
+  the test screen and its heartbeat. Nothing C-PLAITS-BENCH measures
+  depends on that.
+- **Tested** (C-SEAMS, case engine) with a test engine kept outside
+  `firmware/` (`tests/seams/engine/`) and built through BR-5's `--src`:
+  in fwtest its init runs once with no tick taken and no block played
+  yet, its block callback gets every block, its serve runs before the
+  loop and on each wake, seeing the key presses its block callback
+  took, its square wave is in the audio, and the FM engine's record
+  stays zero (the instrument never started). The instrument's files are
+  still linked here; leaving them out is the platform link's (BR-2).

@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# tools/seams_suite.py, case engine: two key taps once the test engine
+# runs, each an event for its block callback and a wake for its serve.
+1500     key 12 tap 60
+1800     key 5 tap 60
