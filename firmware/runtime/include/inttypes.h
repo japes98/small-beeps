@@ -2,11 +2,12 @@
  * SPDX-License-Identifier: MIT
  * SPDX-FileCopyrightText: 2026 japes98
  *
- * <inttypes.h> for the Plaits demo: the exact-width integer types.
+ * <inttypes.h>: the exact-width integer types (the platform's runtime,
+ * firmware/runtime/, BR-4; written for the Plaits demo, M4b).
  */
 
-#ifndef PLAITS_DEMO_INTTYPES_H
-#define PLAITS_DEMO_INTTYPES_H
+#ifndef SB_RUNTIME_INTTYPES_H
+#define SB_RUNTIME_INTTYPES_H
 
 typedef signed char int8_t;
 typedef unsigned char uint8_t;

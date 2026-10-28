@@ -2936,3 +2936,242 @@ C-SEAMS) and its part below.
   records, the platform's records are where the base has them, the
   package link is built too, and the engine case's whole run passes on
   it. The platform alone is 11 180 bytes of code (the firmware: 52 960).
+
+#### Core 1's start, the platform's (BR-3, R-CORE1-1)
+
+- **What.** Starting core 1 and handing it work were the FM engine's
+  (M5, "Two cores"): `core1.S`'s entry called the engine's loop on a
+  stack of its own, `fm_init()` pointed source 126's vector word at it
+  and set C1_CON bit 3 (HW-9), and `fm_play.c` kept the lock and the
+  shared loads (HW-65). The Plaits bench had its own copy of the entry
+  and the start. Now the platform has one of each (`core1.h`):
+  - `sb_core1_start(entry, stack_top)`: core 0 leaves the entry and the
+    stack's top where the entry (`core1_entry.S`) finds them, points the
+    vector word at it, sets the bit, and waits (`SB_CORE1_WAIT` polls,
+    about 1 ms in fwtest) for core 1 to say it runs; then puts the word
+    back and returns 1, or 0 if core 1 never said so. On core 1, the
+    entry sets both stack pointers from the given top and calls
+    `sb_core1_main` (`core1.c`), which says it runs, under the lock, and
+    calls the engine's entry; if that returns, core 1 stops with
+    interrupts off.
+  - `sb_lock`, `sb_unlock`, `sb_shared`, `sb_publish`: the lock byte
+    taken by test-and-set with csync around, a shared word read after
+    csync, a shared word written under a lock. `static inline`, as they
+    are short and sit in core 0's per-block path (the FM engine posts a
+    block and waits for its answer with them).
+- **The FM engine** keeps its own stack (1 KiB, as before, now a
+  `static` array in `fm_play.c`), its job's lock and sequence numbers,
+  and its loop; it starts core 1 with `sb_core1_start(fm_core1_main,
+  ...)` and keeps its two-core fallback (the result). Core 1's flag that
+  it runs is the platform's now, so `fm_core1_main` only sets
+  `sb_fm.core1`. **The Plaits bench** starts its core 1 the same way, on
+  its own 8 KiB stack, and its copy of the entry is gone.
+- **A name clash on the way.** The base names its objects by file name,
+  so `core1.c` and `core1.S` both made `core1.o` and the link failed
+  ("multiple definition"); the entry is `core1_entry.S`.
+- **The image changes** (code 53 028 bytes, from 52 960), and start-up
+  ends 2 to 3 µs later. One golden changed by hand, as the timing
+  goldens' policy says a change that is not a pure time shift must be:
+  midiout's MIDI capture, where the chord's three keys, pressed in the
+  same instant, now reach the engine in the order 60, 64, 67 (was 64, 67,
+  60); which key the panel's scan sees first depends on its phase
+  against the script, which the later start moved. Every other message
+  is the same, 2 to 3 µs later; the case's own checks take the chord in
+  any order and pass, and midiround's script is written from the new
+  capture (`tools/midi_scripts.py`). The order is the same on every
+  later seam's image.
+- **Tested** (C-SEAMS, cases engine and platform): the test engine
+  starts core 1 and hands it a job every block, a sequence number to
+  triple: core 1 starts, does exactly one job a block, every answer
+  right and in time, and the vector word holds its stub again, with the
+  instrument linked and with the platform alone.
+
+#### The C++ runtime and `mem*`, the platform's (BR-4, R-RT-1)
+
+- **What moved.** M4b wrote a small runtime for the Plaits demo:
+  `memcpy`, `memmove` and `memset` (byte by byte), what C++ needs
+  (`__cxa_pure_virtual`, `operator delete`, each a halt if reached), the
+  soft-float routines, and freestanding headers (`<algorithm>`,
+  `<cmath>`, `<math.h>`, `<stddef.h>`, `<inttypes.h>`). They are now the
+  platform's, in `firmware/runtime/` (the headers in
+  `firmware/runtime/include/`), with a `<string.h>` declaring the three
+  `mem*` functions. Only `plaits_pre.h`, which is Plaits' own, stays
+  with the demo.
+- **An archive, so the firmware gets nothing it doesn't call.** The
+  build links every object it is given (no `--gc-sections`), so
+  `mem.c` as a plain object would add code to the firmware, which needs
+  none. The runtime is built into `libsb_runtime.a` (`ar` in its
+  deterministic mode) and the link takes it last: a member comes in only
+  when something calls it. The firmware calls none, so its image is the
+  same bytes; C-SEAMS checks build A has none of them. Its C is built
+  without the float instructions, as soft-float's must be (and as the
+  demo's C always was).
+- **Two things C++ needed that the demo never did.** A static object
+  with a destructor registers it with `__cxa_atexit` (the link failed
+  without it): the runtime now has it, keeping nothing, as the firmware
+  never exits. And the toolchain puts static objects' constructors in
+  `.ctors`, which the platform never ran (with `--orphan-handling=error`
+  such an object failed the link): `platform.ld` now gathers them, and
+  `main()`, built with `SB_ENGINE_EXTERNAL`, runs them (last first, as
+  `.ctors` is run) before the engine's init. The base has none, so its
+  layout and its image are unchanged.
+- **Include path.** Outside sources (BR-5), C and C++, and the demo's
+  C++ get `-Ifirmware/runtime/include`; the base's own C does not need
+  it.
+- **Tested** (C-SEAMS, cases engine and platform): the test engine's
+  init calls C++ (`tests/seams/engine/sb_test_runtime.cc`) with a
+  virtual class, `std::sort`, `memcpy`, `memmove` and `memset` with
+  lengths known only at run time, a static object built by its
+  constructor and one with a destructor; its result is the expected
+  1301, the runtime's members are in its ELF, with the instrument linked
+  and with the platform alone. The Plaits demo builds and runs on the
+  platform's runtime (C-PLAITS-BENCH).
+
+#### SysEx bytes from MIDI in (BR-7, R-MIDI-8)
+
+- **What.** MIDI in's parser skipped System Exclusive, counting it (M6a).
+  A firmware built on the base may need its bytes (a dump of its own
+  data, for one, of a few kilobytes). `midi_sysex_tap(fn)` sets a
+  function the parser calls with each SysEx byte and what it is:
+  `MIDI_SYSEX_BEGIN` (the F0), `MIDI_SYSEX_DATA` (each data byte),
+  `MIDI_SYSEX_END` (the F7) or `MIDI_SYSEX_CUT` (any other status byte
+  that ends it: a new F0, a channel or system common status, or a
+  reset; the byte then also does what it always does). Realtime bytes
+  inside a SysEx (a clock, say) never reach the tap: they are messages
+  of their own, handed on by `midi_read()`, and the SysEx goes on after
+  them, as MIDI 1.0 has it. The parser is otherwise unchanged: its
+  counts, and `MIDI_SYSEX_LIMIT`, which only counts a message long, so a
+  message of any length reaches the tap whole.
+- **A tap, not pieces through `midi_read()`.** `midi_read()` hands on
+  whole messages of at most two data bytes, and the instrument and the
+  arpeggiator read it once a block; giving it SysEx in pieces would
+  change what every reader sees. A tap changes nothing for a firmware
+  that sets none (the base sets none), and costs one test of a pointer
+  per SysEx byte.
+- **Where it runs, and where the work goes.** The tap runs where the
+  parser runs: in `midi_read()`, from the engine's block callback, core
+  0's audio interrupt. So it should only keep the bytes (into a buffer
+  of the firmware's) and, at the end, add one to `sb_work` to wake
+  main; the work on them (checking, decoding, storing) goes in main's
+  loop, `sb_engine_serve()` (BR-1). At the wire's pace a block brings at
+  most five bytes, so the tap's share of a block is small whatever the
+  message's length; a 4 104-byte message takes 1.3 s to arrive.
+- **The image changes** (code 53 068 bytes, from 53 028): the pointer
+  tests in the parser.
+- **Tested** (C-SEAMS, case sysex) on the test engine linked with the
+  platform alone, which starts MIDI in and keeps each message's bytes
+  through the tap and sums them in its serve: a message of 4 104 data
+  bytes, with a clock byte in its middle, arrives whole and in order
+  (length, a sum weighted by place, first and last byte), the work done
+  in the serve; the clock is handed on as a message; a second message
+  cut short by a note on is reported cut by 0x90, and the note handed
+  on; MIDI's record counts the first long and drops nothing. The
+  firmware's own MIDI cases (C-FW-SUITE) check MIDI in is as before.
+
+#### Raw bytes to MIDI out (BR-8, R-MIDIOUT-9)
+
+- **What.** MIDI out sent queued messages of at most two data bytes
+  (M6b). `midi_out_raw(buf, len)` streams any bytes as they are (a
+  System Exclusive message, say): the poll hands the transmitter the
+  next transfer of up to `MIDI_OUT_CHUNK` (12) bytes whenever the last
+  has gone, as it does for messages. `midi_out_raw_busy()` says when the
+  last byte has been handed on and the buffer may change; a second call
+  meanwhile is refused (0).
+- **The queue waits, but for realtime.** A channel message inside a
+  System Exclusive message would end it, so the queue's messages wait
+  until the stream's last byte has been handed on. Realtime messages
+  (a clock, say) are the exception MIDI 1.0 makes: they may go anywhere,
+  even inside System Exclusive. So each transfer of a stream starts with
+  the realtime messages waiting, taken out of the queue (the others keep
+  their order), and a clock keeps its time through a long stream. The
+  stream may hold any status bytes, so the message after it carries its
+  status (running status starts again).
+- **The policy holds meanwhile.** Messages queued during a stream wait
+  under the same rules (merging, the reserve for note offs, dropping):
+  a stream of 4 096 bytes takes 1.3 s of the wire, longer than the
+  queue lasts at a busy rate, so a firmware that sends long streams
+  sends little else meanwhile, or accepts what the policy drops.
+- **Who calls it.** The queue is the block callback's alone (no lock).
+  The stream is handed over through three words the caller writes, the
+  last a sequence number the poll answers, so `midi_out_raw` may be
+  called from main's loop (`sb_engine_serve`, where the work on a SysEx
+  goes, BR-7) or from the block callback, as long as from one of them
+  only.
+- **Its counts** are in a record of their own (`sb_midi_out_raw`, found
+  by its symbol): MIDI out's record ends where the store's begins
+  (`0x01C00780`), so it can't grow.
+- **The image changes** (code 53 340 bytes, from 53 068).
+- **Tested** (C-SEAMS, case rawout) on the test engine linked with the
+  platform alone: at the first whole second its serve hands MIDI out a
+  600-byte System Exclusive message while its block callback queues a
+  clock every block and a note every 16th. On the wire: the 600 bytes in
+  order, nothing inside them but clocks (about 200), every note after
+  the F7, the first with its status, and every clock and note sent. The
+  firmware's own MIDI out cases (C-FW-SUITE) check MIDI out is as before.
+
+#### Storage for large records (BR-9, R-STORE-10)
+
+- **What.** The store kept the base's own records: a patch (112 bytes)
+  in each of 16 slots, the selection, the settings, a reset. A firmware
+  built on the base needs its own, some large (a payload of 4 096 bytes,
+  say). Kinds 0x80 to 0xFE are now kept for firmwares built on the base,
+  with any id, and `store_put`/`store_get` take a payload of up to 5 904
+  bytes for them (docs/STORE-FORMAT.md, "Kinds for firmwares built on
+  the base"). A reset voids them with everything else.
+- **Why parts.** A sector is 4 KiB with a 16-byte header, and a record
+  can't leave its sector, so a 4 096-byte payload can't be one record. It
+  is written as parts, records of up to 492 bytes of it (512 with their
+  header, tag and CRC), each carrying its index and the part count in
+  the header's two bytes that were always 0, and a tag (the write's own
+  number) as its payload's first word. Of each part the newest record
+  counts, as for any key; the payload is read only when every part is
+  there with part 0's tag and count. A write never mixes with the one
+  before it: cut short, the old payload still reads until the new
+  write's first part is whole, and then nothing until its last part is
+  (the model checks every cut point: old, then none, then new; fwtest's
+  power cut checks one on the firmware). A firmware that can't do without
+  its payload writes it again; the store never hands it half of each.
+- **Why not keep the old one through the whole write.** That needs room
+  for two copies of the payload at once, and the three sectors don't
+  have it: the ring needs a sector's worth free to move on, so about two
+  sectors (8 160 bytes) hold everything live, and two copies of 4 096
+  bytes are 8 192 before any header. Writing part by part needs room for
+  one new part beside everything live.
+- **What today's region holds** (`tools/store.py`'s model, which the
+  firmware's images match after every run of the seams suite): one
+  payload of up to 5 396 bytes, rewritten as often as asked, with
+  nothing else stored (a firmware on the platform alone, its own small
+  records aside); a 4 096-byte payload so has 1.3 KB to spare. Beside the
+  base's full store (all 16 user slots, the selection and the settings,
+  saved between rewrites) how much fits depends on how the records fall
+  in the sectors: 2 952 bytes held in every one of 40 histories of 300
+  rewrites the model tried; up to about 3.5 KB in some histories but not
+  all; 4 096 not reliably. Past what fits a write is refused
+  (`STORE_ERR_FULL`), and what was there stays. Where a larger region
+  goes is the owner's later decision; the part size was chosen for
+  today's: of the sizes tried, from 236 to 2 012 bytes, 492 let the most
+  be rewritten beside the base's full store (428 a little more alone).
+- **Keys.** The base's keys are fixed (16 slots and three more). The
+  firmware kinds' parts take places in a table of their own, 32 of them,
+  after the base's: the ring's compaction, a sector's live count and the
+  reset treat both alike, in that order, and the model keeps the same
+  order, so an image it writes is one the firmware could have written.
+  A write checks first that every part has a place, so it never stops
+  for want of one; a payload rewritten with fewer parts frees the rest.
+- **Format.** Version 1's records, as before: a reader that doesn't know
+  these kinds (the base before this) counts them unknown and never
+  copies them forward. The base's own records and their limits are
+  unchanged, and its tests pass as they are.
+- **The image changes** (code 54 416 bytes, from 53 340; RAM 1 312 bytes
+  more: the table, and the record buffers sized for a part).
+- **Tested:** the model in C-UNIT (a payload in parts read whole, every
+  cut point of a rewrite, fewer parts, the reset, what the region holds,
+  the constants the firmware's); and the firmware in C-SEAMS (case
+  store): nine runs chained through the flash file, the model writing a
+  control record before each that tells the test engine what to do: a
+  4 096-byte payload and a small one written and read back, then read at
+  the next start-up; rewritten; rewritten again with the power cut at
+  the middle of its page programs, after which the large payload is gone
+  and the small one stays; rewritten after the cut; a reset voids both;
+  then alone, 5 000 bytes written and read back and 5 904 refused as
+  full. The model reads what the firmware does after every run.
