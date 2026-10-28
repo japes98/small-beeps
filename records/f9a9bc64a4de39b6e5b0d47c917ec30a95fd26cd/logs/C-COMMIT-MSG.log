@@ -1,0 +1,13 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range c298dcf9b555a6d8f329cb12c37649787682bbed..f9a9bc64a4de39b6e5b0d47c917ec30a95fd26cd
+OK     632c8b326561 harness: fwtest 0.9.0, a store of its own base keeps the old value (SR-10)
+EXEMPT d11346e163bb (merge) sessions: clean's seams/wbcheck (#158, with #154) merged into spec/1027-sr10
+EXEMPT 970374e59a69 (merge) sessions: spec/1027-image-repro merged into spec/1027-sr10 (the chain, cumulative)
+OK     3c882065b11e docs: SR-10's Phase B item; the SDK search's limits; the exposure entry
+EXEMPT 21e4c2ee3992 (merge) sessions: spec/1027-image-repro merged into spec/1027-sr10 (the chain, cumulative)
+OK     bc57118838bb docs: spec-1027's exposure entry finished (the suite runs, the disk)
+EXEMPT c754ea78c941 (merge) sessions: spec/1027-image-repro merged into spec/1027-sr10 (the chain, cumulative)
+EXEMPT ab81fe10eeed (merge) Merge remote-tracking branch 'origin/spec/1027-image-repro' into w
+EXEMPT f9a9bc64a4de (merge) Merge pull request #162 from japes98/spec/1027-sr10
+9 commit(s) checked: PASS
+
+exit status 0

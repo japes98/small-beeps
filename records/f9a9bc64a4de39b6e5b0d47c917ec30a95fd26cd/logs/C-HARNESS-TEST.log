@@ -1,0 +1,131 @@
+$ sh harness/ci.sh test
+#0 building with "default" instance using docker driver
+
+#1 [internal] load remote build context
+#1 CACHED
+
+#2 copy /context /
+#2 CACHED
+
+#3 resolve image config for docker-image://docker.io/docker/dockerfile:1.10@sha256:865e5dd094beca432e8c0a1d5e1c465db5f998dca4e439981029b3b81fb39ed5
+#3 DONE 0.0s
+
+#4 docker-image://docker.io/docker/dockerfile:1.10@sha256:865e5dd094beca432e8c0a1d5e1c465db5f998dca4e439981029b3b81fb39ed5
+#4 CACHED
+
+#5 [internal] load metadata for docker.io/library/rust:1.99.0-slim-bookworm@sha256:ba81bc3eaa4422af576c0262515d96b0111a628a6ccc2c86557cf55c9a4bbee0
+#5 DONE 0.0s
+
+#6 [build 1/5] FROM docker.io/library/rust:1.99.0-slim-bookworm@sha256:ba81bc3eaa4422af576c0262515d96b0111a628a6ccc2c86557cf55c9a4bbee0
+#6 DONE 0.0s
+
+#7 [build 2/5] WORKDIR /src
+#7 CACHED
+
+#8 [build 3/5] COPY vendor/emulator vendor/emulator
+#8 CACHED
+
+#9 [build 4/5] COPY harness harness
+#9 CACHED
+
+#10 [build 5/5] RUN --network=none cd harness && cargo build --release --locked --offline  && sha256sum target/release/fwtest
+#10 CACHED
+
+#11 [test 1/1] RUN --network=none cd harness && cargo test --release --locked --offline
+#11 0.047    Compiling fwtest v0.9.0 (/src/harness)
+#11 1.248     Finished `release` profile [optimized] target(s) in 1.20s
+#11 1.248      Running unittests src/lib.rs (target/release/deps/fwtest-68883c2a3b9b6bf8)
+#11 1.249 
+#11 1.249 running 17 tests
+#11 1.250 test formats::tests::crc32_known_value ... ok
+#11 1.250 test formats::tests::json_is_stable_and_escaped ... ok
+#11 1.250 test formats::tests::sha256_known_values ... ok
+#11 1.250 test formats::tests::wav_round_trips ... ok
+#11 1.250 test golden::tests::exact_by_default ... ok
+#11 1.250 test golden::tests::png_and_wav_tolerances ... ok
+#11 1.250 test golden::tests::csv_relative_tolerance ... ok
+#11 1.250 test midi::tests::channel_messages_and_running_status ... ok
+#11 1.250 test golden::tests::tolerance_must_fit_the_file_type ... ok
+#11 1.250 test midi::tests::csv_has_times_and_hex ... ok
+#11 1.250 test midi::tests::incomplete_at_the_end_and_before_a_status ... ok
+#11 1.251 test midi::tests::real_time_inside_a_message_and_system_common ... ok
+#11 1.251 test midi::tests::sysex ... ok
+#11 1.251 test script::tests::parses_every_event_kind_in_time_order ... ok
+#11 1.251 test script::tests::rejects_bad_lines_with_their_number ... ok
+#11 1.251 test script::tests::times_take_three_decimals ... ok
+#11 1.252 test formats::tests::png_round_trips ... ok
+#11 1.252 
+#11 1.252 test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+#11 1.252 
+#11 1.252      Running unittests src/main.rs (target/release/deps/fwtest-a50169e97893e22d)
+#11 1.253 
+#11 1.253 running 0 tests
+#11 1.253 
+#11 1.253 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+#11 1.253 
+#11 1.253      Running tests/fwtest.rs (target/release/deps/fwtest-ab3043582ead30de)
+#11 1.254 
+#11 1.254 running 28 tests
+#11 1.283 test block_moves_every_mode ... ok
+#11 1.283 test block_move_below_the_base_sr7 ... ok
+#11 1.283 test alu_pair_heads_hold_their_result ... ok
+#11 1.289 test boot_state_matches_the_manual ... ok
+#11 1.311 test block_moves_from_the_compiler ... ok
+#11 1.311 test audio_ipb_and_console ... ok
+#11 1.339 test boots_and_runs_for_the_time_asked ... ok
+#11 1.434 test flash_capture ... ok
+#11 1.458 test flash_busy_and_the_window ... ok
+#11 1.555 test cli_exit_codes_golden_and_results ... ok
+#11 1.601 test halts_faults_and_hangs ... ok
+#11 1.632 test lcd_capture ... ok
+#11 1.670 test led_capture ... ok
+#11 1.705 test midi_bytes_queue_behind_the_wire ... ok
+#11 1.724 test pair_head_wins_over_its_second_half ... ok
+#11 1.730 test deterministic ... ok
+#11 1.748 test push_pop_any_register_list ... ok
+#11 1.770 test ram_code_runs_as_written ... ok
+#11 1.770 test refuses_empty_and_oversized_images ... ok
+#11 1.799 test rotate_by_a_register ... ok
+#11 1.815 test inputs_from_a_script ... ok
+#11 1.815 test rotates_from_the_compiler ... ok
+#11 1.834 test spi1_interrupt_follows_con_bit_13 ... ok
+#11 1.851 test stores_of_the_base_keep_its_old_value ... ok
+#11 1.854 test transmits_midi ... ok
+#11 1.863 test power_cut_command_line ... ok
+#11 1.869 test usb_port_answers ... ok
+#11 1.971 test flash_persists_and_power_cuts ... ok
+#11 1.971 
+#11 1.971 test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+#11 1.971 
+#11 1.975      Running tests/package.rs (target/release/deps/package-41ebd0defe15bcab)
+#11 1.976 
+#11 1.976 running 5 tests
+#11 1.977 test bad_packages_are_refused ... ok
+#11 1.977 test the_committed_package_is_current ... ok
+#11 1.997 test a_package_over_a_saved_chip ... ok
+#11 2.002 test an_app_at_the_wrong_offset_reads_the_wrong_table ... ok
+#11 2.006 test a_package_boots_its_app ... ok
+#11 2.006 
+#11 2.006 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+#11 2.006 
+#11 2.006    Doc-tests fwtest
+#11 2.038 
+#11 2.038 running 0 tests
+#11 2.038 
+#11 2.038 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+#11 2.038 
+#11 DONE 2.1s
+
+#12 exporting to image
+#12 exporting layers
+#12 exporting layers 0.4s done
+#12 writing image sha256:ac318dfc9396f08468e8e83b0d8f7d8b5fc555978d260d93518c7fb37a8cf536 done
+#12 naming to docker.io/library/small-beeps-fwtest:21db825363219b2a-test done
+#12 DONE 0.4s
+
+ [33m3 warnings found (use docker --debug to expand):
+[0m - FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 25)
+ - FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 40)
+ - FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 53)
+
+exit status 0
