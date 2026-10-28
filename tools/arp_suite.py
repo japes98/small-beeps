@@ -138,12 +138,12 @@ def chip(slots, settings_bytes=None):
 # the timing goldens' policy takes instead (tools/goldtime.py, rule 1:
 # 1 ms before the next block's end, 0.2 ms after the last). Each run
 # starts from its own flash chip, so its blocks fall at their own times.
-END_MS = {"clock-out": 1700.1, "follow": 3599, "load": 10998.9, "minute": 60800.3, "mode-chord": 2708.9,
-          "mode-down": 2708.9, "mode-order": 2708.9, "mode-random": 2708.9, "mode-up": 2708.9,
-          "mode-updown": 2708.9, "rate-1-16": 3509.6, "rate-1-16d": 3509.6, "rate-1-16t": 3509.6,
-          "rate-1-2": 9009.1, "rate-1-32": 3384.9, "rate-1-4": 5259.1, "rate-1-4d": 7134.9, "rate-1-8": 3509.6,
-          "rate-1-8t": 3509.6, "save": 2000.1, "save-next": 2709.8, "screen": 3700.3, "stuck": 5799.7,
-          "swing": 2709.8}
+END_MS = {"clock-out": 1700.1, "follow": 3599, "load": 10998.9, "minute": 60800.3, "mode-chord": 2709.1,
+          "mode-down": 2709.1, "mode-order": 2709.1, "mode-random": 2709.1, "mode-up": 2709.1,
+          "mode-updown": 2709.1, "rate-1-16": 3509.9, "rate-1-16d": 3509.9, "rate-1-16t": 3509.9,
+          "rate-1-2": 9009.3, "rate-1-32": 3385.1, "rate-1-4": 5259.4, "rate-1-4d": 7135.1,
+          "rate-1-8": 3509.9, "rate-1-8d": 4322.2, "rate-1-8t": 3509.9, "save": 2000.1, "save-next": 2709.8,
+          "screen": 3700.3, "stuck": 5799.7, "swing": 2709.8}
 
 class Case:
     def __init__(self, name, ms, script, flash=None, rams=(), lcds=(), leds=False, flash_out=False, check=None,
