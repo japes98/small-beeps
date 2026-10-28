@@ -1,0 +1,58 @@
+{
+  "fwtest": {
+    "version": "0.8.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 53040,
+    "sha256": "da13d093231ada5af7ac788973eac086f93ab71db2766f09835e5fba3aec4546"
+  },
+  "script_sha256": "d89cd3989afa9a9c5b7ca28c10e727edb5479f8a7a7da187b31c2b30e4bdf3f0",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "11000.000",
+    "instructions": {
+      "core0": 788934432,
+      "core1": 585683247
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "ipb.csv",
+        "bytes": 198450,
+        "sha256": "d7de5249524df6440cf62537f6ed16f0d5f72e8ea0d9781118b1487e1f36cdaf"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "45aa535504938fda06717d9cd2e3f03c831173f6a842ac48fa89c1e24e31d29a"
+      },
+      {
+        "name": "ram-01c00060-4f0-end.bin",
+        "bytes": 1264,
+        "sha256": "320fe810ee72b4c070ed2b0f49d9d68573c3b3698ae892f404dc0db882080ee1"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "87d4b614c47167926dc1e4047b3a2118eb0fe5241af3862a5128005fa5b88188"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "60d07392255dc61d5fb8caa79d3f57d3a27ebc29619e2a8a172714d4b2e55f81"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

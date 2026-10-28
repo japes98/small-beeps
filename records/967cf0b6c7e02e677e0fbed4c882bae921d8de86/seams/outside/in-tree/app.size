@@ -1,0 +1,7 @@
+code 53004
+data 80
+bss 160944
+image 53084
+stack 4096
+irq_stack 2048
+ram_code 52884

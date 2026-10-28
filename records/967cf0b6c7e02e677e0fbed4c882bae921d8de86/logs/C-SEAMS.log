@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/seams_suite.py --build /home/runner/work/small-beeps/small-beeps/out/967cf0b6c7e02e677e0fbed4c882bae921d8de86/build-a --out /home/runner/work/small-beeps/small-beeps/out/967cf0b6c7e02e677e0fbed4c882bae921d8de86/seams
+ownbase: the test build refused; build A passed the check
+outside: 5 symbols from the folder; three places, the same bytes; probe.c left out, build A's image
+engine: init once before the ticks and the audio; 1585 blocks of 64 frames; 7 serves (seconds 2); 2 presses; the square wave at 2048; the instrument never ran
+seams suite: PASS
+
+exit status 0

@@ -1,0 +1,58 @@
+{
+  "fwtest": {
+    "version": "0.8.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "small-beeps-0.0.0.fwsc",
+    "bytes": 70736,
+    "sha256": "c04bc01febd3166f2b845336dfa217b7de0ece0b33b605ed1778d20516db46ec"
+  },
+  "script_sha256": null,
+  "run": {
+    "package": {
+      "identity": "small-beeps-0.0.0",
+      "app_area": "0x04000",
+      "entry": "0x02000120"
+    },
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "5.064",
+    "instructions": {
+      "core0": 180218,
+      "core1": 1045
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "ram-01c00000-4-end.bin",
+        "bytes": 4,
+        "sha256": "26581990077fb333483c253f8f2c94b28fe3af46b81ae0039bd68d98ef8cbdec"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "145bab388a32a8e8e6379c03b675f51936a4b582a207537167f626260d9d11bf"
+      },
+      {
+        "name": "ram-01c7fc00-200-end.bin",
+        "bytes": 512,
+        "sha256": "3f9bf20a7e54d316e9fc52af1224c3ccdd3a8db0eab0edebfa03fcdf38b53c88"
+      },
+      {
+        "name": "ram-01c7fe00-200-end.bin",
+        "bytes": 512,
+        "sha256": "73e12e30293499ecb603bb986b79e36fa873eeb883b18ef0d224f61c7993f728"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 5735d9e538634f30b095f630073370d80630da09..967cf0b6c7e02e677e0fbed4c882bae921d8de86
+OK     d11a1e985975 firmware: the engine seam, SB_ENGINE_EXTERNAL (BR-1)
+OK     6ff937c89410 tools: the demo's flags right after its test, as its unit test reads them
+EXEMPT 967cf0b6c7e0 (merge) Merge pull request #160 from japes98/seams/engine
+3 commit(s) checked: PASS
+
+exit status 0
