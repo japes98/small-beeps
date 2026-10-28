@@ -50,6 +50,12 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   platform's records where the base has them, the package link built
   too, and the engine case's run and checks pass on it (the engine's
   slot, where the base keeps its FM engine's record, still zero).
+- core 1 (R-CORE1-1), within engine and platform: since BR-3 the test
+  engine starts core 1 with sb_core1_start (core1.h) and hands it a job
+  every block with sb_publish and sb_shared: core 1 starts (1), does one
+  job a block, every answer right and in time, and source 126's vector
+  word, borrowed for core 1's start, holds its stub again; with the
+  platform alone too.
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -196,7 +202,8 @@ def case_outside(a, work, log):
 # --- engine ---------------------------------------------------------------
 
 ENGINE_FIELDS = ("marker", "inits", "init_ticks", "init_blocks", "blocks", "frames", "serves",
-                 "serve_seconds", "presses", "serve_presses")
+                 "serve_seconds", "presses", "serve_presses", "core1", "core1_jobs", "core1_wrong")
+CORE1_START_WORD = 0x01c7fff8   # source 126's vector word, core 1's start address (HW-9)
 ENGINE_MARKER = 0x31474E45   # "ENG1"
 AUDIO_ADDR, AUDIO_FIELDS = 0x01c00550, ("marker", "start", "blocks", "underruns")
 ENGINE_MS = 2300
@@ -225,19 +232,25 @@ def run_engine(b, work, log, name):
     r = fwtest(os.path.join(b, "app.bin"), run, log, "--ms", str(ENGINE_MS),
                "--script", "tests/seams/scripts/engine.txt", "--wav",
                "--ram", "0x%08x:%d@end" % (rec, 4 * len(ENGINE_FIELDS)),
-               "--ram", "0x%08x:64@end" % fm, "--ram", "0x%08x:16@end" % AUDIO_ADDR)
+               "--ram", "0x%08x:64@end" % fm, "--ram", "0x%08x:16@end" % AUDIO_ADDR,
+               "--ram", "0x%08x:4@end" % CORE1_START_WORD)
     if r["run"]["outcome"] != "completed" or r["run"].get("unmodelled_accesses"):
         return ["the run: %s (%s), unmodelled %s" % (r["run"]["outcome"], r["run"].get("detail"),
                                                      r["run"].get("unmodelled_accesses"))]
     e = words(ram(run, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS)
     au = words(ram(run, AUDIO_ADDR, 16), AUDIO_FIELDS)
     want = {"marker": ENGINE_MARKER, "inits": 1, "init_ticks": 0, "init_blocks": 0,
-            "serve_seconds": 2, "presses": 2, "serve_presses": 2}
+            "serve_seconds": 2, "presses": 2, "serve_presses": 2, "core1": 1, "core1_wrong": 0}
     for k, v in want.items():
         if e[k] != v:
             problems.append("%s is %d, not %d" % (k, e[k], v))
     if e["blocks"] != au["blocks"] or e["frames"] != 64 * e["blocks"]:
         problems.append("blocks %d (frames %d), the audio record's %d" % (e["blocks"], e["frames"], au["blocks"]))
+    if e["core1_jobs"] != e["blocks"]:
+        problems.append("core 1 did %d jobs in %d blocks" % (e["core1_jobs"], e["blocks"]))
+    word, = struct.unpack("<I", ram(run, CORE1_START_WORD, 4))
+    if word != syms["sb_irq_stubs"] + 2 * 126:
+        problems.append("source 126's vector word is 0x%08x, not its stub's" % word)
     if au["underruns"]:
         problems.append("%d underruns" % au["underruns"])
     # Before the loop, the two seconds, the two taps' presses and releases.
@@ -251,8 +264,9 @@ def run_engine(b, work, log, name):
     if not 1900 <= peak <= 2200:
         problems.append("the square wave's level in the audio is %d, not about 2048" % peak)
     print("%s: init once before the ticks and the audio; %d blocks of 64 frames; %d serves (seconds %d);"
-          " %d presses; the square wave at %d; the instrument never ran" % (
-              name, e["blocks"], e["serves"], e["serve_seconds"], e["presses"], peak))
+          " %d presses; core 1 did %d jobs, none wrong, its vector word restored; the square wave at %d;"
+          " the instrument never ran" % (
+              name, e["blocks"], e["serves"], e["serve_seconds"], e["presses"], e["core1_jobs"], peak))
     return problems
 
 
