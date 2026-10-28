@@ -42,6 +42,14 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   its square wave in the audio, with no underrun; and the base's
   instrument never started (the FM engine's record still zero). The
   Plaits demo is an engine on the same seam (C-PLAITS-BENCH).
+- platform (R-PLAT-1): the same test engine linked with the platform
+  alone (tools/build.sh --platform, with its own script,
+  tests/seams/engine/engine.ld, that includes firmware/platform.ld and
+  asserts its record first among the engine's records, 0x01C00870):
+  none of the instrument's functions or records in the ELF, the
+  platform's records where the base has them, the package link built
+  too, and the engine case's run and checks pass on it (the engine's
+  slot, where the base keeps its FM engine's record, still zero).
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -194,12 +202,25 @@ AUDIO_ADDR, AUDIO_FIELDS = 0x01c00550, ("marker", "start", "blocks", "underruns"
 ENGINE_MS = 2300
 
 
+ENGINE_SLOT = 0x01c00590    # firmware/platform.ld: the FM engine's record's place in the base
+PLATFORM_RECORDS = {"sb_beacon": 0x01c00000, "sb_input": 0x01c00060, "sb_audio": 0x01c00550,
+                    "sb_midi": 0x01c005d0, "sb_midi_out": 0x01c00734, "sb_store": 0x01c00780}
+INSTRUMENT_SYMBOLS = ("fm_init", "fm_block", "fm_render", "fm_patches", "fm_core1_entry", "sb_fm",
+                      "view_serve", "sb_ui", "store_boot", "store_serve", "arp_block", "sb_arp",
+                      "spectrum_feed")
+
+
 def case_engine(a, work, log):
-    problems = []
     b = os.path.join(work, "build")
     build(b, log, "--src", "tests/seams/engine", "--define", "SB_ENGINE_EXTERNAL")
+    return run_engine(b, work, log, "engine")
+
+
+def run_engine(b, work, log, name):
+    """The test engine's run and checks, on the image in b."""
+    problems = []
     syms = fw_suite().elf_symbols(os.path.join(b, "app.elf"))
-    rec, fm = syms["sb_test_engine"], syms["sb_fm"]
+    rec, fm = syms["sb_test_engine"], ENGINE_SLOT
     run = os.path.join(work, "run")
     r = fwtest(os.path.join(b, "app.bin"), run, log, "--ms", str(ENGINE_MS),
                "--script", "tests/seams/scripts/engine.txt", "--wav",
@@ -223,22 +244,46 @@ def case_engine(a, work, log):
     if e["serves"] < 5:
         problems.append("serve called %d times, fewer than 5" % e["serves"])
     if any(ram(run, fm, 64)):
-        problems.append("the FM engine's record is not zero: the instrument ran")
+        problems.append("the engine's slot (the FM engine's record) is not zero: the instrument ran")
     _, left, _ = aa.read_wav(os.path.join(run, "audio.wav"))
     tail = left[-20000:]
     peak = max(abs(s) for s in tail)
     if not 1900 <= peak <= 2200:
         problems.append("the square wave's level in the audio is %d, not about 2048" % peak)
-    print("engine: init once before the ticks and the audio; %d blocks of 64 frames; %d serves (seconds %d);"
+    print("%s: init once before the ticks and the audio; %d blocks of 64 frames; %d serves (seconds %d);"
           " %d presses; the square wave at %d; the instrument never ran" % (
-              e["blocks"], e["serves"], e["serve_seconds"], e["presses"], peak))
+              name, e["blocks"], e["serves"], e["serve_seconds"], e["presses"], peak))
     return problems
+
+
+# --- platform -------------------------------------------------------------
+
+def case_platform(a, work, log):
+    problems = []
+    b = os.path.join(work, "build")
+    build(b, log, "--platform", "--src", "tests/seams/engine", "--ld", "tests/seams/engine/engine.ld")
+    syms = fw_suite().elf_symbols(os.path.join(b, "app.elf"))
+    found = [s for s in INSTRUMENT_SYMBOLS if s in syms]
+    if found:
+        problems.append("the instrument is in the platform link: %s" % ", ".join(found))
+    for s, addr in sorted(PLATFORM_RECORDS.items()):
+        if syms.get(s) != addr:
+            problems.append("%s at %s, not 0x%08x" % (s, hex(syms.get(s, 0)), addr))
+    if syms.get("sb_test_engine") != 0x01c00870:
+        problems.append("the test engine's record is not first among the engine's records")
+    if not os.path.exists(os.path.join(b, "app-pkg.bin")):
+        problems.append("no package link")
+    with open(os.path.join(b, "app.size")) as f:
+        code = int(re.search(r"^code (\d+)$", f.read(), re.M).group(1))
+    print("platform: linked without the instrument (%d bytes of code), its records in place" % code)
+    return problems + run_engine(b, work, log, "platform")
 
 
 CASES = [
     ("ownbase", case_ownbase),
     ("outside", case_outside),
     ("engine", case_engine),
+    ("platform", case_platform),
 ]
 
 

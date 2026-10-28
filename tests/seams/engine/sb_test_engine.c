@@ -6,7 +6,7 @@
  * from outside firmware/ (tools/build.sh --src tests/seams/engine
  * --define SB_ENGINE_EXTERNAL) by tools/seams_suite.py, case engine. It
  * counts what main asks of it in a record the suite reads by its ELF
- * symbol, plays a quiet square wave, and counts the panel's key presses.
+ * symbol (since BR-2 among the engine's records, firmware/platform.ld), plays a quiet square wave, and counts the panel's key presses.
  */
 
 #include "audio.h"
@@ -30,7 +30,10 @@ struct sb_test_engine_record {
     u32 serve_presses;  /* presses seen by the last serve */
 };
 
-volatile struct sb_test_engine_record sb_test_engine;
+/* Among the engine's records (firmware/platform.ld): linked with the
+ * platform alone, the first after the store's, where engine.ld asserts
+ * it; with the base's instrument, after its records. */
+volatile struct sb_test_engine_record sb_test_engine __attribute__((section(".beacon.engine")));
 
 static u32 phase;
 
