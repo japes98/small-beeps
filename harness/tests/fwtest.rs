@@ -613,6 +613,49 @@ fn stores_of_the_base_keep_its_old_value() {
     assert_eq!((w[8], w[9]), (BUF + 920 + 748, BUF + 920 + 748), "moved: the moved pointer");
 }
 
+/// The toolchain audit (session spec-isa-audit): C for which the pinned
+/// compiler emits forms fwtest 0.9.0 could not run (isac.c, built with the
+/// firmware's flags): floorf, ceilf and truncf, `__fp16` conversions, a
+/// word in memory shifted by a register and cleared by a mask, and zcmp;
+/// and one it ran wrongly, the 64-bit load whose index is scaled by 8.
+#[test]
+fn forms_the_compiler_emits() {
+    let mut o = opts(5);
+    o.ram = vec![(OUT0, 64, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("isac"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-40-end.bin"));
+    let f = |x: f32| x.to_bits();
+    assert_eq!(&w[0..5], &[f(-3.0), f(-2.0), f(-2.0), f(7.0), f(-0.0)], "floorf, ceilf, truncf");
+    // 0.1 to half is 0x2e66, 65520 rounds to infinity; 0x2e66 back is 0.0999755859375
+    assert_eq!(w[5], 0x7c00_2e66, "float to __fp16");
+    assert_eq!(w[6], f(0.099_975_586), "__fp16 to float");
+    assert_eq!(&w[7..11], &[0x0000_f0f0, 1, 0xc000_0000, 0x0000_f00f], "<<=, >>=, >>>= and &= ~ in memory");
+    assert_eq!((w[11], w[12]), (0x3f, 0x3f), "d[rB+rI<<3]");
+    assert_eq!(&w[13..16], &[1, 0, u32::MAX], "zcmp");
+}
+
+/// The toolchain audit: forms only the assembler emits that fwtest 0.9.0
+/// could not run or ran wrongly (isaasm.S): the float to integer
+/// conversions rounding to even, up and down, the float rounding to even,
+/// fcmp and the ten flag branches after it, ifne after testset, and a
+/// word in memory shifted by 32.
+#[test]
+fn forms_only_the_assembler_emits() {
+    let mut o = opts(1);
+    o.ram = vec![(OUT0, 80, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("isaasm"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-50-end.bin"));
+    assert_eq!(&w[0..7], &[2, (-2i32) as u32, (-3i32) as u32, 2, 3, 2, (-2.0f32).to_bits()], "rounding conversions");
+    // fcmp 1.0, 2.0: eq ne cs cc hi ls ge lt gt le
+    assert_eq!(&w[7..17], &[0, 1, 0, 1, 0, 1, 0, 1, 0, 1], "flag branches after fcmp");
+    assert_eq!(w[17], 1, "ifne after testset of a free byte");
+    assert_eq!((w[18], w[19]), (0, u32::MAX), "<<= 32 and >>>= 32 in memory");
+}
+
 fn fault_text(r: &fwtest::run::Report) -> (u32, u32, String) {
     match &r.outcome {
         Outcome::Fault { core, pc, what } => (*core, *pc, what.clone()),

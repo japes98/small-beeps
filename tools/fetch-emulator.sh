@@ -31,7 +31,7 @@ UPSTREAM_PATHS="
 /crates/fm1-soc/
 "
 # SHA-256 of vendor/emulator/SHA256SUMS: one hash for the whole tree.
-TREE_SHA256=f1ecfd168321d4ebde080de4eaffc2c3f77da858d5ace9cb25be67ca70940675
+TREE_SHA256=a77606697e594f5eaacc1894341fb21f5eb2e5908923ab7cd8be32c61e5463a5
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 DEST="$ROOT/vendor/emulator"

@@ -5,7 +5,10 @@
 //!   `3f e5 b2 b3`  binary  R = R op R: op = b2 & 15 (0 +, 1 -, 2 *, 3 /, 5 fmin, 6 fmax),
 //!                  a = b2 >> 4, d = b3 >> 4, b = b3 & 15
 //!                  unary   R = fn(R): b2 = 1f ftoi (trunc), 5f ftou (trunc), 8f itof, 9f utof;
-//!                  d = b3 >> 4, s = b3 & 15
+//!                  d = b3 >> 4, s = b3 & 15; and (the vendor decoder's table, session
+//!                  spec-isa-audit) 0f/2f/3f ftoi and 4f/6f/7f ftou rounding to even, up and down,
+//!                  af `R.l = ftof(R)` (to half precision), bf `R = ftof(R.l)` (from it),
+//!                  cf/df/ef/ff `R = ftof(R)` rounded to an integral value (even, trunc, ceil, floor)
 //!   `3f f5 b2 b3`  the same ops as the head of a dual-issue pair (bit 12, as e0/e1 -> f0/f1)
 //!   compares       the integer `if (R op R) goto` (4-byte: bit 27; 6-byte `4x ff`: bit 23) and
 //!                  `if (R op R) {` (bit 23) forms with a float flag; families e8 ==, e9 u>=,
@@ -43,6 +46,22 @@ pub static FPU: &[IsaEntry] = &[
     e!("fpu_ftou", "R = ftou(R) (trunc)", 0x00ff_ffff, 0x005f_e53f),
     e!("fpu_itof", "R = itof(R)", 0x00ff_ffff, 0x008f_e53f),
     e!("fpu_utof", "R = utof(R)", 0x00ff_ffff, 0x009f_e53f),
+    e!("fpu_ftoi_even", "R = ftoi(R) (even)", 0x00ff_ffff, 0x000f_e53f),
+    e!("fpu_ftoi_ceil", "R = ftoi(R) (ceil)", 0x00ff_ffff, 0x002f_e53f),
+    e!("fpu_ftoi_floor", "R = ftoi(R) (floor)", 0x00ff_ffff, 0x003f_e53f),
+    e!("fpu_ftou_even", "R = ftou(R) (even)", 0x00ff_ffff, 0x004f_e53f),
+    e!("fpu_ftou_ceil", "R = ftou(R) (ceil)", 0x00ff_ffff, 0x006f_e53f),
+    e!("fpu_ftou_floor", "R = ftou(R) (floor)", 0x00ff_ffff, 0x007f_e53f),
+    e!("fpu_ftoh", "R.l = ftof(R)", 0x00ff_ffff, 0x00af_e53f),
+    e!("fpu_htof", "R = ftof(R.l)", 0x00ff_ffff, 0x00bf_e53f),
+    e!("fpu_ftof_even", "R = ftof(R) (even)", 0x00ff_ffff, 0x00cf_e53f),
+    e!("fpu_ftof_trunc", "R = ftof(R) (trunc)", 0x00ff_ffff, 0x00df_e53f),
+    e!("fpu_ftof_ceil", "R = ftof(R) (ceil)", 0x00ff_ffff, 0x00ef_e53f),
+    e!("fpu_ftof_floor", "R = ftof(R) (floor)", 0x00ff_ffff, 0x00ff_e53f),
+    // `fcmp rA, rB` (3f e5 A4 0B): sets what the flag branches `ifeq` .. `ifle` test (session
+    // spec-isa-audit; fm1-core route 43)
+    e!("fcmp", "fcmp R, R", 0x000f_ffff, 0x0004_e53f),
+    e!("fcmp_p", "fcmp R, R #", 0x000f_ffff, 0x0004_f53f),
     e!("iff_r_eq_r_goto_i", "iff (R == R) goto #i", 0x0800_ff70, 0x0800_e800),
     e!("iff_r_uge_r_goto_i", "iff (R u>= R) goto #i", 0x0800_ff70, 0x0800_e900),
     e!("iff_r_ugt_r_goto_i", "iff (R u> R) goto #i", 0x0800_ff70, 0x0800_ec00),
@@ -63,6 +82,18 @@ pub static FPU: &[IsaEntry] = &[
     e!("fpu_ftou_p", "R = ftou(R) (trunc) #", 0x00ff_ffff, 0x005f_f53f),
     e!("fpu_itof_p", "R = itof(R) #", 0x00ff_ffff, 0x008f_f53f),
     e!("fpu_utof_p", "R = utof(R) #", 0x00ff_ffff, 0x009f_f53f),
+    e!("fpu_ftoi_even_p", "R = ftoi(R) (even) #", 0x00ff_ffff, 0x000f_f53f),
+    e!("fpu_ftoi_ceil_p", "R = ftoi(R) (ceil) #", 0x00ff_ffff, 0x002f_f53f),
+    e!("fpu_ftoi_floor_p", "R = ftoi(R) (floor) #", 0x00ff_ffff, 0x003f_f53f),
+    e!("fpu_ftou_even_p", "R = ftou(R) (even) #", 0x00ff_ffff, 0x004f_f53f),
+    e!("fpu_ftou_ceil_p", "R = ftou(R) (ceil) #", 0x00ff_ffff, 0x006f_f53f),
+    e!("fpu_ftou_floor_p", "R = ftou(R) (floor) #", 0x00ff_ffff, 0x007f_f53f),
+    e!("fpu_ftoh_p", "R.l = ftof(R) #", 0x00ff_ffff, 0x00af_f53f),
+    e!("fpu_htof_p", "R = ftof(R.l) #", 0x00ff_ffff, 0x00bf_f53f),
+    e!("fpu_ftof_even_p", "R = ftof(R) (even) #", 0x00ff_ffff, 0x00cf_f53f),
+    e!("fpu_ftof_trunc_p", "R = ftof(R) (trunc) #", 0x00ff_ffff, 0x00df_f53f),
+    e!("fpu_ftof_ceil_p", "R = ftof(R) (ceil) #", 0x00ff_ffff, 0x00ef_f53f),
+    e!("fpu_ftof_floor_p", "R = ftof(R) (floor) #", 0x00ff_ffff, 0x00ff_f53f),
     e!("iff_r_eq_r_goto_i_l6", "iff (R == R) goto #i", 0x0080_fffe, 0x0080_ff40, 6),
     e!("iff_r_uge_r_goto_i_l6", "iff (R u>= R) goto #i", 0x0080_fffe, 0x0080_ff42, 6),
     e!("iff_r_ugt_r_goto_i_l6", "iff (R u> R) goto #i", 0x0080_fffe, 0x0080_ff48, 6),
