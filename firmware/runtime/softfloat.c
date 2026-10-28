@@ -2,8 +2,10 @@
  * SPDX-License-Identifier: MIT
  * SPDX-FileCopyrightText: 2026 japes98
  *
- * Single-precision floating point in software, for the Plaits demo
- * (docs/DESIGN-NOTES.md, M4b). The compiler turns every float operation
+ * Single-precision floating point in software, written for the Plaits demo
+ * (docs/DESIGN-NOTES.md, M4b); since clean-1027 (BR-4) part of the
+ * platform's runtime (firmware/runtime/), linked only into an image that
+ * calls them, as code built without the float instructions does. The compiler turns every float operation
  * into a call to one of these when there is no floating-point unit; we
  * don't link the toolchain's own (docs/TOOLCHAIN.md), so these are ours,
  * written from IEEE 754's definition of binary32:

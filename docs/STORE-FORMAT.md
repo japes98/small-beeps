@@ -52,8 +52,9 @@ Records start on a 16-byte boundary after the sector's header:
 | 1 | 1 | kind (below) |
 | 2 | 1 | id: the user slot, 0 to 15, for a patch; 0 otherwise |
 | 3 | 1 | the payload's version |
-| 4 | 2 | the payload's length, at most 112 |
-| 6 | 2 | 0 |
+| 4 | 2 | the payload's length, at most 112 (a firmware kind's part: 496) |
+| 6 | 1 | 0 (a firmware kind's part: its index, from 0) |
+| 7 | 1 | 0 (a firmware kind's part: how many parts its payload has, 1 to 12) |
 | 8 | 4 | sequence number: one more than the record written before it |
 | 12 | length | the payload |
 | 12 + length | 4 | CRC-32 of the header and the payload |
@@ -68,6 +69,34 @@ and out: zlib's).
 | 2 | the patch selection | 4 bytes: the program (0 to 8 the test patches, 9 to 24 the user slots), then 0, 0, 0; version 1 |
 | 3 | the settings | `struct midi_settings` (`firmware/src/midi.h`): version 4 (since ARP), 42 bytes: version 3's 40, then the internal tempo (40 to 240 beats a minute) and what MIDI out sends while the arpeggiator runs (0: its notes, 1: the keys held). Version 3 (M8a's), 40 bytes, its last byte the knobs' mode (0: the macros, 1: direct), is read as version 4 with 120 beats a minute and the arpeggiator's notes; version 2 (M6b's), the same 40 bytes with that byte 0, likewise with the macros; version 1 (M6a's), 36 bytes, with its defaults for the out channel (1), thru (off), local control (on) and the knobs (the macros) too |
 | 4 | a reset | none; version 0. Every record older than it is void |
+| 0x80 to 0xFE | kept for firmwares built on the base (since clean-1027) | below |
+
+## Kinds for firmwares built on the base
+
+Kinds 0x80 to 0xFE are kept for firmwares built on small-beeps; the base
+itself writes none. Their id is any byte (0 to 255), and their payload,
+of up to 5 904 bytes, is written as parts, one record each:
+
+- each part's payload is a 4-byte tag, then up to 492 bytes of the
+  payload, in order (so a part's record is at most 512 bytes);
+- the record's byte 6 is the part's index (0 first) and byte 7 how many
+  parts the payload has; every part of one write has the same count and
+  the same tag, the sequence number the store would give the next record
+  when the write began;
+- a write appends its parts in order.
+
+Reading a payload: of each part (kind, id, index) the newest valid
+record counts, as for any key; the payload is whole when part 0 and every
+part below its count are there with part 0's tag and count, and then it
+is their data in order. Otherwise there is none: a write cut short is
+never read as a mix of two writes (the old payload reads until the new
+write's first part is whole, then nothing until its last is). At
+start-up a part whose tag or count isn't part 0's, or whose index is past
+part 0's count, is not live, and is never copied forward; so are the
+parts past a shorter payload's count once it is written. A reset voids
+these kinds as it voids every other. A reader that knows none of them
+(the base before clean-1027) counts them unknown and never copies them
+forward.
 
 ## Reading
 
@@ -96,6 +125,8 @@ nothing is written.
 
 ## Versions
 
-Version 1 is the first (M7). A later format changes the sector header's
+Version 1 is the first (M7). The kinds for firmwares built on the base
+(clean-1027) are an addition to version 1: their records are version 1's
+records, and a reader that doesn't know them skips them. A later format changes the sector header's
 format byte, and says here what changed; a payload's own version changes
 when its layout does, and the reader migrates what it knows.

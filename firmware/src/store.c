@@ -33,7 +33,9 @@
 #define RECORD_MAGIC  0xA5u
 #define HEADER        12u           /* a record's header */
 #define BLOCK         16u           /* records start on a 16-byte boundary */
-#define RECORD_MAX    ((HEADER + STORE_MAX_PAYLOAD + 4 + BLOCK - 1) / BLOCK * BLOCK)
+/* The largest record: a firmware kind's part (BR-9), larger than the
+ * base's (a patch, 112 bytes). */
+#define RECORD_MAX    ((HEADER + STORE_FW_TAG + STORE_FW_PART + 4 + BLOCK - 1) / BLOCK * BLOCK)
 #define NONE          0xFFFFFFFFu
 
 /* The keys: each user slot, then the selection, the settings and the
@@ -43,7 +45,14 @@
 #define KEY_SETTINGS  (STORE_SLOTS + 1u)
 #define KEY_RESET     (STORE_SLOTS + 2u)
 #define KEYS          (STORE_SLOTS + 3u)
-static struct { u32 seq, addr; } key[KEYS];
+/* Since clean-1027 (BR-9) the firmware kinds' parts follow the base's
+ * keys, STORE_FW_KEYS of them, each the newest record of one part of one
+ * kind and id (fwk: which, its part count and its write's tag), a place
+ * free while its addr is 0. */
+#define ALL_KEYS      (KEYS + STORE_FW_KEYS)
+static struct { u32 seq, addr; } key[ALL_KEYS];
+static struct { u8 kind, id, part, parts; u32 tag; } fwk[STORE_FW_KEYS];
+volatile struct sb_store_fw_record sb_store_fw;
 
 /* The sectors' sequence numbers as start-up found them, and the ring. */
 static u32 sector_seq[STORE_SECTORS];
@@ -305,13 +314,19 @@ static u32 record_size(u32 len)
     return (HEADER + len + 4 + BLOCK - 1) / BLOCK * BLOCK;
 }
 
+static int fw_kind(u32 kind)
+{
+    return kind >= STORE_FW_KIND_FIRST && kind <= STORE_FW_KIND_LAST;
+}
+
 /* A record at p, with at most room bytes after it: its payload's length,
  * or -1 if it is not one (a bad magic or length, or its CRC fails). */
 static int record_check(const u8 *p, u32 room)
 {
     u32 len = (u32)p[4] | (u32)p[5] << 8;
+    u32 max = fw_kind(p[1]) ? STORE_FW_TAG + STORE_FW_PART : STORE_MAX_PAYLOAD;
 
-    if (p[0] != RECORD_MAGIC || len > STORE_MAX_PAYLOAD || record_size(len) > room)
+    if (p[0] != RECORD_MAGIC || len > max || record_size(len) > room)
         return -1;
     return crc32(p, HEADER + len) == rd32(p + HEADER + len) ? (int)len : -2;
 }
@@ -327,11 +342,35 @@ static u32 room_at(u32 addr)
 
 static void count_live(void)
 {
-    u32 k, n = 0;
+    u32 k, n = 0, f = 0;
 
-    for (k = 0; k < KEYS; k++)
+    for (k = 0; k < ALL_KEYS; k++)
         n += key[k].addr != 0;
+    for (k = KEYS; k < ALL_KEYS; k++)
+        f += key[k].addr != 0;
     sb_store.live = n;
+    sb_store_fw.parts_live = f;
+}
+
+/* The key of a firmware kind's part: its place, or a free one if alloc
+ * (filled in), or -1. */
+static int fw_key(u32 kind, u32 id, u32 part, int alloc)
+{
+    u32 i;
+
+    for (i = 0; i < STORE_FW_KEYS; i++)
+        if (key[KEYS + i].addr && fwk[i].kind == kind && fwk[i].id == id && fwk[i].part == part)
+            return (int)(KEYS + i);
+    if (!alloc)
+        return -1;
+    for (i = 0; i < STORE_FW_KEYS; i++)
+        if (!key[KEYS + i].addr) {
+            fwk[i].kind = (u8)kind;
+            fwk[i].id = (u8)id;
+            fwk[i].part = (u8)part;
+            return (int)(KEYS + i);
+        }
+    return -1;
 }
 
 static int blank(const u8 *p, u32 n)
@@ -371,12 +410,22 @@ static void scan(u32 s)
         seq = rd32(p + 8);
         if (seq >= next_seq)
             next_seq = seq + 1;
-        k = key_of(p[1], p[2]);
+        if (fw_kind(p[1]))
+            /* A firmware kind's part (BR-9): its index below its count,
+             * its tag in its payload's first word. */
+            k = p[6] < p[7] && p[7] <= STORE_FW_PARTS && (u32)len >= STORE_FW_TAG
+                ? fw_key(p[1], p[2], p[6], 1) : -1;
+        else
+            k = key_of(p[1], p[2]);
         if (k < 0)
             sb_store.unknown++;
         else if (seq > key[k].seq || !key[k].addr) {
             key[k].seq = seq;
             key[k].addr = sector_addr(s) + off;
+            if (k >= (int)KEYS) {
+                fwk[k - KEYS].parts = p[7];
+                fwk[k - KEYS].tag = rd32(p + HEADER);
+            }
         }
         off += record_size((u32)len);
         end = off;
@@ -419,13 +468,25 @@ void store_init(void)
     for (s = 0; s < STORE_SECTORS; s++)
         if (sector_valid[s])
             scan(s);
-    /* A reset voids every record older than it. */
+    /* A reset voids every record older than it, the firmware kinds' too. */
     if (key[KEY_RESET].addr)
-        for (k = 0; k < KEY_RESET; k++)
-            if (key[k].addr && key[k].seq < key[KEY_RESET].seq) {
+        for (k = 0; k < ALL_KEYS; k++)
+            if (k != KEY_RESET && key[k].addr && key[k].seq < key[KEY_RESET].seq) {
                 key[k].addr = 0;
                 sb_store.voided++;
             }
+    /* A firmware kind's part not of its payload's newest write (another
+     * tag than part 0's, another count, or past it) is not live. */
+    for (k = KEYS; k < ALL_KEYS; k++) {
+        const int h = key[k].addr && fwk[k - KEYS].part
+            ? fw_key(fwk[k - KEYS].kind, fwk[k - KEYS].id, 0, 0) : -1;
+        if (key[k].addr && fwk[k - KEYS].part
+            && (h < 0 || fwk[h - KEYS].tag != fwk[k - KEYS].tag || fwk[h - KEYS].parts != fwk[k - KEYS].parts
+                || fwk[k - KEYS].part >= fwk[k - KEYS].parts)) {
+            key[k].addr = 0;
+            sb_store_fw.stale++;
+        }
+    }
     count_live();
     sb_store.head = head;
     sb_store.head_seq = head_seq;
@@ -435,11 +496,39 @@ void store_init(void)
     sb_store.marker = STORE_MARKER;
 }
 
+/* A firmware kind's payload (BR-9): every part of its newest write, in
+ * order, or -1. */
+static int get_fw(u32 kind, u32 id, u8 *buf, u32 max, u32 *version)
+{
+    int h = fw_key(kind, id, 0, 0), k, len;
+    u32 part, i, n = 0;
+
+    if (h < 0)
+        return -1;
+    for (part = 0; part < fwk[h - KEYS].parts; part++) {
+        k = fw_key(kind, id, part, 0);
+        if (k < 0 || fwk[k - KEYS].tag != fwk[h - KEYS].tag || fwk[k - KEYS].parts != fwk[h - KEYS].parts)
+            return -1;
+        read(key[k].addr, check_buf, room_at(key[k].addr));
+        len = record_check(check_buf, room_at(key[k].addr));
+        if (len < (int)STORE_FW_TAG || rd32(check_buf + HEADER) != fwk[h - KEYS].tag
+            || n + (u32)len - STORE_FW_TAG > max)
+            return -1;
+        for (i = STORE_FW_TAG; i < (u32)len; i++)
+            buf[n++] = check_buf[HEADER + i];
+        if (!part)
+            *version = check_buf[3];
+    }
+    return (int)n;
+}
+
 int store_get(u32 kind, u32 id, u8 *buf, u32 max, u32 *version)
 {
     int k = key_of(kind, id), len;
     u32 i;
 
+    if (fw_kind(kind))
+        return id <= 255 ? get_fw(kind, id, buf, max, version) : -1;
     if (k < 0 || !key[k].addr)
         return -1;
     read(key[k].addr, check_buf, room_at(key[k].addr));
@@ -480,7 +569,7 @@ static u32 live_in(u32 s)
 {
     u32 k, n = 0, a = sector_addr(s);
 
-    for (k = 0; k < KEYS; k++)
+    for (k = 0; k < ALL_KEYS; k++)
         n += key[k].addr >= a && key[k].addr < a + STORE_SECTOR;
     return n;
 }
@@ -517,7 +606,7 @@ static int compact(void)
     u32 m = next_sector(head), a = sector_addr(m), k;
     int len, r;
 
-    for (k = 0; k < KEYS; k++) {
+    for (k = 0; k < ALL_KEYS; k++) {
         if (key[k].addr < a || key[k].addr >= a + STORE_SECTOR)
             continue;
         read(key[k].addr, record_buf, room_at(key[k].addr));
@@ -561,32 +650,86 @@ static int make_room(u32 size)
     return STORE_OK;
 }
 
-static int put(u32 kind, u32 id, u32 version, const u8 *payload, u32 len)
+/* One record from payload (len bytes) after an optional tag: room made,
+ * written, read back; twice if it read back wrong. */
+static int put_record(int k, u32 kind, u32 id, u32 version, u32 part, u32 parts, const u32 *tag,
+                      const u8 *payload, u32 len)
 {
-    int k = key_of(kind, id), r = STORE_ERR_VERIFY, tries;
-    u32 i;
+    int r = STORE_ERR_VERIFY, tries;
+    u32 i, n = len + (tag ? STORE_FW_TAG : 0), at = HEADER;
 
-    if (k < 0 || len > STORE_MAX_PAYLOAD || version > 255)
-        return STORE_ERR_ARG;
-    /* Only a part whose rules and times are known is written (HW-76). */
-    if (sb_store.part != STORE_PART)
-        return STORE_ERR_PART;
-    /* Twice: a record that reads back wrong is written again after it. */
     for (tries = 0; tries < 2 && r == STORE_ERR_VERIFY; tries++) {
-        if ((r = make_room(record_size(len))) != STORE_OK)
+        if ((r = make_room(record_size(n))) != STORE_OK)
             break;
         record_buf[0] = RECORD_MAGIC;
         record_buf[1] = (u8)kind;
         record_buf[2] = (u8)id;
         record_buf[3] = (u8)version;
-        record_buf[4] = (u8)len;
-        record_buf[5] = (u8)(len >> 8);
-        record_buf[6] = record_buf[7] = 0;
+        record_buf[4] = (u8)n;
+        record_buf[5] = (u8)(n >> 8);
+        record_buf[6] = (u8)part;
+        record_buf[7] = (u8)parts;
+        at = HEADER;
+        if (tag) {
+            wr32(record_buf + at, *tag);
+            at += STORE_FW_TAG;
+        }
         for (i = 0; i < len; i++)
-            record_buf[HEADER + i] = payload[i];
-        r = append_record(k, len);
+            record_buf[at + i] = payload[i];
+        r = append_record(k, n);
     }
     return r;
+}
+
+/* A firmware kind's payload (BR-9): its parts in order, each tagged with
+ * the next sequence number as the first is begun; then the parts past
+ * the new count are no longer live. A write that stops part way leaves
+ * the old payload until its first part is whole, then none (never a mix
+ * of two writes) until it is written again. */
+static int put_fw(u32 kind, u32 id, u32 version, const u8 *payload, u32 len)
+{
+    u32 parts = len ? (len + STORE_FW_PART - 1) / STORE_FW_PART : 1, part, free = 0, i, tag = next_seq;
+    int k, r;
+
+    /* Places for every part first, so a write never stops for want of one. */
+    for (i = 0; i < STORE_FW_KEYS; i++)
+        free += !key[KEYS + i].addr;
+    for (part = 0; part < parts; part++)
+        free += fw_key(kind, id, part, 0) >= 0;
+    if (free < parts)
+        return STORE_ERR_FULL;
+    for (part = 0; part < parts; part++) {
+        u32 n = len - part * STORE_FW_PART < STORE_FW_PART ? len - part * STORE_FW_PART : STORE_FW_PART;
+
+        if (!part)
+            tag = next_seq;
+        k = fw_key(kind, id, part, 1);
+        r = put_record(k, kind, id, version, part, parts, &tag, payload + part * STORE_FW_PART, n);
+        if (r != STORE_OK)
+            return r;
+        fwk[k - KEYS].parts = (u8)parts;
+        fwk[k - KEYS].tag = tag;
+        sb_store_fw.parts_written++;
+    }
+    for (part = parts; part < STORE_FW_PARTS; part++)
+        if ((k = fw_key(kind, id, part, 0)) >= 0)
+            key[k].addr = 0;
+    sb_store_fw.payloads++;
+    return STORE_OK;
+}
+
+static int put(u32 kind, u32 id, u32 version, const u8 *payload, u32 len)
+{
+    int k = key_of(kind, id);
+
+    if (version > 255 || (fw_kind(kind) ? id > 255 || len > STORE_FW_MAX : k < 0 || len > STORE_MAX_PAYLOAD))
+        return STORE_ERR_ARG;
+    /* Only a part whose rules and times are known is written (HW-76). */
+    if (sb_store.part != STORE_PART)
+        return STORE_ERR_PART;
+    if (fw_kind(kind))
+        return put_fw(kind, id, version, payload, len);
+    return put_record(k, kind, id, version, 0, 0, 0, payload, len);
 }
 
 int store_put(u32 kind, u32 id, u32 version, const u8 *payload, u32 len)
@@ -610,8 +753,9 @@ int store_reset(void)
     u32 k;
 
     if (r == STORE_OK)
-        for (k = 0; k < KEY_RESET; k++)
-            key[k].addr = 0;
+        for (k = 0; k < ALL_KEYS; k++)
+            if (k != KEY_RESET)
+                key[k].addr = 0;
     count_live();
     return r;
 }

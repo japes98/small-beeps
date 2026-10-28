@@ -166,6 +166,19 @@ void sb_tick(void)
 
 /* The store's work (M7), from main's loop: what the panel saved or
  * reset, and the selection and settings once they settle. */
+#if defined(SB_ENGINE_EXTERNAL)
+/* C++ static objects' constructors (since clean-1027, BR-4: the
+ * platform's runtime), from firmware/platform.ld's table, last first. */
+static void run_constructors(void)
+{
+    extern void (*__ctors_start[])(void), (*__ctors_end[])(void);
+    void (**f)(void) = __ctors_end;
+
+    while (f != __ctors_start)
+        (*--f)();
+}
+#endif
+
 #if !defined(SB_ENGINE_EXTERNAL)
 static void serve_store(void)
 {
@@ -222,7 +235,9 @@ int main(void)
     input_start();
 #if defined(SB_ENGINE_EXTERNAL)
     /* An engine of a firmware built on the base (engine.h; the Plaits
-     * demo is one): its own start-up, in place of the instrument's. */
+     * demo is one): its static objects' constructors, then its own
+     * start-up, in place of the instrument's. */
+    run_constructors();
     sb_engine_init();
 #else
     /* The FM engine (M5); it starts core 1. */

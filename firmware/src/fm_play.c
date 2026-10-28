@@ -20,6 +20,7 @@
 
 #include "fm.h"
 #include "arp.h"
+#include "core1.h"
 #include "input.h"
 #include "midi.h"
 #include "midi_out.h"
@@ -34,40 +35,20 @@ volatile struct fm_ui fm_ui;
  * Core 0 changes the voices only between blocks, and core 1 renders its
  * own voices only during one: core 0 posts a block by raising job_seq,
  * core 1 answers with job_done. Each shared load follows csync, and the
- * sequence numbers change under the lock, the SDK's way (HW-65). */
+ * sequence numbers change under the lock, the SDK's way (HW-65); since
+ * clean-1027 the lock, the loads and core 1's start are the platform's
+ * (core1.h). */
 static struct fm_voice voice[FM_VOICES];
 static s32 mix[2][AUDIO_FRAMES];
 static s32 scratch[2][FM_OPS + 1][AUDIO_FRAMES];
-static volatile u32 job_seq, job_done, core1_running;
+static volatile u32 job_seq, job_done;
 static volatile u8 job_lock;
-
-/* HW-65: test-and-set the byte until it was clear, csync around. */
-static void lock(volatile u8 *b)
-{
-    __asm__ volatile("csync\n"
-                     "1:\n\t"
-                     "testset b[%0]\n\t"
-                     "ifeq goto 1b\n\t"
-                     "csync" : : "r"(b) : "memory");
-}
-
-static void unlock(volatile u8 *b)
-{
-    __asm__ volatile("csync" : : : "memory");
-    *b = 0;
-}
-
-static u32 shared(volatile u32 *p)
-{
-    __asm__ volatile("csync" : : : "memory");
-    return *p;
-}
+/* Core 1's stack (1 KiB, as before). */
+static u32 core1_stack[256] __attribute__((aligned(8)));
 
 static void publish(volatile u32 *p, u32 v)
 {
-    lock(&job_lock);
-    *p = v;
-    unlock(&job_lock);
+    sb_publish(&job_lock, p, v);
 }
 
 /* Core 1: renders the odd voices whenever core 0 posts a block. Its loop
@@ -77,10 +58,9 @@ void fm_core1_main(void)
 {
     u32 seen = 0;
 
-    publish(&core1_running, 1);
     sb_fm.core1 = 1;
     for (;;) {
-        u32 s = shared(&job_seq), n, v;
+        u32 s = sb_shared(&job_seq), n, v;
         if (s == seen)
             continue;
         seen = s;
@@ -93,12 +73,6 @@ void fm_core1_main(void)
         publish(&job_done, s);
     }
 }
-
-/* HW-9: core 1 starts at the address in this word (also source 126's
- * vector) once bit 3 of C1_CON is set. */
-#define CORE1_START (*(volatile u32 *)0x01C7FFF8u)
-#define C1_CON      (*(volatile u32 *)0x01EEE004u)
-#define CORE1_WAIT  100000u     /* polls of its flag, about 1 ms in fwtest */
 
 static u32 two_cores;
 
@@ -1927,7 +1901,7 @@ void fm_block(s32 *out, u32 frames)
         }
     if (posted) {
         u32 t = sb_now(), d;
-        while (shared(&job_done) != seq)
+        while (sb_shared(&job_done) != seq)
             ;
         d = sb_now() - t;
         if (d > sb_fm.wait_max)
@@ -2007,7 +1981,7 @@ void fm_block(s32 *out, u32 frames)
 
 void fm_init(void)
 {
-    u32 n, saved;
+    u32 n;
 
     fm_tables();
     for (n = 0; n < 27; n++)
@@ -2033,16 +2007,9 @@ void fm_init(void)
     sb_fm.marker = FM_MARKER;
     sb_midi.marker = MIDI_MARKER;
     sb_midi_out.marker = MIDI_OUT_MARKER;
-    /* Core 1 (HW-9): its start address in source 126's vector word, then
-     * C1_CON bit 3; once it runs, the word gets its stub back. If it
-     * never says it runs, core 0 renders every voice. */
-    saved = CORE1_START;
-    CORE1_START = (u32)fm_core1_entry;
-    C1_CON |= 1u << 3;
-    for (n = 0; n < CORE1_WAIT && !shared(&core1_running); n++)
-        ;
-    CORE1_START = saved;
-    two_cores = shared(&core1_running);
+    /* Core 1 (core1.h). If it never says it runs, core 0 renders every
+     * voice. */
+    two_cores = (u32)sb_core1_start(fm_core1_main, core1_stack + sizeof core1_stack / sizeof core1_stack[0]);
 }
 /* Without core 1 the odd voices are never given a note: core 0 plays the
  * even ones, half the polyphony. */
