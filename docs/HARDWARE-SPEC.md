@@ -2143,7 +2143,7 @@ instruction documentation; what it leaves open is Q-28 to Q-34. HARNESS.md
   word forms of `sat8`, `unpack4` and `vsat16`) or as needing
   "instruction rev1" or "rev2" (`sum(r *|*|*|* r)` forms). Of the 947,
   about 330 are SIMD and DSP forms (`(v)`, `(vb)`, `(vh)`, `*|*`,
-  `packb`, `align8`, ...) and the rest scalar. The decoder's predicates
+  `packb`, ...) and the rest scalar. The decoder's predicates
   map to the CPU models: one table predicate holds for `r3` to `r5`,
   another for every model but `r1` and `r5`, another for `r4` only. The
   compiler, with those flags at `-O0` to `-O3`, `-Os` and `-Oz`, with and
@@ -2195,7 +2195,8 @@ instruction documentation; what it leaves open is Q-28 to Q-34. HARNESS.md
 ### HW-98: The flag branches
 - Fact: `if<cond> goto #off` is `40 e8` eq, `c0 e8` ne, `40 e9` cs,
   `c0 e9` cc, `40 ec` hi, `c0 ec` ls, `40 ed` ge, `c0 ed` lt, `40 ee` gt,
-  `c0 ee` le, off = 2 * sext16(bits 16-31) from the next instruction; byte
+  `c0 ee` le, off = 2 * bits 16-31 as a signed
+  number, from the next instruction; byte
   1 is the compare branches' family (e8 ==, e9 u>=, ec u>, ed >=, ee >)
   and bit 7 the opposite condition. `41 e8` is no instruction. The compiler
   emits only `ifeq` after `testset b[rN]` (its spin on a lock, backwards);
@@ -2210,7 +2211,7 @@ instruction documentation; what it leaves open is Q-28 to Q-34. HARNESS.md
 
 ### HW-99: The memory row, and a word index scaled by 8
 - Fact: `64 e8`, `66 e8`, `68 e8`, `6c e8` / `6d e8` and `6e e8` share
-  one layout: base rB = bits 28-31, a word offset sext6(bits 18-23) * 4,
+  one layout: base rB = bits 28-31, a word offset 4 * bits 18-23 as a signed number,
   op = bits 16-17, and the operand in bits 24-27. `64 e8` op 3 is
   `[rB+#i] &= ~rS` (the compiler's `*p &= ~m`); `6e e8` is the shift by a
   register `[rB+#i] <<= rS`, `<<<= rS`, `>>= rS`, `>>>= rS` (op 0 to 3;
@@ -2234,7 +2235,7 @@ instruction documentation; what it leaves open is Q-28 to Q-34. HARNESS.md
   but not `rotrc`, `sextra`, `uextra` or `qasl`. `__builtin_pi32v2_rotrc(x,
   n)` is `rD = rS <c> n` (`c4 e1`, n 1 to 32, 32 encoded as 0) or `<c>`
   by a register (`cc e1 S1 DT`); `shfms64` and `shfmu64` are the plain pair
-  shifts `rD = rH_rL >> n (s|u)`, not the rounding ones.
+  shifts right `(s|u)`, not the rounding ones.
 - Sources: TC: the compiler with the firmware's flags at `-O2` on constant
   and variable arguments; its LLVM IR (the calls stay intrinsics until the
   backend). PROVENANCE P-64.
@@ -2486,7 +2487,7 @@ spec request can turn one into a fact.
 - **Q-30. Shifts by 32 or more, in memory.** What `[rB+#i] <<= rS` and its
   `>>=`, `>>>=` and `<<<=` do with an amount of 32 or more (fwtest: bits
   0-4 of it, as its register shifts), and whether `<<<=` saturates as the
-  register form `__builtin_pi32v2_qasl` (fwtest: it does). HW-99.
+  register form the qasl builtin gives (fwtest: it does). HW-99.
 - **Q-31. The memory multiply-accumulates.** For `RR op= [rA ++= x]*y`,
   `h[..]` and their two-load forms (48 forms, assembler only): whether
   `h[` covers both loads, how (s) and (u) apply to the loads and to the

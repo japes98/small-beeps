@@ -603,7 +603,7 @@ some operands only, as below); of the 327 the compiler emits, 316 (300 in
 - **Memory.** `[rB+k] &= ~rS`, the shifts by a register `<<=`, `>>=`,
   `>>>=` (by bits 0-4 of it, as the register shifts) and `<<<=`
   (saturating), and `<<= 32` / `>>>= 32` (0.9.0 shifted by 0).
-- **64-bit index.** `rH_rL = d[rB+rI<<3]` and its store scale the index by
+- **64-bit index.** the 64-bit load `d[rB+rI<<3]` and its store scale the index by
   8 (0.9.0 added it unscaled); the compiler emits them for 64-bit
   elements at large indexes.
 - **Builtins.** `zcmp` (the sign, as the compiler folds it).
