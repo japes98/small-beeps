@@ -13,8 +13,10 @@
  * SB_TEST_LED_SHOW, whose scan times when it first drives an LED just set
  * (input.c; R-LED-3), and SB_TEST_UNDERRUN, whose engine is late for a
  * block on purpose (R-AUD-3), and SB_TEST_MIDI_BURST, which queues more
- * MIDI out than the queue holds, in one block (R-MIDIOUT-4). The firmware itself
- * is built with none, and then nothing here is compiled.
+ * MIDI out than the queue holds, in one block (R-MIDIOUT-4). Since
+ * clean-1027 tools/seams_suite.py builds it with SB_TEST_OWNBASE, which
+ * tools/build.sh must refuse (R-BUILD-3). The firmware itself is built
+ * with none, and then nothing here is compiled.
  */
 
 #include "sb.h"
@@ -209,5 +211,14 @@ void sb_test_midi_burst(void)
         midi_out_channel(MIDI_NOTE_ON, 60 + n, 100);
     for (n = 0; n < 32; n++)
         midi_out_channel(MIDI_NOTE_ON, 60 + n, 0);
+}
+#endif
+
+#if defined(SB_TEST_OWNBASE)
+/* A store that writes back into the register it stores (pre-increment):
+ * tools/build.sh must refuse the build (tools/ownbase.pl). Never run. */
+void sb_test_ownbase(void)
+{
+    __asm__ volatile("[++r1=4] = r1" : : : "r1", "memory");
 }
 #endif
