@@ -2937,7 +2937,7 @@ C-SEAMS) and its part below.
   package link is built too, and the engine case's whole run passes on
   it. The platform alone is 11 180 bytes of code (the firmware: 52 960).
 
-#### Core 1's start, the platform's (BR-3, R-CORE1-1)
+#### Core 1's start, the platform's (BR-3, R-CORE-1)
 
 - **What.** Starting core 1 and handing it work were the FM engine's
   (M5, "Two cores"): `core1.S`'s entry called the engine's loop on a
