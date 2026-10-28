@@ -188,6 +188,26 @@ cmd_inside() {
     if [ -n "${SB_DEMO:-}" ]; then
         build_demo_plaits
     fi
+    # No store that writes back into the register it stores (since
+    # clean-1027; tools/ownbase.pl, R-BUILD-3): every object's code is
+    # checked before anything is linked, so no image holds one. One
+    # exception: the Plaits demo's measurement builds with the hardware
+    # float instructions (PLAITS_HWFLOAT, which only fwtest ever runs),
+    # where the compiler puts such stores in the vendored Plaits; there
+    # they are listed and counted, not refused.
+    wb=0
+    for o in $objs; do
+        objdump -d "$o" | perl tools/ownbase.pl "$(basename "$o")" || wb=$((wb + 1))
+    done
+    if [ "$wb" -ne 0 ]; then
+        case " ${SB_DEMO:-}:${SB_DEFINES:-} " in
+            *plaits:*" PLAITS_HWFLOAT "*)
+                echo "ownbase check: $wb objects with such stores (above), allowed in a PLAITS_HWFLOAT measurement build" ;;
+            *)
+                echo "FAIL: a store writes back into the register it stores (above; tools/ownbase.pl)" >&2
+                exit 1 ;;
+        esac
+    fi
     set -x
     # shellcheck disable=SC2086
     ld -nostdlib --no-undefined --orphan-handling=error -T firmware/app.ld \

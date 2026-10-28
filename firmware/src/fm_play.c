@@ -133,7 +133,12 @@ struct control {
 };
 
 static struct control ctl[FM_VOICES];
-static struct patch patches[FM_PROGRAMS];
+/* Since M8b only the program playing now is parsed (into one of two
+ * slots, in turn, so the notes of the one before keep theirs while they
+ * release): FM_PROGRAMS of them would take 32 KiB. */
+static struct patch parsed[2];
+static u32 parsed_at;
+#define PATCH_NOW (&parsed[parsed_at])
 /* The user slots' patches as bytes, and which slots hold one (since M7). */
 static u8 user_raw[FM_USER_SLOTS][FM_PATCH_BYTES];
 /* The program playing now as bytes, with the operator view's edits, and
@@ -409,7 +414,7 @@ static u32 color_ratio(u32 f, int c)
 
 static void shape_ops(void)
 {
-    const struct patch *p = &patches[patch_now];
+    const struct patch *p = PATCH_NOW;
     const u8 *raw = fm_program_bytes();
     const struct fm_algorithm *a = &fm_algorithms[algorithm_now];
     int color = macro[MACRO_COLOR], shape = macro[MACRO_SHAPE], motion = macro[MACRO_MOTION];
@@ -496,7 +501,7 @@ static void voice_start(u32 n, int note, u32 velocity, u32 at)
 {
     struct fm_voice *v = &voice[n];
     struct control *c = &ctl[n];
-    const struct patch *p = &patches[patch_now];
+    const struct patch *p = PATCH_NOW;
     u32 i, k, fresh = v->state != VOICE_ON, carriers = 0, stage = !fresh && at;
     /* Velocity: up to 8 octaves (48 dB) less at velocity 0, for a
      * sensitivity of 7, in proportion below (DESIGN-NOTES.md, M5). */
@@ -918,7 +923,8 @@ static int op_of_key(u32 control)
 /* --- The user slots (M7) --------------------------------------------- */
 static u32 program_ok(u32 n)
 {
-    return n < FM_PATCHES || (n < FM_PROGRAMS && (user_used >> (n - FM_PATCHES) & 1u));
+    return n < FM_PATCHES || (n >= FM_PRESET0 && n < FM_PROGRAMS)
+        || (n < FM_PRESET0 && (user_used >> (n - FM_PATCHES) & 1u));
 }
 
 /* delta programs on from n, over the programs there are, stopping at the
@@ -949,12 +955,12 @@ static int user_put(u32 slot, const u8 *b)
         return 0;
     for (i = 0; i < FM_PATCH_BYTES; i++)
         user_raw[slot][i] = b[i];
-    patch_parse(&patches[FM_PATCHES + slot], user_raw[slot]);
     user_used |= 1u << slot;
     shaped_patch = 0xFFFFFFFFu;   /* the patch may be the one playing (M8a) */
     if (FM_PATCHES + slot == patch_now) {
         for (i = 0; i < FM_PATCH_BYTES; i++)
             edit_raw[i] = user_raw[slot][i];
+        patch_parse(PATCH_NOW, edit_raw);
         edited = 0;
     }
     return 1;
@@ -986,7 +992,7 @@ u32 fm_user_used(void)
 /* A program's bytes as stored: a test patch's, or a user slot's. */
 static const u8 *stored_bytes(u32 n)
 {
-    return n < FM_PATCHES ? fm_patches[n] : user_raw[n - FM_PATCHES];
+    return n < FM_PATCHES ? fm_patches[n] : n < FM_PRESET0 ? user_raw[n - FM_PATCHES] : fm_presets[n - FM_PRESET0];
 }
 
 static void select_patch(u32 n)
@@ -994,17 +1000,17 @@ static void select_patch(u32 n)
     u32 i;
 
     /* The operator view's edits stay with the program until another is
-     * chosen (M8a part 3): then the program as stored again. */
-    if (edited) {
-        patch_parse(&patches[patch_now], stored_bytes(patch_now));
-        edited = 0;
-    }
+     * chosen (M8a part 3): then the program as stored again. Parsed into
+     * the other slot (M8b). */
+    edited = 0;
     for (i = 0; i < FM_PATCH_BYTES; i++)
         edit_raw[i] = stored_bytes(n)[i];
+    parsed_at ^= 1u;
+    patch_parse(PATCH_NOW, edit_raw);
     shaped_patch = 0xFFFFFFFFu;
     patch_now = n;
-    algorithm_now = patches[n].algorithm;
-    mono = patches[n].mono;
+    algorithm_now = PATCH_NOW->algorithm;
+    mono = PATCH_NOW->mono;
     sb_fm.patch = n;
 }
 
@@ -1125,7 +1131,7 @@ static void edit_done(void)
 
     edit_raw[FM_SUM_OFFSET] = (u8)sum;
     edit_raw[FM_SUM_OFFSET + 1] = (u8)(sum >> 8);
-    patch_parse(&patches[patch_now], edit_raw);
+    patch_parse(PATCH_NOW, edit_raw);
     edited = 1;
     shaped_patch = 0xFFFFFFFFu;
 }
@@ -1332,7 +1338,7 @@ static void knobs(void)
     if (knobs_mode) {
         /* "Knobs: direct": M5's controls. */
         pitch_knob = clamp(panel_knob[0] + midi_knob[0], -24, 24);
-        glide_code = (u32)clamp((int)patches[patch_now].glide + 4 * (panel_knob[1] + midi_knob[1]), 0, 127);
+        glide_code = (u32)clamp((int)PATCH_NOW->glide + 4 * (panel_knob[1] + midi_knob[1]), 0, 127);
         depth_att = -clamp(panel_knob[2] + midi_knob[2], -64, 32) * 8192;
         feedback_knob = panel_knob[3] + midi_knob[3];
         macro[0] = macro[1] = macro[2] = macro[3] = 0;
@@ -1340,7 +1346,7 @@ static void knobs(void)
         for (k = 0; k < 4; k++)
             macro[k] = clamp(panel_knob[k] + midi_knob[k], macro_span[k][0], macro_span[k][1]);
         pitch_knob = 0;
-        glide_code = patches[patch_now].glide;
+        glide_code = PATCH_NOW->glide;
         depth_att = -macro[MACRO_BRIGHT] * 8192;
         feedback_knob = macro[MACRO_COLOR] > 0 ? macro[MACRO_COLOR] * 3 / 32 : 0;
     }
@@ -2004,8 +2010,6 @@ void fm_init(void)
     u32 n, saved;
 
     fm_tables();
-    for (n = 0; n < FM_PATCHES; n++)
-        patch_parse(&patches[n], fm_patches[n]);
     for (n = 0; n < 27; n++)
         key_note[n] = -1;
     for (n = 0; n < FM_VOICES; n++)
