@@ -19,10 +19,24 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   builds, tools/build.sh); build A, which passed the same check, holds
   none.
 
+- outside (R-BUILD-4): the firmware built with an outside source folder
+  (tools/build.sh --src tests/seams/outside: C including a base header
+  and one of its own, assembly in a folder below, C++, and a file named
+  as a base file is): each one's symbols in the ELF, the base's
+  same-named file built too; the folder copied to two other places on
+  the host and built from each, with the source mounted at another path
+  for one (as C-BUILD-B does), gives the same outputs byte for byte;
+  --leave-out firmware/src/probe.c builds without it (its object never
+  built) and, as it holds nothing without a test define, gives build A's
+  image; a folder holding the base, a folder inside firmware/ and a base
+  file that isn't one are refused.
+
 Prints what each case saw, and exits 1 if any failed.
 """
 
 import argparse
+import hashlib
+import importlib.util
 import os
 import re
 import shutil
@@ -48,6 +62,23 @@ def build(out, log, *opts, check=True):
     return sh(["sh", "tools/build.sh", "build", "--out", out] + list(opts), log, check)
 
 
+def fw_suite():
+    spec = importlib.util.spec_from_file_location("fw_suite", os.path.join(ROOT, "tools", "fw-suite.py"))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def sha256(path):
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def read(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
 # --- ownbase --------------------------------------------------------------
 
 def case_ownbase(a, work, log):
@@ -70,8 +101,57 @@ def case_ownbase(a, work, log):
     return problems
 
 
+# --- outside --------------------------------------------------------------
+
+OUTSIDE = "tests/seams/outside"
+OUTSIDE_SYMBOLS = ("sb_outside_sum", "sb_outside_text", "sb_outside_asm", "sb_outside_cxx",
+                   "sb_outside_probe")
+
+
+def case_outside(a, work, log):
+    problems = []
+    b1 = os.path.join(work, "in-tree")
+    _, out = build(b1, log, "--src", OUTSIDE)
+    syms = fw_suite().elf_symbols(os.path.join(b1, "app.elf"))
+    for s in OUTSIDE_SYMBOLS:
+        if s not in syms:
+            problems.append("%s is not in the ELF" % s)
+    if "-c firmware/src/probe.c" not in out or "-c ../sb-src-1/probe.c" not in out:
+        problems.append("the base's probe.c and the outside one were not both built")
+    # The same folder from two other places on the host, one with the
+    # source mounted elsewhere: the same bytes.
+    sums = [read(os.path.join(b1, "SHA256SUMS"))]
+    for i, (place, extra) in enumerate((("a/x", []), ("b/y/z", ["--src-mount", "/tmp/elsewhere/small-beeps-src-b"]))):
+        copy = os.path.join(work, "copies", place)
+        shutil.copytree(os.path.join(ROOT, OUTSIDE), copy)
+        bi = os.path.join(work, "copy-%d" % i)
+        build(bi, log, "--src", copy, *extra)
+        sums.append(read(os.path.join(bi, "SHA256SUMS")))
+    if len(set(sums)) != 1:
+        problems.append("the outside folder's builds from three places differ")
+    # Leaving a base file out.
+    b2 = os.path.join(work, "left-out")
+    _, out = build(b2, log, "--leave-out", "firmware/src/probe.c")
+    if "left out: firmware/src/probe.c" not in out or "-c firmware/src/probe.c" in out:
+        problems.append("--leave-out firmware/src/probe.c still built it")
+    if sha256(os.path.join(b2, "app.bin")) != sha256(os.path.join(a.build, "app.bin")):
+        problems.append("without probe.c the image is not build A's")
+    # What is refused.
+    for opts in (["--src", "."], ["--src", "firmware/src"], ["--leave-out", "firmware/src/no-such.c"],
+                 ["--leave-out", "tools/build.sh"]):
+        rc, _ = build(os.path.join(work, "refused"), log, *opts, check=False)
+        if rc != 2:
+            problems.append("%s was not refused (exit %d)" % (" ".join(opts), rc))
+    print("outside: %d symbols from the folder; three places, %s; probe.c left out, %s"
+          % (sum(s in syms for s in OUTSIDE_SYMBOLS), "the same bytes" if len(set(sums)) == 1 else "DIFFERENT",
+             "build A's image" if sha256(os.path.join(b2, "app.bin")) == sha256(os.path.join(a.build, "app.bin"))
+             else "ANOTHER image"))
+    return problems
+
+
 CASES = [
     ("ownbase", case_ownbase),
+    ("outside", case_outside),
 ]
 
 

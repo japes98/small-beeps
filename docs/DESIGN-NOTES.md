@@ -2806,3 +2806,46 @@ C-SEAMS) and its part below.
   The demo's soft-float builds hold none. Should SR-10's answer show
   the chip stores something other than fwtest does, the
   hardware-float measurements would need running again.
+
+#### Building with outside sources (BR-5, R-BUILD-4)
+
+- **What.** `tools/build.sh build` takes `--src DIR` (repeatable): every
+  `.c`, `.S` and `.cc` under a folder outside `firmware/` is built into
+  the image; and `--leave-out FILE` (repeatable): a base source, named
+  by its path from the repository's root, is left out, so a firmware can
+  replace a base file or do without it. With `--define` (already there
+  for test builds) that is all a firmware built on the base needs to be
+  built with the base's own build image, its files kept in its own
+  repository and the base's used unmodified.
+- **The same flags.** C with the firmware's flags; assembly with the
+  firmware's (and, new, the `--define`s, which a firmware's `.S` may
+  test); C++ as C++14 with the same CPU, warnings-as-errors and
+  freestanding flags, without exceptions, RTTI or guarded statics (the
+  toolchain's clang 4.0.1 knows no C++17). Each source gets `-I` for its
+  own folder; the base's headers are on the path as for the firmware.
+- **Names.** Base objects are named by their file name, as before (the
+  default image is unchanged: the same `app.bin`). An outside object is
+  named by its path, `src<N>_<path>.o`, so a file named as a base file
+  is (`probe.c`, say) is built beside the base's, never over it; two
+  definitions of one function then fail the link, as they should.
+- **Deterministic.** Each folder is mounted read-only beside the source
+  mount, as `sb-src-N`, and built by its path from the source mount
+  (`../sb-src-1/...`), as the base's files are built by theirs. Clang
+  4.0.1 keeps an absolute source path in the objects even with
+  `-fdebug-prefix-map`; a relative one it keeps as given. So where the
+  folder sits on the host, and where the source is mounted (C-BUILD-B),
+  never reaches an output: C-SEAMS builds the same folder from three
+  places, once with the source mounted elsewhere, and gets the same
+  bytes; the build's own check that no output holds the source path now
+  covers each outside mount too.
+- **Refused:** a folder holding the base (its sources would be built
+  twice), one inside `firmware/` (built already), a path with a space,
+  and a `--leave-out` that names no base source (a typo would otherwise
+  build the base file silently).
+- **From another repository.** The firmware built on the base keeps the
+  base as a folder (a git submodule or a clone) and runs the base's
+  script from there: `sh base/tools/build.sh build --out out --src src
+  --define ...`. The script builds the base's pinned build image the
+  first time (`tools/build.sh image`) and runs everything inside it, so
+  the firmware gets the same toolchain and the same deterministic build
+  (docs/BUILDING-ON-SMALL-BEEPS.md).

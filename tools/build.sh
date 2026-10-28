@@ -7,15 +7,22 @@
 #   tools/build.sh image                      build the container image
 #   tools/build.sh image-tag                  print its tag
 #   tools/build.sh build --out DIR [--src-mount PATH] [--define NAME]...
-#                        [--demo plaits]
+#                        [--demo plaits] [--src DIR]... [--leave-out FILE]...
 #                                             build in a fresh container,
 #                                             outputs and SHA256SUMS in DIR;
 #                                             --define adds -DNAME (test
-#                                             builds only, tools/perf.py);
+#                                             builds, tools/perf.py; and a
+#                                             firmware built on the base,
+#                                             e.g. SB_ENGINE_EXTERNAL);
 #                                             --demo builds a demo's own
 #                                             image instead (M4b: the
 #                                             Plaits load test), never the
-#                                             firmware's
+#                                             firmware's; --src adds the
+#                                             sources in a folder outside
+#                                             firmware/, --leave-out
+#                                             leaves a base source out
+#                                             (since clean-1027, BR-5;
+#                                             docs/BUILDING-ON-SMALL-BEEPS.md)
 #   tools/build.sh inside SRC OUT             (runs inside the container)
 #
 # The outputs: app.elf and app.bin (the raw image, linked at 0x02000000),
@@ -25,6 +32,20 @@
 # Builds are deterministic (R-REPRO-3): fixed SOURCE_DATE_EPOCH (set in the
 # image), no network, relative source paths with -fdebug-prefix-map, sorted
 # output lists, and a check that no output contains the source mount path.
+#
+# Sources from outside (--src DIR, BR-5): each folder is mounted read-only
+# beside the source mount, at sb-src-N for the Nth (/mnt/sb-src-1 for
+# build A), and built by its path from there (../sb-src-1/...), as the
+# base's files are by theirs, so where it sits on the host never reaches
+# an output. Every .c, .S and .cc under it is built, sorted
+# by path, with the firmware's flags plus -I for the folder (C++ with the
+# same CPU, warnings and freestanding flags, as C++14 without exceptions
+# or RTTI), and named by its path (src<N>_<path>.o), so a name the base
+# also uses is never mixed up with the base's. --leave-out FILE takes a
+# base source (a path from the repository's root, under firmware/) out
+# of the build, so a firmware can replace it or do without it. A
+# firmware built on the base calls this script from the base's folder
+# (docs/BUILDING-ON-SMALL-BEEPS.md).
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -46,10 +67,29 @@ cmd_image() {
 }
 
 cmd_build() {
-    out="" src_mount=/mnt/small-beeps-src defines="" demo=""
+    out="" src_mount=/mnt/small-beeps-src defines="" demo="" mounts="" srcs="" leave="" n=0
     while [ $# -gt 0 ]; do
         case "$1" in
             --out) out=$2; shift 2 ;;
+            --src)
+                [ -d "$2" ] || { echo "build: --src $2 is not a folder" >&2; exit 2; }
+                d=$(cd "$2" && pwd)
+                case "$ROOT/" in
+                    "$d"/*) echo "build: --src $2 holds the base itself; give the folders of your own sources" >&2; exit 2 ;;
+                esac
+                case "$d/" in
+                    "$ROOT/firmware/"*) echo "build: --src $2 is inside firmware/, which is built already" >&2; exit 2 ;;
+                    *" "*) echo "build: --src $2: a path with a space is not supported" >&2; exit 2 ;;
+                esac
+                n=$((n + 1))
+                srcs="$srcs $d"
+                shift 2 ;;
+            --leave-out)
+                case "$2" in
+                    firmware/*) [ -f "$ROOT/$2" ] || { echo "build: --leave-out $2: no such base file" >&2; exit 2; } ;;
+                    *) echo "build: --leave-out takes a base source's path from the repository's root (firmware/...)" >&2; exit 2 ;;
+                esac
+                leave="$leave $2"; shift 2 ;;
             --src-mount) src_mount=$2; shift 2 ;;
             --define)
                 case "$2" in
@@ -66,14 +106,23 @@ cmd_build() {
         esac
     done
     [ -n "$out" ] || { echo "build: --out DIR is required" >&2; exit 2; }
+    # The outside folders, beside the source mount (above).
+    n=0 outside=""
+    for d in $srcs; do
+        n=$((n + 1))
+        mounts="$mounts -v $d:$(dirname "$src_mount")/sb-src-$n:ro"
+        outside="$outside $(dirname "$src_mount")/sb-src-$n"
+    done
     tag=$(image_tag)
     docker image inspect "$tag" >/dev/null 2>&1 || cmd_image
     rm -rf "$out"
     mkdir -p "$out"
     out=$(cd "$out" && pwd)
+    # shellcheck disable=SC2086
     docker run --rm --platform "$PLATFORM" --network none \
         --user "$(id -u):$(id -g)" -e SB_DEFINES="$defines" -e SB_DEMO="$demo" \
-        -v "$ROOT:$src_mount:ro" -v "$out:/out" -w "$src_mount" \
+        -e SB_SRCS="$outside" -e SB_LEAVE_OUT="$leave" \
+        -v "$ROOT:$src_mount:ro" $mounts -v "$out:/out" -w "$src_mount" \
         "$tag" sh "$src_mount/tools/build.sh" inside "$src_mount" /out
     cat "$out/SHA256SUMS"
 }
@@ -149,6 +198,27 @@ build_demo_plaits() {
     echo "built $(find vendor/plaits -name '*.cc' | wc -l) vendored Plaits files"
 }
 
+# The sources of the folders given with --src (BR-5), mounted beside the
+# source mount as sb-src-N: every .c, .S and .cc, sorted by path, named
+# by it, and built by its path from the source mount.
+build_outside() {
+    k=0
+    for m in ${SB_SRCS:-}; do
+        k=$((k + 1))
+        r=../sb-src-$k
+        # shellcheck disable=SC2086
+        for s in $(cd "$m" && find . -name '*.c' -o -name '*.S' -o -name '*.cc' | sed 's|^\./||' | LC_ALL=C sort); do
+            o="$obj/src${k}_$(echo "$s" | tr / _ | sed 's/\.[cS]$/.o/; s/\.cc$/.o/')"
+            case "$s" in
+                *.S) set -x; clang $ASFLAGS -I"$r" -c "$r/$s" -o "$o"; set +x ;;
+                *.cc) set -x; clang $CXXFLAGS -I"$r" -c "$r/$s" -o "$o"; set +x ;;
+                *) set -x; clang $CFLAGS -I"$r" -c "$r/$s" -o "$o"; set +x ;;
+            esac
+            objs="$objs $o"
+        done
+    done
+}
+
 cmd_inside() {
     src=$1 out=$2
     cd "$src"
@@ -166,6 +236,14 @@ cmd_inside() {
     for d in ${SB_DEFINES:-}; do CFLAGS="$CFLAGS -D$d"; done
     # Assembly is built without -g, which would record the source path.
     ASFLAGS="-target pi32v2 $CPU -nostdinc -Werror"
+    for d in ${SB_DEFINES:-}; do ASFLAGS="$ASFLAGS -D$d"; done
+    # C++ from outside folders (BR-5): the C flags' CPU, warnings and
+    # freestanding build, C++14 without exceptions, RTTI or guarded
+    # statics.
+    CXXFLAGS="-target pi32v2 $CPU -x c++ -std=c++14 -ffreestanding -nostdlib -nostdinc -Os -g
+              -fno-common -fno-exceptions -fno-rtti -fno-threadsafe-statics -Wall -Wextra -Werror
+              -fdebug-prefix-map=$src=. -Ifirmware/src"
+    for d in ${SB_DEFINES:-}; do CXXFLAGS="$CXXFLAGS -D$d"; done
     clang --version | head -1
     ld --version | head -1
     echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
@@ -177,6 +255,9 @@ cmd_inside() {
         CFLAGS="$CFLAGS -DSB_DEMO_PLAITS -Ifirmware/demos/plaits"
     fi
     for s in $(find firmware/src -name '*.c' -o -name '*.S' | LC_ALL=C sort); do
+        case " ${SB_LEAVE_OUT:-} " in
+            *" $s "*) echo "left out: $s"; continue ;;
+        esac
         o="$obj/$(basename "$s" | sed 's/\.[cS]$/.o/')"
         case "$s" in
             *.S) set -x; clang $ASFLAGS -c "$s" -o "$o"; set +x ;;
@@ -188,6 +269,7 @@ cmd_inside() {
     if [ -n "${SB_DEMO:-}" ]; then
         build_demo_plaits
     fi
+    build_outside
     # No store that writes back into the register it stores (since
     # clean-1027; tools/ownbase.pl, R-BUILD-3): every object's code is
     # checked before anything is linked, so no image holds one. One
@@ -250,11 +332,14 @@ cmd_inside() {
         rm "$obj/pkg-text.bin" "$obj/pkg-data.bin"
     fi
     rm "$obj/text.bin" "$obj/data.bin"
-    # No output may contain the absolute source path.
+    # No output may contain the absolute source path, or an outside
+    # folder's mount path.
     for f in $(find "$out" -type f | LC_ALL=C sort); do
-        if grep -q -F "$src" "$f"; then
-            echo "FAIL: $f contains the source path $src" >&2; exit 1
-        fi
+        for p in "$src" ${SB_SRCS:-}; do
+            if grep -q -F "$p" "$f"; then
+                echo "FAIL: $f contains the source path $p" >&2; exit 1
+            fi
+        done
     done
     (cd "$out" && find . -type f ! -name SHA256SUMS | sed 's|^\./||' \
         | LC_ALL=C sort | xargs sha256sum > SHA256SUMS)
