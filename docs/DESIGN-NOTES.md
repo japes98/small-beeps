@@ -3263,17 +3263,23 @@ C-SEAMS) and its part below.
   wide region (every fourth byte), and a patch and a one-part payload
   saved when the head is full: always old or new, whole, the old until
   a moment and then the new; and what each region holds (the table's
-  first two columns). The firmware in C-SEAMS (case powercut): three
-  saves on the test engine, each from the base's full store with the
-  head placed so the save takes a new sector and compacts (4 096 bytes
-  on the wide region test build; 300 bytes and a patch on today's), each
+  first two columns); the 3 000-byte case is a 3 400-byte one since
+  #170's review, rewritten after four writes so the ring copies the old
+  write's parts forward during the rewrite (checked). The firmware in
+  C-SEAMS (case powercut): four saves on the test engine (4 096 bytes
+  from the base's full store on the wide region test build; on today's,
+  that 3 400-byte rewrite, whose old parts the case checks were copied
+  forward, and from the base's full store with the head full 300 bytes
+  and a patch), each
   cut by fwtest's `--power-cut` just after each flash command starts,
   halfway, just before it ends, and between commands; the firmware
   started again from each cut's flash reads the old payload or the new
   one, whole, never another, and the others unchanged.
   In this session's run: the 4 096-byte rewrite 27 commands (one
   erase), 108 cuts, the old payload after 106 and the new after the
-  last 2; the 300-byte payload 41 commands (one erase, the compaction's
+  last 2; the 3 400-byte rewrite 47 commands (two erases, all 7 of the
+  old write's parts copied forward), 188 cuts, old 186, new 2; the
+  300-byte payload 41 commands (one erase, the compaction's
   copies), 164 cuts, old 162, new 2; the patch 41 commands, 164 cuts,
   old 161, new 3; tools/store.py read each cut's flash as the firmware
   did. Case store's rewrite in today's region is refused with nothing
