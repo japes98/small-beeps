@@ -1,0 +1,43 @@
+{
+  "fwtest": {
+    "version": "0.9.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 14204,
+    "sha256": "c5fbe99cc424fc584cd5e21e436a13afca125803832dab5a10912d6a38a079c5"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "1200.203",
+    "instructions": {
+      "core0": 4000744,
+      "core1": 92717837
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "flash-ops.csv",
+        "bytes": 1126,
+        "sha256": "c2d3e2d5b139b518666ed0e0b33801720f10ca3d28c312941d8a7e483078be0e"
+      },
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "0f722af55a49cfb799a7a35bc47bbd91786d08b6908d859ad73f15eb9d992314"
+      },
+      {
+        "name": "ram-01c00870-9c-end.bin",
+        "bytes": 156,
+        "sha256": "c486fee5043c10079bf2fea1c5544aad2fc610cbef097b9c010351b9343dead4"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

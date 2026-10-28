@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-low-profile.py --require-api
+README.md: checked
+name: small-beeps
+description: 'Embedded audio experiments.'
+topics: []
+low-profile check: PASS
+
+exit status 0

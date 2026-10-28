@@ -1,0 +1,7 @@
+code 56012
+data 88
+bss 173760
+image 56100
+stack 4096
+irq_stack 2048
+ram_code 55892

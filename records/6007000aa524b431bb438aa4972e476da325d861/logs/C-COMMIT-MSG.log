@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range f9a9bc64a4de39b6e5b0d47c917ec30a95fd26cd..6007000aa524b431bb438aa4972e476da325d861
+OK     74167fa17e80 sessions: clean-1027 archived; clean-1028 starts
+OK     653d6548dc30 config: pin fwtest 0.9.0 (SR-10: a store into its own base register)
+OK     7e8b1a236681 docs: PLAN.md, USB MIDI for firmwares built on small-beeps (BR-10)
+EXEMPT 6007000aa524 (merge) Merge pull request #169 from japes98/pin/fwtest-090
+4 commit(s) checked: PASS
+
+exit status 0
