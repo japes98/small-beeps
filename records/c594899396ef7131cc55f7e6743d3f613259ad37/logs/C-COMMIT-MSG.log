@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 967cf0b6c7e02e677e0fbed4c882bae921d8de86..c594899396ef7131cc55f7e6743d3f613259ad37
+OK     92c673ff867d firmware: the platform links without the instrument (BR-2)
+EXEMPT 66aca69b1afe (merge) tools: merge seams/engine into seams/platform
+EXEMPT c594899396ef (merge) Merge pull request #161 from japes98/seams/platform
+3 commit(s) checked: PASS
+
+exit status 0

@@ -1,0 +1,4 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/release.py selftest --build /home/runner/work/small-beeps/small-beeps/out/c594899396ef7131cc55f7e6743d3f613259ad37/build-a --out /home/runner/work/small-beeps/small-beeps/out/c594899396ef7131cc55f7e6743d3f613259ad37/release
+release selftest: PASS (built twice, byte for byte the same; verified)
+
+exit status 0
