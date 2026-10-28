@@ -2128,7 +2128,7 @@ Which instruction forms the pinned toolchain (P-1) knows for the chip's
 CPU flags, and what its own decoder table, assembler and compiler show of
 their encodings and behaviour (session spec-isa-audit, for firmwares built
 on small-beeps with other flags or C++). The toolchain ships no
-instruction documentation; what it leaves open is Q-28 to Q-34. HARNESS.md
+instruction documentation; what it leaves open is Q-28 to Q-35. HARNESS.md
 ("Instructions") says which forms fwtest runs.
 
 ### HW-96: The forms the toolchain knows, and which the compiler emits
@@ -2151,7 +2151,8 @@ instruction documentation; what it leaves open is Q-28 to Q-34. HARNESS.md
   integer and float type, conversions, bit-fields, saturation idioms, 64-bit
   multiply-accumulates, `__fp16`, the float builtins, atomics, switch
   tables, varargs, virtual calls, templates), on main's firmware and on the
-  Plaits demo, emits 327 of the 947. Its pi32v2 builtins are 41 (each with
+  Plaits demo, emits 326 of the 947 (counting only code: data its
+  disassembler also decodes left out). Its pi32v2 builtins are 41 (each with
   its type in the compiler's own builtin table); `idle`, `illegal` and
   `swi` do not compile ("cannot compile this builtin function yet"),
   `insert`, the six 64-bit multiply builtins and `sextra` / `uextra` with
@@ -2234,11 +2235,18 @@ instruction documentation; what it leaves open is Q-28 to Q-34. HARNESS.md
   0 (0) and -1 (-1, -5, -256, 0x80000000). It folds `clz` (4096 gives 19)
   but not `rotrc`, `sextra`, `uextra` or `qasl`. `__builtin_pi32v2_rotrc(x,
   n)` is `rD = rS <c> n` (`c4 e1`, n 1 to 32, 32 encoded as 0) or `<c>`
-  by a register (`cc e1 S1 DT`); `shfms64` and `shfmu64` are the plain pair
-  shifts right `(s|u)`, not the rounding ones.
+  by a register (`cc e1 S1 DT`). The compiler declares the intrinsic
+  behind it, like every pi32v2 builtin's, `readnone` and merges two calls
+  with the same arguments into one, so to it `<c>` is a function of x and
+  n alone; its instruction descriptors give the 32-bit `<c>` forms the
+  same implicit flags as the rotate `<>` (they set the flags and read
+  none), while the 64-bit `RR <c>= n` reads them. Nothing shows the
+  function itself. `shfms64` and `shfmu64` are the plain pair shifts right
+  `(s|u)`, not the rounding ones.
 - Sources: TC: the compiler with the firmware's flags at `-O2` on constant
   and variable arguments; its LLVM IR (the calls stay intrinsics until the
-  backend). PROVENANCE P-64.
+  backend; the intrinsics' attributes); the objdump binary's instruction
+  descriptor table. PROVENANCE P-64.
 - Standing: emulator-only (the compiler's folding; `<c>` is Q-32)
 - Needed by: firmwares built on small-beeps (session spec-isa-audit)
 
@@ -2257,7 +2265,32 @@ instruction documentation; what it leaves open is Q-28 to Q-34. HARNESS.md
 - Sources: TC: the assembler and disassembler for every register and
   mask bit. PROVENANCE P-64.
 - Standing: emulator-only (the encodings; pc, cnum, uspn, icfgn, icfgs and
-  the `(c)` push are Q-34)
+  the `(c)` push are Q-34, the results' edges Q-35)
+- Needed by: firmwares built on small-beeps (session spec-isa-audit)
+
+### HW-102: The rounding pair shifts, the memory multiplies, the npc loads
+- Fact: `d2 e1 PX DM` is `rD = rH_rL >> n` (or `>>>` with M bit 3)
+  with a rounding: pair = P >> 1, n = X | (M & 3) << 4 (0 to 63), and P
+  bit 0 with M bit 2 the mode ((0, 0) up, (0, 1) round, (1, 0) even,
+  (1, 1) zero); `d3 e1 PM DR` the same by register R, M's low three bits
+  the sign and the mode (0 up, 1 even, 2 round, 3 zero, times 2, plus 1
+  for `>>>`); `d2 f1`, `d3 f1` a pair's head. The multiplies with a
+  memory operand put the pair (bits 29-31), the sign (bit 28, `(s)`) and
+  a register in byte 3, the first base and its increment in byte 2:
+  `[rA ++= i]*rB` is `e0|e4|e6 ee` (=, +=, -=; `e8|ec|ee ee` with `h[`),
+  `[rA ++= rI]*rB` `60|64|66 ee` (`68|6c|6e`), `[rA ++= rI.h]*[rB ++= rI.l]`
+  `e0..ee e8`, and `[rA ++= i]*[rB ++= j]` byte 1 e9, ec or ed with byte 0
+  `6j` or `ej` (=, +=, -=, then the three with `h[`). The assembler counts
+  i in the first operand's size (2 with `h[`, 4 without) and j in words
+  even with `h[`, so the second operand is always a word. `rD = [npc + rI]`
+  is `60 e8 00 DI` and `rD = [npc + #i]` the 6-byte `aD ff <imm32>`
+  (#i even). `rD = rev16(rS)` is `70 e0 40 DS`, beside `rev8`'s `70 e0
+  00`. The compiler emits none of these.
+- Sources: TC: the assembler and disassembler for every mode, size,
+  operation, register and increment sign; the decoder table's masks.
+  PROVENANCE P-64.
+- Standing: emulator-only (the encodings; the results' details are Q-31
+  to Q-33)
 - Needed by: firmwares built on small-beeps (session spec-isa-audit)
 
 ## Open questions
@@ -2489,20 +2522,24 @@ spec request can turn one into a fact.
   0-4 of it, as its register shifts), and whether `<<<=` saturates as the
   register form the qasl builtin gives (fwtest: it does). HW-99.
 - **Q-31. The memory multiply-accumulates.** For `RR op= [rA ++= x]*y`,
-  `h[..]` and their two-load forms (48 forms, assembler only): whether
-  `h[` covers both loads, how (s) and (u) apply to the loads and to the
-  product, whether the increments come after the loads, and in which order
-  two increments of one register apply. fwtest does not run them.
+  `h[..]` and their two-load forms (48 forms, assembler only; HW-102):
+  how (s) and (u) apply to the halfword's extension and to the product,
+  whether the increments come after the loads, in which order two
+  increments of one register apply, and which wins when the pair is a base.
+  fwtest 0.10.0: (s) and (u) both, addresses from the registers before,
+  the first increment then the second, the pair written last.
 - **Q-32. Operations the toolchain names but does not define.** The
-  rounding pair shifts `R = RR >> n (even|round|up|zero)` and `>>>`,
-  `R = R >< R` and `RR ><= R` (with or without `(sat)`), `<c>` (also the
-  compiler's `__builtin_pi32v2_rotrc`; HW-100), `rev16` and `copex`: the
-  compiler folds none of them and emits none from C. fwtest does not run
-  them.
+  rounding pair shifts `R = RR >> n (even|round|up|zero)` and `>>>`
+  (fwtest 0.10.0: to nearest with ties to even, to nearest with ties up,
+  toward +inf, toward zero, then saturated as the plain forms; HW-102),
+  `rev16` (fwtest: the halves swapped), and `R = R >< R`, `RR ><= R`
+  (with or without `(sat)`), `<c>` (also the compiler's
+  `__builtin_pi32v2_rotrc`: a function of its two arguments alone, as
+  the compiler declares and combines it, HW-100) and `copex`, which fwtest
+  does not run. The compiler folds none of them and emits none from C.
 - **Q-33. The `npc` loads.** What `R = [npc + R]` and `R = [npc + #i]`
-  load from (presumably the next instruction's address plus the offset);
-  the compiler's position-independent code uses r15 instead. fwtest does
-  not run them.
+  load from (fwtest 0.10.0: the next instruction's address plus the
+  offset); the compiler's position-independent code uses r15 instead.
 - **Q-34. System instructions and unmodelled registers.** What `bkpt`,
   `hbkpt`, `swi`, `syscall`, `trigger`, `rte`, `rtx`, `rtns`, `rtss`,
   `rthw`, `sevg`, `sevl`, `wfe`, `gotoss` and `ifs2ns` do, the registers
@@ -2510,3 +2547,11 @@ spec request can turn one into a fact.
   the pushes marked `(c)` clear. The compiler emits `bkpt` for
   `__builtin_trap` and `syscall` and `trigger` for their builtins. fwtest
   ends a run on each as an instruction it does not run.
+- **Q-35. Halves, fields and special registers at their edges.** What
+  `sat8 (u)` gives for a negative half (fwtest: 0, as `sat16 (u)` clamps a
+  negative word), what the field forms give for l = 0 or p + l over 32
+  (fwtest: as the immediate forms, l = 0 the whole word, bits shifted out
+  lost), and in which order the 4-byte special-register push and pop store
+  the registers and what pushing or popping `sp` itself gives (fwtest: the
+  highest number at the highest address, as the 2-byte forms; `sp` as it
+  is when its turn comes). HW-101.

@@ -12,7 +12,7 @@ SPDX-FileCopyrightText: 2026 japes98
 - Licence: MIT, copyright 2026 Joakim Eriksson (`LICENSE` here, copied
   unmodified).
 - What: `crates/fm1-isa`, `crates/fm1-core` and `crates/fm1-soc`, at the
-  same paths, unmodified but for the patches below (0002 to 0015: bug
+  same paths, unmodified but for the patches below (0002 to 0016: bug
   fixes, two speed-only changes and MIDI out) and the workspace manifest
   `Cargo.toml` (patched, 0001). docs/EMULATOR-PARITY.md compares them with
   the F-Emulator app's.
@@ -22,7 +22,7 @@ SPDX-FileCopyrightText: 2026 japes98
   sparse checkout of exactly those paths) and checked by
   `tools/fetch-emulator.sh --verify` (C-EMU-PIN): every file against
   `SHA256SUMS`, whose own SHA-256 (the tree hash) is
-  `acbf458866d11210b4fcb0c1a2b80dd7a5c5509634b9f60f576510186ccbc9ac`.
+  `35c06f37c29f5ec8c70acc8d897c190eb2ea411a5cf7882c55d8ed173ba7cdd8`.
 - Provenance: PROVENANCE.md P-7. Exposure: docs/EXPOSURE.md (session M0b).
 
 ## Patches
@@ -162,6 +162,16 @@ Applied in file-name order by the fetch script, after checkout:
   4-byte push and pop of special registers. The crate tests and the
   harness test `registers_halves_and_fields` (image
   `tests/images/isaregs.S`) fail without it (fwtest 0.10.0).
+
+- `patches/0016-toolchain-audit-forms-with-an-open-detail.patch` (session
+  spec-isa-audit, as 0014): `crates/fm1-core/src/lib.rs`, forms only the
+  assembler emits whose printed form is explicit but a detail of whose
+  result the toolchain leaves open, each detail a recorded choice
+  (HARDWARE-SPEC Q-31 to Q-33): the pair shifts with rounding, the
+  multiplies with a memory operand, the `npc` loads, the halves swap
+  (`70 e0 40`). The crate tests and the harness test
+  `forms_with_an_open_detail` (image `tests/images/isaops.S`) fail
+  without it (fwtest 0.10.0).
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
 and the harness suite gave byte-identical outputs (284 files) from fwtest

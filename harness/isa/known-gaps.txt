@@ -15,15 +15,9 @@
 # reason simd: a SIMD or DSP form only hand-written assembly reaches (the
 #   compiler emits none of them and has no builtin for them): not
 #   implemented until a firmware needs one (the owner, 2026-10-28)
-# reason memory-multiply: the multiply (-accumulate) forms with two
-#   memory operands or a memory and a register operand; what `h[` covers,
-#   how (s) and (u) apply to the loads and the order of the two updates are
-#   not shown by the toolchain (HARDWARE-SPEC Q-31)
-# reason operation-open: the pair shifts rounding (even, round, up, zero),
-#   `><`, `<c>` (also __builtin_pi32v2_rotrc), rev16 and copex: the
-#   toolchain shows no result for them (Q-32)
-# reason npc-load: `R = [npc + x]`, whose base the toolchain does not show
-#   (Q-33)
+# reason operation-open: `><` (with or without (sat)), `<c>` (also
+#   __builtin_pi32v2_rotrc) and copex: the toolchain shows no result for
+#   them (HARDWARE-SPEC Q-32)
 # reason push-clear: the pushes marked (c), whose clearing the toolchain
 #   does not show (Q-34)
 # reason system: privileged and system instructions (returns from
@@ -79,9 +73,6 @@ uspn = sp #	registers-not-modelled
 [--sp] = {SREGS} (c)	push-clear
 [--sp] = {rets, R..} (c)	push-clear
 
-# npc-load
-R = [npc + #]	npc-load
-R = [npc + R]	npc-load
 
 # operation-open
 R = R <c> #	operation-open
@@ -92,40 +83,6 @@ R = R >< R	operation-open
 R = R >< R #	operation-open
 R = R >< R (sat)	operation-open
 R = R >< R (sat) #	operation-open
-R = RR >> # (even)	operation-open
-R = RR >> # (even) #	operation-open
-R = RR >> # (round)	operation-open
-R = RR >> # (round) #	operation-open
-R = RR >> # (up)	operation-open
-R = RR >> # (up) #	operation-open
-R = RR >> # (zero)	operation-open
-R = RR >> # (zero) #	operation-open
-R = RR >> R (even)	operation-open
-R = RR >> R (even) #	operation-open
-R = RR >> R (round)	operation-open
-R = RR >> R (round) #	operation-open
-R = RR >> R (up)	operation-open
-R = RR >> R (up) #	operation-open
-R = RR >> R (zero)	operation-open
-R = RR >> R (zero) #	operation-open
-R = RR >>> # (even)	operation-open
-R = RR >>> # (even) #	operation-open
-R = RR >>> # (round)	operation-open
-R = RR >>> # (round) #	operation-open
-R = RR >>> # (up)	operation-open
-R = RR >>> # (up) #	operation-open
-R = RR >>> # (zero)	operation-open
-R = RR >>> # (zero) #	operation-open
-R = RR >>> R (even)	operation-open
-R = RR >>> R (even) #	operation-open
-R = RR >>> R (round)	operation-open
-R = RR >>> R (round) #	operation-open
-R = RR >>> R (up)	operation-open
-R = RR >>> R (up) #	operation-open
-R = RR >>> R (zero)	operation-open
-R = RR >>> R (zero) #	operation-open
-R = rev16(R)	operation-open
-R = rev16(R) #	operation-open
 RR <c>= #	operation-open
 RR <c>= # #	operation-open
 RR <c>= R	operation-open
@@ -137,55 +94,6 @@ RR ><= R #	operation-open
 RR ><= R (sat)	operation-open
 RR ><= R (sat) #	operation-open
 
-# memory-multiply
-RR += [R ++= #]*R (s)	memory-multiply
-RR += [R ++= #]*R (u)	memory-multiply
-RR += [R ++= #]*[R ++= #] (s)	memory-multiply
-RR += [R ++= #]*[R ++= #] (u)	memory-multiply
-RR += [R ++= R.H]*[R ++= R.H] (s)	memory-multiply
-RR += [R ++= R.H]*[R ++= R.H] (u)	memory-multiply
-RR += [R ++= R]*R (s)	memory-multiply
-RR += [R ++= R]*R (u)	memory-multiply
-RR += h[R ++= #]*R (s)	memory-multiply
-RR += h[R ++= #]*R (u)	memory-multiply
-RR += h[R ++= #]*[R ++= #] (s)	memory-multiply
-RR += h[R ++= #]*[R ++= #] (u)	memory-multiply
-RR += h[R ++= R.H]*[R ++= R.H] (s)	memory-multiply
-RR += h[R ++= R.H]*[R ++= R.H] (u)	memory-multiply
-RR += h[R ++= R]*R (s)	memory-multiply
-RR += h[R ++= R]*R (u)	memory-multiply
-RR -= [R ++= #]*R (s)	memory-multiply
-RR -= [R ++= #]*R (u)	memory-multiply
-RR -= [R ++= #]*[R ++= #] (s)	memory-multiply
-RR -= [R ++= #]*[R ++= #] (u)	memory-multiply
-RR -= [R ++= R.H]*[R ++= R.H] (s)	memory-multiply
-RR -= [R ++= R.H]*[R ++= R.H] (u)	memory-multiply
-RR -= [R ++= R]*R (s)	memory-multiply
-RR -= [R ++= R]*R (u)	memory-multiply
-RR -= h[R ++= #]*R (s)	memory-multiply
-RR -= h[R ++= #]*R (u)	memory-multiply
-RR -= h[R ++= #]*[R ++= #] (s)	memory-multiply
-RR -= h[R ++= #]*[R ++= #] (u)	memory-multiply
-RR -= h[R ++= R.H]*[R ++= R.H] (s)	memory-multiply
-RR -= h[R ++= R.H]*[R ++= R.H] (u)	memory-multiply
-RR -= h[R ++= R]*R (s)	memory-multiply
-RR -= h[R ++= R]*R (u)	memory-multiply
-RR = [R ++= #]*R (s)	memory-multiply
-RR = [R ++= #]*R (u)	memory-multiply
-RR = [R ++= #]*[R ++= #] (s)	memory-multiply
-RR = [R ++= #]*[R ++= #] (u)	memory-multiply
-RR = [R ++= R.H]*[R ++= R.H] (s)	memory-multiply
-RR = [R ++= R.H]*[R ++= R.H] (u)	memory-multiply
-RR = [R ++= R]*R (s)	memory-multiply
-RR = [R ++= R]*R (u)	memory-multiply
-RR = h[R ++= #]*R (s)	memory-multiply
-RR = h[R ++= #]*R (u)	memory-multiply
-RR = h[R ++= #]*[R ++= #] (s)	memory-multiply
-RR = h[R ++= #]*[R ++= #] (u)	memory-multiply
-RR = h[R ++= R.H]*[R ++= R.H] (s)	memory-multiply
-RR = h[R ++= R.H]*[R ++= R.H] (u)	memory-multiply
-RR = h[R ++= R]*R (s)	memory-multiply
-RR = h[R ++= R]*R (u)	memory-multiply
 
 # simd
 R += R.H * # (ssat)	simd

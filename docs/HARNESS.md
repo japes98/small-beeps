@@ -584,9 +584,9 @@ encodings for it, disassembled them and assembled the text again with the
 firmware's flags, so each form is checked as the assembler (and the
 compiler) encodes it; it also compiled a wide corpus of C and C++
 (HARDWARE-SPEC.md HW-96). Of the 947 forms the toolchain takes with those
-flags, fwtest 0.9.0 ran 431 in full and 0.10.0 runs 478 (7 more run for
-some operands only, as below); of the 327 the compiler emits, 316 (300 in
-0.9.0). What 0.10.0 adds (HW-97 to HW-101):
+flags, fwtest 0.9.0 ran 431 in full and 0.10.0 runs 562 (7 more run for
+some operands only, as below); of the 326 the compiler emits, 316 (300 in
+0.9.0). What 0.10.0 adds (HW-97 to HW-102):
 
 - **Float.** `R = ftof(R)` rounded to an integral value (to even, toward
   zero, up, down), which the compiler emits for `rintf`, `truncf`,
@@ -607,6 +607,15 @@ some operands only, as below); of the 327 the compiler emits, 316 (300 in
   8 (0.9.0 added it unscaled); the compiler emits them for 64-bit
   elements at large indexes.
 - **Builtins.** `zcmp` (the sign, as the compiler folds it).
+- **With a detail the toolchain leaves open** (the choice recorded as
+  Q-31 to Q-33): the pair shifts rounding (`R = RR >> n (up|round|even|zero)`
+  and `>>>`: toward +inf, to nearest with ties up, to nearest with ties to
+  even, toward zero, then saturated as the plain forms), the multiplies
+  with a memory operand (`RR += [rA ++= i]*rB` and the rest: the
+  addresses from the registers before, then the increments, the pair
+  last; `h[` the first operand only), the `npc` loads (npc the next
+  instruction's address) and `rev16` (the halves swapped). Code that
+  depends on those details may run differently on the chip.
 - **Halves, fields, special registers.** `rD.l|h = rS.l|h`,
   `rD.l|h = sat8(rS.l|h) (s|u)`, `uextra`, `sextra` and `insert` with the
   field in a register, `h[rB+rI] = rS.h`, moves of `retx`, `sr4` and
@@ -621,10 +630,10 @@ with its reason in `harness/isa/known-gaps.txt`:
   reaches: the compiler emits none and has no builtin for them (except
   the scalar `abs`, `min` and `max` it uses, which run). They wait until a
   firmware needs one (the owner, 2026-10-28): report it as a spec request.
-- **Forms whose result the toolchain leaves open**: the memory
-  multiply-accumulates (Q-31), the rounding pair shifts, `><`, `<c>`
-  (`__builtin_pi32v2_rotrc`), `rev16` and `copex` (Q-32), the `npc`
-  loads (Q-33).
+- **Forms whose result the toolchain does not show at all** (Q-32): `><`
+  (with or without `(sat)`), `<c>` (`__builtin_pi32v2_rotrc`, which the
+  compiler treats as a function of its two arguments alone, nothing
+  more) and `copex`.
 - **System instructions and registers fwtest does not model** (Q-34):
   `bkpt` (`__builtin_trap`), `syscall` and `trigger` (their builtins),
   `swi`, the exception returns, events, secure-state jumps, the pushes
@@ -746,7 +755,8 @@ digest, so a firmware test always names the exact runner it used.
   the float rounding and `__fp16` forms, `fcmp` and the flag branches,
   the memory shifts by a register and `&= ~R`, the 64-bit index scaled by
   8, `zcmp`, half moves, `sat8` of a half, fields in a register, the
-  special registers `retx`, `sr4`, `sspn`; `fwtest decode`. Its pin is the
+  special registers `retx`, `sr4`, `sspn`, the rounding pair shifts, the
+  memory multiplies, the `npc` loads, `rev16`; `fwtest decode`. Its pin is the
   clean side's pull request, opened once the image is published.
 - 0.9.0: a store with a base update whose stored register is its base
   stores the base as it was (SR-10, "Instructions"); the image rebuilds

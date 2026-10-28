@@ -679,6 +679,28 @@ fn registers_halves_and_fields() {
     assert_eq!(&w[13..16], &[16, 0x1234, 0xbb], "push and pop of special registers");
 }
 
+/// The toolchain audit: forms only the assembler emits whose syntax is
+/// explicit but a detail of whose result the toolchain leaves open
+/// (isaops.S; HARDWARE-SPEC Q-31 to Q-33): the pair shifts rounding up, to
+/// nearest with ties up, to even and toward zero; the memory multiplies; the
+/// npc loads; rev16.
+#[test]
+fn forms_with_an_open_detail() {
+    let mut o = opts(1);
+    o.ram = vec![(OUT0, 68, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("isaops"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-44-end.bin"));
+    // 2.5: up 3, round 3, even 2, zero 2; -1.5: up -1, round -1, even -2, zero -1
+    assert_eq!(&w[0..4], &[3, 3, 2, 2], "rounding shifts, unsigned");
+    assert_eq!(&w[4..8], &[-1i32 as u32, -1i32 as u32, -2i32 as u32, -1i32 as u32], "rounding shifts, signed");
+    assert_eq!(&w[8..12], &[-15i32 as u32, u32::MAX, 327_660, 0x01c0_0408], "[rA ++= i]*rB, h[..]*rB");
+    assert_eq!(&w[12..14], &[-14i32 as u32, u32::MAX], "[rA ++= i]*[rB ++= j]");
+    assert_eq!(&w[14..16], &[0x600d_f00d, 0x5a5a_a5a5], "npc loads");
+    assert_eq!(w[16], 0x5678_1234, "rev16");
+}
+
 fn fault_text(r: &fwtest::run::Report) -> (u32, u32, String) {
     match &r.outcome {
         Outcome::Fault { core, pc, what } => (*core, *pc, what.clone()),

@@ -15,6 +15,10 @@ Spec side (docs/HARNESS.md, "Instructions"). What it does:
    expected length). No offset or table is written down here: a later
    toolchain is searched the same way, and a search that finds too little
    is a failure, never a pass.
+   Every instruction the compiler emits for a fixed corpus (compile_corpus:
+   C of our own and the harness's C test images, with the firmware's flags
+   at -O0, -O2 and -Os) must be one those tables decode, or the check
+   fails: the tables found are then not the ones in use.
 2. Walks every leaf of those tables (one instruction form each) and makes
    encodings for it: the bits the table fixes, the others zero, all ones
    and at random (a fixed seed).
@@ -24,7 +28,8 @@ Spec side (docs/HARNESS.md, "Instructions"). What it does:
    label as their target, blocks (`{`) a body, a dual-issue pair's head a
    second half; texts the assembler refuses (another CPU's forms, and the
    few the disassembler prints in a way it does not parse) are left out.
-4. Runs `fwtest decode` (harness/src/decode.rs) on every encoding in the
+4. Runs `fwtest decode` (harness/src/decode.rs) on every encoding, the
+   compiler's included, in the
    fwtest image (harness/ci.sh): each must decode to its length and run.
 5. A form that does not is a failure unless its shape (shape(): the
    disassembly with registers and numbers abstracted) is a line of
@@ -127,6 +132,37 @@ class Tables:
         except IndexError:
             return None
         return None
+
+    def decode(self, start, skip, insn):
+        """True if the table at start decodes insn to a leaf (predicates taken as true)."""
+        b, i, cur = self.b, start, 0
+        while True:
+            op = b[i]
+            i += 1
+            if op == 1:
+                cur = (insn >> b[i]) & ((1 << b[i + 1]) - 1)
+                i += 2
+            elif op in (2, 4):
+                v, i = self.uleb(i)
+                n = int.from_bytes(b[i:i + skip], "little")
+                i += skip
+                if op == 2 and v != cur:
+                    i += n
+            elif op == 3:
+                st, ln = b[i], b[i + 1]
+                i += 2
+                v, i = self.uleb(i)
+                n = int.from_bytes(b[i:i + skip], "little")
+                i += skip
+                if (insn >> st) & ((1 << ln) - 1) != v:
+                    i += n
+            elif op in (5, 6):
+                return True
+            elif op == 7:
+                _, i = self.uleb(i)
+                _, i = self.uleb(i)
+            else:
+                return False
 
     def candidates(self):
         """Every table-like run of bytes: (start, NumToSkip size, width, leaves)."""
@@ -363,6 +399,64 @@ def bisect_fail(attempt, ids):
     return bad
 
 
+# ---- the compiler's corpus ------------------------------------------------------------
+
+def corpus_c():
+    """C of our own that varies types, operators and the float builtins."""
+    types = ["signed char", "unsigned char", "short", "unsigned short", "int", "unsigned",
+             "long long", "unsigned long long", "float"]
+    ops = ["+", "-", "*", "/", "%", "<<", ">>", "&", "|", "^"]
+    out, k = ["typedef __fp16 half;"], 0
+    for t in types:
+        for o in ops:
+            if t == "float" and o in ("%", "<<", ">>", "&", "|", "^"):
+                continue
+            out.append("%s f%d(%s a, %s b) { return a %s b; }" % (t, k, t, t, o)); k += 1
+            out.append("void f%d(%s *p, %s b) { p[-1] %s= b; }" % (k, t, t, o)); k += 1
+            out.append("%s f%d(const %s *p) { return p[1000] %s p[3]; }" % (t, k, t, o)); k += 1
+        for c in ("<", "<=", ">", ">=", "==", "!="):
+            out.append("int f%d(%s a, %s b) { return a %s b; }" % (k, t, t, c)); k += 1
+            out.append("%s f%d(%s a, %s b, %s c, %s d) { return a %s b ? c : d; }" % (t, k, t, t, t, t, c)); k += 1
+        for t2 in types:
+            if t2 != t:
+                out.append("%s f%d(%s a) { return (%s)a; }" % (t2, k, t, t2)); k += 1
+        out.append("%s f%d(const %s *p, int n) { %s s = 0; for (int i = 0; i < n; i++) s += p[i] * p[i]; return s; }" % (t, k, t, t)); k += 1
+    for fn in ("floorf", "ceilf", "truncf", "rintf", "roundf", "fabsf", "sqrtf"):
+        out.append("float f%d(float a) { return __builtin_%s(a); }" % (k, fn)); k += 1
+    out.append("void f%d(half *p, float a) { *p = a; }" % k); k += 1
+    out.append("float f%d(const half *p) { return *p; }" % k); k += 1
+    out.append("int f%d(int x) { return __builtin_pi32v2_zcmp(x); }" % k); k += 1
+    out.append("long long f%d(long long a, int b, int c) { return a + (long long)b * c; }" % k); k += 1
+    out.append("unsigned f%d(unsigned a, int s) { return (a >> s) | (a << (32 - s)); }" % k); k += 1
+    out.append("int f%d(int x) { switch (x) { case 0: return 5; case 1: return 9; case 2: return 13; "
+               "case 3: return 1; case 4: return 99; case 5: return 7; default: return 0; } }" % k); k += 1
+    return "\n".join(out) + "\n"
+
+
+def compile_corpus(tc, work):
+    """{hex: disassembly} of every instruction the compiler emits, with the firmware's flags at
+    -O0, -O2 and -Os, for corpus_c() and the harness's own C test images."""
+    with open(os.path.join(work, "corpus.c"), "w") as f:
+        f.write(corpus_c())
+    images = os.path.join(ROOT, "harness", "tests", "images")
+    for n in sorted(os.listdir(images)):
+        if n.endswith((".c", ".h")):
+            shutil.copy(os.path.join(images, n), os.path.join(work, n))
+    srcs = ["corpus.c"] + sorted(n for n in os.listdir(images) if n.endswith(".c"))
+    out = {}
+    for opt in ("-O0", "-O2", "-Os"):
+        for src in srcs:
+            obj = "%s%s.o" % (src, opt)
+            r = tc.run("clang -target pi32v2 %s %s -std=gnu11 -ffreestanding -w -c %s -o %s" % (" ".join(SDK_FLAGS), opt, src, obj))
+            if r.returncode != 0:
+                raise SystemExit("isa: the compiler failed on %s %s:\n%s" % (src, opt, r.stderr[-1500:]))
+            for ln in tc.disassemble(obj).splitlines():
+                m = INSN.match(ln)
+                if m and "unknown" not in m.group(2) and len(m.group(1).replace(" ", "")) in (4, 8, 12):
+                    out.setdefault(m.group(1).replace(" ", ""), m.group(2).strip())
+    return out
+
+
 # ---- 5. shapes and the known gaps --------------------------------------------------------
 
 def shape(text):
@@ -451,16 +545,30 @@ def check(tc, out, work):
         # (a table of another of the toolchain's targets may pass too: its forms are then checked
         # as pi32v2's, each still only if objdump and the assembler take it)
         if owner and len(good) >= 0.6 * len(set(owner)):
-            chosen.append((start, width, leaves))
-    widths = sorted(set(w for _, w, _ in chosen))
-    nleaves = sum(len(lv) for _, _, lv in chosen)
+            chosen.append((start, width, leaves, skip))
+    widths = sorted(set(w for _, w, _, _ in chosen))
+    nleaves = sum(len(lv) for _, _, lv, _ in chosen)
     if 16 not in widths or 32 not in widths or nleaves < MIN_LEAVES:
         print("isa: FAIL, the toolchain's decoder tables were not found (widths %s, %d leaves)" % (widths, nleaves))
         return 1
 
+    # 1b. the compiler's own code: every instruction it emits for a fixed corpus must be one a
+    # chosen table decodes at its width, or the tables found are not the ones in use
+    compiled = compile_corpus(tc, work)
+    missed = []
+    for hx in compiled:
+        raw = bytes.fromhex(hx)
+        insn = int.from_bytes(b"".join(raw[k:k + 2][::-1] for k in range(0, len(raw), 2)), "big")
+        if not any(w == len(raw) * 8 and tables.decode(st, sk, insn) for st, w, _, sk in chosen):
+            missed.append(hx)
+    if not compiled or missed:
+        print("isa: FAIL, %d of the compiler's %d instructions are not in the decoder tables found (e.g. %s)"
+              % (len(missed), len(compiled), missed[:3]))
+        return 1
+
     # 2. samples per leaf
     samples, leaf_of = [], []
-    for t, (start, width, leaves) in enumerate(chosen):
+    for t, (start, width, leaves, _) in enumerate(chosen):
         for li, cons in enumerate(leaves):
             for raw in leaf_samples(width, cons, SAMPLES_PER_LEAF, rng):
                 samples.append(raw)
@@ -479,6 +587,8 @@ def check(tc, out, work):
     leaves_assembled = set(leaf_of[i] for i in canon)
     encodings = {}
     for i, (hx, text) in canon.items():
+        encodings.setdefault(hx, text)
+    for hx, text in compiled.items():
         encodings.setdefault(hx, text)
     hexes = sorted(encodings)
 
@@ -526,7 +636,8 @@ def check(tc, out, work):
         "decoder_tables": len(chosen), "decoder_leaves": nleaves,
         "leaves_disassembled_at_sdk_flags": len(leaves_at_flags),
         "leaves_assembled_at_sdk_flags": len(leaves_assembled),
-        "encodings": len(hexes), "shapes": len(set(shape(t) for t in encodings.values())),
+        "compiler_instructions": len(compiled), "encodings": len(hexes),
+        "shapes": len(set(shape(t) for t in encodings.values())),
         "encodings_running": sum(1 for r in rows if r.endswith("\truns")),
         "failing_shapes_known": len(known), "failing_shapes_unknown": len(unknown),
         "known_gap_lines_unused": stale, "known_gap_lines_also_running": blurred,

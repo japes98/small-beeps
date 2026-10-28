@@ -2131,7 +2131,38 @@ SR-3 wrote only its barrier-log row.*
 - What it archived: spec-1027's transcript (`541eb13f`) into
   `sessions/spec/`; `tools/check-transcripts.py` PASS (40 archived
   transcripts).
-- Exposure: (filled in at the end of the session.)
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository). Never opened,
+  fetched or searched M-VAVE's stock firmware files, anyone else's
+  firmware, another emulator or the owner's other projects.
+- Section 0: this repository; spec-1027's transcript (archived).
+- Section 1 (the toolchain audit): the pinned toolchain (P-1) in the build
+  image, as PROVENANCE P-64 says: its `objdump` and `clang` binaries
+  copied into the session's scratch folder and read for LLVM's generated
+  tables (decoder tables, opcode names, instruction descriptors, the
+  builtin table), found by their content; nothing of them written into
+  this repository (C-HARNESS-ISA finds them again at run time). Its
+  objdump, assembler and compiler run on encodings made from every
+  decoder leaf, on about 1,640 C functions and a C++ file of our own,
+  every pi32v2 builtin, main's firmware and the Plaits demo (built by
+  `tools/build.sh` into the scratch folder). The JieLi SDK (P-2), the
+  commit P-63 names: its file tree through Gitee's tree API (names), its
+  15 `board/wl82/Makefile`s and 42 `.cbp` project files by raw URL; the
+  first fetch got Gitee's redirect pages (to raw.giteeusercontent.com),
+  the second followed them. The vendored emulator: read, patched (0014 to
+  0016) and tested; the upstream emulator fetched four times by
+  `tools/fetch-emulator.sh --fetch` (its sparse checkout of the three
+  crates) to show the patches apply; main's crates unpacked into the
+  scratch folder (`git archive`) for a 0.9.0 baseline probe. fwtest's
+  image built locally (`harness/ci.sh image`) several times.
+- The firmware suite run twice (pinned image, local 0.10.0) from this
+  checkout, the branch unchanged during the runs.
+- Clean's open pull requests (#169 to #171): `gh pr view --json files`
+  (file names), and the lines they add to docs/REQUIREMENTS.md,
+  PROVENANCE.md and docs/HARDWARE-SPEC.md (`git diff` of those files
+  only), to keep IDs apart; their firmware changes not read. Their
+  branches fetched and merged (below).
+- Disk: 6.6 GB free at the start; 4.8 GB at the lowest.
 
 ## Corrections
 
