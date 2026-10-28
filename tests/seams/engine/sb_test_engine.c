@@ -17,7 +17,11 @@
  * BR-8 its serve sends RAW_LEN raw bytes to MIDI out at the first whole
  * second (a System Exclusive message), while for RAW_BLOCKS blocks from
  * then its block callback queues a clock every block and a note on or
- * off every 16th.
+ * off every 16th. Since BR-9 it starts the store and does what a control
+ * record (kind CONTROL_KIND, written by the suite between runs) asks in
+ * its first serve: writes payloads of the firmware kinds, large and
+ * small, or a reset; and records what it read at start-up and what its
+ * write read back.
  */
 
 #include "audio.h"
@@ -26,6 +30,7 @@
 #include "input.h"
 #include "midi.h"
 #include "midi_out.h"
+#include "store.h"
 
 #define TEST_ENGINE_MARKER 0x31474E45u   /* "ENG1" in memory order */
 #define HALF_PERIOD        50u           /* frames: about 441 Hz */
@@ -66,6 +71,16 @@ struct sb_test_engine_record {
     u32 out_notes;      /* note ons and offs the block callback queued */
     u32 out_clocks;     /* clocks it queued */
     u32 out_refused;    /* of those, the queue dropped */
+    /* Since BR-9 (store_get's length, or 0xFFFFFFFF for none; sums by place): */
+    u32 step;           /* the control record's step, 0 without one */
+    u32 boot_large;     /* LARGE_KIND, LARGE_ID at start-up */
+    u32 boot_large_sum;
+    u32 boot_small;     /* SMALL_KIND, 0 at start-up */
+    u32 boot_small_sum;
+    s32 put_result;     /* the step's last store_put or store_reset */
+    s32 put2_result;    /* step 5's second, refused */
+    u32 put_len;        /* what it read back */
+    u32 put_sum;
 };
 
 u32 sb_test_runtime(void);
@@ -76,6 +91,64 @@ u32 sb_test_runtime(void);
 volatile struct sb_test_engine_record sb_test_engine __attribute__((section(".beacon.engine")));
 
 static u32 phase;
+
+/* The store's steps (tools/seams_suite.py, case store): the payloads,
+ * byte i of pattern p being (i * (2p + 1) + p) & 0xFF. */
+#define CONTROL_KIND 0x8Fu
+#define LARGE_KIND   0x80u
+#define LARGE_ID     7u
+#define SMALL_KIND   0x81u
+#define HUGE_KIND    0x82u
+#define LARGE_LEN    4096u
+#define SMALL_LEN    10u
+#define HUGE_LEN     5000u
+static u8 store_buf[STORE_FW_MAX];
+
+static void pattern(u32 p, u32 len)
+{
+    u32 i;
+
+    for (i = 0; i < len; i++)
+        store_buf[i] = (u8)(i * (2 * p + 1) + p);
+}
+
+/* Reads (kind, id) into store_buf: its length, or 0xFFFFFFFF; its sum. */
+static u32 read_back(u32 kind, u32 id, volatile u32 *sum)
+{
+    u32 version, i, s = 0;
+    int n = store_get(kind, id, store_buf, STORE_FW_MAX, &version);
+
+    for (i = 0; n > 0 && i < (u32)n; i++)
+        s += store_buf[i] * (i + 1);
+    *sum = s;
+    return n < 0 ? 0xFFFFFFFFu : (u32)n;
+}
+
+static void store_step(void)
+{
+    u32 s = sb_test_engine.step;
+
+    if (s == 1 || s == 2 || s == 3) {
+        /* 1: pattern 1 (and the small payload); 2: pattern 2; 3:
+         * pattern 3, the suite cutting the power part way. */
+        pattern(s, LARGE_LEN);
+        sb_test_engine.put_result = store_put(LARGE_KIND, LARGE_ID, 1, store_buf, LARGE_LEN);
+        if (s == 1) {
+            pattern(9, SMALL_LEN);
+            store_put(SMALL_KIND, 0, 1, store_buf, SMALL_LEN);
+        }
+        sb_test_engine.put_len = read_back(LARGE_KIND, LARGE_ID, &sb_test_engine.put_sum);
+    } else if (s == 4) {
+        sb_test_engine.put_result = store_reset();
+    } else if (s == 5) {
+        /* The largest the region holds, alone, then more than it can. */
+        pattern(5, HUGE_LEN);
+        sb_test_engine.put_result = store_put(HUGE_KIND, 0, 1, store_buf, HUGE_LEN);
+        pattern(6, STORE_FW_MAX);
+        sb_test_engine.put2_result = store_put(HUGE_KIND, 1, 1, store_buf, STORE_FW_MAX);
+        sb_test_engine.put_len = read_back(HUGE_KIND, 0, &sb_test_engine.put_sum);
+    }
+}
 
 /* The SysEx tap's buffer: written in the block callback, read by the
  * serve once a message has ended (ready holds its length, 0 meanwhile). */
@@ -158,6 +231,17 @@ void sb_engine_init(void)
     sb_test_engine.runtime = sb_test_runtime();
     midi_start();
     midi_sysex_tap(sysex_tap);
+    /* The store, and what it holds at start-up. */
+    store_init();
+    {
+        u32 version;
+        u8 step = 0;
+
+        if (store_get(CONTROL_KIND, 0, &step, 1, &version) == 1)
+            sb_test_engine.step = step;
+    }
+    sb_test_engine.boot_large = read_back(LARGE_KIND, LARGE_ID, &sb_test_engine.boot_large_sum);
+    sb_test_engine.boot_small = read_back(SMALL_KIND, 0, &sb_test_engine.boot_small_sum);
     sb_test_engine.core1 = (u32)sb_core1_start(core1_loop, core1_stack + sizeof core1_stack / sizeof core1_stack[0]);
 }
 
@@ -211,6 +295,10 @@ void sb_engine_block(s32 *out, u32 frames)
 
 void sb_engine_serve(void)
 {
+    /* The store's step, in the first serve (main's loop: the flash may
+     * keep it waiting). */
+    if (!sb_test_engine.serves)
+        store_step();
     sb_test_engine.serves++;
     sb_test_engine.serve_seconds = sb_seconds;
     sb_test_engine.serve_presses = sb_test_engine.presses;
