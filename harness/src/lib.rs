@@ -4,6 +4,7 @@
 //! (docs/HARNESS.md is the user's manual; nothing here is visible to the
 //! firmware side except through it).
 
+pub mod decode;
 pub mod formats;
 pub mod golden;
 pub mod machine;
@@ -32,6 +33,7 @@ usage:
   fwtest run IMAGE --ms MS --out DIR [options]
   fwtest run PACKAGE --package --ms MS --out DIR [options]
   fwtest suite FILE --out DIR
+  fwtest decode FILE
   fwtest version
 
 run options:
@@ -52,7 +54,12 @@ run options:
   --watchdog ADDR:MS     a hang if the word at ADDR stays the same for MS
   --halt-ok              a halt counts as success
   --golden DIR           compare the outputs with the golden files in DIR
-WHEN is a time in ms (up to three decimals) or `end`.";
+WHEN is a time in ms (up to three decimals) or `end`.
+
+decode: FILE has one instruction per line, its bytes in hex as they lie in
+memory; each output line is the hex, the length fwtest decodes it to (- if
+none) and runs, no-decode, unsupported or panic (docs/HARNESS.md,
+\"Instructions\").";
 
 /// Removes every FM1_* variable: upstream reads several to switch traces and
 /// execution paths, which would break determinism (machine.rs).
@@ -321,6 +328,16 @@ pub fn main_with(args: &[String]) -> i32 {
                 Err(e) => fail(e),
             }
         }
+        Some("decode") => match &args[1..] {
+            [f] => match std::fs::read_to_string(f).map_err(|e| format!("{f}: {e}")).and_then(|t| decode::report(&t)) {
+                Ok(r) => {
+                    print!("{r}");
+                    exit::OK
+                }
+                Err(e) => fail(e),
+            },
+            _ => fail(format!("bad decode arguments\n{USAGE}")),
+        },
         Some("version") | Some("--version") => {
             println!("fwtest {} (emulator {})", env!("CARGO_PKG_VERSION"), &EMULATOR_COMMIT[..12]);
             exit::OK

@@ -1,0 +1,782 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 japes98
+#
+# The instruction forms the pinned toolchain knows for the firmware's CPU
+# flags (-mcpu=r3 -mfprev1) that fwtest does not run, each with the reason
+# (C-HARNESS-ISA, harness/isa/isa_check.py; docs/HARNESS.md,
+# "Instructions"). One shape per line (isa_check.py's shape(): the vendor
+# disassembly, registers R, pairs RR, numbers #, halves .H, register lists
+# by what they hold), a tab, a reason. The check fails on a form that does
+# not run and has no line here, on a line no such form has any more, and on
+# a line that is also the shape of a form that runs. Written by session
+# spec-isa-audit (2026-10-28) from the check's own output; remove a line
+# when its forms run.
+#
+# reason simd: a SIMD or DSP form only hand-written assembly reaches (the
+#   compiler emits none of them and has no builtin for them): not
+#   implemented until a firmware needs one (the owner, 2026-10-28)
+# reason memory-multiply: the multiply (-accumulate) forms with two
+#   memory operands or a memory and a register operand; what `h[` covers,
+#   how (s) and (u) apply to the loads and the order of the two updates are
+#   not shown by the toolchain (HARDWARE-SPEC Q-31)
+# reason operation-open: the pair shifts rounding (even, round, up, zero),
+#   `><`, `<c>` (also __builtin_pi32v2_rotrc), rev16 and copex: the
+#   toolchain shows no result for them (Q-32)
+# reason npc-load: `R = [npc + x]`, whose base the toolchain does not show
+#   (Q-33)
+# reason push-clear: the pushes marked (c), whose clearing the toolchain
+#   does not show (Q-34)
+# reason system: privileged and system instructions (returns from
+#   exceptions, events, breakpoints, software interrupts, secure-state
+#   jumps, trigger): what they do is the chip's (Q-34)
+# reason registers-not-modelled: moves, pushes and pops of pc, cnum, uspn,
+#   icfgn and icfgs, which fwtest does not model (Q-34)
+
+# system
+bkpt	system
+gotoss #	system
+hbkpt	system
+ifs2ns goto # (c)	system
+ifs2ns goto # (s)	system
+rte	system
+rthw	system
+rtns	system
+rtss	system
+rtx	system
+sevg	system
+sevl	system
+swi #	system
+syscall	system
+trigger	system
+wfe	system
+
+# registers-not-modelled
+R = icfgn	registers-not-modelled
+R = icfgn #	registers-not-modelled
+R = icfgs #	registers-not-modelled
+R = pc	registers-not-modelled
+R = pc #	registers-not-modelled
+R = uspn #	registers-not-modelled
+[--sp] = {SREGS-NOT-MODELLED}	registers-not-modelled
+cnum = #	registers-not-modelled
+cnum = R	registers-not-modelled
+cnum = R #	registers-not-modelled
+icfgn = R	registers-not-modelled
+icfgs = #	registers-not-modelled
+pc = #	registers-not-modelled
+pc = R	registers-not-modelled
+pc = R #	registers-not-modelled
+sp = uspn	registers-not-modelled
+sp = uspn #	registers-not-modelled
+uspn = #	registers-not-modelled
+uspn = sp	registers-not-modelled
+uspn = sp #	registers-not-modelled
+{SREGS-NOT-MODELLED} = [sp++]	registers-not-modelled
+
+# push-clear
+[--sp] = {R..} (c)	push-clear
+[--sp] = {SREGS-NOT-MODELLED} (c)	push-clear
+[--sp] = {SREGS} (c)	push-clear
+[--sp] = {rets, R..} (c)	push-clear
+
+# npc-load
+R = [npc + #]	npc-load
+R = [npc + R]	npc-load
+
+# operation-open
+R = R <c> #	operation-open
+R = R <c> # #	operation-open
+R = R <c> R	operation-open
+R = R <c> R #	operation-open
+R = R >< R	operation-open
+R = R >< R #	operation-open
+R = R >< R (sat)	operation-open
+R = R >< R (sat) #	operation-open
+R = RR >> # (even)	operation-open
+R = RR >> # (even) #	operation-open
+R = RR >> # (round)	operation-open
+R = RR >> # (round) #	operation-open
+R = RR >> # (up)	operation-open
+R = RR >> # (up) #	operation-open
+R = RR >> # (zero)	operation-open
+R = RR >> # (zero) #	operation-open
+R = RR >> R (even)	operation-open
+R = RR >> R (even) #	operation-open
+R = RR >> R (round)	operation-open
+R = RR >> R (round) #	operation-open
+R = RR >> R (up)	operation-open
+R = RR >> R (up) #	operation-open
+R = RR >> R (zero)	operation-open
+R = RR >> R (zero) #	operation-open
+R = RR >>> # (even)	operation-open
+R = RR >>> # (even) #	operation-open
+R = RR >>> # (round)	operation-open
+R = RR >>> # (round) #	operation-open
+R = RR >>> # (up)	operation-open
+R = RR >>> # (up) #	operation-open
+R = RR >>> # (zero)	operation-open
+R = RR >>> # (zero) #	operation-open
+R = RR >>> R (even)	operation-open
+R = RR >>> R (even) #	operation-open
+R = RR >>> R (round)	operation-open
+R = RR >>> R (round) #	operation-open
+R = RR >>> R (up)	operation-open
+R = RR >>> R (up) #	operation-open
+R = RR >>> R (zero)	operation-open
+R = RR >>> R (zero) #	operation-open
+R = rev16(R)	operation-open
+R = rev16(R) #	operation-open
+RR <c>= #	operation-open
+RR <c>= # #	operation-open
+RR <c>= R	operation-open
+RR <c>= R #	operation-open
+RR = copex(RR) (#)	operation-open
+RR = copex(RR) (#) #	operation-open
+RR ><= R	operation-open
+RR ><= R #	operation-open
+RR ><= R (sat)	operation-open
+RR ><= R (sat) #	operation-open
+
+# memory-multiply
+RR += [R ++= #]*R (s)	memory-multiply
+RR += [R ++= #]*R (u)	memory-multiply
+RR += [R ++= #]*[R ++= #] (s)	memory-multiply
+RR += [R ++= #]*[R ++= #] (u)	memory-multiply
+RR += [R ++= R.H]*[R ++= R.H] (s)	memory-multiply
+RR += [R ++= R.H]*[R ++= R.H] (u)	memory-multiply
+RR += [R ++= R]*R (s)	memory-multiply
+RR += [R ++= R]*R (u)	memory-multiply
+RR += h[R ++= #]*R (s)	memory-multiply
+RR += h[R ++= #]*R (u)	memory-multiply
+RR += h[R ++= #]*[R ++= #] (s)	memory-multiply
+RR += h[R ++= #]*[R ++= #] (u)	memory-multiply
+RR += h[R ++= R.H]*[R ++= R.H] (s)	memory-multiply
+RR += h[R ++= R.H]*[R ++= R.H] (u)	memory-multiply
+RR += h[R ++= R]*R (s)	memory-multiply
+RR += h[R ++= R]*R (u)	memory-multiply
+RR -= [R ++= #]*R (s)	memory-multiply
+RR -= [R ++= #]*R (u)	memory-multiply
+RR -= [R ++= #]*[R ++= #] (s)	memory-multiply
+RR -= [R ++= #]*[R ++= #] (u)	memory-multiply
+RR -= [R ++= R.H]*[R ++= R.H] (s)	memory-multiply
+RR -= [R ++= R.H]*[R ++= R.H] (u)	memory-multiply
+RR -= [R ++= R]*R (s)	memory-multiply
+RR -= [R ++= R]*R (u)	memory-multiply
+RR -= h[R ++= #]*R (s)	memory-multiply
+RR -= h[R ++= #]*R (u)	memory-multiply
+RR -= h[R ++= #]*[R ++= #] (s)	memory-multiply
+RR -= h[R ++= #]*[R ++= #] (u)	memory-multiply
+RR -= h[R ++= R.H]*[R ++= R.H] (s)	memory-multiply
+RR -= h[R ++= R.H]*[R ++= R.H] (u)	memory-multiply
+RR -= h[R ++= R]*R (s)	memory-multiply
+RR -= h[R ++= R]*R (u)	memory-multiply
+RR = [R ++= #]*R (s)	memory-multiply
+RR = [R ++= #]*R (u)	memory-multiply
+RR = [R ++= #]*[R ++= #] (s)	memory-multiply
+RR = [R ++= #]*[R ++= #] (u)	memory-multiply
+RR = [R ++= R.H]*[R ++= R.H] (s)	memory-multiply
+RR = [R ++= R.H]*[R ++= R.H] (u)	memory-multiply
+RR = [R ++= R]*R (s)	memory-multiply
+RR = [R ++= R]*R (u)	memory-multiply
+RR = h[R ++= #]*R (s)	memory-multiply
+RR = h[R ++= #]*R (u)	memory-multiply
+RR = h[R ++= #]*[R ++= #] (s)	memory-multiply
+RR = h[R ++= #]*[R ++= #] (u)	memory-multiply
+RR = h[R ++= R.H]*[R ++= R.H] (s)	memory-multiply
+RR = h[R ++= R.H]*[R ++= R.H] (u)	memory-multiply
+RR = h[R ++= R]*R (s)	memory-multiply
+RR = h[R ++= R]*R (u)	memory-multiply
+
+# simd
+R += R.H * # (ssat)	simd
+R += R.H * # (ssat) #	simd
+R += R.H * # (usat)	simd
+R += R.H * # (usat) #	simd
+R += R.H * R.H (ssat)	simd
+R += R.H * R.H (ssat) #	simd
+R += R.H * R.H (ssat,x2)	simd
+R += R.H * R.H (ssat,x2) #	simd
+R += R.H * R.H (usat)	simd
+R += R.H * R.H (usat) #	simd
+R += R.H * R.H (usat,x2)	simd
+R += R.H * R.H (usat,x2) #	simd
+R += R.H,R.H *|* R.H,R.H (ssat)	simd
+R += R.H,R.H *|* R.H,R.H (ssat) #	simd
+R += R.H,R.H *|* R.H,R.H (ssat,x2)	simd
+R += R.H,R.H *|* R.H,R.H (ssat,x2) #	simd
+R += R.H,R.H *|* R.H,R.H (usat)	simd
+R += R.H,R.H *|* R.H,R.H (usat) #	simd
+R += R.H,R.H *|* R.H,R.H (usat,x2)	simd
+R += R.H,R.H *|* R.H,R.H (usat,x2) #	simd
+R -= R.H * # (ssat)	simd
+R -= R.H * # (ssat) #	simd
+R -= R.H * # (usat)	simd
+R -= R.H * # (usat) #	simd
+R -= R.H * R.H (ssat)	simd
+R -= R.H * R.H (ssat) #	simd
+R -= R.H * R.H (ssat,x2)	simd
+R -= R.H * R.H (ssat,x2) #	simd
+R -= R.H * R.H (usat)	simd
+R -= R.H * R.H (usat) #	simd
+R -= R.H * R.H (usat,x2)	simd
+R -= R.H * R.H (usat,x2) #	simd
+R -= R.H,R.H *|* R.H,R.H (ssat)	simd
+R -= R.H,R.H *|* R.H,R.H (ssat) #	simd
+R -= R.H,R.H *|* R.H,R.H (ssat,x2)	simd
+R -= R.H,R.H *|* R.H,R.H (ssat,x2) #	simd
+R -= R.H,R.H *|* R.H,R.H (usat)	simd
+R -= R.H,R.H *|* R.H,R.H (usat) #	simd
+R -= R.H,R.H *|* R.H,R.H (usat,x2)	simd
+R -= R.H,R.H *|* R.H,R.H (usat,x2) #	simd
+R = R + R (usat)	simd
+R = R + R (usat) #	simd
+R = R +|+|+|+ R (rnd, uavg)	simd
+R = R +|+|+|+ R (rnd, uavg) #	simd
+R = R - R (usat)	simd
+R = R - R (usat) #	simd
+R = R << # (v)	simd
+R = R << # (v) #	simd
+R = R << R (v)	simd
+R = R << R (v) #	simd
+R = R <<< # (v)	simd
+R = R <<< # (v) #	simd
+R = R <<< R (v)	simd
+R = R <<< R (v) #	simd
+R = R >< R (sat,v)	simd
+R = R >< R (sat,v) #	simd
+R = R >< R (v)	simd
+R = R >< R (v) #	simd
+R = R >> # (v)	simd
+R = R >> # (v) #	simd
+R = R >> # (vb)	simd
+R = R >> # (vb) #	simd
+R = R >> R (v)	simd
+R = R >> R (v) #	simd
+R = R >>> # (v)	simd
+R = R >>> # (v) #	simd
+R = R >>> R (v)	simd
+R = R >>> R (v) #	simd
+R = R.H * # (ssat)	simd
+R = R.H * # (ssat) #	simd
+R = R.H * # (usat)	simd
+R = R.H * # (usat) #	simd
+R = R.H * R.H (ssat)	simd
+R = R.H * R.H (ssat) #	simd
+R = R.H * R.H (ssat,x2)	simd
+R = R.H * R.H (ssat,x2) #	simd
+R = R.H * R.H (usat)	simd
+R = R.H * R.H (usat) #	simd
+R = R.H * R.H (usat,x2)	simd
+R = R.H * R.H (usat,x2) #	simd
+R = R.H,R.H *|* R.H,R.H (ssat)	simd
+R = R.H,R.H *|* R.H,R.H (ssat) #	simd
+R = R.H,R.H *|* R.H,R.H (ssat,x2)	simd
+R = R.H,R.H *|* R.H,R.H (ssat,x2) #	simd
+R = R.H,R.H *|* R.H,R.H (usat)	simd
+R = R.H,R.H *|* R.H,R.H (usat) #	simd
+R = R.H,R.H *|* R.H,R.H (usat,x2)	simd
+R = R.H,R.H *|* R.H,R.H (usat,x2) #	simd
+R = R.H,R.H +|+ # (ssat)	simd
+R = R.H,R.H +|+ # (ssat) #	simd
+R = R.H,R.H +|+ # (usat)	simd
+R = R.H,R.H +|+ # (usat) #	simd
+R = R.H,R.H +|+ R.H,R.H (rnd,savg)	simd
+R = R.H,R.H +|+ R.H,R.H (rnd,savg) #	simd
+R = R.H,R.H +|+ R.H,R.H (rnd,uavg)	simd
+R = R.H,R.H +|+ R.H,R.H (rnd,uavg) #	simd
+R = R.H,R.H +|+ R.H,R.H (savg)	simd
+R = R.H,R.H +|+ R.H,R.H (savg) #	simd
+R = R.H,R.H +|+ R.H,R.H (ssat)	simd
+R = R.H,R.H +|+ R.H,R.H (ssat) #	simd
+R = R.H,R.H +|+ R.H,R.H (ssat,x2)	simd
+R = R.H,R.H +|+ R.H,R.H (ssat,x2) #	simd
+R = R.H,R.H +|+ R.H,R.H (uavg)	simd
+R = R.H,R.H +|+ R.H,R.H (uavg) #	simd
+R = R.H,R.H +|+ R.H,R.H (usat)	simd
+R = R.H,R.H +|+ R.H,R.H (usat) #	simd
+R = R.H,R.H +|+ R.H,R.H (usat,x2)	simd
+R = R.H,R.H +|+ R.H,R.H (usat,x2) #	simd
+R = R.H,R.H +|- # (ssat)	simd
+R = R.H,R.H +|- # (ssat) #	simd
+R = R.H,R.H +|- # (usat)	simd
+R = R.H,R.H +|- # (usat) #	simd
+R = R.H,R.H +|- R.H,R.H (rnd,savg)	simd
+R = R.H,R.H +|- R.H,R.H (rnd,savg) #	simd
+R = R.H,R.H +|- R.H,R.H (rnd,uavg)	simd
+R = R.H,R.H +|- R.H,R.H (rnd,uavg) #	simd
+R = R.H,R.H +|- R.H,R.H (savg)	simd
+R = R.H,R.H +|- R.H,R.H (savg) #	simd
+R = R.H,R.H +|- R.H,R.H (ssat)	simd
+R = R.H,R.H +|- R.H,R.H (ssat) #	simd
+R = R.H,R.H +|- R.H,R.H (ssat,x2)	simd
+R = R.H,R.H +|- R.H,R.H (ssat,x2) #	simd
+R = R.H,R.H +|- R.H,R.H (uavg)	simd
+R = R.H,R.H +|- R.H,R.H (uavg) #	simd
+R = R.H,R.H +|- R.H,R.H (usat)	simd
+R = R.H,R.H +|- R.H,R.H (usat) #	simd
+R = R.H,R.H +|- R.H,R.H (usat,x2)	simd
+R = R.H,R.H +|- R.H,R.H (usat,x2) #	simd
+R = R.H,R.H -|+ # (ssat)	simd
+R = R.H,R.H -|+ # (ssat) #	simd
+R = R.H,R.H -|+ # (usat)	simd
+R = R.H,R.H -|+ # (usat) #	simd
+R = R.H,R.H -|+ R.H,R.H (rnd,savg)	simd
+R = R.H,R.H -|+ R.H,R.H (rnd,savg) #	simd
+R = R.H,R.H -|+ R.H,R.H (rnd,uavg)	simd
+R = R.H,R.H -|+ R.H,R.H (rnd,uavg) #	simd
+R = R.H,R.H -|+ R.H,R.H (savg)	simd
+R = R.H,R.H -|+ R.H,R.H (savg) #	simd
+R = R.H,R.H -|+ R.H,R.H (ssat)	simd
+R = R.H,R.H -|+ R.H,R.H (ssat) #	simd
+R = R.H,R.H -|+ R.H,R.H (ssat,x2)	simd
+R = R.H,R.H -|+ R.H,R.H (ssat,x2) #	simd
+R = R.H,R.H -|+ R.H,R.H (uavg)	simd
+R = R.H,R.H -|+ R.H,R.H (uavg) #	simd
+R = R.H,R.H -|+ R.H,R.H (usat)	simd
+R = R.H,R.H -|+ R.H,R.H (usat) #	simd
+R = R.H,R.H -|+ R.H,R.H (usat,x2)	simd
+R = R.H,R.H -|+ R.H,R.H (usat,x2) #	simd
+R = R.H,R.H -|- # (ssat)	simd
+R = R.H,R.H -|- # (ssat) #	simd
+R = R.H,R.H -|- # (usat)	simd
+R = R.H,R.H -|- # (usat) #	simd
+R = R.H,R.H -|- R.H,R.H (rnd,savg)	simd
+R = R.H,R.H -|- R.H,R.H (rnd,savg) #	simd
+R = R.H,R.H -|- R.H,R.H (rnd,uavg)	simd
+R = R.H,R.H -|- R.H,R.H (rnd,uavg) #	simd
+R = R.H,R.H -|- R.H,R.H (savg)	simd
+R = R.H,R.H -|- R.H,R.H (savg) #	simd
+R = R.H,R.H -|- R.H,R.H (ssat)	simd
+R = R.H,R.H -|- R.H,R.H (ssat) #	simd
+R = R.H,R.H -|- R.H,R.H (ssat,x2)	simd
+R = R.H,R.H -|- R.H,R.H (ssat,x2) #	simd
+R = R.H,R.H -|- R.H,R.H (uavg)	simd
+R = R.H,R.H -|- R.H,R.H (uavg) #	simd
+R = R.H,R.H -|- R.H,R.H (usat)	simd
+R = R.H,R.H -|- R.H,R.H (usat) #	simd
+R = R.H,R.H -|- R.H,R.H (usat,x2)	simd
+R = R.H,R.H -|- R.H,R.H (usat,x2) #	simd
+R = abs(R) (v)	simd
+R = abs(R) (v) #	simd
+R = align16(R, R)	simd
+R = align16(R, R) #	simd
+R = align24(R, R)	simd
+R = align24(R, R) #	simd
+R = align8(R, R)	simd
+R = align8(R, R) #	simd
+R = all(R != R) (v)	simd
+R = all(R < R) (v)	simd
+R = all(R == R) (v)	simd
+R = all(R > R) (v)	simd
+R = all(R >= R) (v)	simd
+R = alls(R <= R) (v)	simd
+R = alls(R > R) (v)	simd
+R = alls(R >= R) (v)	simd
+R = any(R != R) (v)	simd
+R = any(R < R) (v)	simd
+R = any(R <= R) (v)	simd
+R = any(R == R) (v)	simd
+R = any(R > R) (v)	simd
+R = anys(R < R) (v)	simd
+R = anys(R <= R) (v)	simd
+R = anys(R >= R) (v)	simd
+R = cmp(R != R) (v)	simd
+R = cmp(R == R) (v)	simd
+R = cmp(R > R) (v)	simd
+R = cmps(R < R) (v)	simd
+R = cmps(R <= R) (v)	simd
+R = cmps(R > R) (v)	simd
+R = cmps(R >= R) (v)	simd
+R = negs(R)	simd
+R = negs(R) #	simd
+R = negs(R) (v)	simd
+R = negs(R) (v) #	simd
+R = pack(R.H, R.H)	simd
+R = pack(R.H, R.H) #	simd
+R = packb(RR)	simd
+R = packb(RR) #	simd
+R = packb(RR) (ssat)	simd
+R = packb(RR) (ssat) #	simd
+R = packb(RR) (stou)	simd
+R = packb(RR) (stou) #	simd
+R = packb(RR) (usat)	simd
+R = packb(RR) (usat) #	simd
+R = smax(R, R) (v)	simd
+R = smax(R, R) (v) #	simd
+R = smin(R, R) (v)	simd
+R = smin(R, R) (v) #	simd
+R = umax(R, R) (v)	simd
+R = umax(R, R) (v) #	simd
+R = umin(R, R) (v)	simd
+R = umin(R, R) (v) #	simd
+R.H += R.H * R.H (ssat)	simd
+R.H += R.H * R.H (ssat) #	simd
+R.H += R.H * R.H (ssat,x2)	simd
+R.H += R.H * R.H (ssat,x2) #	simd
+R.H += R.H * R.H (usat)	simd
+R.H += R.H * R.H (usat) #	simd
+R.H += R.H * R.H (usat,x2)	simd
+R.H += R.H * R.H (usat,x2) #	simd
+R.H -= R.H * R.H (ssat)	simd
+R.H -= R.H * R.H (ssat) #	simd
+R.H -= R.H * R.H (ssat,x2)	simd
+R.H -= R.H * R.H (ssat,x2) #	simd
+R.H -= R.H * R.H (usat)	simd
+R.H -= R.H * R.H (usat) #	simd
+R.H -= R.H * R.H (usat,x2)	simd
+R.H -= R.H * R.H (usat,x2) #	simd
+R.H = R.H * R.H (ssat)	simd
+R.H = R.H * R.H (ssat) #	simd
+R.H = R.H * R.H (ssat,x2)	simd
+R.H = R.H * R.H (ssat,x2) #	simd
+R.H = R.H * R.H (usat)	simd
+R.H = R.H * R.H (usat) #	simd
+R.H = R.H * R.H (usat,x2)	simd
+R.H = R.H * R.H (usat,x2) #	simd
+R.H = R.H + #	simd
+R.H = R.H + # #	simd
+R.H = R.H + # (ssat)	simd
+R.H = R.H + # (ssat) #	simd
+R.H = R.H + # (usat)	simd
+R.H = R.H + # (usat) #	simd
+R.H = R.H + R.H	simd
+R.H = R.H + R.H #	simd
+R.H = R.H + R.H (rnd,savg)	simd
+R.H = R.H + R.H (rnd,savg) #	simd
+R.H = R.H + R.H (rnd,uavg)	simd
+R.H = R.H + R.H (rnd,uavg) #	simd
+R.H = R.H + R.H (savg)	simd
+R.H = R.H + R.H (savg) #	simd
+R.H = R.H + R.H (ssat)	simd
+R.H = R.H + R.H (ssat) #	simd
+R.H = R.H + R.H (ssat,x2)	simd
+R.H = R.H + R.H (ssat,x2) #	simd
+R.H = R.H + R.H (uavg)	simd
+R.H = R.H + R.H (uavg) #	simd
+R.H = R.H + R.H (usat)	simd
+R.H = R.H + R.H (usat) #	simd
+R.H = R.H + R.H (usat,x2)	simd
+R.H = R.H + R.H (usat,x2) #	simd
+R.H = R.H - #	simd
+R.H = R.H - # #	simd
+R.H = R.H - # (ssat)	simd
+R.H = R.H - # (ssat) #	simd
+R.H = R.H - # (usat)	simd
+R.H = R.H - # (usat) #	simd
+R.H = R.H - R.H	simd
+R.H = R.H - R.H #	simd
+R.H = R.H - R.H (rnd,savg)	simd
+R.H = R.H - R.H (rnd,savg) #	simd
+R.H = R.H - R.H (rnd,uavg)	simd
+R.H = R.H - R.H (rnd,uavg) #	simd
+R.H = R.H - R.H (savg)	simd
+R.H = R.H - R.H (savg) #	simd
+R.H = R.H - R.H (ssat)	simd
+R.H = R.H - R.H (ssat) #	simd
+R.H = R.H - R.H (ssat,x2)	simd
+R.H = R.H - R.H (ssat,x2) #	simd
+R.H = R.H - R.H (uavg)	simd
+R.H = R.H - R.H (uavg) #	simd
+R.H = R.H - R.H (usat)	simd
+R.H = R.H - R.H (usat) #	simd
+R.H = R.H - R.H (usat,x2)	simd
+R.H = R.H - R.H (usat,x2) #	simd
+R.H = R.H << #	simd
+R.H = R.H << # #	simd
+R.H = R.H << R	simd
+R.H = R.H << R #	simd
+R.H = R.H <<< #	simd
+R.H = R.H <<< # #	simd
+R.H = R.H <<< R	simd
+R.H = R.H <<< R #	simd
+R.H = R.H >< R	simd
+R.H = R.H >< R #	simd
+R.H = R.H >< R (sat)	simd
+R.H = R.H >< R (sat) #	simd
+R.H = R.H >> #	simd
+R.H = R.H >> # #	simd
+R.H = R.H >> R	simd
+R.H = R.H >> R #	simd
+R.H = R.H >>> #	simd
+R.H = R.H >>> # #	simd
+R.H = R.H >>> R	simd
+R.H = R.H >>> R #	simd
+R.H = abs(R.H)	simd
+R.H = abs(R.H) #	simd
+R.H = negs(R.H)	simd
+R.H = negs(R.H) #	simd
+R.H = smax(R.H, R.H)	simd
+R.H = smax(R.H, R.H) #	simd
+R.H = smin(R.H, R.H)	simd
+R.H = smin(R.H, R.H) #	simd
+R.H = umax(R.H, R.H)	simd
+R.H = umax(R.H, R.H) #	simd
+R.H = umin(R.H, R.H)	simd
+R.H = umin(R.H, R.H) #	simd
+RR += R *|*|*|* R (m)	simd
+RR += R *|*|*|* R (m) #	simd
+RR += R *|*|*|* R (u)	simd
+RR += R *|*|*|* R (u) #	simd
+RR += R.H,R.H *|* # (ssat)	simd
+RR += R.H,R.H *|* # (ssat) #	simd
+RR += R.H,R.H *|* # (usat)	simd
+RR += R.H,R.H *|* # (usat) #	simd
+RR += R.H,R.H *|* R.H,R.H (ssat)	simd
+RR += R.H,R.H *|* R.H,R.H (ssat) #	simd
+RR += R.H,R.H *|* R.H,R.H (ssat,x2)	simd
+RR += R.H,R.H *|* R.H,R.H (ssat,x2) #	simd
+RR += R.H,R.H *|* R.H,R.H (usat)	simd
+RR += R.H,R.H *|* R.H,R.H (usat) #	simd
+RR += R.H,R.H *|* R.H,R.H (usat,x2)	simd
+RR += R.H,R.H *|* R.H,R.H (usat,x2) #	simd
+RR += abs(R -|-|-|- R) (usat)	simd
+RR += abs(R -|-|-|- R) (usat) #	simd
+RR -= R.H,R.H *|* # (ssat)	simd
+RR -= R.H,R.H *|* # (ssat) #	simd
+RR -= R.H,R.H *|* # (usat)	simd
+RR -= R.H,R.H *|* # (usat) #	simd
+RR -= R.H,R.H *|* R.H,R.H (ssat)	simd
+RR -= R.H,R.H *|* R.H,R.H (ssat) #	simd
+RR -= R.H,R.H *|* R.H,R.H (ssat,x2)	simd
+RR -= R.H,R.H *|* R.H,R.H (ssat,x2) #	simd
+RR -= R.H,R.H *|* R.H,R.H (usat)	simd
+RR -= R.H,R.H *|* R.H,R.H (usat) #	simd
+RR -= R.H,R.H *|* R.H,R.H (usat,x2)	simd
+RR -= R.H,R.H *|* R.H,R.H (usat,x2) #	simd
+RR = R *|*|*|* # (m)	simd
+RR = R *|*|*|* # (m) #	simd
+RR = R *|*|*|* R (m)	simd
+RR = R *|*|*|* R (m) #	simd
+RR = R *|*|*|* R (u)	simd
+RR = R *|*|*|* R (u) #	simd
+RR = R +|+|+|+ R	simd
+RR = R +|+|+|+ R #	simd
+RR = R -|-|-|- R	simd
+RR = R -|-|-|- R #	simd
+RR = R,R +|+ R,R (ssat)	simd
+RR = R,R +|+ R,R (ssat) #	simd
+RR = R,R +|+ R,R (usat)	simd
+RR = R,R +|+ R,R (usat) #	simd
+RR = R,R +|- R,R (ssat)	simd
+RR = R,R +|- R,R (ssat) #	simd
+RR = R,R +|- R,R (usat)	simd
+RR = R,R +|- R,R (usat) #	simd
+RR = R,R -|+ R,R (ssat)	simd
+RR = R,R -|+ R,R (ssat) #	simd
+RR = R,R -|+ R,R (usat)	simd
+RR = R,R -|+ R,R (usat) #	simd
+RR = R,R -|- R,R (ssat)	simd
+RR = R,R -|- R,R (ssat) #	simd
+RR = R,R -|- R,R (usat)	simd
+RR = R,R -|- R,R (usat) #	simd
+RR = R.H,R.H *|* # (ssat)	simd
+RR = R.H,R.H *|* # (ssat) #	simd
+RR = R.H,R.H *|* # (usat)	simd
+RR = R.H,R.H *|* # (usat) #	simd
+RR = R.H,R.H *|* R.H,R.H (ssat)	simd
+RR = R.H,R.H *|* R.H,R.H (ssat) #	simd
+RR = R.H,R.H *|* R.H,R.H (ssat,x2)	simd
+RR = R.H,R.H *|* R.H,R.H (ssat,x2) #	simd
+RR = R.H,R.H *|* R.H,R.H (usat)	simd
+RR = R.H,R.H *|* R.H,R.H (usat) #	simd
+RR = R.H,R.H *|* R.H,R.H (usat,x2)	simd
+RR = R.H,R.H *|* R.H,R.H (usat,x2) #	simd
+RR = RR +|+|+|+ R	simd
+RR = RR +|+|+|+ R #	simd
+RR = RR +|+|+|+ RR (rnd,savg)	simd
+RR = RR +|+|+|+ RR (rnd,savg) #	simd
+RR = RR +|+|+|+ RR (rnd,uavg)	simd
+RR = RR +|+|+|+ RR (rnd,uavg) #	simd
+RR = RR +|+|+|+ RR (savg)	simd
+RR = RR +|+|+|+ RR (savg) #	simd
+RR = RR +|+|+|+ RR (ssat)	simd
+RR = RR +|+|+|+ RR (ssat) #	simd
+RR = RR +|+|+|+ RR (ssat,x2)	simd
+RR = RR +|+|+|+ RR (ssat,x2) #	simd
+RR = RR +|+|+|+ RR (uavg)	simd
+RR = RR +|+|+|+ RR (uavg) #	simd
+RR = RR +|+|+|+ RR (usat)	simd
+RR = RR +|+|+|+ RR (usat) #	simd
+RR = RR +|+|+|+ RR (usat,x2)	simd
+RR = RR +|+|+|+ RR (usat,x2) #	simd
+RR = RR +|+|+|- RR (rnd,savg) #	simd
+RR = RR +|+|+|- RR (ssat)	simd
+RR = RR +|+|+|- RR (ssat,x2) #	simd
+RR = RR +|+|+|- RR (uavg)	simd
+RR = RR +|+|+|- RR (usat,x2)	simd
+RR = RR +|+|+|- RR (usat,x2) #	simd
+RR = RR +|+|-|+ RR (rnd,savg) #	simd
+RR = RR +|+|-|+ RR (rnd,uavg) #	simd
+RR = RR +|+|-|+ RR (savg) #	simd
+RR = RR +|+|-|+ RR (ssat)	simd
+RR = RR +|+|-|+ RR (uavg) #	simd
+RR = RR +|+|-|+ RR (usat,x2)	simd
+RR = RR +|+|-|+ RR (usat,x2) #	simd
+RR = RR +|+|-|- RR (rnd,savg) #	simd
+RR = RR +|+|-|- RR (savg)	simd
+RR = RR +|+|-|- RR (ssat) #	simd
+RR = RR +|+|-|- RR (usat)	simd
+RR = RR +|+|-|- RR (usat) #	simd
+RR = RR +|-|+|+ RR (rnd,savg)	simd
+RR = RR +|-|+|+ RR (rnd,savg) #	simd
+RR = RR +|-|+|+ RR (rnd,uavg)	simd
+RR = RR +|-|+|+ RR (rnd,uavg) #	simd
+RR = RR +|-|+|+ RR (savg) #	simd
+RR = RR +|-|+|+ RR (ssat)	simd
+RR = RR +|-|+|+ RR (ssat,x2) #	simd
+RR = RR +|-|+|+ RR (uavg)	simd
+RR = RR +|-|+|+ RR (usat)	simd
+RR = RR +|-|+|+ RR (usat) #	simd
+RR = RR +|-|+|+ RR (usat,x2)	simd
+RR = RR +|-|+|+ RR (usat,x2) #	simd
+RR = RR +|-|+|- RR (rnd,savg)	simd
+RR = RR +|-|+|- RR (rnd,savg) #	simd
+RR = RR +|-|+|- RR (rnd,uavg)	simd
+RR = RR +|-|+|- RR (rnd,uavg) #	simd
+RR = RR +|-|+|- RR (savg)	simd
+RR = RR +|-|+|- RR (savg) #	simd
+RR = RR +|-|+|- RR (ssat)	simd
+RR = RR +|-|+|- RR (ssat,x2) #	simd
+RR = RR +|-|+|- RR (usat,x2)	simd
+RR = RR +|-|+|- RR (usat,x2) #	simd
+RR = RR +|-|-|+ RR (rnd,savg)	simd
+RR = RR +|-|-|+ RR (rnd,savg) #	simd
+RR = RR +|-|-|+ RR (rnd,uavg)	simd
+RR = RR +|-|-|+ RR (ssat)	simd
+RR = RR +|-|-|+ RR (ssat,x2) #	simd
+RR = RR +|-|-|+ RR (uavg)	simd
+RR = RR +|-|-|+ RR (uavg) #	simd
+RR = RR +|-|-|+ RR (usat)	simd
+RR = RR +|-|-|+ RR (usat,x2)	simd
+RR = RR +|-|-|+ RR (usat,x2) #	simd
+RR = RR +|-|-|- RR (savg)	simd
+RR = RR +|-|-|- RR (savg) #	simd
+RR = RR +|-|-|- RR (ssat) #	simd
+RR = RR +|-|-|- RR (ssat,x2)	simd
+RR = RR +|-|-|- RR (ssat,x2) #	simd
+RR = RR +|-|-|- RR (uavg)	simd
+RR = RR +|-|-|- RR (usat)	simd
+RR = RR -|+|+|+ RR (rnd,savg)	simd
+RR = RR -|+|+|+ RR (rnd,savg) #	simd
+RR = RR -|+|+|+ RR (rnd,uavg)	simd
+RR = RR -|+|+|+ RR (rnd,uavg) #	simd
+RR = RR -|+|+|+ RR (savg)	simd
+RR = RR -|+|+|+ RR (savg) #	simd
+RR = RR -|+|+|+ RR (ssat)	simd
+RR = RR -|+|+|+ RR (ssat,x2) #	simd
+RR = RR -|+|+|+ RR (uavg)	simd
+RR = RR -|+|+|+ RR (uavg) #	simd
+RR = RR -|+|+|+ RR (usat) #	simd
+RR = RR -|+|+|- RR (rnd,savg) #	simd
+RR = RR -|+|+|- RR (rnd,uavg) #	simd
+RR = RR -|+|+|- RR (savg)	simd
+RR = RR -|+|+|- RR (ssat) #	simd
+RR = RR -|+|+|- RR (ssat,x2)	simd
+RR = RR -|+|+|- RR (uavg)	simd
+RR = RR -|+|+|- RR (uavg) #	simd
+RR = RR -|+|+|- RR (usat,x2) #	simd
+RR = RR -|+|-|+ RR (rnd,savg) #	simd
+RR = RR -|+|-|+ RR (rnd,uavg)	simd
+RR = RR -|+|-|+ RR (rnd,uavg) #	simd
+RR = RR -|+|-|+ RR (savg) #	simd
+RR = RR -|+|-|+ RR (ssat) #	simd
+RR = RR -|+|-|+ RR (ssat,x2)	simd
+RR = RR -|+|-|+ RR (uavg)	simd
+RR = RR -|+|-|+ RR (uavg) #	simd
+RR = RR -|+|-|+ RR (usat)	simd
+RR = RR -|+|-|+ RR (usat) #	simd
+RR = RR -|+|-|+ RR (usat,x2)	simd
+RR = RR -|+|-|+ RR (usat,x2) #	simd
+RR = RR -|+|-|- RR (rnd,savg)	simd
+RR = RR -|+|-|- RR (savg)	simd
+RR = RR -|+|-|- RR (ssat) #	simd
+RR = RR -|+|-|- RR (ssat,x2)	simd
+RR = RR -|+|-|- RR (uavg)	simd
+RR = RR -|+|-|- RR (uavg) #	simd
+RR = RR -|+|-|- RR (usat,x2)	simd
+RR = RR -|+|-|- RR (usat,x2) #	simd
+RR = RR -|-|+|+ RR (rnd,savg)	simd
+RR = RR -|-|+|+ RR (rnd,savg) #	simd
+RR = RR -|-|+|+ RR (rnd,uavg)	simd
+RR = RR -|-|+|+ RR (ssat)	simd
+RR = RR -|-|+|+ RR (ssat,x2)	simd
+RR = RR -|-|+|+ RR (ssat,x2) #	simd
+RR = RR -|-|+|+ RR (uavg) #	simd
+RR = RR -|-|+|+ RR (usat)	simd
+RR = RR -|-|+|+ RR (usat) #	simd
+RR = RR -|-|+|- RR (rnd,savg)	simd
+RR = RR -|-|+|- RR (rnd,savg) #	simd
+RR = RR -|-|+|- RR (rnd,uavg)	simd
+RR = RR -|-|+|- RR (rnd,uavg) #	simd
+RR = RR -|-|+|- RR (savg)	simd
+RR = RR -|-|+|- RR (ssat)	simd
+RR = RR -|-|+|- RR (ssat) #	simd
+RR = RR -|-|+|- RR (uavg) #	simd
+RR = RR -|-|+|- RR (usat)	simd
+RR = RR -|-|+|- RR (usat) #	simd
+RR = RR -|-|+|- RR (usat,x2)	simd
+RR = RR -|-|+|- RR (usat,x2) #	simd
+RR = RR -|-|-|+ RR (rnd,uavg)	simd
+RR = RR -|-|-|+ RR (savg)	simd
+RR = RR -|-|-|+ RR (ssat)	simd
+RR = RR -|-|-|+ RR (ssat) #	simd
+RR = RR -|-|-|+ RR (ssat,x2)	simd
+RR = RR -|-|-|+ RR (ssat,x2) #	simd
+RR = RR -|-|-|+ RR (uavg)	simd
+RR = RR -|-|-|+ RR (uavg) #	simd
+RR = RR -|-|-|+ RR (usat)	simd
+RR = RR -|-|-|+ RR (usat) #	simd
+RR = RR -|-|-|+ RR (usat,x2) #	simd
+RR = RR -|-|-|- RR (rnd,savg)	simd
+RR = RR -|-|-|- RR (rnd,savg) #	simd
+RR = RR -|-|-|- RR (rnd,uavg)	simd
+RR = RR -|-|-|- RR (rnd,uavg) #	simd
+RR = RR -|-|-|- RR (savg)	simd
+RR = RR -|-|-|- RR (savg) #	simd
+RR = RR -|-|-|- RR (ssat)	simd
+RR = RR -|-|-|- RR (ssat) #	simd
+RR = RR -|-|-|- RR (ssat,x2)	simd
+RR = RR -|-|-|- RR (ssat,x2) #	simd
+RR = RR -|-|-|- RR (uavg)	simd
+RR = RR -|-|-|- RR (uavg) #	simd
+RR = RR -|-|-|- RR (usat)	simd
+RR = RR -|-|-|- RR (usat) #	simd
+RR = RR -|-|-|- RR (usat,x2)	simd
+RR = RR -|-|-|- RR (usat,x2) #	simd
+RR = RR >>> # (rnd, vh)	simd
+RR = RR >>> # (rnd, vh) #	simd
+RR = all(RR != RR) (v)	simd
+RR = all(RR == RR) (v)	simd
+RR = all(RR > RR) (v)	simd
+RR = all(RR >= RR) (v)	simd
+RR = alls(RR < RR) (v)	simd
+RR = alls(RR <= RR) (v)	simd
+RR = alls(RR > RR) (v)	simd
+RR = any(RR != RR) (v)	simd
+RR = any(RR < RR) (v)	simd
+RR = any(RR <= RR) (v)	simd
+RR = any(RR == RR) (v)	simd
+RR = any(RR > RR) (v)	simd
+RR = any(RR >= RR) (v)	simd
+RR = anys(RR < RR) (v)	simd
+RR = anys(RR <= RR) (v)	simd
+RR = anys(RR > RR) (v)	simd
+RR = anys(RR >= RR) (v)	simd
+RR = cmp(RR != RR) (v)	simd
+RR = cmp(RR < RR) (v)	simd
+RR = cmp(RR <= RR) (v)	simd
+RR = cmp(RR == RR) (v)	simd
+RR = cmp(RR > RR) (v)	simd
+RR = cmp(RR >= RR) (v)	simd
+RR = cmps(RR < RR) (v)	simd
+RR = cmps(RR <= RR) (v)	simd
+RR = cmps(RR > RR) (v)	simd
+RR = cmps(RR >= RR) (v)	simd
+RR = mts0(R, R)	simd
+RR = mts0(R, R) #	simd
+RR = mts1(R, R)	simd
+RR = mts1(R, R) #	simd
+RR = unpackb(R) (s)	simd
+RR = unpackb(R) (s) #	simd
+RR = unpackb(R) (u)	simd
+RR = unpackb(R) (u) #	simd

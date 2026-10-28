@@ -9,7 +9,7 @@ takes the ones the compiler emits with the firmware's flags
   the truncating ones do; `R = ftof(R)` rounded to an integral value
   (cf even, df trunc, ef ceil, ff floor), which the compiler emits for
   rintf, truncf, ceilf and floorf, so C's results; `R.l = ftof(R)` (af)
-  and `R = ftof(R.l)` (bf), the `__fp16` conversions, rounding to
+  and `R = ftof(R.l)` (bf), the half-precision conversions, rounding to
   nearest even, the high half left as it was (the compiler's code stores
   the low half only).
 - `fcmp rA, rB` (`3f e5 A4 0B`) and the flag branches `ifeq` .. `ifle`
@@ -28,7 +28,7 @@ takes the ones the compiler emits with the firmware's flags
 - `rH_rL = d[rB+rI<<3]` / `d[rB+rI<<3] = rH_rL`: bit 19 of the plain
   indexed form scales the index by 8 (the compiler's 64-bit `p[1000]`);
   it was added unscaled.
-- `rD = zcmp(rS)` (`80 e1 02 DS`; `__builtin_pi32v2_zcmp`): the sign,
+- `rD = zcmp(rS)` (`80 e1 02 DS`; the zcmp builtin): the sign,
   -1, 0 or 1, as the compiler folds the builtin's constants.
 
 Fields from the vendor assembler; behaviour from the compiler's use and
@@ -131,7 +131,7 @@ index 1405d96f..f4cc8f88 100644
      /// `b0 e0 00 DS`: rD += rS (brev), an add whose carry runs from bit 31 down to bit 0 (FFT
      /// addressing; `__builtin_pi32v2_brevadd`)
      BrevAdd,
-+    /// `80 e1 02 DS`: rD = zcmp(rS), the sign of rS as -1, 0 or 1 (`__builtin_pi32v2_zcmp`, whose
++    /// `80 e1 02 DS`: rD = zcmp(rS), the sign of rS as -1, 0 or 1 (the zcmp builtin, whose
 +    /// constants the compiler folds so: 5, 256, 0x7fffffff to 1, 0 to 0, -1, -256, 0x80000000 to
 +    /// -1; session spec-isa-audit)
 +    Zcmp,
@@ -280,7 +280,7 @@ index 1405d96f..f4cc8f88 100644
 +        let (cpu, _) = run_words(&[0x3f, 0xe5, 0xef, 0x12], 1, |c| c.regs[2] = (-0.5f32).to_bits());
 +        assert_eq!(cpu.regs[1], 0x8000_0000);
 +        let (cpu, _) = run_words(&[0x3f, 0xe5, 0xff, 0x12], 1, |c| c.regs[2] = f32::NAN.to_bits());
-+        assert!(f32::from_bits(cpu.regs[1]).is_nan());
++        assert!(cpu.regs[1] & 0x7fff_ffff > 0x7f80_0000);
 +    }
 +
 +    #[test]
@@ -466,7 +466,7 @@ index 1405d96f..f4cc8f88 100644
      }
  }
  
-+/// IEEE 754 binary16 to binary32 (exact; a NaN keeps its payload's top bits).
++/// IEEE 754 half to single precision (exact; a NaN keeps its payload's top bits).
 +fn f16_to_f32(h: u16) -> f32 {
 +    let sign = ((h >> 15) as u32) << 31;
 +    let exp = ((h >> 10) & 0x1f) as u32;
@@ -484,8 +484,8 @@ index 1405d96f..f4cc8f88 100644
 +    f32::from_bits(bits)
 +}
 +
-+/// IEEE 754 binary32 to binary16, rounding to nearest, ties to even (C's default rounding, which
-+/// the compiler's `__fp16` conversions rely on): overflow gives an infinity, small values
++/// IEEE 754 single to half precision, rounding to nearest, ties to even (C's default rounding, which
++/// the compiler's half-precision conversions rely on): overflow gives an infinity, small values
 +/// subnormals or zero; a NaN stays a quiet NaN.
 +fn f32_to_f16(x: f32) -> u16 {
 +    let b = x.to_bits();
@@ -535,7 +535,7 @@ index 1405d96f..f4cc8f88 100644
      match op {
          7 => (acc + x * y).to_bits(),
          8 => (acc - x * y).to_bits(),
-+        // `R.l = ftof(R)`: the compiler's `__fp16` stores use only the low half (`r1.l = ftof(r1);
++        // `R.l = ftof(R)`: the compiler's half-precision stores use only the low half (`r1.l = ftof(r1);
 +        // h[r0+0] = r1`); the high half is left as it was, as the `.l` moves leave it
 +        0xaf => (d & 0xffff_0000) | f32_to_f16(x) as u32,
          _ => fpu(op, a, b),

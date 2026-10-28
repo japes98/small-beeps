@@ -3205,7 +3205,7 @@ enum Dsp {
     /// `b0 e0 00 DS`: rD += rS (brev), an add whose carry runs from bit 31 down to bit 0 (FFT
     /// addressing; `__builtin_pi32v2_brevadd`)
     BrevAdd,
-    /// `80 e1 02 DS`: rD = zcmp(rS), the sign of rS as -1, 0 or 1 (`__builtin_pi32v2_zcmp`, whose
+    /// `80 e1 02 DS`: rD = zcmp(rS), the sign of rS as -1, 0 or 1 (the zcmp builtin, whose
     /// constants the compiler folds so: 5, 256, 0x7fffffff to 1, 0 to 0, -1, -256, 0x80000000 to
     /// -1; session spec-isa-audit)
     Zcmp,
@@ -3438,7 +3438,7 @@ enum Aud {
     /// `68 e0 X0 DS`: rD.l|h = rS.l|h, X bit 2 the source's high half, bit 3 the destination's;
     /// the other half of rD stays
     HalfMove,
-    /// `74 e0 XY DS`: rD.l|h = sat8(rS.l|h) (s|u), X as HalfMove, Y 1 signed: the half, as a
+    /// `74 e0 XY DS`: rD.l|h = clamp8(rS.l|h) (s|u), X as HalfMove, Y 1 signed: the half, as a
     /// signed number, clamped to -128..127 (s) or 0..255 (u), as sat16 clamps a word
     Sat8Half,
     /// `9c e1 AY DP`: rD = uextra / sextra (Y 1) (rA, p:rP[12:8], l:rP[4:0]), the field as the
@@ -4728,7 +4728,7 @@ mod tests {
         let (cpu, _) = run_words(&[0x3f, 0xe5, 0xef, 0x12], 1, |c| c.regs[2] = (-0.5f32).to_bits());
         assert_eq!(cpu.regs[1], 0x8000_0000);
         let (cpu, _) = run_words(&[0x3f, 0xe5, 0xff, 0x12], 1, |c| c.regs[2] = f32::NAN.to_bits());
-        assert!(f32::from_bits(cpu.regs[1]).is_nan());
+        assert!(cpu.regs[1] & 0x7fff_ffff > 0x7f80_0000);
     }
 
     #[test]
@@ -4869,9 +4869,9 @@ mod tests {
     }
 
     #[test]
-    fn half_moves_and_sat8() {
-        // `68 e0 40 13` r1.l = r3.h, `68 e0 80 24` r2.h = r4.l, `74 e0 01 35` r3.l = sat8(r5.l) (s),
-        // `74 e0 c0 46` r4.h = sat8(r6.h) (u), `68 f0 00 57` r5.l = r7.l # (a pair's head)
+    fn half_moves_and_clamps() {
+        // `68 e0 40 13` r1.l = r3.h, `68 e0 80 24` r2.h = r4.l, `74 e0 01 35` r3.l = clamp8(r5.l) (s),
+        // `74 e0 c0 46` r4.h = clamp8(r6.h) (u), `68 f0 00 57` r5.l = r7.l # (a pair's head)
         let code = [0x68, 0xe0, 0x40, 0x13, 0x68, 0xe0, 0x80, 0x24, 0x74, 0xe0, 0x01, 0x35, 0x74, 0xe0, 0xc0, 0x46];
         let (cpu, _) = run_words(&code, 4, |c| {
             (c.regs[1], c.regs[2], c.regs[3], c.regs[4]) = (0x1111_1111, 0x2222_2222, 0xabcd_0000, 0x9999_0004);
@@ -5981,7 +5981,7 @@ fn fpu(op: u8, a: u32, b: u32) -> u32 {
     }
 }
 
-/// IEEE 754 binary16 to binary32 (exact; a NaN keeps its payload's top bits).
+/// IEEE 754 half to single precision (exact; a NaN keeps its payload's top bits).
 fn f16_to_f32(h: u16) -> f32 {
     let sign = ((h >> 15) as u32) << 31;
     let exp = ((h >> 10) & 0x1f) as u32;
@@ -5999,8 +5999,8 @@ fn f16_to_f32(h: u16) -> f32 {
     f32::from_bits(bits)
 }
 
-/// IEEE 754 binary32 to binary16, rounding to nearest, ties to even (C's default rounding, which
-/// the compiler's `__fp16` conversions rely on): overflow gives an infinity, small values
+/// IEEE 754 single to half precision, rounding to nearest, ties to even (C's default rounding, which
+/// the compiler's half-precision conversions rely on): overflow gives an infinity, small values
 /// subnormals or zero; a NaN stays a quiet NaN.
 fn f32_to_f16(x: f32) -> u16 {
     let b = x.to_bits();
@@ -6159,7 +6159,7 @@ fn fpu_d(op: u8, d: u32, a: u32, b: u32) -> u32 {
     match op {
         7 => (acc + x * y).to_bits(),
         8 => (acc - x * y).to_bits(),
-        // `R.l = ftof(R)`: the compiler's `__fp16` stores use only the low half (`r1.l = ftof(r1);
+        // `R.l = ftof(R)`: the compiler's half-precision stores use only the low half (`r1.l = ftof(r1);
         // h[r0+0] = r1`); the high half is left as it was, as the `.l` moves leave it
         0xaf => (d & 0xffff_0000) | f32_to_f16(x) as u32,
         _ => fpu(op, a, b),
