@@ -2057,6 +2057,28 @@ SR-3 wrote only its barrier-log row.*
     else printed. No spec-side branch was fetched or opened.
   - **Disk:** 14 GB free at the start; 8.5 GB at the lowest.
 
+### Session spec-1027 (the app's answers, clean's two questions, SR-10, Phase B candidates)
+- Date: 2026-10-27 (UTC; the evening of 2026-10-27 local time)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.312 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `541eb13f-b668-464e-8c3f-1afa1d12dab8`,
+  started by `/clear` at 23:42:28Z (banner `source: clear`,
+  `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; the role file says
+  `spec`. 23:43:03Z: `tools/spec-setup.sh`, banner `status: OK`
+  (`84a7e56c…`); main at `fd07f7f5` (#147 to #153 merged);
+  `tools/private-terms.local` exists (not opened). 14 GB free at the
+  start.
+- What it archived: spec-answers-a1's transcript (`6fd5a71c`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS (38 archived
+  transcripts).
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository). Never opened,
+  fetched or searched M-VAVE's stock firmware files or any disassembly of
+  them.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
