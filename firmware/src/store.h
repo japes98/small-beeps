@@ -96,9 +96,9 @@ extern const u8 sb_store_base[], sb_store_size[];
  * hold, and rewrite as often as asked, one payload of up to 3 920 bytes
  * with nothing else stored; beside the base's full store (16 user
  * slots, the selection and the settings, saved in between) and a small
- * payload of its own, 1 664 bytes in every history tools/store.py's
- * model tried. A 4 096-byte payload needs 4 sectors alone and 5 beside
- * the base's full store; 16 sectors hold several (docs/DESIGN-NOTES.md,
+ * payload of its own, 2 444 bytes in every history tools/store.py's
+ * model tried. A 4 096-byte payload needs 4 sectors, alone or beside the
+ * base's full store; 16 sectors keep 12 (docs/DESIGN-NOTES.md,
  * "Each firmware chooses its own store region"). Past what fits a write
  * is refused (STORE_ERR_FULL) before anything is written, or, if the
  * ring's layout leaves no room part way, with the old payload kept.
