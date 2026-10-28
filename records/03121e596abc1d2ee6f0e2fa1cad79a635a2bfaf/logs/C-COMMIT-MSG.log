@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range b44c2ae37001be536964190e20136923ced8124b..03121e596abc1d2ee6f0e2fa1cad79a635a2bfaf
+EXEMPT 4560401e627d (merge) sessions: merge c1027/start into seams/engine (#154)
+OK     83b1c424106c tools: the build refuses a store into its own base register
+EXEMPT 03121e596abc (merge) Merge pull request #158 from japes98/seams/wbcheck
+3 commit(s) checked: PASS
+
+exit status 0

@@ -1,0 +1,5 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/seams_suite.py --build /home/runner/work/small-beeps/small-beeps/out/03121e596abc1d2ee6f0e2fa1cad79a635a2bfaf/build-a --out /home/runner/work/small-beeps/small-beeps/out/03121e596abc1d2ee6f0e2fa1cad79a635a2bfaf/seams
+ownbase: the test build refused; build A passed the check
+seams suite: PASS
+
+exit status 0
