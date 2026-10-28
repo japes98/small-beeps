@@ -11,7 +11,7 @@
 #include "audio.h"
 #include "midi.h"
 
-volatile struct sb_arp_record sb_arp __attribute__((section(".beacon.arp")));
+volatile struct sb_arp_record sb_arp __attribute__((section(".beacon.engine2")));
 
 /* Each rate's step in MIDI clock pulses, in KNOB1's order (arp.h). */
 static const u8 rate_pulses[ARP_RATES] = { 48, 36, 24, 18, 12, 8, 9, 6, 4, 3 };

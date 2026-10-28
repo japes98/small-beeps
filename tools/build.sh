@@ -8,6 +8,7 @@
 #   tools/build.sh image-tag                  print its tag
 #   tools/build.sh build --out DIR [--src-mount PATH] [--define NAME]...
 #                        [--demo plaits] [--src DIR]... [--leave-out FILE]...
+#                        [--platform] [--ld SCRIPT]
 #                                             build in a fresh container,
 #                                             outputs and SHA256SUMS in DIR;
 #                                             --define adds -DNAME (test
@@ -22,7 +23,14 @@
 #                                             firmware/, --leave-out
 #                                             leaves a base source out
 #                                             (since clean-1027, BR-5;
-#                                             docs/BUILDING-ON-SMALL-BEEPS.md)
+#                                             docs/BUILDING-ON-SMALL-BEEPS.md);
+#                                             --platform leaves the base's
+#                                             instrument out (INSTRUMENT,
+#                                             below) and links the platform
+#                                             with the engine from --src
+#                                             (BR-2), --ld with a script of
+#                                             one's own that includes
+#                                             platform.ld
 #   tools/build.sh inside SRC OUT             (runs inside the container)
 #
 # The outputs: app.elf and app.bin (the raw image, linked at 0x02000000),
@@ -46,7 +54,17 @@
 # of the build, so a firmware can replace it or do without it. A
 # firmware built on the base calls this script from the base's folder
 # (docs/BUILDING-ON-SMALL-BEEPS.md).
+#
+# The platform (BR-2): --platform leaves out the base's instrument, the
+# files below, defines SB_ENGINE_EXTERNAL (firmware/src/engine.h) and
+# links with firmware/platform.ld, whose assertions cover only the
+# platform's records; --ld SCRIPT links with a script of one's own
+# instead (in the base or in a --src folder), which includes platform.ld
+# (INCLUDE platform.ld) and asserts its own records.
 set -eu
+
+INSTRUMENT="firmware/src/arp.c firmware/src/core1.S firmware/src/fm.c firmware/src/fm_play.c
+            firmware/src/patches.c firmware/src/saving.c firmware/src/spectrum.c firmware/src/views.c"
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 PLATFORM=linux/amd64
@@ -68,9 +86,14 @@ cmd_image() {
 
 cmd_build() {
     out="" src_mount=/mnt/small-beeps-src defines="" demo="" mounts="" srcs="" leave="" n=0
+    platform="" ldscript=""
     while [ $# -gt 0 ]; do
         case "$1" in
             --out) out=$2; shift 2 ;;
+            --platform) platform=1; shift ;;
+            --ld)
+                [ -f "$2" ] || { echo "build: --ld $2: no such file" >&2; exit 2; }
+                ldscript="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"; shift 2 ;;
             --src)
                 [ -d "$2" ] || { echo "build: --src $2 is not a folder" >&2; exit 2; }
                 d=$(cd "$2" && pwd)
@@ -106,6 +129,30 @@ cmd_build() {
         esac
     done
     [ -n "$out" ] || { echo "build: --out DIR is required" >&2; exit 2; }
+    if [ -n "$platform" ]; then
+        [ -z "$demo" ] || { echo "build: --platform and --demo don't go together" >&2; exit 2; }
+        # shellcheck disable=SC2086
+        leave="$leave $(echo $INSTRUMENT)"
+        defines="$defines SB_ENGINE_EXTERNAL"
+    fi
+    # The linker script as the container sees it: from the source mount,
+    # or from the outside folder (sb-src-N) that holds it.
+    script=firmware/app.ld
+    [ -z "$platform" ] || script=firmware/platform.ld
+    if [ -n "$ldscript" ]; then
+        script=""
+        case "$ldscript" in
+            "$ROOT"/*) script=${ldscript#"$ROOT"/} ;;
+        esac
+        n=0
+        for d in $srcs; do
+            n=$((n + 1))
+            case "$ldscript" in
+                "$d"/*) script=../sb-src-$n/${ldscript#"$d"/} ;;
+            esac
+        done
+        [ -n "$script" ] || { echo "build: --ld must name a file in the base or in a --src folder" >&2; exit 2; }
+    fi
     # The outside folders, beside the source mount (above).
     n=0 outside=""
     for d in $srcs; do
@@ -121,7 +168,7 @@ cmd_build() {
     # shellcheck disable=SC2086
     docker run --rm --platform "$PLATFORM" --network none \
         --user "$(id -u):$(id -g)" -e SB_DEFINES="$defines" -e SB_DEMO="$demo" \
-        -e SB_SRCS="$outside" -e SB_LEAVE_OUT="$leave" \
+        -e SB_SRCS="$outside" -e SB_LEAVE_OUT="$leave" -e SB_LD="$script" \
         -v "$ROOT:$src_mount:ro" $mounts -v "$out:/out" -w "$src_mount" \
         "$tag" sh "$src_mount/tools/build.sh" inside "$src_mount" /out
     cat "$out/SHA256SUMS"
@@ -293,7 +340,7 @@ cmd_inside() {
     fi
     set -x
     # shellcheck disable=SC2086
-    ld -nostdlib --no-undefined --orphan-handling=error -T firmware/app.ld \
+    ld -nostdlib --no-undefined --orphan-handling=error -L firmware -T "${SB_LD:-firmware/app.ld}" \
         -o "$out/app.elf" $objs
     # The raw image is the code, then the initial data, which app.ld loads
     # right after it. This objcopy takes one section at a time, and ld's
@@ -306,7 +353,7 @@ cmd_inside() {
     # is what tools/fwsc.py packs into a .fwsc. Not for a demo.
     if [ -z "${SB_DEMO:-}" ]; then
         ld -nostdlib --no-undefined --orphan-handling=error --defsym=IMAGE_ORIGIN=0x02000120 \
-            -T firmware/app.ld -o "$out/app-pkg.elf" $objs
+            -L firmware -T "${SB_LD:-firmware/app.ld}" -o "$out/app-pkg.elf" $objs
         objcopy -O binary -j .text "$out/app-pkg.elf" "$obj/pkg-text.bin"
         objcopy -O binary -j .data "$out/app-pkg.elf" "$obj/pkg-data.bin"
         cat "$obj/pkg-text.bin" "$obj/pkg-data.bin" > "$out/app-pkg.bin"

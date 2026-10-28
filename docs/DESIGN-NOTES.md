@@ -2890,3 +2890,49 @@ C-SEAMS) and its part below.
   took, its square wave is in the audio, and the FM engine's record
   stays zero (the instrument never started). The instrument's files are
   still linked here; leaving them out is the platform link's (BR-2).
+
+#### The platform without the instrument (BR-2, R-PLAT-1)
+
+- **The platform's files:** boot (`crt0.S`, `start.c`), interrupts
+  (`irq.c`), the tick, the loop and the beacon (`main.c`), input
+  (`input.c`), audio (`audio.c`), the LCD and screen (`lcd.c`, `gfx.c`,
+  `font.c`, `screen.c`), MIDI in and out (`midi.c`, `midi_out.c`), the
+  store (`store.c`), and the test builds' `probe.c`. **The instrument's:**
+  `fm.c`, `fm_play.c`, `patches.c`, `arp.c`, `views.c`, `saving.c`,
+  `spectrum.c`, and for now `core1.S`, whose entry calls the FM engine's
+  core-1 loop (BR-3 makes core 1's start the platform's). `tools/build.sh`
+  lists them once (`INSTRUMENT`). Only `main.c` called the instrument,
+  and since BR-1 it doesn't when built with `SB_ENGINE_EXTERNAL`; the
+  test builds' references are inside their own defines.
+- **`tools/build.sh build --platform`** leaves the instrument's files
+  out, defines `SB_ENGINE_EXTERNAL` and links with
+  `firmware/platform.ld`; the engine comes from `--src` (BR-5). With
+  `--ld SCRIPT` an engine links with a script of its own (in the base or
+  in a `--src` folder) that includes the platform's (`INCLUDE
+  platform.ld`; the build passes `-L firmware`) and asserts its own
+  records; the package link uses the same script.
+- **The linker scripts.** `firmware/platform.ld` is what `app.ld` was,
+  less the instrument: the memory, the sections, the stacks and the
+  assertions about the platform's records. `firmware/app.ld` includes it
+  and asserts the instrument's records. The image is unchanged
+  (`da13d093…`); only the ELF's section names differ.
+- **Where an engine's records go.** The records sit at fixed addresses
+  that the tests (and the app) read, and the FM engine's record sits
+  between the audio record and MIDI's. A platform-only link would slide
+  MIDI's, MIDI out's and the store's records down by its size. So the
+  64 bytes there are now the **engine's slot** (`.beacon.engine0`,
+  `0x01C00590`): kept whether anything fills them or not (the script
+  moves the location counter past them), at most 64 bytes (more and the
+  link fails, as the counter would have to move back), the FM engine's
+  record in the base. After the store's record come the **engine's
+  records** (`.beacon.engine1` to `.beacon.engine4` in that order, then
+  `.beacon.engine`, from `0x01C00870`), as large as they need: the
+  base's interface record and arpeggiator's take the first two, so they
+  stay at `0x01C00870` and `0x01C008D0`; a firmware on the platform alone
+  gets `0x01C00870` for its first.
+- **Tested** (C-SEAMS, case platform): the test engine linked with the
+  platform alone and its own script (which asserts its record at
+  `0x01C00870`). The ELF holds none of the instrument's functions or
+  records, the platform's records are where the base has them, the
+  package link is built too, and the engine case's whole run passes on
+  it. The platform alone is 11 180 bytes of code (the firmware: 52 960).
