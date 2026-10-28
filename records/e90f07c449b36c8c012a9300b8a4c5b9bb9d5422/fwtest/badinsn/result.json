@@ -1,0 +1,27 @@
+{
+  "fwtest": {
+    "version": "0.9.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "test-badinsn.bin",
+    "bytes": 55196,
+    "sha256": "244092cd212591577b4b3376e37466b2cd54146550e2d91379957fa3004cd5b9"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "fault",
+    "detail": "core 0 at pc 0x01c2df46: an instruction the emulated CPU cannot decode",
+    "emulated_ms": "0.742",
+    "instructions": {
+      "core0": 178167,
+      "core1": 2566
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": []
+  },
+  "golden": [],
+  "exit_code": 3
+}

@@ -1,0 +1,60 @@
+105.000 note-on ch 1 key 53 vel 100
+205.093 note-on ch 1 key 53 vel 0
+405.299 note-on ch 1 key 60 vel 100
+405.939 note-on ch 1 key 64 vel 100 (running status)
+406.579 note-on ch 1 key 67 vel 100 (running status)
+605.480 note-on ch 1 key 60 vel 0
+606.120 note-on ch 1 key 64 vel 0 (running status)
+606.760 note-on ch 1 key 67 vel 0 (running status)
+808.569 control-change ch 1 ctrl 16 value 67
+815.822 control-change ch 1 ctrl 16 value 70
+824.526 control-change ch 1 ctrl 16 value 72
+831.779 control-change ch 1 ctrl 16 value 75
+840.483 control-change ch 1 ctrl 16 value 78
+907.214 control-change ch 1 ctrl 17 value 62
+915.918 control-change ch 1 ctrl 17 value 60
+924.622 control-change ch 1 ctrl 17 value 58
+1007.310 control-change ch 1 ctrl 18 value 63
+1016.014 control-change ch 1 ctrl 18 value 62
+1023.268 control-change ch 1 ctrl 18 value 61
+1031.972 control-change ch 1 ctrl 18 value 60
+1039.225 control-change ch 1 ctrl 18 value 59
+1047.929 control-change ch 1 ctrl 18 value 58
+1055.182 control-change ch 1 ctrl 18 value 57
+1063.886 control-change ch 1 ctrl 18 value 56
+1071.140 control-change ch 1 ctrl 18 value 55
+1079.844 control-change ch 1 ctrl 18 value 54
+1208.953 control-change ch 1 ctrl 19 value 73
+1216.206 control-change ch 1 ctrl 19 value 82
+1224.910 control-change ch 1 ctrl 19 value 91
+1232.164 control-change ch 1 ctrl 19 value 100
+1240.868 control-change ch 1 ctrl 19 value 109
+1248.121 control-change ch 1 ctrl 19 value 118
+1256.825 control-change ch 1 ctrl 19 value 127
+1308.740 program-change ch 1 program 1
+1315.993 program-change ch 1 program 2
+1504.893 note-on ch 1 key 69 vel 100
+1604.986 note-on ch 1 key 69 vel 0
+1755.858 control-change ch 1 ctrl 126 value 1
+1854.503 control-change ch 1 ctrl 127 value 0
+2108.366 control-change ch 1 ctrl 16 value 80
+2117.070 control-change ch 1 ctrl 16 value 83
+2124.323 control-change ch 1 ctrl 16 value 85
+2133.027 control-change ch 1 ctrl 16 value 88
+2140.281 control-change ch 1 ctrl 16 value 91
+2148.985 control-change ch 1 ctrl 16 value 93
+2156.238 control-change ch 1 ctrl 16 value 96
+2164.942 control-change ch 1 ctrl 16 value 99
+2172.195 control-change ch 1 ctrl 16 value 101
+2180.899 control-change ch 1 ctrl 16 value 104
+2188.153 control-change ch 1 ctrl 16 value 106
+2196.857 control-change ch 1 ctrl 16 value 109
+2204.110 control-change ch 1 ctrl 16 value 112
+2212.814 control-change ch 1 ctrl 16 value 114
+2220.067 control-change ch 1 ctrl 16 value 117
+2228.771 control-change ch 1 ctrl 16 value 120
+2236.025 control-change ch 1 ctrl 16 value 122
+2244.729 control-change ch 1 ctrl 16 value 125
+2251.982 control-change ch 1 ctrl 16 value 127
+2505.853 note-on ch 1 key 67 vel 100
+2605.946 note-on ch 1 key 67 vel 0

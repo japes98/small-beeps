@@ -1,0 +1,11 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range e1f3f51bc4678dc3d5f54ed28836a7d4a4c5b7f8..e90f07c449b36c8c012a9300b8a4c5b9bb9d5422
+OK     9c4569205203 tools: per-folder compiler flags (BR-11)
+OK     d71f96961e48 docs: EXPOSURE.md, the rest of session clean-1028
+EXEMPT 90aa896ea7dd (merge) tools: merge store/atomic into build/folder-flags
+OK     e67af57a8b5c docs: EXPOSURE.md, #170's CI failure and the probe rerun
+EXEMPT 26cf8cd8a11f (merge) tests: merge store/atomic into build/folder-flags
+OK     3897f21e4612 docs: EXPOSURE.md, clean-1028's last reads and runs
+EXEMPT e90f07c449b3 (merge) Merge pull request #171 from japes98/build/folder-flags
+7 commit(s) checked: PASS
+
+exit status 0
