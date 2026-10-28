@@ -468,3 +468,41 @@ an issue or a pull request against docs/HARNESS.md.
   - fwtest 0.9.0 reaches `tools/fwtest` when its image, published from
     this answer's merge, is pinned.
 - Answered: 2026-10-27, session spec-1027 (spec side)
+
+### SR-11: Where the app area ends, and what an update writes past our image
+- Asked: 2026-10-28, session clean-store-region (firmware side), for the
+  owner's answer that each firmware built on small-beeps chooses its own
+  store region
+- Question: on the FM-1, for a package our packager makes (HW-87 to
+  HW-91: the app area from flash `0x4000`, its area head's length the
+  length of our scrambled app, our flash image ending there), three
+  facts:
+  1. **The app area's end.** Is `0x93FFF` (where the stock layout's app
+     area ends and its VM region begins, HW-80) the last flash offset a
+     firmware's own app area may reach, or does the chip's loader or the
+     stock layout allow an app area past it? HW-87 to HW-93 give the
+     area's start and its length as its area head says, but no fixed end.
+  2. **Flash between our image's end and `0x93FFF`.** Does the chip's
+     loader (`uboot.boot`, HW-92) read, check, decrypt or change flash
+     past the area head's length? Does an update (the running
+     firmware's updater and `ota.bin`, HW-92, or the stock updater
+     installing our package) erase or write flash past the end of the
+     package's flash image, up to `0x93FFF` or beyond, or only the
+     flash image's own sectors?
+  3. **The code window past the area.** Does the window's decryption
+     (HW-84, HW-91) cover flash past the area head's length, so that a
+     region there, written over SPI0, reads differently through the
+     window? (The store never reads through the window; this only says
+     whether anything else could.)
+- Why: a firmware built on small-beeps may now put its store in the app
+  area after its own image (docs/DESIGN-NOTES.md, "Each firmware chooses
+  its own store region"; R-STORE-12), a larger region than the unused
+  three sectors at `0xFC000`. `tools/build.sh` refuses a region that
+  crosses the app area's end; until this is answered it takes the most
+  conservative reading, `0x94000` (HW-80's stock layout), and refuses
+  anything in the VM region, the Bluetooth sector, the stock user patch
+  region and the last sector. Whether a region after the image survives
+  an update (item 2) decides whether BUILDING-ON-SMALL-BEEPS.md can
+  recommend it for data that must survive one; it now says this is
+  open. Read: HW-80, HW-84, HW-87 to HW-94; Q-24, Q-26.
+- Status: open

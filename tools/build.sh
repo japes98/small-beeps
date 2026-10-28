@@ -502,9 +502,12 @@ cmd_inside() {
         echo "FAIL: a store writes back into the register it stores (above; tools/ownbase.pl)" >&2
         exit 1
     fi
+    # A script may INCLUDE others beside it (as one of its own includes
+    # platform.ld from firmware/).
+    ldir=$(dirname "${SB_LD:-firmware/app.ld}")
     set -x
     # shellcheck disable=SC2086
-    ld -nostdlib --no-undefined --orphan-handling=error -L firmware -T "${SB_LD:-firmware/app.ld}" \
+    ld -nostdlib --no-undefined --orphan-handling=error -L firmware -L "$ldir" -T "${SB_LD:-firmware/app.ld}" \
         -o "$out/app.elf" $objs "$obj/libsb_runtime.a"
     # The raw image is the code, then the initial data, which app.ld loads
     # right after it. This objcopy takes one section at a time, and ld's
@@ -517,12 +520,23 @@ cmd_inside() {
     # is what tools/fwsc.py packs into a .fwsc. Not for a demo.
     if [ -z "${SB_DEMO:-}" ]; then
         ld -nostdlib --no-undefined --orphan-handling=error --defsym=IMAGE_ORIGIN=0x02000120 \
-            -L firmware -T "${SB_LD:-firmware/app.ld}" -o "$out/app-pkg.elf" $objs "$obj/libsb_runtime.a"
+            -L firmware -L "$ldir" -T "${SB_LD:-firmware/app.ld}" -o "$out/app-pkg.elf" $objs "$obj/libsb_runtime.a"
         objcopy -O binary -j .text "$out/app-pkg.elf" "$obj/pkg-text.bin"
         objcopy -O binary -j .data "$out/app-pkg.elf" "$obj/pkg-data.bin"
         cat "$obj/pkg-text.bin" "$obj/pkg-data.bin" > "$out/app-pkg.bin"
     fi
     set +x
+    # The store's region, where each link put it (since clean-store-region;
+    # tools/store-region.pl): whole sectors, in the app area after the
+    # image or in the unused region, never over the image, the boot area
+    # or the stock layout's regions past the app area (HW-80). The package
+    # link's image is the longer, by the app area's directory (a demo has
+    # none).
+    for e in "$out/app.elf" "$out/app-pkg.elf"; do
+        [ -f "$e" ] || continue
+        nm "$e" | perl tools/store-region.pl "$(basename "$e")" \
+            || { echo "FAIL: the store's region doesn't fit (above; tools/store-region.pl)" >&2; exit 1; }
+    done
     write_size "$out/app.elf" > "$out/app.size"
     cat "$out/app.size"
     image=$(awk '$1 == "image" { print $2 }' "$out/app.size")

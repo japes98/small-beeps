@@ -114,23 +114,43 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   bytes written and read back and the store's largest payload
   (STORE_FW_MAX) refused as full. After every run tools/store.py's
   reader finds what the firmware does.
-- powercut (R-STORE-11): BR-12's saves that survive a power cut. Four
-  saves, three of them from the base's full store (16 user slots, the
-  selection, the settings) beside the firmware kinds' payloads, started by a key
-  tap (tests/seams/engine's steps 0x80 and up): a 4 096-byte payload
-  rewritten on the wide region test build (SB_TEST_STORE_WIDE, 5
-  sectors); on today's region a 3 400-byte payload rewritten where the
-  ring must copy the old write's parts forward during the rewrite (the
-  case checks it did), a one-part payload rewritten (300 bytes) and a
-  user slot's patch, these two with the head full, so that each takes a
-  new sector and compacts. A run with --flash-log gives the
-  save's flash commands; then for each command a power cut (fwtest's
-  --power-cut) just after it starts, halfway and just before it ends,
-  and one between commands and after the last; and from each cut's
-  flash the firmware starts again (no tap, so it only reads): it finds
-  the old payload or the new one, whole (length and sum), never another;
-  the old until a moment, then the new; the other payloads unchanged;
-  tools/store.py reads the same. Flash images are kept as their SHA-256.
+- powercut (R-STORE-11, R-STORE-12): BR-12's saves that survive a power
+  cut. Five saves, four of them from the base's full store (16 user
+  slots, the selection, the settings) beside the firmware kinds'
+  payloads, started by a key tap (tests/seams/engine's steps 0x80 and
+  up): since clean-store-region in regions of the test engine's own,
+  after its small image (tests/seams/engine/store5.ld and store16.ld,
+  from 0x20000), a 4 096-byte payload rewritten in 5 sectors, and in 16
+  one of eleven 4 096-byte payloads rewritten, after 27 rewrites that
+  leave the ring so full the save must move the head on twice for one
+  part's room (the case checks the model's save did, and that the
+  firmware's flash commands are the model's, one for one); on today's
+  region a 3 400-byte payload rewritten where the ring must copy the old
+  write's parts forward during the rewrite (the case checks it did), a
+  one-part payload rewritten (300 bytes) and a user slot's patch, these
+  two with the head full, so that each takes a new sector and compacts.
+  A run with --flash-log gives the save's flash commands, every one in
+  the build's region (by its ELF's sb_store_base and sb_store_size);
+  then for each command a power cut (fwtest's --power-cut) just after it
+  starts, halfway and just before it ends, and one between commands and
+  after the last; and from each cut's flash the firmware starts again
+  (no tap, so it only reads): it finds the old payload or the new one,
+  whole (length and sum), never another; the old until a moment, then
+  the new; the other payloads unchanged; tools/store.py reads the same.
+  Flash images are kept as their SHA-256.
+- region (R-STORE-12): each firmware chooses its own store region
+  (clean-store-region). The test engine on the platform with its own
+  regions (store5.ld, store16.ld: 5 and 16 sectors from 0x20000, after
+  its small image) builds, both links' check lines naming the region and
+  the image's end, the ELFs' sb_store_base and sb_store_size the
+  script's; the default build's region is today's. Then a script of
+  each of these, in a folder of its own given with --src, is refused,
+  with what is wrong and where it would fit: a region over the image
+  (from 0x6000), one across the app area's end (0x90000, 16 sectors),
+  one in the stock user patch region (0xFA000, 5 sectors: the wide
+  region test build's until now), one off a sector boundary (0x20800)
+  and one of 2 sectors. tools/store-region.pl's every refusal is
+  unit-tested (tests/test_store_region.py).
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -672,8 +692,8 @@ def case_store(a, work, log):
            boot_small=10, boot_small_sum=place_sum(p9))
     # Since BR-12 a rewrite needs room for the old payload and the new
     # one: in today's region a 4 096-byte one is refused before anything
-    # is written, and the old one stays (case powercut rewrites it, on
-    # the wide region test build).
+    # is written, and the old one stays (case powercut rewrites it, in
+    # the test engine's own 5- and 16-sector regions).
     before = state["chip"]
     e, state["chip"], _ = run("3-rewrite-refused", 2)
     expect("3-rewrite-refused", e, st.Image(state["chip"]), p1, p9, put_result=STORE_ERR_FULL, put_len=4096,
@@ -697,6 +717,16 @@ def case_store(a, work, log):
 
 
 # --- powercut -------------------------------------------------------------
+
+# Case powercut's save "several": eleven 4 096-byte payloads of the large
+# kind (the large one, id 7, last), each a pattern of its own.
+SEVERAL_IDS = (0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 7)
+SEVERAL_REWRITES = 27
+
+
+def several_old(i):
+    return pattern(2 if i == LARGE[1] else 30 + SEVERAL_IDS.index(i), 4096)
+
 
 POWERCUT_TAP_MS = 300          # the key tap that starts the save (tests/seams/scripts/powercut.txt)
 POWERCUT_AFTER_MS = 2000       # long enough for the slowest save to end
@@ -726,15 +756,25 @@ def case_powercut(a, work, log):
     with open(script, "w") as f:
         f.write("# tools/seams_suite.py, case powercut: the tap that starts the test engine's save.\n"
                 "%d     key 12 tap 60\n" % POWERCUT_TAP_MS)
-    builds = {"today": os.path.join(work, "build"), "wide": os.path.join(work, "build-wide")}
-    opts = ["--platform", "--src", "tests/seams/engine", "--ld", "tests/seams/engine/engine.ld"]
-    build(builds["today"], log, *opts)
-    build(builds["wide"], log, *opts + ["--define", "SB_TEST_STORE_WIDE"])
-    rec = fw_suite().elf_symbols(os.path.join(builds["today"], "app.elf"))["sb_test_engine"]
+    builds = {"today": os.path.join(work, "build"), "r5": os.path.join(work, "build-r5"),
+              "r16": os.path.join(work, "build-r16")}
+    for which, script_ld in (("today", "engine.ld"), ("r5", "store5.ld"), ("r16", "store16.ld")):
+        build(builds[which], log, "--platform", "--src", "tests/seams/engine", "--ld",
+              "tests/seams/engine/" + script_ld)
+    syms = dict((w, fw_suite().elf_symbols(os.path.join(b, "app.elf"))) for w, b in builds.items())
+    rec = syms["today"]["sb_test_engine"]
+    if any(syms[w]["sb_test_engine"] != rec for w in builds):
+        problems.append("the test engine's record is not in one place in the three builds")
+    regions = {"today": (None, st.SECTORS), "r5": st.TEST_REGIONS[5], "r16": st.TEST_REGIONS[16]}
+    for w, (base, sectors) in regions.items():
+        want = (st.BASE if base is None else base, sectors * st.SECTOR)
+        if (syms[w]["sb_store_base"], syms[w]["sb_store_size"]) != want:
+            problems.append("%s: the ELF's region is 0x%X+0x%X, not 0x%X+0x%X"
+                            % (w, syms[w]["sb_store_base"], syms[w]["sb_store_size"], want[0], want[1]))
     n_rec = 4 * len(ENGINE_FIELDS)
 
-    def full_store(sectors):
-        s = st.Store(sectors=sectors)
+    def full_store(sectors, base=None):
+        s = st.Store(sectors=sectors, base=base)
         for i in range(st.SLOTS):
             s.put(st.PATCH, i, 2, pattern(20 + i, 112))
         s.put(st.SELECTION, 0, 1, bytes([5, 0, 0, 0]))
@@ -742,11 +782,20 @@ def case_powercut(a, work, log):
         return s
 
     # The saves, each but "mid" from the base's full store beside the firmware
-    # kinds' payloads: (name, build, sectors, step, the image before).
-    wide = full_store(st.WIDE_SECTORS)
+    # kinds' payloads: (name, build, the image before).
+    wide = full_store(*st.TEST_REGIONS[5][::-1])
     wide.put_fw(LARGE[0], LARGE[1], 1, pattern(2, 4096))
     wide.put_fw(SMALL[0], SMALL[1], 1, pattern(9, 10))
     wide.put_fw(CONTROL_KIND, 0, 1, bytes([0x83]))
+    # Eleven 4 096-byte payloads in 16 sectors (the worked example), the
+    # large one among them, rewritten in turn 27 times: the ring so full
+    # that the save moves the head on twice for one part's room.
+    several = full_store(*st.TEST_REGIONS[16][::-1])
+    several.put_fw(SMALL[0], SMALL[1], 1, pattern(9, 10))
+    for r in range(len(SEVERAL_IDS) + SEVERAL_REWRITES):
+        i = SEVERAL_IDS[r % len(SEVERAL_IDS)]
+        several.put_fw(LARGE[0], i, 1, several_old(i))
+    several.put_fw(CONTROL_KIND, 0, 1, bytes([0x83]))
     saves = []
     for name, step in (("small", 0x86), ("patch", 0x87)):
         s = full_store(st.SECTORS)
@@ -763,8 +812,9 @@ def case_powercut(a, work, log):
                 fill += 1
             else:
                 s.put_fw(0x84, 0, 1, bytes(room - 24))
-        saves.append((name, "today", st.SECTORS, step, s))
-    saves.insert(0, ("large", "wide", st.WIDE_SECTORS, 0x83, wide))
+        saves.append((name, "today", s))
+    saves.insert(0, ("large", "r5", wide))
+    saves.insert(1, ("several", "r16", several))
     # A large payload in today's region whose rewrite makes the ring copy
     # the old write's parts forward while the new write is under way.
     mid = st.Store()
@@ -772,18 +822,21 @@ def case_powercut(a, work, log):
     for _ in range(4):
         mid.put_fw(LARGE[0], LARGE[1], 1, pattern(1, 3400))
     mid.put_fw(CONTROL_KIND, 0, 1, bytes([0x84]))
-    saves.insert(1, ("mid", "today", st.SECTORS, 0x84, mid))
+    saves.insert(2, ("mid", "today", mid))
     # What each payload is before the save and after it: (kind, id) to the
     # record's (length, sum) fields; the base's patch as STORE_PATCH.
-    olds = {"large": pattern(2, 4096), "mid": pattern(1, 3400), "small": pattern(9, 10),
-            "patch": pattern(20 + 3, 112)}
-    news = {"large": pattern(3, 4096), "mid": pattern(4, 3400), "small": pattern(10, 300),
-            "patch": pattern(12, 112)}
-    fields = {"large": ("boot_large", "boot_large_sum"), "mid": ("boot_large", "boot_large_sum"),
-              "small": ("boot_small", "boot_small_sum"), "patch": ("boot_patch", "boot_patch_sum")}
-    # And the others, which each save leaves as they were.
+    olds = {"large": pattern(2, 4096), "several": several_old(LARGE[1]), "mid": pattern(1, 3400),
+            "small": pattern(9, 10), "patch": pattern(20 + 3, 112)}
+    news = {"large": pattern(3, 4096), "several": pattern(3, 4096), "mid": pattern(4, 3400),
+            "small": pattern(10, 300), "patch": pattern(12, 112)}
+    fields = {"large": ("boot_large", "boot_large_sum"), "several": ("boot_large", "boot_large_sum"),
+              "mid": ("boot_large", "boot_large_sum"), "small": ("boot_small", "boot_small_sum"),
+              "patch": ("boot_patch", "boot_patch_sum")}
+    # And the others, which each save leaves as they were (the other ten
+    # large payloads of "several" read by tools/store.py).
     p23, l1500 = pattern(20 + 3, 112), pattern(1, 1500)
-    unchanged = {"large": {"small": olds["small"], "patch": p23}, "mid": {"small": olds["small"], "patch": None},
+    unchanged = {"large": {"small": olds["small"], "patch": p23}, "several": {"small": olds["small"], "patch": p23},
+                 "mid": {"small": olds["small"], "patch": None},
                  "small": {"large": l1500, "patch": p23}, "patch": {"large": l1500, "small": olds["small"]}}
 
     def fw_run(name, image, flash, *opts):
@@ -802,7 +855,8 @@ def case_powercut(a, work, log):
         return e, chip, out
 
     summary = []
-    for name, which, sectors, step, s in saves:
+    for name, which, s in saves:
+        base, sectors = regions[which]
         image = os.path.join(builds[which], "app.bin")
         pre = os.path.join(work, "%s-in.bin" % name)
         with open(pre, "wb") as f:
@@ -813,13 +867,36 @@ def case_powercut(a, work, log):
         if e["put_result"] != 0 or not e["stepped"]:
             problems.append("%s: the save itself failed (%d)" % (name, e["put_result"]))
             continue
-        lo, hi = st.region_base(sectors), st.REGION_END
+        lo = st.region_base(sectors) if base is None else base
+        hi = lo + sectors * st.SECTOR
         with open(os.path.join(out, "flash-ops.csv")) as f:
             rows = [l.split(",") for l in f.read().splitlines()[1:]]
+        outside = [r for r in rows if not lo <= int(r[3], 16) < hi]
+        if outside:
+            problems.append("%s: %d flash commands outside the region, the first at %s" % (name, len(outside),
+                                                                                      outside[0][3]))
         ops = [(float(r[0]), float(r[1])) for r in rows if lo <= int(r[3], 16) < hi]
         erases = sum(1 for r in rows if lo <= int(r[3], 16) < hi and r[2] != "02")
         if not erases:
             problems.append("%s: the save took no new sector" % name)
+        if name == "several":
+            # The model's save: the head moved on twice for one part's
+            # room, and its commands the firmware's.
+            m = st.Store(s.chip(), sectors, base)
+            m.commands, moves, room = [], [], m._room
+
+            def counted(size, room=room, m=m):
+                n = sum(1 for c in m.commands if c[0] == "erase")
+                room(size)
+                moves.append(sum(1 for c in m.commands if c[0] == "erase") - n)
+            m._room = counted
+            m.put_fw(LARGE[0], LARGE[1], 1, pattern(3, 4096))
+            if max(moves) < 2:
+                problems.append("several: the model's save never moved the head on twice (%s)" % moves)
+            fw_cmds = [("program" if r[2] == "02" else "erase", int(r[3], 16)) for r in rows]
+            if fw_cmds != [(c[0], c[1]) for c in m.commands]:
+                problems.append("several: the firmware's %d flash commands are not the model's %d"
+                                % (len(fw_cmds), len(m.commands)))
         points = powercut_points(ops)
         if name == "mid":
             # The old write's parts copied forward during the rewrite (its
@@ -839,7 +916,7 @@ def case_powercut(a, work, log):
                 f.write(cut)
             b, _, _ = fw_run("%s-next-%03d" % (name, i), image, cut_in, "--ms", str(POWERCUT_BOOT_MS))
             os.remove(cut_in)
-            img = st.Image(cut, sectors)
+            img = st.Image(cut, sectors, base)
             return t, b, img
 
         seen = []
@@ -865,6 +942,10 @@ def case_powercut(a, work, log):
                 m = img.get_fw(*(SMALL if name == "small" else LARGE))
             if (m[1] if m else None) != (new if want[got] == "new" else old):
                 problems.append("%s: cut at %.3f ms, tools/store.py reads otherwise" % (name, t))
+            if name == "several":
+                for i in SEVERAL_IDS:
+                    if i != LARGE[1] and img.get_fw(LARGE[0], i) != (1, several_old(i)):
+                        problems.append("several: cut at %.3f ms, payload 0x%02x/%d changed" % (t, LARGE[0], i))
         if seen != sorted(seen, key=lambda k: k == "new") or (seen and seen[-1] != "new"):
             problems.append("%s: not the old payload until a moment and then the new" % name)
         first_new = next((i for i, k in enumerate(seen) if k == "new"), len(seen))
@@ -872,6 +953,60 @@ def case_powercut(a, work, log):
                        % (name, len(ops), erases, ", %d old parts copied" % copies if name == "mid" else "",
                           len(points), first_new, len(seen) - first_new))
     print("powercut: %s; never neither, never a mix; tools/store.py agrees" % "; ".join(summary))
+    return problems
+
+
+# --- region ---------------------------------------------------------------
+
+REGION_REFUSALS = (
+    ("over-image", 0x6000, 0x5000, "overlaps the image, which ends at chip offset"),
+    ("across-end", 0x90000, 0x10000, "crosses the end of the app area at 0x94000"),
+    ("user-patch", 0xFA000, 0x5000, "overlaps the stock firmware's user patch region"),
+    ("unaligned", 0x20800, 0x5000, "STORE_BASE 0x20800 is not on a 4 KiB sector boundary"),
+    ("too-small", 0x20000, 0x2000, "STORE_SIZE 0x2000 is 2 sectors; the store needs 3 at least"),
+)
+
+
+def case_region(a, work, log):
+    import store as st
+    problems = []
+    opts = ["--platform", "--src", "tests/seams/engine"]
+    for name, script_ld, (base, sectors) in (("default", "engine.ld", (st.BASE, st.SECTORS)),
+                                              ("r5", "store5.ld", st.TEST_REGIONS[5]),
+                                              ("r16", "store16.ld", st.TEST_REGIONS[16])):
+        b = os.path.join(work, name)
+        _, out = build(b, log, *opts + ["--ld", "tests/seams/engine/" + script_ld])
+        for elf in ("app.elf", "app-pkg.elf"):
+            m = re.search(r"^%s: store region 0x([0-9A-F]+) to 0x([0-9A-F]+), (\d+) sectors \(the image ends at "
+                          r"0x([0-9A-F]+)\)$" % re.escape(elf), out, re.M)
+            if not m or (int(m.group(1), 16), int(m.group(3))) != (base, sectors):
+                problems.append("%s: %s's check line is not the region's" % (name, elf))
+            elif int(m.group(4), 16) >= base:
+                problems.append("%s: the image ends after the region begins" % name)
+            sy = fw_suite().elf_symbols(os.path.join(b, elf))
+            if (sy["sb_store_base"], sy["sb_store_size"]) != (base, sectors * st.SECTOR):
+                problems.append("%s: %s's sb_store_base and sb_store_size are not the script's" % (name, elf))
+    refused = []
+    for name, base, size, want in REGION_REFUSALS:
+        d = os.path.join(work, "ld-" + name)
+        os.makedirs(d)
+        with open(os.path.join(d, "region.ld"), "w") as f:
+            f.write("/* tools/seams_suite.py, case region: a region the build must refuse. */\n"
+                    "STORE_BASE = 0x%X;\nSTORE_SIZE = 0x%X;\n\nINCLUDE platform.ld\n" % (base, size))
+        rc, out = build(os.path.join(work, name), log, *opts + ["--src", d, "--ld", os.path.join(d, "region.ld")],
+                        check=False)
+        if rc == 0:
+            problems.append("%s: a region at 0x%X, 0x%X bytes, was not refused" % (name, base, size))
+            continue
+        if "FAIL: the store's region doesn't fit" not in out or not re.search(
+                r"^app\.elf: store region: .*%s" % re.escape(want), out, re.M):
+            problems.append("%s: refused without saying \"%s\"" % (name, want))
+        if not re.search(r"^app\.elf: store region: where it would fit: .*from 0x[0-9A-F]+ to 0x[0-9A-F]+ at the latest",
+                         out, re.M):
+            problems.append("%s: no place where it would fit" % name)
+        refused.append(name)
+    print("region: the test engine built in today's region and in 5 and 16 sectors from 0x20000; refused, each saying"
+          " why and where it would fit: %s" % ", ".join(refused))
     return problems
 
 
@@ -885,6 +1020,7 @@ CASES = [
     ("rawout", case_rawout),
     ("store", case_store),
     ("powercut", case_powercut),
+    ("region", case_region),
 ]
 
 

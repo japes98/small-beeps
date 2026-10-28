@@ -17,7 +17,7 @@ Everything here is MIT-licensed, like the rest of small-beeps: keep its
 described in more depth in docs/DESIGN-NOTES.md, "Seams for firmwares
 built on small-beeps", and their requirements are in docs/REQUIREMENTS.md
 (R-ENG-1, R-PLAT-1, R-CORE-1, R-RT-1, R-MIDI-8, R-MIDIOUT-9, R-STORE-10, R-STORE-11,
-R-BUILD-3, R-BUILD-4, R-BUILD-5).
+R-STORE-12, R-BUILD-3, R-BUILD-4, R-BUILD-5).
 
 ## 1. Set up
 
@@ -144,16 +144,120 @@ until the new one is written and read back, so a rewrite needs room for
 both. Write from your serve, never from the block callback (a write
 takes the flash for some milliseconds).
 
-How much fits: the store's region today is three sectors (12 KiB). With
-nothing else in it, it holds and rewrites one payload of up to 3 920
-bytes; beside the base's own full store (its 16 user slots, the
-selection and the settings) about 1.6 KB. `store_put` returns
+How much fits: by default the store's region is three sectors (12 KiB).
+With nothing else in it, it holds and rewrites one payload of up to
+3 920 bytes; beside the base's own full store (its 16 user slots, the
+selection and the settings) about 2.4 KB. `store_put` returns
 `STORE_ERR_FULL` past what fits, before writing anything, and what was
-there stays. A 4 096-byte payload needs a larger region: 4 sectors if you
-store nothing else, 5 beside the base's full store; where it goes on a
-unit is not decided yet (docs/DESIGN-NOTES.md, clean-1028).
-`store_reset()` voids everything (a factory reset). docs/STORE-FORMAT.md
-has the bytes.
+there stays. For more, choose a larger region (below). `store_reset()`
+voids everything (a factory reset). docs/STORE-FORMAT.md has the bytes.
+
+**Where the store goes.** The store's region is yours to choose (R-STORE-12).
+By default it is the three sectors at `0xFC000` to `0xFEFFF`, which the
+stock layout leaves unused (HW-80); the stock firmware's user patch
+region below it (`0xEA000` to `0xFBFFF`) is never touched. To choose
+another, set the symbol pair `STORE_BASE` (a chip offset) and
+`STORE_SIZE` (bytes) in your linker script, before it includes the
+platform's:
+
+```
+/* src/my.ld */
+STORE_BASE = 0x84000;     /* 16 sectors, 0x84000 to 0x93FFF */
+STORE_SIZE = 0x10000;
+
+INCLUDE platform.ld
+
+ASSERT(my_record == 0x01C00870, "my record must follow the store's")
+```
+
+The store's code is the same in any region; it reads the pair as link
+symbols (`sb_store_base` and `sb_store_size`, which `nm app.elf` shows).
+The build checks the region on both links (the raw image and the
+package's, whose image is 0x120 bytes longer) and prints it, here for an
+image of about 110 KiB:
+
+```
+app.elf: store region 0x84000 to 0x93FFF, 16 sectors (the image ends at 0x1F7C7)
+app-pkg.elf: store region 0x84000 to 0x93FFF, 16 sectors (the image ends at 0x1F8E7)
+```
+
+It refuses a region, saying what is wrong and where one of that size
+would fit, if it:
+
+- doesn't start on a 4 KiB sector boundary, or isn't whole sectors;
+- is smaller than 3 sectors (the store's minimum) or larger than 128
+  (`STORE_SECTORS_MAX`, what the store keeps track of);
+- overlaps your image (it starts at chip offset `0x4000`), or the boot
+  area below it;
+- crosses the end of the app area at `0x94000`, or lies past it in the
+  stock layout: the VM region (`0x94000` to `0xE8FFF`), the Bluetooth
+  sector, the stock user patch region, or the chip's last sector (its
+  per-unit key, which must never be erased).
+
+So a region goes either in the app area after your image, or in the
+unused three sectors. `0x94000` is where the stock layout's app area
+ends (HW-80); the hardware facts give the app area's start but no fixed
+end, so this is the conservative reading until SR-11 is answered. For
+example, 5 sectors from `0x10000` with the same image:
+
+```
+app.elf: store region: the region (0x10000 to 0x14FFF) overlaps the image, which ends at chip offset 0x1F7C7: start it at 0x20000 or later
+app.elf: store region: where it would fit: a region of 5 sectors fits in the app area after the image, from 0x20000 to 0x8F000 at the latest; the unused region 0xFC000 to 0xFEFFF holds 3 (the default, STORE_BASE 0xFC000, STORE_SIZE 0x3000)
+FAIL: the store's region doesn't fit (above; tools/store-region.pl)
+```
+
+How large: saves are atomic, so a rewrite needs room for the old payload
+and the new one beside everything else live. The rule: everything live
+plus the new payload's records must fit in the region's sectors but one
+(the ring keeps one free to move on), each sector holding 4 080 bytes
+of records, a part's record (512 bytes for a full one) never split
+across two; a 4 096-byte payload is 9 parts, 4 288 bytes as records. In
+practice, from the store's model (`tools/store.py`) over random
+histories:
+
+| Region | One payload, alone: the largest | One payload beside the base's full store | 4 096-byte payloads, each rewritable: alone (beside the base's full store) |
+|-------:|-----:|-----:|-----:|
+| 3 sectors (the default) | 3 920 bytes | 2 444 bytes | none |
+| 4 sectors | 5 396 | 4 284 | 1 (1) |
+| 5 sectors | 5 904 (the most a payload takes) | 5 904 | 2 (2) |
+| 16 sectors | 5 904 | 5 904 | 12 (11) |
+
+**A worked example: 16 sectors for several 4 096-byte records.** Say your
+firmware keeps eight 4 096-byte records (kinds `0x80`, ids 0 to 7: a
+bank of samples, say) and rewrites any of them at any time. Today's
+three sectors can't rewrite even one. Sixteen sectors (64 KiB) keep
+twelve, each rewritable, so eight leaves room to grow. Put them where
+your image can grow into the space below them: the highest place in the
+app area, `0x84000` to `0x93FFF` (the script above), leaves your image
+room to grow to 512 KiB (`0x4000` to `0x83FFF`); the build will refuse
+it the day the image reaches the store. Everything else is as before:
+
+```c
+for (id = 0; id < 8; id++)
+    n = store_get(0x80, id, rec, sizeof rec, &version);   /* at start-up */
+r = store_put(0x80, id, 1, rec, 4096);                    /* from your serve */
+```
+
+A larger region costs some time: `store_init` reads every sector, and
+those holding your kinds' records three times, so with eleven 4 096-byte
+payloads in 16 sectors it takes 18 ms (in fwtest; 2.2 ms for one in 5
+sectors, 1.1 ms for today's three holding the base's records and two
+small payloads). Call it once, in your init, before the audio starts.
+And a save in a nearly full region may move the ring on several sectors
+(an erase each, up to 12 ms on the chip, HW-77) before it has room. Three
+things to know about a region in the app area:
+
+- It is yours from the first start: the store finds it erased (or
+  holding what it holds) and formats sectors as it needs them. Moving the
+  region later starts an empty store; nothing moves your data for you.
+- Your own `.fwsc` package writes nothing past your image (section 6),
+  but whether an update erases the rest of the app area is not yet known
+  (SR-11). Until it is answered, treat a store there as surviving your
+  own builds in fwtest and the app, not yet as surviving an update on a
+  unit.
+- The stock firmware's package covers the whole app area (`0x00000` to
+  `0x93FFF`, HW-80), so returning a unit to the stock firmware erases a
+  store there; the default region survives it.
 
 ## 4. Your records in RAM
 

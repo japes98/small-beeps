@@ -26,16 +26,19 @@ class StoreFormatTest(unittest.TestCase):
 
     def test_the_tool_and_the_firmware_agree_on_the_layout(self):
         h, c, ld = source("src/store.h"), source("src/store.c"), source("platform.ld")
-        for name, value in (("STORE_BASE", st.BASE), ("STORE_SIZE", st.SIZE), ("STORE_SECTOR", st.SECTOR),
+        for name, value in (("STORE_SECTOR", st.SECTOR), ("STORE_SECTORS_MIN", st.SECTORS_MIN),
+                            ("STORE_SECTORS_MAX", st.SECTORS_MAX),
                             ("STORE_PAGE", st.PAGE), ("STORE_SLOTS", st.SLOTS),
                             ("STORE_MAX_PAYLOAD", st.MAX_PAYLOAD), ("STORE_PATCH", st.PATCH),
                             ("STORE_SELECTION", st.SELECTION), ("STORE_SETTINGS", st.SETTINGS),
                             ("STORE_RESET", st.RESET)):
-            # The shipping region's, not the wide region test build's (BR-12).
-            m = re.search(r"#define %s\s+(0x[0-9A-Fa-f]+|\d+)u" % name, h.split("#else", 1)[-1]
-                          if name in ("STORE_BASE", "STORE_SIZE") else h)
+            m = re.search(r"#define %s\s+(0x[0-9A-Fa-f]+|\d+)u" % name, h)
             self.assertIsNotNone(m, name)
             self.assertEqual(int(m.group(1), 0), value, name)
+        # Since clean-store-region the region is the link's: platform.ld's
+        # defaults, today's, unless a firmware's script sets them first.
+        for name, value in (("STORE_BASE", st.BASE), ("STORE_SIZE", st.SIZE)):
+            self.assertIn("%s = DEFINED(%s) ? %s : 0x%X;" % (name, name, name, value), ld)
         for name, value in (("SECTOR_MAGIC", st.SECTOR_MAGIC), ("RECORD_MAGIC", st.RECORD_MAGIC),
                             ("HEADER", st.HEADER), ("BLOCK", st.BLOCK), ("FORMAT", st.FORMAT),
                             ("CUT_PARAM", st.CUT_PARAM)):
@@ -45,7 +48,6 @@ class StoreFormatTest(unittest.TestCase):
         # The image's window ends where the stock firmware's user patch
         # region begins (HW-5: window offset n is chip offset 0x4000 + n).
         self.assertIn("LENGTH = 0x%X - 0x4000" % st.USER_REGION[0], ld)
-        self.assertIn("STORE_BASE = 0x%X;" % st.BASE, ld)
         # HW-80: since M8a the unused region, out of the boot area, the
         # Bluetooth sector, the stock user patch region and the per-unit
         # last sector.
@@ -207,11 +209,12 @@ class FirmwareKindsTest(unittest.TestCase):
             m = re.search(r"#define %s\s+(0x[0-9A-Fa-f]+|\d+)u" % name, h)
             self.assertIsNotNone(m, name)
             self.assertEqual(int(m.group(1), 0), value, name)
-        # The wide region test build's region (BR-12): WIDE_SECTORS ending
-        # where today's ends.
-        wide = re.search(r"#if defined\(SB_TEST_STORE_WIDE\)(.*?)#else", h, re.S).group(1)
-        self.assertIn("#define STORE_BASE       0x%Xu" % st.region_base(st.WIDE_SECTORS), wide)
-        self.assertIn("#define STORE_SIZE       0x%Xu" % (st.WIDE_SECTORS * st.SECTOR), wide)
+        # The test engine's own regions (clean-store-region), set as a
+        # firmware built on the base sets its own.
+        for n, (base, sectors) in st.TEST_REGIONS.items():
+            with open(os.path.join(ROOT, "tests", "seams", "engine", "store%d.ld" % n)) as f:
+                ld = f.read()
+            self.assertIn("STORE_BASE = 0x%X;\nSTORE_SIZE = 0x%X;\n\nINCLUDE engine.ld" % (base, sectors * st.SECTOR), ld)
 
     def test_a_payload_in_parts_reads_back_whole(self):
         s = st.Store()
@@ -228,13 +231,15 @@ class FirmwareKindsTest(unittest.TestCase):
         """Every state a cut can leave during the save `put` makes from
         `before`: each payload in `old` and `new` ((kind, id) to (version,
         bytes) or None; a base kind's id below 0x100) reads old or new,
-        whole; the old until a moment, then the new."""
-        s = st.Store(before, sectors)
+        whole; the old until a moment, then the new. sectors: a count
+        (today's place) or (count, base)."""
+        sectors, base = sectors if isinstance(sectors, tuple) else (sectors, None)
+        s = st.Store(before, sectors, base)
         s.commands = []
         put(s)
         seen = []
         for i, done, chip in st.cut_states(before, s.commands, step):
-            img = st.Image(chip, sectors)
+            img = st.Image(chip, sectors, base)
             now = []
             for key in old:
                 kind, ident = key
@@ -268,9 +273,11 @@ class FirmwareKindsTest(unittest.TestCase):
         self.assertGreater(len(copies), 0, "no old part copied forward during the rewrite")
 
     def test_a_4096_byte_rewrite_beside_the_full_store_cut_anywhere(self):
-        # The wide region: the base's full store, then 4 096 bytes rewritten
-        # until a rewrite takes a new sector and compacts; every 4th byte.
-        s = st.Store(sectors=st.WIDE_SECTORS)
+        # A 5-sector region after the image (the test engine's): the base's
+        # full store, then 4 096 bytes rewritten until a rewrite takes a new
+        # sector and compacts; every 4th byte.
+        base, sectors = st.TEST_REGIONS[5]
+        s = st.Store(sectors=sectors, base=base)
         for i in range(16):
             s.put(st.PATCH, i, 2, patch(i))
         s.put(st.SELECTION, 0, 1, b"\x05\0\0\0")
@@ -279,9 +286,35 @@ class FirmwareKindsTest(unittest.TestCase):
         s.put_fw(0x80, 7, 1, bytes([2]) * 4096)
         old = {(0x80, 7): (1, bytes([2]) * 4096), (st.PATCH, 3): (2, patch(3))}
         new = {(0x80, 7): (1, bytes([3]) * 4096), (st.PATCH, 3): (2, patch(3))}
-        commands = self._cut_everywhere(st.WIDE_SECTORS, s.chip(),
+        commands = self._cut_everywhere((sectors, base), s.chip(),
                                         lambda t: t.put_fw(0x80, 7, 1, bytes([3]) * 4096), old, new, step=4)
         self.assertTrue(any(c[0] == "erase" for c in commands))
+
+    def test_one_of_several_4096_byte_payloads_rewritten_in_16_sectors_cut_anywhere(self):
+        # The 16-sector region after the image (the worked example's): the
+        # base's full store and four 4 096-byte payloads, then one of them
+        # rewritten until a rewrite takes a new sector; every 8th byte.
+        base, sectors = st.TEST_REGIONS[16]
+        s = st.Store(sectors=sectors, base=base)
+        for i in range(16):
+            s.put(st.PATCH, i, 2, patch(i))
+        for i in range(4):
+            s.put_fw(0x80, i, 1, bytes([10 + i]) * 4096)
+        old = {(0x80, i): (1, bytes([10 + i]) * 4096) for i in range(4)}
+        r = 0
+        while True:
+            t = st.Store(s.chip(), sectors, base)
+            t.commands = []
+            t.put_fw(0x80, 2, 1, bytes([40 + r]) * 4096)
+            if any(c[0] == "erase" for c in t.commands):
+                break
+            s, r = t, r + 1
+            old[(0x80, 2)] = (1, bytes([40 + r - 1]) * 4096)
+        new = dict(old)
+        new[(0x80, 2)] = (1, bytes([40 + r]) * 4096)
+        old[(st.PATCH, 5)] = new[(st.PATCH, 5)] = (2, patch(5))
+        self._cut_everywhere((sectors, base), s.chip(), lambda t: t.put_fw(0x80, 2, 1, bytes([40 + r]) * 4096),
+                             old, new, step=8)
 
     def test_a_small_save_cut_anywhere_is_old_or_new(self):
         # A patch and a one-part payload, each saved as the head fills, so
@@ -329,7 +362,7 @@ class FirmwareKindsTest(unittest.TestCase):
         self.assertIsNone(img.get(st.PATCH, 2))
 
     def _beside(self, sectors, size):
-        s = st.Store(sectors=sectors)
+        s = st.Store(sectors=sectors, base=0x20000)
         for i in range(16):
             s.put(st.PATCH, i, 2, patch(i))
         s.put(st.SELECTION, 0, 1, b"\x05\0\0\0")
@@ -337,7 +370,7 @@ class FirmwareKindsTest(unittest.TestCase):
         for r in range(40):
             s.put_fw(0x80, 0, 1, bytes([r]) * size)
             s.put(st.PATCH, r % 16, 2, patch(r % 7))
-        return st.Image(s.chip(), sectors).get_fw(0x80, 0)
+        return st.Image(s.chip(), sectors, 0x20000).get_fw(0x80, 0)
 
     def test_what_the_regions_hold(self):
         # BR-12: a rewrite needs room for the old payload and the new.
@@ -351,11 +384,34 @@ class FirmwareKindsTest(unittest.TestCase):
             t = st.Store()
             for r in range(40):
                 t.put_fw(0x80, 0, 1, bytes([r]) * 3921)
-        # Beside the base's full store, saved in between: 2 316 bytes in
-        # today's; 4 096 needs the wide region's 5 sectors (4 too few).
-        self.assertEqual(self._beside(st.SECTORS, 2316), (1, bytes([39]) * 2316))
+        # Beside the base's full store, saved in between: 2 808 bytes in
+        # today's (2 316 until the ring moved on more than once, since
+        # clean-store-region); 4 096 needs 4 sectors (5 until then).
+        self.assertEqual(self._beside(st.SECTORS, 2808), (1, bytes([39]) * 2808))
         with self.assertRaises(RuntimeError):
-            self._beside(st.SECTORS, 2317)
-        self.assertEqual(self._beside(st.WIDE_SECTORS, 4096), (1, bytes([39]) * 4096))
-        with self.assertRaises(RuntimeError):
-            self._beside(4, 4096)
+            self._beside(st.SECTORS, 2809)
+        self.assertEqual(self._beside(4, 4096), (1, bytes([39]) * 4096))
+        self.assertEqual(self._beside(5, 4096), (1, bytes([39]) * 4096))
+
+    def test_16_sectors_keep_several_4096_byte_payloads(self):
+        # The worked example (docs/BUILDING-ON-SMALL-BEEPS.md): 16 sectors
+        # after the image keep 11 payloads of 4 096 bytes beside the base's
+        # full store, each rewritten in turn, the base's saves between.
+        base, sectors = st.TEST_REGIONS[16]
+        s = st.Store(sectors=sectors, base=base)
+        for i in range(16):
+            s.put(st.PATCH, i, 2, patch(i))
+        s.put(st.SELECTION, 0, 1, b"\x05\0\0\0")
+        s.put(st.SETTINGS, 0, 4, bytes(42))
+        want = {}
+        for r in range(4 * 11):
+            i = r % 11
+            want[i] = bytes([r]) * 4096
+            s.put_fw(0x80, i, 1, want[i])
+            s.put(st.PATCH, r % 16, 2, patch(r % 7))
+        img = st.Image(s.chip(), sectors, base)
+        for i in range(11):
+            self.assertEqual(img.get_fw(0x80, i), (1, want[i]))
+        # The key table holds the parts: 13 payloads beside a rewrite of a
+        # fourteenth would need 126 of its 128 places.
+        self.assertEqual(st.FW_KEYS, 128)

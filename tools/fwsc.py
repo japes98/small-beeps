@@ -39,8 +39,9 @@ the flash directory) over the area as stored, scrambled; the area head's
 over the rest of the area and app.bin's over the app, both plain. The
 flash image covers the boot area and the app area only, so a package
 writes nothing past the app area's end: not the stock user patch region
-(0xEA000, HW-80), not the store (0xFC000). No loader is in it (HW-92,
-HW-93; docs/A1-PLAN.md, "Loaders").
+(0xEA000, HW-80), not the store (by default at 0xFC000; a firmware's own
+region lies after its image, past the area's end too, R-STORE-12). No
+loader is in it (HW-92, HW-93; docs/A1-PLAN.md, "Loaders").
 """
 
 import argparse
