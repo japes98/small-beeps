@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 3746a7bd6ebbacd2bd34fdb203ed69bf65f5f207..84e1abe94c1910ee218abebce9f37a5de9a8edf1
+OK     56e9e5d76c76 docs: building your own firmware on small-beeps
+EXEMPT 4b500096b42a (merge) tools: merge seams/store into seams/guide
+EXEMPT 4b3ae8c0688f (merge) tests: merge seams/store into seams/guide
+OK     9aa189adb46d docs: EXPOSURE.md, the rest of session clean-1027
+OK     eb858ccbb14e docs: EXPOSURE.md, clean-1027's GitHub use in full
+EXEMPT 84e1abe94c19 (merge) Merge pull request #168 from japes98/seams/guide
+6 commit(s) checked: PASS
+
+exit status 0

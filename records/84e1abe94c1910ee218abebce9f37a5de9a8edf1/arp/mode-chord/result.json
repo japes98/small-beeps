@@ -1,0 +1,68 @@
+{
+  "fwtest": {
+    "version": "0.8.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 54496,
+    "sha256": "3ed6846111d561ff9d8d8f7949b92e85202ed7753b3e0c7d97301cf7dd18e016"
+  },
+  "script_sha256": "cb87f1bfe33e1262b41cf2e92842d1cd4e37656c8914537196466fd7c95c402d",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "2709.575",
+    "instructions": {
+      "core0": 10143588,
+      "core1": 4028439
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 477740,
+        "sha256": "43087caf4149f2064f3d4c86abe17725aa1179a966121fe6b1a7fad71545ae08"
+      },
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "ipb.csv",
+        "bytes": 40879,
+        "sha256": "cab00df31e14ef4c95ab1239bce7299d86fc735c0e0149cc19c2bb69302544b7"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 4182,
+        "sha256": "4c1438b30a2e1d40816653cc40bc6fe42f0e6534dffe46c2bb2fad3e185cdd15"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 6426,
+        "sha256": "45edc89cd3690f9358eb677925f88cc0ee6ce3fb7b514aac88b9343ee103fcd4"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "a2a23ebb30a37d3b8f9c18f9807912fe32c949cb2d2ba1f4b41cf4cd39d0cc16"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "23b3ea05333471cc8cedc223608e217deeef87e0c078150c855c3214b1021411"
+      },
+      {
+        "name": "ram-01c008d0-e0-end.bin",
+        "bytes": 224,
+        "sha256": "f6c349b2368ea8fcf1154314ac19be5bee74abeaa4c8e3638c8ff07af4d77936"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
