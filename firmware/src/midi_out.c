@@ -34,6 +34,13 @@ static u32 busy, last_status;
  * offs are dropped too. */
 static u32 dropped_on[16][4];
 
+/* Raw bytes (BR-8): the caller sets the buffer and its length, then
+ * raises raw_req; the poll streams it and answers with raw_ack. */
+volatile struct sb_midi_out_raw_record sb_midi_out_raw;
+static const u8 *volatile raw_buf;
+static volatile u32 raw_len, raw_req, raw_ack;
+static u32 raw_at;
+
 static u32 kind(const struct midi_msg *m)
 {
     return m->status & 0xF0u;
@@ -159,6 +166,63 @@ int midi_out_send(const struct midi_msg *m)
     return 1;
 }
 
+int midi_out_raw(const u8 *buf, u32 len)
+{
+    if (raw_req != raw_ack || !len)
+        return 0;
+    raw_buf = buf;
+    raw_len = len;
+    sb_midi_out_raw.streams++;
+    raw_req = raw_req + 1;        /* last: the poll takes it from here */
+    return 1;
+}
+
+int midi_out_raw_busy(void)
+{
+    return raw_req != raw_ack;
+}
+
+/* Takes the realtime messages out of the queue, the others keeping their
+ * order, into out: their status bytes, at most room. */
+static u32 take_realtime(u8 *out, u32 room)
+{
+    u32 i, w = tail, n = 0;
+
+    for (i = tail; i != head; i++) {
+        const struct midi_msg *m = &queue[i % MIDI_OUT_QUEUE];
+        if (m->status >= 0xF8u && n < room) {
+            out[n++] = m->status;
+            sb_midi_out.messages++;
+            sb_midi_out_raw.realtime++;
+            continue;
+        }
+        if (w != i)
+            queue[w % MIDI_OUT_QUEUE] = *m;
+        w++;
+    }
+    head = w;
+    return n;
+}
+
+/* A stream's next transfer: the realtime messages waiting, then its next
+ * bytes. Its last byte handed on, the caller may use the buffer again. */
+static u32 raw_chunk(void)
+{
+    u32 n = take_realtime(tx_buf, MIDI_OUT_CHUNK), len = raw_len;
+    const u8 *buf = raw_buf;
+
+    while (n < MIDI_OUT_CHUNK && raw_at < len)
+        tx_buf[n++] = buf[raw_at++];
+    sb_midi_out_raw.bytes += n;
+    if (raw_at == len) {
+        raw_at = 0;
+        last_status = 0;          /* the next message carries its status */
+        sb_midi_out_raw.done++;
+        raw_ack = raw_req;
+    }
+    return n;
+}
+
 int midi_out_channel(u32 k, u32 d1, u32 d2)
 {
     struct midi_msg m;
@@ -181,6 +245,11 @@ void midi_out_poll(void)
         }
         JL_UART1->CON0 = UART_ON | UART_RX_DMA | UART_TX_CLEAR;
         busy = 0;
+    }
+    if (raw_req != raw_ack) {
+        /* Raw bytes go first; the queue waits, but for realtime. */
+        n = raw_chunk();
+        goto send;
     }
     if (tail == head) {
         last_status = 0;           /* the wire has gone quiet */
@@ -206,6 +275,7 @@ void midi_out_poll(void)
         tail++;
         sb_midi_out.messages++;
     }
+send:
     JL_UART1->TXADR = (u32)tx_buf;
     JL_UART1->TXCNT = n;           /* last: it starts the transfer (HW-73) */
     busy = 1;

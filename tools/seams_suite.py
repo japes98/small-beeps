@@ -74,6 +74,16 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   first end with F7 and the second cut by 0x90; the work runs in the
   serve; midi_read hands on the clock and the note; MIDI's record counts
   the first message long (past MIDI_SYSEX_LIMIT) and no byte is dropped.
+- rawout (R-MIDIOUT-9): MIDI out's raw bytes, on the same build. At the
+  first whole second the test engine's serve hands MIDI out a System
+  Exclusive message of RAW_LEN (600) bytes; for 300 blocks from then its
+  block callback queues a clock every block and a note on or off every
+  16th (no more than the queue holds while the stream runs). On the wire
+  (fwtest's --midi-out): the 600 bytes in order, nothing inside them but
+  clocks (at least one, so a clock waits for no stream), every note
+  after the F7, the first carrying its status, all of them and every
+  clock sent, none dropped; the stream counted whole and the serve
+  finding it gone.
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -222,7 +232,8 @@ def case_outside(a, work, log):
 ENGINE_FIELDS = ("marker", "inits", "init_ticks", "init_blocks", "blocks", "frames", "serves",
                  "serve_seconds", "presses", "serve_presses", "core1", "core1_jobs", "core1_wrong",
                  "runtime", "sysex_begun", "sysex_ended", "sysex_cut", "sysex_cut_by", "sysex_served",
-                 "sysex_len", "sysex_sum", "sysex_first", "sysex_last", "realtime", "notes")
+                 "sysex_len", "sysex_sum", "sysex_first", "sysex_last", "realtime", "notes",
+                 "raw_started", "raw_done", "out_notes", "out_clocks", "out_refused")
 RUNTIME_RESULT = 1301           # tests/seams/engine/sb_test_runtime.cc
 RUNTIME_SYMBOLS = ("memcpy", "memmove", "memset", "__cxa_pure_virtual", "_ZdlPv")
 CORE1_START_WORD = 0x01c7fff8   # source 126's vector word, core 1's start address (HW-9)
@@ -381,12 +392,75 @@ def case_sysex(a, work, log):
     return problems
 
 
+# --- rawout ---------------------------------------------------------------
+
+RAW_LEN = 600
+RAW_FIELDS = ("streams", "done", "bytes", "realtime")
+
+
+def midi_bytes(run):
+    with open(os.path.join(run, "midi-out.csv")) as f:
+        rows = [l.strip().split(",") for l in f if l.strip()][1:]
+    return [int(r[1], 16) for r in rows]
+
+
+def case_rawout(a, work, log):
+    problems = []
+    b = os.path.join(work, "build")
+    build(b, log, "--platform", "--src", "tests/seams/engine", "--ld", "tests/seams/engine/engine.ld")
+    syms = fw_suite().elf_symbols(os.path.join(b, "app.elf"))
+    rec, raw = syms["sb_test_engine"], syms["sb_midi_out_raw"]
+    run = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), run, log, "--ms", "2300", "--midi-out",
+               "--ram", "0x%08x:%d@end" % (rec, 4 * len(ENGINE_FIELDS)),
+               "--ram", "0x%08x:%d@end" % (raw, 4 * len(RAW_FIELDS)))
+    if r["run"]["outcome"] != "completed" or r["run"].get("midi_out_bytes_dropped"):
+        return ["the run: %s (%s), MIDI out bytes dropped %s" % (
+            r["run"]["outcome"], r["run"].get("detail"), r["run"].get("midi_out_bytes_dropped"))]
+    e = words(ram(run, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS)
+    rw = words(ram(run, raw, 4 * len(RAW_FIELDS)), RAW_FIELDS)
+    if not e["raw_started"] or not e["raw_done"] or e["out_refused"]:
+        problems.append("the stream: started at block %d, found gone at %d, %d queued messages dropped"
+                        % (e["raw_started"], e["raw_done"], e["out_refused"]))
+    if (rw["streams"], rw["done"], rw["bytes"] - rw["realtime"]) != (1, 1, RAW_LEN) or not rw["realtime"]:
+        problems.append("MIDI out's raw record: %s" % rw)
+    wire = midi_bytes(run)
+    want = [0xF0] + [(i * 5 + 1) & 0x7F for i in range(1, RAW_LEN - 1)] + [0xF7]
+    if 0xF0 not in wire or 0xF7 not in wire:
+        return problems + ["no F0 ... F7 on the wire"]
+    s, f = wire.index(0xF0), wire.index(0xF7)
+    inside = wire[s:f + 1]
+    others = [x for x in inside if x != 0xF8]
+    if others != want:
+        problems.append("the raw bytes on the wire are not the 600 sent, in order, with only clocks inside")
+    clocks_inside = len(inside) - len(others)
+    if not clocks_inside:
+        problems.append("no clock inside the stream")
+    notes = [i for i, x in enumerate(wire) if 0x80 <= x <= 0x9F]
+    if notes and notes[0] < f:
+        problems.append("a note's status before the stream's end")
+    after = [x for x in wire[f + 1:] if x != 0xF8]
+    if not after or after[0] < 0x80:
+        problems.append("the first message after the stream has no status byte")
+    with open(os.path.join(run, "midi-out.txt")) as fh:
+        text = fh.read()
+    n_notes = len(re.findall(r"note-o(n|ff) ", text))
+    n_clocks = wire.count(0xF8)
+    if n_notes != e["out_notes"] or n_clocks != e["out_clocks"]:
+        problems.append("on the wire %d notes and %d clocks, queued %d and %d" % (
+            n_notes, n_clocks, e["out_notes"], e["out_clocks"]))
+    print("rawout: %d bytes in order with %d clocks inside; then %d notes, the first with its status;"
+          " %d clocks in all, none dropped" % (len(others), clocks_inside, n_notes, n_clocks))
+    return problems
+
+
 CASES = [
     ("ownbase", case_ownbase),
     ("outside", case_outside),
     ("engine", case_engine),
     ("platform", case_platform),
     ("sysex", case_sysex),
+    ("rawout", case_rawout),
 ]
 
 

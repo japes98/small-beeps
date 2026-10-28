@@ -13,7 +13,11 @@
  * hands over its voices. Since BR-4 its init runs C++ that needs the
  * platform's runtime (sb_test_runtime.cc). Since BR-7 it takes MIDI in
  * and keeps each System Exclusive message's bytes through the SysEx tap
- * (midi.h), up to SYSEX_MAX of them, and its serve sums them.
+ * (midi.h), up to SYSEX_MAX of them, and its serve sums them. Since
+ * BR-8 its serve sends RAW_LEN raw bytes to MIDI out at the first whole
+ * second (a System Exclusive message), while for RAW_BLOCKS blocks from
+ * then its block callback queues a clock every block and a note on or
+ * off every 16th.
  */
 
 #include "audio.h"
@@ -21,6 +25,7 @@
 #include "engine.h"
 #include "input.h"
 #include "midi.h"
+#include "midi_out.h"
 
 #define TEST_ENGINE_MARKER 0x31474E45u   /* "ENG1" in memory order */
 #define HALF_PERIOD        50u           /* frames: about 441 Hz */
@@ -55,6 +60,12 @@ struct sb_test_engine_record {
     u32 sysex_last;
     u32 realtime;       /* realtime messages midi_read handed on */
     u32 notes;          /* note ons it handed on */
+    /* Since BR-8: */
+    u32 raw_started;    /* the block in which the serve handed MIDI out its bytes, or 0 */
+    u32 raw_done;       /* the block in which a serve found them gone, or 0 */
+    u32 out_notes;      /* note ons and offs the block callback queued */
+    u32 out_clocks;     /* clocks it queued */
+    u32 out_refused;    /* of those, the queue dropped */
 };
 
 u32 sb_test_runtime(void);
@@ -72,6 +83,23 @@ static u32 phase;
 static u8 sysex_buf[SYSEX_MAX];
 static u32 sysex_at;
 static volatile u32 sysex_ready;
+
+/* MIDI out's raw bytes: F0, RAW_LEN - 2 data bytes, F7. */
+#define RAW_LEN    600u
+#define RAW_BLOCKS 300u
+static u8 raw[RAW_LEN];
+
+static void queue_out(u8 status, u8 d1, u8 d2, u8 length)
+{
+    struct midi_msg m;
+
+    m.status = status;
+    m.data[0] = d1;
+    m.data[1] = d2;
+    m.length = length;
+    if (!midi_out_send(&m))
+        sb_test_engine.out_refused++;
+}
 
 static void sysex_tap(u32 event, u8 byte)
 {
@@ -152,6 +180,18 @@ void sb_engine_block(s32 *out, u32 frames)
         else if ((m.status & 0xF0u) == MIDI_NOTE_ON)
             sb_test_engine.notes++;
     }
+    /* Clocks and notes queued while the raw bytes go out, and after. */
+    if (sb_test_engine.raw_started && sb_audio.blocks - sb_test_engine.raw_started < RAW_BLOCKS) {
+        u32 k = sb_audio.blocks - sb_test_engine.raw_started;
+
+        queue_out(MIDI_CLOCK, 0, 0, 0);
+        sb_test_engine.out_clocks++;
+        if (k % 16 == 0) {
+            queue_out((u8)(k % 32 ? MIDI_NOTE_OFF : MIDI_NOTE_ON), (u8)(60 + k / 32 % 12), 100, 2);
+            sb_test_engine.out_notes++;
+        }
+    }
+    midi_out_poll();
     for (n = 0; n < frames; n++) {
         s32 s = phase < HALF_PERIOD ? LEVEL : -LEVEL;
 
@@ -174,6 +214,19 @@ void sb_engine_serve(void)
     sb_test_engine.serves++;
     sb_test_engine.serve_seconds = sb_seconds;
     sb_test_engine.serve_presses = sb_test_engine.presses;
+    /* MIDI out's raw bytes, from the first whole second. */
+    if (!sb_test_engine.raw_started && sb_seconds >= 1) {
+        u32 i;
+
+        raw[0] = MIDI_SYSEX;
+        for (i = 1; i < RAW_LEN - 1; i++)
+            raw[i] = (u8)((i * 5 + 1) & 0x7Fu);
+        raw[RAW_LEN - 1] = MIDI_EOX;
+        if (midi_out_raw(raw, RAW_LEN))
+            sb_test_engine.raw_started = sb_audio.blocks;
+    } else if (sb_test_engine.raw_started && !sb_test_engine.raw_done && !midi_out_raw_busy()) {
+        sb_test_engine.raw_done = sb_audio.blocks;
+    }
     /* A whole SysEx message the tap kept: the work on it, here. */
     if (sysex_ready) {
         u32 n = sysex_ready, i, sum = 0;

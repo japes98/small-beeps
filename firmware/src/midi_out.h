@@ -34,6 +34,10 @@
  *   that ends no notes instead. A note on dropped either way has its note
  *   off dropped too, so the far end never holds a note it was not sent
  *   and never misses the end of one it was.
+ * - Since clean-1027 (BR-8) raw bytes too: midi_out_raw() streams a
+ *   buffer through the transmitter as it is (a System Exclusive message,
+ *   say), and the queue's messages wait until it has gone, but for
+ *   realtime ones (below).
  */
 
 #ifndef MIDI_OUT_H
@@ -54,6 +58,33 @@ int midi_out_send(const struct midi_msg *m);
 int midi_out_channel(u32 kind, u32 d1, u32 d2);
 /* Sends what waits, if the wire is free. Engine callback only. */
 void midi_out_poll(void);
+
+/* Raw bytes (since clean-1027, BR-8): sends len bytes from buf through
+ * the transmitter as they are, in transfers of up to MIDI_OUT_CHUNK, one
+ * whenever the wire is free (midi_out_poll, once a block or more). The
+ * queue's messages wait until the last byte has been handed on, except
+ * realtime ones (status 0xF8 and up), which go out between two
+ * transfers, as MIDI 1.0 lets them do even inside System Exclusive; so
+ * they keep their time, a clock's, say. The next message after carries
+ * its status (running status starts again). The queue's policy holds
+ * meanwhile: a long stream can fill it, and then it drops as it always
+ * does (4 096 bytes take 1.3 s of the wire). Returns 1 if it took the
+ * buffer, 0 if the last one is still being sent (or len is 0). The
+ * buffer must stay as it is until midi_out_raw_busy() returns 0. Call
+ * from main's loop (engine.h, sb_engine_serve) or from the block
+ * callback, but from one of them only. */
+int midi_out_raw(const u8 *buf, u32 len);
+int midi_out_raw_busy(void);
+
+/* Raw bytes' counts, for the tests (by its symbol: MIDI out's record
+ * keeps its size, as the store's follows it). */
+struct sb_midi_out_raw_record {
+    u32 streams;        /* buffers taken */
+    u32 done;           /* of which wholly handed on */
+    u32 bytes;          /* raw bytes handed on */
+    u32 realtime;       /* realtime messages sent between a stream's transfers */
+};
+extern volatile struct sb_midi_out_raw_record sb_midi_out_raw;
 
 /* --- The MIDI out record, after MIDI in's (firmware/app.ld) ------------ */
 #define MIDI_OUT_MARKER 0x424F444Du   /* "MDOB" in memory order */

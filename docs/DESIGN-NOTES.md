@@ -3067,3 +3067,44 @@ C-SEAMS) and its part below.
   cut short by a note on is reported cut by 0x90, and the note handed
   on; MIDI's record counts the first long and drops nothing. The
   firmware's own MIDI cases (C-FW-SUITE) check MIDI in is as before.
+
+#### Raw bytes to MIDI out (BR-8, R-MIDIOUT-9)
+
+- **What.** MIDI out sent queued messages of at most two data bytes
+  (M6b). `midi_out_raw(buf, len)` streams any bytes as they are (a
+  System Exclusive message, say): the poll hands the transmitter the
+  next transfer of up to `MIDI_OUT_CHUNK` (12) bytes whenever the last
+  has gone, as it does for messages. `midi_out_raw_busy()` says when the
+  last byte has been handed on and the buffer may change; a second call
+  meanwhile is refused (0).
+- **The queue waits, but for realtime.** A channel message inside a
+  System Exclusive message would end it, so the queue's messages wait
+  until the stream's last byte has been handed on. Realtime messages
+  (a clock, say) are the exception MIDI 1.0 makes: they may go anywhere,
+  even inside System Exclusive. So each transfer of a stream starts with
+  the realtime messages waiting, taken out of the queue (the others keep
+  their order), and a clock keeps its time through a long stream. The
+  stream may hold any status bytes, so the message after it carries its
+  status (running status starts again).
+- **The policy holds meanwhile.** Messages queued during a stream wait
+  under the same rules (merging, the reserve for note offs, dropping):
+  a stream of 4 096 bytes takes 1.3 s of the wire, longer than the
+  queue lasts at a busy rate, so a firmware that sends long streams
+  sends little else meanwhile, or accepts what the policy drops.
+- **Who calls it.** The queue is the block callback's alone (no lock).
+  The stream is handed over through three words the caller writes, the
+  last a sequence number the poll answers, so `midi_out_raw` may be
+  called from main's loop (`sb_engine_serve`, where the work on a SysEx
+  goes, BR-7) or from the block callback, as long as from one of them
+  only.
+- **Its counts** are in a record of their own (`sb_midi_out_raw`, found
+  by its symbol): MIDI out's record ends where the store's begins
+  (`0x01C00780`), so it can't grow.
+- **The image changes** (code 53 340 bytes, from 53 068).
+- **Tested** (C-SEAMS, case rawout) on the test engine linked with the
+  platform alone: at the first whole second its serve hands MIDI out a
+  600-byte System Exclusive message while its block callback queues a
+  clock every block and a note every 16th. On the wire: the 600 bytes in
+  order, nothing inside them but clocks (about 200), every note after
+  the F7, the first with its status, and every clock and note sent. The
+  firmware's own MIDI out cases (C-FW-SUITE) check MIDI out is as before.
