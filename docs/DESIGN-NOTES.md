@@ -2764,3 +2764,45 @@ our own, none a factory name.
   power below 300 Hz, the pad's attack), all 16 voices without an
   underrun, and the golden SHA-256 of each run. The WAVs are in
   `~/<top>/drop/presets/` (65 to 70, INDEX.md).
+
+### 2026-10-27 clean-1027: seams for firmwares built on small-beeps
+
+small-beeps is meant to be a base other people build their own firmwares
+on. A firmware built on it asked, in general terms, for seams: places
+where it can add its own engine and use the platform's parts without
+changing the base's files. Each seam here is general, for any such
+firmware; docs/BUILDING-ON-SMALL-BEEPS.md says how to use them. Each
+pull request adds one, with its tests in `tools/seams_suite.py` (check
+C-SEAMS) and its part below.
+
+#### The write-back store check (R-BUILD-3)
+
+- **What.** A store with write-back, `[++rN=k] = rN` or `[rN++=k] = rN`
+  (also byte and half-word stores, k a number or a register), stores its
+  own base register. Whether the chip stores the base's value from
+  before the increment or after it is open (SR-10, the spec side's).
+  Until it is answered no image of ours may hold one, so the build
+  refuses it.
+- **How.** `tools/build.sh` disassembles every object (`objdump -d`,
+  which shows code sections only) before linking, and
+  `tools/ownbase.pl` flags each such store with the object, the
+  function, the offset and the instruction. Not the linked image: its
+  RAM part holds the constants after the code, which would decode as
+  instructions. The matcher is unit-tested on the disassembler's own
+  text (`tests/test_ownbase.py`), and C-SEAMS builds a test image
+  holding one (`SB_TEST_OWNBASE`, an inline store in `probe.c`) and
+  checks the build is refused.
+- **Today's firmware holds none**, at #126's head and at every seam's:
+  the shipping image and its package link pass the check, and so does
+  every test build CI makes. The image is unchanged by the check (the
+  same `app.bin`).
+- **The one exception.** The Plaits demo's measurement builds with the
+  hardware float instructions (`PLAITS_HWFLOAT`, M4b) hold 68 such
+  stores, all in the vendored Plaits (17 objects), where the compiler
+  writes them for float stores. Those builds only ever run in fwtest,
+  to measure what the float instructions would save, so the check lists
+  and counts them there and lets the build go on; everywhere else,
+  including a firmware build that defines `PLAITS_HWFLOAT`, it refuses.
+  The demo's soft-float builds hold none. Should SR-10's answer show
+  the chip stores something other than fwtest does, the
+  hardware-float measurements would need running again.
