@@ -120,6 +120,13 @@ SECTIONS
         . = ALIGN(4);
         __ram_code_end = .;
         *(.data .data.*)
+        /* C++ static objects' constructors (since clean-1027, BR-4): main()
+         * runs them, last first, before an engine's init (main.c). The
+         * base has none. */
+        . = ALIGN(4);
+        __ctors_start = .;
+        KEEP(*(.ctors))
+        __ctors_end = .;
         . = ALIGN(4);
         __data_end = .;
     } > RAM AT > IMAGE

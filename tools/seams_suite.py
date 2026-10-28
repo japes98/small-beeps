@@ -56,6 +56,14 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   job a block, every answer right and in time, and source 126's vector
   word, borrowed for core 1's start, holds its stub again; with the
   platform alone too.
+- runtime (R-RT-1), within engine and platform: since BR-4 the test
+  engine's init runs C++ needing the platform's runtime
+  (tests/seams/engine/sb_test_runtime.cc: a virtual class, std::sort,
+  memcpy, memmove and memset with lengths known at run time, a static
+  object whose constructor main() runs, and one with a destructor) and
+  records its result, 1301; the runtime's members are in the ELF; and build A,
+  which calls none of them, has none (the archive gives an image only
+  what it calls).
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -202,7 +210,10 @@ def case_outside(a, work, log):
 # --- engine ---------------------------------------------------------------
 
 ENGINE_FIELDS = ("marker", "inits", "init_ticks", "init_blocks", "blocks", "frames", "serves",
-                 "serve_seconds", "presses", "serve_presses", "core1", "core1_jobs", "core1_wrong")
+                 "serve_seconds", "presses", "serve_presses", "core1", "core1_jobs", "core1_wrong",
+                 "runtime")
+RUNTIME_RESULT = 1301           # tests/seams/engine/sb_test_runtime.cc
+RUNTIME_SYMBOLS = ("memcpy", "memmove", "memset", "__cxa_pure_virtual", "_ZdlPv")
 CORE1_START_WORD = 0x01c7fff8   # source 126's vector word, core 1's start address (HW-9)
 ENGINE_MARKER = 0x31474E45   # "ENG1"
 AUDIO_ADDR, AUDIO_FIELDS = 0x01c00550, ("marker", "start", "blocks", "underruns")
@@ -218,6 +229,10 @@ INSTRUMENT_SYMBOLS = ("fm_init", "fm_block", "fm_render", "fm_patches", "fm_core
 
 
 def case_engine(a, work, log):
+    syms = fw_suite().elf_symbols(os.path.join(a.build, "app.elf"))
+    pulled = [s for s in RUNTIME_SYMBOLS if s in syms]
+    if pulled:
+        return ["build A has the runtime's %s, which it never calls" % ", ".join(pulled)]
     b = os.path.join(work, "build")
     build(b, log, "--src", "tests/seams/engine", "--define", "SB_ENGINE_EXTERNAL")
     return run_engine(b, work, log, "engine")
@@ -240,12 +255,16 @@ def run_engine(b, work, log, name):
     e = words(ram(run, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS)
     au = words(ram(run, AUDIO_ADDR, 16), AUDIO_FIELDS)
     want = {"marker": ENGINE_MARKER, "inits": 1, "init_ticks": 0, "init_blocks": 0,
-            "serve_seconds": 2, "presses": 2, "serve_presses": 2, "core1": 1, "core1_wrong": 0}
+            "serve_seconds": 2, "presses": 2, "serve_presses": 2, "core1": 1, "core1_wrong": 0,
+            "runtime": RUNTIME_RESULT}
     for k, v in want.items():
         if e[k] != v:
             problems.append("%s is %d, not %d" % (k, e[k], v))
     if e["blocks"] != au["blocks"] or e["frames"] != 64 * e["blocks"]:
         problems.append("blocks %d (frames %d), the audio record's %d" % (e["blocks"], e["frames"], au["blocks"]))
+    missing = [s for s in RUNTIME_SYMBOLS if s not in syms]
+    if missing:
+        problems.append("the runtime's %s not linked" % ", ".join(missing))
     if e["core1_jobs"] != e["blocks"]:
         problems.append("core 1 did %d jobs in %d blocks" % (e["core1_jobs"], e["blocks"]))
     word, = struct.unpack("<I", ram(run, CORE1_START_WORD, 4))

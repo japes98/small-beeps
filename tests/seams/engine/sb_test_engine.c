@@ -10,7 +10,8 @@
  * plays a quiet square wave, and counts the panel's key presses. Since
  * BR-3 it starts core 1 (core1.h) and hands it a job every block: a
  * sequence number to triple, published under a lock as the FM engine
- * hands over its voices.
+ * hands over its voices. Since BR-4 its init runs C++ that needs the
+ * platform's runtime (sb_test_runtime.cc).
  */
 
 #include "audio.h"
@@ -37,7 +38,11 @@ struct sb_test_engine_record {
     u32 core1;          /* sb_core1_start's result */
     u32 core1_jobs;     /* jobs core 1 did */
     u32 core1_wrong;    /* blocks whose job came back wrong or late */
+    /* Since BR-4: */
+    u32 runtime;        /* sb_test_runtime's result */
 };
+
+u32 sb_test_runtime(void);
 
 /* Among the engine's records (firmware/platform.ld): linked with the
  * platform alone, the first after the store's, where engine.ld asserts
@@ -74,6 +79,7 @@ void sb_engine_init(void)
     sb_test_engine.inits++;
     sb_test_engine.init_ticks = sb_beacon.tick_count;
     sb_test_engine.init_blocks = sb_audio.blocks;
+    sb_test_engine.runtime = sb_test_runtime();
     sb_test_engine.core1 = (u32)sb_core1_start(core1_loop, core1_stack + sizeof core1_stack / sizeof core1_stack[0]);
 }
 
