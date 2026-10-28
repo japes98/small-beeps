@@ -1,0 +1,7 @@
+code 12212
+data 48
+bss 138352
+image 12260
+stack 4096
+irq_stack 2048
+ram_code 12092

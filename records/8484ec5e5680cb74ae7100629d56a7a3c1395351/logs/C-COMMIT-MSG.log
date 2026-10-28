@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range fbeb72e76d2597a2d16ec7cf323160d9223f4e1f..8484ec5e5680cb74ae7100629d56a7a3c1395351
+OK     76aceec0beec firmware: MIDI in hands SysEx bytes to a tap (BR-7)
+EXEMPT 6af33301b954 (merge) tools: merge seams/runtime into seams/sysex
+EXEMPT 8484ec5e5680 (merge) Merge pull request #165 from japes98/seams/sysex
+3 commit(s) checked: PASS
+
+exit status 0

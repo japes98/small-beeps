@@ -1,0 +1,38 @@
+{
+  "build": {
+    "container": "local-dry-run:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "ram_used": 167200,
+    "toolchain_sha256": "f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958"
+  },
+  "format": {
+    "major": 1,
+    "minor": 0
+  },
+  "fwtest": {
+    "image": "ghcr.io/japes98/small-beeps@sha256:99c22231c2700ce8e34e42c40acfb4015736d9b700e209ef15cf10545ba8ee9e",
+    "version": "0.0.0"
+  },
+  "git_commit": "0000000000000000000000000000000000000000",
+  "image": {
+    "entry": 33554432,
+    "file": "small-beeps-0.0.0-selftest.bin",
+    "load_address": 33554432,
+    "sha256": "58340fe99db63774ac6f92ed8afa126ab8871a75ab2e7c61e9ad7f41b7b9f12f",
+    "size": 53148
+  },
+  "kind": "app",
+  "name": "small-beeps",
+  "record": {
+    "tree_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "store": {
+    "format_version": 1,
+    "offset": 1032192,
+    "size": 12288
+  },
+  "tag": "m0",
+  "targets": [
+    "f-emulator-app"
+  ],
+  "version": "0.0.0-selftest"
+}

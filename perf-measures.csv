@@ -99,3 +99,4 @@ c594899396ef7131cc55f7e6743d3f613259ad37,2026-10-28T02:58:57Z,ARP,loaded_per_per
 5735d9e538634f30b095f630073370d80630da09,2026-10-28T02:59:33Z,ARP,loaded_per_period,109011.454,instructions per audio block,147456,-0.409,yes
 84e1abe94c1910ee218abebce9f37a5de9a8edf1,2026-10-28T03:02:05Z,ARP,loaded_per_period,109124.602,instructions per audio block,147456,-0.306,yes
 af055144cab4463c1e735d45b9dec8ec75f9079e,2026-10-28T03:01:36Z,ARP,loaded_per_period,109793.853,instructions per audio block,147456,0.306,yes
+8484ec5e5680cb74ae7100629d56a7a3c1395351,2026-10-28T03:02:00Z,ARP,loaded_per_period,108789.991,instructions per audio block,147456,-0.612,yes
