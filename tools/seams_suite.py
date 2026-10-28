@@ -50,7 +50,7 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   platform's records where the base has them, the package link built
   too, and the engine case's run and checks pass on it (the engine's
   slot, where the base keeps its FM engine's record, still zero).
-- core 1 (R-CORE1-1), within engine and platform: since BR-3 the test
+- core 1 (R-CORE-1), within engine and platform: since BR-3 the test
   engine starts core 1 with sb_core1_start (core1.h) and hands it a job
   every block with sb_publish and sb_shared: core 1 starts (1), does one
   job a block, every answer right and in time, and source 126's vector
