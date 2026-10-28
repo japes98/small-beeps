@@ -2114,6 +2114,30 @@ SR-3 wrote only its barrier-log row.*
   read to keep IDs apart and to merge; their firmware changes not read.
 - Disk: 14 GB free at the start; 9.4 GB at the lowest.
 
+### Session clean-1028 (pin fwtest 0.9.0, BR-12 power-cut-safe saves, BR-11 per-folder flags, a hardware-phase note)
+- Date: 2026-10-28 (UTC; the morning of 2026-10-28 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.312 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `f7d5db1b-d10a-40b3-be14-82c18d108c60`,
+  started by a `/clear` at 15:56:06Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `f9a9bc64` (#162's merge; #155 to #168 merged) and
+  ended "no spec-side files on disk or in .git"; `tools/private-terms.local`
+  exists (not opened); lazy fetching off (`GIT_NO_LAZY_FETCH=1`). It
+  archived clean-1027 (`f63e5c6c`) into `sessions/clean/`; every other
+  clean session was already archived. `tools/check-transcripts.py`: 22
+  archived transcripts, PASS; clean-1027's only marks were three
+  report-only mentions, so no reviewed entries were added. The Mac had
+  7 GB free.
+- A spec session may work at the same time; this session opens none of its
+  branches.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
