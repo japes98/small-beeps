@@ -3108,3 +3108,70 @@ C-SEAMS) and its part below.
   order, nothing inside them but clocks (about 200), every note after
   the F7, the first with its status, and every clock and note sent. The
   firmware's own MIDI out cases (C-FW-SUITE) check MIDI out is as before.
+
+#### Storage for large records (BR-9, R-STORE-10)
+
+- **What.** The store kept the base's own records: a patch (112 bytes)
+  in each of 16 slots, the selection, the settings, a reset. A firmware
+  built on the base needs its own, some large (a payload of 4 096 bytes,
+  say). Kinds 0x80 to 0xFE are now kept for firmwares built on the base,
+  with any id, and `store_put`/`store_get` take a payload of up to 5 904
+  bytes for them (docs/STORE-FORMAT.md, "Kinds for firmwares built on
+  the base"). A reset voids them with everything else.
+- **Why parts.** A sector is 4 KiB with a 16-byte header, and a record
+  can't leave its sector, so a 4 096-byte payload can't be one record. It
+  is written as parts, records of up to 492 bytes of it (512 with their
+  header, tag and CRC), each carrying its index and the part count in
+  the header's two bytes that were always 0, and a tag (the write's own
+  number) as its payload's first word. Of each part the newest record
+  counts, as for any key; the payload is read only when every part is
+  there with part 0's tag and count. A write never mixes with the one
+  before it: cut short, the old payload still reads until the new
+  write's first part is whole, and then nothing until its last part is
+  (the model checks every cut point: old, then none, then new; fwtest's
+  power cut checks one on the firmware). A firmware that can't do without
+  its payload writes it again; the store never hands it half of each.
+- **Why not keep the old one through the whole write.** That needs room
+  for two copies of the payload at once, and the three sectors don't
+  have it: the ring needs a sector's worth free to move on, so about two
+  sectors (8 160 bytes) hold everything live, and two copies of 4 096
+  bytes are 8 192 before any header. Writing part by part needs room for
+  one new part beside everything live.
+- **What today's region holds** (`tools/store.py`'s model, which the
+  firmware's images match after every run of the seams suite): one
+  payload of up to 5 396 bytes, rewritten as often as asked, with
+  nothing else stored (a firmware on the platform alone, its own small
+  records aside); a 4 096-byte payload so has 1.3 KB to spare. Beside the
+  base's full store (all 16 user slots, the selection and the settings,
+  saved between rewrites) how much fits depends on how the records fall
+  in the sectors: 2 952 bytes held in every one of 40 histories of 300
+  rewrites the model tried; up to about 3.5 KB in some histories but not
+  all; 4 096 not reliably. Past what fits a write is refused
+  (`STORE_ERR_FULL`), and what was there stays. Where a larger region
+  goes is the owner's later decision; the part size was chosen for
+  today's: of the sizes tried, from 236 to 2 012 bytes, 492 let the most
+  be rewritten beside the base's full store (428 a little more alone).
+- **Keys.** The base's keys are fixed (16 slots and three more). The
+  firmware kinds' parts take places in a table of their own, 32 of them,
+  after the base's: the ring's compaction, a sector's live count and the
+  reset treat both alike, in that order, and the model keeps the same
+  order, so an image it writes is one the firmware could have written.
+  A write checks first that every part has a place, so it never stops
+  for want of one; a payload rewritten with fewer parts frees the rest.
+- **Format.** Version 1's records, as before: a reader that doesn't know
+  these kinds (the base before this) counts them unknown and never
+  copies them forward. The base's own records and their limits are
+  unchanged, and its tests pass as they are.
+- **The image changes** (code 54 416 bytes, from 53 340; RAM 1 312 bytes
+  more: the table, and the record buffers sized for a part).
+- **Tested:** the model in C-UNIT (a payload in parts read whole, every
+  cut point of a rewrite, fewer parts, the reset, what the region holds,
+  the constants the firmware's); and the firmware in C-SEAMS (case
+  store): nine runs chained through the flash file, the model writing a
+  control record before each that tells the test engine what to do: a
+  4 096-byte payload and a small one written and read back, then read at
+  the next start-up; rewritten; rewritten again with the power cut at
+  the middle of its page programs, after which the large payload is gone
+  and the small one stays; rewritten after the cut; a reset voids both;
+  then alone, 5 000 bytes written and read back and 5 904 refused as
+  full. The model reads what the firmware does after every run.

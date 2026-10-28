@@ -176,3 +176,82 @@ class SettingsLayoutTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FirmwareKindsTest(unittest.TestCase):
+    """Requirements: R-STORE-10"""
+
+    def test_constants_agree_with_the_firmware(self):
+        h = source("src/store.h")
+        for name, value in (("STORE_FW_KIND_FIRST", st.FW_KIND_FIRST), ("STORE_FW_KIND_LAST", st.FW_KIND_LAST),
+                            ("STORE_FW_TAG", st.TAG), ("STORE_FW_PART", st.PART_DATA),
+                            ("STORE_FW_PARTS", st.FW_PARTS), ("STORE_FW_KEYS", st.FW_KEYS)):
+            m = re.search(r"#define %s\s+(0x[0-9A-Fa-f]+|\d+)u" % name, h)
+            self.assertIsNotNone(m, name)
+            self.assertEqual(int(m.group(1), 0), value, name)
+
+    def test_a_payload_in_parts_reads_back_whole(self):
+        s = st.Store()
+        data = bytes(range(256)) * 16
+        s.put_fw(0x80, 7, 3, data)
+        s.put_fw(0x81, 0, 1, b"tiny")
+        img = st.Image(s.chip())
+        self.assertEqual(img.get_fw(0x80, 7), (3, data))
+        self.assertEqual(img.get_fw(0x81, 0), (1, b"tiny"))
+        self.assertEqual(sum(1 for f in img.fw if f), 9 + 1)    # 4 096 bytes in 9 parts, and 1
+        self.assertIsNone(img.get_fw(0x80, 6))
+
+    def test_a_write_cut_part_way_is_never_read_mixed(self):
+        s = st.Store()
+        s.put_fw(0x80, 0, 1, bytes([1]) * 3000)
+        before = s.chip()
+        s.commands = []
+        s.put_fw(0x80, 0, 1, bytes([2]) * 3000)
+        old, new = (1, bytes([1]) * 3000), (1, bytes([2]) * 3000)
+        seen = []
+        for cut in range(len(s.commands) + 1):
+            got = st.Image(st.apply(before, s.commands[:cut])).get_fw(0x80, 0)
+            self.assertTrue(got in (old, new, None), "a mixed payload after %d commands" % cut)
+            seen.append("old" if got == old else "new" if got == new else "none")
+        # The old one until the first new part is whole, then none until
+        # the last is, then the new one.
+        self.assertEqual([k for i, k in enumerate(seen) if i == 0 or seen[i - 1] != k], ["old", "none", "new"])
+
+    def test_fewer_parts_leave_the_old_ones_dead(self):
+        s = st.Store()
+        s.put_fw(0x80, 0, 1, bytes(3000))
+        s.put_fw(0x80, 0, 1, b"short")
+        img = st.Image(s.chip())
+        self.assertEqual(img.get_fw(0x80, 0), (1, b"short"))
+        self.assertEqual(sum(1 for f in img.fw if f), 1)
+        self.assertEqual(img.counts.get("stale"), 6)
+
+    def test_a_reset_voids_them(self):
+        s = st.Store()
+        s.put_fw(0x90, 1, 1, bytes(1000))
+        s.put(st.PATCH, 2, 1, patch(2))
+        s.reset()
+        img = st.Image(s.chip())
+        self.assertIsNone(img.get_fw(0x90, 1))
+        self.assertIsNone(img.get(st.PATCH, 2))
+
+    def test_what_todays_region_holds(self):
+        # Alone: 5 396 bytes, rewritten again and again; one more is too many.
+        s = st.Store()
+        for r in range(40):
+            s.put_fw(0x80, 0, 1, bytes([r]) * 5396)
+        self.assertEqual(st.Image(s.chip()).get_fw(0x80, 0), (1, bytes([39]) * 5396))
+        with self.assertRaises(RuntimeError):
+            t = st.Store()
+            for r in range(40):
+                t.put_fw(0x80, 0, 1, bytes([r]) * 5397)
+        # Beside the base's full store, saved in between: 2 952 bytes.
+        s = st.Store()
+        for i in range(16):
+            s.put(st.PATCH, i, 2, patch(i))
+        s.put(st.SELECTION, 0, 1, b"\x05\0\0\0")
+        s.put(st.SETTINGS, 0, 4, bytes(42))
+        for r in range(40):
+            s.put_fw(0x80, 0, 1, bytes([r]) * 2952)
+            s.put(st.PATCH, r % 16, 2, patch(r % 7))
+        self.assertEqual(st.Image(s.chip()).get_fw(0x80, 0), (1, bytes([39]) * 2952))

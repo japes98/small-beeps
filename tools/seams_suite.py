@@ -84,6 +84,18 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   after the F7, the first carrying its status, all of them and every
   clock sent, none dropped; the stream counted whole and the serve
   finding it gone.
+- store (R-STORE-10): the store's kinds for firmwares built on the base,
+  on the same build, in runs chained through the flash file
+  (tools/store.py writes a control record before each, which the test
+  engine reads at start-up and acts on in its first serve): a 4 096-byte
+  payload and a small one written and read back, then read at the next
+  start-up; rewritten; rewritten again with the power cut part way
+  (fwtest's --power-cut, aimed by a run with --flash-log): at the next
+  start-up the large payload is gone (neither write: never a mix) and
+  the small one stays; rewritten after the cut; a factory reset voids
+  both; then, alone in the store, 5 000 bytes written and read back
+  and the store's largest payload (STORE_FW_MAX) refused as full. After
+  every run tools/store.py's reader finds what the firmware does.
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -233,7 +245,9 @@ ENGINE_FIELDS = ("marker", "inits", "init_ticks", "init_blocks", "blocks", "fram
                  "serve_seconds", "presses", "serve_presses", "core1", "core1_jobs", "core1_wrong",
                  "runtime", "sysex_begun", "sysex_ended", "sysex_cut", "sysex_cut_by", "sysex_served",
                  "sysex_len", "sysex_sum", "sysex_first", "sysex_last", "realtime", "notes",
-                 "raw_started", "raw_done", "out_notes", "out_clocks", "out_refused")
+                 "raw_started", "raw_done", "out_notes", "out_clocks", "out_refused",
+                 "step", "boot_large", "boot_large_sum", "boot_small", "boot_small_sum", "put_result",
+                 "put2_result", "put_len", "put_sum")
 RUNTIME_RESULT = 1301           # tests/seams/engine/sb_test_runtime.cc
 RUNTIME_SYMBOLS = ("memcpy", "memmove", "memset", "__cxa_pure_virtual", "_ZdlPv")
 CORE1_START_WORD = 0x01c7fff8   # source 126's vector word, core 1's start address (HW-9)
@@ -454,6 +468,94 @@ def case_rawout(a, work, log):
     return problems
 
 
+# --- store ----------------------------------------------------------------
+
+CONTROL_KIND, LARGE, SMALL, HUGE = 0x8F, (0x80, 7), (0x81, 0), (0x82, 0)
+NONE32 = 0xFFFFFFFF
+STORE_ERR_FULL = -2 & 0xFFFFFFFF  # as the record's u32 holds it
+
+
+def pattern(p, n):
+    return bytes((i * (2 * p + 1) + p) & 0xFF for i in range(n))
+
+
+def place_sum(b):
+    return sum(x * (i + 1) for i, x in enumerate(b)) & 0xFFFFFFFF
+
+
+def case_store(a, work, log):
+    import store as st
+    problems = []
+    b = os.path.join(work, "build")
+    build(b, log, "--platform", "--src", "tests/seams/engine", "--ld", "tests/seams/engine/engine.ld")
+    rec = fw_suite().elf_symbols(os.path.join(b, "app.elf"))["sb_test_engine"]
+    state = {"chip": None}
+
+    def run(name, step, *opts):
+        s = st.Store(state["chip"])
+        s.put_fw(CONTROL_KIND, 0, 1, bytes([step]))
+        flash = os.path.join(work, name + "-in.bin")
+        with open(flash, "wb") as f:
+            f.write(s.chip())
+        out = os.path.join(work, name)
+        timing = list(opts) if any(o == "--power-cut" for o in opts) else ["--ms", "1200"] + list(opts)
+        r = fwtest(os.path.join(b, "app.bin"), out, log, "--flash", os.path.relpath(flash, ROOT), "--flash-out",
+                   "--ram", "0x%08x:%d@end" % (rec, 4 * len(ENGINE_FIELDS)), *timing)
+        if r["run"]["outcome"] not in ("completed", "power-cut"):
+            raise RuntimeError("%s: %s (%s)" % (name, r["run"]["outcome"], r["run"].get("detail")))
+        with open(os.path.join(out, "flash.bin"), "rb") as f:
+            chip = f.read()
+        return words(ram(out, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS), chip, out
+
+    def expect(name, e, img, large, small, **fields):
+        for k, v in fields.items():
+            if e[k] != v:
+                problems.append("%s: %s is %d, not %d" % (name, k, e[k], v))
+        for (kind, ident), want in ((LARGE, large), (SMALL, small)):
+            got = img.get_fw(kind, ident)
+            if (got[1] if got else None) != want:
+                problems.append("%s: tools/store.py reads 0x%02x/%d as %s" % (
+                    name, kind, ident, "none" if got is None else "%d bytes" % len(got[1])))
+
+    p1, p2, p3, p9, p5 = (pattern(1, 4096), pattern(2, 4096), pattern(3, 4096), pattern(9, 10),
+                          pattern(5, 5000))
+    e, state["chip"], _ = run("1-write", 1)
+    expect("1-write", e, st.Image(state["chip"]), p1, p9, step=1, boot_large=NONE32, put_result=0,
+           put_len=4096, put_sum=place_sum(p1))
+    e, state["chip"], _ = run("2-read", 0)
+    expect("2-read", e, st.Image(state["chip"]), p1, p9, boot_large=4096, boot_large_sum=place_sum(p1),
+           boot_small=10, boot_small_sum=place_sum(p9))
+    e, state["chip"], _ = run("3-rewrite", 2)
+    expect("3-rewrite", e, st.Image(state["chip"]), p2, p9, put_result=0, put_len=4096, put_sum=place_sum(p2))
+    # The cut: halfway through the next rewrite's page programs.
+    before = state["chip"]
+    _, _, out = run("4-aim", 3, "--flash-log")
+    with open(os.path.join(out, "flash-ops.csv")) as f:
+        ops = [l.split(",") for l in f.read().splitlines()[1:]]
+    progs = [float(o[0]) for o in ops if o[2] == "02" and int(o[3], 16) >= st.BASE]
+    cut = progs[len(progs) // 2]
+    state["chip"] = before
+    e, state["chip"], _ = run("4-cut", 3, "--power-cut", "%.3f" % cut)
+    e, state["chip"], _ = run("5-after-cut", 0)
+    expect("5-after-cut", e, st.Image(state["chip"]), None, p9, boot_large=NONE32, boot_small=10,
+           boot_small_sum=place_sum(p9))
+    e, state["chip"], _ = run("6-rewrite", 2)
+    expect("6-rewrite", e, st.Image(state["chip"]), p2, p9, put_result=0, put_len=4096, put_sum=place_sum(p2))
+    e, state["chip"], _ = run("7-reset", 4)
+    e, state["chip"], _ = run("8-after-reset", 0)
+    expect("8-after-reset", e, st.Image(state["chip"]), None, None, boot_large=NONE32, boot_small=NONE32)
+    e, state["chip"], _ = run("9-largest", 5)
+    expect("9-largest", e, st.Image(state["chip"]), None, None, put_result=0, put2_result=STORE_ERR_FULL,
+           put_len=5000, put_sum=place_sum(p5))
+    got = st.Image(state["chip"]).get_fw(*HUGE)
+    if not got or got[1] != p5:
+        problems.append("9-largest: tools/store.py doesn't read the 5 000 bytes back")
+    print("store: 4 096 bytes written, read at start-up, rewritten; cut at %.1f ms of %d page programs:"
+          " gone, never mixed, the small payload kept; rewritten; a reset voids both; 5 000 bytes alone,"
+          " %d refused as full; tools/store.py agrees" % (cut, len(progs), 5904))
+    return problems
+
+
 CASES = [
     ("ownbase", case_ownbase),
     ("outside", case_outside),
@@ -461,6 +563,7 @@ CASES = [
     ("platform", case_platform),
     ("sysex", case_sysex),
     ("rawout", case_rawout),
+    ("store", case_store),
 ]
 
 
