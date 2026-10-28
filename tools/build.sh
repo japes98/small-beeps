@@ -8,7 +8,8 @@
 #   tools/build.sh image-tag                  print its tag
 #   tools/build.sh build --out DIR [--src-mount PATH] [--define NAME]...
 #                        [--demo plaits] [--src DIR]... [--leave-out FILE]...
-#                        [--platform] [--ld SCRIPT]
+#                        [--cflags DIR FLAGS]... [--cxxflags DIR FLAGS]...
+#                        [--asflags DIR FLAGS]... [--platform] [--ld SCRIPT]
 #                                             build in a fresh container,
 #                                             outputs and SHA256SUMS in DIR;
 #                                             --define adds -DNAME (test
@@ -24,6 +25,12 @@
 #                                             leaves a base source out
 #                                             (since clean-1027, BR-5;
 #                                             docs/BUILDING-ON-SMALL-BEEPS.md);
+#                                             --cflags, --cxxflags and
+#                                             --asflags add flags for the
+#                                             C, C++ or assembly in a
+#                                             --src folder or a folder in
+#                                             one (since clean-1028, BR-11;
+#                                             below);
 #                                             --platform leaves the base's
 #                                             instrument out (INSTRUMENT,
 #                                             below) and links the platform
@@ -55,6 +62,21 @@
 # firmware built on the base calls this script from the base's folder
 # (docs/BUILDING-ON-SMALL-BEEPS.md).
 #
+# Per-folder flags (BR-11): --cflags DIR FLAGS adds FLAGS, after the
+# base's own, to every C file under DIR, a --src folder or a folder in
+# one; --cxxflags to its C++, --asflags to its assembly. Repeatable; a
+# file under several such folders gets each one's flags in the order
+# given (so a folder inside another can override it, -O2 after -O0, say).
+# The base's own files, its runtime included, are always built with the
+# base's flags. FLAGS are words of A-Z, a-z, 0-9 and _ = + . , / : -;
+# a relative path in -I, -isystem or -iquote (joined to it: -Iinclude)
+# is from DIR. Only these families are taken: -D, -U, -O, -W, -w, -f,
+# -m, -std=, -I, -isystem, -iquote, -g, -pedantic, -ansi; and of them
+# not those that would reach the host, the outputs' determinism or
+# another tool: an absolute path or one with "..", -fdebug-prefix-map
+# and its kin, -fprofile..., -fplugin..., -fpass-plugin...,
+# -fsave-optimization-record, -Wa, -Wp, -Wl (check_flags).
+#
 # The platform (BR-2): --platform leaves out the base's instrument, the
 # files below, defines SB_ENGINE_EXTERNAL (firmware/src/engine.h) and
 # links with firmware/platform.ld, whose assertions cover only the
@@ -84,9 +106,30 @@ cmd_image() {
     docker image inspect --format 'image {{.Id}}' "$(image_tag)"
 }
 
+# Refuses per-folder flags (BR-11) that could reach the host, make the
+# outputs depend on where things are, or undo the build: only the
+# families below are taken (above).
+check_flags() {
+    case "$2" in
+        *[!A-Za-z0-9_=+.,/:\ -]*) echo "build: $1 '$2': flags are words of A-Z, a-z, 0-9 and _ = + . , / : -" >&2; exit 2 ;;
+    esac
+    for w in $2; do
+        case "$w" in
+            /*|*=/*|-I/*|-isystem/*|-iquote/*|*..*)
+                echo "build: $1 '$w': no absolute paths or .. (a path is from the folder)" >&2; exit 2 ;;
+            -fdebug-prefix-map=*|-ffile-prefix-map=*|-fmacro-prefix-map=*|-fcoverage-prefix-map=*| \
+            -fprofile*|-fplugin*|-fpass-plugin*|-fsave-optimization-record*|-Wa,*|-Wp,*|-Wl,*)
+                echo "build: $1 '$w' is not one a folder may set" >&2; exit 2 ;;
+            -D?*|-U?*|-O|-O?|-W?*|-w|-f?*|-m?*|-std=?*|-I?*|-isystem?*|-iquote?*|-g|-g0|-g1|-g2|-g3| \
+            -pedantic|-pedantic-errors|-ansi) ;;
+            *) echo "build: $1 '$w' is not one a folder may set (-D, -U, -O, -W, -w, -f, -m, -std=, -I, -isystem, -iquote, -g, -pedantic, -ansi)" >&2; exit 2 ;;
+        esac
+    done
+}
+
 cmd_build() {
     out="" src_mount=/mnt/small-beeps-src defines="" demo="" mounts="" srcs="" leave="" n=0
-    platform="" ldscript=""
+    platform="" ldscript="" ff=""
     while [ $# -gt 0 ]; do
         case "$1" in
             --out) out=$2; shift 2 ;;
@@ -107,6 +150,11 @@ cmd_build() {
                 n=$((n + 1))
                 srcs="$srcs $d"
                 shift 2 ;;
+            --cflags|--cxxflags|--asflags)
+                [ $# -ge 3 ] || { echo "build: $1 takes a folder and its flags" >&2; exit 2; }
+                [ -d "$2" ] || { echo "build: $1 $2 is not a folder" >&2; exit 2; }
+                check_flags "$1" "$3"
+                ff="$ff;${1#--}|$(cd "$2" && pwd)|$3"; shift 3 ;;
             --leave-out)
                 case "$2" in
                     firmware/*) [ -f "$ROOT/$2" ] || { echo "build: --leave-out $2: no such base file" >&2; exit 2; } ;;
@@ -153,6 +201,37 @@ cmd_build() {
         done
         [ -n "$script" ] || { echo "build: --ld must name a file in the base or in a --src folder" >&2; exit 2; }
     fi
+    # Each folder's flags (BR-11), its folder as the container builds it
+    # (../sb-src-N/...), and the paths in its -I, -isystem and -iquote
+    # from it.
+    folder_flags=""
+    old_ifs=$IFS; IFS=';'
+    for e in $ff; do
+        [ -n "$e" ] || continue
+        k=${e%%|*} rest=${e#*|}
+        d=${rest%%|*} f=${rest#*|}
+        m="" n=0
+        IFS=$old_ifs
+        for sd in $srcs; do
+            n=$((n + 1))
+            case "$d/" in
+                "$sd"/*) m=../sb-src-$n${d#"$sd"} ;;
+            esac
+        done
+        [ -n "$m" ] || { echo "build: --$k $d is not a --src folder or inside one" >&2; exit 2; }
+        g=""
+        for w in $f; do
+            case "$w" in
+                -I?*) w=-I$m/${w#-I} ;;
+                -isystem?*) w=-isystem$m/${w#-isystem} ;;
+                -iquote?*) w=-iquote$m/${w#-iquote} ;;
+            esac
+            g="$g $w"
+        done
+        folder_flags="$folder_flags;$k|$m|${g# }"
+        IFS=';'
+    done
+    IFS=$old_ifs
     # The outside folders, beside the source mount (above).
     n=0 outside=""
     for d in $srcs; do
@@ -169,6 +248,7 @@ cmd_build() {
     docker run --rm --platform "$PLATFORM" --network none \
         --user "$(id -u):$(id -g)" -e SB_DEFINES="$defines" -e SB_DEMO="$demo" \
         -e SB_SRCS="$outside" -e SB_LEAVE_OUT="$leave" -e SB_LD="$script" \
+        -e SB_FOLDER_FLAGS="$folder_flags" \
         -v "$ROOT:$src_mount:ro" $mounts -v "$out:/out" -w "$src_mount" \
         "$tag" sh "$src_mount/tools/build.sh" inside "$src_mount" /out
     cat "$out/SHA256SUMS"
@@ -246,6 +326,26 @@ build_demo_plaits() {
     echo "built $(find vendor/plaits -name '*.cc' | wc -l) vendored Plaits files"
 }
 
+# The flags of every folder holding the source $2 (its path from the
+# source mount) given with option $1 (cflags, cxxflags or asflags), in
+# the order given (BR-11; SB_FOLDER_FLAGS: entries "option|folder|flags",
+# each after a ";").
+folder_flags() {
+    fl="" old_ifs=$IFS
+    IFS=';'
+    for e in ${SB_FOLDER_FLAGS:-}; do
+        [ -n "$e" ] || continue
+        k=${e%%|*} rest=${e#*|}
+        d=${rest%%|*}
+        [ "$k" = "$1" ] || continue
+        case "$2" in
+            "$d"/*) fl="$fl ${rest#*|}" ;;
+        esac
+    done
+    IFS=$old_ifs
+    echo "${fl# }"
+}
+
 # The sources of the folders given with --src (BR-5), mounted beside the
 # source mount as sb-src-N: every .c, .S and .cc, sorted by path, named
 # by it, and built by its path from the source mount.
@@ -258,9 +358,10 @@ build_outside() {
         for s in $(cd "$m" && find . -name '*.c' -o -name '*.S' -o -name '*.cc' | sed 's|^\./||' | LC_ALL=C sort); do
             o="$obj/src${k}_$(echo "$s" | tr / _ | sed 's/\.[cS]$/.o/; s/\.cc$/.o/')"
             case "$s" in
-                *.S) set -x; clang $ASFLAGS -I"$r" -c "$r/$s" -o "$o"; set +x ;;
-                *.cc) set -x; clang $CXXFLAGS -I"$r" -c "$r/$s" -o "$o"; set +x ;;
-                *) set -x; clang $CFLAGS -Ifirmware/runtime/include -I"$r" -c "$r/$s" -o "$o"; set +x ;;
+                *.S) fl=$(folder_flags asflags "$r/$s"); set -x; clang $ASFLAGS -I"$r" $fl -c "$r/$s" -o "$o"; set +x ;;
+                *.cc) fl=$(folder_flags cxxflags "$r/$s"); set -x; clang $CXXFLAGS -I"$r" $fl -c "$r/$s" -o "$o"; set +x ;;
+                *) fl=$(folder_flags cflags "$r/$s")
+                   set -x; clang $CFLAGS -Ifirmware/runtime/include -I"$r" $fl -c "$r/$s" -o "$o"; set +x ;;
             esac
             objs="$objs $o"
         done

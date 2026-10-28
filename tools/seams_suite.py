@@ -31,6 +31,20 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   image; a folder holding the base, a folder inside firmware/ and a base
   file that isn't one are refused.
 
+- flags (R-BUILD-5): per-folder compiler flags (BR-11). The firmware
+  built with tests/seams/flags as --src, its C given -DSB_FLAGS_OUTER=7
+  -O2 (--cflags), its folder inner/ -DSB_FLAGS_INNER=5 -Iinclude as
+  well, its C++ -DSB_FLAGS_CXX=2 (--cxxflags) and its assembly
+  -DSB_FLAGS_ASM (--asflags): each file builds only with its folders'
+  flags (each #errors otherwise; the -O2 after the base's -Os, the outer
+  folder's before the inner's, -Iinclude from inner/), its symbol in the
+  ELF; the base's own files' compile lines carry none of them and are
+  the lines of the same build without the flags (of firmware/src/,
+  which come before the folder's files stop it); the folder copied to two other places and built from
+  each, one with the source mounted elsewhere, gives the same bytes; and
+  refused: a folder not inside a --src folder, a base folder, an
+  absolute path, "..", -fdebug-prefix-map, -o, -Xclang, -Wp, an @file, a
+  bare -isystem, and a folder without its flags.
 - engine (R-ENG-1): the engine seam. A test engine from outside
   firmware/ (tests/seams/engine/, built with SB_ENGINE_EXTERNAL) runs in
   fwtest for 2.3 s with two key taps (tests/seams/scripts/engine.txt):
@@ -250,6 +264,89 @@ def case_outside(a, work, log):
           % (sum(s in syms for s in OUTSIDE_SYMBOLS), "the same bytes" if len(set(sums)) == 1 else "DIFFERENT",
              "build A's image" if sha256(os.path.join(b2, "app.bin")) == sha256(os.path.join(a.build, "app.bin"))
              else "ANOTHER image"))
+    return problems
+
+
+# --- flags --------------------------------------------------------------
+
+FLAGS = "tests/seams/flags"
+FLAGS_SYMBOLS = ("sb_flags_outer", "sb_flags_inner", "sb_flags_cxx", "sb_flags_asm")
+
+
+def flags_opts(folder):
+    return ["--src", folder,
+            "--cflags", folder, "-DSB_FLAGS_OUTER=7 -O2",
+            "--cflags", folder + "/inner", "-DSB_FLAGS_INNER=5 -Iinclude",
+            "--cxxflags", folder, "-DSB_FLAGS_CXX=2",
+            "--asflags", folder, "-DSB_FLAGS_ASM"]
+
+
+def base_lines(out, under="firmware/"):
+    """The compile lines of the base's own files (those under `under`), as
+    set -x printed them."""
+    return [l for l in out.splitlines() if l.startswith("+ clang") and " -c %s" % under in l]
+
+
+def case_flags(a, work, log):
+    """BR-11 (R-BUILD-5): per-folder compiler flags."""
+    problems = []
+    b1 = os.path.join(work, "with-flags")
+    _, out = build(b1, log, *flags_opts(FLAGS))
+    syms = fw_suite().elf_symbols(os.path.join(b1, "app.elf"))
+    for sym in FLAGS_SYMBOLS:
+        if sym not in syms:
+            problems.append("%s is not in the ELF" % sym)
+    lines = [l for l in out.splitlines() if l.startswith("+ clang")]
+    want = {"sb_flags.c": "-DSB_FLAGS_OUTER=7 -O2 -c", "sb_flags_cxx.cc": "-DSB_FLAGS_CXX=2 -c",
+            "sb_flags_asm.S": "-DSB_FLAGS_ASM -c",
+            "sb_flags_inner.c": "-DSB_FLAGS_OUTER=7 -O2 -DSB_FLAGS_INNER=5 -I../sb-src-1/inner/include -c"}
+    for f, w in want.items():
+        got = [l for l in lines if "/%s -o" % f in l]
+        if len(got) != 1 or w not in got[0]:
+            problems.append("%s was not built with its folders' flags, after the base's (%s)" % (f, w))
+    # The base's own files with the base's flags only: the same lines as a
+    # build without the flags, which the folder's files then stop.
+    base = base_lines(out)
+    if not base or any("SB_FLAGS" in l or "-O2" in l for l in base):
+        problems.append("a base file was built with a folder's flags")
+    # (Its first file, inner/'s, stops on its include; the runtime, built
+    # after the outside folders, never comes.)
+    rc, out0 = build(os.path.join(work, "without"), log, "--src", FLAGS, check=False)
+    if rc == 0 or not re.search(r"^\.\./sb-src-1/\S+: (fatal )?error: ", out0, re.M):
+        problems.append("without the flags the folder's file built")
+    if not base_lines(out0, "firmware/src/") or base_lines(out0, "firmware/src/") != base_lines(out, "firmware/src/"):
+        problems.append("the base's compile lines differ with the folders' flags")
+    # The same bytes from two other places on the host, one with the
+    # source mounted elsewhere (deterministic).
+    sums = [read(os.path.join(b1, "SHA256SUMS"))]
+    for i, (place, extra) in enumerate((("a/x", []), ("b/y/z", ["--src-mount", "/tmp/elsewhere/small-beeps-src-b"]))):
+        copy = os.path.join(work, "copies", place)
+        shutil.copytree(os.path.join(ROOT, FLAGS), copy)
+        bi = os.path.join(work, "copy-%d" % i)
+        build(bi, log, *(flags_opts(copy) + extra))
+        sums.append(read(os.path.join(bi, "SHA256SUMS")))
+    if len(set(sums)) != 1:
+        problems.append("the flags folder's builds from three places differ")
+    # What is refused.
+    refused = (["--src", FLAGS, "--cflags", "tests/seams/outside", "-DX"],    # not a --src folder
+               ["--cflags", "firmware/src", "-DX"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-I/usr/include"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-Iinner/../.."],
+               ["--src", FLAGS, "--cflags", FLAGS, "-fdebug-prefix-map=a=b"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-o x"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-Xclang -v"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-Wp,-MD,x"],
+               ["--src", FLAGS, "--cflags", FLAGS, "@file"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-isystem inner"],
+               ["--src", FLAGS, "--cflags", FLAGS])
+    for opts in refused:
+        rc, _ = build(os.path.join(work, "refused"), log, *opts, check=False)
+        if rc != 2:
+            problems.append("%s was not refused (exit %d)" % (" ".join(opts), rc))
+    print("flags: %d symbols from the folder; each file with its folders' flags after the base's, the base's"
+          " files with the base's only; without them it stops on the folder's files; three places, %s; %d refused"
+          % (sum(sym in syms for sym in FLAGS_SYMBOLS), "the same bytes" if len(set(sums)) == 1 else "DIFFERENT",
+             len(refused)))
     return problems
 
 
@@ -727,6 +824,7 @@ def case_powercut(a, work, log):
 CASES = [
     ("ownbase", case_ownbase),
     ("outside", case_outside),
+    ("flags", case_flags),
     ("engine", case_engine),
     ("platform", case_platform),
     ("sysex", case_sysex),
