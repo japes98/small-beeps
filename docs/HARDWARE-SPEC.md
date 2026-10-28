@@ -2269,7 +2269,7 @@ instruction documentation; what it leaves open is Q-28 to Q-35. HARNESS.md
 - Needed by: firmwares built on small-beeps (session spec-isa-audit)
 
 ### HW-102: The rounding pair shifts, the memory multiplies, the npc loads
-- Fact: `d2 e1 PX DM` is `rD = rH_rL >> n` (or `>>>` with M bit 3)
+- Fact: `d2 e1 PX DM` is `rD =` a register pair `>> n` (or `>>>` with M bit 3)
   with a rounding: pair = P >> 1, n = X | (M & 3) << 4 (0 to 63), and P
   bit 0 with M bit 2 the mode ((0, 0) up, (0, 1) round, (1, 0) even,
   (1, 1) zero); `d3 e1 PM DR` the same by register R, M's low three bits
@@ -2283,9 +2283,9 @@ instruction documentation; what it leaves open is Q-28 to Q-35. HARNESS.md
   `6j` or `ej` (=, +=, -=, then the three with `h[`). The assembler counts
   i in the first operand's size (2 with `h[`, 4 without) and j in words
   even with `h[`, so the second operand is always a word. `rD = [npc + rI]`
-  is `60 e8 00 DI` and `rD = [npc + #i]` the 6-byte `aD ff <imm32>`
-  (#i even). `rD = rev16(rS)` is `70 e0 40 DS`, beside `rev8`'s `70 e0
-  00`. The compiler emits none of these.
+  is `60 e8 00 DI` and `rD = [npc + #i]` the 6-byte `aD ff` followed by the 32-bit #i
+  (#i even). `rD = rev16(rS)` is `70 e0 40 DS`, beside the byte
+  reversal's `70 e0 00`. The compiler emits none of these.
 - Sources: TC: the assembler and disassembler for every mode, size,
   operation, register and increment sign; the decoder table's masks.
   PROVENANCE P-64.
@@ -2548,7 +2548,7 @@ spec request can turn one into a fact.
   `__builtin_trap` and `syscall` and `trigger` for their builtins. fwtest
   ends a run on each as an instruction it does not run.
 - **Q-35. Halves, fields and special registers at their edges.** What
-  `sat8 (u)` gives for a negative half (fwtest: 0, as `sat16 (u)` clamps a
+  `sat8 (u)` gives for a negative half (fwtest: 0, as the 16-bit `(u)` clamp of a word gives for a
   negative word), what the field forms give for l = 0 or p + l over 32
   (fwtest: as the immediate forms, l = 0 the whole word, bits shifted out
   lost), and in which order the 4-byte special-register push and pop store
