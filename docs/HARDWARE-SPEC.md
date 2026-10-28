@@ -2077,6 +2077,49 @@ named; all multi-byte fields are little-endian.
 - Standing: emulator-only (the app's own report)
 - Needed by: A1
 
+## 22. A store of its own base register (SR-10)
+
+What a store with a base update does when the register it stores is its
+base, from the pinned toolchain (session spec-1027, for a firmware built
+on small-beeps). What the chip itself stores is open (Q-27).
+
+### HW-95: A store whose stored register is its base, with a base update
+- Fact: The toolchain's stores with a base update, `[++rN=k] = rS` (a
+  pre-increment: the access at rN + k, then rN = rN + k) and
+  `[rN++=k] = rS` (a post-increment: the access at rN, then rN = rN + k),
+  with `b[` and `h[` for a byte or a halfword (the low bits of rS) and k a
+  number or a register, take rS = rN in every form; the assembler accepts
+  each without a word: `[++r4=748] = r4` (`d2 ec 4f 4e`), `[++r1=8] = r1`
+  (`d0 ec 1b 10`), `[++r1=-8] = r1` (`d7 ec 1b 1f`), `[r1++=8] = r1`
+  (`d8 ec 19 10`), the 2-byte `[r4++=-4] = r4` (`cc 05`), `[r1++=4] = r1`
+  (`91 05`), `h[r5++=2] = r5` (`d5 06`), `b[r6++=1] = r6` (`e6 07`), the
+  register steps `[++r1=r2] = r1` (`dc ec 13 12`), `[r1++=r2] = r1`
+  (`de ec 13 12`), `h[++r1=r2] = r1` (`dc ed 11 12`), `b[r1++=r2] = r1`
+  (`de ee 11 12`), and `h[++r2=8] = r2` (`58 ed 29 20`),
+  `h[++r1=-8] = r1` (`5b ed 19 1f`), `b[++r3=8] = r3` (`5a ee 38 30`).
+  **The value stored is rN as it was before the instruction**, as the
+  compiler uses the form: with the firmware's flags, at `-Os` and `-O2`,
+  C that stores a pointer as it was where the moved pointer points
+  (`q = p + 187; *q = p; return q;`) compiles to the one instruction
+  `[++r0=748] = r0`, `*p = p; return p + 2;` to `[r0++=8] = r0`, and the
+  halfword and byte versions to `h[++r0=8] = r0` and `b[++r0=8] = r0`;
+  C that stores the moved pointer (`*q = q`, and its post-increment
+  version) got the form in none of the functions tried: the compiler
+  computes the new base in another register and stores that. fwtest stores the old value in every form since 0.9.0
+  (HARNESS, "Instructions"); 0.8.0 and earlier stored the moved base in the
+  pre-increment forms with a number step (word, halfword and byte), and
+  the old value in the others.
+- Sources: TC: the assembler and disassembler for every form above; the
+  compiler's code for C with known results (harness/tests/images/selfc.c
+  and the session's own functions), built with `-mcpu=r3 -mfprev1` at
+  `-Os` and `-O2` (PROVENANCE P-63). The toolchain ships no documentation
+  of its instructions, and the SDK's own assembly (version stamps only)
+  shows nothing either way. fwtest's harness test on the images
+  `selfstore.S` and `selfc.c` (harness/tests/images/).
+- Standing: emulator-only (the toolchain's use of the form; the chip's
+  behaviour is Q-27)
+- Needed by: a firmware built on small-beeps (SR-10)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -2276,3 +2319,12 @@ spec request can turn one into a fact.
   and what the stock updater and the update loader `ota.bin` accept
   (HW-92; FM-1-RE has not found all of the updater's check). Settled only
   on a unit (Phase B; M9-PLAN.md section 5) or by JieLi's documentation.
+- **Q-27. A store of its own base on the chip.** Whether the chip stores
+  the base as it was for `[++rN=k] = rN`, `[rN++=k] = rN` and their byte
+  and halfword forms, as the toolchain's compiler relies on and fwtest
+  0.9.0 does (HW-95), or the moved base, or something else, for a number
+  and a register step alike. No allowed source settles it: the toolchain
+  ships no instruction documentation and the SDK shows none of these
+  forms. Settled by a probe on real hardware (Phase B; M9-PLAN.md
+  section 5). Related: a write-back load into its own base, and a block
+  move whose base is in its list (Q-19).

@@ -12,7 +12,7 @@ SPDX-FileCopyrightText: 2026 japes98
 - Licence: MIT, copyright 2026 Joakim Eriksson (`LICENSE` here, copied
   unmodified).
 - What: `crates/fm1-isa`, `crates/fm1-core` and `crates/fm1-soc`, at the
-  same paths, unmodified but for the patches below (0002 to 0012: bug
+  same paths, unmodified but for the patches below (0002 to 0013: bug
   fixes, two speed-only changes and MIDI out) and the workspace manifest
   `Cargo.toml` (patched, 0001). docs/EMULATOR-PARITY.md compares them with
   the F-Emulator app's.
@@ -133,6 +133,15 @@ Applied in file-name order by the fetch script, after checkout:
   case `usbport`) fail without it (`harness/upstream/fm1-emu-usb-port.md`;
   fwtest 0.7.0). Licence: the owner confirmed the note is covered by MIT
   on the same terms as P-47 (recorded by session spec-a1-fwsc).
+- `patches/0013-store-of-the-base-keeps-its-old-value.patch` (session
+  spec-1027, 2026-10-27; SR-10, from the vendor toolchain's code,
+  PROVENANCE P-1): `crates/fm1-core/src/lib.rs`, a store with a base
+  update whose stored register is its base stores the base as it was (the
+  pre-increment forms with an immediate step stored the moved base). The
+  crate test and the harness test `stores_of_the_base_keep_its_old_value`
+  (images `tests/images/selfstore.S` and `selfc.c`, suite case
+  `selfstore`) fail without it (`harness/upstream/fm1-emu-store-of-the-base.md`;
+  fwtest 0.9.0).
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
 and the harness suite gave byte-identical outputs (284 files) from fwtest

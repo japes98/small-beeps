@@ -563,6 +563,15 @@ whose result equals the register's old value can't be told from one that
 didn't write it; then the second half's value stays. The firmware's suite
 at `6ba587e` gives the same outputs with and without the change.
 
+**A store of its own base (0.9.0; SR-10).** A store with a base update
+whose stored register is its base (`[++rN=k] = rN`, `[rN++=k] = rN`, with
+`b[` or `h[`, k a number or a register) stores the base as it was before
+the instruction, and the base then moves by k (HARDWARE-SPEC.md HW-95).
+The compiler relies on this: `q = p + 187; *q = p;` compiles to
+`[++r0=748] = r0`. fwtest 0.8.0 and earlier stored the moved base in the
+pre-increment forms with a number step. What the chip stores is open
+(Q-27). Loads into their own base are unchanged.
+
 ### Block moves with a register base
 
 Since 0.3.0 fwtest runs all eight modes of this 4-byte instruction (bytes
@@ -663,6 +672,9 @@ pushing Docker compresses the layers; the image ID does not.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.9.0: a store with a base update whose stored register is its base
+  stores the base as it was (SR-10, "Instructions"); the image rebuilds
+  to the same image ID ("Determinism").
 - 0.8.0: update packages: `--package` boots a `.fwsc` through the
   emulator's package path, with fwtest's own checks ("Packages").
   Its pin is the clean side's pull request too, opened once the image is

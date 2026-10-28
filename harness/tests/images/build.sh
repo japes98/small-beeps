@@ -18,11 +18,11 @@ IMAGES="heartbeat halt wild hang console lcd leds keys pot midi midiout audio sp
 # C with code in RAM (image-ram.ld, flash.h)
 RAM_IMAGES="flashrw flashcall flashload flashirq flashkeep flashhelper"
 # built with the firmware's CPU flags (tools/build.sh, CPU), as the firmware is
-FW_IMAGES="blockc rotc"
+FW_IMAGES="blockc rotc selfc"
 # C linked where a package's app runs (image-pkg.ld), for tests/package.rs
 PKG_IMAGES="pkgapp"
 # assembly, linked after start.S like the C images
-ASM_IMAGES="blockmv pairhead rotr pushpop ramcode pairwaw"
+ASM_IMAGES="blockmv pairhead rotr pushpop ramcode pairwaw selfstore"
 # assembly with its own _start, linked alone
 RAW_IMAGES="sr7"
 ALL="$IMAGES $RAM_IMAGES $FW_IMAGES $PKG_IMAGES $ASM_IMAGES $RAW_IMAGES"
@@ -75,6 +75,13 @@ inside() {
     # rotc exists for the rotate by a register the compiler emits
     if ! grep -q 'r[0-9]* = r[0-9]* <> r[0-9]*$' "$out/rotc.dis"; then
         echo "rotc: the compiler no longer emits rD = rS <> rT" >&2
+        exit 1
+    fi
+    # selfc exists for a store whose stored register is its own base, with a
+    # base update, which the compiler emits for C storing the base as it was
+    # (SR-10); selfstore.S has every form of it the assembler takes
+    if ! grep -q '\[++\(r[0-9]*\)=[0-9-]*\] = \1$' "$out/selfc.dis"; then
+        echo "selfc: the compiler no longer emits [++rN=k] = rN" >&2
         exit 1
     fi
     # pairwaw.S stands for a pair whose halves write one register, which the

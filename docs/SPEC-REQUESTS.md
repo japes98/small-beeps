@@ -421,3 +421,48 @@ an issue or a pull request against docs/HARNESS.md.
   the compiler's expectation, which a flash driver can meet (HARNESS.md,
   "Instructions", the known gap). Open: Q-21 to Q-24.
 - Answered: 2026-10-24, session day-1024 (spec side)
+
+### SR-10: A store with a base update whose stored register is its base
+- Asked: 2026-10-27, by the owner, for a downstream firmware built on
+  small-beeps (not named here)
+- Question: a store with a pre- or post-increment base update whose
+  stored register is the base itself, as the pinned compiler emits it for
+  pi32v2: `[++r4=748] = r4` (bytes `d2 ec 4f 4e`; also `[++r1=8] = r1`,
+  `d0 ec 1b 10`). fwtest stores the updated base; the compiler's code
+  expects the value from before the instruction. A black-box run showed
+  it: with r1 = `0x01C38250`, `[++r1=8] = r1` wrote `0x01C38258` at
+  `0x01C38258`. Code the compiler emitted this way faulted in fwtest,
+  depending only on register allocation. Which value does the chip store,
+  and what should fwtest do? Does small-beeps' own firmware contain the
+  form (the downstream report says it doesn't)?
+- Status: answered (HARDWARE-SPEC.md, "22. A store of its own base
+  register (SR-10)", HW-95; docs/HARNESS.md, "Instructions"):
+  - **The toolchain intends the old value.** With the firmware's flags,
+    at `-Os` and `-O2`, the compiler emits the one instruction
+    `[++r0=748] = r0` for `q = p + 187; *q = p; return q;` (the pointer
+    stored as it was), and `[r0++=8] = r0`, `h[++r0=8] = r0` and
+    `b[++r0=8] = r0` for the post-increment, halfword and byte versions.
+    For the same C storing the moved pointer (`*q = q`) it did not use
+    the form in any function tried. Its assembler takes every such form
+    without a warning. The toolchain ships no documentation of its
+    instructions, and the SDK's own assembly is version stamps only, so
+    neither says more.
+  - **What the chip stores is not established without a unit:** Q-27,
+    for Phase B. The compiler's intent is strong evidence, since the vendor
+    ships it for this chip, but it is not a measurement.
+  - **fwtest matches the compiler** from 0.9.0 (patch 0013): every such
+    store keeps the base as it was. 0.8.0 got the pre-increment forms
+    with a number step wrong (word, halfword and byte: the moved base,
+    as reported); its post-increment forms and the register steps already
+    stored the old value, so the report's "or post-increment" does not
+    reproduce in fwtest. A harness test runs all fifteen forms the
+    assembler takes, and the compiler's own code for such C, and fails
+    on 0.8.0.
+  - **small-beeps' own firmware has no such store** (main at `fd07f7f5`,
+    `app.elf` and `app-pkg.elf`: 65 stores with a base update, none
+    storing its own base), as the report said. The firmware side's
+    `tools/build.sh` check against the form (R-BUILD-3, #158) can stay
+    until Q-27 is settled on a unit.
+  - fwtest 0.9.0 reaches `tools/fwtest` when its image, published from
+    this answer's merge, is pinned.
+- Answered: 2026-10-27, session spec-1027 (spec side)
