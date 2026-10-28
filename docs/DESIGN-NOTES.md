@@ -3026,3 +3026,44 @@ C-SEAMS) and its part below.
   1301, the runtime's members are in its ELF, with the instrument linked
   and with the platform alone. The Plaits demo builds and runs on the
   platform's runtime (C-PLAITS-BENCH).
+
+#### SysEx bytes from MIDI in (BR-7, R-MIDI-8)
+
+- **What.** MIDI in's parser skipped System Exclusive, counting it (M6a).
+  A firmware built on the base may need its bytes (a dump of its own
+  data, for one, of a few kilobytes). `midi_sysex_tap(fn)` sets a
+  function the parser calls with each SysEx byte and what it is:
+  `MIDI_SYSEX_BEGIN` (the F0), `MIDI_SYSEX_DATA` (each data byte),
+  `MIDI_SYSEX_END` (the F7) or `MIDI_SYSEX_CUT` (any other status byte
+  that ends it: a new F0, a channel or system common status, or a
+  reset; the byte then also does what it always does). Realtime bytes
+  inside a SysEx (a clock, say) never reach the tap: they are messages
+  of their own, handed on by `midi_read()`, and the SysEx goes on after
+  them, as MIDI 1.0 has it. The parser is otherwise unchanged: its
+  counts, and `MIDI_SYSEX_LIMIT`, which only counts a message long, so a
+  message of any length reaches the tap whole.
+- **A tap, not pieces through `midi_read()`.** `midi_read()` hands on
+  whole messages of at most two data bytes, and the instrument and the
+  arpeggiator read it once a block; giving it SysEx in pieces would
+  change what every reader sees. A tap changes nothing for a firmware
+  that sets none (the base sets none), and costs one test of a pointer
+  per SysEx byte.
+- **Where it runs, and where the work goes.** The tap runs where the
+  parser runs: in `midi_read()`, from the engine's block callback, core
+  0's audio interrupt. So it should only keep the bytes (into a buffer
+  of the firmware's) and, at the end, add one to `sb_work` to wake
+  main; the work on them (checking, decoding, storing) goes in main's
+  loop, `sb_engine_serve()` (BR-1). At the wire's pace a block brings at
+  most five bytes, so the tap's share of a block is small whatever the
+  message's length; a 4 104-byte message takes 1.3 s to arrive.
+- **The image changes** (code 53 068 bytes, from 53 028): the pointer
+  tests in the parser.
+- **Tested** (C-SEAMS, case sysex) on the test engine linked with the
+  platform alone, which starts MIDI in and keeps each message's bytes
+  through the tap and sums them in its serve: a message of 4 104 data
+  bytes, with a clock byte in its middle, arrives whole and in order
+  (length, a sum weighted by place, first and last byte), the work done
+  in the serve; the clock is handed on as a message; a second message
+  cut short by a note on is reported cut by 0x90, and the note handed
+  on; MIDI's record counts the first long and drops nothing. The
+  firmware's own MIDI cases (C-FW-SUITE) check MIDI in is as before.
