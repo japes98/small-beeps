@@ -1,0 +1,7 @@
+code 53340
+data 80
+bss 161024
+image 53420
+stack 4096
+irq_stack 2048
+ram_code 53220

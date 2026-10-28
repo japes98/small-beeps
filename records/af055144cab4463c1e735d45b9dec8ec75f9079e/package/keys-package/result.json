@@ -1,0 +1,53 @@
+{
+  "fwtest": {
+    "version": "0.8.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "small-beeps-0.0.0.fwsc",
+    "bytes": 71116,
+    "sha256": "7fabab5888675508bf9a2a97a500af1bfdb65d3c15a030eafb20f4f1f20feaa0"
+  },
+  "script_sha256": "a0760f614fe754db8371d643e43dc9ce0c258452e7fd060be6a271c0842d9824",
+  "run": {
+    "package": {
+      "identity": "small-beeps-0.0.0",
+      "app_area": "0x04000",
+      "entry": "0x02000120"
+    },
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "2400.136",
+    "instructions": {
+      "core0": 12447688,
+      "core1": 3746630
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "leds.csv",
+        "bytes": 42338,
+        "sha256": "71213815350617f92f86b28ccc0727ad76c0007ad2bad68f50b190b85d67eacc"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "4779f8233abdd920fd598e89b88a5288fee30a3cab3680bed2283603fc658ea6"
+      },
+      {
+        "name": "ram-01c00060-4f0-end.bin",
+        "bytes": 1264,
+        "sha256": "d6e5f6e8cdf98cf539859991c50746bfe8d7a24a20f1563869473aaf829c4165"
+      },
+      {
+        "name": "ram-01c00870-60-end.bin",
+        "bytes": 96,
+        "sha256": "a3ef89e339cc1d2af5465cef6081e84e04ad12541899c5715188c360fc423c20"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

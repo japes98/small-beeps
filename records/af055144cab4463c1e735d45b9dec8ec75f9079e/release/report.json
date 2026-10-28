@@ -1,0 +1,9 @@
+{
+  "commit": "0000000000000000000000000000000000000000",
+  "environment": {},
+  "outputs": {
+    "app.bin": "45dfc9f12feb49bde309b187c06734404c30deba37fa9fa6e6eb704d06e32329",
+    "app.elf": "10bcc164cf6a0eb2c77cf3ba36ad92a835fdc0461172fe76113a39bcfd793550"
+  },
+  "overall": "PASS"
+}

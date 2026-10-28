@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 8484ec5e5680cb74ae7100629d56a7a3c1395351..af055144cab4463c1e735d45b9dec8ec75f9079e
+OK     79f9031b3a73 firmware: raw bytes to MIDI out (BR-8)
+EXEMPT e5365483afed (merge) tools: merge seams/sysex into seams/midiout
+EXEMPT af055144cab4 (merge) Merge pull request #166 from japes98/seams/midiout
+3 commit(s) checked: PASS
+
+exit status 0

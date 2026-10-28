@@ -1,0 +1,7 @@
+code 12720
+data 48
+bss 138992
+image 12768
+stack 4096
+irq_stack 2048
+ram_code 12600
