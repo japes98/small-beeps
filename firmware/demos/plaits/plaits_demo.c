@@ -5,7 +5,10 @@
  * The Plaits demo's engine (M4b's platform load test, docs/DESIGN-NOTES.md):
  * Plaits' voice played through our audio and input APIs only (audio.h,
  * input.h), in place of the test instrument. Built as its own image by
- * tools/build.sh build --demo plaits; never part of the firmware.
+ * tools/build.sh build --demo plaits; never part of the firmware. Since
+ * clean-1027 it is an engine on the engine seam (engine.h, BR-1), as a
+ * firmware built on the base would be: the build defines
+ * SB_ENGINE_EXTERNAL, and main() calls the three functions below.
  *
  * - A key plays a note: the last key pressed sets the pitch (KEY1 is F3, as
  *   in the test instrument; OCT- and OCT+ shift by octaves) and holds
@@ -26,6 +29,7 @@
  */
 
 #include "audio.h"
+#include "engine.h"
 #include "input.h"
 #include "plaits_voice.h"
 
@@ -53,11 +57,24 @@ static float knob(u32 control)
     return (float)d / (float)KNOB_SPAN;
 }
 
-void plaits_demo_init(void)
+/* bench.c: with PLAITS_BENCH it tests the float routines and measures
+ * Plaits' engines, and stops. */
+void plaits_bench(void) __attribute__((noreturn));
+
+void sb_engine_init(void)
 {
+#if defined(PLAITS_BENCH)
+    plaits_bench();
+#else
     plaits_voice_init(0);
     params.note = 48.0f;
     params.lpg_colour = 0.5f;
+#endif
+}
+
+/* Nothing for main's loop: the demo draws no screen of its own. */
+void sb_engine_serve(void)
+{
 }
 
 static void events(void)
@@ -82,7 +99,7 @@ static void events(void)
     }
 }
 
-void plaits_demo_block(s32 *out, u32 frames)
+void sb_engine_block(s32 *out, u32 frames)
 {
     short buf[2 * PLAITS_RENDER];
     int engine, pot;

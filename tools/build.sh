@@ -251,8 +251,9 @@ cmd_inside() {
     obj=/tmp/small-beeps-obj
     rm -rf "$obj" && mkdir -p "$obj"
     objs=""
+    # The demo is an engine on the engine seam (firmware/src/engine.h).
     if [ -n "${SB_DEMO:-}" ]; then
-        CFLAGS="$CFLAGS -DSB_DEMO_PLAITS -Ifirmware/demos/plaits"
+        CFLAGS="$CFLAGS -DSB_DEMO_PLAITS -DSB_ENGINE_EXTERNAL -Ifirmware/demos/plaits"
     fi
     for s in $(find firmware/src -name '*.c' -o -name '*.S' | LC_ALL=C sort); do
         case " ${SB_LEAVE_OUT:-} " in

@@ -9,12 +9,15 @@
  * the audio output with the test instrument (M4), and idle between
  * interrupts, putting the heartbeat on the test screen once a
  * second and, from the first touch on, the instrument's screens (M8a,
- * views.c).
+ * views.c). Built with SB_ENGINE_EXTERNAL (since clean-1027, BR-1) it
+ * runs an engine defined outside the base's instrument instead
+ * (engine.h).
  */
 
 #include "sb.h"
 #include "input.h"
 #include "audio.h"
+#include "engine.h"
 #include "fm.h"
 #include "store.h"
 #include "ui.h"
@@ -163,23 +166,14 @@ void sb_tick(void)
 
 /* The store's work (M7), from main's loop: what the panel saved or
  * reset, and the selection and settings once they settle. */
+#if !defined(SB_ENGINE_EXTERNAL)
 static void serve_store(void)
 {
-#if !defined(SB_DEMO_PLAITS)
     const char *said = store_serve();
 
     if (said)
         view_message(said, store_message_slot);
-#endif
 }
-
-#if defined(SB_DEMO_PLAITS)
-/* The Plaits demo (firmware/demos/plaits/, M4b), built as its own image
- * by tools/build.sh build --demo plaits; with PLAITS_BENCH it tests its
- * float routines and measures Plaits' engines, and stops. */
-void plaits_demo_init(void);
-void plaits_demo_block(s32 *out, u32 frames);
-void plaits_bench(void) __attribute__((noreturn));
 #endif
 
 int main(void)
@@ -226,19 +220,19 @@ int main(void)
     JL_TIMER0->PRD = TICK_PRD;
     JL_TIMER0->CON = TICK_CON;
     input_start();
-#if !defined(SB_DEMO_PLAITS)
-    /* The FM engine (M5); it starts core 1. The Plaits demo, which drives
-     * core 1 itself, leaves it out. */
+#if defined(SB_ENGINE_EXTERNAL)
+    /* An engine of a firmware built on the base (engine.h; the Plaits
+     * demo is one): its own start-up, in place of the instrument's. */
+    sb_engine_init();
+#else
+    /* The FM engine (M5); it starts core 1. */
     fm_init();
     /* The store (M7): user slots, settings and selection, before the
      * audio starts. */
     store_boot();
 #endif
-#if defined(SB_DEMO_PLAITS) && defined(PLAITS_BENCH)
-    plaits_bench();
-#elif defined(SB_DEMO_PLAITS)
-    plaits_demo_init();
-    audio_start(plaits_demo_block);
+#if defined(SB_ENGINE_EXTERNAL)
+    audio_start(sb_engine_block);
 #elif defined(SB_COST_NO_AUDIO)
     (void)fm_block;
 #elif defined(SB_COST_SILENT_ENGINE)
@@ -306,8 +300,12 @@ int main(void)
         second = sb_seconds;
         /* What the engine asked of the store before the loop began, and
          * (since M8a) the panel's events from before it: the screens. */
+#if defined(SB_ENGINE_EXTERNAL)
+        sb_engine_serve();
+#else
         serve_store();
         view_serve();
+#endif
         for (;;) {
             __asm__ volatile("idle");
             wakes++;
@@ -315,8 +313,12 @@ int main(void)
                 seen = sb_work;
                 sb_beacon.wakes = wakes;
                 sb_beacon.wakes_ticks = sb_beacon.tick_count;
+#if defined(SB_ENGINE_EXTERNAL)
+                sb_engine_serve();
+#else
                 view_serve();
                 serve_store();
+#endif
                 /* The heartbeat is the test screen's own (since M8a the
                  * instrument's screens have no place for it). */
                 while (second != sb_seconds) {
