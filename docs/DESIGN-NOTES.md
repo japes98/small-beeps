@@ -2969,8 +2969,17 @@ C-SEAMS) and its part below.
 - **A name clash on the way.** The base names its objects by file name,
   so `core1.c` and `core1.S` both made `core1.o` and the link failed
   ("multiple definition"); the entry is `core1_entry.S`.
-- **The image changes** (code 53 028 bytes, from 52 960); the firmware's
-  suites pass as they are (below, in the pull request).
+- **The image changes** (code 53 028 bytes, from 52 960), and start-up
+  ends 2 to 3 µs later. One golden changed by hand, as the timing
+  goldens' policy says a change that is not a pure time shift must be:
+  midiout's MIDI capture, where the chord's three keys, pressed in the
+  same instant, now reach the engine in the order 60, 64, 67 (was 64, 67,
+  60); which key the panel's scan sees first depends on its phase
+  against the script, which the later start moved. Every other message
+  is the same, 2 to 3 µs later; the case's own checks take the chord in
+  any order and pass, and midiround's script is written from the new
+  capture (`tools/midi_scripts.py`). The order is the same on every
+  later seam's image.
 - **Tested** (C-SEAMS, cases engine and platform): the test engine
   starts core 1 and hands it a job every block, a sequence number to
   triple: core 1 starts, does exactly one job a block, every answer
