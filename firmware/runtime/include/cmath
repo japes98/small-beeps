@@ -1,0 +1,9 @@
+/*
+ * SPDX-License-Identifier: MIT
+ * SPDX-FileCopyrightText: 2026 japes98
+ *
+ * <cmath>: the same as our <math.h> (the platform's runtime,
+ * firmware/runtime/, BR-4; written for the Plaits demo, M4b).
+ */
+
+#include <math.h>

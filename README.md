@@ -1,7 +1,8 @@
 Embedded audio experiments. Work in progress.
 
 MIT licensed (see `LICENSE` and `NOTICE`). How changes are made and recorded:
-`CONTRIBUTING.md`. What is planned: `docs/PLAN.md`.
+`CONTRIBUTING.md`. What is planned: `docs/PLAN.md`. Building your own on
+this base: `docs/BUILDING-ON-SMALL-BEEPS.md`.
 
 ## Build
 

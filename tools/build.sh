@@ -63,7 +63,7 @@
 # (INCLUDE platform.ld) and asserts its own records.
 set -eu
 
-INSTRUMENT="firmware/src/arp.c firmware/src/core1.S firmware/src/fm.c firmware/src/fm_play.c
+INSTRUMENT="firmware/src/arp.c firmware/src/fm.c firmware/src/fm_play.c
             firmware/src/patches.c firmware/src/saving.c firmware/src/spectrum.c firmware/src/views.c"
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -208,7 +208,8 @@ build_demo_plaits() {
     d=firmware/demos/plaits
     CXX="clang -target pi32v2 -x c++ -std=c++11 -ffreestanding -nostdlib -nostdinc -fno-exceptions
          -fno-rtti -fno-threadsafe-statics -fno-common -g -fdebug-prefix-map=$src=.
-         -I$d/include -isystem vendor/plaits/eurorack -isystem vendor/plaits -I$d -Ifirmware/src
+         -I$d/include -Ifirmware/runtime/include -isystem vendor/plaits/eurorack -isystem vendor/plaits
+         -I$d -Ifirmware/src
          -DTEST -include $d/include/plaits_pre.h"
     for d2 in ${SB_DEFINES:-}; do CXX="$CXX -D$d2"; done
     # PLAITS_HWFLOAT: the toolchain's hardware single-precision float
@@ -259,11 +260,33 @@ build_outside() {
             case "$s" in
                 *.S) set -x; clang $ASFLAGS -I"$r" -c "$r/$s" -o "$o"; set +x ;;
                 *.cc) set -x; clang $CXXFLAGS -I"$r" -c "$r/$s" -o "$o"; set +x ;;
-                *) set -x; clang $CFLAGS -I"$r" -c "$r/$s" -o "$o"; set +x ;;
+                *) set -x; clang $CFLAGS -Ifirmware/runtime/include -I"$r" -c "$r/$s" -o "$o"; set +x ;;
             esac
             objs="$objs $o"
         done
     done
+}
+
+# The platform's runtime (firmware/runtime/, BR-4): memcpy, memmove and
+# memset, what C++ needs (cxx.cc) and soft-float, in an archive the link
+# takes last, so an image gets only the members it calls (the firmware:
+# none). Its C is built without the float instructions, as soft-float's
+# must be (and as the Plaits demo's C always was).
+build_runtime() {
+    rt=""
+    for s in $(find firmware/runtime -name '*.c' -o -name '*.cc' | LC_ALL=C sort); do
+        o="$obj/runtime_$(basename "$s" | sed 's/\.c$/.o/; s/\.cc$/.o/')"
+        case "$s" in
+            # shellcheck disable=SC2086
+            *.cc) set -x; clang $CXXFLAGS -c "$s" -o "$o"; set +x ;;
+            # shellcheck disable=SC2086,SC2046
+            *) set -x; clang $(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//') -c "$s" -o "$o"; set +x ;;
+        esac
+        rt="$rt $o"
+    done
+    rm -f "$obj/libsb_runtime.a"
+    # shellcheck disable=SC2086
+    ar rcD "$obj/libsb_runtime.a" $rt
 }
 
 cmd_inside() {
@@ -289,7 +312,7 @@ cmd_inside() {
     # statics.
     CXXFLAGS="-target pi32v2 $CPU -x c++ -std=c++14 -ffreestanding -nostdlib -nostdinc -Os -g
               -fno-common -fno-exceptions -fno-rtti -fno-threadsafe-statics -Wall -Wextra -Werror
-              -fdebug-prefix-map=$src=. -Ifirmware/src"
+              -fdebug-prefix-map=$src=. -Ifirmware/src -Ifirmware/runtime/include"
     for d in ${SB_DEFINES:-}; do CXXFLAGS="$CXXFLAGS -D$d"; done
     clang --version | head -1
     ld --version | head -1
@@ -318,6 +341,7 @@ cmd_inside() {
         build_demo_plaits
     fi
     build_outside
+    build_runtime
     # No store that writes back into the register it stores (since
     # clean-1027; tools/ownbase.pl, R-BUILD-3): every object's code is
     # checked before anything is linked, so no image holds one. One
@@ -326,7 +350,7 @@ cmd_inside() {
     # where the compiler puts such stores in the vendored Plaits; there
     # they are listed and counted, not refused.
     wb=0
-    for o in $objs; do
+    for o in $objs $rt; do
         objdump -d "$o" | perl tools/ownbase.pl "$(basename "$o")" || wb=$((wb + 1))
     done
     if [ "$wb" -ne 0 ]; then
@@ -341,7 +365,7 @@ cmd_inside() {
     set -x
     # shellcheck disable=SC2086
     ld -nostdlib --no-undefined --orphan-handling=error -L firmware -T "${SB_LD:-firmware/app.ld}" \
-        -o "$out/app.elf" $objs
+        -o "$out/app.elf" $objs "$obj/libsb_runtime.a"
     # The raw image is the code, then the initial data, which app.ld loads
     # right after it. This objcopy takes one section at a time, and ld's
     # own binary output gets data addresses wrong, so the two are joined.
@@ -353,7 +377,7 @@ cmd_inside() {
     # is what tools/fwsc.py packs into a .fwsc. Not for a demo.
     if [ -z "${SB_DEMO:-}" ]; then
         ld -nostdlib --no-undefined --orphan-handling=error --defsym=IMAGE_ORIGIN=0x02000120 \
-            -L firmware -T "${SB_LD:-firmware/app.ld}" -o "$out/app-pkg.elf" $objs
+            -L firmware -T "${SB_LD:-firmware/app.ld}" -o "$out/app-pkg.elf" $objs "$obj/libsb_runtime.a"
         objcopy -O binary -j .text "$out/app-pkg.elf" "$obj/pkg-text.bin"
         objcopy -O binary -j .data "$out/app-pkg.elf" "$obj/pkg-data.bin"
         cat "$obj/pkg-text.bin" "$obj/pkg-data.bin" > "$out/app-pkg.bin"

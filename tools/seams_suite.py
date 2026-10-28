@@ -50,6 +50,52 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   platform's records where the base has them, the package link built
   too, and the engine case's run and checks pass on it (the engine's
   slot, where the base keeps its FM engine's record, still zero).
+- core 1 (R-CORE1-1), within engine and platform: since BR-3 the test
+  engine starts core 1 with sb_core1_start (core1.h) and hands it a job
+  every block with sb_publish and sb_shared: core 1 starts (1), does one
+  job a block, every answer right and in time, and source 126's vector
+  word, borrowed for core 1's start, holds its stub again; with the
+  platform alone too.
+- runtime (R-RT-1), within engine and platform: since BR-4 the test
+  engine's init runs C++ needing the platform's runtime
+  (tests/seams/engine/sb_test_runtime.cc: a virtual class, std::sort,
+  memcpy, memmove and memset with lengths known at run time, a static
+  object whose constructor main() runs, and one with a destructor) and
+  records its result, 1301; the runtime's members are in the ELF; and build A,
+  which calls none of them, has none (the archive gives an image only
+  what it calls).
+- sysex (R-MIDI-8): MIDI in's SysEx tap, on the test engine linked with
+  the platform alone. Its script, written here: a System Exclusive
+  message of SYSEX_DATA (4 104) data bytes, sent in lines of 60 every
+  20 ms (fwtest drops bytes when more than about a second's worth wait),
+  with a clock byte (F8) in its middle; then one cut short by a note on.
+  The tap sees both begin, every data byte in order and no other
+  (length, sum by place, first and last, against the script's), the
+  first end with F7 and the second cut by 0x90; the work runs in the
+  serve; midi_read hands on the clock and the note; MIDI's record counts
+  the first message long (past MIDI_SYSEX_LIMIT) and no byte is dropped.
+- rawout (R-MIDIOUT-9): MIDI out's raw bytes, on the same build. At the
+  first whole second the test engine's serve hands MIDI out a System
+  Exclusive message of RAW_LEN (600) bytes; for 300 blocks from then its
+  block callback queues a clock every block and a note on or off every
+  16th (no more than the queue holds while the stream runs). On the wire
+  (fwtest's --midi-out): the 600 bytes in order, nothing inside them but
+  clocks (at least one, so a clock waits for no stream), every note
+  after the F7, the first carrying its status, all of them and every
+  clock sent, none dropped; the stream counted whole and the serve
+  finding it gone.
+- store (R-STORE-10): the store's kinds for firmwares built on the base,
+  on the same build, in runs chained through the flash file
+  (tools/store.py writes a control record before each, which the test
+  engine reads at start-up and acts on in its first serve): a 4 096-byte
+  payload and a small one written and read back, then read at the next
+  start-up; rewritten; rewritten again with the power cut part way
+  (fwtest's --power-cut, aimed by a run with --flash-log): at the next
+  start-up the large payload is gone (neither write: never a mix) and
+  the small one stays; rewritten after the cut; a factory reset voids
+  both; then, alone in the store, 5 000 bytes written and read back
+  and the store's largest payload (STORE_FW_MAX) refused as full. After
+  every run tools/store.py's reader finds what the firmware does.
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -196,7 +242,15 @@ def case_outside(a, work, log):
 # --- engine ---------------------------------------------------------------
 
 ENGINE_FIELDS = ("marker", "inits", "init_ticks", "init_blocks", "blocks", "frames", "serves",
-                 "serve_seconds", "presses", "serve_presses")
+                 "serve_seconds", "presses", "serve_presses", "core1", "core1_jobs", "core1_wrong",
+                 "runtime", "sysex_begun", "sysex_ended", "sysex_cut", "sysex_cut_by", "sysex_served",
+                 "sysex_len", "sysex_sum", "sysex_first", "sysex_last", "realtime", "notes",
+                 "raw_started", "raw_done", "out_notes", "out_clocks", "out_refused",
+                 "step", "boot_large", "boot_large_sum", "boot_small", "boot_small_sum", "put_result",
+                 "put2_result", "put_len", "put_sum")
+RUNTIME_RESULT = 1301           # tests/seams/engine/sb_test_runtime.cc
+RUNTIME_SYMBOLS = ("memcpy", "memmove", "memset", "__cxa_pure_virtual", "_ZdlPv")
+CORE1_START_WORD = 0x01c7fff8   # source 126's vector word, core 1's start address (HW-9)
 ENGINE_MARKER = 0x31474E45   # "ENG1"
 AUDIO_ADDR, AUDIO_FIELDS = 0x01c00550, ("marker", "start", "blocks", "underruns")
 ENGINE_MS = 2300
@@ -211,6 +265,10 @@ INSTRUMENT_SYMBOLS = ("fm_init", "fm_block", "fm_render", "fm_patches", "fm_core
 
 
 def case_engine(a, work, log):
+    syms = fw_suite().elf_symbols(os.path.join(a.build, "app.elf"))
+    pulled = [s for s in RUNTIME_SYMBOLS if s in syms]
+    if pulled:
+        return ["build A has the runtime's %s, which it never calls" % ", ".join(pulled)]
     b = os.path.join(work, "build")
     build(b, log, "--src", "tests/seams/engine", "--define", "SB_ENGINE_EXTERNAL")
     return run_engine(b, work, log, "engine")
@@ -225,19 +283,29 @@ def run_engine(b, work, log, name):
     r = fwtest(os.path.join(b, "app.bin"), run, log, "--ms", str(ENGINE_MS),
                "--script", "tests/seams/scripts/engine.txt", "--wav",
                "--ram", "0x%08x:%d@end" % (rec, 4 * len(ENGINE_FIELDS)),
-               "--ram", "0x%08x:64@end" % fm, "--ram", "0x%08x:16@end" % AUDIO_ADDR)
+               "--ram", "0x%08x:64@end" % fm, "--ram", "0x%08x:16@end" % AUDIO_ADDR,
+               "--ram", "0x%08x:4@end" % CORE1_START_WORD)
     if r["run"]["outcome"] != "completed" or r["run"].get("unmodelled_accesses"):
         return ["the run: %s (%s), unmodelled %s" % (r["run"]["outcome"], r["run"].get("detail"),
                                                      r["run"].get("unmodelled_accesses"))]
     e = words(ram(run, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS)
     au = words(ram(run, AUDIO_ADDR, 16), AUDIO_FIELDS)
     want = {"marker": ENGINE_MARKER, "inits": 1, "init_ticks": 0, "init_blocks": 0,
-            "serve_seconds": 2, "presses": 2, "serve_presses": 2}
+            "serve_seconds": 2, "presses": 2, "serve_presses": 2, "core1": 1, "core1_wrong": 0,
+            "runtime": RUNTIME_RESULT}
     for k, v in want.items():
         if e[k] != v:
             problems.append("%s is %d, not %d" % (k, e[k], v))
     if e["blocks"] != au["blocks"] or e["frames"] != 64 * e["blocks"]:
         problems.append("blocks %d (frames %d), the audio record's %d" % (e["blocks"], e["frames"], au["blocks"]))
+    missing = [s for s in RUNTIME_SYMBOLS if s not in syms]
+    if missing:
+        problems.append("the runtime's %s not linked" % ", ".join(missing))
+    if e["core1_jobs"] != e["blocks"]:
+        problems.append("core 1 did %d jobs in %d blocks" % (e["core1_jobs"], e["blocks"]))
+    word, = struct.unpack("<I", ram(run, CORE1_START_WORD, 4))
+    if word != syms["sb_irq_stubs"] + 2 * 126:
+        problems.append("source 126's vector word is 0x%08x, not its stub's" % word)
     if au["underruns"]:
         problems.append("%d underruns" % au["underruns"])
     # Before the loop, the two seconds, the two taps' presses and releases.
@@ -251,8 +319,9 @@ def run_engine(b, work, log, name):
     if not 1900 <= peak <= 2200:
         problems.append("the square wave's level in the audio is %d, not about 2048" % peak)
     print("%s: init once before the ticks and the audio; %d blocks of 64 frames; %d serves (seconds %d);"
-          " %d presses; the square wave at %d; the instrument never ran" % (
-              name, e["blocks"], e["serves"], e["serve_seconds"], e["presses"], peak))
+          " %d presses; core 1 did %d jobs, none wrong, its vector word restored; the square wave at %d;"
+          " the instrument never ran" % (
+              name, e["blocks"], e["serves"], e["serve_seconds"], e["presses"], e["core1_jobs"], peak))
     return problems
 
 
@@ -279,11 +348,222 @@ def case_platform(a, work, log):
     return problems + run_engine(b, work, log, "platform")
 
 
+# --- sysex ----------------------------------------------------------------
+
+SYSEX_DATA = 4104
+SYSEX_CLOCK_AT = 1000            # the clock byte comes after this many data bytes
+MIDI_ADDR = 0x01c005d0           # MIDI in's record (midi.h)
+MIDI_FIELDS = ("marker", "bytes", "ring_dropped", "parsed", "messages", "realtime", "sysex",
+               "sysex_bytes", "sysex_long", "sysex_cut")
+
+
+def sysex_script(path):
+    data = [(i * 7 + 3) & 0x7F for i in range(SYSEX_DATA)]
+    wire = ["f0"]
+    for i, b in enumerate(data):
+        if i == SYSEX_CLOCK_AT:
+            wire.append("f8")
+        wire.append("%02x" % b)
+    wire.append("f7")
+    lines = ["# tools/seams_suite.py, case sysex (written by it)"]
+    t = 600
+    for k in range(0, len(wire), 60):
+        lines.append("%d midi %s" % (t, " ".join(wire[k:k + 60])))
+        t += 20
+    lines.append("%d midi f0 01 02 03 90 3c 40" % (t + 100))
+    with open(path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    return data, t + 100
+
+
+def case_sysex(a, work, log):
+    problems = []
+    b = os.path.join(work, "build")
+    build(b, log, "--platform", "--src", "tests/seams/engine", "--ld", "tests/seams/engine/engine.ld")
+    rec = fw_suite().elf_symbols(os.path.join(b, "app.elf"))["sb_test_engine"]
+    script = os.path.join(work, "sysex.txt")
+    data, last = sysex_script(script)
+    run = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), run, log, "--ms", str(last + 400), "--script",
+               os.path.relpath(script, ROOT), "--ram", "0x%08x:%d@end" % (rec, 4 * len(ENGINE_FIELDS)),
+               "--ram", "0x%08x:%d@end" % (MIDI_ADDR, 4 * len(MIDI_FIELDS)))
+    if r["run"]["outcome"] != "completed" or r["run"].get("midi_bytes_dropped"):
+        return ["the run: %s (%s), MIDI bytes dropped %s" % (r["run"]["outcome"], r["run"].get("detail"),
+                                                           r["run"].get("midi_bytes_dropped"))]
+    e = words(ram(run, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS)
+    mi = words(ram(run, MIDI_ADDR, 4 * len(MIDI_FIELDS)), MIDI_FIELDS)
+    want = {"sysex_begun": 2, "sysex_ended": 1, "sysex_cut": 1, "sysex_cut_by": 0x90, "sysex_served": 1,
+            "sysex_len": SYSEX_DATA, "sysex_sum": sum(v * (i + 1) for i, v in enumerate(data)) & 0xFFFFFFFF,
+            "sysex_first": data[0], "sysex_last": data[-1], "realtime": 1, "notes": 1}
+    for k, v in want.items():
+        if e[k] != v:
+            problems.append("%s is %d, not %d" % (k, e[k], v))
+    if mi["sysex_long"] != 1 or mi["ring_dropped"] or mi["sysex_bytes"] != SYSEX_DATA + 3:
+        problems.append("MIDI's record: %d long, %d dropped, %d SysEx data bytes" % (
+            mi["sysex_long"], mi["ring_dropped"], mi["sysex_bytes"]))
+    print("sysex: %d data bytes in order through the tap (a clock byte inside handed on as a message);"
+          " the work in the serve; a second message cut by 0x%02x" % (e["sysex_len"], e["sysex_cut_by"]))
+    return problems
+
+
+# --- rawout ---------------------------------------------------------------
+
+RAW_LEN = 600
+RAW_FIELDS = ("streams", "done", "bytes", "realtime")
+
+
+def midi_bytes(run):
+    with open(os.path.join(run, "midi-out.csv")) as f:
+        rows = [l.strip().split(",") for l in f if l.strip()][1:]
+    return [int(r[1], 16) for r in rows]
+
+
+def case_rawout(a, work, log):
+    problems = []
+    b = os.path.join(work, "build")
+    build(b, log, "--platform", "--src", "tests/seams/engine", "--ld", "tests/seams/engine/engine.ld")
+    syms = fw_suite().elf_symbols(os.path.join(b, "app.elf"))
+    rec, raw = syms["sb_test_engine"], syms["sb_midi_out_raw"]
+    run = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), run, log, "--ms", "2300", "--midi-out",
+               "--ram", "0x%08x:%d@end" % (rec, 4 * len(ENGINE_FIELDS)),
+               "--ram", "0x%08x:%d@end" % (raw, 4 * len(RAW_FIELDS)))
+    if r["run"]["outcome"] != "completed" or r["run"].get("midi_out_bytes_dropped"):
+        return ["the run: %s (%s), MIDI out bytes dropped %s" % (
+            r["run"]["outcome"], r["run"].get("detail"), r["run"].get("midi_out_bytes_dropped"))]
+    e = words(ram(run, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS)
+    rw = words(ram(run, raw, 4 * len(RAW_FIELDS)), RAW_FIELDS)
+    if not e["raw_started"] or not e["raw_done"] or e["out_refused"]:
+        problems.append("the stream: started at block %d, found gone at %d, %d queued messages dropped"
+                        % (e["raw_started"], e["raw_done"], e["out_refused"]))
+    if (rw["streams"], rw["done"], rw["bytes"] - rw["realtime"]) != (1, 1, RAW_LEN) or not rw["realtime"]:
+        problems.append("MIDI out's raw record: %s" % rw)
+    wire = midi_bytes(run)
+    want = [0xF0] + [(i * 5 + 1) & 0x7F for i in range(1, RAW_LEN - 1)] + [0xF7]
+    if 0xF0 not in wire or 0xF7 not in wire:
+        return problems + ["no F0 ... F7 on the wire"]
+    s, f = wire.index(0xF0), wire.index(0xF7)
+    inside = wire[s:f + 1]
+    others = [x for x in inside if x != 0xF8]
+    if others != want:
+        problems.append("the raw bytes on the wire are not the 600 sent, in order, with only clocks inside")
+    clocks_inside = len(inside) - len(others)
+    if not clocks_inside:
+        problems.append("no clock inside the stream")
+    notes = [i for i, x in enumerate(wire) if 0x80 <= x <= 0x9F]
+    if notes and notes[0] < f:
+        problems.append("a note's status before the stream's end")
+    after = [x for x in wire[f + 1:] if x != 0xF8]
+    if not after or after[0] < 0x80:
+        problems.append("the first message after the stream has no status byte")
+    with open(os.path.join(run, "midi-out.txt")) as fh:
+        text = fh.read()
+    n_notes = len(re.findall(r"note-o(n|ff) ", text))
+    n_clocks = wire.count(0xF8)
+    if n_notes != e["out_notes"] or n_clocks != e["out_clocks"]:
+        problems.append("on the wire %d notes and %d clocks, queued %d and %d" % (
+            n_notes, n_clocks, e["out_notes"], e["out_clocks"]))
+    print("rawout: %d bytes in order with %d clocks inside; then %d notes, the first with its status;"
+          " %d clocks in all, none dropped" % (len(others), clocks_inside, n_notes, n_clocks))
+    return problems
+
+
+# --- store ----------------------------------------------------------------
+
+CONTROL_KIND, LARGE, SMALL, HUGE = 0x8F, (0x80, 7), (0x81, 0), (0x82, 0)
+NONE32 = 0xFFFFFFFF
+STORE_ERR_FULL = 0xFFFFFFFE      # -2, as the record's u32 holds it
+
+
+def pattern(p, n):
+    return bytes((i * (2 * p + 1) + p) & 0xFF for i in range(n))
+
+
+def place_sum(b):
+    return sum(x * (i + 1) for i, x in enumerate(b)) & 0xFFFFFFFF
+
+
+def case_store(a, work, log):
+    import store as st
+    problems = []
+    b = os.path.join(work, "build")
+    build(b, log, "--platform", "--src", "tests/seams/engine", "--ld", "tests/seams/engine/engine.ld")
+    rec = fw_suite().elf_symbols(os.path.join(b, "app.elf"))["sb_test_engine"]
+    state = {"chip": None}
+
+    def run(name, step, *opts):
+        s = st.Store(state["chip"])
+        s.put_fw(CONTROL_KIND, 0, 1, bytes([step]))
+        flash = os.path.join(work, name + "-in.bin")
+        with open(flash, "wb") as f:
+            f.write(s.chip())
+        out = os.path.join(work, name)
+        timing = list(opts) if any(o == "--power-cut" for o in opts) else ["--ms", "1200"] + list(opts)
+        r = fwtest(os.path.join(b, "app.bin"), out, log, "--flash", os.path.relpath(flash, ROOT), "--flash-out",
+                   "--ram", "0x%08x:%d@end" % (rec, 4 * len(ENGINE_FIELDS)), *timing)
+        if r["run"]["outcome"] not in ("completed", "power-cut"):
+            raise RuntimeError("%s: %s (%s)" % (name, r["run"]["outcome"], r["run"].get("detail")))
+        with open(os.path.join(out, "flash.bin"), "rb") as f:
+            chip = f.read()
+        return words(ram(out, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS), chip, out
+
+    def expect(name, e, img, large, small, **fields):
+        for k, v in fields.items():
+            if e[k] != v:
+                problems.append("%s: %s is %d, not %d" % (name, k, e[k], v))
+        for (kind, ident), want in ((LARGE, large), (SMALL, small)):
+            got = img.get_fw(kind, ident)
+            if (got[1] if got else None) != want:
+                problems.append("%s: tools/store.py reads 0x%02x/%d as %s" % (
+                    name, kind, ident, "none" if got is None else "%d bytes" % len(got[1])))
+
+    p1, p2, p3, p9, p5 = (pattern(1, 4096), pattern(2, 4096), pattern(3, 4096), pattern(9, 10),
+                          pattern(5, 5000))
+    e, state["chip"], _ = run("1-write", 1)
+    expect("1-write", e, st.Image(state["chip"]), p1, p9, step=1, boot_large=NONE32, put_result=0,
+           put_len=4096, put_sum=place_sum(p1))
+    e, state["chip"], _ = run("2-read", 0)
+    expect("2-read", e, st.Image(state["chip"]), p1, p9, boot_large=4096, boot_large_sum=place_sum(p1),
+           boot_small=10, boot_small_sum=place_sum(p9))
+    e, state["chip"], _ = run("3-rewrite", 2)
+    expect("3-rewrite", e, st.Image(state["chip"]), p2, p9, put_result=0, put_len=4096, put_sum=place_sum(p2))
+    # The cut: halfway through the next rewrite's page programs.
+    before = state["chip"]
+    _, _, out = run("4-aim", 3, "--flash-log")
+    with open(os.path.join(out, "flash-ops.csv")) as f:
+        ops = [l.split(",") for l in f.read().splitlines()[1:]]
+    progs = [float(o[0]) for o in ops if o[2] == "02" and int(o[3], 16) >= st.BASE]
+    cut = progs[len(progs) // 2]
+    state["chip"] = before
+    e, state["chip"], _ = run("4-cut", 3, "--power-cut", "%.3f" % cut)
+    e, state["chip"], _ = run("5-after-cut", 0)
+    expect("5-after-cut", e, st.Image(state["chip"]), None, p9, boot_large=NONE32, boot_small=10,
+           boot_small_sum=place_sum(p9))
+    e, state["chip"], _ = run("6-rewrite", 2)
+    expect("6-rewrite", e, st.Image(state["chip"]), p2, p9, put_result=0, put_len=4096, put_sum=place_sum(p2))
+    e, state["chip"], _ = run("7-reset", 4)
+    e, state["chip"], _ = run("8-after-reset", 0)
+    expect("8-after-reset", e, st.Image(state["chip"]), None, None, boot_large=NONE32, boot_small=NONE32)
+    e, state["chip"], _ = run("9-largest", 5)
+    expect("9-largest", e, st.Image(state["chip"]), None, None, put_result=0, put2_result=STORE_ERR_FULL,
+           put_len=5000, put_sum=place_sum(p5))
+    got = st.Image(state["chip"]).get_fw(*HUGE)
+    if not got or got[1] != p5:
+        problems.append("9-largest: tools/store.py doesn't read the 5 000 bytes back")
+    print("store: 4 096 bytes written, read at start-up, rewritten; cut at %.1f ms of %d page programs:"
+          " gone, never mixed, the small payload kept; rewritten; a reset voids both; 5 000 bytes alone,"
+          " %d refused as full; tools/store.py agrees" % (cut, len(progs), 5904))
+    return problems
+
+
 CASES = [
     ("ownbase", case_ownbase),
     ("outside", case_outside),
     ("engine", case_engine),
     ("platform", case_platform),
+    ("sysex", case_sysex),
+    ("rawout", case_rawout),
+    ("store", case_store),
 ]
 
 

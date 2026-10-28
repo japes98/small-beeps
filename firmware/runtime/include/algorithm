@@ -2,13 +2,14 @@
  * SPDX-License-Identifier: MIT
  * SPDX-FileCopyrightText: 2026 japes98
  *
- * <algorithm> for the Plaits demo: only the templates Plaits uses (min, max,
- * swap, fill, copy, sort), so it builds without a C++ library. Ours, from
- * the C++ standard's descriptions (docs/DESIGN-NOTES.md, M4b).
+ * <algorithm>: only the templates Plaits uses (min, max, swap, fill, copy,
+ * sort), so C++ builds without a C++ library. Ours, from the C++
+ * standard's descriptions (docs/DESIGN-NOTES.md, M4b); since clean-1027
+ * the platform's runtime (firmware/runtime/, BR-4).
  */
 
-#ifndef PLAITS_DEMO_ALGORITHM
-#define PLAITS_DEMO_ALGORITHM
+#ifndef SB_RUNTIME_ALGORITHM
+#define SB_RUNTIME_ALGORITHM
 
 namespace std {
 
