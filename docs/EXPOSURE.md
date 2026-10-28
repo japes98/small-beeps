@@ -2137,6 +2137,45 @@ SR-3 wrote only its barrier-log row.*
   7 GB free.
 - A spec session may work at the same time; this session opens none of its
   branches.
+- Reads: this file, sessions/README.md, docs/STORE-FORMAT.md,
+  docs/HARNESS.md ("The flash chip", the outputs, the command line,
+  "When fwtest treats core 0 as waiting"),
+  docs/HARDWARE-SPEC.md (HW-67, for PLAN.md's USB MIDI note),
+  docs/DESIGN-NOTES.md, docs/REQUIREMENTS.md and docs/PLAN.md (the parts
+  these changes touch), docs/BUILDING-ON-SMALL-BEEPS.md, #152's
+  description (as a model), and this repository's firmware, tools and
+  tests. Nothing fetched from outside the repository but the build
+  image's and fwtest's own downloads.
+- GitHub: the image workflow's runs listed; of the runs on `c298dcf9`
+  and `f9a9bc64`, the logs read through a filter that printed only the
+  pushed digest and fwtest's version lines; open pull requests listed
+  with their file lists (none open); #126 and #154's state; #152's
+  description; #169, #170 and #171 opened. No CI artifact fetched.
+- **#169 (the pin, fwtest 0.9.0):** the firmware, ARP and seams suites on
+  main's image on 0.8.0 and 0.9.0, from copies of the tree in the job's
+  temporary folder, one suite at a time: all PASS on both, outputs the
+  same but for fwtest's version and the runner (and the copies' paths in
+  the seams suite's build logs). A first ARP run and a seams run were
+  void (their outputs outside the copy, which tools/fwtest refuses) and
+  run again. PLAN.md's USB MIDI note (BR-10) rides on it.
+- **#170 (BR-12) and #171 (BR-11):** C-UNIT, the firmware suite, the ARP
+  suite, the seams suite (with the new cases powercut and flags: 624
+  power cuts over four saves, the fourth added after the session's
+  review: a rewrite whose old parts the ring copies forward) and perf,
+  from copies; the store's space
+  figures from tools/store.py's model over random histories. The flags
+  case failed once (the container looked the options up by another
+  name), was fixed, and passed.
+- **#170's first CI run failed C-PERF-PROBES** (read from the run's log
+  through a filter printing only its checks' result lines, as before for
+  the image runs): the big probe's start-up no longer over the limit.
+  Run here, a probe rerun into an output folder already used read its
+  first runs' results (perf.py doesn't clear one), which looked like
+  the fix not working, until run into a new folder; fixed in #170 (the
+  probe's work done 64 times) and merged forward into #171.
+- Force-pushes: none (the branches were rebased locally before their
+  first push).
+- Disk: 7 GB free at the start; 5 GB at the lowest.
 
 ## Corrections
 

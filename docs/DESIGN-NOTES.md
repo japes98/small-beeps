@@ -3300,3 +3300,65 @@ C-SEAMS) and its part below.
   from one image to the next, and with this change the probe's image fell
   the other way. It now does the round 64 times (about 34 000
   instructions), and fails it by 31 000.
+
+### 2026-10-28 clean-1028: per-folder compiler flags (BR-11, R-BUILD-5)
+
+- **What.** A firmware built on the base asked for its own compiler
+  flags, folder by folder (a vendored library at `-O2` with its warnings
+  off, its own code with a define or a newer C++), while the base's
+  files keep the base's. `tools/build.sh build` takes `--cflags DIR
+  FLAGS`, `--cxxflags DIR FLAGS` and `--asflags DIR FLAGS`, beside
+  `--src` and `--leave-out`, for the C, C++ or assembly files under DIR,
+  a `--src` folder or a folder inside one (docs/BUILDING-ON-SMALL-BEEPS.md,
+  section 5).
+- **After the base's, in the order given.** A folder's flags come after
+  the firmware's on each compile line, so they can override them (`-O2`
+  over `-Os`, `-w` or `-Wno-...` over `-Werror`'s stops), and a file
+  under several such folders gets each one's, in the order given: a
+  folder inside another, given after it, overrides it. Why not "the
+  deepest folder's only": a library's subfolder usually wants its
+  parent's defines too; giving each folder's flags and letting the order
+  decide keeps both possible and the rule one line.
+- **One option a language.** C, C++ and assembly take different flags
+  (`-std=c11` is an error for C++), so each has its own option, as the
+  build already keeps `CFLAGS`, `CXXFLAGS` and `ASFLAGS`.
+- **The base's files never get them.** The flags apply only under a
+  `--src` folder, which can't hold the base or be inside `firmware/`
+  (BR-5); `--define` stays the switch for every file. The base's
+  runtime archive is built as before.
+- **Paths.** The container builds an outside folder as `../sb-src-N/...`
+  (BR-5), so a relative `-I`, `-isystem` or `-iquote` path is taken from
+  DIR and rewritten to that (joined to its option; a bare `-I` is
+  refused, as the word after it would not be rewritten).
+- **What a folder may set, and why a list.** The flags reach the
+  compiler's command line, so a flag that names a file could read or
+  write the host's (`@file`, `-Wp,-MD,...`, `-fplugin=`, `-B`), change
+  the outputs with where things are (`-fdebug-prefix-map`, an absolute
+  `-I`), or undo the build (`-o`, `-c`, `-x`, `-target`). A list of what
+  is refused would always miss one, so the build takes only the families
+  firmware code needs (`-D`, `-U`, `-O`, `-W`, `-w`, `-f`, `-m`, `-std=`,
+  `-I`, `-isystem`, `-iquote`, `-g`, `-pedantic`, `-ansi`), refuses within
+  them the prefix maps, `-fprofile...`, `-fplugin...`, `-fpass-plugin...`,
+  `-fsave-optimization-record` and `-Wa,`/`-Wp,`/`-Wl,`, refuses any
+  absolute path or `..`, and takes words of letters, digits and
+  `_ = + . , / : -` only (no quoting, no shell characters). The outside
+  folders are mounted read-only, as before; the write-back store check
+  (R-BUILD-3) still checks every object, whatever its flags.
+- **Carried into the container** as one variable, `SB_FOLDER_FLAGS`,
+  entries `option|folder|flags` (the option `cflags`, `cxxflags` or
+  `asflags`) after a `;` each: the allowed
+  characters hold neither, so no flag can break the format.
+- **Tested** (C-SEAMS, case flags): `tests/seams/flags`, whose files
+  `#error` without their flags (C, C++, assembly, and a C file in a folder
+  inside it that needs both folders' flags and its own `-Iinclude`; the
+  outer C file also errors if the base's `-Os` came after its `-O2`):
+  built with them, each file's compile line ends with its folders'
+  flags in order, its symbol is in the ELF; the base's compile lines
+  carry none of them, and those of `firmware/src/` are the same as in
+  the build without the flags (which the folder's files stop: the first
+  on its include); built from two copies of the folder
+  elsewhere on the host, one with the source mounted elsewhere, the same
+  bytes; and eleven refusals.
+- **The image doesn't change** for a build without these options: the
+  base's compile lines are as they were (the case's check), and C-BUILD-A
+  and C-BUILD-B give build A as before.
