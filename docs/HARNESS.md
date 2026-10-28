@@ -622,6 +622,13 @@ some operands only, as below); of the 326 the compiler emits, 316 (300 in
   `sspn`, and the 4-byte push and pop of any list of the special registers
   fwtest models.
 
+One change reaches our own firmware: `[rB+k] &= ~rS` (in its MIDI output
+and key handling) now runs on the same path as the other memory forms
+(`|=`, `&=`, `^=`) instead of the general one. It computes the same, but
+a run's instruction counts move a little (the firmware suite's
+`midiout`, `audioload`, `store-busy` and `store-wipe`: 179 more on core 0
+in `midiout`, its MIDI output the same), and every case still passes.
+
 What fwtest still does not run ends a run as a fault, "an instruction
 the emulated CPU cannot decode" or one it does not run, and is listed
 with its reason in `harness/isa/known-gaps.txt`:

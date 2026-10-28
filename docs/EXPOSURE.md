@@ -2258,13 +2258,22 @@ SR-3 wrote only its barrier-log row.*
   crates) to show the patches apply; main's crates unpacked into the
   scratch folder (`git archive`) for a 0.9.0 baseline probe. fwtest's
   image built locally (`harness/ci.sh image`) several times.
-- The firmware suite run twice (pinned image, local 0.10.0) from this
-  checkout, the branch unchanged during the runs.
-- Clean's open pull requests (#169 to #171): `gh pr view --json files`
-  (file names), and the lines they add to docs/REQUIREMENTS.md,
+- Clean's pull requests #169 to #172: `gh pr view --json files` (file
+  names), and the lines #169 to #171 add to docs/REQUIREMENTS.md,
   PROVENANCE.md and docs/HARDWARE-SPEC.md (`git diff` of those files
-  only), to keep IDs apart; their firmware changes not read. Their
-  branches fetched and merged (below).
+  only), to keep IDs apart; their firmware changes not read. #169 to #171
+  merged into main during the session and main merged here; #172's branch
+  merged twice (its newer head allows the bad instruction test build's
+  bytes, which the firmware suite had stopped on). Read of them besides:
+  `tools/build.sh`'s per-folder flag rules (BR-11: a folder may set `-m`
+  flags), the suite's build log of the `badinsn` test image, and the
+  names of the firmware's functions holding `[R+k] &= ~R` in our own
+  firmware's disassembly. #172's CI result lines (`gh run view --log`,
+  the check lines).
+- The firmware suite run with the pinned image and with local 0.10.0,
+  twice (on main's firmware and after the merges), and one case
+  (`midiout`) with fwtest built at three of this session's commits to
+  find which change moved its instruction counts.
 - Disk: 6.6 GB free at the start; 4.8 GB at the lowest.
 
 ## Corrections
