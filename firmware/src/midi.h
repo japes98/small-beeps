@@ -16,6 +16,9 @@
  *   even inside another message, without disturbing it; System Exclusive
  *   skipped, however long, ended by any status byte; data bytes with no
  *   status, undefined status bytes and stray EOX dropped and counted.
+ * - Since clean-1027 (BR-7) a firmware built on the base can take System
+ *   Exclusive's bytes: midi_sysex_tap() sets a function the parser calls
+ *   for each of them (below).
  */
 
 #ifndef MIDI_H
@@ -72,6 +75,25 @@ int midi_read(struct midi_msg *m);
 int midi_parse(u8 b, struct midi_msg *m);
 /* Back to the state at power on: no running status, no SysEx. */
 void midi_parser_reset(void);
+
+/* The SysEx tap (since clean-1027, BR-7): tap(event, byte) is called for
+ * every byte of a System Exclusive message the parser reads, in order,
+ * however long the message (MIDI_SYSEX_LIMIT only counts it long): its
+ * F0 (MIDI_SYSEX_BEGIN), each data byte (MIDI_SYSEX_DATA), and its end,
+ * F7 (MIDI_SYSEX_END) or any other status byte that cuts it short
+ * (MIDI_SYSEX_CUT, with that byte; the byte then also does what it does
+ * anyway). Realtime bytes inside it never reach the tap: they are
+ * messages of their own, and the SysEx goes on after them. The tap runs
+ * where midi_read() runs, in the engine's block callback (audio.h), so
+ * it only keeps the bytes (and adds one to sb_work at the end, to wake
+ * main); the work on them goes in main's loop (engine.h,
+ * sb_engine_serve). 0: no tap, the base's behaviour. */
+#define MIDI_SYSEX_BEGIN 0u
+#define MIDI_SYSEX_DATA  1u
+#define MIDI_SYSEX_END   2u
+#define MIDI_SYSEX_CUT   3u
+typedef void (*midi_sysex_fn)(u32 event, u8 byte);
+void midi_sysex_tap(midi_sysex_fn tap);
 
 /* The notes MIDI plays, for the screen: the engine posts each note on and
  * off, main takes them (MIDI_SCREEN of them; when full, new ones are

@@ -64,6 +64,16 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   records its result, 1301; the runtime's members are in the ELF; and build A,
   which calls none of them, has none (the archive gives an image only
   what it calls).
+- sysex (R-MIDI-8): MIDI in's SysEx tap, on the test engine linked with
+  the platform alone. Its script, written here: a System Exclusive
+  message of SYSEX_DATA (4 104) data bytes, sent in lines of 60 every
+  20 ms (fwtest drops bytes when more than about a second's worth wait),
+  with a clock byte (F8) in its middle; then one cut short by a note on.
+  The tap sees both begin, every data byte in order and no other
+  (length, sum by place, first and last, against the script's), the
+  first end with F7 and the second cut by 0x90; the work runs in the
+  serve; midi_read hands on the clock and the note; MIDI's record counts
+  the first message long (past MIDI_SYSEX_LIMIT) and no byte is dropped.
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -211,7 +221,8 @@ def case_outside(a, work, log):
 
 ENGINE_FIELDS = ("marker", "inits", "init_ticks", "init_blocks", "blocks", "frames", "serves",
                  "serve_seconds", "presses", "serve_presses", "core1", "core1_jobs", "core1_wrong",
-                 "runtime")
+                 "runtime", "sysex_begun", "sysex_ended", "sysex_cut", "sysex_cut_by", "sysex_served",
+                 "sysex_len", "sysex_sum", "sysex_first", "sysex_last", "realtime", "notes")
 RUNTIME_RESULT = 1301           # tests/seams/engine/sb_test_runtime.cc
 RUNTIME_SYMBOLS = ("memcpy", "memmove", "memset", "__cxa_pure_virtual", "_ZdlPv")
 CORE1_START_WORD = 0x01c7fff8   # source 126's vector word, core 1's start address (HW-9)
@@ -312,11 +323,70 @@ def case_platform(a, work, log):
     return problems + run_engine(b, work, log, "platform")
 
 
+# --- sysex ----------------------------------------------------------------
+
+SYSEX_DATA = 4104
+SYSEX_CLOCK_AT = 1000            # the clock byte comes after this many data bytes
+MIDI_ADDR = 0x01c005d0           # MIDI in's record (midi.h)
+MIDI_FIELDS = ("marker", "bytes", "ring_dropped", "parsed", "messages", "realtime", "sysex",
+               "sysex_bytes", "sysex_long", "sysex_cut")
+
+
+def sysex_script(path):
+    data = [(i * 7 + 3) & 0x7F for i in range(SYSEX_DATA)]
+    wire = ["f0"]
+    for i, b in enumerate(data):
+        if i == SYSEX_CLOCK_AT:
+            wire.append("f8")
+        wire.append("%02x" % b)
+    wire.append("f7")
+    lines = ["# tools/seams_suite.py, case sysex (written by it)"]
+    t = 600
+    for k in range(0, len(wire), 60):
+        lines.append("%d midi %s" % (t, " ".join(wire[k:k + 60])))
+        t += 20
+    lines.append("%d midi f0 01 02 03 90 3c 40" % (t + 100))
+    with open(path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    return data, t + 100
+
+
+def case_sysex(a, work, log):
+    problems = []
+    b = os.path.join(work, "build")
+    build(b, log, "--platform", "--src", "tests/seams/engine", "--ld", "tests/seams/engine/engine.ld")
+    rec = fw_suite().elf_symbols(os.path.join(b, "app.elf"))["sb_test_engine"]
+    script = os.path.join(work, "sysex.txt")
+    data, last = sysex_script(script)
+    run = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), run, log, "--ms", str(last + 400), "--script",
+               os.path.relpath(script, ROOT), "--ram", "0x%08x:%d@end" % (rec, 4 * len(ENGINE_FIELDS)),
+               "--ram", "0x%08x:%d@end" % (MIDI_ADDR, 4 * len(MIDI_FIELDS)))
+    if r["run"]["outcome"] != "completed" or r["run"].get("midi_bytes_dropped"):
+        return ["the run: %s (%s), MIDI bytes dropped %s" % (r["run"]["outcome"], r["run"].get("detail"),
+                                                           r["run"].get("midi_bytes_dropped"))]
+    e = words(ram(run, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS)
+    mi = words(ram(run, MIDI_ADDR, 4 * len(MIDI_FIELDS)), MIDI_FIELDS)
+    want = {"sysex_begun": 2, "sysex_ended": 1, "sysex_cut": 1, "sysex_cut_by": 0x90, "sysex_served": 1,
+            "sysex_len": SYSEX_DATA, "sysex_sum": sum(v * (i + 1) for i, v in enumerate(data)) & 0xFFFFFFFF,
+            "sysex_first": data[0], "sysex_last": data[-1], "realtime": 1, "notes": 1}
+    for k, v in want.items():
+        if e[k] != v:
+            problems.append("%s is %d, not %d" % (k, e[k], v))
+    if mi["sysex_long"] != 1 or mi["ring_dropped"] or mi["sysex_bytes"] != SYSEX_DATA + 3:
+        problems.append("MIDI's record: %d long, %d dropped, %d SysEx data bytes" % (
+            mi["sysex_long"], mi["ring_dropped"], mi["sysex_bytes"]))
+    print("sysex: %d data bytes in order through the tap (a clock byte inside handed on as a message);"
+          " the work in the serve; a second message cut by 0x%02x" % (e["sysex_len"], e["sysex_cut_by"]))
+    return problems
+
+
 CASES = [
     ("ownbase", case_ownbase),
     ("outside", case_outside),
     ("engine", case_engine),
     ("platform", case_platform),
+    ("sysex", case_sysex),
 ]
 
 
