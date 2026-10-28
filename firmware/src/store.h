@@ -35,6 +35,13 @@
  *   (0 to 255), a payload of up to STORE_FW_MAX bytes, written as up to
  *   STORE_FW_PARTS records of STORE_FW_PART bytes (its parts) and read
  *   whole or not at all (below).
+ * - Since BR-12 every save is atomic: cut short at any moment (power
+ *   lost), the next start-up finds the whole old payload or the whole
+ *   new one, never neither and never a mix. A record of the base's kinds
+ *   or a one-part payload is one record, which counts only once its CRC
+ *   holds; a payload of several parts counts once its last part is
+ *   written, which the store writes only once every other part reads
+ *   back, and the old write's parts stay live until then.
  */
 
 #ifndef STORE_H
@@ -49,8 +56,19 @@
  * this stays one definition). Since M8a; M7's store took the user patch
  * region (docs/DESIGN-NOTES.md, M8a, has why three sectors are enough).
  * firmware/app.ld keeps the image clear of both. */
+#if defined(SB_TEST_STORE_WIDE)
+/* The wide region test build (tools/seams_suite.py, BR-12): 5 sectors
+ * ending where today's region ends, its first two in the stock
+ * firmware's user patch region, which no shipping build takes: the size
+ * a 4 096-byte payload needs to be rewritten atomically beside the
+ * base's full store (docs/DESIGN-NOTES.md, "Saves that survive a power
+ * cut"). Where a larger region would go on a unit is the owner's. */
+#define STORE_BASE       0xFA000u    /* chip offset */
+#define STORE_SIZE       0x5000u
+#else
 #define STORE_BASE       0xFC000u    /* chip offset */
 #define STORE_SIZE       0x3000u
+#endif
 #define STORE_SECTOR     4096u
 #define STORE_SECTORS    (STORE_SIZE / STORE_SECTOR)
 #define STORE_PAGE       256u        /* a page program's reach */
@@ -68,19 +86,23 @@
  * payload of up to STORE_FW_MAX bytes. The store writes it as parts,
  * records of up to STORE_FW_PART bytes of it, each after a tag (the
  * write's own number, STORE_FW_TAG bytes), in order; it reads every part
- * of the newest write together, or nothing, never a mix of two writes:
- * cut short (power lost), a write leaves the old payload until its
- * first part is whole, then none until it is written again.
- * Replacing a payload needs room for one new part beside everything
- * live. Today's three sectors hold, and rewrite as often as asked, one
- * payload of up to 5 396 bytes with nothing else stored (a 4 096-byte
- * one with room to spare); beside the base's full store (16 user slots,
- * the selection and the settings, saved in between) how much fits
- * depends on how the records fall in the sectors: 2 952 bytes in every
- * history tools/store.py's model tried, 4 096 not reliably
- * (docs/DESIGN-NOTES.md, "Storage for large records"). Past what fits a
- * write is refused (STORE_ERR_FULL). STORE_FW_KEYS parts are kept track
- * of at once. A reset voids these kinds too. */
+ * of one write together, or nothing, never a mix of two writes. Since
+ * BR-12 a rewrite is atomic: the old payload reads until the new one's
+ * last part is written (after every other part reads back), then the
+ * new one; cut short (power lost), never neither. So replacing a
+ * payload needs room for the whole new payload beside everything live,
+ * the old one included. Today's three sectors hold, and rewrite as
+ * often as asked, one payload of up to 3 920 bytes with nothing else
+ * stored; beside the base's full store (16 user slots, the selection
+ * and the settings, saved in between) and a small payload of its own,
+ * 1 664 bytes in every history tools/store.py's model tried. A 4 096-byte payload needs 4 sectors
+ * alone and 5 beside the base's full store (SB_TEST_STORE_WIDE's;
+ * docs/DESIGN-NOTES.md, "Saves that survive a power cut"). Past what
+ * fits a write is refused (STORE_ERR_FULL) before anything is written,
+ * or, if the ring's layout leaves no room part way, with the old payload
+ * kept. STORE_FW_KEYS parts and STORE_FW_PAYLOADS payloads are kept
+ * track of at once (a rewrite's parts beside the old write's). A reset
+ * voids these kinds too. */
 #define STORE_FW_KIND_FIRST 0x80u
 #define STORE_FW_KIND_LAST  0xFEu
 #define STORE_FW_TAG     4u
@@ -88,6 +110,7 @@
 #define STORE_FW_PARTS   12u
 #define STORE_FW_MAX     (STORE_FW_PARTS * STORE_FW_PART)   /* 5 904 */
 #define STORE_FW_KEYS    32u
+#define STORE_FW_PAYLOADS 32u
 
 #define STORE_SELECTION_VERSION 1u
 struct store_selection {
@@ -113,9 +136,10 @@ struct store_selection {
  * store's record below ends where the next begins). */
 struct sb_store_fw_record {
     u32 parts_live;     /* parts kept track of */
-    u32 stale;          /* parts found at start-up not of their payload's newest write */
+    u32 stale;          /* records found at start-up not of their payload's committed write (BR-12) */
     u32 payloads;       /* payloads written whole since start-up */
     u32 parts_written;  /* parts written since start-up */
+    u32 abandoned;      /* writes refused part way, the old payload kept (BR-12) */
 };
 extern volatile struct sb_store_fw_record sb_store_fw;
 

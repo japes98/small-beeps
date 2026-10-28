@@ -2114,6 +2114,109 @@ SR-3 wrote only its barrier-log row.*
   read to keep IDs apart and to merge; their firmware changes not read.
 - Disk: 14 GB free at the start; 9.4 GB at the lowest.
 
+### Session clean-1028 (pin fwtest 0.9.0, BR-12 power-cut-safe saves, BR-11 per-folder flags, a hardware-phase note)
+- Date: 2026-10-28 (UTC; the morning of 2026-10-28 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.312 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `f7d5db1b-d10a-40b3-be14-82c18d108c60`,
+  started by a `/clear` at 15:56:06Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `f9a9bc64` (#162's merge; #155 to #168 merged) and
+  ended "no spec-side files on disk or in .git"; `tools/private-terms.local`
+  exists (not opened); lazy fetching off (`GIT_NO_LAZY_FETCH=1`). It
+  archived clean-1027 (`f63e5c6c`) into `sessions/clean/`; every other
+  clean session was already archived. `tools/check-transcripts.py`: 22
+  archived transcripts, PASS; clean-1027's only marks were three
+  report-only mentions, so no reviewed entries were added. The Mac had
+  7 GB free.
+- A spec session may work at the same time; this session opens none of its
+  branches.
+- Reads: this file, sessions/README.md, docs/STORE-FORMAT.md,
+  docs/HARNESS.md ("The flash chip", the outputs, the command line,
+  "When fwtest treats core 0 as waiting"),
+  docs/HARDWARE-SPEC.md (HW-67, for PLAN.md's USB MIDI note),
+  docs/DESIGN-NOTES.md, docs/REQUIREMENTS.md and docs/PLAN.md (the parts
+  these changes touch), docs/BUILDING-ON-SMALL-BEEPS.md, #152's
+  description (as a model), and this repository's firmware, tools and
+  tests. Nothing fetched from outside the repository but the build
+  image's and fwtest's own downloads.
+- GitHub: the image workflow's runs listed; of the runs on `c298dcf9`
+  and `f9a9bc64`, the logs read through a filter that printed only the
+  pushed digest and fwtest's version lines; open pull requests listed
+  with their file lists (none open); #126 and #154's state; #152's
+  description; #169, #170 and #171 opened. No CI artifact fetched.
+- **#169 (the pin, fwtest 0.9.0):** the firmware, ARP and seams suites on
+  main's image on 0.8.0 and 0.9.0, from copies of the tree in the job's
+  temporary folder, one suite at a time: all PASS on both, outputs the
+  same but for fwtest's version and the runner (and the copies' paths in
+  the seams suite's build logs). A first ARP run and a seams run were
+  void (their outputs outside the copy, which tools/fwtest refuses) and
+  run again. PLAN.md's USB MIDI note (BR-10) rides on it.
+- **#170 (BR-12) and #171 (BR-11):** C-UNIT, the firmware suite, the ARP
+  suite, the seams suite (with the new cases powercut and flags: 624
+  power cuts over four saves, the fourth added after the session's
+  review: a rewrite whose old parts the ring copies forward) and perf,
+  from copies; the store's space
+  figures from tools/store.py's model over random histories. The flags
+  case failed once (the container looked the options up by another
+  name), was fixed, and passed.
+- **#170's first CI run failed C-PERF-PROBES** (read from the run's log
+  through a filter printing only its checks' result lines, as before for
+  the image runs): the big probe's start-up no longer over the limit.
+  Run here, a probe rerun into an output folder already used read its
+  first runs' results (perf.py doesn't clear one), which looked like
+  the fix not working, until run into a new folder; fixed in #170 (the
+  probe's work done 64 times) and merged forward into #171.
+- Force-pushes: none (the branches were rebased locally before their
+  first push).
+- Disk: 7 GB free at the start; 5 GB at the lowest.
+
+### Session clean-store-region (each firmware chooses its own store region, BR-13's write-back check)
+- Date: 2026-10-28 (UTC; the afternoon and evening of 2026-10-28 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.312 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `264a9b42-e7d0-4570-86ec-6938ca430c38`,
+  started by a `/clear` at 20:56:55Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `e90f07c4` (#171's merge; #169 to #171 merged) and
+  ended "no spec-side files on disk or in .git";
+  `tools/private-terms.local` exists (not opened); lazy fetching off
+  (`GIT_NO_LAZY_FETCH=1`). It archived clean-1028 (`f7d5db1b`) into
+  `sessions/clean/`; every other clean session was already archived.
+  `tools/check-transcripts.py`: 23 archived transcripts, PASS; clean-1028's
+  marks were report-only mentions, so no reviewed entries were added. The
+  Mac had 6.1 GB free.
+- A spec session works at the same time; this session opens none of its
+  branches.
+- Reads: this file, docs/HARDWARE-SPEC.md (HW-80, HW-87 to HW-94, for
+  where the app area ends), docs/SPEC-REQUESTS.md (its rules, SR-10 as a
+  model), docs/STORE-FORMAT.md, docs/DESIGN-NOTES.md, docs/REQUIREMENTS.md
+  and docs/BUILDING-ON-SMALL-BEEPS.md (the parts these changes touch),
+  #171's description (as a model), and this repository's firmware, tools
+  and tests. Nothing fetched from outside the repository.
+- GitHub: open pull requests listed with their file lists (none open,
+  twice: before numbering SR-11 and before pushing); #171's description;
+  this session's pull requests opened. No CI artifact or log fetched.
+- Toolchain probes, in the build image from the job's temporary folder:
+  the disassembler on a float-heavy test object with and without the CPU
+  options (BR-13), every float add, subtract, multiply and divide form
+  assembled and read both ways, one vendored Plaits object compiled as the
+  hardware-float build compiles it and read both ways; ld 2.26's
+  `DEFINED()` with a symbol set before an `INCLUDE`; clang's `-###` for
+  each flag form.
+
 ### Session spec-isa-audit (does fwtest run every instruction form the toolchain can emit)
 - Date: 2026-10-28 (UTC)
 - Role: **spec side (exposed).** Never writes firmware.

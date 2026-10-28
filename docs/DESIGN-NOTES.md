@@ -2796,16 +2796,13 @@ C-SEAMS) and its part below.
   the shipping image and its package link pass the check, and so does
   every test build CI makes. The image is unchanged by the check (the
   same `app.bin`).
-- **The one exception.** The Plaits demo's measurement builds with the
-  hardware float instructions (`PLAITS_HWFLOAT`, M4b) hold 68 such
-  stores, all in the vendored Plaits (17 objects), where the compiler
-  writes them for float stores. Those builds only ever run in fwtest,
-  to measure what the float instructions would save, so the check lists
-  and counts them there and lets the build go on; everywhere else,
-  including a firmware build that defines `PLAITS_HWFLOAT`, it refuses.
-  The demo's soft-float builds hold none. Should SR-10's answer show
-  the chip stores something other than fwtest does, the
-  hardware-float measurements would need running again.
+- **The one exception** (until BR-13, below: it rested on a misreading).
+  The Plaits demo's measurement builds with the hardware float
+  instructions (`PLAITS_HWFLOAT`, M4b) were read as holding 68 such
+  stores, all in the vendored Plaits (17 objects), and the check let
+  those builds go on. Read as compiled, they hold none: each was the
+  second half of a float conditional block. Since BR-13 there is no
+  exception.
 
 #### Building with outside sources (BR-5, R-BUILD-4)
 
@@ -3131,9 +3128,10 @@ C-SEAMS) and its part below.
   (the model checks every cut point: old, then none, then new; fwtest's
   power cut checks one on the firmware). A firmware that can't do without
   its payload writes it again; the store never hands it half of each.
-- **Why not keep the old one through the whole write.** That needs room
-  for two copies of the payload at once, and the three sectors don't
-  have it: the ring needs a sector's worth free to move on, so about two
+- **Why not keep the old one through the whole write.** (Since
+  clean-1028 it does: BR-12, "Saves that survive a power cut", below.)
+  That needs room for two copies of the payload at once, and the three
+  sectors don't have it: the ring needs a sector's worth free to move on, so about two
   sectors (8 160 bytes) hold everything live, and two copies of 4 096
   bytes are 8 192 before any header. Writing part by part needs room for
   one new part beside everything live.
@@ -3175,3 +3173,240 @@ C-SEAMS) and its part below.
   and the small one stays; rewritten after the cut; a reset voids both;
   then alone, 5 000 bytes written and read back and 5 904 refused as
   full. The model reads what the firmware does after every run.
+
+### 2026-10-28 clean-1028: saves that survive a power cut (BR-12, R-STORE-11)
+
+- **What.** A firmware built on the base asked that a save survive a
+  power cut: whenever the power goes during a save, the next start finds
+  the complete old payload or the complete new one, never neither and
+  never a mix, large records (BR-9) included.
+- **What was already so.** The store appends and never rewrites a byte
+  (M7): a record counts only once its CRC holds, and of a key's records
+  the newest valid one is read, so a record cut short leaves the one
+  before it. The base's records and a firmware kind's one-part payload
+  (up to 492 bytes) are one record each, so their saves were atomic
+  already; the ring's moves (a sector erased, its header, the live
+  records copied forward) never touch the only copy of a live record
+  (M7, "Append only, CRC on everything" and "The ring and its
+  compaction"; the sweep case cut them at every command with a halting
+  test build). This session tests that with fwtest's power cut at
+  every command (below). A payload in parts was not: once the new
+  write's first part was whole the old payload was gone, and nothing
+  read until the last part was (clean-1027's choice, for room).
+- **How: the last part commits the write.** Of the choices the request
+  named (a second copy, a log, alternating slots), this is the second
+  copy, kept in the ring itself: the old write's parts stay live (copied
+  forward by the ring like any live record) until the new write is
+  committed, and the commit is the new write's last part, which the
+  store writes only once every other part of the write reads back as the
+  payload it holds (each part is also read back as it is written). At
+  start-up the store finds, of each payload, the write with the highest
+  tag whose last part is valid and newer than the newest reset (its
+  committed write), and takes that write's parts and no other. A write
+  cut before its last part is whole leaves the old one committed; one
+  cut after leaves the new one. No new record type and no byte of the
+  format changes (docs/STORE-FORMAT.md): a write's last part already
+  carried its tag, index and count, and clean-1027 wrote it last too.
+- **Why not a log or alternating slots.** Both need the same room (the
+  old payload stays whole until the new one is) and more machinery: a
+  log needs its own record type and replay; alternating slots fixed
+  places in a store whose records have none. The ring's copy-forward
+  already keeps whatever is live.
+- **Start-up reads the sectors holding a firmware kind's record three
+  times** (store.c, `scan`): first the base's keys as before, and which
+  sectors hold firmware kinds; then the committed writes (one place per
+  payload, 32 of them, `STORE_FW_PAYLOADS`); then their parts (32
+  places, `STORE_FW_KEYS`, as before). Taking each part's newest record
+  in one pass, as before, can't tell the committed write from a newer one
+  cut short; tables of every write seen would grow with each cut. A
+  firmware with none of these kinds reads each sector once, as before.
+- **The space it costs.** A rewrite needs room for the whole new payload
+  beside everything live, the old payload included, where clean-1027
+  needed room for one new part. The ring keeps a sector free to move on,
+  so the live records fit in the other sectors (each less its 16-byte
+  header), and a part can't leave its sector: a 4 096-byte payload (9
+  parts, 4 608 bytes as records) needs 9 216 bytes during a rewrite,
+  more than today's two working sectors (8 160). From `tools/store.py`'s
+  model, which the firmware's images match:
+
+  | Region | Alone, rewritten 40 times | Beside the base's full store and a small payload (100 random histories) | 4 096 bytes beside the base's full store (300 histories) |
+  |-------:|------:|------:|------:|
+  | 3 sectors (today's) | 3 920 bytes | 1 664 bytes | never |
+  | 4 sectors | 4 904 | 3 300 | never |
+  | 5 sectors (`SB_TEST_STORE_WIDE`) | 5 904 (the most a payload takes) | 4 948 | every one |
+
+  ("Beside the base's full store": all 16 user slots, the selection and
+  the settings, then 60 rewrites with up to five of the base's saves and
+  sometimes a payload of up to 400 bytes between them.) So for a
+  4 096-byte payload the store region must grow from 3 sectors to 4 (4
+  KiB more) for a firmware that keeps nothing else, and to 5 (8 KiB
+  more) beside the base's full store. Where those sectors go is the
+  owner's decision (BR-9 left it open): the unused region is 3 sectors
+  (HW-80), so a larger one takes the end of the stock firmware's user
+  patch region below it, or another place. Today's region stays as it
+  is; the wide region test build takes its 5 sectors from 0xFA000, which
+  only a test may do.
+- **Refused before writing.** A rewrite that can't fit (everything live
+  and the new records together more than the sectors but one hold) is
+  refused at once, `STORE_ERR_FULL`, and nothing is written: in today's
+  region a 4 096-byte rewrite is (C-SEAMS, case store). A write refused
+  part way (the ring's layout left no room after all; the model never
+  found one) drops its new parts and keeps the old payload
+  (`sb_store_fw.abandoned` counts them).
+- **Tested.** The model in C-UNIT: every state a cut can leave, every
+  byte of every flash command (`tools/store.py`'s `cut_states`, which
+  leaves the chip as fwtest's cut does), of a 3 000-byte rewrite in
+  today's region, a 4 096-byte one beside the base's full store in the
+  wide region (every fourth byte), and a patch and a one-part payload
+  saved when the head is full: always old or new, whole, the old until
+  a moment and then the new; and what each region holds (the table's
+  first two columns); the 3 000-byte case is a 3 400-byte one since
+  #170's review, rewritten after four writes so the ring copies the old
+  write's parts forward during the rewrite (checked). The firmware in
+  C-SEAMS (case powercut): four saves on the test engine (4 096 bytes
+  from the base's full store on the wide region test build; on today's,
+  that 3 400-byte rewrite, whose old parts the case checks were copied
+  forward, and from the base's full store with the head full 300 bytes
+  and a patch), each
+  cut by fwtest's `--power-cut` just after each flash command starts,
+  halfway, just before it ends, and between commands; the firmware
+  started again from each cut's flash reads the old payload or the new
+  one, whole, never another, and the others unchanged.
+  In this session's run: the 4 096-byte rewrite 27 commands (one
+  erase), 108 cuts, the old payload after 106 and the new after the
+  last 2; the 3 400-byte rewrite 47 commands (two erases, all 7 of the
+  old write's parts copied forward), 188 cuts, old 186, new 2; the
+  300-byte payload 41 commands (one erase, the compaction's
+  copies), 164 cuts, old 162, new 2; the patch 41 commands, 164 cuts,
+  old 161, new 3; tools/store.py read each cut's flash as the firmware
+  did. Case store's rewrite in today's region is refused with nothing
+  written. Without this change the model's cut test finds no payload
+  part way, as clean-1027 said it would.
+- **The image changes** (code 55 108 bytes, from 54 416; RAM 272 bytes
+  more: the payload table and the start-up's bookkeeping). The base's own
+  start-up reads each sector once, as before (no firmware kind's
+  record): the store read 275.2 us at the next start in the persist
+  case (276.7 before). Start-up 2 854 instructions more (1 070 789);
+  steady state and loaded per period no slower (1 884.6 and 108 944,
+  from 1 886.0 and 109 125); stack 572 bytes at most (544). Every budget
+  holds; the firmware suite and the ARP suite pass as before.
+- **A probe made stronger** (C-PERF-PROBES): the big probe build
+  (`SB_PROBE_BIG`, `firmware/src/probe.c`) must also fail the start-up
+  budget, and its one extra round of work (about 750 instructions) no
+  longer did: the start-up count moves by a few thousand instructions
+  from one image to the next, and with this change the probe's image fell
+  the other way. It now does the round 64 times (about 34 000
+  instructions), and fails it by 31 000.
+
+### 2026-10-28 clean-1028: per-folder compiler flags (BR-11, R-BUILD-5)
+
+- **What.** A firmware built on the base asked for its own compiler
+  flags, folder by folder (a vendored library at `-O2` with its warnings
+  off, its own code with a define or a newer C++), while the base's
+  files keep the base's. `tools/build.sh build` takes `--cflags DIR
+  FLAGS`, `--cxxflags DIR FLAGS` and `--asflags DIR FLAGS`, beside
+  `--src` and `--leave-out`, for the C, C++ or assembly files under DIR,
+  a `--src` folder or a folder inside one (docs/BUILDING-ON-SMALL-BEEPS.md,
+  section 5).
+- **After the base's, in the order given.** A folder's flags come after
+  the firmware's on each compile line, so they can override them (`-O2`
+  over `-Os`, `-w` or `-Wno-...` over `-Werror`'s stops), and a file
+  under several such folders gets each one's, in the order given: a
+  folder inside another, given after it, overrides it. Why not "the
+  deepest folder's only": a library's subfolder usually wants its
+  parent's defines too; giving each folder's flags and letting the order
+  decide keeps both possible and the rule one line.
+- **One option a language.** C, C++ and assembly take different flags
+  (`-std=c11` is an error for C++), so each has its own option, as the
+  build already keeps `CFLAGS`, `CXXFLAGS` and `ASFLAGS`.
+- **The base's files never get them.** The flags apply only under a
+  `--src` folder, which can't hold the base or be inside `firmware/`
+  (BR-5); `--define` stays the switch for every file. The base's
+  runtime archive is built as before.
+- **Paths.** The container builds an outside folder as `../sb-src-N/...`
+  (BR-5), so a relative `-I`, `-isystem` or `-iquote` path is taken from
+  DIR and rewritten to that (joined to its option; a bare `-I` is
+  refused, as the word after it would not be rewritten).
+- **What a folder may set, and why a list.** The flags reach the
+  compiler's command line, so a flag that names a file could read or
+  write the host's (`@file`, `-Wp,-MD,...`, `-fplugin=`, `-B`), change
+  the outputs with where things are (`-fdebug-prefix-map`, an absolute
+  `-I`), or undo the build (`-o`, `-c`, `-x`, `-target`). A list of what
+  is refused would always miss one, so the build takes only the families
+  firmware code needs (`-D`, `-U`, `-O`, `-W`, `-w`, `-f`, `-m`, `-std=`,
+  `-I`, `-isystem`, `-iquote`, `-g`, `-pedantic`, `-ansi`), refuses within
+  them the prefix maps, `-fprofile...`, `-fplugin...`, `-fpass-plugin...`,
+  `-fsave-optimization-record` and `-Wa,`/`-Wp,`/`-Wl,`, refuses any
+  absolute path or `..`, and takes words of letters, digits and
+  `_ = + . , / : -` only (no quoting, no shell characters). The outside
+  folders are mounted read-only, as before; the write-back store check
+  (R-BUILD-3) still checks every object, whatever its flags.
+- **Carried into the container** as one variable, `SB_FOLDER_FLAGS`,
+  entries `option|folder|flags` (the option `cflags`, `cxxflags` or
+  `asflags`) after a `;` each: the allowed
+  characters hold neither, so no flag can break the format.
+- **Tested** (C-SEAMS, case flags): `tests/seams/flags`, whose files
+  `#error` without their flags (C, C++, assembly, and a C file in a folder
+  inside it that needs both folders' flags and its own `-Iinclude`; the
+  outer C file also errors if the base's `-Os` came after its `-O2`):
+  built with them, each file's compile line ends with its folders'
+  flags in order, its symbol is in the ELF; the base's compile lines
+  carry none of them, and those of `firmware/src/` are the same as in
+  the build without the flags (which the folder's files stop: the first
+  on its include); built from two copies of the folder
+  elsewhere on the host, one with the source mounted elsewhere, the same
+  bytes; and eleven refusals.
+- **The image doesn't change** for a build without these options: the
+  base's compile lines are as they were (the case's check), and C-BUILD-A
+  and C-BUILD-B give build A as before.
+
+### 2026-10-28 clean-store-region: the write-back check reads code as compiled (BR-13, R-BUILD-3)
+
+- **What.** A firmware built on the base reported that the write-back
+  store check (R-BUILD-3) misreads float instructions unless it
+  disassembles with the float feature (`-mattr=+fprev1`). It did: the
+  check ran `objdump -d` with no CPU options, so the disassembler (the
+  toolchain's, LLVM 4.0.1) knew no float instructions. Each one, 4 bytes,
+  read as an unknown 2-byte one and then its second half as another
+  instruction; the float feature's conditional block, `iff (r2 > r5) {`
+  (bytes `12 ee 80 05`), reads as an unknown half and `[r0++=4] = r0`,
+  a store the check refuses. The check could so refuse code that holds
+  no such store, and, as the bytes after an unknown half are read out of
+  step, could miss one that is there.
+- **The fix: each object read as it was compiled.** `tools/build.sh`
+  notes, as it compiles each object, the CPU and features its flags give
+  (`note_cpu`): clang's own reading of the compile line (its `-###`
+  output's `-target-cpu` and `-target-feature`), so `-mcpu=r3
+  -mfprev1`, `-mno-fprev1`, a folder's own `-m` flags (BR-11) and the
+  Plaits demo's `-Xclang -target-feature -Xclang +fprev1` all count, and
+  the base's own files, the runtime's C (built without them, as
+  soft-float must be), the demo's C and C++ and every outside folder's
+  each get their own. The check disassembles each object with those
+  (`objdump -d -mcpu=r3 -mattr=+fprev1` for the base's files) and prints
+  how many objects it read with which.
+- **Code it can't read fails the build.** `tools/ownbase.pl` now also
+  refuses an instruction the disassembler shows as unknown (it prints
+  `unreadable`, with its place, and exits 2; `tools/build.sh` fails
+  with its own message): a check that misreads code can't vouch for it,
+  and should the flags ever not reach the disassembler again, the build
+  stops instead of reading out of step. With the right options no build
+  CI makes (build A, the Plaits demo, its hardware-float build, every
+  seams build) holds such an instruction.
+- **What it changes.** The firmware's own images and the base's code
+  read as before (they hold none; the outputs are byte for byte the
+  same, the check only reads). The 68 stores the check counted in the
+  Plaits demo's hardware-float build (17 vendored objects) were all this
+  misreading; read as compiled the build holds none, so the build's one
+  exception for it is gone (above).
+- **Tested** (C-UNIT, `tests/test_ownbase.py`: the conditional block's
+  bytes as the disassembler shows them without the feature, refused as
+  unreadable, and with it, passed; C-SEAMS, case ownbase):
+  `tests/seams/float/float_heavy.c`, a float-heavy outside source (the
+  compiler's float code at the firmware's flags, and the conditional
+  block), passes, disassembled with the firmware's CPU and features as
+  the base's own C is (one more object read so than without it, the
+  runtime's two as before, with none), nothing unreadable; built with
+  `SB_TEST_FLOAT_OWNBASE`, a real store placed after its float code, it
+  is refused for that store alone, named at its place. The same object
+  under the check as it was (no CPU options) is refused for the
+  conditional block's misread store: what the downstream firmware saw.

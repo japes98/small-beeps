@@ -8,7 +8,8 @@
 #   tools/build.sh image-tag                  print its tag
 #   tools/build.sh build --out DIR [--src-mount PATH] [--define NAME]...
 #                        [--demo plaits] [--src DIR]... [--leave-out FILE]...
-#                        [--platform] [--ld SCRIPT]
+#                        [--cflags DIR FLAGS]... [--cxxflags DIR FLAGS]...
+#                        [--asflags DIR FLAGS]... [--platform] [--ld SCRIPT]
 #                                             build in a fresh container,
 #                                             outputs and SHA256SUMS in DIR;
 #                                             --define adds -DNAME (test
@@ -24,6 +25,12 @@
 #                                             leaves a base source out
 #                                             (since clean-1027, BR-5;
 #                                             docs/BUILDING-ON-SMALL-BEEPS.md);
+#                                             --cflags, --cxxflags and
+#                                             --asflags add flags for the
+#                                             C, C++ or assembly in a
+#                                             --src folder or a folder in
+#                                             one (since clean-1028, BR-11;
+#                                             below);
 #                                             --platform leaves the base's
 #                                             instrument out (INSTRUMENT,
 #                                             below) and links the platform
@@ -55,6 +62,21 @@
 # firmware built on the base calls this script from the base's folder
 # (docs/BUILDING-ON-SMALL-BEEPS.md).
 #
+# Per-folder flags (BR-11): --cflags DIR FLAGS adds FLAGS, after the
+# base's own, to every C file under DIR, a --src folder or a folder in
+# one; --cxxflags to its C++, --asflags to its assembly. Repeatable; a
+# file under several such folders gets each one's flags in the order
+# given (so a folder inside another can override it, -O2 after -O0, say).
+# The base's own files, its runtime included, are always built with the
+# base's flags. FLAGS are words of A-Z, a-z, 0-9 and _ = + . , / : -;
+# a relative path in -I, -isystem or -iquote (joined to it: -Iinclude)
+# is from DIR. Only these families are taken: -D, -U, -O, -W, -w, -f,
+# -m, -std=, -I, -isystem, -iquote, -g, -pedantic, -ansi; and of them
+# not those that would reach the host, the outputs' determinism or
+# another tool: an absolute path or one with "..", -fdebug-prefix-map
+# and its kin, -fprofile..., -fplugin..., -fpass-plugin...,
+# -fsave-optimization-record, -Wa, -Wp, -Wl (check_flags).
+#
 # The platform (BR-2): --platform leaves out the base's instrument, the
 # files below, defines SB_ENGINE_EXTERNAL (firmware/src/engine.h) and
 # links with firmware/platform.ld, whose assertions cover only the
@@ -84,9 +106,30 @@ cmd_image() {
     docker image inspect --format 'image {{.Id}}' "$(image_tag)"
 }
 
+# Refuses per-folder flags (BR-11) that could reach the host, make the
+# outputs depend on where things are, or undo the build: only the
+# families below are taken (above).
+check_flags() {
+    case "$2" in
+        *[!A-Za-z0-9_=+.,/:\ -]*) echo "build: $1 '$2': flags are words of A-Z, a-z, 0-9 and _ = + . , / : -" >&2; exit 2 ;;
+    esac
+    for w in $2; do
+        case "$w" in
+            /*|*=/*|-I/*|-isystem/*|-iquote/*|*..*)
+                echo "build: $1 '$w': no absolute paths or .. (a path is from the folder)" >&2; exit 2 ;;
+            -fdebug-prefix-map=*|-ffile-prefix-map=*|-fmacro-prefix-map=*|-fcoverage-prefix-map=*| \
+            -fprofile*|-fplugin*|-fpass-plugin*|-fsave-optimization-record*|-Wa,*|-Wp,*|-Wl,*)
+                echo "build: $1 '$w' is not one a folder may set" >&2; exit 2 ;;
+            -D?*|-U?*|-O|-O?|-W?*|-w|-f?*|-m?*|-std=?*|-I?*|-isystem?*|-iquote?*|-g|-g0|-g1|-g2|-g3| \
+            -pedantic|-pedantic-errors|-ansi) ;;
+            *) echo "build: $1 '$w' is not one a folder may set (-D, -U, -O, -W, -w, -f, -m, -std=, -I, -isystem, -iquote, -g, -pedantic, -ansi)" >&2; exit 2 ;;
+        esac
+    done
+}
+
 cmd_build() {
     out="" src_mount=/mnt/small-beeps-src defines="" demo="" mounts="" srcs="" leave="" n=0
-    platform="" ldscript=""
+    platform="" ldscript="" ff=""
     while [ $# -gt 0 ]; do
         case "$1" in
             --out) out=$2; shift 2 ;;
@@ -107,6 +150,11 @@ cmd_build() {
                 n=$((n + 1))
                 srcs="$srcs $d"
                 shift 2 ;;
+            --cflags|--cxxflags|--asflags)
+                [ $# -ge 3 ] || { echo "build: $1 takes a folder and its flags" >&2; exit 2; }
+                [ -d "$2" ] || { echo "build: $1 $2 is not a folder" >&2; exit 2; }
+                check_flags "$1" "$3"
+                ff="$ff;${1#--}|$(cd "$2" && pwd)|$3"; shift 3 ;;
             --leave-out)
                 case "$2" in
                     firmware/*) [ -f "$ROOT/$2" ] || { echo "build: --leave-out $2: no such base file" >&2; exit 2; } ;;
@@ -153,6 +201,37 @@ cmd_build() {
         done
         [ -n "$script" ] || { echo "build: --ld must name a file in the base or in a --src folder" >&2; exit 2; }
     fi
+    # Each folder's flags (BR-11), its folder as the container builds it
+    # (../sb-src-N/...), and the paths in its -I, -isystem and -iquote
+    # from it.
+    folder_flags=""
+    old_ifs=$IFS; IFS=';'
+    for e in $ff; do
+        [ -n "$e" ] || continue
+        k=${e%%|*} rest=${e#*|}
+        d=${rest%%|*} f=${rest#*|}
+        m="" n=0
+        IFS=$old_ifs
+        for sd in $srcs; do
+            n=$((n + 1))
+            case "$d/" in
+                "$sd"/*) m=../sb-src-$n${d#"$sd"} ;;
+            esac
+        done
+        [ -n "$m" ] || { echo "build: --$k $d is not a --src folder or inside one" >&2; exit 2; }
+        g=""
+        for w in $f; do
+            case "$w" in
+                -I?*) w=-I$m/${w#-I} ;;
+                -isystem?*) w=-isystem$m/${w#-isystem} ;;
+                -iquote?*) w=-iquote$m/${w#-iquote} ;;
+            esac
+            g="$g $w"
+        done
+        folder_flags="$folder_flags;$k|$m|${g# }"
+        IFS=';'
+    done
+    IFS=$old_ifs
     # The outside folders, beside the source mount (above).
     n=0 outside=""
     for d in $srcs; do
@@ -169,6 +248,7 @@ cmd_build() {
     docker run --rm --platform "$PLATFORM" --network none \
         --user "$(id -u):$(id -g)" -e SB_DEFINES="$defines" -e SB_DEMO="$demo" \
         -e SB_SRCS="$outside" -e SB_LEAVE_OUT="$leave" -e SB_LD="$script" \
+        -e SB_FOLDER_FLAGS="$folder_flags" \
         -v "$ROOT:$src_mount:ro" $mounts -v "$out:/out" -w "$src_mount" \
         "$tag" sh "$src_mount/tools/build.sh" inside "$src_mount" /out
     cat "$out/SHA256SUMS"
@@ -225,9 +305,10 @@ build_demo_plaits() {
         o="$obj/$(echo "$s" | tr / _ | sed 's/\.[cS]$/.o/')"
         case "$s" in
             # shellcheck disable=SC2086
-            *.S) set -x; clang $ASFLAGS $defs -c "$s" -o "$o"; set +x ;;
+            *.S) set -x; clang $ASFLAGS $defs -c "$s" -o "$o"; set +x; note_cpu "$o" "$ASFLAGS" ;;
             # shellcheck disable=SC2086,SC2046
-            *) set -x; clang $(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//') -c "$s" -o "$o"; set +x ;;
+            *) set -x; clang $(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//') -c "$s" -o "$o"; set +x
+               note_cpu "$o" "$(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//')" ;;
         esac
         objs="$objs $o"
     done
@@ -235,15 +316,37 @@ build_demo_plaits() {
         o="$obj/$(echo "$s" | tr / _ | sed 's/\.cc$/.o/')"
         # shellcheck disable=SC2086
         set -x; $CXX -Os -Wall -Wextra -Werror -c "$s" -o "$o"; set +x
+        note_cpu "$o" "$CXX"
         objs="$objs $o"
     done
     for s in $(find vendor/plaits -name '*.cc' | LC_ALL=C sort); do
         o="$obj/$(echo "$s" | tr / _ | sed 's/\.cc$/.o/')"
         # shellcheck disable=SC2086
         $CXX -O2 -w -c "$s" -o "$o"
+        note_cpu "$o" "$CXX"
         objs="$objs $o"
     done
     echo "built $(find vendor/plaits -name '*.cc' | wc -l) vendored Plaits files"
+}
+
+# The flags of every folder holding the source $2 (its path from the
+# source mount) given with option $1 (cflags, cxxflags or asflags), in
+# the order given (BR-11; SB_FOLDER_FLAGS: entries "option|folder|flags",
+# each after a ";").
+folder_flags() {
+    fl="" old_ifs=$IFS
+    IFS=';'
+    for e in ${SB_FOLDER_FLAGS:-}; do
+        [ -n "$e" ] || continue
+        k=${e%%|*} rest=${e#*|}
+        d=${rest%%|*}
+        [ "$k" = "$1" ] || continue
+        case "$2" in
+            "$d"/*) fl="$fl ${rest#*|}" ;;
+        esac
+    done
+    IFS=$old_ifs
+    echo "${fl# }"
 }
 
 # The sources of the folders given with --src (BR-5), mounted beside the
@@ -258,13 +361,37 @@ build_outside() {
         for s in $(cd "$m" && find . -name '*.c' -o -name '*.S' -o -name '*.cc' | sed 's|^\./||' | LC_ALL=C sort); do
             o="$obj/src${k}_$(echo "$s" | tr / _ | sed 's/\.[cS]$/.o/; s/\.cc$/.o/')"
             case "$s" in
-                *.S) set -x; clang $ASFLAGS -I"$r" -c "$r/$s" -o "$o"; set +x ;;
-                *.cc) set -x; clang $CXXFLAGS -I"$r" -c "$r/$s" -o "$o"; set +x ;;
-                *) set -x; clang $CFLAGS -Ifirmware/runtime/include -I"$r" -c "$r/$s" -o "$o"; set +x ;;
+                *.S) fl=$(folder_flags asflags "$r/$s"); set -x; clang $ASFLAGS -I"$r" $fl -c "$r/$s" -o "$o"; set +x
+                     note_cpu "$o" "$ASFLAGS $fl" ;;
+                *.cc) fl=$(folder_flags cxxflags "$r/$s"); set -x; clang $CXXFLAGS -I"$r" $fl -c "$r/$s" -o "$o"; set +x
+                      note_cpu "$o" "$CXXFLAGS $fl" ;;
+                *) fl=$(folder_flags cflags "$r/$s")
+                   set -x; clang $CFLAGS -Ifirmware/runtime/include -I"$r" $fl -c "$r/$s" -o "$o"; set +x
+                   note_cpu "$o" "$CFLAGS $fl" ;;
             esac
             objs="$objs $o"
         done
     done
+}
+
+# The CPU and its features that the compile flags $2 give, as objdump's
+# options, noted for the object $1 (BR-13): the write-back store check
+# disassembles each object as it was compiled, or a float instruction
+# (the fprev1 feature's) reads as an unknown one and the bytes after it
+# as others. Clang's own reading of the flags (its -### line), so
+# -mcpu, -mfprev1, -mno-fprev1 and -Xclang -target-feature all count.
+# (It sets cpu: sh has no local variables, and the callers use d.)
+note_cpu() {
+    # shellcheck disable=SC2086
+    cpu=$(clang -### $2 -x c -c /dev/null 2>&1 | tail -n 1 | awk '{
+        n = split($0, a, "\" \"")
+        for (i = 1; i < n; i++) {
+            if (a[i] == "-target-cpu") c = " -mcpu=" a[i + 1]
+            if (a[i] == "-target-feature") f = f (f == "" ? "" : ",") a[i + 1]
+        }
+        print c (f == "" ? "" : " -mattr=" f)
+    }')
+    echo "$1|${cpu# }" >> "$obj/cpu.list"
 }
 
 # The platform's runtime (firmware/runtime/, BR-4): memcpy, memmove and
@@ -278,9 +405,10 @@ build_runtime() {
         o="$obj/runtime_$(basename "$s" | sed 's/\.c$/.o/; s/\.cc$/.o/')"
         case "$s" in
             # shellcheck disable=SC2086
-            *.cc) set -x; clang $CXXFLAGS -c "$s" -o "$o"; set +x ;;
+            *.cc) set -x; clang $CXXFLAGS -c "$s" -o "$o"; set +x; note_cpu "$o" "$CXXFLAGS" ;;
             # shellcheck disable=SC2086,SC2046
-            *) set -x; clang $(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//') -c "$s" -o "$o"; set +x ;;
+            *) set -x; clang $(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//') -c "$s" -o "$o"; set +x
+               note_cpu "$o" "$(echo "$CFLAGS" | sed 's/ -mcpu=r3 -mfprev1//')" ;;
         esac
         rt="$rt $o"
     done
@@ -331,9 +459,9 @@ cmd_inside() {
         esac
         o="$obj/$(basename "$s" | sed 's/\.[cS]$/.o/')"
         case "$s" in
-            *.S) set -x; clang $ASFLAGS -c "$s" -o "$o"; set +x ;;
+            *.S) set -x; clang $ASFLAGS -c "$s" -o "$o"; set +x; note_cpu "$o" "$ASFLAGS" ;;
             # shellcheck disable=SC2086
-            *) set -x; clang $CFLAGS -c "$s" -o "$o"; set +x ;;
+            *) set -x; clang $CFLAGS -c "$s" -o "$o"; set +x; note_cpu "$o" "$CFLAGS" ;;
         esac
         objs="$objs $o"
     done
@@ -344,23 +472,35 @@ cmd_inside() {
     build_runtime
     # No store that writes back into the register it stores (since
     # clean-1027; tools/ownbase.pl, R-BUILD-3): every object's code is
-    # checked before anything is linked, so no image holds one. One
-    # exception: the Plaits demo's measurement builds with the hardware
-    # float instructions (PLAITS_HWFLOAT, which only fwtest ever runs),
-    # where the compiler puts such stores in the vendored Plaits; there
-    # they are listed and counted, not refused.
-    wb=0
+    # checked before anything is linked, so no image holds one. Each
+    # object is disassembled with the CPU and features it was compiled for
+    # (since BR-13, note_cpu), and code the disassembler can't read fails
+    # the build: the check can't vouch for code it misreads. (Until BR-13
+    # the check disassembled without them, read the float feature's
+    # conditional blocks in the Plaits demo's hardware-float builds as 68
+    # such stores, and let those builds through as an exception; read as
+    # compiled, they hold none, and there is no exception.)
+    wb=0 unread=0
     for o in $objs $rt; do
-        objdump -d "$o" | perl tools/ownbase.pl "$(basename "$o")" || wb=$((wb + 1))
-    done
-    if [ "$wb" -ne 0 ]; then
-        case " ${SB_DEMO:-}:${SB_DEFINES:-} " in
-            *plaits:*" PLAITS_HWFLOAT "*)
-                echo "ownbase check: $wb objects with such stores (above), allowed in a PLAITS_HWFLOAT measurement build" ;;
-            *)
-                echo "FAIL: a store writes back into the register it stores (above; tools/ownbase.pl)" >&2
-                exit 1 ;;
+        cpu=$(awk -F'|' -v o="$o" '$1 == o { print $2 }' "$obj/cpu.list")
+        r=0
+        # shellcheck disable=SC2086
+        objdump -d $cpu "$o" | perl tools/ownbase.pl "$(basename "$o")" || r=$?
+        case $r in
+            0) ;;
+            1) wb=$((wb + 1)) ;;
+            *) unread=$((unread + 1)) ;;
         esac
+    done
+    awk -F'|' '{ n[$2 == "" ? "no CPU options" : $2]++ } END { for (d in n) print n[d], d }' "$obj/cpu.list" \
+        | LC_ALL=C sort -k2 | while read -r k d; do echo "ownbase check: $k objects disassembled with $d"; done
+    if [ "$unread" -ne 0 ]; then
+        echo "FAIL: $unread objects hold code the disassembler can't read (above; tools/ownbase.pl)" >&2
+        exit 1
+    fi
+    if [ "$wb" -ne 0 ]; then
+        echo "FAIL: a store writes back into the register it stores (above; tools/ownbase.pl)" >&2
+        exit 1
     fi
     set -x
     # shellcheck disable=SC2086

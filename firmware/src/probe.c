@@ -54,8 +54,14 @@ void sb_probe_loaded(void)
 
 #if defined(SB_PROBE_BIG)
 /* More code (a 1 KiB table among the constants), more static RAM (256
- * bytes of zeroed data) and a deeper stack (512 bytes, every word written
- * with a non-zero value): each budget must catch its own. */
+ * bytes of zeroed data), a deeper stack (512 bytes, every word written
+ * with a non-zero value) and more start-up work (the frame written
+ * PROBE_STARTUP_ROUNDS times): each budget must catch its own. The
+ * start-up count moves by a few thousand instructions from one image to
+ * the next, so since clean-1028 the extra work is well past that: with
+ * BR-12's store change one round (about 750 instructions) no longer
+ * showed. */
+#define PROBE_STARTUP_ROUNDS 64u
 static const u32 probe_table[256] = { 1 };
 static volatile u32 probe_ram[64];
 
@@ -71,7 +77,10 @@ static void __attribute__((noinline)) probe_stack(void)
 
 void sb_probe_big(void)
 {
-    probe_stack();
+    u32 r;
+
+    for (r = 0; r < PROBE_STARTUP_ROUNDS; r++)
+        probe_stack();
     probe_ram[1] = probe_table[sb_beacon.beats & 255];
 }
 #endif

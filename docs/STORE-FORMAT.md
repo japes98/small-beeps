@@ -85,18 +85,29 @@ of up to 5 904 bytes, is written as parts, one record each:
   when the write began;
 - a write appends its parts in order.
 
-Reading a payload: of each part (kind, id, index) the newest valid
-record counts, as for any key; the payload is whole when part 0 and every
-part below its count are there with part 0's tag and count, and then it
-is their data in order. Otherwise there is none: a write cut short is
-never read as a mix of two writes (the old payload reads until the new
-write's first part is whole, then nothing until its last is). At
-start-up a part whose tag or count isn't part 0's, or whose index is past
-part 0's count, is not live, and is never copied forward; so are the
-parts past a shorter payload's count once it is written. A reset voids
-these kinds as it voids every other. A reader that knows none of them
-(the base before clean-1027) counts them unknown and never copies them
-forward.
+Since clean-1028 (BR-12) a payload's **last part** (index count - 1)
+commits its write: the store writes it only once every other part of the
+write reads back as written, and keeps the parts of the write before it
+live (copied forward like any live record) until then.
+
+Reading a payload: of each kind and id, the **committed write** is the
+one with the highest tag whose last part is a valid record newer than
+the newest reset; the payload is that write's parts, index 0 to its
+count - 1, in order (of the records of one part of one write, copies
+the ring made, the newest counts). If a part is missing there is none,
+which a store that follows these rules never leaves. So a write cut
+short at any moment leaves the old payload whole, and once its last part
+is whole the new one: never neither, never a mix of two writes. At
+start-up a record of a write that isn't its payload's committed one (an
+older write, or one cut short) is not live, and is never copied forward.
+A reset voids these kinds as it voids every other. A reader that knows
+none of them (the base before clean-1027) counts them unknown and never
+copies them forward. clean-1027's reader takes, of each part, its newest
+record, and a payload only when every part has part 0's tag and count:
+it never reads a mix of clean-1028's writes, but may read none where
+clean-1028 reads one (a part of the old write copied forward during a
+rewrite is newer than the new write's). Payloads clean-1027 wrote are
+read by clean-1028's rules (its writes wrote the last part last too).
 
 ## Reading
 
@@ -109,6 +120,14 @@ than the newest reset is void. A record of a kind or id the reader does
 not know is counted and otherwise ignored, and never copied forward.
 
 ## Writing
+
+A firmware kind's payload (since clean-1028) is refused before anything is
+written if the store has no place for it or its parts, or if everything
+live and the new write's records together would not fit in the region's
+sectors but one (each sector less its header); otherwise its parts are
+appended in order, each as below, the last only once the others read
+back. A write refused part way (the ring's layout left no room) leaves
+the old payload: its new parts are not live.
 
 A record is appended in the head after its last byte that is not erased,
 programmed in one go (a page program for each 256-byte page it touches),
@@ -123,10 +142,21 @@ nothing live by the time the ring comes round to erase it. If a sector
 can't be freed without losing a live record, the write is refused and
 nothing is written.
 
+## The wide region test build
+
+`SB_TEST_STORE_WIDE` (a test build only, tools/seams_suite.py) gives the
+store 5 sectors, chip offsets `0xFA000` to `0xFEFFF`: the size a 4 096-byte
+payload needs to be rewritten atomically beside the base's full store
+(docs/DESIGN-NOTES.md, clean-1028). Its first two sectors are in the stock
+firmware's user patch region, which no shipping build takes. The format is
+the same; `tools/store.py` takes the region's size (`sectors`).
+
 ## Versions
 
 Version 1 is the first (M7). The kinds for firmwares built on the base
 (clean-1027) are an addition to version 1: their records are version 1's
-records, and a reader that doesn't know them skips them. A later format changes the sector header's
+records, and a reader that doesn't know them skips them. clean-1028's
+committed write (the last part) changes no byte of the format, only which
+records a reader takes. A later format changes the sector header's
 format byte, and says here what changed; a payload's own version changes
 when its layout does, and the reader migrates what it knows.
