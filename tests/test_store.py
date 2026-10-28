@@ -24,7 +24,7 @@ class StoreFormatTest(unittest.TestCase):
     """Requirements: R-STORE-1"""
 
     def test_the_tool_and_the_firmware_agree_on_the_layout(self):
-        h, c, ld = source("src/store.h"), source("src/store.c"), source("app.ld")
+        h, c, ld = source("src/store.h"), source("src/store.c"), source("platform.ld")
         for name, value in (("STORE_BASE", st.BASE), ("STORE_SIZE", st.SIZE), ("STORE_SECTOR", st.SECTOR),
                             ("STORE_PAGE", st.PAGE), ("STORE_SLOTS", st.SLOTS),
                             ("STORE_MAX_PAYLOAD", st.MAX_PAYLOAD), ("STORE_PATCH", st.PATCH),

@@ -427,7 +427,7 @@ class MeasureTest(unittest.TestCase):
         self.assertEqual(perf.capture_name(0x01c7ec00, 0x1000), "ram-01c7ec00-1000-end.bin")
 
     def test_layout_constants_match_the_linker_script(self):
-        with open(os.path.join(ROOT, "firmware", "app.ld")) as f:
+        with open(os.path.join(ROOT, "firmware", "platform.ld")) as f:
             ld = f.read()
         self.assertIn("__stack_top == 0x%08X" % perf.STACK_TOP, ld)
         self.assertIn("ADDR(.beacon) == 0x%08X" % perf.BEACON, ld)

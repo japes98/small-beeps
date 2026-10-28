@@ -2806,3 +2806,133 @@ C-SEAMS) and its part below.
   The demo's soft-float builds hold none. Should SR-10's answer show
   the chip stores something other than fwtest does, the
   hardware-float measurements would need running again.
+
+#### Building with outside sources (BR-5, R-BUILD-4)
+
+- **What.** `tools/build.sh build` takes `--src DIR` (repeatable): every
+  `.c`, `.S` and `.cc` under a folder outside `firmware/` is built into
+  the image; and `--leave-out FILE` (repeatable): a base source, named
+  by its path from the repository's root, is left out, so a firmware can
+  replace a base file or do without it. With `--define` (already there
+  for test builds) that is all a firmware built on the base needs to be
+  built with the base's own build image, its files kept in its own
+  repository and the base's used unmodified.
+- **The same flags.** C with the firmware's flags; assembly with the
+  firmware's (and, new, the `--define`s, which a firmware's `.S` may
+  test); C++ as C++14 with the same CPU, warnings-as-errors and
+  freestanding flags, without exceptions, RTTI or guarded statics (the
+  toolchain's clang 4.0.1 knows no C++17). Each source gets `-I` for its
+  own folder; the base's headers are on the path as for the firmware.
+- **Names.** Base objects are named by their file name, as before (the
+  default image is unchanged: the same `app.bin`). An outside object is
+  named by its path, `src<N>_<path>.o`, so a file named as a base file
+  is (`probe.c`, say) is built beside the base's, never over it; two
+  definitions of one function then fail the link, as they should.
+- **Deterministic.** Each folder is mounted read-only beside the source
+  mount, as `sb-src-N`, and built by its path from the source mount
+  (`../sb-src-1/...`), as the base's files are built by theirs. Clang
+  4.0.1 keeps an absolute source path in the objects even with
+  `-fdebug-prefix-map`; a relative one it keeps as given. So where the
+  folder sits on the host, and where the source is mounted (C-BUILD-B),
+  never reaches an output: C-SEAMS builds the same folder from three
+  places, once with the source mounted elsewhere, and gets the same
+  bytes; the build's own check that no output holds the source path now
+  covers each outside mount too.
+- **Refused:** a folder holding the base (its sources would be built
+  twice), one inside `firmware/` (built already), a path with a space,
+  and a `--leave-out` that names no base source (a typo would otherwise
+  build the base file silently).
+- **From another repository.** The firmware built on the base keeps the
+  base as a folder (a git submodule or a clone) and runs the base's
+  script from there: `sh base/tools/build.sh build --out out --src src
+  --define ...`. The script builds the base's pinned build image the
+  first time (`tools/build.sh image`) and runs everything inside it, so
+  the firmware gets the same toolchain and the same deterministic build
+  (docs/BUILDING-ON-SMALL-BEEPS.md).
+
+#### The engine seam (BR-1, R-ENG-1)
+
+- **What.** Built with `SB_ENGINE_EXTERNAL`, `main()` leaves out the
+  base's FM engine and its store start-up (`fm_init()`, `store_boot()`)
+  and the instrument's loop work (the screens, the store's writes), and
+  calls three functions the firmware built on the base defines
+  (`firmware/src/engine.h`):
+  - `sb_engine_init()`, once, where `fm_init()` is called: after the time
+    base, the tick's and SPI1's handlers and the panel's scan, before
+    interrupts are on and before the audio starts;
+  - `sb_engine_block()`, the block callback `audio_start()` gets: core 0,
+    the audio interrupt, every block;
+  - `sb_engine_serve()`, from main's loop: once before it begins, then
+    on every wake that found work (a change of `sb_work`: the whole
+    seconds, the panel's events, anything the engine adds itself).
+  Everything else main does stays the platform's: the tick, the screen's
+  start (pattern, then the test screen with its heartbeat), the loop and
+  its counts in the beacon.
+- **Without the switch nothing changes:** the default path's code is the
+  same text, and the image is the same bytes (`da13d093…`).
+- **Why three functions and not a table of pointers:** a build switch and
+  link-time names cost nothing at run time, keep the default image as it
+  was, and make a missing function a link error rather than a jump to
+  nowhere. The block callback is the engine's own function, so the audio
+  interrupt calls it as directly as it calls `fm_block` today.
+- **The Plaits demo is a user** (M4b's load test): it defines the three
+  in `firmware/demos/plaits/plaits_demo.c` (its bench, which never
+  returns, runs from its init, where `main()` called it before) and the
+  demo build defines `SB_ENGINE_EXTERNAL`. Its screen no longer shows the
+  instrument's views after a touch (they never belonged to it); it keeps
+  the test screen and its heartbeat. Nothing C-PLAITS-BENCH measures
+  depends on that.
+- **Tested** (C-SEAMS, case engine) with a test engine kept outside
+  `firmware/` (`tests/seams/engine/`) and built through BR-5's `--src`:
+  in fwtest its init runs once with no tick taken and no block played
+  yet, its block callback gets every block, its serve runs before the
+  loop and on each wake, seeing the key presses its block callback
+  took, its square wave is in the audio, and the FM engine's record
+  stays zero (the instrument never started). The instrument's files are
+  still linked here; leaving them out is the platform link's (BR-2).
+
+#### The platform without the instrument (BR-2, R-PLAT-1)
+
+- **The platform's files:** boot (`crt0.S`, `start.c`), interrupts
+  (`irq.c`), the tick, the loop and the beacon (`main.c`), input
+  (`input.c`), audio (`audio.c`), the LCD and screen (`lcd.c`, `gfx.c`,
+  `font.c`, `screen.c`), MIDI in and out (`midi.c`, `midi_out.c`), the
+  store (`store.c`), and the test builds' `probe.c`. **The instrument's:**
+  `fm.c`, `fm_play.c`, `patches.c`, `arp.c`, `views.c`, `saving.c`,
+  `spectrum.c`, and for now `core1.S`, whose entry calls the FM engine's
+  core-1 loop (BR-3 makes core 1's start the platform's). `tools/build.sh`
+  lists them once (`INSTRUMENT`). Only `main.c` called the instrument,
+  and since BR-1 it doesn't when built with `SB_ENGINE_EXTERNAL`; the
+  test builds' references are inside their own defines.
+- **`tools/build.sh build --platform`** leaves the instrument's files
+  out, defines `SB_ENGINE_EXTERNAL` and links with
+  `firmware/platform.ld`; the engine comes from `--src` (BR-5). With
+  `--ld SCRIPT` an engine links with a script of its own (in the base or
+  in a `--src` folder) that includes the platform's (`INCLUDE
+  platform.ld`; the build passes `-L firmware`) and asserts its own
+  records; the package link uses the same script.
+- **The linker scripts.** `firmware/platform.ld` is what `app.ld` was,
+  less the instrument: the memory, the sections, the stacks and the
+  assertions about the platform's records. `firmware/app.ld` includes it
+  and asserts the instrument's records. The image is unchanged
+  (`da13d093…`); only the ELF's section names differ.
+- **Where an engine's records go.** The records sit at fixed addresses
+  that the tests (and the app) read, and the FM engine's record sits
+  between the audio record and MIDI's. A platform-only link would slide
+  MIDI's, MIDI out's and the store's records down by its size. So the
+  64 bytes there are now the **engine's slot** (`.beacon.engine0`,
+  `0x01C00590`): kept whether anything fills them or not (the script
+  moves the location counter past them), at most 64 bytes (more and the
+  link fails, as the counter would have to move back), the FM engine's
+  record in the base. After the store's record come the **engine's
+  records** (`.beacon.engine1` to `.beacon.engine4` in that order, then
+  `.beacon.engine`, from `0x01C00870`), as large as they need: the
+  base's interface record and arpeggiator's take the first two, so they
+  stay at `0x01C00870` and `0x01C008D0`; a firmware on the platform alone
+  gets `0x01C00870` for its first.
+- **Tested** (C-SEAMS, case platform): the test engine linked with the
+  platform alone and its own script (which asserts its record at
+  `0x01C00870`). The ELF holds none of the instrument's functions or
+  records, the platform's records are where the base has them, the
+  package link is built too, and the engine case's whole run passes on
+  it. The platform alone is 11 180 bytes of code (the firmware: 52 960).
