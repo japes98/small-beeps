@@ -3287,3 +3287,10 @@ C-SEAMS) and its part below.
   steady state and loaded per period no slower (1 884.6 and 108 944,
   from 1 886.0 and 109 125); stack 572 bytes at most (544). Every budget
   holds; the firmware suite and the ARP suite pass as before.
+- **A probe made stronger** (C-PERF-PROBES): the big probe build
+  (`SB_PROBE_BIG`, `firmware/src/probe.c`) must also fail the start-up
+  budget, and its one extra round of work (about 750 instructions) no
+  longer did: the start-up count moves by a few thousand instructions
+  from one image to the next, and with this change the probe's image fell
+  the other way. It now does the round 64 times (about 34 000
+  instructions), and fails it by 31 000.
