@@ -3391,7 +3391,13 @@ C-SEAMS) and its part below.
   and should the flags ever not reach the disassembler again, the build
   stops instead of reading out of step. With the right options no build
   CI makes (build A, the Plaits demo, its hardware-float build, every
-  seams build) holds such an instruction.
+  seams build) holds such an instruction, but one: the bad instruction
+  test build (`SB_TEST_BADINSN`, C-FW-SUITE's case badinsn), whose
+  `sb_test_badinsn` in `probe.o` is bytes no CPU decodes, on purpose, to
+  test fwtest's fault outcome. There, and only there, they are listed
+  and allowed; anything else unreadable, or any write-back store, still
+  fails that build. (The first full run of the firmware suite on this
+  change found it: the test build was refused.)
 - **What it changes.** The firmware's own images and the base's code
   read as before (they hold none; the outputs are byte for byte the
   same, the check only reads). The 68 stores the check counted in the
