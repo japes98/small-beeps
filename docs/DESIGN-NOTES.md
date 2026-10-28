@@ -2936,3 +2936,52 @@ C-SEAMS) and its part below.
   records, the platform's records are where the base has them, the
   package link is built too, and the engine case's whole run passes on
   it. The platform alone is 11 180 bytes of code (the firmware: 52 960).
+
+#### Core 1's start, the platform's (BR-3, R-CORE-1)
+
+- **What.** Starting core 1 and handing it work were the FM engine's
+  (M5, "Two cores"): `core1.S`'s entry called the engine's loop on a
+  stack of its own, `fm_init()` pointed source 126's vector word at it
+  and set C1_CON bit 3 (HW-9), and `fm_play.c` kept the lock and the
+  shared loads (HW-65). The Plaits bench had its own copy of the entry
+  and the start. Now the platform has one of each (`core1.h`):
+  - `sb_core1_start(entry, stack_top)`: core 0 leaves the entry and the
+    stack's top where the entry (`core1_entry.S`) finds them, points the
+    vector word at it, sets the bit, and waits (`SB_CORE1_WAIT` polls,
+    about 1 ms in fwtest) for core 1 to say it runs; then puts the word
+    back and returns 1, or 0 if core 1 never said so. On core 1, the
+    entry sets both stack pointers from the given top and calls
+    `sb_core1_main` (`core1.c`), which says it runs, under the lock, and
+    calls the engine's entry; if that returns, core 1 stops with
+    interrupts off.
+  - `sb_lock`, `sb_unlock`, `sb_shared`, `sb_publish`: the lock byte
+    taken by test-and-set with csync around, a shared word read after
+    csync, a shared word written under a lock. `static inline`, as they
+    are short and sit in core 0's per-block path (the FM engine posts a
+    block and waits for its answer with them).
+- **The FM engine** keeps its own stack (1 KiB, as before, now a
+  `static` array in `fm_play.c`), its job's lock and sequence numbers,
+  and its loop; it starts core 1 with `sb_core1_start(fm_core1_main,
+  ...)` and keeps its two-core fallback (the result). Core 1's flag that
+  it runs is the platform's now, so `fm_core1_main` only sets
+  `sb_fm.core1`. **The Plaits bench** starts its core 1 the same way, on
+  its own 8 KiB stack, and its copy of the entry is gone.
+- **A name clash on the way.** The base names its objects by file name,
+  so `core1.c` and `core1.S` both made `core1.o` and the link failed
+  ("multiple definition"); the entry is `core1_entry.S`.
+- **The image changes** (code 53 028 bytes, from 52 960), and start-up
+  ends 2 to 3 µs later. One golden changed by hand, as the timing
+  goldens' policy says a change that is not a pure time shift must be:
+  midiout's MIDI capture, where the chord's three keys, pressed in the
+  same instant, now reach the engine in the order 60, 64, 67 (was 64, 67,
+  60); which key the panel's scan sees first depends on its phase
+  against the script, which the later start moved. Every other message
+  is the same, 2 to 3 µs later; the case's own checks take the chord in
+  any order and pass, and midiround's script is written from the new
+  capture (`tools/midi_scripts.py`). The order is the same on every
+  later seam's image.
+- **Tested** (C-SEAMS, cases engine and platform): the test engine
+  starts core 1 and hands it a job every block, a sequence number to
+  triple: core 1 starts, does exactly one job a block, every answer
+  right and in time, and the vector word holds its stub again, with the
+  instrument linked and with the platform alone.

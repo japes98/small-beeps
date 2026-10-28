@@ -63,7 +63,7 @@
 # (INCLUDE platform.ld) and asserts its own records.
 set -eu
 
-INSTRUMENT="firmware/src/arp.c firmware/src/core1.S firmware/src/fm.c firmware/src/fm_play.c
+INSTRUMENT="firmware/src/arp.c firmware/src/fm.c firmware/src/fm_play.c
             firmware/src/patches.c firmware/src/saving.c firmware/src/spectrum.c firmware/src/views.c"
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)

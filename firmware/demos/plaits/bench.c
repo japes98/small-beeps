@@ -34,6 +34,7 @@
 #if defined(PLAITS_BENCH)
 
 #include "audio.h"
+#include "core1.h"
 #include "plaits_voice.h"
 
 #define BENCH_BLOCKS   4
@@ -144,7 +145,9 @@ struct core1_job {
 static struct core1_job job;
 
 void plaits_core1_main(void) __attribute__((noreturn));
-void plaits_core1_entry(void);
+
+/* Core 1's stack: 8 KiB (Plaits' render goes deep). */
+static u32 core1_stack[2048] __attribute__((aligned(8)));
 
 /* Core 1's loop: a block of voice 1 for each step of go. It never reads
  * the time base, whose reads count towards core 0's waits in fwtest
@@ -163,18 +166,10 @@ void plaits_core1_main(void)
     }
 }
 
-#define CORE1_START  (*(volatile u32 *)0x01C7FFF8u)   /* HW-9 */
-#define C1_CON       (*(volatile u32 *)0x01EEE004u)   /* HW-9 */
-
+/* Since clean-1027 through the platform (core1.h, BR-3). */
 static int start_core1(void)
 {
-    u32 i;
-
-    CORE1_START = (u32)plaits_core1_entry;
-    C1_CON |= 1u << 3;
-    for (i = 0; i < 1000000u && !job.alive; i++)
-        ;
-    return job.alive != 0;
+    return sb_core1_start(plaits_core1_main, core1_stack + sizeof core1_stack / sizeof core1_stack[0]);
 }
 
 /* --- the bench ------------------------------------------------------ */
