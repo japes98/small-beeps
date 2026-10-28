@@ -14,10 +14,15 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
 - ownbase (R-BUILD-3): a test build holding a store that writes back
   into the register it stores (SB_TEST_OWNBASE, firmware/src/probe.c)
   is refused, its message naming the object, the function and the
-  instruction, and so is the same with PLAITS_HWFLOAT defined (the
-  check's one exception is the Plaits demo's hardware-float measurement
-  builds, tools/build.sh); build A, which passed the same check, holds
-  none.
+  instruction, and so is the same with PLAITS_HWFLOAT defined; build A,
+  which passed the same check, holds none. Since BR-13 the check reads
+  each object as it was compiled: a float-heavy object
+  (tests/seams/float, as an outside source: the compiler's float code
+  and a float conditional block, which read as a store without the CPU's
+  features) passes, disassembled with the firmware's CPU and features
+  as the base's own C is, the runtime's C with none; and with
+  SB_TEST_FLOAT_OWNBASE, a real store after its float code, it is
+  refused for that store alone, at its place, nothing unreadable.
 
 - outside (R-BUILD-4): the firmware built with an outside source folder
   (tools/build.sh --src tests/seams/outside: C including a base header
@@ -201,6 +206,9 @@ def read(path):
 
 # --- ownbase --------------------------------------------------------------
 
+FLOAT = "tests/seams/float"
+
+
 def case_ownbase(a, work, log):
     problems = []
     rc, out = build(os.path.join(work, "build"), log, "--define", "SB_TEST_OWNBASE", check=False)
@@ -217,7 +225,32 @@ def case_ownbase(a, work, log):
         problems.append("the firmware built with SB_TEST_OWNBASE and PLAITS_HWFLOAT was not refused")
     if not os.path.exists(os.path.join(a.build, "app.elf")):
         problems.append("build A has no app.elf")
-    print("ownbase: the test build %s; build A passed the check" % ("refused" if rc else "NOT refused"))
+    # BR-13: a float-heavy object, read as compiled.
+    cpu = "-mcpu=r3 -mattr=+fprev1"
+    rc3, out3 = build(os.path.join(work, "float"), log, "--src", FLOAT, check=False)
+    if rc3:
+        problems.append("the float-heavy object was refused")
+    counts = dict((m.group(2), int(m.group(1)))
+                  for m in re.finditer(r"^ownbase check: (\d+) objects disassembled with (.+)$", out3, re.M))
+    _, out_a = build(os.path.join(work, "plain"), log)
+    counts_a = dict((m.group(2), int(m.group(1)))
+                    for m in re.finditer(r"^ownbase check: (\d+) objects disassembled with (.+)$", out_a, re.M))
+    if counts.get(cpu) != counts_a.get(cpu, 0) + 1 or counts.get("no CPU options") != counts_a.get("no CPU options"):
+        problems.append("the float-heavy object was not disassembled with %s (%s; without it %s)"
+                        % (cpu, counts, counts_a))
+    if "unreadable" in out3:
+        problems.append("code the disassembler can't read in the float-heavy build")
+    rc4, out4 = build(os.path.join(work, "float-ownbase"), log, "--src", FLOAT, "--define", "SB_TEST_FLOAT_OWNBASE",
+                      check=False)
+    found = re.findall(r"^(\S+\.o: \S+ \(\.text[^)]*\): .*)$", out4, re.M)
+    if rc4 == 0:
+        problems.append("the float-heavy object with SB_TEST_FLOAT_OWNBASE was not refused")
+    if len(found) != 1 or not re.match(r"src1_float_heavy\.o: sb_test_float_ownbase\+0x[0-9a-f]+ \(\.text\): "
+                                       r"\[\+\+r1=4\] = r1$", found[0]):
+        problems.append("the float-heavy refusal does not name its one store: %s" % found)
+    print("ownbase: the test build %s; build A passed the check; the float-heavy object read as compiled (%s), "
+          "its real store %s" % ("refused" if rc else "NOT refused", "passed" if not rc3 else "REFUSED",
+                                 found[0] if found else "NOT found"))
     return problems
 
 

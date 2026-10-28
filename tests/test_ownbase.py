@@ -48,6 +48,24 @@ class OwnBaseTest(unittest.TestCase):
             "t.o: g+0x8 (.text.g): h[++r7=2] = r7 #",
         ])
 
+    def test_refuses_code_it_cant_read(self):
+        # BR-13: a float conditional block (12 ee 80 05, iff (r2 > r5) {)
+        # disassembled without the fprev1 feature: an unknown half, then
+        # its second half read as a store into its own base register.
+        text = ("Disassembly of section .text:\nsb_t1:\n"
+                "       2:    10 18             \tr0 += r1\n"
+                "       4:    12 ee              <unknown instruction>\n"
+                "       6:    80 05             \t[r0++=4] = r0\n")
+        rc, lines = self.run_check(text)
+        self.assertEqual(rc, 2)
+        self.assertEqual(lines, ["t.o: sb_t1+0x2 (.text): unreadable", "t.o: sb_t1+0x4 (.text): [r0++=4] = r0"])
+        # Read with the feature, the same bytes are one instruction.
+        rc, lines = self.run_check("Disassembly of section .text:\nsb_t1:\n"
+                                   "       4:    12 ee 80 05       \tiff (r2 > r5) {\n"
+                                   "       8:    54 16             \t\tr4 = r5\n"
+                                   "                               \t}\n")
+        self.assertEqual((rc, lines), (0, []))
+
     def test_passes_code_without_one(self):
         rc, lines = self.run_check("Disassembly of section .text:\nf:\n   0:  a3 05  \t[r2++=4] = r3\n")
         self.assertEqual((rc, lines), (0, []))

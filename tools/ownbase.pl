@@ -14,11 +14,17 @@
 # Reads the toolchain's disassembly of one object (objdump -d shows its
 # code sections only, never its constants) and prints each such store as
 # NAME: SYMBOL+0xOFFSET (SECTION): INSTRUCTION. Exits 1 if it found any.
+# Since BR-13 the disassembly must be made with the CPU and features the
+# object was compiled for (tools/build.sh, note_cpu): an instruction the
+# disassembler can't read (a float instruction, without the fprev1
+# feature) is printed as NAME: SYMBOL+0xOFFSET (SECTION): unreadable, and
+# makes it exit 2, since the bytes after it are misread too, and a store
+# among them could be missed or made up.
 use strict;
 use warnings;
 
 my $name = shift // "-";
-my ($section, $symbol, $start, $bad) = ("?", "?", undef, 0);
+my ($section, $symbol, $start, $bad, $unread) = ("?", "?", undef, 0, 0);
 while (my $line = <STDIN>) {
     if ($line =~ /^Disassembly of section (\S+):/) {
         ($section, $symbol, $start) = ($1, "?", undef);
@@ -26,6 +32,13 @@ while (my $line = <STDIN>) {
     }
     if ($line =~ /^(\S+):\s*$/) {
         ($symbol, $start) = ($1, undef);
+        next;
+    }
+    if ($line =~ /^\s*([0-9a-f]+):.*<unknown instruction>/) {
+        my $addr = hex($1);
+        $start = $addr unless defined $start;
+        printf "%s: %s+0x%x (%s): unreadable\n", $name, $symbol, $addr - $start, $section;
+        $unread = 1;
         next;
     }
     next unless $line =~ /^\s*([0-9a-f]+):[^\t]*\t(.*?)\s*$/;
@@ -37,4 +50,4 @@ while (my $line = <STDIN>) {
         $bad = 1;
     }
 }
-exit $bad;
+exit($unread ? 2 : $bad);

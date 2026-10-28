@@ -2796,16 +2796,13 @@ C-SEAMS) and its part below.
   the shipping image and its package link pass the check, and so does
   every test build CI makes. The image is unchanged by the check (the
   same `app.bin`).
-- **The one exception.** The Plaits demo's measurement builds with the
-  hardware float instructions (`PLAITS_HWFLOAT`, M4b) hold 68 such
-  stores, all in the vendored Plaits (17 objects), where the compiler
-  writes them for float stores. Those builds only ever run in fwtest,
-  to measure what the float instructions would save, so the check lists
-  and counts them there and lets the build go on; everywhere else,
-  including a firmware build that defines `PLAITS_HWFLOAT`, it refuses.
-  The demo's soft-float builds hold none. Should SR-10's answer show
-  the chip stores something other than fwtest does, the
-  hardware-float measurements would need running again.
+- **The one exception** (until BR-13, below: it rested on a misreading).
+  The Plaits demo's measurement builds with the hardware float
+  instructions (`PLAITS_HWFLOAT`, M4b) were read as holding 68 such
+  stores, all in the vendored Plaits (17 objects), and the check let
+  those builds go on. Read as compiled, they hold none: each was the
+  second half of a float conditional block. Since BR-13 there is no
+  exception.
 
 #### Building with outside sources (BR-5, R-BUILD-4)
 
@@ -3362,3 +3359,54 @@ C-SEAMS) and its part below.
 - **The image doesn't change** for a build without these options: the
   base's compile lines are as they were (the case's check), and C-BUILD-A
   and C-BUILD-B give build A as before.
+
+### 2026-10-28 clean-store-region: the write-back check reads code as compiled (BR-13, R-BUILD-3)
+
+- **What.** A firmware built on the base reported that the write-back
+  store check (R-BUILD-3) misreads float instructions unless it
+  disassembles with the float feature (`-mattr=+fprev1`). It did: the
+  check ran `objdump -d` with no CPU options, so the disassembler (the
+  toolchain's, LLVM 4.0.1) knew no float instructions. Each one, 4 bytes,
+  read as an unknown 2-byte one and then its second half as another
+  instruction; the float feature's conditional block, `iff (r2 > r5) {`
+  (bytes `12 ee 80 05`), reads as an unknown half and `[r0++=4] = r0`,
+  a store the check refuses. The check could so refuse code that holds
+  no such store, and, as the bytes after an unknown half are read out of
+  step, could miss one that is there.
+- **The fix: each object read as it was compiled.** `tools/build.sh`
+  notes, as it compiles each object, the CPU and features its flags give
+  (`note_cpu`): clang's own reading of the compile line (its `-###`
+  output's `-target-cpu` and `-target-feature`), so `-mcpu=r3
+  -mfprev1`, `-mno-fprev1`, a folder's own `-m` flags (BR-11) and the
+  Plaits demo's `-Xclang -target-feature -Xclang +fprev1` all count, and
+  the base's own files, the runtime's C (built without them, as
+  soft-float must be), the demo's C and C++ and every outside folder's
+  each get their own. The check disassembles each object with those
+  (`objdump -d -mcpu=r3 -mattr=+fprev1` for the base's files) and prints
+  how many objects it read with which.
+- **Code it can't read fails the build.** `tools/ownbase.pl` now also
+  refuses an instruction the disassembler shows as unknown (it prints
+  `unreadable`, with its place, and exits 2; `tools/build.sh` fails
+  with its own message): a check that misreads code can't vouch for it,
+  and should the flags ever not reach the disassembler again, the build
+  stops instead of reading out of step. With the right options no build
+  CI makes (build A, the Plaits demo, its hardware-float build, every
+  seams build) holds such an instruction.
+- **What it changes.** The firmware's own images and the base's code
+  read as before (they hold none; the outputs are byte for byte the
+  same, the check only reads). The 68 stores the check counted in the
+  Plaits demo's hardware-float build (17 vendored objects) were all this
+  misreading; read as compiled the build holds none, so the build's one
+  exception for it is gone (above).
+- **Tested** (C-UNIT, `tests/test_ownbase.py`: the conditional block's
+  bytes as the disassembler shows them without the feature, refused as
+  unreadable, and with it, passed; C-SEAMS, case ownbase):
+  `tests/seams/float/float_heavy.c`, a float-heavy outside source (the
+  compiler's float code at the firmware's flags, and the conditional
+  block), passes, disassembled with the firmware's CPU and features as
+  the base's own C is (one more object read so than without it, the
+  runtime's two as before, with none), nothing unreadable; built with
+  `SB_TEST_FLOAT_OWNBASE`, a real store placed after its float code, it
+  is refused for that store alone, named at its place. The same object
+  under the check as it was (no CPU options) is refused for the
+  conditional block's misread store: what the downstream firmware saw.
