@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range af055144cab4463c1e735d45b9dec8ec75f9079e..3746a7bd6ebbacd2bd34fdb203ed69bf65f5f207
+OK     3e9f8e2dc9dd firmware: the store keeps large records for built-on firmwares (BR-9)
+EXEMPT dc979a7c6e73 (merge) tools: merge seams/midiout into seams/store
+OK     92cd7b7e3c64 tools: seams_suite writes STORE_ERR_FULL as -2 & 0xFFFFFFFF
+OK     25d41d6957ea tests: ARP runs' ends moved within their blocks, after BR-9's start
+EXEMPT 3746a7bd6ebb (merge) Merge pull request #167 from japes98/seams/store
+5 commit(s) checked: PASS
+
+exit status 0

@@ -1,0 +1,25 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/package_suite.py --build /home/runner/work/small-beeps/small-beeps/out/3746a7bd6ebbacd2bd34fdb203ed69bf65f5f207/build-a --out /home/runner/work/small-beeps/small-beeps/out/3746a7bd6ebbacd2bd34fdb203ed69bf65f5f207/package
+package: small-beeps-0.0.0.fwsc, 72192 bytes; identity small-beeps-0.0.0, app area 0x04000, entry 0x02000120, chip key 0x4178
+boot       the same from the raw image and the package
+heartbeat  the same from the raw image and the package
+screen     the same from the raw image and the package
+keys       the same from the raw image and the package
+fmgold     the same from the raw image and the package
+midimsg    the same from the raw image and the package
+views      the same from the raw image and the package
+edit       the same from the raw image and the package
+check 1 short                exit 2: fwtest: the package is refused: too short for an FM-1 update package (.fwsc)
+check 1 header-crc           exit 2: fwtest: the package is refused: not an FM-1 update package (.fwsc)
+check 2 no-flash-image       exit 2: fwtest: the package is refused: no flash image in the package
+check 2 truncated            exit 2: fwtest: the package is refused: truncated package
+check 3 no-key-block         exit 2: fwtest: the package is refused: no chip key or app area in the flash image
+check 3 no-app-area          exit 2: fwtest: the package is refused: no chip key or app area in the flash image
+check 4 area-too-long        exit 2: fwtest: the package is refused: app area runs past the flash image
+check 5 no-app-bin           exit 2: fwtest: the package is refused: no app.bin in the app area
+check 6 key-block-crc        exit 2: fwtest: the package is refused: no isd_config.ini key block's CRC checks
+check 7 area-not-at-0x4000   exit 2: fwtest: the package is refused: its app area starts at flash 0x5000, not 0x4000
+check 8 app-attribute        exit 2: fwtest: the package is refused: app.bin's attribute is 0x83, not 0x82
+check 9 other-board          exit 2: fwtest: the package is refused: its identity "SMK-37" is another board's
+C-PACKAGE: PASS
+
+exit status 0
