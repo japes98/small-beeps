@@ -991,6 +991,13 @@ docs/prompts/owner-answers-1025.md):
   version scheme (docs/M9-PLAN.md, the owner's answers). A package keeps
   the stock user-patch region untouched.
 - **M11** USB-MIDI and the update handler.
+  - For firmwares built on small-beeps too (BR-10, clean-1028): USB MIDI
+    as a class-compliant device, as the stock firmware is one (HW-67), so
+    that MIDI out (docs/BUILDING-ON-SMALL-BEEPS.md, "MIDI out") reaches a
+    computer or an iPad from a real unit, which has no MIDI OUT jack
+    (HW-67: the manual lists none). A seam the downstream firmware's MIDI
+    out goes through as the base's does. Nothing to build before M11:
+    fwtest has no USB (HW-67).
 - **M12** hardware checklist.
 
 ### ARP: the arpeggiator (firmware side, after M8)

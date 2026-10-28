@@ -31,6 +31,20 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   image; a folder holding the base, a folder inside firmware/ and a base
   file that isn't one are refused.
 
+- flags (R-BUILD-5): per-folder compiler flags (BR-11). The firmware
+  built with tests/seams/flags as --src, its C given -DSB_FLAGS_OUTER=7
+  -O2 (--cflags), its folder inner/ -DSB_FLAGS_INNER=5 -Iinclude as
+  well, its C++ -DSB_FLAGS_CXX=2 (--cxxflags) and its assembly
+  -DSB_FLAGS_ASM (--asflags): each file builds only with its folders'
+  flags (each #errors otherwise; the -O2 after the base's -Os, the outer
+  folder's before the inner's, -Iinclude from inner/), its symbol in the
+  ELF; the base's own files' compile lines carry none of them and are
+  the lines of the same build without the flags (of firmware/src/,
+  which come before the folder's files stop it); the folder copied to two other places and built from
+  each, one with the source mounted elsewhere, gives the same bytes; and
+  refused: a folder not inside a --src folder, a base folder, an
+  absolute path, "..", -fdebug-prefix-map, -o, -Xclang, -Wp, an @file, a
+  bare -isystem, and a folder without its flags.
 - engine (R-ENG-1): the engine seam. A test engine from outside
   firmware/ (tests/seams/engine/, built with SB_ENGINE_EXTERNAL) runs in
   fwtest for 2.3 s with two key taps (tests/seams/scripts/engine.txt):
@@ -89,13 +103,29 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   (tools/store.py writes a control record before each, which the test
   engine reads at start-up and acts on in its first serve): a 4 096-byte
   payload and a small one written and read back, then read at the next
-  start-up; rewritten; rewritten again with the power cut part way
-  (fwtest's --power-cut, aimed by a run with --flash-log): at the next
-  start-up the large payload is gone (neither write: never a mix) and
-  the small one stays; rewritten after the cut; a factory reset voids
-  both; then, alone in the store, 5 000 bytes written and read back
-  and the store's largest payload (STORE_FW_MAX) refused as full. After
-  every run tools/store.py's reader finds what the firmware does.
+  start-up; since BR-12 a rewrite, which needs room for both copies, is
+  refused as full in today's region, nothing written and the old payload
+  kept; a factory reset voids both; then, alone in the store, 5 000
+  bytes written and read back and the store's largest payload
+  (STORE_FW_MAX) refused as full. After every run tools/store.py's
+  reader finds what the firmware does.
+- powercut (R-STORE-11): BR-12's saves that survive a power cut. Four
+  saves, three of them from the base's full store (16 user slots, the
+  selection, the settings) beside the firmware kinds' payloads, started by a key
+  tap (tests/seams/engine's steps 0x80 and up): a 4 096-byte payload
+  rewritten on the wide region test build (SB_TEST_STORE_WIDE, 5
+  sectors); on today's region a 3 400-byte payload rewritten where the
+  ring must copy the old write's parts forward during the rewrite (the
+  case checks it did), a one-part payload rewritten (300 bytes) and a
+  user slot's patch, these two with the head full, so that each takes a
+  new sector and compacts. A run with --flash-log gives the
+  save's flash commands; then for each command a power cut (fwtest's
+  --power-cut) just after it starts, halfway and just before it ends,
+  and one between commands and after the last; and from each cut's
+  flash the firmware starts again (no tap, so it only reads): it finds
+  the old payload or the new one, whole (length and sum), never another;
+  the old until a moment, then the new; the other payloads unchanged;
+  tools/store.py reads the same. Flash images are kept as their SHA-256.
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -239,6 +269,89 @@ def case_outside(a, work, log):
     return problems
 
 
+# --- flags --------------------------------------------------------------
+
+FLAGS = "tests/seams/flags"
+FLAGS_SYMBOLS = ("sb_flags_outer", "sb_flags_inner", "sb_flags_cxx", "sb_flags_asm")
+
+
+def flags_opts(folder):
+    return ["--src", folder,
+            "--cflags", folder, "-DSB_FLAGS_OUTER=7 -O2",
+            "--cflags", folder + "/inner", "-DSB_FLAGS_INNER=5 -Iinclude",
+            "--cxxflags", folder, "-DSB_FLAGS_CXX=2",
+            "--asflags", folder, "-DSB_FLAGS_ASM"]
+
+
+def base_lines(out, under="firmware/"):
+    """The compile lines of the base's own files (those under `under`), as
+    set -x printed them."""
+    return [l for l in out.splitlines() if l.startswith("+ clang") and " -c %s" % under in l]
+
+
+def case_flags(a, work, log):
+    """BR-11 (R-BUILD-5): per-folder compiler flags."""
+    problems = []
+    b1 = os.path.join(work, "with-flags")
+    _, out = build(b1, log, *flags_opts(FLAGS))
+    syms = fw_suite().elf_symbols(os.path.join(b1, "app.elf"))
+    for sym in FLAGS_SYMBOLS:
+        if sym not in syms:
+            problems.append("%s is not in the ELF" % sym)
+    lines = [l for l in out.splitlines() if l.startswith("+ clang")]
+    want = {"sb_flags.c": "-DSB_FLAGS_OUTER=7 -O2 -c", "sb_flags_cxx.cc": "-DSB_FLAGS_CXX=2 -c",
+            "sb_flags_asm.S": "-DSB_FLAGS_ASM -c",
+            "sb_flags_inner.c": "-DSB_FLAGS_OUTER=7 -O2 -DSB_FLAGS_INNER=5 -I../sb-src-1/inner/include -c"}
+    for f, w in want.items():
+        got = [l for l in lines if "/%s -o" % f in l]
+        if len(got) != 1 or w not in got[0]:
+            problems.append("%s was not built with its folders' flags, after the base's (%s)" % (f, w))
+    # The base's own files with the base's flags only: the same lines as a
+    # build without the flags, which the folder's files then stop.
+    base = base_lines(out)
+    if not base or any("SB_FLAGS" in l or "-O2" in l for l in base):
+        problems.append("a base file was built with a folder's flags")
+    # (Its first file, inner/'s, stops on its include; the runtime, built
+    # after the outside folders, never comes.)
+    rc, out0 = build(os.path.join(work, "without"), log, "--src", FLAGS, check=False)
+    if rc == 0 or not re.search(r"^\.\./sb-src-1/\S+: (fatal )?error: ", out0, re.M):
+        problems.append("without the flags the folder's file built")
+    if not base_lines(out0, "firmware/src/") or base_lines(out0, "firmware/src/") != base_lines(out, "firmware/src/"):
+        problems.append("the base's compile lines differ with the folders' flags")
+    # The same bytes from two other places on the host, one with the
+    # source mounted elsewhere (deterministic).
+    sums = [read(os.path.join(b1, "SHA256SUMS"))]
+    for i, (place, extra) in enumerate((("a/x", []), ("b/y/z", ["--src-mount", "/tmp/elsewhere/small-beeps-src-b"]))):
+        copy = os.path.join(work, "copies", place)
+        shutil.copytree(os.path.join(ROOT, FLAGS), copy)
+        bi = os.path.join(work, "copy-%d" % i)
+        build(bi, log, *(flags_opts(copy) + extra))
+        sums.append(read(os.path.join(bi, "SHA256SUMS")))
+    if len(set(sums)) != 1:
+        problems.append("the flags folder's builds from three places differ")
+    # What is refused.
+    refused = (["--src", FLAGS, "--cflags", "tests/seams/outside", "-DX"],    # not a --src folder
+               ["--cflags", "firmware/src", "-DX"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-I/usr/include"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-Iinner/../.."],
+               ["--src", FLAGS, "--cflags", FLAGS, "-fdebug-prefix-map=a=b"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-o x"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-Xclang -v"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-Wp,-MD,x"],
+               ["--src", FLAGS, "--cflags", FLAGS, "@file"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-isystem inner"],
+               ["--src", FLAGS, "--cflags", FLAGS])
+    for opts in refused:
+        rc, _ = build(os.path.join(work, "refused"), log, *opts, check=False)
+        if rc != 2:
+            problems.append("%s was not refused (exit %d)" % (" ".join(opts), rc))
+    print("flags: %d symbols from the folder; each file with its folders' flags after the base's, the base's"
+          " files with the base's only; without them it stops on the folder's files; three places, %s; %d refused"
+          % (sum(sym in syms for sym in FLAGS_SYMBOLS), "the same bytes" if len(set(sums)) == 1 else "DIFFERENT",
+             len(refused)))
+    return problems
+
+
 # --- engine ---------------------------------------------------------------
 
 ENGINE_FIELDS = ("marker", "inits", "init_ticks", "init_blocks", "blocks", "frames", "serves",
@@ -247,7 +360,7 @@ ENGINE_FIELDS = ("marker", "inits", "init_ticks", "init_blocks", "blocks", "fram
                  "sysex_len", "sysex_sum", "sysex_first", "sysex_last", "realtime", "notes",
                  "raw_started", "raw_done", "out_notes", "out_clocks", "out_refused",
                  "step", "boot_large", "boot_large_sum", "boot_small", "boot_small_sum", "put_result",
-                 "put2_result", "put_len", "put_sum")
+                 "put2_result", "put_len", "put_sum", "boot_patch", "boot_patch_sum", "stepped")
 RUNTIME_RESULT = 1301           # tests/seams/engine/sb_test_runtime.cc
 RUNTIME_SYMBOLS = ("memcpy", "memmove", "memset", "__cxa_pure_virtual", "_ZdlPv")
 CORE1_START_WORD = 0x01c7fff8   # source 126's vector word, core 1's start address (HW-9)
@@ -517,53 +630,228 @@ def case_store(a, work, log):
                 problems.append("%s: tools/store.py reads 0x%02x/%d as %s" % (
                     name, kind, ident, "none" if got is None else "%d bytes" % len(got[1])))
 
-    p1, p2, p3, p9, p5 = (pattern(1, 4096), pattern(2, 4096), pattern(3, 4096), pattern(9, 10),
-                          pattern(5, 5000))
+    p1, p9, p5 = pattern(1, 4096), pattern(9, 10), pattern(5, 5000)
     e, state["chip"], _ = run("1-write", 1)
     expect("1-write", e, st.Image(state["chip"]), p1, p9, step=1, boot_large=NONE32, put_result=0,
            put_len=4096, put_sum=place_sum(p1))
     e, state["chip"], _ = run("2-read", 0)
     expect("2-read", e, st.Image(state["chip"]), p1, p9, boot_large=4096, boot_large_sum=place_sum(p1),
            boot_small=10, boot_small_sum=place_sum(p9))
-    e, state["chip"], _ = run("3-rewrite", 2)
-    expect("3-rewrite", e, st.Image(state["chip"]), p2, p9, put_result=0, put_len=4096, put_sum=place_sum(p2))
-    # The cut: halfway through the next rewrite's page programs.
+    # Since BR-12 a rewrite needs room for the old payload and the new
+    # one: in today's region a 4 096-byte one is refused before anything
+    # is written, and the old one stays (case powercut rewrites it, on
+    # the wide region test build).
     before = state["chip"]
-    _, _, out = run("4-aim", 3, "--flash-log")
-    with open(os.path.join(out, "flash-ops.csv")) as f:
-        ops = [l.split(",") for l in f.read().splitlines()[1:]]
-    progs = [float(o[0]) for o in ops if o[2] == "02" and int(o[3], 16) >= st.BASE]
-    cut = progs[len(progs) // 2]
-    state["chip"] = before
-    e, state["chip"], _ = run("4-cut", 3, "--power-cut", "%.3f" % cut)
-    e, state["chip"], _ = run("5-after-cut", 0)
-    expect("5-after-cut", e, st.Image(state["chip"]), None, p9, boot_large=NONE32, boot_small=10,
-           boot_small_sum=place_sum(p9))
-    e, state["chip"], _ = run("6-rewrite", 2)
-    expect("6-rewrite", e, st.Image(state["chip"]), p2, p9, put_result=0, put_len=4096, put_sum=place_sum(p2))
-    e, state["chip"], _ = run("7-reset", 4)
-    e, state["chip"], _ = run("8-after-reset", 0)
-    expect("8-after-reset", e, st.Image(state["chip"]), None, None, boot_large=NONE32, boot_small=NONE32)
-    e, state["chip"], _ = run("9-largest", 5)
-    expect("9-largest", e, st.Image(state["chip"]), None, None, put_result=0, put2_result=STORE_ERR_FULL,
+    e, state["chip"], _ = run("3-rewrite-refused", 2)
+    expect("3-rewrite-refused", e, st.Image(state["chip"]), p1, p9, put_result=STORE_ERR_FULL, put_len=4096,
+           put_sum=place_sum(p1))
+    with_control = st.Store(before)
+    with_control.put_fw(CONTROL_KIND, 0, 1, bytes([2]))
+    if state["chip"] != with_control.chip():
+        problems.append("3-rewrite-refused: the refused rewrite wrote something")
+    e, state["chip"], _ = run("4-reset", 4)
+    e, state["chip"], _ = run("5-after-reset", 0)
+    expect("5-after-reset", e, st.Image(state["chip"]), None, None, boot_large=NONE32, boot_small=NONE32)
+    e, state["chip"], _ = run("6-largest", 5)
+    expect("6-largest", e, st.Image(state["chip"]), None, None, put_result=0, put2_result=STORE_ERR_FULL,
            put_len=5000, put_sum=place_sum(p5))
     got = st.Image(state["chip"]).get_fw(*HUGE)
     if not got or got[1] != p5:
-        problems.append("9-largest: tools/store.py doesn't read the 5 000 bytes back")
-    print("store: 4 096 bytes written, read at start-up, rewritten; cut at %.1f ms of %d page programs:"
-          " gone, never mixed, the small payload kept; rewritten; a reset voids both; 5 000 bytes alone,"
-          " %d refused as full; tools/store.py agrees" % (cut, len(progs), 5904))
+        problems.append("6-largest: tools/store.py doesn't read the 5 000 bytes back")
+    print("store: 4 096 bytes written, read at start-up; a rewrite refused as full, nothing written, the old"
+          " one kept; a reset voids both; 5 000 bytes alone, %d refused as full; tools/store.py agrees" % 5904)
+    return problems
+
+
+# --- powercut -------------------------------------------------------------
+
+POWERCUT_TAP_MS = 300          # the key tap that starts the save (tests/seams/scripts/powercut.txt)
+POWERCUT_AFTER_MS = 2000       # long enough for the slowest save to end
+POWERCUT_BOOT_MS = 60          # the next start: the test engine reads the store in its init
+POWERCUT_WORKERS = 4
+
+
+def powercut_points(ops):
+    """The cut times for a save's flash commands (rows of flash-ops.csv:
+    start, end): in every command, just after it starts, halfway and just
+    before it ends; between two commands; and once the save is done."""
+    points = []
+    for k, (t0, t1) in enumerate(ops):
+        points += [t0 + 0.001, (t0 + t1) / 2, t1 - 0.001]
+        nxt = ops[k + 1][0] if k + 1 < len(ops) else t1 + 2.0
+        if nxt - t1 > 0.002:
+            points.append((t1 + nxt) / 2)
+    return sorted(set(round(t, 3) for t in points if t > 0))
+
+
+def case_powercut(a, work, log):
+    """BR-12 (R-STORE-11): every save is atomic, cut at every point."""
+    import concurrent.futures
+    import store as st
+    problems = []
+    script = os.path.join(work, "powercut.txt")
+    with open(script, "w") as f:
+        f.write("# tools/seams_suite.py, case powercut: the tap that starts the test engine's save.\n"
+                "%d     key 12 tap 60\n" % POWERCUT_TAP_MS)
+    builds = {"today": os.path.join(work, "build"), "wide": os.path.join(work, "build-wide")}
+    opts = ["--platform", "--src", "tests/seams/engine", "--ld", "tests/seams/engine/engine.ld"]
+    build(builds["today"], log, *opts)
+    build(builds["wide"], log, *opts + ["--define", "SB_TEST_STORE_WIDE"])
+    rec = fw_suite().elf_symbols(os.path.join(builds["today"], "app.elf"))["sb_test_engine"]
+    n_rec = 4 * len(ENGINE_FIELDS)
+
+    def full_store(sectors):
+        s = st.Store(sectors=sectors)
+        for i in range(st.SLOTS):
+            s.put(st.PATCH, i, 2, pattern(20 + i, 112))
+        s.put(st.SELECTION, 0, 1, bytes([5, 0, 0, 0]))
+        s.put(st.SETTINGS, 0, 4, bytes(42))
+        return s
+
+    # The saves, each but "mid" from the base's full store beside the firmware
+    # kinds' payloads: (name, build, sectors, step, the image before).
+    wide = full_store(st.WIDE_SECTORS)
+    wide.put_fw(LARGE[0], LARGE[1], 1, pattern(2, 4096))
+    wide.put_fw(SMALL[0], SMALL[1], 1, pattern(9, 10))
+    wide.put_fw(CONTROL_KIND, 0, 1, bytes([0x83]))
+    saves = []
+    for name, step in (("small", 0x86), ("patch", 0x87)):
+        s = full_store(st.SECTORS)
+        s.put_fw(SMALL[0], SMALL[1], 1, pattern(9, 10))
+        s.put_fw(LARGE[0], LARGE[1], 1, pattern(1, 1500))
+        s.put_fw(CONTROL_KIND, 0, 1, bytes([step]))
+        fill = 0
+        # The head filled, so the save takes a new sector and compacts.
+        size = st.record_size(112) if step == 0x87 else st.record_size(st.TAG + 300)
+        while s.head_seq < st.SECTORS + 1 or st.SECTOR - s.append >= size:
+            room = st.SECTOR - s.append
+            if s.head_seq < st.SECTORS + 1 or room >= st.record_size(42) + size:
+                s.put(st.SETTINGS, 0, 4, bytes([fill & 0xFF]) * 42)
+                fill += 1
+            else:
+                s.put_fw(0x84, 0, 1, bytes(room - 24))
+        saves.append((name, "today", st.SECTORS, step, s))
+    saves.insert(0, ("large", "wide", st.WIDE_SECTORS, 0x83, wide))
+    # A large payload in today's region whose rewrite makes the ring copy
+    # the old write's parts forward while the new write is under way.
+    mid = st.Store()
+    mid.put_fw(SMALL[0], SMALL[1], 1, pattern(9, 10))
+    for _ in range(4):
+        mid.put_fw(LARGE[0], LARGE[1], 1, pattern(1, 3400))
+    mid.put_fw(CONTROL_KIND, 0, 1, bytes([0x84]))
+    saves.insert(1, ("mid", "today", st.SECTORS, 0x84, mid))
+    # What each payload is before the save and after it: (kind, id) to the
+    # record's (length, sum) fields; the base's patch as STORE_PATCH.
+    olds = {"large": pattern(2, 4096), "mid": pattern(1, 3400), "small": pattern(9, 10),
+            "patch": pattern(20 + 3, 112)}
+    news = {"large": pattern(3, 4096), "mid": pattern(4, 3400), "small": pattern(10, 300),
+            "patch": pattern(12, 112)}
+    fields = {"large": ("boot_large", "boot_large_sum"), "mid": ("boot_large", "boot_large_sum"),
+              "small": ("boot_small", "boot_small_sum"), "patch": ("boot_patch", "boot_patch_sum")}
+    # And the others, which each save leaves as they were.
+    p23, l1500 = pattern(20 + 3, 112), pattern(1, 1500)
+    unchanged = {"large": {"small": olds["small"], "patch": p23}, "mid": {"small": olds["small"], "patch": None},
+                 "small": {"large": l1500, "patch": p23}, "patch": {"large": l1500, "small": olds["small"]}}
+
+    def fw_run(name, image, flash, *opts):
+        out = os.path.join(work, name)
+        r = fwtest(image, out, log, "--flash", os.path.relpath(flash, ROOT), "--flash-out",
+                   "--ram", "0x%08x:%d@end" % (rec, n_rec), *opts)
+        if r["run"]["outcome"] not in ("completed", "power-cut") or r["run"].get("unmodelled_accesses"):
+            raise RuntimeError("%s: %s (%s)" % (name, r["run"]["outcome"], r["run"].get("detail")))
+        e = words(ram(out, rec, n_rec), ENGINE_FIELDS)
+        with open(os.path.join(out, "flash.bin"), "rb") as f:
+            chip = f.read()
+        # The image only as its SHA-256 (as the store suite keeps them).
+        os.remove(os.path.join(out, "flash.bin"))
+        with open(os.path.join(out, "flash.bin.sha256"), "w") as f:
+            f.write(hashlib.sha256(chip).hexdigest() + "\n")
+        return e, chip, out
+
+    summary = []
+    for name, which, sectors, step, s in saves:
+        image = os.path.join(builds[which], "app.bin")
+        pre = os.path.join(work, "%s-in.bin" % name)
+        with open(pre, "wb") as f:
+            f.write(s.chip())
+        # The save whole, its flash commands logged to aim the cuts.
+        e, chip, out = fw_run("%s-aim" % name, image, pre, "--script", os.path.relpath(script, ROOT),
+                              "--flash-log", "--ms", str(POWERCUT_AFTER_MS))
+        if e["put_result"] != 0 or not e["stepped"]:
+            problems.append("%s: the save itself failed (%d)" % (name, e["put_result"]))
+            continue
+        lo, hi = st.region_base(sectors), st.REGION_END
+        with open(os.path.join(out, "flash-ops.csv")) as f:
+            rows = [l.split(",") for l in f.read().splitlines()[1:]]
+        ops = [(float(r[0]), float(r[1])) for r in rows if lo <= int(r[3], 16) < hi]
+        erases = sum(1 for r in rows if lo <= int(r[3], 16) < hi and r[2] != "02")
+        if not erases:
+            problems.append("%s: the save took no new sector" % name)
+        points = powercut_points(ops)
+        if name == "mid":
+            # The old write's parts copied forward during the rewrite (its
+            # tag, sequence numbers from the save's): what this save is for.
+            tag = struct.pack("<I", st.Image(s.chip()).commit_of(*LARGE)[3])
+            copies = sum(1 for r in st.Image(chip).records if (r[3], r[4]) == LARGE and r[6][:st.TAG] == tag
+                         and r[2] >= s.next_seq)
+            if not copies:
+                problems.append("mid: the rewrite copied none of the old write's parts")
+
+        def one(i_t):
+            i, t = i_t
+            _, cut, _ = fw_run("%s-cut-%03d" % (name, i), image, pre, "--script", os.path.relpath(script, ROOT),
+                               "--power-cut", "%.3f" % t)
+            cut_in = os.path.join(work, "%s-cut-%03d-in.bin" % (name, i))
+            with open(cut_in, "wb") as f:
+                f.write(cut)
+            b, _, _ = fw_run("%s-next-%03d" % (name, i), image, cut_in, "--ms", str(POWERCUT_BOOT_MS))
+            os.remove(cut_in)
+            img = st.Image(cut, sectors)
+            return t, b, img
+
+        seen = []
+        with concurrent.futures.ThreadPoolExecutor(POWERCUT_WORKERS) as pool:
+            results = list(pool.map(one, enumerate(points)))
+        for t, b, img in results:
+            ln, sm = fields[name]
+            got = (b[ln], b[sm])
+            old, new = olds[name], news[name]
+            want = {(len(old), place_sum(old)): "old", (len(new), place_sum(new)): "new"}
+            if got not in want:
+                problems.append("%s: cut at %.3f ms, the next start finds %s" % (
+                    name, t, "none" if got[0] == NONE32 else "%d bytes, another sum" % got[0]))
+                continue
+            seen.append(want[got])
+            for k, o in unchanged[name].items():
+                if (b[fields[k][0]], b[fields[k][1]]) != ((len(o), place_sum(o)) if o is not None else (NONE32, 0)):
+                    problems.append("%s: cut at %.3f ms, %s changed" % (name, t, k))
+            # tools/store.py's reader finds the same.
+            if name == "patch":
+                m = img.get(st.PATCH, 3)
+            else:
+                m = img.get_fw(*(SMALL if name == "small" else LARGE))
+            if (m[1] if m else None) != (new if want[got] == "new" else old):
+                problems.append("%s: cut at %.3f ms, tools/store.py reads otherwise" % (name, t))
+        if seen != sorted(seen, key=lambda k: k == "new") or (seen and seen[-1] != "new"):
+            problems.append("%s: not the old payload until a moment and then the new" % name)
+        first_new = next((i for i, k in enumerate(seen) if k == "new"), len(seen))
+        summary.append("%s: %d commands (%d erases%s), %d cuts, old %d, new %d"
+                       % (name, len(ops), erases, ", %d old parts copied" % copies if name == "mid" else "",
+                          len(points), first_new, len(seen) - first_new))
+    print("powercut: %s; never neither, never a mix; tools/store.py agrees" % "; ".join(summary))
     return problems
 
 
 CASES = [
     ("ownbase", case_ownbase),
     ("outside", case_outside),
+    ("flags", case_flags),
     ("engine", case_engine),
     ("platform", case_platform),
     ("sysex", case_sysex),
     ("rawout", case_rawout),
     ("store", case_store),
+    ("powercut", case_powercut),
 ]
 
 

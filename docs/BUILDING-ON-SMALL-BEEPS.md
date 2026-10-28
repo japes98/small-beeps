@@ -16,8 +16,8 @@ Everything here is MIT-licensed, like the rest of small-beeps: keep its
 `LICENSE` and `NOTICE` with your copy. The seams this guide uses are
 described in more depth in docs/DESIGN-NOTES.md, "Seams for firmwares
 built on small-beeps", and their requirements are in docs/REQUIREMENTS.md
-(R-ENG-1, R-PLAT-1, R-CORE1-1, R-RT-1, R-MIDI-8, R-MIDIOUT-9, R-STORE-10,
-R-BUILD-3, R-BUILD-4).
+(R-ENG-1, R-PLAT-1, R-CORE-1, R-RT-1, R-MIDI-8, R-MIDIOUT-9, R-STORE-10, R-STORE-11,
+R-BUILD-3, R-BUILD-4, R-BUILD-5).
 
 ## 1. Set up
 
@@ -137,15 +137,23 @@ n = store_get(0x80, 0, buf, sizeof buf, &version);  /* -1: none */
 r = store_put(0x80, 0, 1, buf, len);              /* from your serve: it waits for the flash */
 ```
 
-A payload is read whole or not at all: if the power goes during a write,
-the old one is still there until the new write's first part is written,
-and then there is none until you write it again. Write from your serve,
-never from the block callback (a write takes the flash for some
-milliseconds). The store's region today is three sectors (12 KiB): with
-nothing else in it, it holds and rewrites one payload of up to 5 396
-bytes; `store_put` returns `STORE_ERR_FULL` past what fits, and what was
-there stays. `store_reset()` voids everything (a factory reset).
-docs/STORE-FORMAT.md has the bytes.
+A save is atomic: if the power goes at any moment during a `store_put`,
+the next start finds the whole old payload or the whole new one, never
+neither and never a mix (R-STORE-11). The store keeps the old payload
+until the new one is written and read back, so a rewrite needs room for
+both. Write from your serve, never from the block callback (a write
+takes the flash for some milliseconds).
+
+How much fits: the store's region today is three sectors (12 KiB). With
+nothing else in it, it holds and rewrites one payload of up to 3 920
+bytes; beside the base's own full store (its 16 user slots, the
+selection and the settings) about 1.6 KB. `store_put` returns
+`STORE_ERR_FULL` past what fits, before writing anything, and what was
+there stays. A 4 096-byte payload needs a larger region: 4 sectors if you
+store nothing else, 5 beside the base's full store; where it goes on a
+unit is not decided yet (docs/DESIGN-NOTES.md, clean-1028).
+`store_reset()` voids everything (a factory reset). docs/STORE-FORMAT.md
+has the bytes.
 
 ## 4. Your records in RAM
 
@@ -186,6 +194,36 @@ sh base/tools/build.sh build --out out --platform --src src --ld src/my.ld
 | `--ld SCRIPT` | your linker script (in `base/` or in a `--src` folder) |
 | `--define NAME` | `-DNAME` for every source (yours and the base's) |
 | `--leave-out FILE` | a base source left out (`firmware/src/...`), to replace it with your own |
+| `--cflags DIR FLAGS` | FLAGS for the C files under DIR (a `--src` folder or a folder inside one), after the firmware's flags; the base's own files never get them |
+| `--cxxflags DIR FLAGS` | the same for the C++ (`.cc`) files under DIR |
+| `--asflags DIR FLAGS` | the same for the assembly (`.S`) files under DIR |
+
+**Flags for your own folders.** Your code can have flags of its own, folder
+by folder, while the base's files keep the base's (R-BUILD-5):
+
+```sh
+sh base/tools/build.sh build --out out --platform --src src --ld src/my.ld \
+    --cflags src "-DMY_BOARD=2 -Wno-sign-compare" \
+    --cflags src/vendor/dsp "-O2 -w -Iinclude" \
+    --cxxflags src "-std=c++17"
+```
+
+- A file gets the flags of every folder it is under, in the order you
+  gave them, after the firmware's own (so `-O2` here replaces the
+  firmware's `-Os` for `src/vendor/dsp`, and its `-w` silences the
+  warnings the firmware's `-Werror` would stop on).
+- `--cflags` is for `.c` files only, `--cxxflags` for `.cc`, `--asflags`
+  for `.S` (which are run through the preprocessor, so `-D` works there).
+- A path in `-I`, `-isystem` or `-iquote` is from the folder the flags are
+  for, and is joined to it: `-Iinclude`, not `-I include`.
+- Taken: `-D`, `-U`, `-O`, `-W`, `-w`, `-f`, `-m`, `-std=`, `-I`,
+  `-isystem`, `-iquote`, `-g`, `-pedantic`, `-ansi`, as words of letters,
+  digits and `_ = + . , / : -`. Refused, so the build stays deterministic
+  and inside its container: absolute paths and `..`, `-fdebug-prefix-map`
+  and its kin, `-fprofile...`, `-fplugin...`, `-Wa,`, `-Wp,`, `-Wl,`,
+  and anything else (`-o`, `-c`, `-x`, `-include`, `-target`, `@file`, ...).
+- `--define NAME` stays the way to set something for every file, the
+  base's included.
 
 The outputs, in `out/`:
 

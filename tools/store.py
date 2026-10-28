@@ -27,11 +27,12 @@ import sys
 import zlib
 
 CHIP = 0x100000
-BASE = 0xFC000
-SIZE = 0x3000
+REGION_END = 0xFF000           # the region ends where the per-unit last sector begins (HW-80)
 USER_REGION = (0xEA000, 0xFC000)   # the stock firmware's saved patches (HW-80): never touched
 SECTOR = 4096
-SECTORS = SIZE // SECTOR
+SECTORS = 3                    # today's region: 0xFC000 to 0xFEFFF
+SIZE = SECTORS * SECTOR
+WIDE_SECTORS = 5               # the wide region test build's (SB_TEST_STORE_WIDE; BR-12)
 PAGE = 256
 BLOCK = 16
 HEADER = 12
@@ -55,6 +56,15 @@ PART_MAX = TAG + PART_DATA       # a part's payload: its record is 512 bytes
 FW_PARTS = 12
 FW_MAX = FW_PARTS * PART_DATA     # 5 904 bytes, more than the region can hold beside anything
 FW_KEYS = 32                      # parts the store keeps track of at once
+FW_PAYLOADS = 32                  # payloads the store keeps track of at once (since BR-12)
+
+
+def region_base(sectors=SECTORS):
+    """Where a region of this many sectors begins: it ends at REGION_END."""
+    return REGION_END - sectors * SECTOR
+
+
+BASE = region_base()
 
 
 def crc32(b):
@@ -117,22 +127,31 @@ def check_record(b, off, room):
 
 class Image:
     """What the firmware's start-up finds in a flash image (1 MiB, or the
-    store's 72 KiB alone)."""
+    store's region alone). sectors: the region's size in sectors, ending at
+    REGION_END (SECTORS, today's; WIDE_SECTORS for the wide region test
+    build)."""
 
-    def __init__(self, data):
+    def __init__(self, data, sectors=SECTORS):
         data = bytes(data)
-        self.region = data[BASE:BASE + SIZE] if len(data) == CHIP else data
-        assert len(self.region) == SIZE, "a 1 MiB chip or the store's 72 KiB"
-        self.valid, self.seq = [False] * SECTORS, [0] * SECTORS
+        self.sectors, self.base = sectors, region_base(sectors)
+        size = sectors * SECTOR
+        self.region = data[self.base:self.base + size] if len(data) == CHIP else data
+        assert len(self.region) == size, "a 1 MiB chip or the store's region alone"
+        self.valid, self.seq = [False] * sectors, [0] * sectors
         self.head, self.append, self.next_seq = None, 0, 1
         self.counts = {"crc_bad": 0, "skipped": 0, "unknown": 0, "voided": 0}
         self.keys = [None] * KEYS     # (seq, addr, kind, id, version, payload)
         # The firmware kinds' parts, in the order the firmware keeps them:
-        # [kind, id, part, parts, seq, addr, version, payload] or None.
+        # [kind, id, part, parts, seq, addr, version, payload] or None, the
+        # payload's first 4 bytes its write's tag. Since BR-12 only the
+        # parts of each payload's committed write are taken.
         self.fw = [None] * FW_KEYS
+        # Each payload's committed write: [kind, id, parts, tag] or None.
+        self.commits = [None] * FW_PAYLOADS
         self.records = []             # every valid record: (sector, offset, seq, kind, id, version, payload)
+        fw_records = []               # the firmware kinds' (pass 1), as store.c finds them again
         best = 0
-        for s in range(SECTORS):
+        for s in range(sectors):
             h = self.region[s * SECTOR:s * SECTOR + BLOCK]
             magic, seq, fmt = struct.unpack_from("<IIB", h)
             if magic == SECTOR_MAGIC and fmt == FORMAT and crc32(h[:12]) == struct.unpack_from("<I", h, 12)[0]:
@@ -140,38 +159,58 @@ class Image:
                 if self.head is None or seq > best:
                     best, self.head = seq, s
         self.head_seq = best
-        for s in range(SECTORS):
+        for s in range(sectors):
             if self.valid[s]:
-                self._scan(s)
+                self._scan(s, fw_records)
         reset = self.keys[SLOTS + 2]
+        rseq = reset[0] if reset else 0
         if reset:
             for k in range(SLOTS + 2):
-                if self.keys[k] and self.keys[k][0] < reset[0]:
+                if self.keys[k] and self.keys[k][0] < rseq:
                     self.keys[k] = None
                     self.counts["voided"] += 1
-            for i, f in enumerate(self.fw):
-                if f and f[4] < reset[0]:
-                    self.fw[i] = None
-                    self.counts["voided"] += 1
-        # A part that isn't of its payload's newest write (another tag than
-        # part 0's, or past its count) is no longer live.
-        for i, f in enumerate(self.fw):
-            if f and f[2]:
-                head = self.fw_entry(f[0], f[1], 0)
-                if not head or head[3] != f[3] or head[7][:TAG] != f[7][:TAG] or f[2] >= f[3]:
-                    self.fw[i] = None
-                    self.counts["stale"] = self.counts.get("stale", 0) + 1
+        # Pass 2 (BR-12): each payload's committed write, the highest tag
+        # of a valid last part (index parts - 1) newer than the reset.
+        for kind, ident, part, parts, seq, addr, version, payload in fw_records:
+            tag = struct.unpack_from("<I", payload)[0]
+            if part != parts - 1 or seq < rseq:
+                continue
+            c = self.commit_of(kind, ident, alloc=True)
+            if c is None:
+                self.counts["unknown"] += 1
+            elif c[2] == 0 or tag > c[3]:
+                c[2:] = [parts, tag]
+        # Pass 3: the committed writes' parts; any other is not live.
+        for kind, ident, part, parts, seq, addr, version, payload in fw_records:
+            tag = struct.unpack_from("<I", payload)[0]
+            c = self.commit_of(kind, ident)
+            if seq < rseq:
+                self.counts["voided"] += 1
+            elif c is None or c[3] != tag or c[2] != parts:
+                self.counts["stale"] = self.counts.get("stale", 0) + 1
+            elif not self._fw_take(kind, ident, part, parts, seq, addr, version, payload):
+                self.counts["unknown"] += 1
 
-    def fw_entry(self, kind, ident, part):
+    def commit_of(self, kind, ident, alloc=False):
+        for c in self.commits:
+            if c and c[0] == kind and c[1] == ident:
+                return c
+        if alloc and None in self.commits:
+            i = self.commits.index(None)
+            self.commits[i] = [kind, ident, 0, 0]
+            return self.commits[i]
+        return None
+
+    def fw_entry(self, kind, ident, part, tag=None):
         for f in self.fw:
-            if f and f[0] == kind and f[1] == ident and f[2] == part:
+            if f and f[0] == kind and f[1] == ident and f[2] == part and (tag is None or f[7][:TAG] == tag):
                 return f
         return None
 
     def _fw_take(self, kind, ident, part, parts, seq, addr, version, payload):
-        """Keeps the newest record of a firmware kind's part: 0 if there
+        """Keeps the newest record of a committed write's part: 0 if there
         was no place left for a new part."""
-        f = self.fw_entry(kind, ident, part)
+        f = self.fw_entry(kind, ident, part, payload[:TAG])
         if f:
             if seq > f[4]:
                 f[3:] = [parts, seq, addr, version, payload]
@@ -182,7 +221,7 @@ class Image:
                 return 1
         return 0
 
-    def _scan(self, s):
+    def _scan(self, s, fw_records):
         b = self.region[s * SECTOR:(s + 1) * SECTOR]
         off = end = BLOCK
         while off + BLOCK <= SECTOR:
@@ -201,13 +240,14 @@ class Image:
             self.records.append((s, off, seq, kind, ident, version, payload))
             k = key_of(kind, ident)
             if fw_kind(kind):
-                if not (part < parts <= FW_PARTS and length >= TAG) \
-                        or not self._fw_take(kind, ident, part, parts, seq, BASE + s * SECTOR + off, version, payload):
+                if part < parts <= FW_PARTS and length >= TAG:
+                    fw_records.append((kind, ident, part, parts, seq, self.base + s * SECTOR + off, version, payload))
+                else:
                     self.counts["unknown"] += 1
             elif k is None:
                 self.counts["unknown"] += 1
             elif self.keys[k] is None or seq > self.keys[k][0]:
-                self.keys[k] = (seq, BASE + s * SECTOR + off, kind, ident, version, payload)
+                self.keys[k] = (seq, self.base + s * SECTOR + off, kind, ident, version, payload)
             off += record_size(length)
             end = off
         if s == self.head:
@@ -221,17 +261,20 @@ class Image:
 
     def get_fw(self, kind, ident):
         """(version, payload) of a firmware kind's payload, whole, or None:
-        every part of its newest write, read together."""
-        head = self.fw_entry(kind, ident, 0)
-        if not head:
+        every part of its committed write, read together."""
+        c = self.commit_of(kind, ident)
+        if not c:
             return None
-        data = b""
-        for part in range(head[3]):
-            f = self.fw_entry(kind, ident, part)
-            if not f or f[3] != head[3] or f[7][:TAG] != head[7][:TAG]:
+        tag = struct.pack("<I", c[3])
+        data, version = b"", None
+        for part in range(c[2]):
+            f = self.fw_entry(kind, ident, part, tag)
+            if not f:
                 return None
             data += f[7][TAG:]
-        return head[6], data
+            if part == 0:
+                version = f[6]
+        return version, data
 
     def live(self):
         return {key_name(k): (e[4], e[5]) for k, e in enumerate(self.keys) if e}
@@ -240,13 +283,15 @@ class Image:
 class Store:
     """A flash image the firmware's way: Store().put(...), then .chip()."""
 
-    def __init__(self, chip=None):
+    def __init__(self, chip=None, sectors=SECTORS):
         self.data = bytearray(chip) if chip is not None else bytearray(b"\xff" * CHIP)
-        img = Image(self.data)
+        img = Image(self.data, sectors)
+        self.sectors, self.base = sectors, img.base
         self.head, self.head_seq, self.append, self.next_seq = img.head, img.head_seq, img.append, img.next_seq
         self.key = [(e[0], e[1]) if e else None for e in img.keys]
         self.fw = [list(f) if f else None for f in img.fw]   # f[4], f[5]: seq, addr
-        self.erases = [0] * SECTORS
+        self.commits = [list(c) if c else None for c in img.commits]
+        self.erases = [0] * sectors
         # Every command, as store.c sends them: ("erase", addr, None) or
         # ("program", addr, bytes), a page program for each page touched.
         self.commands = []
@@ -257,7 +302,7 @@ class Store:
     # The chip's own rules: an erase sets a sector to 0xFF, a program
     # clears bits only.
     def erase(self, s):
-        a = BASE + s * SECTOR
+        a = self.base + s * SECTOR
         self.data[a:a + SECTOR] = b"\xff" * SECTOR
         self.erases[s] += 1
         self.commands.append(("erase", a, None))
@@ -272,15 +317,15 @@ class Store:
             addr, b = addr + k, b[k:]
 
     def _sector_of(self, addr):
-        return (addr - BASE) // SECTOR
+        return (addr - self.base) // SECTOR
 
     def _open(self, s):
         self.erase(s)
-        self.program(BASE + s * SECTOR, sector_header(self.head_seq + 1))
+        self.program(self.base + s * SECTOR, sector_header(self.head_seq + 1))
         self.head, self.head_seq, self.append = s, self.head_seq + 1, BLOCK
 
     def _append(self, k, kind, ident, version, payload, part=0, parts=0):
-        addr = BASE + self.head * SECTOR + self.append
+        addr = self.base + self.head * SECTOR + self.append
         self.program(addr, record(kind, ident, version, payload, self.next_seq, part, parts))
         if k is None:
             self._fw_set(kind, ident, part, parts, self.next_seq, addr, version, payload)
@@ -289,12 +334,16 @@ class Store:
         self.next_seq += 1
         self.append += record_size(len(payload))
 
+    def _fw_place(self, kind, ident, part, tag):
+        for i, f in enumerate(self.fw):
+            if f and f[:3] == [kind, ident, part] and f[7][:TAG] == tag:
+                return i
+        return None
+
     def _fw_set(self, kind, ident, part, parts, seq, addr, version, payload):
-        for f in self.fw:
-            if f and f[:3] == [kind, ident, part]:
-                f[3:] = [parts, seq, addr, version, payload]
-                return
-        i = self.fw.index(None)
+        i = self._fw_place(kind, ident, part, payload[:TAG])
+        if i is None:
+            i = self.fw.index(None)
         self.fw[i] = [kind, ident, part, parts, seq, addr, version, payload]
 
     def _record_at(self, addr):
@@ -303,17 +352,16 @@ class Store:
         return kind, ident, version, bytes(b[addr + HEADER:addr + HEADER + length]), part, parts
 
     def _next(self):
-        return 0 if self.head is None else (self.head + 1) % SECTORS
+        return 0 if self.head is None else (self.head + 1) % self.sectors
 
     def _compact(self):
         m = self._next()
         for k in range(KEYS):
             if self.key[k] and self._sector_of(self.key[k][1]) == m:
-                img = Image(self.data)
-                e = img.keys[k]
-                if self.append + record_size(len(e[5])) > SECTOR:
+                kind, ident, version, payload, _, _ = self._record_at(self.key[k][1])
+                if self.append + record_size(len(payload)) > SECTOR:
                     raise RuntimeError("full")
-                self._append(k, e[2], e[3], e[4], e[5])
+                self._append(k, kind, ident, version, payload)
         for f in self.fw:
             if f and self._sector_of(f[5]) == m:
                 kind, ident, version, payload, part, parts = self._record_at(f[5])
@@ -335,44 +383,72 @@ class Store:
             if self.append + size > SECTOR:
                 raise RuntimeError("full")
 
+    def live_size(self):
+        """The bytes the live records take (store.c's live_size)."""
+        addrs = [e[1] for e in self.key if e] + [f[5] for f in self.fw if f]
+        return sum(record_size(len(self._record_at(a)[3])) for a in addrs)
+
     def put(self, kind, ident, version, payload):
         k = key_of(kind, ident)
         self._room(record_size(len(payload)))
         self._append(k, kind, ident, version, payload)
 
     def put_fw(self, kind, ident, version, data):
-        """A firmware kind's payload, in parts, as store.c writes it: each
-        part's room made and the part appended, in order; then the parts
-        past the new count are no longer live."""
+        """A firmware kind's payload, as store.c writes it since BR-12:
+        refused at once if a place is missing or it can't fit beside
+        everything live; else its parts in order, each's room made and the
+        part appended, the last (its commit) only once every other reads
+        back as written; then the old write's parts are no longer live. A
+        write refused part way leaves the old payload (its new parts are
+        dropped)."""
         assert fw_kind(kind) and len(data) <= FW_MAX
         n = max(1, (len(data) + PART_DATA - 1) // PART_DATA)
-        tag = None
-        for part in range(n):
-            chunk = data[part * PART_DATA:(part + 1) * PART_DATA]
-            if sum(1 for f in self.fw if f is None) == 0 and not any(
-                    f and f[:3] == [kind, ident, part] for f in self.fw):
-                raise RuntimeError("full")
-            if tag is None:
-                tag = self.next_seq
-            self._room(record_size(TAG + len(chunk)))
-            self._append(None, kind, ident, version, struct.pack("<I", tag) + chunk, part, n)
-        for i, f in enumerate(self.fw):
-            if f and f[0] == kind and f[1] == ident and f[2] >= n:
-                self.fw[i] = None
+        chunks = [data[p * PART_DATA:(p + 1) * PART_DATA] for p in range(n)]
+        if self._commit(kind, ident) is None and None not in self.commits:
+            raise RuntimeError("full")
+        if sum(1 for f in self.fw if f is None) < n:
+            raise RuntimeError("full")
+        if self.live_size() + sum(record_size(TAG + len(c)) for c in chunks) \
+                > (self.sectors - 1) * (SECTOR - BLOCK):
+            raise RuntimeError("full")
+        tag = struct.pack("<I", self.next_seq)
+        try:
+            for part in range(n):
+                if part == n - 1:
+                    for p in range(n - 1):
+                        f = self.fw[self._fw_place(kind, ident, p, tag)]
+                        assert self._record_at(f[5])[3] == tag + chunks[p]
+                self._room(record_size(TAG + len(chunks[part])))
+                self._append(None, kind, ident, version, tag + chunks[part], part, n)
+        except RuntimeError:
+            self.fw = [None if f and f[0] == kind and f[1] == ident and f[7][:TAG] == tag else f for f in self.fw]
+            raise
+        self.fw = [None if f and f[0] == kind and f[1] == ident and f[7][:TAG] != tag else f for f in self.fw]
+        c = self._commit(kind, ident)
+        if c is None:
+            c = self.commits[self.commits.index(None)] = [kind, ident, 0, 0]
+        c[2:] = [n, struct.unpack("<I", tag)[0]]
+
+    def _commit(self, kind, ident):
+        for c in self.commits:
+            if c and c[0] == kind and c[1] == ident:
+                return c
+        return None
 
     def reset(self):
         self.put(RESET, 0, 0, b"")
         self.key = [None] * (SLOTS + 2) + [self.key[SLOTS + 2]]
         self.fw = [None] * FW_KEYS
+        self.commits = [None] * FW_PAYLOADS
 
     def raw_sector(self, s, seq):
         """Erases sector s and writes its header with seq, whatever the ring."""
         self.erase(s)
-        self.program(BASE + s * SECTOR, sector_header(seq))
+        self.program(self.base + s * SECTOR, sector_header(seq))
 
     def raw_record(self, s, off, kind, ident, version, payload, seq):
         """A record at sector s, offset off, whatever the ring."""
-        self.program(BASE + s * SECTOR + off, record(kind, ident, version, payload, seq))
+        self.program(self.base + s * SECTOR + off, record(kind, ident, version, payload, seq))
 
 
 def apply(chip, commands):
@@ -385,6 +461,28 @@ def apply(chip, commands):
             for j, x in enumerate(b):
                 d[addr + j] &= x
     return bytes(d)
+
+
+def cut_states(chip, commands, step=1):
+    """Every state a power cut can leave while these commands run (BR-12),
+    as fwtest's --power-cut leaves them (docs/HARNESS.md, "The flash
+    chip"): (i, done, image) for the first i commands whole and then
+    `done` bytes of command i (an erase's first bytes erased, a program's
+    first bytes programmed), every `step` bytes; and at the end the
+    image after all of them."""
+    d = bytearray(chip)
+    for i, (kind, addr, b) in enumerate(commands):
+        n = SECTOR if kind == "erase" else len(b)
+        for done in range(0, n, step):
+            e = bytearray(d)
+            if kind == "erase":
+                e[addr:addr + done] = b"\xff" * done
+            else:
+                for j in range(done):
+                    e[addr + j] &= b[j]
+            yield i, done, bytes(e)
+        d = bytearray(apply(d, [(kind, addr, b)]))
+    yield len(commands), 0, bytes(d)
 
 
 def with_cut(chip, after, nbytes=0):
