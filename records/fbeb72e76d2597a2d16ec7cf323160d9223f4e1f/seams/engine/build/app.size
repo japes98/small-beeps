@@ -1,0 +1,7 @@
+code 53796
+data 88
+bss 161576
+image 53884
+stack 4096
+irq_stack 2048
+ram_code 53676

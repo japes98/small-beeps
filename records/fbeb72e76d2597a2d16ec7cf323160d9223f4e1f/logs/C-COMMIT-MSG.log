@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 4aa8a472b1d045e1fe96a9c85fd480fe0115910d..fbeb72e76d2597a2d16ec7cf323160d9223f4e1f
+OK     26e9f7c7afd7 firmware: the C++ runtime and mem* are the platform's (BR-4)
+EXEMPT 0c12216c58a6 (merge) tools: merge seams/core1 into seams/runtime
+EXEMPT fbeb72e76d25 (merge) Merge pull request #164 from japes98/seams/runtime
+3 commit(s) checked: PASS
+
+exit status 0

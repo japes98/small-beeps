@@ -1,0 +1,33 @@
+{
+  "fwtest": {
+    "version": "0.8.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 53108,
+    "sha256": "203f527fcd7cdf251fdd838e3b9b1af94beecb4560625766430601c250c66161"
+  },
+  "script_sha256": "13339bb9abba4126f81348cfdeaae762eda348c3031900485384ad222c5ccaf8",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "6200.714",
+    "instructions": {
+      "core0": 38772596,
+      "core1": 20374940
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 1093932,
+        "sha256": "fa1ea2e8bc8e11a462a11e514a8461caece7692d2a5aedf24afcd844d5c93107"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
