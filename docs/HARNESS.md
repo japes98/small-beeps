@@ -644,6 +644,18 @@ in the results. CI runs the harness's own suite twice in fresh containers
 and compares every output byte (C-HARNESS-DET). If two runs of yours ever
 differ, that is a bug in fwtest: report it.
 
+The image is reproducible too: the same source gives the same image, its
+files owned by root and dated `SOURCE_DATE_EPOCH` (`harness/Dockerfile`),
+its config and history dated the same. CI builds it twice from scratch, the
+second time later and from a context whose file times and owners differ,
+and compares the two image IDs (C-HARNESS-IMAGE-REPRO, `harness/ci.sh
+repro`). Before this (session spec-1027), the published images carried
+each build's own times: #142's merge published a second 0.7.0 image
+(`26102ae9…`) beside the pinned `d7804526…`, with the same files, owners
+and modes and other times only, so neither was wrong and neither was
+re-pinned. A published image's registry digest also depends on how the
+pushing Docker compresses the layers; the image ID does not.
+
 ## Versions
 
 `fwtest version` prints fwtest's version and the emulator build it carries;

@@ -9,6 +9,11 @@
 #   harness/ci.sh image              build the runtime image (and print the
 #                                    fwtest binary's SHA-256)
 #   harness/ci.sh test               build the test stage: cargo test
+#   harness/ci.sh repro              build the runtime image twice from
+#                                    scratch, the second time at another
+#                                    time and from a context whose file
+#                                    times and owners differ: the same
+#                                    image ID, or a failure
 #   harness/ci.sh suite OUT MOUNT    run tests/harness.suite in a fresh
 #                                    container, harness/tests mounted
 #                                    read-only at MOUNT; outputs in OUT
@@ -39,17 +44,50 @@ context_files() {
 }
 
 # A tar of exactly the tracked context files (its owners and times don't
-# matter: the build's outputs don't depend on them).
-context() {
+# matter: the build's outputs don't depend on them, and the Dockerfile sets
+# the image's own files' owners and times).
+tracked_context() {
     cd "$ROOT"
     context_files | LC_ALL=C sort > "$tmp/files"
     tar --format=ustar -c -f - -T "$tmp/files" 2>/dev/null \
         || tar -c -f - $(cat "$tmp/files")
 }
+context() { tracked_context; }
+
+# The image's one time, the Dockerfile's SOURCE_DATE_EPOCH. Passed as a build
+# argument, BuildKit gives it to the image's config and history, and the
+# Dockerfile's files stage gives it to every file it adds, so neither the
+# build's time nor the checkout's file times reach the image. No provenance
+# attestation: it records the build's own times. (Before this, two builds of
+# the same source gave the same files under other times, so another digest:
+# session spec-1027.)
+epoch() {
+    sed -n 's/^.*SOURCE_DATE_EPOCH=\([0-9][0-9]*\).*$/\1/p' "$ROOT/harness/Dockerfile" | head -n 1
+}
 
 build() {
-    target=$1 t=$2
-    context | docker build --platform "$PLATFORM" --target "$target" -t "$t" -f harness/Dockerfile -
+    build_target=$1 build_tag=$2
+    shift 2
+    e=$(epoch)
+    [ -n "$e" ] || { echo "no SOURCE_DATE_EPOCH in harness/Dockerfile" >&2; exit 1; }
+    context | docker build --platform "$PLATFORM" --target "$build_target" --provenance=false \
+        --build-arg SOURCE_DATE_EPOCH="$e" -t "$build_tag" "$@" -f harness/Dockerfile -
+}
+
+# The context again, as the file $tmp/shifted.tar: every file an hour newer
+# and owned by another user.
+shifted_context() {
+    tracked_context > "$tmp/context.tar"
+    "$(sh "$ROOT/tools/find-python.sh")" -I -c '
+import sys, tarfile
+src = tarfile.open(sys.argv[1], mode="r:")
+dst = tarfile.open(sys.argv[2], mode="w", format=tarfile.USTAR_FORMAT)
+for m in src:
+    data = src.extractfile(m) if m.isfile() else None
+    m.mtime += 3600
+    m.uid, m.gid, m.uname, m.gname = 4321, 4321, "", ""
+    dst.addfile(m, data)
+dst.close()' "$tmp/context.tar" "$tmp/shifted.tar"
 }
 
 tmp=$(mktemp -d)
@@ -66,6 +104,23 @@ case "${1:-}" in
         docker run --rm --platform "$PLATFORM" --network none "$t" version ;;
     test)
         build test "$(tag)-test" ;;
+    repro)
+        t=$(tag)
+        build runtime "$t-repro-a" --no-cache
+        a=$(docker image inspect --format '{{.Id}}' "$t-repro-a")
+        sleep 2
+        shifted_context
+        context() { cat "$tmp/shifted.tar"; }
+        build runtime "$t-repro-b" --no-cache
+        b=$(docker image inspect --format '{{.Id}}' "$t-repro-b")
+        docker image rm "$t-repro-a" "$t-repro-b" >/dev/null 2>&1 || true
+        echo "image A $a"
+        echo "image B $b"
+        if [ "$a" != "$b" ]; then
+            echo "repro: FAIL, the same source gave two images" >&2
+            exit 1
+        fi
+        echo "repro: PASS (the same image ID from both builds)" ;;
     suite)
         out=$2 mount=$3
         t=$(tag)
@@ -89,5 +144,5 @@ case "${1:-}" in
             exit 1
         fi
         echo "scope: PASS (harness/src uses none of them)" ;;
-    *) sed -n '5,18p' "$0" >&2; exit 2 ;;
+    *) sed -n '5,23p' "$0" >&2; exit 2 ;;
 esac

@@ -178,6 +178,8 @@ CHECKS = [
      "reqs": ["R-HARN-8"], "needs": "harness", "cmd": ["sh", "harness/tests/images/build.sh", "--check"]},
     {"id": "C-HARNESS-IMAGE", "title": "fwtest container (pinned bases, offline build)",
      "reqs": ["R-HARN-8"], "needs": "harness", "cmd": ["sh", "harness/ci.sh", "image"]},
+    {"id": "C-HARNESS-IMAGE-REPRO", "title": "The fwtest container rebuilds to the same image ID (from scratch, later, from a context with other file times and owners)",
+     "reqs": ["R-HARN-8"], "needs": "harness", "cmd": ["sh", "harness/ci.sh", "repro"]},
     {"id": "C-HARNESS-TEST", "title": "The harness's own tests (cargo test in the container)",
      "reqs": ["R-HARN-1", "R-HARN-2", "R-HARN-3", "R-HARN-4", "R-HARN-5", "R-HARN-6", "R-HARN-7"],
      "needs": "harness", "cmd": ["sh", "harness/ci.sh", "test"]},
