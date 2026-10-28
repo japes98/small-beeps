@@ -7,7 +7,7 @@ c243be1f7b46c2225eb1c9dcf7e8472767ae1b835cf08bcc61d7d6050a39fab9  crates/fm1-cor
 8ff587b33d2d6403f96b2145ebe4be471b26704e5ba1d80af368e1a1ea7b6808  crates/fm1-core/src/jit_a64.rs
 f03f1546903a939ef8e0d774cb3c53126790411cd30a5ff01047726bba49eb66  crates/fm1-core/src/jit_wasm.rs
 dbe0d0a9daed044e060b620eb52924dfbba43a131d439907714bb2018e47be2e  crates/fm1-core/src/jit_x64.rs
-471db6019ae20fc19b2965b36db7c0042155374f57ad82970b5e3a8d4cb71a25  crates/fm1-core/src/lib.rs
+f6eb7f986362c9745db340276ef3c4e34d5a8f3706760a5a0ab532bebcdf5ee2  crates/fm1-core/src/lib.rs
 3889ecda35f93e62021b4e5330a39aa00e8648c43e3e4455c55bfbde1a631a73  crates/fm1-isa/Cargo.toml
 9865c0644a99dcdb01801a5e614929460ad2a54098e86712c355a8c72bdf8f0c  crates/fm1-isa/src/fpu.rs
 42f5a32abc5223916387e31a90402a21b23d4a02ff288321251f499bbf5b2a3e  crates/fm1-isa/src/generated_isa.rs
@@ -38,3 +38,4 @@ cf71696b55979a7dffde6b54892ac0d5be4b58b4cc457e08e05439c767bf78be  patches/0010-f
 be6eae45c5cbe5c80988df54896386d6a6d32bb615b996079fdf257ebe8fdde5  patches/0012-usb-port-answers.patch
 ea12d063c37a25c8160fcbd62748f4cb2cb3a30e0e8836ed0ff121e67badfa8d  patches/0013-store-of-the-base-keeps-its-old-value.patch
 9f1eedd8c7dd3620615f1e25444dee927456b5033a88a47ab773ea333b5cb7bf  patches/0014-toolchain-audit-compiler-and-float-forms.patch
+2a33e53bc26d2e856366797c068ef570c3837fbfadea2b256565f2b075527461  patches/0015-toolchain-audit-registers-halves-and-fields.patch

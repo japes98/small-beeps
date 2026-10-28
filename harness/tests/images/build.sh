@@ -26,7 +26,7 @@ ASM_IMAGES="blockmv pairhead rotr pushpop ramcode pairwaw selfstore"
 # assembly with its own _start, linked alone
 RAW_IMAGES="sr7"
 # assembly linked after start.S, assembled with the firmware's CPU flags (its float forms)
-ASM_FW_IMAGES="isaasm"
+ASM_FW_IMAGES="isaasm isaregs"
 ALL="$IMAGES $RAM_IMAGES $FW_IMAGES $PKG_IMAGES $ASM_IMAGES $RAW_IMAGES $ASM_FW_IMAGES"
 
 inside() {

@@ -1811,7 +1811,7 @@ impl Cpu {
                 "sp" => cpu.sp,
                 "ssp" => cpu.get_ssp(),
                 "usp" => cpu.get_usp(),
-                "psr" | "icfg" | "reti" | "retx" | "rete" | "sspn" | "cnum" => cpu.sregs(n),
+                "psr" | "icfg" | "reti" | "retx" | "rete" | "sspn" | "sr4" | "cnum" => cpu.sregs(n),
                 _ => return None,
             })
         };
@@ -1836,7 +1836,7 @@ impl Cpu {
                     "sp" => self.sp = val,
                     "ssp" => self.set_ssp(val),
                     "usp" => self.set_usp(val),
-                    "psr" | "icfg" | "reti" | "retx" | "rete" | "sspn" => self.set_sreg(lhs, val),
+                    "psr" | "icfg" | "reti" | "retx" | "rete" | "sspn" | "sr4" => self.set_sreg(lhs, val),
                     _ => return Ok(None),
                 }
                 return Ok(Some(None));
@@ -2856,6 +2856,70 @@ impl Cpu {
                     Dsp::Zcmp => (self.regs[b] as i32).signum() as u32,
                 };
             }
+            42 => {
+                let (d, b2) = (((raw >> 28) & 0xf) as usize, (raw >> 16) & 0xff);
+                let half = |x: u32, high: bool| if high { x >> 16 } else { x & 0xffff };
+                let put = |old: u32, v: u32, high: bool| if high { (old & 0xffff) | (v & 0xffff) << 16 } else { (old & 0xffff_0000) | (v & 0xffff) };
+                match aud_raw(raw).unwrap() {
+                    Aud::HalfMove => {
+                        let v = half(self.regs[((raw >> 24) & 0xf) as usize], b2 & 0x40 != 0);
+                        self.regs[d] = put(self.regs[d], v, b2 & 0x80 != 0);
+                    }
+                    Aud::Sat8Half => {
+                        let x = half(self.regs[((raw >> 24) & 0xf) as usize], b2 & 0x40 != 0) as u16 as i16 as i32;
+                        let v = if b2 & 1 != 0 { x.clamp(-128, 127) } else { x.clamp(0, 255) } as u32;
+                        self.regs[d] = put(self.regs[d], v, b2 & 0x80 != 0);
+                    }
+                    Aud::ExtrReg | Aud::InsertReg => {
+                        let src = self.regs[((raw >> 20) & 0xf) as usize];
+                        let f = self.regs[((raw >> 24) & 0xf) as usize];
+                        let (p, l) = ((f >> 8) & 31, f & 31);
+                        let mask = if l == 0 { 0xffff_ffffu32 } else { (1u32 << l).wrapping_sub(1) };
+                        self.regs[d] = match aud_raw(raw).unwrap() {
+                            Aud::InsertReg => (self.regs[d] & !(mask << p)) | ((src & mask) << p),
+                            _ if b2 & 1 != 0 && l != 0 => (((src >> p) << (32 - l)) as i32 >> (32 - l)) as u32,
+                            _ => (src >> p) & mask,
+                        };
+                    }
+                    Aud::MemQasl => {
+                        let addr = self.regs[d].wrapping_add(sext6x4(raw >> 18) as u32);
+                        let n = if raw & 0xff == 0x6e {
+                            self.regs[((raw >> 24) & 0xf) as usize] & 31
+                        } else {
+                            match ((raw >> 24) & 0xf) as u32 + 16 * (raw & 1) as u32 { 0 => 32, n => n }
+                        };
+                        let cur = bus.read32(addr);
+                        bus.write32(addr, qasl(cur, n));
+                    }
+                    Aud::HighHalfStore => {
+                        let base = self.regs[((raw >> 20) & 0xf) as usize];
+                        let idx = self.regs[((raw >> 24) & 0xf) as usize] << ((b2 >> 3) & 1);
+                        bus.write16(base.wrapping_add(idx), (self.regs[d] >> 16) as u16);
+                    }
+                    Aud::SregPush => {
+                        let mask = (raw >> 16) as u16;
+                        if mask & 1 != 0 {
+                            self.nest_ok = true;
+                        }
+                        for n in (0..16).rev().filter(|n| (mask >> n) & 1 != 0) {
+                            let val = sreg_get_named(self, SREG_BY_NUMBER[n].unwrap());
+                            self.sp = self.sp.wrapping_sub(4);
+                            bus.write32(self.sp, val);
+                        }
+                    }
+                    Aud::SregPop => {
+                        let mask = (raw >> 16) as u16;
+                        if mask & 1 != 0 {
+                            self.nest_ok = false;
+                        }
+                        for n in (0..16).filter(|n| (mask >> n) & 1 != 0) {
+                            let val = bus.read32(self.sp);
+                            self.sp = self.sp.wrapping_add(4);
+                            self.set_sreg_named(SREG_BY_NUMBER[n].unwrap(), val);
+                        }
+                    }
+                }
+            }
             39 => {
                 // `39 e4|f4 AO DB`: rD = rA +|- rB (ssat), subtract with bit 19
                 let (a, b) = (self.regs[((raw >> 20) & 0xf) as usize] as i32, self.regs[((raw >> 24) & 0xf) as usize] as i32);
@@ -3085,6 +3149,8 @@ fn decode_any(win: u64, pc: u32) -> Result<fm1_isa::Instruction, fm1_isa::Decode
         Err(_) if matches!(win & 0xffff, 0xe1cc | 0xf1cc) && (win >> 16) & 0xf == 0 => {
             raw(if win & 0xffff == 0xf1cc { &ROTR_PAIR_CRAW } else { &ROTR_CRAW })
         }
+        // the toolchain audit's raw forms (route 42; aud_raw): no table class
+        Err(_) if aud_raw(win).is_some() => raw(if (win >> 8) & 0xff & 0x10 != 0 && win & 0xff != 0x58 && win & 0xff != 0x50 { &AUD_PAIR_CRAW } else { &AUD_CRAW }),
         Err(e) => Err(e),
     }
 }
@@ -3260,7 +3326,12 @@ fn sreg_move_raw(win: u64) -> Option<&'static fm1_isa::IsaEntry> {
     // (`64 f0`: a dual-issue pair's head, objdump's `r2 = rets  #`: CTL 1.0, 386DX, MC-1)
     let pair = match win & 0xffff { 0xe064 => false, 0xf064 => true, _ => return None };
     let write = match (win >> 16) & 0xff { 0x00 => false, 0x80 => true, _ => return None };
-    let i = match (win >> 24) & 0xf { 0 => 0, 1 => 1, 3 => 2, 5 => 3, 6 if !write => 4, 0xb => 5, 0xc => 6, 0xd => 7, 0xe => 8, _ => return None };
+    // (2 retx, 4 sr4, 8 sspn: the vendor decoder's table, session spec-isa-audit; 7 uspn, 9 icfgn,
+    // a icfgs and f pc are registers fwtest does not model)
+    let i = match (win >> 24) & 0xf {
+        0 => 0, 1 => 1, 3 => 2, 5 => 3, 6 if !write => 4, 0xb => 5, 0xc => 6, 0xd => 7, 0xe => 8,
+        2 => 9, 4 => 10, 8 => 11, _ => return None,
+    };
     Some(match (write, pair) {
         (false, false) => &SREG_READ_CRAW[i],
         (true, false) => &SREG_WRITE_CRAW[i],
@@ -3278,16 +3349,16 @@ macro_rules! sreg_entries {
         }),*]
     };
 }
-static SREG_READ_CRAW: [fm1_isa::IsaEntry; 9] = sreg_entries!(
-    "R = reti", "R = rete", "R = rets", "R = psr", "R = cnum", "R = icfg", "R = usp", "R = ssp", "R = sp");
-static SREG_WRITE_CRAW: [fm1_isa::IsaEntry; 9] = sreg_entries!(
-    "reti = R", "rete = R", "rets = R", "psr = R", "cnum = R", "icfg = R", "usp = R", "ssp = R", "sp = R");
-static SREG_READ_PAIR_CRAW: [fm1_isa::IsaEntry; 9] = sreg_entries!(
+static SREG_READ_CRAW: [fm1_isa::IsaEntry; 12] = sreg_entries!(
+    "R = reti", "R = rete", "R = rets", "R = psr", "R = cnum", "R = icfg", "R = usp", "R = ssp", "R = sp", "R = retx", "R = sr4", "R = sspn");
+static SREG_WRITE_CRAW: [fm1_isa::IsaEntry; 12] = sreg_entries!(
+    "reti = R", "rete = R", "rets = R", "psr = R", "cnum = R", "icfg = R", "usp = R", "ssp = R", "sp = R", "retx = R", "sr4 = R", "sspn = R");
+static SREG_READ_PAIR_CRAW: [fm1_isa::IsaEntry; 12] = sreg_entries!(
     "R = reti  #", "R = rete  #", "R = rets  #", "R = psr  #", "R = cnum  #", "R = icfg  #", "R = usp  #", "R = ssp  #",
-    "R = sp  #");
-static SREG_WRITE_PAIR_CRAW: [fm1_isa::IsaEntry; 9] = sreg_entries!(
+    "R = sp  #", "R = retx  #", "R = sr4  #", "R = sspn  #");
+static SREG_WRITE_PAIR_CRAW: [fm1_isa::IsaEntry; 12] = sreg_entries!(
     "reti = R  #", "rete = R  #", "rets = R  #", "psr = R  #", "cnum = R  #", "icfg = R  #", "usp = R  #", "ssp = R  #",
-    "sp = R  #");
+    "sp = R  #", "retx = R  #", "sr4 = R  #", "sspn = R  #");
 /// `60 ff` / `61 ff`: `if ((rN & #h) ==/!= 0) goto #i` (decode_bittest, route 0). The table's
 /// class knew only `61 ff` with a forward offset: Kawa's `60 ff 01 00 ea 33` halted.
 static BIT_TEST_EQ_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
@@ -3359,6 +3430,69 @@ static RETS_PUSH_MASK_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
 static PC_POP_MASK_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
     name: "pc_mask_mov_sp_craw", syntax: "{pc, R*4} = [sp++]", len: 4, count: 0, mask: 0, match_: 0,
     group: "stack", alt: &[], samples: &[], slots: &[],
+};
+/// The toolchain audit's raw forms (session spec-isa-audit; route 42): the vendor decoder table's
+/// masks, fields from the vendor assembler. d = bits(28,31) unless said.
+#[derive(Clone, Copy, Debug)]
+enum Aud {
+    /// `68 e0 X0 DS`: rD.l|h = rS.l|h, X bit 2 the source's high half, bit 3 the destination's;
+    /// the other half of rD stays
+    HalfMove,
+    /// `74 e0 XY DS`: rD.l|h = sat8(rS.l|h) (s|u), X as HalfMove, Y 1 signed: the half, as a
+    /// signed number, clamped to -128..127 (s) or 0..255 (u), as sat16 clamps a word
+    Sat8Half,
+    /// `9c e1 AY DP`: rD = uextra / sextra (Y 1) (rA, p:rP[12:8], l:rP[4:0]), the field as the
+    /// immediate forms take it
+    ExtrReg,
+    /// `98 e1 A0 DP`: rD <= insert(rA, p:rP[12:8], l:rP[4:0])
+    InsertReg,
+    /// `6e e8` op 1, `[rB+#i] <<<= rS`, and `6c|6d e8` op 1, `[rB+#i] <<<= #n` (`6c` n 0 is 32,
+    /// `6d` adds 16): the saturating shift `<<<` of `__builtin_pi32v2_qasl`, in the 64 e8 layout
+    MemQasl,
+    /// `d8 ed BX SI` (X & 7 = 3): h[rB+rI] = rS.h, X bit 3 the index scaled by 2 (`<<1`)
+    HighHalfStore,
+    /// `58 e9 MASK`: [--sp] = {special registers}, `50 e9 MASK`: {..} = [sp++]; mask bit n the
+    /// register numbered n (0 reti, 1 rete, 2 retx, 3 rets, 4 sr4, 5 psr, 8 sspn, b icfg, c usp,
+    /// d ssp, e sp; the others are not modelled, and those lists are not decoded), pushed in the
+    /// printed order, the highest number first, as the 2-byte forms are
+    SregPush,
+    SregPop,
+}
+/// The special registers by their number in the push / pop masks (None: not modelled).
+const SREG_BY_NUMBER: [Option<&str>; 16] = [
+    Some("reti"), Some("rete"), Some("retx"), Some("rets"), Some("sr4"), Some("psr"), None, None,
+    Some("sspn"), None, None, Some("icfg"), Some("usp"), Some("ssp"), Some("sp"), None,
+];
+fn aud_raw(raw: u64) -> Option<Aud> {
+    let raw = raw & 0xffff_ffff;
+    let lo = raw & 0xffff;
+    let b2 = (raw >> 16) & 0xff;
+    match lo {
+        0xe068 | 0xf068 if b2 & 0x3f == 0 => Some(Aud::HalfMove),
+        0xe074 | 0xf074 if b2 & 0x3e == 0 => Some(Aud::Sat8Half),
+        0xe19c | 0xf19c if b2 & 0xe == 0 => Some(Aud::ExtrReg),
+        0xe198 | 0xf198 if b2 & 0xf == 0 => Some(Aud::InsertReg),
+        0xe86e if b2 & 3 == 1 => Some(Aud::MemQasl),
+        0xe86c | 0xe86d if b2 & 3 == 1 => Some(Aud::MemQasl),
+        0xedd8 if b2 & 7 == 3 => Some(Aud::HighHalfStore),
+        0xe958 | 0xe950 => {
+            let mask = raw >> 16;
+            if (0..16).all(|n| (mask >> n) & 1 == 0 || SREG_BY_NUMBER[n].is_some()) {
+                Some(if lo == 0xe958 { Aud::SregPush } else { Aud::SregPop })
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
+}
+static AUD_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+    name: "aud_craw", syntax: "audit (raw)", len: 4, count: 0, mask: 0, match_: 0,
+    group: "alu", alt: &[], samples: &[], slots: &[],
+};
+static AUD_PAIR_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+    name: "aud_craw", syntax: "audit (raw)  #", len: 4, count: 0, mask: 0, match_: 0,
+    group: "alu", alt: &[], samples: &[], slots: &[],
 };
 static FLAG_BRANCH_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
     name: "flag_branch_craw", syntax: "if<cond> goto #i", len: 4, count: 0, mask: 0, match_: 0,
@@ -4735,6 +4869,83 @@ mod tests {
     }
 
     #[test]
+    fn half_moves_and_sat8() {
+        // `68 e0 40 13` r1.l = r3.h, `68 e0 80 24` r2.h = r4.l, `74 e0 01 35` r3.l = sat8(r5.l) (s),
+        // `74 e0 c0 46` r4.h = sat8(r6.h) (u), `68 f0 00 57` r5.l = r7.l # (a pair's head)
+        let code = [0x68, 0xe0, 0x40, 0x13, 0x68, 0xe0, 0x80, 0x24, 0x74, 0xe0, 0x01, 0x35, 0x74, 0xe0, 0xc0, 0x46];
+        let (cpu, _) = run_words(&code, 4, |c| {
+            (c.regs[1], c.regs[2], c.regs[3], c.regs[4]) = (0x1111_1111, 0x2222_2222, 0xabcd_0000, 0x9999_0004);
+            (c.regs[5], c.regs[6]) = (0x0000_ff00, 0xfff0_0000);
+        });
+        assert_eq!(cpu.regs[1], 0x1111_abcd);
+        assert_eq!(cpu.regs[2], 0x0004_2222);
+        // 0xff00 is -256 as a half: -128 (0xff80); then 0xfff0 (-16) unsigned: 0
+        assert_eq!(cpu.regs[3], 0xabcd_ff80);
+        assert_eq!(cpu.regs[4], 0x0000_0004);
+    }
+
+    #[test]
+    fn field_extract_and_insert_by_register() {
+        // `9c e1 20 1b` r1 = uextra(r2, p:r11[12:8], l:r11[4:0]), `9c e1 21 3b` r3 = sextra(..),
+        // `98 e1 50 4b` r4 <= insert(r5, p:r11[12:8], l:r11[4:0])
+        let code = [0x9c, 0xe1, 0x20, 0x1b, 0x9c, 0xe1, 0x21, 0x3b, 0x98, 0xe1, 0x50, 0x4b];
+        let (cpu, _) = run_words(&code, 3, |c| {
+            c.regs[11] = 4 << 8 | 8;
+            c.regs[2] = 0x0000_0f80;
+            c.regs[4] = 0xffff_ffff;
+            c.regs[5] = 0x0000_0012;
+        });
+        assert_eq!(cpu.regs[1], 0xf8);
+        assert_eq!(cpu.regs[3], 0xffff_fff8);
+        assert_eq!(cpu.regs[4], 0xffff_f12f);
+    }
+
+    #[test]
+    fn memory_saturating_shift_and_high_half_store() {
+        // `6e e8 05 13` [r1+4] <<<= r3, `6c e8 01 20` [r2+0] <<<= 32, `d8 ed 0b 45` h[r0+r5<<1] = r4.h
+        let code = [0x6e, 0xe8, 0x05, 0x13, 0x6c, 0xe8, 0x01, 0x20, 0xd8, 0xed, 0x0b, 0x45];
+        let mut mem = vec![0u8; 0x400];
+        mem[..code.len()].copy_from_slice(&code);
+        let mut ram = FlatRam::new(mem);
+        ram.write32(0x204, 0x4000_0000);
+        ram.write32(0x300, 0xffff_fff0);
+        let mut cpu = Cpu::new(0);
+        (cpu.regs[1], cpu.regs[3], cpu.regs[2], cpu.regs[0], cpu.regs[5], cpu.regs[4]) = (0x200, 1, 0x300, 0x100, 8, 0xbeef_0000);
+        for _ in 0..3 {
+            cpu.step(&mut ram).unwrap();
+        }
+        assert_eq!(ram.read32(0x204), 0x7fff_ffff);
+        assert_eq!(ram.read32(0x300), 0x8000_0000);
+        assert_eq!(ram.read16(0x110), 0xbeef);
+    }
+
+    #[test]
+    fn special_register_moves_pushes_and_pops() {
+        // `64 e0 00 b2` r11 = retx, `64 e0 80 c4` sr4 = r12, `64 e0 80 d8` sspn = r13,
+        // `58 e9 16 00` [--sp] = {sr4, retx, rete} (mask 0x16), `50 e9 16 00` back
+        let code = [0x64, 0xe0, 0x80, 0xc4, 0x64, 0xe0, 0x00, 0xb4, 0x64, 0xe0, 0x80, 0xd8, 0x58, 0xe9, 0x16, 0x00, 0x50, 0xe9, 0x16, 0x00];
+        let mut mem = vec![0u8; 0x400];
+        mem[..code.len()].copy_from_slice(&code);
+        let mut ram = FlatRam::new(mem);
+        let mut cpu = Cpu::new(0);
+        cpu.sp = 0x300;
+        (cpu.regs[12], cpu.regs[13]) = (0x1234, 0x5678);
+        cpu.set_sreg("retx", 0xaa);
+        cpu.set_sreg("rete", 0xbb);
+        for _ in 0..4 {
+            cpu.step(&mut ram).unwrap();
+        }
+        assert_eq!(cpu.regs[11], 0x1234);
+        assert_eq!(cpu.sregs("sspn"), 0x5678);
+        assert_eq!(cpu.sp, 0x300 - 12);
+        // sr4 (4) first, at the highest address; rete (1) last
+        assert_eq!((ram.read32(0x2f8), ram.read32(0x2f4), ram.read32(0x2fc)), (0xaa, 0xbb, 0x1234));
+        cpu.set_sreg("sr4", 0);
+        cpu.step(&mut ram).unwrap();
+        assert_eq!((cpu.sp, cpu.sregs("sr4"), cpu.sregs("retx"), cpu.sregs("rete")), (0x300, 0x1234, 0xaa, 0xbb));
+    }
+
+    #[test]
     fn push_pop_register_mask() {
         // `d9 e8 f0 0d` [--sp] = {rets, r11, r10, r8-r4}, `d5 e8 f0 0d` the matching pop
         let mut mem = vec![0u8; 0x200];
@@ -5223,6 +5434,8 @@ pub struct LineX {
 fn route_of(insn: &Instruction, alu4: &Option<Alu4>, bittest: &Option<BitTest>) -> u16 {
     let name = insn.entry.name;
     match name {
+            // the toolchain audit's raw forms first (`d8 ed .3` would pass for an index increment)
+            "aud_craw" => 42,
             // `[++R=R]` / `[R++=R]`, the table's classes too (one executed `h[r9++=r0] = r0.h`
             // as an immediate increment); before route 19, whose `++=` test would take it so
             _ if insn.entry.len == 4 && idx_inc(insn.raw).is_some() => 32,
@@ -5547,7 +5760,7 @@ fn fast_raw(route: u16, insn: &Instruction, alu4: &Option<Alu4>, bittest: &Optio
         2 => Some(Fast::Nop),
         // (the arms read bits below 32 only; route 21's table-less form carries the whole window)
         27 if insn.entry.len == 4 => Some(Fast::Raw { route: RAW_POP_RETS_MASK, raw: raw as u32 }),
-        16 | 18 | 19 | 21 | 22 | 27 | 32 | 39 | 40 | 41 => Some(Fast::Raw { route: route as u8, raw: raw as u32 }),
+        16 | 18 | 19 | 21 | 22 | 27 | 32 | 39 | 40 | 41 | 42 => Some(Fast::Raw { route: route as u8, raw: raw as u32 }),
         26 if insn.entry.len == 4 => Some(Fast::PushMask { mask: ((raw >> 16) & 0xffff) as u16 }),
         28 if insn.entry.len == 4 => Some(Fast::PopMask { mask: ((raw >> 16) & 0xffff) as u16 }),
         35 => {

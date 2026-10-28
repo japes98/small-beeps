@@ -656,6 +656,29 @@ fn forms_only_the_assembler_emits() {
     assert_eq!((w[18], w[19]), (0, u32::MAX), "<<= 32 and >>>= 32 in memory");
 }
 
+/// The toolchain audit: forms only the assembler emits whose result the
+/// printed form leaves no choice in (isaregs.S): half moves, sat8 of a
+/// half, the bit-field extract and insert with the field in a register,
+/// the saturating shift in memory, the high half stored, the special
+/// registers retx, sr4 and sspn, and the 4-byte push / pop of a list of
+/// them.
+#[test]
+fn registers_halves_and_fields() {
+    let mut o = opts(1);
+    o.ram = vec![(OUT0, 64, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("isaregs"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-40-end.bin"));
+    assert_eq!(&w[0..2], &[0x1111_abcd, 0x0004_2222], "half moves");
+    assert_eq!(&w[2..4], &[0xabcd_ff80, 0x0000_0004], "sat8 of a half");
+    assert_eq!(&w[4..7], &[0xf8, 0xffff_fff8, 0xffff_f12f], "u/sextra and insert, the field in a register");
+    assert_eq!(&w[7..9], &[0x7fff_ffff, 0x8000_0000], "<<<= in memory");
+    assert_eq!(w[9], 0x0000_beef, "h[rB+rI<<1] = rS.h");
+    assert_eq!(&w[10..13], &[0x1234, 0x5678, 0xaa], "sr4, sspn, retx");
+    assert_eq!(&w[13..16], &[16, 0x1234, 0xbb], "push and pop of special registers");
+}
+
 fn fault_text(r: &fwtest::run::Report) -> (u32, u32, String) {
     match &r.outcome {
         Outcome::Fault { core, pc, what } => (*core, *pc, what.clone()),
