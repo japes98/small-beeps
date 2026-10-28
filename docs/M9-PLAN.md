@@ -104,7 +104,7 @@ fields:
 | `record.ci_run` | string | no | The URL of the CI run that made the record. |
 | `build` | object | no | How the image was built. |
 | `build.toolchain_sha256` | string | no | The pinned toolchain's SHA-256 (docs/TOOLCHAIN.md). |
-| `build.container` | string | no | The build container's image digest (R-REPRO-2). |
+| `build.container` | string | no | The build's identity (R-REPRO-2; docs/RELEASING.md, "The build image"): the base image's registry digest, the SHA-256 of `tools/Dockerfile` and the toolchain archive's SHA-256, as `build-identity:dockerfile-sha256=<64 hex>,toolchain-sha256=<64 hex>,base=<image>@sha256:<64 hex>`. The build image itself is never published (docs/TOOLCHAIN.md), so this is not an image digest. A local dry run writes `local-dry-run:sha256:<64 hex>`, which `tools/release.py verify --publish` refuses. |
 | `build.ram_used` | integer | no | RAM the image uses (data, bss and stacks), from the build's size report. |
 | `store` | object | no | The patch store the image keeps (docs/STORE-FORMAT.md). |
 | `store.format_version` | integer | no | The store format's version, so a user knows whether saved patches carry over. |
@@ -230,9 +230,21 @@ Safari download opens in it directly:
   is, so opened firmwares don't pile up in the app's own folder next to
   the user's recordings. The app reads it in place, as a security-scoped
   URL, and handles it where it handles an opened URL, running the checks
-  above. AirDrop and Mail still hand the app a copy.
+  above. AirDrop and Mail still hand the app a copy (to confirm (app
+  session): this sentence is session spec-answers-a1's understanding of
+  iOS; the app session is checking it on a device).
 - On GitHub the file is served as `application/octet-stream`; the
   extension, not the type, makes iOS hand it to the app.
+
+#### Which devices, and latency
+
+From the app session, relayed by the owner on 2026-10-27 (recorded by
+session spec-1027):
+
+- The app's **deployment target is iOS 26**. iPhones with an A12 are
+  dropped; iPads with an A12 remain supported.
+- It picks **Low or Normal latency per device** by timing a small-beeps
+  build on its first launch.
 
 #### What the release tooling checks
 
@@ -492,3 +504,21 @@ recorded.
   busy bit, and the owner keeps the question open (recorded by session
   spec-a1-fwsc): `harness/upstream/fm1-emu-usb-port.md`, "Left open";
   HARDWARE-SPEC.md HW-86.
+
+### Candidates to evaluate (Phase B)
+
+Outside work the owner has heard of, listed so Phase B looks at it
+first (the owner's notes, 2026-10-27, recorded by session spec-1027).
+Only what was said is recorded here; nothing below has been read, and
+each licence is to be confirmed when Phase B starts.
+
+- **M-Flasher.** A flasher for the FM-1 and the SMK-37, reported to be
+  under MIT, based on the protocol of jl-uboot-tool (a general JieLi
+  flashing tool whose licence has not been checked). A candidate for the
+  app's later firmware loader; the app side may read it.
+- **M-Bootloader.** Reported to be a clean-room bootloader for the FM-1
+  under MIT, including the helper M-Flasher loads. A candidate for a
+  hardware package's boot area (section 2, "Which loader files we would
+  vendor"). It is FM-1 firmware source, so the firmware (clean) side
+  never reads it; the spec side evaluates its licence and provenance
+  first, in Phase B, and takes facts only.

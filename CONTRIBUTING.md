@@ -142,8 +142,11 @@ side may read FM-1-RE's documents that quote disassembly in places (its
 `docs/io/01-boot.md`, for one) and take facts only from them, never
 code, confirming each with the SDK or another source where it can (as
 HW-91's `+0x120` is confirmed by the SDK's entry point and linker
-script). The owner's answer, 2026-10-27, recorded by session
-spec-answers-a1. The firmware side's limits above stay as they are.
+script). Anything that is itself a disassembly listing stays forbidden,
+whoever made it. The owner's answer, 2026-10-27, recorded by session
+spec-answers-a1; the owner confirmed this line exactly as drawn the same
+day (recorded by session spec-1027). The firmware side's limits above stay
+as they are.
 
 ### Barriers
 
