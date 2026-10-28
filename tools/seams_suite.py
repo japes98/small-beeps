@@ -893,8 +893,9 @@ def case_powercut(a, work, log):
             m.put_fw(LARGE[0], LARGE[1], 1, pattern(3, 4096))
             if max(moves) < 2:
                 problems.append("several: the model's save never moved the head on twice (%s)" % moves)
+            # fwtest logs a page program at its page's start.
             fw_cmds = [("program" if r[2] == "02" else "erase", int(r[3], 16)) for r in rows]
-            if fw_cmds != [(c[0], c[1]) for c in m.commands]:
+            if fw_cmds != [(c[0], c[1] & ~(st.PAGE - 1)) for c in m.commands]:
                 problems.append("several: the firmware's %d flash commands are not the model's %d"
                                 % (len(fw_cmds), len(m.commands)))
         points = powercut_points(ops)
