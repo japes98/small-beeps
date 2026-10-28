@@ -25,7 +25,7 @@
 #include "midi_out.h"
 #include "ui.h"
 
-volatile struct sb_fm_record sb_fm __attribute__((section(".beacon.fm")));
+volatile struct sb_fm_record sb_fm __attribute__((section(".beacon.engine0")));
 /* The interface's state (M8a; ui.h): the engine's, since it takes the
  * panel's events in order; main draws it. */
 volatile struct fm_ui fm_ui;

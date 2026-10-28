@@ -26,7 +26,7 @@
 #include "ui.h"
 #include "arp.h"
 
-volatile struct sb_ui_record sb_ui __attribute__((section(".beacon.ui")));
+volatile struct sb_ui_record sb_ui __attribute__((section(".beacon.engine1")));
 
 #define BLACK   RGB565(0, 0, 0)
 #define WHITE   RGB565(31, 63, 31)
