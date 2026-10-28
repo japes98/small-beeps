@@ -111,6 +111,7 @@ static u32 phase;
 #define SMALL_LEN    10u
 #define HUGE_LEN     5000u
 #define SMALL2_LEN   300u            /* the small payload rewritten (BR-12): still one part */
+#define MID_LEN      3400u           /* the large payload in today's region (BR-12): 7 parts */
 #define PATCH_SLOT   3u
 #define PATCH_LEN    112u
 static u8 store_buf[STORE_FW_MAX];
@@ -163,6 +164,13 @@ static void store_step(void)
          * pattern 3 (on the wide region test build). */
         pattern(3, LARGE_LEN);
         sb_test_engine.put_result = store_put(LARGE_KIND, LARGE_ID, 1, store_buf, LARGE_LEN);
+        sb_test_engine.put_len = read_back(LARGE_KIND, LARGE_ID, &sb_test_engine.put_sum);
+    } else if (s == 0x84) {
+        /* The large payload rewritten as 3 400 bytes, pattern 4, in
+         * today's region: room for both copies only if the ring copies
+         * the old one forward during the rewrite. */
+        pattern(4, MID_LEN);
+        sb_test_engine.put_result = store_put(LARGE_KIND, LARGE_ID, 1, store_buf, MID_LEN);
         sb_test_engine.put_len = read_back(LARGE_KIND, LARGE_ID, &sb_test_engine.put_sum);
     } else if (s == 0x86) {
         /* The small payload rewritten, pattern 10, longer. */

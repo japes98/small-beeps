@@ -95,14 +95,16 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   bytes written and read back and the store's largest payload
   (STORE_FW_MAX) refused as full. After every run tools/store.py's
   reader finds what the firmware does.
-- powercut (R-STORE-11): BR-12's saves that survive a power cut. Three
-  saves, each from the base's full store (16 user slots, the selection,
-  the settings) beside the firmware kinds' payloads, started by a key
+- powercut (R-STORE-11): BR-12's saves that survive a power cut. Four
+  saves, three of them from the base's full store (16 user slots, the
+  selection, the settings) beside the firmware kinds' payloads, started by a key
   tap (tests/seams/engine's steps 0x80 and up): a 4 096-byte payload
   rewritten on the wide region test build (SB_TEST_STORE_WIDE, 5
-  sectors), and on today's region a one-part payload rewritten (300
-  bytes) and a user slot's patch, each with the head full, so that it
-  takes a new sector and compacts. A run with --flash-log gives the
+  sectors); on today's region a 3 400-byte payload rewritten where the
+  ring must copy the old write's parts forward during the rewrite (the
+  case checks it did), a one-part payload rewritten (300 bytes) and a
+  user slot's patch, these two with the head full, so that each takes a
+  new sector and compacts. A run with --flash-log gives the
   save's flash commands; then for each command a power cut (fwtest's
   --power-cut) just after it starts, halfway and just before it ends,
   and one between commands and after the last; and from each cut's
@@ -609,7 +611,7 @@ def case_powercut(a, work, log):
         s.put(st.SETTINGS, 0, 4, bytes(42))
         return s
 
-    # The three saves, each from the base's full store beside the firmware
+    # The saves, each but "mid" from the base's full store beside the firmware
     # kinds' payloads: (name, build, sectors, step, the image before).
     wide = full_store(st.WIDE_SECTORS)
     wide.put_fw(LARGE[0], LARGE[1], 1, pattern(2, 4096))
@@ -633,16 +635,26 @@ def case_powercut(a, work, log):
                 s.put_fw(0x84, 0, 1, bytes(room - 24))
         saves.append((name, "today", st.SECTORS, step, s))
     saves.insert(0, ("large", "wide", st.WIDE_SECTORS, 0x83, wide))
+    # A large payload in today's region whose rewrite makes the ring copy
+    # the old write's parts forward while the new write is under way.
+    mid = st.Store()
+    mid.put_fw(SMALL[0], SMALL[1], 1, pattern(9, 10))
+    for _ in range(4):
+        mid.put_fw(LARGE[0], LARGE[1], 1, pattern(1, 3400))
+    mid.put_fw(CONTROL_KIND, 0, 1, bytes([0x84]))
+    saves.insert(1, ("mid", "today", st.SECTORS, 0x84, mid))
     # What each payload is before the save and after it: (kind, id) to the
     # record's (length, sum) fields; the base's patch as STORE_PATCH.
-    olds = {"large": pattern(2, 4096), "small": pattern(9, 10), "patch": pattern(20 + 3, 112)}
-    news = {"large": pattern(3, 4096), "small": pattern(10, 300), "patch": pattern(12, 112)}
-    fields = {"large": ("boot_large", "boot_large_sum"), "small": ("boot_small", "boot_small_sum"),
-              "patch": ("boot_patch", "boot_patch_sum")}
+    olds = {"large": pattern(2, 4096), "mid": pattern(1, 3400), "small": pattern(9, 10),
+            "patch": pattern(20 + 3, 112)}
+    news = {"large": pattern(3, 4096), "mid": pattern(4, 3400), "small": pattern(10, 300),
+            "patch": pattern(12, 112)}
+    fields = {"large": ("boot_large", "boot_large_sum"), "mid": ("boot_large", "boot_large_sum"),
+              "small": ("boot_small", "boot_small_sum"), "patch": ("boot_patch", "boot_patch_sum")}
     # And the others, which each save leaves as they were.
     p23, l1500 = pattern(20 + 3, 112), pattern(1, 1500)
-    unchanged = {"large": {"small": olds["small"], "patch": p23}, "small": {"large": l1500, "patch": p23},
-                 "patch": {"large": l1500, "small": olds["small"]}}
+    unchanged = {"large": {"small": olds["small"], "patch": p23}, "mid": {"small": olds["small"], "patch": None},
+                 "small": {"large": l1500, "patch": p23}, "patch": {"large": l1500, "small": olds["small"]}}
 
     def fw_run(name, image, flash, *opts):
         out = os.path.join(work, name)
@@ -679,6 +691,14 @@ def case_powercut(a, work, log):
         if not erases:
             problems.append("%s: the save took no new sector" % name)
         points = powercut_points(ops)
+        if name == "mid":
+            # The old write's parts copied forward during the rewrite (its
+            # tag, sequence numbers from the save's): what this save is for.
+            tag = struct.pack("<I", st.Image(s.chip()).commit_of(*LARGE)[3])
+            copies = sum(1 for r in st.Image(chip).records if (r[3], r[4]) == LARGE and r[6][:st.TAG] == tag
+                         and r[2] >= s.next_seq)
+            if not copies:
+                problems.append("mid: the rewrite copied none of the old write's parts")
 
         def one(i_t):
             i, t = i_t
@@ -706,20 +726,21 @@ def case_powercut(a, work, log):
                 continue
             seen.append(want[got])
             for k, o in unchanged[name].items():
-                if (b[fields[k][0]], b[fields[k][1]]) != (len(o), place_sum(o)):
+                if (b[fields[k][0]], b[fields[k][1]]) != ((len(o), place_sum(o)) if o is not None else (NONE32, 0)):
                     problems.append("%s: cut at %.3f ms, %s changed" % (name, t, k))
             # tools/store.py's reader finds the same.
             if name == "patch":
                 m = img.get(st.PATCH, 3)
             else:
-                m = img.get_fw(*(LARGE if name == "large" else SMALL))
+                m = img.get_fw(*(SMALL if name == "small" else LARGE))
             if (m[1] if m else None) != (new if want[got] == "new" else old):
                 problems.append("%s: cut at %.3f ms, tools/store.py reads otherwise" % (name, t))
         if seen != sorted(seen, key=lambda k: k == "new") or (seen and seen[-1] != "new"):
             problems.append("%s: not the old payload until a moment and then the new" % name)
         first_new = next((i for i, k in enumerate(seen) if k == "new"), len(seen))
-        summary.append("%s: %d commands (%d erases), %d cuts, old %d, new %d"
-                       % (name, len(ops), erases, len(points), first_new, len(seen) - first_new))
+        summary.append("%s: %d commands (%d erases%s), %d cuts, old %d, new %d"
+                       % (name, len(ops), erases, ", %d old parts copied" % copies if name == "mid" else "",
+                          len(points), first_new, len(seen) - first_new))
     print("powercut: %s; never neither, never a mix; tools/store.py agrees" % "; ".join(summary))
     return problems
 

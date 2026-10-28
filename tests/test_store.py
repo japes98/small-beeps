@@ -3,6 +3,7 @@
 import os
 import random
 import re
+import struct
 import unittest
 import zlib
 
@@ -249,16 +250,22 @@ class FirmwareKindsTest(unittest.TestCase):
         return s.commands
 
     def test_a_large_rewrite_cut_anywhere_is_old_or_new(self):
-        # BR-12: 3 000 bytes (7 parts) rewritten in today's region; every
-        # byte of every command.
+        # BR-12: 3 400 bytes (7 parts) rewritten in today's region after
+        # four writes, where the ring copies the old write's parts forward
+        # while the new one is under way; every byte of every command.
         s = st.Store()
-        s.put_fw(0x80, 0, 1, bytes([1]) * 3000)
         s.put_fw(0x81, 0, 1, b"small")
+        for _ in range(4):
+            s.put_fw(0x80, 0, 1, bytes([1]) * 3400)
+        tag, start = struct.pack("<I", s._commit(0x80, 0)[3]), s.next_seq
         commands = self._cut_everywhere(
-            st.SECTORS, s.chip(), lambda t: t.put_fw(0x80, 0, 1, bytes([2]) * 3000),
-            {(0x80, 0): (1, bytes([1]) * 3000), (0x81, 0): (1, b"small")},
-            {(0x80, 0): (1, bytes([2]) * 3000), (0x81, 0): (1, b"small")})
+            st.SECTORS, s.chip(), lambda t: t.put_fw(0x80, 0, 1, bytes([2]) * 3400),
+            {(0x80, 0): (1, bytes([1]) * 3400), (0x81, 0): (1, b"small")},
+            {(0x80, 0): (1, bytes([2]) * 3400), (0x81, 0): (1, b"small")})
         self.assertTrue(any(c[0] == "erase" for c in commands))     # it took a new sector
+        after = st.Image(st.apply(s.chip(), commands))
+        copies = [r for r in after.records if r[3] == 0x80 and r[6][:st.TAG] == tag and r[2] >= start]
+        self.assertGreater(len(copies), 0, "no old part copied forward during the rewrite")
 
     def test_a_4096_byte_rewrite_beside_the_full_store_cut_anywhere(self):
         # The wide region: the base's full store, then 4 096 bytes rewritten
