@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 03121e596abc1d2ee6f0e2fa1cad79a635a2bfaf..5735d9e538634f30b095f630073370d80630da09
+OK     4837e2737586 tools: build.sh builds sources from outside firmware/ (BR-5)
+EXEMPT 5735d9e53863 (merge) Merge pull request #159 from japes98/seams/build-src
+2 commit(s) checked: PASS
+
+exit status 0
