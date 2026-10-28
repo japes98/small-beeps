@@ -2163,6 +2163,13 @@ SR-3 wrote only its barrier-log row.*
   figures from tools/store.py's model over random histories. The flags
   case failed once (the container looked the options up by another
   name), was fixed, and passed.
+- **#170's first CI run failed C-PERF-PROBES** (read from the run's log
+  through a filter printing only its checks' result lines, as before for
+  the image runs): the big probe's start-up no longer over the limit.
+  Run here, a probe rerun into an output folder already used read its
+  first runs' results (perf.py doesn't clear one), which looked like
+  the fix not working, until run into a new folder; fixed in #170 (the
+  probe's work done 64 times) and merged forward into #171.
 - Force-pushes: none (the branches were rebased locally before their
   first push).
 - Disk: 7 GB free at the start; 5 GB at the lowest.
