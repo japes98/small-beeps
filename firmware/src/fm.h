@@ -195,7 +195,13 @@ u32 fm_patch_sum(const u8 *p);
  * through fm_saved_seq and fm_reset_seq, which main writes to the store
  * (docs/DESIGN-NOTES.md, M7, "The panel"). */
 #define FM_USER_SLOTS 16u
-#define FM_PROGRAMS   (FM_PATCHES + FM_USER_SLOTS)
+/* Since M8b the preset bank (patches.c, tools/fm_patch.py's PRESETS),
+ * programs FM_PRESET0 to FM_PROGRAMS - 1, after the user slots, so the
+ * slots keep M7's numbers (stored selections, MIDI program changes). */
+#define FM_PRESETS    70u
+#define FM_PRESET0    (FM_PATCHES + FM_USER_SLOTS)
+#define FM_PROGRAMS   (FM_PRESET0 + FM_PRESETS)
+extern const u8 fm_presets[FM_PRESETS][FM_PATCH_BYTES];
 /* SAVE held with KEY1 to KEY16: the patch playing now saved to that slot;
  * since M8a the factory defaults are the settings' last row, which SAVE
  * confirms (M7 held SAVE and HOME for 2 s). */

@@ -92,6 +92,13 @@ KEY_GLO, KEY_HOME, KEY_SAVE = 7, 8, 9
 ENC_SELECT, ENC_ALGORITHM, ENC_KNOB1, ENC_PRESETS = 0, 1, 2, 6
 WORKERS = 4
 PATCHES = [fm_patch.encode(p) for p in fm_patch.TEST_PATCHES]
+# The programs (fm.h): the test patches, the user slots, and since M8b the
+# presets after them; PRESETS and program changes reach those that hold a
+# patch, PRESETS stopping at the ends (fm_play.c, program_ok and
+# program_step).
+PRESETS = [fm_patch.encode(p) for _, _, p in fm_patch.PRESETS]
+PRESET0 = len(PATCHES) + st.SLOTS
+PROGRAMS = PRESET0 + len(PRESETS)
 PV = fm_patch.VERSION          # a patch record's version: the patch's (2 since ARP)
 ERR_FULL = -2
 
@@ -268,6 +275,18 @@ def with_stock(chip):
     return bytes(b)
 
 
+def program_ok(n, img):
+    """Whether program n holds a patch, with the user slots in img."""
+    return n < len(PATCHES) or PRESET0 <= n < PROGRAMS or (len(PATCHES) <= n < PRESET0 and bool(img.keys[n - len(PATCHES)]))
+
+
+def program_bytes(n, img):
+    """Program n's patch as stored: a test patch, a user slot's or a preset."""
+    if n < len(PATCHES):
+        return PATCHES[n]
+    return img.get(st.PATCH, n - len(PATCHES))[1] if n < PRESET0 else PRESETS[n - PRESET0]
+
+
 def selection_of(chip):
     e = st.Image(chip).get(st.SELECTION)
     return e[1][0] if e else 0
@@ -334,7 +353,7 @@ def agrees(run, chip):
     sel = img.get(st.SELECTION)
     if sel and sel[0] == 1 and len(sel[1]) == 4:
         n = sel[1][0]
-        if n < 9 or (n < 9 + st.SLOTS and img.keys[n - 9]):
+        if program_ok(n, img):
             loaded |= 1
     if r["loaded"] & ~14 != loaded:
         p.append("%s: loaded 0x%x, tools/store.py has 0x%x" % (run.name, r["loaded"] & ~14, loaded))
@@ -417,7 +436,7 @@ def boot_check(run, chip, image_len):
     if p:
         return p
     sel = selection_of(chip)
-    base = PATCHES[sel] if sel < 9 else st.Image(chip).get(st.PATCH, sel - 9)[1]
+    base = program_bytes(sel, st.Image(chip))
     want, _ = predict(chip, [(st.PATCH, 4, PV, saved(base))])
     r = run.rec("store")
     if r["save_fail"] or r["saves"] != 1:

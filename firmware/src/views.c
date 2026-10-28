@@ -159,7 +159,11 @@ static void head_work(void)
         n = put(head_text[0], 0, "00");
         head_text[0][n++] = (char)('1' + p);
     } else {
-        head_text[0][n++] = 'U';
+        /* U01 to U16 the user slots; since M8b P01 to P64 the presets (and
+         * the candidates P65 to P70). */
+        if (p >= FM_PRESET0)
+            u = p - FM_PRESET0 + 1u;
+        head_text[0][n++] = p >= FM_PRESET0 ? 'P' : 'U';
         head_text[0][n++] = (char)('0' + u / 10);
         head_text[0][n++] = (char)('0' + u % 10);
     }
