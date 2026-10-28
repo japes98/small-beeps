@@ -1997,6 +1997,56 @@ SR-3 wrote only its barrier-log row.*
   an attempt, denied by the settings, never ran, nothing listed. Approved.
 - A spec session works at the same time; this session opens none of its
   branches.
+- Reads: this file, CONTRIBUTING.md, sessions/README.md,
+  sessions/REVIEWED.json, clean-a1-packager's three flagged calls (in the
+  archived copy, by tool-call ID), docs/HARNESS.md ("Running it", "The
+  flash chip", "The command line", "Input scripts", "Outputs", "MIDI
+  output", "Outcomes and exit codes", "Instructions", "Golden files"),
+  docs/STORE-FORMAT.md, docs/TOOLCHAIN.md, docs/RELEASING.md ("Loading
+  one into the app"), docs/DESIGN-NOTES.md and docs/REQUIREMENTS.md (the
+  parts these changes touch), README.md, `audit/audit.json`, #126's
+  description, and this repository's firmware, tools and tests. Nothing
+  fetched from outside the repository but the build image's own
+  downloads.
+- Later in the session:
+  - **The `.fwsc` for the app (the owner's answer 4):** a fresh build of
+    main (`fd07f7f`; `app.bin` `7c41f08a…`, #153's), its package link
+    packed as the CI package suite packs it (identity
+    `small-beeps-0.0.0`), checked with `tools/fwsc.py`, copied to
+    `~/<top>/drop/releases/small-beeps-dev.fwsc` (`27d1d60e…`) with
+    `small-beeps-dev.fwsc.sha256` beside it. No CI artifact fetched.
+    The drop folder was not listed.
+  - **#126 (M8b):** main taken in (two conflicts, both sides kept), the
+    presets' text says all 70 stay, made ready for review.
+  - **The seams (section 2):** #158 to #161 and #163 to #168. fwtest
+    0.8.0 (the pinned image) ran the seams suite's cases, the firmware,
+    ARP, package and preset suites, the release selftest and the Plaits
+    bench, from copies of the working tree in the session's temporary
+    folder (so a branch change could not reach a running suite). One
+    firmware suite run was ended by the host (SIGTERM) part way and run
+    again alone.
+  - **One golden changed by hand** (#163): midiout's capture, the
+    chord's order after BR-3's later start; said so in its commit and in
+    DESIGN-NOTES.
+  - **CI failures, fixed:** a comment that broke a unit test's reading
+    of `tools/build.sh` (#160), and the ID `R-CORE1-1`, renamed
+    `R-CORE-1` (#163), each merged forward through the later branches,
+    read from the CI log's result lines and by running the unit tests
+    here; then on #168 C-SEP-TERMS (an 8-digit hex number in
+    `tools/seams_suite.py`, found by hashing the flagged line's words)
+    and C-ARP (the timing policy's end check on sixteen runs, after
+    BR-9's later start), fixed in #167. For those two, two named files
+    of the run's report artifact: its zip fetched by GitHub's API into
+    the session's temporary folder, `unzip -p` of `logs/C-SEP-TERMS.log`
+    and `logs/C-ARP.log` only (nothing else extracted), the zip deleted
+    at once; the copies deleted at the end.
+  - **Rebases:** BR-4 to the guide, before any of them was pushed, onto
+    BR-3's golden commit. **Force-pushes:** none.
+  - **GitHub:** `gh pr create`, `edit`, `ready`, `checks`, `view` of this
+    session's pull requests and #126; `gh pr list` once at the start
+    (titles and branch names only). No spec-side branch was fetched or
+    opened.
+  - **Disk:** 14 GB free at the start; 8.5 GB at the lowest.
 
 ## Corrections
 
