@@ -472,7 +472,7 @@ def case_rawout(a, work, log):
 
 CONTROL_KIND, LARGE, SMALL, HUGE = 0x8F, (0x80, 7), (0x81, 0), (0x82, 0)
 NONE32 = 0xFFFFFFFF
-STORE_ERR_FULL = 0xFFFFFFFE      # -2, as the record's u32 holds it
+STORE_ERR_FULL = -2 & 0xFFFFFFFF  # as the record's u32 holds it
 
 
 def pattern(p, n):
