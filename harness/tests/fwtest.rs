@@ -559,6 +559,60 @@ fn pair_head_wins_over_its_second_half() {
     assert_eq!(words(output(&r, "ram-01c00100-10-end.bin")), vec![0x0008_0300, 0x78, 0x56, 0x34]);
 }
 
+/// SR-10: a store with a base update whose stored register is the base
+/// stores the base as it was, in every form the vendor assembler takes
+/// (selfstore.S), and in the vendor compiler's own code for C that stores a
+/// pointer where it then points (selfc.c, built with the firmware's flags).
+/// fwtest 0.8.0 stored the moved base in the pre-increment forms with an
+/// immediate step.
+#[test]
+fn stores_of_the_base_keep_its_old_value() {
+    let mut o = opts(1);
+    o.ram = vec![(OUT0, 120, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("selfstore"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-78-end.bin"));
+    // case k: (the base before, its width, the step it moves by)
+    let cases: [(&str, i32, u32, i32); 15] = [
+        ("[++r4=748] = r4", -748, 4, 748),
+        ("[++r1=8] = r1", -8, 4, 8),
+        ("[++r1=-8] = r1", 8, 4, -8),
+        ("[r1++=8] = r1", 0, 4, 8),
+        ("[r4++=-4] = r4", 0, 4, -4),
+        ("[r1++=4] = r1", 0, 4, 4),
+        ("[++r1=r2] = r1", -8, 4, 8),
+        ("[r1++=r2] = r1", 0, 4, 8),
+        ("h[++r2=8] = r2", -8, 2, 8),
+        ("h[++r1=-8] = r1", 8, 2, -8),
+        ("h[r5++=2] = r5", 0, 2, 2),
+        ("h[++r1=r2] = r1", -8, 2, 8),
+        ("b[++r3=8] = r3", -8, 1, 8),
+        ("b[r6++=1] = r6", 0, 1, 1),
+        ("b[r1++=r2] = r1", 0, 1, 8),
+    ];
+    for (k, (form, before, width, step)) in cases.into_iter().enumerate() {
+        let a = OUT0 + 8 * k as u32;
+        let base = a.wrapping_add(before as u32);
+        let mask = if width == 4 { u32::MAX } else { (1u32 << (8 * width)) - 1 };
+        assert_eq!(w[2 * k], base & mask, "{form}: stores the base as it was");
+        assert_eq!(w[2 * k + 1], base.wrapping_add(step as u32), "{form}: the moved base");
+    }
+
+    let mut o = opts(1);
+    o.ram = vec![(OUT0, 40, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("selfc"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-28-end.bin"));
+    const BUF: u32 = 0x01c0_0400;
+    assert_eq!((w[0], w[1]), (BUF, BUF + 748), "pre_w: [++r0=748] = r0");
+    assert_eq!((w[2], w[3]), (BUF + 800, BUF + 808), "post_w: [r0++=8] = r0");
+    assert_eq!((w[4], w[5]), ((BUF + 840) & 0xffff, BUF + 848), "pre_h: h[++r0=8] = r0");
+    assert_eq!((w[6], w[7]), ((BUF + 880) & 0xff, BUF + 888), "pre_b: b[++r0=8] = r0");
+    assert_eq!((w[8], w[9]), (BUF + 920 + 748, BUF + 920 + 748), "moved: the moved pointer");
+}
+
 fn fault_text(r: &fwtest::run::Report) -> (u32, u32, String) {
     match &r.outcome {
         Outcome::Fault { core, pc, what } => (*core, *pc, what.clone()),

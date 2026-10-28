@@ -2078,6 +2078,41 @@ SR-3 wrote only its barrier-log row.*
   `harness/`, the pinned toolchain, this repository). Never opened,
   fetched or searched M-VAVE's stock firmware files or any disassembly of
   them.
+- Sections 1, 2, 3.1 and 5: this repository only (its docs, spec-answers-a1's
+  archived transcript for its final questions). The app's answers are the
+  owner's relay; the app's branch was not opened. M-Flasher, M-Bootloader
+  and jl-uboot-tool: names only, as the prompt gives them; nothing of them
+  fetched, opened or searched.
+- Section 3.2 (the two 0.7.0 images): GHCR's public registry API for this
+  repository's package (an anonymous pull token): the manifests of
+  `d7804526…` and `26102ae9…`, their two configs and their five new
+  layers each, into the scratch folder; the layers' tar listings and file
+  hashes compared, then the blobs deleted. The fwtest-image workflow's two
+  runs' logs (`gh run view --log`, the build and push lines). BuildKit
+  options tried on throwaway images of a one-line Dockerfile of our own.
+  This PR's own CI report artifact: one log, `logs/C-HARNESS-IMAGE-REPRO.log`
+  (`unzip -p`, the zip deleted at once).
+- Section 4 (SR-10): the pinned toolchain in the build container
+  (assembler, disassembler, compiler on C of our own; PROVENANCE P-63);
+  the vendored emulator's store paths (`vendor/emulator/`), patched as
+  0013; the upstream emulator fetched by `tools/fetch-emulator.sh --fetch`
+  (its sparse checkout of the three crates) to show the patches apply.
+  The JieLi SDK (Apache-2.0) at `5fa84a9b`: its file tree through Gitee's
+  tree API (names), and the C and header files under `cpu/wl82/`,
+  `include_lib/driver/cpu/wl82/` and `include_lib/system/` by raw URL into
+  the scratch folder (128 of 189 arrived; the rest timed out), searched
+  for inline assembly and the form (none); its
+  prebuilt libraries not opened or disassembled. main's firmware built
+  (`tools/build.sh build`) and its disassembly scanned. No downloads of
+  any other kind.
+- The firmware suite run twice (pinned 0.8.0, local 0.9.0) from a separate
+  worktree of main (`fd07f7f5`), in the scratch folder, removed after.
+  A first pair of runs from this checkout was discarded: branches were
+  switched under it.
+- Clean's open pull requests: their file lists and the lines they add to
+  the shared files (PROVENANCE.md, REQUIREMENTS.md, SPEC-REQUESTS.md),
+  read to keep IDs apart and to merge; their firmware changes not read.
+- Disk: 14 GB free at the start; 9.4 GB at the lowest.
 
 ## Corrections
 

@@ -56,6 +56,8 @@ The app's USB port fix (its branch `stock-016`, `f60b86b`) is fwtest's
 0012 since 0.7.0 (session spec-overnight-1025), written here from the
 app's behaviour-only note, not its code: the two should behave the same
 (`fm1-emu-usb-port.md`), though the lines differ.
+0013 since 0.9.0 (session spec-1027): a store of its own base keeps the
+base as it was (`fm1-emu-store-of-the-base.md`).
 
 ## Two things in the drop to look at
 

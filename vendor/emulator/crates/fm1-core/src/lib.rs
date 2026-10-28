@@ -1323,8 +1323,10 @@ impl Cpu {
             Fast::StPre { s, b, i, w, inc } => {
                 let b = (b & 15) as usize;
                 let inc = if i < 16 { self.regs[i as usize] } else { inc };
+                // the value is read before the base moves: `[++r4=748] = r4` stores r4 as it was
+                let v = self.regs[(s & 15) as usize];
                 self.regs[b] = self.regs[b].wrapping_add(inc);
-                st_w(bus, w, self.regs[b], self.regs[(s & 15) as usize]);
+                st_w(bus, w, self.regs[b], v);
             }
             Fast::LdPostR { d, b, i, w, signed } => {
                 let b = (b & 15) as usize;
@@ -1516,8 +1518,10 @@ impl Cpu {
                     "R+R<<#i" => { n = 3; (self.regs[r(self, 0)?].wrapping_add(self.regs[r(self, 1)?] << (v(self, 2)? & 31)), None) }
                     "R++=#i" => { n = 2; let b = r(self, 0)?; (self.regs[b], Some((b, v(self, 1)?))) }
                     "R++=R" => { n = 2; let b = r(self, 0)?; (self.regs[b], Some((b, self.regs[r(self, 1)?]))) }
-                    "++R=#i" => { n = 2; let b = r(self, 0)?; self.regs[b] = self.regs[b].wrapping_add(v(self, 1)?); (self.regs[b], None) }
-                    "++R=R" => { n = 2; let b = r(self, 0)?; self.regs[b] = self.regs[b].wrapping_add(self.regs[r(self, 1)?]); (self.regs[b], None) }
+                    // a pre-increment's base moves after the source is read (below), so a
+                    // source that is the base stores it as it was
+                    "++R=#i" => { n = 2; let b = r(self, 0)?; let i = v(self, 1)?; (self.regs[b].wrapping_add(i), Some((b, i))) }
+                    "++R=R" => { n = 2; let b = r(self, 0)?; let i = self.regs[r(self, 1)?]; (self.regs[b].wrapping_add(i), Some((b, i))) }
                     _ => { self.sp = self.sp.wrapping_sub(4); (self.sp, None) }
                 } };
                 // shifted-mask sources (`#i << R`, `~(#i << R)`, `~R`, `R << #i`)
@@ -2606,11 +2610,14 @@ impl Cpu {
                 let base = self.regs[m.b];
                 let next = base.wrapping_add(m.inc as u32);
                 let a = if m.post { base } else { next };
+                // a store's value is read before the base moves (a source that is the base
+                // stores it as it was)
+                let v = self.regs[m.d];
                 if m.pre {
                     self.regs[m.b] = next;
                 }
                 if m.store {
-                    st_w(bus, m.w, a, self.regs[m.d]);
+                    st_w(bus, m.w, a, v);
                 } else {
                     self.regs[m.d] = ld_w(bus, m.w, m.signed, a);
                 }
@@ -2623,11 +2630,13 @@ impl Cpu {
                 // `5x ed` (see `half_mem`); a pre-increment updates the base first
                 let m = half_mem(raw).unwrap();
                 let a = self.regs[m.b].wrapping_add(m.off as u32);
+                // a store's value is read before the base moves, as in route 19
+                let src = self.regs[m.d];
                 if m.pre {
                     self.regs[m.b] = a;
                 }
                 if m.store {
-                    let v = self.regs[m.d] >> if m.flag { 16 } else { 0 };
+                    let v = src >> if m.flag { 16 } else { 0 };
                     bus.write16(a, v as u16);
                 } else {
                     let v = bus.read16(a);
@@ -4174,6 +4183,44 @@ mod tests {
                 cpu.step(&mut ram).unwrap();
             }
             assert_eq!(cpu.regs[..6], want, "r13 = {r13:#x}");
+        }
+    }
+
+    #[test]
+    fn stores_of_the_base_keep_its_old_value() {
+        // a store with a base update whose source is the base stores the base as it was
+        // (SR-10): the vendor compiler emits `[++r0=748] = r0` for `q = p + 187; *q = p;`
+        // and never for C storing the moved base. Every form its assembler takes:
+        let forms: [(&[u8], usize, i32, u32, i32); 15] = [
+            (&[0xd2, 0xec, 0x4f, 0x4e], 4, 748, 4, 748),   // [++r4=748] = r4
+            (&[0xd0, 0xec, 0x1b, 0x10], 1, 8, 4, 8),       // [++r1=8] = r1
+            (&[0xd7, 0xec, 0x1b, 0x1f], 1, -8, 4, -8),     // [++r1=-8] = r1
+            (&[0xd8, 0xec, 0x19, 0x10], 1, 0, 4, 8),       // [r1++=8] = r1
+            (&[0xcc, 0x05], 4, 0, 4, -4),                  // [r4++=-4] = r4
+            (&[0x91, 0x05], 1, 0, 4, 4),                   // [r1++=4] = r1
+            (&[0xdc, 0xec, 0x13, 0x12], 1, 8, 4, 8),       // [++r1=r2] = r1, r2 = 8
+            (&[0xde, 0xec, 0x13, 0x12], 1, 0, 4, 8),       // [r1++=r2] = r1
+            (&[0x58, 0xed, 0x29, 0x20], 2, 8, 2, 8),       // h[++r2=8] = r2
+            (&[0x5b, 0xed, 0x19, 0x1f], 1, -8, 2, -8),     // h[++r1=-8] = r1
+            (&[0xd5, 0x06], 5, 0, 2, 2),                   // h[r5++=2] = r5
+            (&[0xdc, 0xed, 0x11, 0x12], 1, 8, 2, 8),       // h[++r1=r2] = r1
+            (&[0x5a, 0xee, 0x38, 0x30], 3, 8, 1, 8),       // b[++r3=8] = r3
+            (&[0xe6, 0x07], 6, 0, 1, 1),                   // b[r6++=1] = r6
+            (&[0xde, 0xee, 0x11, 0x12], 1, 0, 1, 8),       // b[r1++=r2] = r1
+        ];
+        for (code, b, at, w, step) in forms {
+            let mut mem = vec![0u8; 0x400];
+            mem[..code.len()].copy_from_slice(code);
+            let mut ram = FlatRam::new(mem);
+            let mut cpu = Cpu::new(0);
+            let base = (0x200i32 - at) as u32;
+            cpu.regs[b] = base;
+            cpu.regs[2] = if b == 2 { base } else { 8 };
+            cpu.step(&mut ram).unwrap();
+            let got = match w { 4 => ram.read32(0x200), 2 => ram.read16(0x200) as u32, _ => ram.read8(0x200) as u32 };
+            let mask = if w == 4 { u32::MAX } else { (1u32 << (8 * w)) - 1 };
+            assert_eq!(got, base & mask, "{code:02x?}: the base as it was");
+            assert_eq!(cpu.regs[b], base.wrapping_add(step as u32), "{code:02x?}: the moved base");
         }
     }
 
