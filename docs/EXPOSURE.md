@@ -2138,7 +2138,8 @@ SR-3 wrote only its barrier-log row.*
 - A spec session may work at the same time; this session opens none of its
   branches.
 - Reads: this file, sessions/README.md, docs/STORE-FORMAT.md,
-  docs/HARNESS.md ("The flash chip", the outputs, the command line),
+  docs/HARNESS.md ("The flash chip", the outputs, the command line,
+  "When fwtest treats core 0 as waiting"),
   docs/HARDWARE-SPEC.md (HW-67, for PLAN.md's USB MIDI note),
   docs/DESIGN-NOTES.md, docs/REQUIREMENTS.md and docs/PLAN.md (the parts
   these changes touch), docs/BUILDING-ON-SMALL-BEEPS.md, #152's
@@ -2158,8 +2159,10 @@ SR-3 wrote only its barrier-log row.*
   void (their outputs outside the copy, which tools/fwtest refuses) and
   run again. PLAN.md's USB MIDI note (BR-10) rides on it.
 - **#170 (BR-12) and #171 (BR-11):** C-UNIT, the firmware suite, the ARP
-  suite, the seams suite (with the new cases powercut and flags: 436
-  power cuts over three saves) and perf, from copies; the store's space
+  suite, the seams suite (with the new cases powercut and flags: 624
+  power cuts over four saves, the fourth added after the session's
+  review: a rewrite whose old parts the ring copies forward) and perf,
+  from copies; the store's space
   figures from tools/store.py's model over random histories. The flags
   case failed once (the container looked the options up by another
   name), was fixed, and passed.
