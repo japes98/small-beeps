@@ -2176,7 +2176,8 @@ def check_presetends(case_dir):
     problems, lines, a, _, _ = check_audio_common("presetends", case_dir)
     more, l2, o, msgs, _ = midi_out_common("presetends", case_dir)
     problems, lines = problems + more, lines + l2
-    last = len(fm_patch.TEST_PATCHES) - 1
+    # The last program: the last preset (since M8b), past the empty slots.
+    last = len(fm_patch.TEST_PATCHES) + 16 + len(fm_patch.PRESETS) - 1
     # fwtest turns the 100 detents one at a time: a program change each
     # up to the last, then none.
     progs = [n for n in range(1, last + 1) if n < len(fm_patch.TEST_PATCHES) or n >= len(fm_patch.TEST_PATCHES) + 16]

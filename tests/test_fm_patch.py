@@ -82,5 +82,24 @@ class FmPatchTest(unittest.TestCase):
         self.assertEqual(fp.level_gain(0), 0.0)
 
 
+class PresetBankTest(unittest.TestCase):
+    """Requirements: R-PRESET-1"""
+
+    def test_sixty_four_presets_eight_of_each_category_then_six_more(self):
+        self.assertEqual(len(fp.PRESETS), 70)
+        for c in range(len(fp.CATEGORIES)):
+            self.assertEqual(sum(1 for cat, _, _ in fp.PRESETS[:64] if cat == c), 8, fp.CATEGORIES[c])
+
+    def test_every_preset_is_valid_named_once_and_says_what_it_is_for(self):
+        with open(os.path.join(ROOT, "firmware", "src", "fm.h")) as f:
+            header = f.read()
+        self.assertIn("#define FM_PRESETS    %du" % len(fp.PRESETS), header)
+        names = [p["name"] for _, _, p in fp.PRESETS]
+        self.assertEqual(len(set(names)), len(names))
+        for _, purpose, p in fp.PRESETS:
+            self.assertEqual(fp.problems(fp.encode(p)), [], p["name"])
+            self.assertTrue(purpose.strip(), p["name"])
+
+
 if __name__ == "__main__":
     unittest.main()

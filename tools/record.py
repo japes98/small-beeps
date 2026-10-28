@@ -8,8 +8,10 @@
       DIR/logs/<check>.log, DIR/outputs/ (the build outputs), DIR/fwtest/
       (the firmware suite's outputs, but since M4 its audio captures only
       as names and SHA-256 in DIR/fwtest-audio.sha256: about a megabyte a
-      record otherwise), DIR/arp/ (since ARP the arpeggiator's runs,
-      their audio likewise in DIR/arp-audio.sha256), DIR/spec-experiments.sha256 (the
+      record otherwise), DIR/presets/ (since M8b the preset bank's runs,
+      their audio likewise in DIR/presets-audio.sha256), DIR/arp/ (since
+      ARP the arpeggiator's runs, their audio likewise in
+      DIR/arp-audio.sha256), DIR/spec-experiments.sha256 (the
       names and SHA-256 of the spec experiments' outputs, never the files)
       and DIR/SHA256SUMS (of all of those). Exit status 1 if any check failed.
       Before hashing, C-RECORD-PRIVATE withholds any file holding a private
@@ -78,8 +80,10 @@ CHECKS = [
               "R-SEP-2", "R-SPEC-1", "R-SPEC-3", "R-AUDIT-1", "R-AUDIT-2", "R-AUDIT-3", "R-AUDIT-4",
               "R-AUDIT-5", "R-PERF-4", "R-BUILD-1", "R-FM-1", "R-FM-7", "R-MIDI-1", "R-MIDI-4",
               "R-MIDIOUT-2", "R-MIDIOUT-6", "R-STORE-1", "R-STORE-3", "R-STORE-4", "R-STORE-5",
-              "R-STORE-6", "R-STORE-8", "R-UI-6", "R-UI-7", "R-UI-8", "R-ARP-1", "R-ARP-2", "R-ARP-7",
-              "R-GOLD-1", "R-GOLD-2", "R-GOLD-3", "R-REL-1", "R-REL-2", "R-REL-3", "R-PKG-1"],
+              "R-STORE-6", "R-STORE-8", "R-UI-6", "R-UI-7", "R-UI-8", "R-PRESET-1", "R-ARP-1", "R-ARP-2",
+              "R-ARP-7",
+              "R-GOLD-1", "R-GOLD-2", "R-GOLD-3", "R-REL-1", "R-REL-2", "R-REL-3", "R-PKG-1",
+              "R-BUILD-3"],
      "cmd": [PY, "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"]},
     {"id": "C-REUSE", "title": "reuse lint (SPDX licence and copyright on every file)",
      "reqs": ["R-LIC-1", "R-LIC-2"], "cmd": ["reuse", "lint"]},
@@ -145,6 +149,11 @@ CHECKS = [
               "R-GOLD-1", "R-GOLD-2"],
      "cmd": lambda: [PY, "-I", "tools/fw-suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "fwtest")]},
+    # The preset bank (M8b): every preset played in fwtest and checked.
+    {"id": "C-PRESETS", "title": "The preset bank in fwtest: each preset's reference note (clipping, DC, clicks, loudness, its category's shape), 16 voices, golden SHA-256 (tools/preset_suite.py)",
+     "reqs": ["R-PRESET-1", "R-PRESET-2", "R-PRESET-3", "R-PRESET-4"],
+     "cmd": lambda: [PY, "-I", "tools/preset_suite.py", "--image", os.path.join(OUT, "build-a", "app.bin"),
+                     "--out", os.path.join(OUT, "presets")]},
     # The arpeggiator (ARP): its runs in fwtest against its model.
     {"id": "C-ARP", "title": "The arpeggiator in fwtest: each mode and rate against its model, the frames of its steps, MIDI clock in and out, MIDI out, no stuck notes, its screen, saving, under load (tools/arp_suite.py)",
      "reqs": ["R-ARP-1", "R-ARP-2", "R-ARP-3", "R-ARP-4", "R-ARP-5", "R-ARP-6", "R-ARP-7", "R-ARP-8", "R-GOLD-1"],
@@ -155,6 +164,11 @@ CHECKS = [
      "reqs": ["R-PKG-1", "R-PKG-2"],
      "cmd": lambda: [PY, "-I", "tools/package_suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "package")]},
+    # The seams for firmwares built on small-beeps (clean-1027).
+    {"id": "C-SEAMS", "title": "Seams for firmwares built on small-beeps: the build's write-back store check (tools/seams_suite.py)",
+     "reqs": ["R-BUILD-3"],
+     "cmd": lambda: [PY, "-I", "tools/seams_suite.py", "--build", os.path.join(OUT, "build-a"),
+                     "--out", os.path.join(OUT, "seams")]},
     # M9's app release: made twice from build A, the same bytes, verified.
     {"id": "C-RELEASE", "title": "The app release from build A, made twice: byte for byte the same; release.json format 1.0; the .fm1img passes the app's checks in order (tools/release.py selftest)",
      "reqs": ["R-REL-1", "R-REL-2"],
@@ -593,6 +607,8 @@ def cmd_run(a):
         shutil.rmtree(os.path.join(OUT, d), ignore_errors=True)
     hashes_only(os.path.join(OUT, "spec-experiments"), os.path.join(OUT, "spec-experiments.sha256"))
     audio_hashes_only(os.path.join(OUT, "fwtest"), os.path.join(OUT, "fwtest-audio.sha256"))
+    # Since M8b the preset bank's runs: its 128 WAVs (64 MB) as hashes too.
+    audio_hashes_only(os.path.join(OUT, "presets"), os.path.join(OUT, "presets-audio.sha256"))
     # Since ARP the arpeggiator's runs: their WAVs as hashes too.
     audio_hashes_only(os.path.join(OUT, "arp"), os.path.join(OUT, "arp-audio.sha256"))
     for c in CHECKS:

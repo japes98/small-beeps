@@ -1969,6 +1969,35 @@ SR-3 wrote only its barrier-log row.*
   - **Force-pushes:** none.
   - **Disk:** 20 GB free at the start; 19 GB at the lowest.
 
+### Session clean-1027 (the owner's answers to clean-a1-packager's questions, seams for firmwares built on small-beeps, M8b)
+- Date: 2026-10-27 (UTC; the evening of 2026-10-27 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.312 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `f63e5c6c-e5b4-4ee8-a042-a302bc13f665`,
+  started by a `/clear` at 23:41:56Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `fd07f7f` (#153's merge) and ended "no spec-side
+  files on disk or in .git"; `tools/private-terms.local` exists (not
+  opened); lazy fetching off (`GIT_NO_LAZY_FETCH=1`). It archived
+  clean-a1-packager (`581bd4e1`) into `sessions/clean/`; every other
+  clean session was already archived. `tools/check-transcripts.py` failed
+  on three of clean-a1-packager's calls: a `git show --stat` naming the
+  spec-side folders only as `:!` exclusions, #153's `gh pr create` (its
+  body names the F-Emulator app), and the blocked `ls` (below). Three
+  reviewed entries in `sessions/REVIEWED.json`; then PASS. The Mac had
+  14 GB free.
+- **The owner's answer 1** (this session's prompt): clean-a1-packager's
+  blocked `ls` is recorded as a reviewed entry that says what happened:
+  an attempt, denied by the settings, never ran, nothing listed. Approved.
+- A spec session works at the same time; this session opens none of its
+  branches.
+
 ### Session spec-1027 (the app's answers, clean's two questions, SR-10, Phase B candidates)
 - Date: 2026-10-27 (UTC; the evening of 2026-10-27 local time)
 - Role: **spec side (exposed).** Never writes firmware.
