@@ -48,7 +48,8 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   which come before the folder's files stop it); the folder copied to two other places and built from
   each, one with the source mounted elsewhere, gives the same bytes; and
   refused: a folder not inside a --src folder, a base folder, an
-  absolute path, "..", -fdebug-prefix-map, -o, -Xclang, -Wp, an @file, a
+  absolute path, "..", -fdebug-prefix-map, -o, -Xclang, -mllvm (since
+  clean-mllvm), -Wp, an @file, a
   bare -isystem, and a folder without its flags. Since clean-pin-flags
   its objects must be built for the SDK's CPU and float: the folder
   given -mcpu=r3 -mfprev1 again, inner/ -mno-fprev1, its C++ -mfprev1
@@ -397,6 +398,7 @@ def case_flags(a, work, log):
                ["--src", FLAGS, "--cflags", FLAGS, "-fdebug-prefix-map=a=b"],
                ["--src", FLAGS, "--cflags", FLAGS, "-o x"],
                ["--src", FLAGS, "--cflags", FLAGS, "-Xclang -v"],
+               ["--src", FLAGS, "--cflags", FLAGS, "-mllvm -fast-isel"],
                ["--src", FLAGS, "--cflags", FLAGS, "-Wp,-MD,x"],
                ["--src", FLAGS, "--cflags", FLAGS, "@file"],
                ["--src", FLAGS, "--cflags", FLAGS, "-isystem inner"],

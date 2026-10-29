@@ -2406,6 +2406,13 @@ SR-3 wrote only its barrier-log row.*
   outside the repository but the build image's and fwtest's own
   downloads.
 - GitHub: pull requests listed (#172 to #177, all merged).
+- **The pull request (-mllvm refused):** C-UNIT (408 tests) in this
+  folder, and the check without the change (its new test fails); build A
+  and the seams suite's flags case from a copy of the tree: PASS, 12
+  refused, `-mllvm -fast-isel` among them with its message. The cause of
+  #176's count change, from the owner's answer, is in DESIGN-NOTES.
+- Force-pushes: none.
+- Disk: 6.0 GB free at the start; about 5.8 GB at the lowest.
 
 ## Corrections
 

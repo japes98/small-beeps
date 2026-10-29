@@ -353,6 +353,9 @@ sh base/tools/build.sh build --out out --platform --src src --ld src/my.ld \
   Refused alike: another CPU (`-mcpu=r4`, even `r3s`), SIMD (`-msimd`),
   and any other feature the toolchain has. fwtest
   runs what the SDK's flags give (R-HARN-14), not these.
+- `-mllvm` is refused outright (exit 2, before anything is built): it
+  passes options straight to the compiler's code generator, past the
+  reading above, so nothing could vouch for what it builds.
 - `--define NAME` stays the way to set something for every file, the
   base's included.
 
