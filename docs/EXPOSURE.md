@@ -2246,6 +2246,25 @@ SR-3 wrote only its barrier-log row.*
 - Force-pushes: none.
 - Disk: 6.1 GB free at the start; 4.5 GB at the lowest.
 
+### Session spec-isa-audit (does fwtest run every instruction form the toolchain can emit)
+- Date: 2026-10-28 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.312 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `3554477d-915e-4869-a94a-6a2ff3efe04a`,
+  started by `/clear` at 20:29:54Z (banner `source: clear`,
+  `status: OK`).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; the role file says
+  `spec`. 20:30:22Z: `tools/spec-setup.sh`, banner `status: OK`
+  (`84a7e56c…`); main at `f9a9bc64` (#155 to #168 merged);
+  `tools/private-terms.local` exists (not opened). 6.6 GB free at the
+  start.
+- What it archived: spec-1027's transcript (`541eb13f`) into
+  `sessions/spec/`; `tools/check-transcripts.py` PASS (40 archived
+  transcripts).
+- Exposure: (filled in at the end of the session.)
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
