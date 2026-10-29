@@ -1,0 +1,14 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 27913cf0912e0dff915f73da60f5c7de88b77cd1..e5a0b353ae696da491fef71b30259c7a2ef8abc5
+OK     fcbbf14ce7a1 store: each firmware chooses its own store region
+EXEMPT 83bcab8bc4a7 (merge) docs: merge build/disasm-flags into store/region
+OK     3794a1f8b7e1 tests: powercut compares flash commands by page, as fwtest logs them
+EXEMPT f288f242f200 (merge) tools: merge build/disasm-flags into store/region
+OK     71b188e0e937 tests: fmgold's last release off an audio block's edge
+EXEMPT c7896a32bf1a (merge) docs: merge build/disasm-flags into store/region
+OK     c602fd9ad3f1 docs: store.h and R-STORE-10 with the new room-making's figures
+OK     5a2cefd4a629 docs: the worked example's region from 0x80000
+OK     434476f25b83 docs: EXPOSURE.md, #173's C-SEP-TERMS log
+EXEMPT e5a0b353ae69 (merge) Merge pull request #173 from japes98/store/region
+10 commit(s) checked: PASS
+
+exit status 0

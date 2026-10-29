@@ -1,0 +1,38 @@
+{
+  "fwtest": {
+    "version": "0.9.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 15316,
+    "sha256": "38cf778d8b101387ac5d15d5d98567db06405d4bcb5321fcaeebc59a08d0a342"
+  },
+  "script_sha256": "4e4895446b7cf1a0de9deb36aeaf4cf0054858468dbbc778a818d8f344e18a48",
+  "run": {
+    "outcome": "power-cut",
+    "detail": "the power was cut at the time asked, with no erase or program in progress",
+    "emulated_ms": "584.456",
+    "instructions": {
+      "core0": 6803314,
+      "core1": 42509606
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "13901af748a49294f6f1daf151d8b2157eea40e0e5479b391fabf004546647da"
+      },
+      {
+        "name": "ram-01c00870-a8-end.bin",
+        "bytes": 168,
+        "sha256": "c45a3ac769a426f2f0d28e339d650a8e1b7b5d4052cf564e3773ac620d0b4b79"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
