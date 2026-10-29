@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range e90f07c449b36c8c012a9300b8a4c5b9bb9d5422..547fa49cd918d79cff8d289292549139ea6e8217
+OK     9eaf2a26ab84 docs: clean-1028's transcript archived, clean-store-region's prompt
+OK     16fda5c9d875 tools: the write-back check reads each object as compiled (BR-13)
+OK     962925b7b4fa docs: EXPOSURE.md, clean-store-region's entry
+OK     5fefb5fad613 tools: the bad instruction test build's undecodable bytes are allowed
+OK     4f2dd1212b40 docs: EXPOSURE.md, clean-store-region's runs and an attempt
+EXEMPT 547fa49cd918 (merge) Merge pull request #172 from japes98/build/disasm-flags
+6 commit(s) checked: PASS
+
+exit status 0
