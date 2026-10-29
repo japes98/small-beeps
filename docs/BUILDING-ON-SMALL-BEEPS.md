@@ -162,7 +162,7 @@ platform's:
 
 ```
 /* src/my.ld */
-STORE_BASE = 0x84000;     /* 16 sectors, 0x84000 to 0x93FFF */
+STORE_BASE = 0x80000;     /* 16 sectors from 0x80000 */
 STORE_SIZE = 0x10000;
 
 INCLUDE platform.ld
@@ -177,8 +177,8 @@ package's, whose image is 0x120 bytes longer) and prints it, here for an
 image of about 110 KiB:
 
 ```
-app.elf: store region 0x84000 to 0x93FFF, 16 sectors (the image ends at 0x1F7C7)
-app-pkg.elf: store region 0x84000 to 0x93FFF, 16 sectors (the image ends at 0x1F8E7)
+app.elf: store region 0x80000 to 0x8FFFF, 16 sectors (the image ends at 0x1F7C7)
+app-pkg.elf: store region 0x80000 to 0x8FFFF, 16 sectors (the image ends at 0x1F8E7)
 ```
 
 It refuses a region, saying what is wrong and where one of that size
@@ -227,10 +227,10 @@ firmware keeps eight 4 096-byte records (kinds `0x80`, ids 0 to 7: a
 bank of samples, say) and rewrites any of them at any time. Today's
 three sectors can't rewrite even one. Sixteen sectors (64 KiB) keep
 twelve, each rewritable, so eight leaves room to grow. Put them where
-your image can grow into the space below them: the highest place in the
-app area, `0x84000` to `0x93FFF` (the script above), leaves your image
-room to grow to 512 KiB (`0x4000` to `0x83FFF`); the build will refuse
-it the day the image reaches the store. Everything else is as before:
+your image can grow into the space below them: high in the app area,
+from `0x80000` (the script above), they leave your image room to grow to
+496 KiB (it starts at `0x4000`), and 64 KiB of the app area above them
+free; the build will refuse the region the day the image reaches it. Everything else is as before:
 
 ```c
 for (id = 0; id < 8; id++)

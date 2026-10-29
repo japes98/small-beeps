@@ -65,7 +65,8 @@ class StoreRegionTest(unittest.TestCase):
     def test_refuses_a_region_across_the_app_areas_end(self):
         out = self.refused(0x90000, 0x10000, "the region (0x90000 to 0x9FFFF) crosses the end of the app area at "
                            "0x94000", "overlaps the stock firmware's VM region")
-        self.assertIn("a region of 16 sectors fits in the app area after the image, from 0x12000 to 0x84000", out)
+        self.assertIn("a region of 16 sectors fits in the app area after the image, from 0x12000 to 0x%X" % (0x94000 - 0x10000),
+                      out)
 
     def test_refuses_the_stock_user_patch_region(self):
         # The wide region test build's until clean-store-region.
@@ -103,7 +104,7 @@ class StoreRegionTest(unittest.TestCase):
         self.assertIn("the app area after the image (none) holds 0 sectors at most", out)
 
     def test_every_problem_is_listed(self):
-        out = self.refused(0x10800, 0x2800)
+        out = self.refused(0x10400, 0x2800)
         self.assertEqual(len(re.findall(r"(?m)^app-pkg\.elf: store region: ", out)), 5, out)
 
 
