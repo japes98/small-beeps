@@ -91,7 +91,8 @@ class StoreRegionTest(unittest.TestCase):
 
     def test_refuses_the_rest_of_the_stock_layout(self):
         self.refused(0x0, 0x3000, "begins in the boot area (0x0 to 0x3FFF)")
-        self.refused(0xA0000, 0x5000, "overlaps the stock firmware's VM region")
+        self.refused(0xA0000, 0x5000, "overlaps the stock firmware's VM region, which holds the stock firmware's settings "
+                     "and is where an update stages its loader, so a store there could be lost or break an update")
         self.refused(0xE9000, 0x3000, "overlaps the Bluetooth sector, 0xE9000 to 0xE9FFF")
         self.refused(0xFD000, 0x3000, "overlaps the chip's last sector, the per-unit key that must never be erased")
         self.refused(0xFE000, 0x4000, "runs past the end of the 1 MiB chip")

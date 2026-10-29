@@ -39,7 +39,7 @@ my $AREA = 0x4000;
 my $AREA_END = 0x94000;
 my ($UNUSED, $UNUSED_END) = (0xFC000, 0xFF000);
 my @STOCK = (
-    [0x94000, 0xE9000, "the stock firmware's VM region (its settings, and where an update stages its loader)"],
+    [0x94000, 0xE9000, "the stock firmware's VM region, which holds the stock firmware's settings and is where an update stages its loader, so a store there could be lost or break an update"],
     [0xE9000, 0xEA000, "the Bluetooth sector"],
     [0xEA000, 0xFC000, "the stock firmware's user patch region, which the base leaves untouched"],
     [0xFF000, 0x100000, "the chip's last sector, the per-unit key that must never be erased"],
