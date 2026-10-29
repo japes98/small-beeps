@@ -2315,6 +2315,67 @@ SR-3 wrote only its barrier-log row.*
   (`~/<top>/drop/fwtest-patches/`) for the app.
 - Disk: 6.6 GB free at the start; 4.8 GB at the lowest.
 
+### Session clean-pin-flags (pin fwtest 0.10.0, the folder's CPU and float, the owner's store-region answers)
+- Date: 2026-10-29 (UTC; the evening of 2026-10-28 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.312 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `dad12a8a-540e-41f5-9298-d8f486e2ea71`,
+  started by a `/clear` at 02:47:30Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `e5a0b353` (#173's merge; #172 to #175 merged) and
+  ended "no spec-side files on disk or in .git";
+  `tools/private-terms.local` exists (not opened); lazy fetching off
+  (`GIT_NO_LAZY_FETCH=1`). It archived clean-store-region (`264a9b42`)
+  into `sessions/clean/` (its last report read first, for the owner's
+  answers); every other clean session was already archived.
+  `tools/check-transcripts.py`: 24 archived transcripts, PASS; no reviewed
+  entries were added. The Mac had 5.2 GB free.
+- A spec session may work at the same time; this session opens none of its
+  branches.
+- Reads: this file, sessions/README.md, docs/HARNESS.md ("Outcomes and
+  exit codes", and the lines naming C-HARNESS-ISA and
+  C-HARNESS-IMAGE-REPRO), docs/STORE-FORMAT.md, docs/DESIGN-NOTES.md,
+  docs/REQUIREMENTS.md and docs/BUILDING-ON-SMALL-BEEPS.md (the parts
+  these changes touch), #169's description (as a model), and this
+  repository's firmware, tools and tests. Nothing fetched from outside
+  the repository but the build image's and fwtest's own downloads.
+- GitHub: #172 to #175's state and file lists (names only; #175's include
+  spec-side paths, not opened); the image workflow's runs listed, and of
+  the run on `27913cf0` (#175's merge) the log read through a filter
+  printing only the pushed digest and fwtest's version lines; open pull
+  requests listed (none open).
+- Toolchain probes, in the build image: clang's `-###` reading of CPU and
+  feature flags (`-mcpu`, `-mfprev1`, `-mno-fprev1`, `-mfprev2`,
+  `-msimd`, `-mcordic`, `-Xclang -target-feature`, `-mllvm`, `-march`,
+  `-mtune`, the float-ABI flags), the same with C++ and assembly flags,
+  and `clang -mcpu=help` (the target's CPU and feature lists).
+- **#176 (the pin, fwtest 0.10.0):** main's image (build A at
+  `e5a0b353`) ran the firmware suite on 0.10.0 and on 0.9.0, from
+  copies of the tree in the job's temporary folder, one at a time: both
+  PASS, no trap outcome, the one fault badinsn's, as expected; the
+  output trees compared file by file (three save cases' instruction
+  counts per block differ, nothing else but fwtest's version and the
+  runner). The 0.9.0 copy was deleted before every changed row had been
+  read, so the pull request gives only the counts of differing blocks
+  and the totals. #176's CI result lines read through a filter printing
+  only named checks' results (C-HARNESS-IMAGE-REPRO, C-HARNESS-ISA,
+  C-FW-SUITE, C-SEP-TERMS, C-UNIT: PASS).
+- **#177 (a folder's CPU and float):** a refused build tried by hand;
+  the seams suite from a copy (nine cases PASS, flags FAIL: its message
+  named every folder whose flags apply to the file, so the check was
+  changed to name only the folder giving the effect, and the flags case
+  rerun alone: PASS); the Plaits demo built plain and with
+  `PLAITS_HWFLOAT`; C-UNIT (405 tests) in this folder. #177's first CI
+  run passed (its check status only).
+- Force-pushes: none.
+- Disk: 5.2 GB free at the start; about 4.5 GB at the lowest.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

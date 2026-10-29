@@ -5,6 +5,15 @@
 # patch, legato), the whole output against a golden WAV; fmgold2 runs
 # it again and must give the same bytes (R-FM-9).
 #
+# Keep every key event well clear of an audio block's edge (a block is
+# 64 frames, 1.451 ms; clean-pin-flags). The engine reads the panel's
+# events between blocks, so a note starts or ends at a block edge; an
+# event within microseconds of one can fall either side of it when the
+# image's timing shifts by a few microseconds (a bigger image, a harness
+# change), moving the note by a whole block and changing the output for
+# no fault of the firmware. A few hundred microseconds from an edge is
+# enough; try a new time a little either side before using it.
+#
 # time   event
 100      key 30 tap 250
 490      enc 6 +1

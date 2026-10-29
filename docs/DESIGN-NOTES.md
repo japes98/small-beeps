@@ -3554,3 +3554,32 @@ C-SEAMS) and its part below.
   the save moves the head on twice for one part's room, the firmware's
   flash commands the model's one for one, every command in the region,
   cut at every command, the other ten payloads unchanged.
+
+### 2026-10-29 clean-pin-flags: the owner's answers on the store region (R-STORE-12)
+
+clean-store-region asked the owner six questions about the store region
+(its session report). The answers, as decisions:
+
+- **Moving on until there is room, and 128 parts: accepted.** The store
+  moves the ring on until the head has room, once round at most, and
+  keeps track of 128 record parts. Every save the earlier store accepted
+  writes the same bytes, and the power-cut runs (R-STORE-11) cover the
+  new path; only saves it refused behave differently. STORE-FORMAT says
+  so ("Writing").
+- **Every extra refusal stays.** The build keeps refusing, beyond the
+  five the owner named, regions over 128 sectors, in the boot area, in
+  the VM region, the Bluetooth sector and the last sector. The VM region
+  in particular: it holds the stock firmware's settings and is where an
+  update stages its loader, so a store there could be lost or break an
+  update. `tools/store-region.pl`'s refusal now says that.
+- **SR-11 waits for the spec side.** Until it is answered the guide's
+  wording stands: a store in the app area survives fwtest and the app,
+  not yet a real unit's update.
+- **The PLAITS_HWFLOAT exception's removal (BR-13): accepted.**
+- **fmgold's moved key release: accepted.** The golden is unchanged; the
+  cause was an event within microseconds of an audio block's edge. The
+  script's header now says to keep key events well clear of block edges,
+  and why.
+- **18 ms once at init for a full 16-sector region: acceptable.** Not to
+  be optimised. The guide's sizing section gives the figures as a table
+  ("Where the store goes").

@@ -141,9 +141,17 @@ When the head has no room, the next sector in the ring becomes the head:
 it is erased, and its header written with the next sequence number. Then
 every record still live in the sector after the new head (the oldest) is
 copied into the new head, with a new sequence number, so that sector holds
-nothing live by the time the ring comes round to erase it. If a sector
-can't be freed without losing a live record, the write is refused and
-nothing is written.
+nothing live by the time the ring comes round to erase it. If the new
+head still has no room, the ring moves on again the same way, once round
+at most (since clean-store-region). If a sector can't be freed without
+losing a live record, the write is refused and nothing is written.
+
+Moving on more than once, and keeping track of 128 parts (32 before),
+change nothing that the earlier store did: every save it accepted writes
+the same bytes to the same places, in the same order. Only saves it
+refused behave differently: they may now succeed, after more than one
+move. The power-cut runs (R-STORE-11) cover the new path. The owner
+accepted this (clean-pin-flags).
 
 ## Other regions
 

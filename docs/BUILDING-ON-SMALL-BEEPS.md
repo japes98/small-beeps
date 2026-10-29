@@ -190,9 +190,11 @@ would fit, if it:
 - overlaps your image (it starts at chip offset `0x4000`), or the boot
   area below it;
 - crosses the end of the app area at `0x94000`, or lies past it in the
-  stock layout: the VM region (`0x94000` to `0xE8FFF`), the Bluetooth
-  sector, the stock user patch region, or the chip's last sector (its
-  per-unit key, which must never be erased).
+  stock layout: the VM region (`0x94000` to `0xE8FFF`: it holds the
+  stock firmware's settings and is where an update stages its loader, so
+  a store there could be lost or break an update), the Bluetooth sector,
+  the stock user patch region, or the chip's last sector (its per-unit
+  key, which must never be erased).
 
 So a region goes either in the app area after your image, or in the
 unused three sectors. `0x94000` is where the stock layout's app area
@@ -238,11 +240,18 @@ for (id = 0; id < 8; id++)
 r = store_put(0x80, id, 1, rec, 4096);                    /* from your serve */
 ```
 
-A larger region costs some time: `store_init` reads every sector, and
-those holding your kinds' records three times, so with eleven 4 096-byte
-payloads in 16 sectors it takes 18 ms (in fwtest; 2.2 ms for one in 5
-sectors, 1.1 ms for today's three holding the base's records and two
-small payloads). Call it once, in your init, before the audio starts.
+A larger region costs some time at start-up: `store_init` reads every
+sector, and those holding your kinds' records three times. Measured in
+fwtest:
+
+| Region | Holding | `store_init` |
+|-------:|---------|-------------:|
+| 3 sectors (the default) | the base's own records | 0.28 ms |
+| 3 sectors (the default) | the base's records, a 10-byte and a 1 500-byte payload | 1.1 ms |
+| 5 sectors | the base's records and one 4 096-byte payload | 2.2 ms |
+| 16 sectors | the base's records and eleven 4 096-byte payloads | 18 ms |
+
+It runs once: call it in your init, before the audio starts.
 And a save in a nearly full region may move the ring on several sectors
 (an erase each, up to 12 ms on the chip, HW-77) before it has room. Three
 things to know about a region in the app area:
