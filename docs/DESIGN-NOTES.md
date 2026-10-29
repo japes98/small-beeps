@@ -3583,3 +3583,60 @@ clean-store-region asked the owner six questions about the store region
 - **18 ms once at init for a full 16-sector region: acceptable.** Not to
   be optimised. The guide's sizing section gives the figures as a table
   ("Where the store goes").
+
+### 2026-10-29 clean-pin-flags: a folder's code for the SDK's CPU and float (amends BR-11, R-BUILD-5)
+
+BR-11 let a `--src` folder set its own `-m` flags, so a folder could
+build for another CPU or with instructions the SDK's flags leave out
+(double-precision float, SIMD): code fwtest doesn't run (it runs the
+forms `-mcpu=r3 -mfprev1` give, R-HARN-14).
+The owner's rule: a folder may still set other `-m` flags, but its
+objects are built for CPU `r3`, with the features `+fprev1` or none.
+
+- **By clang's reading, not by spelling.** BR-13 already reads each
+  compile line's CPU and features from clang's own `-###` line
+  (`note_cpu`, now `read_cpu` and `note_cpu`). The check takes the same
+  reading of every folder file's flags (the base's for its kind, then
+  its folders'), so `-mcpu=r4`, `-mfprev2`, `-msimd`, a
+  `-target-feature` and a flag the toolchain gains later are caught
+  alike. The toolchain's target knows CPUs `generic` and `r1` to `r5`
+  with variants (`r3s`, `r3v1`, ...), and nine features, among them
+  `fprev1` (float), `fprev2` (float and double) and `simd` (its
+  `-mcpu=help`).
+- **What passes.** CPU exactly `r3` (not `r3s` or another variant), and
+  of the features, each taken at its last `+` or `-`, none enabled but
+  `fprev1`. So the base's own set, `-mfprev1` again, and
+  `-mno-fprev1` (no float instructions: soft-float, which the base's
+  runtime provides) all pass; the face-value reading of "+fprev1 or
+  none". A reading with no CPU (clang read none) is refused too.
+- **Where.** Only `--src` folders' files that have folder flags: the
+  base's own files keep the base's flags, and two of the base's builds
+  read without a CPU on purpose (the runtime's C and the Plaits demo,
+  which are soft-float; the demo's `PLAITS_HWFLOAT` build adds `+fprev1`
+  through `-Xclang -target-feature`, the SDK's set, and stays as it is).
+- **When.** Every folder file is checked before any is compiled, so the
+  refusal comes before a compiler error and once per option, folder and
+  effect ("and N more" files), on stderr only. The message names the
+  option and the folder whose own flags give the effect, as the user
+  gave them (carried into the container beside the mount path; only
+  messages see it, so the outputs stay the same from any place; every
+  folder of the file, if only their flags together give it), the first
+  file, what the flag does, which of the folder's flags alone give it
+  and the fix.
+- **`-Xclang`.** The owner named `-Xclang -target-feature` among the
+  spellings to catch. A folder can't give it: `check_flags` takes only
+  the listed families, and `-Xclang` is not one (refused at exit 2
+  since clean-1028). The reading would catch it if it ever got through;
+  its reading (`+fprev2`, the same as `-mfprev2`'s) is in the unit test.
+  Through `-m`, `-mllvm` passes options to the code generator, past
+  the driver's reading; `-mllvm -mattr=...` and `-mllvm -mcpu=...` are
+  not options this toolchain knows (it stops on them), so it is no
+  route today, but it is the one the reading doesn't see.
+- **Tested.** C-UNIT (`tests/test_build_flags.py`): the verdict on the
+  readings of the SDK's set, `-mcpu=r3` alone, `-mno-fprev1`, another
+  CPU, no CPU, double precision, SIMD and an unlisted feature. C-SEAMS
+  (case flags): the flags folder built with `-mcpu=r3 -mfprev1`,
+  `-mno-fprev1` (inner/, read as without float instructions), C++
+  `-mfprev1` and assembly `-mcpu=r3`; and refused, each before any of
+  its files is compiled, with its message: inner/ `-mcpu=r4`, the C++
+  `-O2 -mfprev2` (only `-mfprev2` named) and the assembly `-msimd`.

@@ -49,7 +49,14 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   each, one with the source mounted elsewhere, gives the same bytes; and
   refused: a folder not inside a --src folder, a base folder, an
   absolute path, "..", -fdebug-prefix-map, -o, -Xclang, -Wp, an @file, a
-  bare -isystem, and a folder without its flags.
+  bare -isystem, and a folder without its flags. Since clean-pin-flags
+  its objects must be built for the SDK's CPU and float: the folder
+  given -mcpu=r3 -mfprev1 again, inner/ -mno-fprev1, its C++ -mfprev1
+  and its assembly -mcpu=r3 builds (inner/'s object read as without
+  float instructions); inner/ given -mcpu=r4, the C++ -mfprev2 and the
+  assembly -msimd are each refused before any of the folder's files is
+  compiled, the message naming the option and folder as given, the file,
+  what the flag does and the fix.
 - engine (R-ENG-1): the engine seam. A test engine from outside
   firmware/ (tests/seams/engine/, built with SB_ENGINE_EXTERNAL) runs in
   fwtest for 2.3 s with two key taps (tests/seams/scripts/engine.txt):
@@ -398,8 +405,34 @@ def case_flags(a, work, log):
         rc, _ = build(os.path.join(work, "refused"), log, *opts, check=False)
         if rc != 2:
             problems.append("%s was not refused (exit %d)" % (" ".join(opts), rc))
+    # The folder's objects for the SDK's CPU and float (clean-pin-flags):
+    # the SDK's own set again, and no float instructions, are taken...
+    allowed = flags_opts(FLAGS) + ["--cflags", FLAGS, "-mcpu=r3 -mfprev1", "--cflags", FLAGS + "/inner", "-mno-fprev1",
+                                   "--cxxflags", FLAGS, "-mfprev1", "--asflags", FLAGS, "-mcpu=r3"]
+    rc, out = build(os.path.join(work, "cpu-allowed"), log, *allowed, check=False)
+    if rc != 0:
+        problems.append("the SDK's CPU and float set, or none, given as a folder's flags, was refused (exit %d)" % rc)
+    elif "ownbase check: 1 objects disassembled with -mcpu=r3 -mattr=-fprev1" not in out:
+        problems.append("inner/'s file was not built without float instructions (-mno-fprev1)")
+    # ...another CPU, double precision and SIMD are refused before any of
+    # the folder's files is compiled, each naming the folder as given, the
+    # file, the effect and the fix.
+    cpu_refused = (("--cflags", FLAGS + "/inner", "-mcpu=r4", "inner/sb_flags_inner.c",
+                    "another CPU, r4 (the SDK's is r3)"),
+                   ("--cxxflags", FLAGS, "-O2 -mfprev2", "sb_flags_cxx.cc", "double-precision float (fprev2)"),
+                   ("--asflags", FLAGS, "-msimd", "sb_flags_asm.S", "SIMD instructions (simd)"))
+    for opt, folder, fl, f, effect in cpu_refused:
+        rc, out = build(os.path.join(work, "refused"), log, *(flags_opts(FLAGS) + [opt, folder, fl]), check=False)
+        flag = fl.split()[-1]
+        want = ("build: %s %s: %s/%s would be built for %s, which the SDK's flags exclude and fwtest doesn't run "
+                "(from %s)." % (opt, folder, FLAGS, f, effect, flag),
+                "Fix: take that out of %s %s." % (opt, folder))
+        if rc == 0 or any(w not in out for w in want) or re.search(r"^\+ clang .*\.\./sb-src-", out, re.M):
+            problems.append("%s %s %s was not refused before compiling, with what it does and the fix (exit %d)"
+                            % (opt, folder, fl, rc))
     print("flags: %d symbols from the folder; each file with its folders' flags after the base's, the base's"
-          " files with the base's only; without them it stops on the folder's files; three places, %s; %d refused"
+          " files with the base's only; without them it stops on the folder's files; three places, %s; %d refused;"
+          " the SDK's CPU and float, or none, taken; another CPU, double precision and SIMD refused"
           % (sum(sym in syms for sym in FLAGS_SYMBOLS), "the same bytes" if len(set(sums)) == 1 else "DIFFERENT",
              len(refused)))
     return problems
