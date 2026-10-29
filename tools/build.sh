@@ -75,7 +75,12 @@
 # not those that would reach the host, the outputs' determinism or
 # another tool: an absolute path or one with "..", -fdebug-prefix-map
 # and its kin, -fprofile..., -fplugin..., -fpass-plugin...,
-# -fsave-optimization-record, -Wa, -Wp, -Wl (check_flags).
+# -fsave-optimization-record, -Wa, -Wp, -Wl (check_flags). And since
+# clean-pin-flags (amending BR-11) a folder's objects are built for the
+# SDK's CPU and float, whatever its -m flags: clang's reading of each
+# file's flags (read_cpu, BR-13's) must give CPU r3 and of the features
+# fprev1 or none (check_cpu), or the build stops before compiling any of
+# the folder's files, naming the folder, what the flag does and the fix.
 #
 # The platform (BR-2): --platform leaves out the base's instrument, the
 # files below, defines SB_ENGINE_EXTERNAL (firmware/src/engine.h) and
@@ -129,7 +134,7 @@ check_flags() {
 
 cmd_build() {
     out="" src_mount=/mnt/small-beeps-src defines="" demo="" mounts="" srcs="" leave="" n=0
-    platform="" ldscript="" ff=""
+    platform="" ldscript="" ff="" srcnames=""
     while [ $# -gt 0 ]; do
         case "$1" in
             --out) out=$2; shift 2 ;;
@@ -149,12 +154,16 @@ cmd_build() {
                 esac
                 n=$((n + 1))
                 srcs="$srcs $d"
+                srcnames="$srcnames $2"
                 shift 2 ;;
             --cflags|--cxxflags|--asflags)
                 [ $# -ge 3 ] || { echo "build: $1 takes a folder and its flags" >&2; exit 2; }
                 [ -d "$2" ] || { echo "build: $1 $2 is not a folder" >&2; exit 2; }
+                case "$2" in
+                    *[\|\;]*) echo "build: $1 $2: a folder name with | or ; is not supported" >&2; exit 2 ;;
+                esac
                 check_flags "$1" "$3"
-                ff="$ff;${1#--}|$(cd "$2" && pwd)|$3"; shift 3 ;;
+                ff="$ff;${1#--}|$(cd "$2" && pwd)|$2|$3"; shift 3 ;;
             --leave-out)
                 case "$2" in
                     firmware/*) [ -f "$ROOT/$2" ] || { echo "build: --leave-out $2: no such base file" >&2; exit 2; } ;;
@@ -209,7 +218,8 @@ cmd_build() {
     for e in $ff; do
         [ -n "$e" ] || continue
         k=${e%%|*} rest=${e#*|}
-        d=${rest%%|*} f=${rest#*|}
+        d=${rest%%|*} rest=${rest#*|}
+        name=${rest%%|*} f=${rest#*|}
         m="" n=0
         IFS=$old_ifs
         for sd in $srcs; do
@@ -228,7 +238,7 @@ cmd_build() {
             esac
             g="$g $w"
         done
-        folder_flags="$folder_flags;$k|$m|${g# }"
+        folder_flags="$folder_flags;$k|$m|$name|${g# }"
         IFS=';'
     done
     IFS=$old_ifs
@@ -248,7 +258,7 @@ cmd_build() {
     docker run --rm --platform "$PLATFORM" --network none \
         --user "$(id -u):$(id -g)" -e SB_DEFINES="$defines" -e SB_DEMO="$demo" \
         -e SB_SRCS="$outside" -e SB_LEAVE_OUT="$leave" -e SB_LD="$script" \
-        -e SB_FOLDER_FLAGS="$folder_flags" \
+        -e SB_FOLDER_FLAGS="$folder_flags" -e SB_SRC_NAMES="$srcnames" \
         -v "$ROOT:$src_mount:ro" $mounts -v "$out:/out" -w "$src_mount" \
         "$tag" sh "$src_mount/tools/build.sh" inside "$src_mount" /out
     cat "$out/SHA256SUMS"
@@ -331,28 +341,59 @@ build_demo_plaits() {
 
 # The flags of every folder holding the source $2 (its path from the
 # source mount) given with option $1 (cflags, cxxflags or asflags), in
-# the order given (BR-11; SB_FOLDER_FLAGS: entries "option|folder|flags",
-# each after a ";").
+# the order given (BR-11; SB_FOLDER_FLAGS: entries
+# "option|folder|the folder as given|flags", each after a ";"). With $3
+# "entries", one line each instead: "--option folder-as-given|flags".
 folder_flags() {
     fl="" old_ifs=$IFS
     IFS=';'
     for e in ${SB_FOLDER_FLAGS:-}; do
         [ -n "$e" ] || continue
         k=${e%%|*} rest=${e#*|}
-        d=${rest%%|*}
+        d=${rest%%|*} rest=${rest#*|}
         [ "$k" = "$1" ] || continue
         case "$2" in
-            "$d"/*) fl="$fl ${rest#*|}" ;;
+            "$d"/*) if [ "${3:-}" = entries ]; then fl="$fl--$k $rest
+"; else fl="$fl ${rest#*|}"; fi ;;
         esac
     done
     IFS=$old_ifs
-    echo "${fl# }"
+    if [ "${3:-}" = entries ]; then printf '%s' "$fl"; else echo "${fl# }"; fi
 }
 
 # The sources of the folders given with --src (BR-5), mounted beside the
 # source mount as sb-src-N: every .c, .S and .cc, sorted by path, named
-# by it, and built by its path from the source mount.
+# by it, and built by its path from the source mount. Each file's flags
+# are checked first, every file's before any is compiled (check_cpu).
 build_outside() {
+    k=0 refused=""
+    for m in ${SB_SRCS:-}; do
+        k=$((k + 1))
+        for s in $(cd "$m" && find . -name '*.c' -o -name '*.S' -o -name '*.cc' | sed 's|^\./||' | LC_ALL=C sort); do
+            case "$s" in
+                *.S) check_cpu asflags $k "$s" "$ASFLAGS" ;;
+                *.cc) check_cpu cxxflags $k "$s" "$CXXFLAGS" ;;
+                *) check_cpu cflags $k "$s" "$CFLAGS" ;;
+            esac
+        done
+    done
+    if [ -n "$refused" ]; then
+        # One message for each folder's options and effect, naming its
+        # first file and how many more.
+        printf '%s' "$refused" | awk -F'|' '
+            { key = $1 "|" $2 "|" $3; if (!(key in n)) { order[++o] = key; first[key] = $4 } n[key]++ }
+            END {
+                for (i = 1; i <= o; i++) {
+                    split(order[i], f, "|"); key = order[i]
+                    more = n[key] > 1 ? " and " (n[key] - 1) " more" : ""
+                    from = f[3] == "" ? "from these flags together" : "from " f[3]
+                    printf "build: %s: %s%s would be built for %s, which the SDK'"'"'s flags exclude and fwtest doesn'"'"'t run (%s).\n", f[1], first[key], more, f[2], from
+                    printf "build:   Fix: take that out of %s. Every --src folder is built for the SDK'"'"'s CPU, r3, with its single-precision float (fprev1, as the base is) or without float instructions (-mno-fprev1); other -m flags are yours to set (BR-11; docs/BUILDING-ON-SMALL-BEEPS.md, section 5).\n", f[1]
+                }
+            }' >&2
+        echo "FAIL: a folder's flags build for another CPU or other features than the SDK's (above)" >&2
+        exit 1
+    fi
     k=0
     for m in ${SB_SRCS:-}; do
         k=$((k + 1))
@@ -374,16 +415,13 @@ build_outside() {
     done
 }
 
-# The CPU and its features that the compile flags $2 give, as objdump's
-# options, noted for the object $1 (BR-13): the write-back store check
-# disassembles each object as it was compiled, or a float instruction
-# (the fprev1 feature's) reads as an unknown one and the bytes after it
-# as others. Clang's own reading of the flags (its -### line), so
-# -mcpu, -mfprev1, -mno-fprev1 and -Xclang -target-feature all count.
-# (It sets cpu: sh has no local variables, and the callers use d.)
-note_cpu() {
+# The CPU and its features that the compile flags $1 give, as objdump's
+# options (in cpu: " -mcpu=r3 -mattr=+fprev1"). Clang's own reading of
+# the flags (its -### line), so -mcpu, -mfprev1, -mno-fprev1, -mfprev2,
+# -msimd, -Xclang -target-feature and any flag to come count alike.
+read_cpu() {
     # shellcheck disable=SC2086
-    cpu=$(clang -### $2 -x c -c /dev/null 2>&1 | tail -n 1 | awk '{
+    cpu=$(clang -### $1 -x c -c /dev/null 2>&1 | tail -n 1 | awk '{
         n = split($0, a, "\" \"")
         for (i = 1; i < n; i++) {
             if (a[i] == "-target-cpu") c = " -mcpu=" a[i + 1]
@@ -391,6 +429,93 @@ note_cpu() {
         }
         print c (f == "" ? "" : " -mattr=" f)
     }')
+}
+
+# What, in the reading $1 (read_cpu's), is not the SDK's CPU and float
+# (BR-11, clean-pin-flags): one line each. The CPU must be r3, and the
+# features it ends with (each feature's last +name or -name) fprev1 or
+# none.
+cpu_effects() {
+    echo "$1" | awk '{
+        c = ""; nf = 0
+        for (i = 1; i <= NF; i++) {
+            if ($i ~ /^-mcpu=/) c = substr($i, 7)
+            if ($i ~ /^-mattr=/) {
+                k = split(substr($i, 8), a, ",")
+                for (j = 1; j <= k; j++) {
+                    x = substr(a[j], 2)
+                    if (!(x in on)) names[++nf] = x
+                    on[x] = substr(a[j], 1, 1) == "+"
+                }
+            }
+        }
+        if (c == "") print "no particular CPU (clang read none from the flags; the SDK'"'"'s is r3)"
+        else if (c != "r3") print "another CPU, " c " (the SDK'"'"'s is r3)"
+        for (j = 1; j <= nf; j++) {
+            x = names[j]
+            if (!on[x] || x == "fprev1") continue
+            if (x == "fprev2") print "double-precision float (fprev2)"
+            else if (x == "simd") print "SIMD instructions (simd)"
+            else print "the target feature " x
+        }
+    }'
+}
+
+# Checks that the source $3 of --src folder $2, built with the base's
+# flags $4 and its folders' $1 (cflags, cxxflags or asflags), is built
+# for the SDK's CPU and float (clean-pin-flags, amending BR-11); adds a
+# line "options|effect|culprits|file" to refused for each problem: the
+# folders whose own flags give the effect, and those of their flags that
+# alone give it (or every folder, with no culprit, if only the flags
+# together give it).
+check_cpu() {
+    r=../sb-src-$2
+    fl=$(folder_flags "$1" "$r/$3")
+    [ -n "$fl" ] || return 0
+    read_cpu "$4 $fl"
+    effects=$(cpu_effects "$cpu")
+    [ -n "$effects" ] || return 0
+    entries=$(folder_flags "$1" "$r/$3" entries)
+    i=0 file=$3
+    for sn in ${SB_SRC_NAMES:-}; do
+        i=$((i + 1))
+        [ "$i" = "$2" ] && file=${sn%/}/$3
+    done
+    nl='
+'
+    old_ifs=$IFS
+    IFS=$nl
+    for e in $effects; do
+        names="" culprits="" all=""
+        for en in $entries; do
+            IFS=$old_ifs
+            all="$all, ${en%%|*}"
+            read_cpu "$4 ${en#*|}"
+            case "$nl$(cpu_effects "$cpu")$nl" in
+                *"$nl$e$nl"*)
+                    case "$names, " in *", ${en%%|*}, "*) ;; *) names="$names, ${en%%|*}" ;; esac
+                    for w in ${en#*|}; do
+                        read_cpu "$4 $w"
+                        case "$nl$(cpu_effects "$cpu")$nl" in
+                            *"$nl$e$nl"*) case " $culprits " in *" $w "*) ;; *) culprits="$culprits $w" ;; esac ;;
+                        esac
+                    done ;;
+            esac
+            IFS=$nl
+        done
+        [ -n "$names" ] || names=$all
+        refused="$refused${names#, }|$e|${culprits# }|$file$nl"
+    done
+    IFS=$old_ifs
+}
+
+# The CPU and its features that the compile flags $2 give (read_cpu),
+# noted for the object $1 (BR-13): the write-back store check
+# disassembles each object as it was compiled, or a float instruction
+# (the fprev1 feature's) reads as an unknown one and the bytes after it
+# as others.
+note_cpu() {
+    read_cpu "$2"
     echo "$1|${cpu# }" >> "$obj/cpu.list"
 }
 

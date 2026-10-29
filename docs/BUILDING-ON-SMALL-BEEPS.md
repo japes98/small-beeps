@@ -335,6 +335,24 @@ sh base/tools/build.sh build --out out --platform --src src --ld src/my.ld \
   and inside its container: absolute paths and `..`, `-fdebug-prefix-map`
   and its kin, `-fprofile...`, `-fplugin...`, `-Wa,`, `-Wp,`, `-Wl,`,
   and anything else (`-o`, `-c`, `-x`, `-include`, `-target`, `@file`, ...).
+- Your code is built for the SDK's CPU and float, whatever its flags:
+  CPU r3, with the chip's single-precision float instructions (`fprev1`,
+  as the base is built) or without float instructions (`-mno-fprev1`).
+  Other `-m` flags are yours. The build reads each file's flags as the
+  compiler does (its `-###` reading, the same the write-back check uses),
+  so `-mcpu=`, `-mfprev2`, `-msimd`, a `-target-feature` and any flag
+  with the same effect are all caught, and it stops before compiling any
+  of your files, naming the folder, what the flag does and the fix:
+
+  ```
+  build: --cxxflags src: src/dsp/fir.cc would be built for double-precision float (fprev2), which the SDK's flags exclude and fwtest doesn't run (from -mfprev2).
+  build:   Fix: take that out of --cxxflags src. Every --src folder is built for the SDK's CPU, r3, with its single-precision float (fprev1, as the base is) or without float instructions (-mno-fprev1); other -m flags are yours to set (BR-11; docs/BUILDING-ON-SMALL-BEEPS.md, section 5).
+  FAIL: a folder's flags build for another CPU or other features than the SDK's (above)
+  ```
+
+  Refused alike: another CPU (`-mcpu=r4`, even `r3s`), SIMD (`-msimd`),
+  and any other feature the toolchain has. fwtest
+  runs what the SDK's flags give (R-HARN-14), not these.
 - `--define NAME` stays the way to set something for every file, the
   base's included.
 
