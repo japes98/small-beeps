@@ -1,0 +1,19 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I harness/isa/isa_check.py --out /home/runner/work/small-beeps/small-beeps/out/79dc83f2724309e429c435710dca5dded55b518f/isa
+{
+ "decoder_tables": 6,
+ "decoder_leaves": 1220,
+ "leaves_disassembled_at_sdk_flags": 1083,
+ "leaves_assembled_at_sdk_flags": 1083,
+ "compiler_instructions": 2029,
+ "encodings": 16966,
+ "shapes": 1265,
+ "encodings_running": 11274,
+ "failing_shapes_known": 651,
+ "failing_shapes_unknown": 0,
+ "known_gap_lines_unused": [],
+ "known_gap_lines_also_running": [],
+ "sdk_flags": "-mcpu=r3 -mfprev1"
+}
+isa: PASS (every form the toolchain knows at -mcpu=r3 -mfprev1 runs in fwtest, or is a known gap)
+
+exit status 0

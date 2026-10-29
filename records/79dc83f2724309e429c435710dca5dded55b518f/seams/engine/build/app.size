@@ -1,0 +1,7 @@
+code 57124
+data 88
+bss 176320
+image 57212
+stack 4096
+irq_stack 2048
+ram_code 57004
