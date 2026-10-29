@@ -2252,7 +2252,7 @@ SR-3 wrote only its barrier-log row.*
   commit P-63 names: its file tree through Gitee's tree API (names), its
   15 `board/wl82/Makefile`s and 42 `.cbp` project files by raw URL; the
   first fetch got Gitee's redirect pages (to raw.giteeusercontent.com),
-  the second followed them. The vendored emulator: read, patched (0014 to
+  the second followed them; 15 of the 57 arrived before it was stopped. The vendored emulator: read, patched (0014 to
   0016) and tested; the upstream emulator fetched four times by
   `tools/fetch-emulator.sh --fetch` (its sparse checkout of the three
   crates) to show the patches apply; main's crates unpacked into the
