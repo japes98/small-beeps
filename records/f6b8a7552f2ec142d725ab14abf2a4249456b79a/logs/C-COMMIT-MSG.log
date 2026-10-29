@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 79dc83f2724309e429c435710dca5dded55b518f..f6b8a7552f2ec142d725ab14abf2a4249456b79a
+OK     1dc5f82bdfcf tools: a folder's code for the SDK's CPU and float (amends BR-11)
+EXEMPT 9a3951606615 (merge) docs: merge pin/fwtest-0100 into build/folder-cpu
+EXEMPT f6b8a7552f2e (merge) Merge pull request #177 from japes98/build/folder-cpu
+3 commit(s) checked: PASS
+
+exit status 0

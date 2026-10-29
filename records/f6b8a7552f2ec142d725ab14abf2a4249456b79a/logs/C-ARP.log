@@ -1,0 +1,62 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/arp_suite.py --image /home/runner/work/small-beeps/small-beeps/out/f6b8a7552f2ec142d725ab14abf2a4249456b79a/build-a/app.bin --out /home/runner/work/small-beeps/small-beeps/out/f6b8a7552f2ec142d725ab14abf2a4249456b79a/arp
+mode-up      PASS
+mode-down    PASS
+mode-updown  PASS
+mode-order   PASS
+mode-random  PASS
+mode-chord   PASS
+rate-1-2     PASS
+rate-1-4d    PASS
+rate-1-4     PASS
+rate-1-8d    PASS
+rate-1-8     PASS
+rate-1-8t    PASS
+rate-1-16d   PASS
+rate-1-16    PASS
+rate-1-16t   PASS
+rate-1-32    PASS
+swing        PASS
+minute       PASS
+clock        PASS
+follow       PASS
+keys-out     PASS
+local-off    PASS
+clock-out    PASS
+clock-quiet  PASS
+stuck        PASS
+screen       PASS
+save         PASS
+load         PASS
+save-next    PASS
+  mode-up: UP 1/16, 2 octaves, gate 50%, 120 beats a minute: 17 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.87 ms of one another from their frames
+  mode-down: DOWN 1/16, 2 octaves, gate 50%, 120 beats a minute: 17 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.87 ms of one another from their frames
+  mode-updown: UP/DOWN 1/16, 2 octaves, gate 50%, 120 beats a minute: 17 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.87 ms of one another from their frames
+  mode-order: ORDER 1/16, 2 octaves, gate 50%, 120 beats a minute: 17 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.87 ms of one another from their frames
+  mode-random: RANDOM 1/16, 2 octaves, gate 50%, 120 beats a minute: 17 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.87 ms of one another from their frames
+  mode-chord: CHORD 1/16, 2 octaves, gate 50%, 120 beats a minute: 17 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.86 ms of one another from their frames
+  rate-1-2: UP 1/2, 1 octave, gate 50%, 120 beats a minute: 8 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.66 ms of one another from their frames
+  rate-1-4d: UP 1/4., 1 octave, gate 50%, 120 beats a minute: 8 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 0.69 ms of one another from their frames
+  rate-1-4: UP 1/4, 1 octave, gate 50%, 120 beats a minute: 8 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.64 ms of one another from their frames
+  rate-1-8d: UP 1/8., 1 octave, gate 50%, 120 beats a minute: 8 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.39 ms of one another from their frames
+  rate-1-8: UP 1/8, 1 octave, gate 50%, 120 beats a minute: 9 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.64 ms of one another from their frames
+  rate-1-8t: UP 1/8T, 1 octave, gate 50%, 120 beats a minute: 13 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.96 ms of one another from their frames
+  rate-1-16d: UP 1/16., 1 octave, gate 50%, 120 beats a minute: 11 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.75 ms of one another from their frames
+  rate-1-16: UP 1/16, 1 octave, gate 50%, 120 beats a minute: 17 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.87 ms of one another from their frames
+  rate-1-16t: UP 1/16T, 1 octave, gate 50%, 120 beats a minute: 25 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.96 ms of one another from their frames
+  rate-1-32: UP 1/32, 1 octave, gate 50%, 120 beats a minute: 31 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 2.00 ms of one another from their frames
+  swing: UP 1/8, 1 octave, gate 30%, swing 50%, 120 beats a minute: 9 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 129 frames after their frames, note ons within 1.87 ms of one another from their frames
+  minute: 481 steps in 60 s, each the same voice taken again (gate 100%); the last 32 at the model's frames from the first, their sound 129 frames after; MIDI out's last note on -0.181 ms from the second's lag
+  clock: Start, 120 and 90 beats a minute, Stop, Continue, loss: the steps within 2.41 ms of their clocks (but the first after the tempo change), the internal tempo after the Stop and the loss
+  follow: 0xF8 with no Start followed: 100 beats a minute, steps 150 ms apart
+  keys-out: MIDI out "keys": the keys held out, the arpeggiator's notes not; it played 9 steps
+  local-off: local control off: 9 arpeggiated notes out, none played
+  clock-out: on the internal clock: Start, 56 clocks 20.833 ms apart on average, Stop with ARP off
+  clock-quiet: MIDI thru on: none of our clocks while the sender's came in (76 passed on), ours continued 251.8 ms after its last
+  stuck: mode, octaves, rate, LATCH, the pedal, PRESETS, a mono patch and ARP off while it played: every note on MIDI out ended, nothing sounds or is held at the end (46 steps)
+  screen: ARP held shows its screen (golden images of both pages); a short press turns it off and on (its LED)
+  save: ARP on, ORDER and 2 octaves on its screen, saved to slot 2 as version 2
+  load: audioload's input with CHORD at 1/32, 240 beats a minute: 349 steps, no underrun, the longest fill 473 us
+  save-next: ORDER 1/16, 2 octaves, gate 50%, 120 beats a minute: 17 steps, their notes as the model's (MIDI out and the record), their frames as the model's, their sound 130 frames after their frames, note ons within 1.87 ms of one another from their frames
+arp suite: PASS
+
+exit status 0

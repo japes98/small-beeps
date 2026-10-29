@@ -1,0 +1,4443 @@
+40 midi c0 09
+100      key 12 tap 50
+110      key 14 down
+110      key 15 down
+110      key 16 down
+110      key 17 down
+110      key 18 down
+110      key 19 down
+110      key 20 down
+110      key 21 down
+110      key 22 down
+110      key 23 down
+110      key 24 down
+110      key 25 down
+110      key 26 down
+110      key 27 down
+110      key 28 down
+110      key 29 down
+110      key 30 down
+110      key 31 down
+110      key 32 down
+110      key 33 down
+120      key 14 up
+120      enc 0 +15
+120      enc 1 -15
+120      enc 2 +15
+120      enc 3 -15
+120      enc 4 +15
+120      enc 5 -15
+120      pot 1023
+125      pot 982
+130      key 14 down
+130      pot 941
+132.5    key 15 up
+135      pot 900
+140      pot 859
+142.5    key 15 down
+145      key 16 up
+145      pot 818
+150      pot 777
+155      key 16 down
+155      pot 737
+157.5    key 17 up
+160      pot 696
+165      pot 655
+167.5    key 17 down
+170      key 18 up
+170      pot 614
+175      pot 573
+180      key 18 down
+180      pot 532
+182.5    key 19 up
+185      pot 491
+190      pot 450
+192.5    key 19 down
+195      key 20 up
+195      pot 409
+200      pot 368
+205      key 20 down
+205      pot 327
+207.5    key 21 up
+210      pot 286
+215      pot 246
+217.5    key 21 down
+220      key 22 up
+220      pot 205
+225      pot 164
+230      key 22 down
+230      pot 123
+232.5    key 23 up
+235      pot 82
+240      pot 41
+242.5    key 23 down
+245      key 24 up
+245      enc 0 -15
+245      enc 1 +15
+245      enc 2 -15
+245      enc 3 +15
+245      enc 4 -15
+245      enc 5 +15
+245      pot 0
+250      pot 41
+255      key 24 down
+255      pot 82
+257.5    key 25 up
+260      pot 123
+265      pot 164
+267.5    key 25 down
+270      key 26 up
+270      pot 205
+275      pot 246
+280      key 26 down
+280      pot 286
+282.5    key 27 up
+285      pot 327
+290      pot 368
+292.5    key 27 down
+295      key 28 up
+295      pot 409
+300      pot 450
+305      key 28 down
+305      pot 491
+307.5    key 29 up
+310      pot 532
+315      pot 573
+317.5    key 29 down
+320      key 30 up
+320      pot 614
+325      pot 655
+330      key 30 down
+330      pot 696
+332.5    key 31 up
+335      pot 737
+340      pot 777
+342.5    key 31 down
+345      key 32 up
+345      pot 818
+350      pot 859
+355      key 32 down
+355      pot 900
+357.5    key 33 up
+360      pot 941
+365      pot 982
+367.5    key 33 down
+370      key 14 up
+370      enc 0 +15
+370      enc 1 -15
+370      enc 2 +15
+370      enc 3 -15
+370      enc 4 +15
+370      enc 5 -15
+370      pot 1023
+375      pot 982
+380      key 14 down
+380      pot 941
+382.5    key 15 up
+385      pot 900
+390      pot 859
+392.5    key 15 down
+395      key 16 up
+395      pot 818
+400      pot 777
+405      key 16 down
+405      pot 737
+407.5    key 17 up
+410      pot 696
+415      pot 655
+417.5    key 17 down
+420      key 18 up
+420      pot 614
+425      pot 573
+430      key 18 down
+430      pot 532
+432.5    key 19 up
+435      pot 491
+440      pot 450
+442.5    key 19 down
+445      key 20 up
+445      pot 409
+450      pot 368
+455      key 20 down
+455      pot 327
+457.5    key 21 up
+460      pot 286
+465      pot 246
+467.5    key 21 down
+470      key 22 up
+470      pot 205
+475      pot 164
+480      key 22 down
+480      pot 123
+482.5    key 23 up
+485      pot 82
+490      pot 41
+492.5    key 23 down
+495      key 24 up
+495      enc 0 -15
+495      enc 1 +15
+495      enc 2 -15
+495      enc 3 +15
+495      enc 4 -15
+495      enc 5 +15
+495      pot 0
+500      pot 41
+505      key 24 down
+505      pot 82
+507.5    key 25 up
+510      pot 123
+515      pot 164
+517.5    key 25 down
+520      key 26 up
+520      pot 205
+525      pot 246
+530      key 26 down
+530      pot 286
+532.5    key 27 up
+535      pot 327
+540      pot 368
+542.5    key 27 down
+545      key 28 up
+545      pot 409
+550      pot 450
+555      key 28 down
+555      pot 491
+557.5    key 29 up
+560      pot 532
+565      pot 573
+567.5    key 29 down
+570      key 30 up
+570      pot 614
+575      pot 655
+580      key 30 down
+580      pot 696
+582.5    key 31 up
+585      pot 737
+590      pot 777
+592.5    key 31 down
+595      key 32 up
+595      pot 818
+600      pot 859
+605      key 32 down
+605      pot 900
+607.5    key 33 up
+610      pot 941
+615      pot 982
+617.5    key 33 down
+620      key 14 up
+620      enc 0 +15
+620      enc 1 -15
+620      enc 2 +15
+620      enc 3 -15
+620      enc 4 +15
+620      enc 5 -15
+620      pot 1023
+625      pot 982
+630      key 14 down
+630      pot 941
+632.5    key 15 up
+635      pot 900
+640      pot 859
+642.5    key 15 down
+645      key 16 up
+645      pot 818
+650      pot 777
+655      key 16 down
+655      pot 737
+657.5    key 17 up
+660      pot 696
+665      pot 655
+667.5    key 17 down
+670      key 18 up
+670      pot 614
+675      pot 573
+680      key 18 down
+680      pot 532
+682.5    key 19 up
+685      pot 491
+690      pot 450
+692.5    key 19 down
+695      key 20 up
+695      pot 409
+700      pot 368
+705      key 20 down
+705      pot 327
+707.5    key 21 up
+710      pot 286
+715      pot 246
+717.5    key 21 down
+720      key 22 up
+720      pot 205
+725      pot 164
+730      key 22 down
+730      pot 123
+732.5    key 23 up
+735      pot 82
+740      pot 41
+742.5    key 23 down
+745      key 24 up
+745      enc 0 -15
+745      enc 1 +15
+745      enc 2 -15
+745      enc 3 +15
+745      enc 4 -15
+745      enc 5 +15
+745      pot 0
+750      pot 41
+755      key 24 down
+755      pot 82
+757.5    key 25 up
+760      pot 123
+765      pot 164
+767.5    key 25 down
+770      key 26 up
+770      pot 205
+775      pot 246
+780      key 26 down
+780      pot 286
+782.5    key 27 up
+785      pot 327
+790      pot 368
+792.5    key 27 down
+795      key 28 up
+795      pot 409
+800      pot 450
+805      key 28 down
+805      pot 491
+807.5    key 29 up
+810      pot 532
+815      pot 573
+817.5    key 29 down
+820      key 30 up
+820      pot 614
+825      pot 655
+830      key 30 down
+830      pot 696
+832.5    key 31 up
+835      pot 737
+840      pot 777
+842.5    key 31 down
+845      key 32 up
+845      pot 818
+850      pot 859
+855      key 32 down
+855      pot 900
+857.5    key 33 up
+860      pot 941
+865      pot 982
+867.5    key 33 down
+870      key 14 up
+870      enc 0 +15
+870      enc 1 -15
+870      enc 2 +15
+870      enc 3 -15
+870      enc 4 +15
+870      enc 5 -15
+870      pot 1023
+875      pot 982
+880      key 14 down
+880      pot 941
+882.5    key 15 up
+885      pot 900
+890      pot 859
+892.5    key 15 down
+895      key 16 up
+895      pot 818
+900      pot 777
+905      key 16 down
+905      pot 737
+907.5    key 17 up
+910      pot 696
+915      pot 655
+917.5    key 17 down
+920      key 18 up
+920      pot 614
+925      pot 573
+930      key 18 down
+930      pot 532
+932.5    key 19 up
+935      pot 491
+940      pot 450
+942.5    key 19 down
+945      key 20 up
+945      pot 409
+950      pot 368
+955      key 20 down
+955      pot 327
+957.5    key 21 up
+960      pot 286
+965      pot 246
+967.5    key 21 down
+970      key 22 up
+970      pot 205
+975      pot 164
+980      key 22 down
+980      pot 123
+982.5    key 23 up
+985      pot 82
+990      pot 41
+992.5    key 23 down
+995      key 24 up
+995      enc 0 -15
+995      enc 1 +15
+995      enc 2 -15
+995      enc 3 +15
+995      enc 4 -15
+995      enc 5 +15
+995      pot 0
+1000     pot 41
+1005     key 24 down
+1005     pot 82
+1007.5   key 25 up
+1010     pot 123
+1015     pot 164
+1017.5   key 25 down
+1020     key 26 up
+1020     pot 205
+1025     pot 246
+1030     key 26 down
+1030     pot 286
+1032.5   key 27 up
+1035     pot 327
+1040     pot 368
+1042.5   key 27 down
+1045     key 28 up
+1045     pot 409
+1050     pot 450
+1055     key 28 down
+1055     pot 491
+1057.5   key 29 up
+1060     pot 532
+1065     pot 573
+1067.5   key 29 down
+1070     key 30 up
+1070     pot 614
+1075     pot 655
+1080     key 30 down
+1080     pot 696
+1082.5   key 31 up
+1085     pot 737
+1090     pot 777
+1092.5   key 31 down
+1095     key 32 up
+1095     pot 818
+1100     pot 859
+1105     key 32 down
+1105     pot 900
+1107.5   key 33 up
+1110     pot 941
+1115     pot 982
+1117.5   key 33 down
+1120     key 14 up
+1120     enc 0 +15
+1120     enc 1 -15
+1120     enc 2 +15
+1120     enc 3 -15
+1120     enc 4 +15
+1120     enc 5 -15
+1120     pot 1023
+1125     pot 982
+1130     key 14 down
+1130     pot 941
+1132.5   key 15 up
+1135     pot 900
+1140     pot 859
+1142.5   key 15 down
+1145     key 16 up
+1145     pot 818
+1150     pot 777
+1155     key 16 down
+1155     pot 737
+1157.5   key 17 up
+1160     pot 696
+1165     pot 655
+1167.5   key 17 down
+1170     key 18 up
+1170     pot 614
+1175     pot 573
+1180     key 18 down
+1180     pot 532
+1182.5   key 19 up
+1185     pot 491
+1190     pot 450
+1192.5   key 19 down
+1195     key 20 up
+1195     pot 409
+1200     pot 368
+1205     key 20 down
+1205     pot 327
+1207.5   key 21 up
+1210     pot 286
+1215     pot 246
+1217.5   key 21 down
+1220     key 22 up
+1220     pot 205
+1225     pot 164
+1230     key 22 down
+1230     pot 123
+1232.5   key 23 up
+1235     pot 82
+1240     pot 41
+1242.5   key 23 down
+1245     key 24 up
+1245     enc 0 -15
+1245     enc 1 +15
+1245     enc 2 -15
+1245     enc 3 +15
+1245     enc 4 -15
+1245     enc 5 +15
+1245     pot 0
+1250     pot 41
+1255     key 24 down
+1255     pot 82
+1257.5   key 25 up
+1260     pot 123
+1265     pot 164
+1267.5   key 25 down
+1270     key 26 up
+1270     pot 205
+1275     pot 246
+1280     key 26 down
+1280     pot 286
+1282.5   key 27 up
+1285     pot 327
+1290     pot 368
+1292.5   key 27 down
+1295     key 28 up
+1295     pot 409
+1300     pot 450
+1305     key 28 down
+1305     pot 491
+1307.5   key 29 up
+1310     pot 532
+1315     pot 573
+1317.5   key 29 down
+1320     key 30 up
+1320     pot 614
+1325     pot 655
+1330     key 30 down
+1330     pot 696
+1332.5   key 31 up
+1335     pot 737
+1340     pot 777
+1342.5   key 31 down
+1345     key 32 up
+1345     pot 818
+1350     pot 859
+1355     key 32 down
+1355     pot 900
+1357.5   key 33 up
+1360     pot 941
+1365     pot 982
+1367.5   key 33 down
+1370     key 14 up
+1370     enc 0 +15
+1370     enc 1 -15
+1370     enc 2 +15
+1370     enc 3 -15
+1370     enc 4 +15
+1370     enc 5 -15
+1370     pot 1023
+1375     pot 982
+1380     key 14 down
+1380     pot 941
+1382.5   key 15 up
+1385     pot 900
+1390     pot 859
+1392.5   key 15 down
+1395     key 16 up
+1395     pot 818
+1400     pot 777
+1405     key 16 down
+1405     pot 737
+1407.5   key 17 up
+1410     pot 696
+1415     pot 655
+1417.5   key 17 down
+1420     key 18 up
+1420     pot 614
+1425     pot 573
+1430     key 18 down
+1430     pot 532
+1432.5   key 19 up
+1435     pot 491
+1440     pot 450
+1442.5   key 19 down
+1445     key 20 up
+1445     pot 409
+1450     pot 368
+1455     key 20 down
+1455     pot 327
+1457.5   key 21 up
+1460     pot 286
+1465     pot 246
+1467.5   key 21 down
+1470     key 22 up
+1470     pot 205
+1475     pot 164
+1480     key 22 down
+1480     pot 123
+1482.5   key 23 up
+1485     pot 82
+1490     pot 41
+1492.5   key 23 down
+1495     key 24 up
+1495     enc 0 -15
+1495     enc 1 +15
+1495     enc 2 -15
+1495     enc 3 +15
+1495     enc 4 -15
+1495     enc 5 +15
+1495     pot 0
+1500     pot 41
+1505     key 24 down
+1505     pot 82
+1507.5   key 25 up
+1510     pot 123
+1515     pot 164
+1517.5   key 25 down
+1520     key 26 up
+1520     pot 205
+1525     pot 246
+1530     key 26 down
+1530     pot 286
+1532.5   key 27 up
+1535     pot 327
+1540     pot 368
+1542.5   key 27 down
+1545     key 28 up
+1545     pot 409
+1550     pot 450
+1555     key 28 down
+1555     pot 491
+1557.5   key 29 up
+1560     pot 532
+1565     pot 573
+1567.5   key 29 down
+1570     key 30 up
+1570     pot 614
+1575     pot 655
+1580     key 30 down
+1580     pot 696
+1582.5   key 31 up
+1585     pot 737
+1590     pot 777
+1592.5   key 31 down
+1595     key 32 up
+1595     pot 818
+1600     pot 859
+1605     key 32 down
+1605     pot 900
+1607.5   key 33 up
+1610     pot 941
+1615     pot 982
+1617.5   key 33 down
+1620     key 14 up
+1620     enc 0 +15
+1620     enc 1 -15
+1620     enc 2 +15
+1620     enc 3 -15
+1620     enc 4 +15
+1620     enc 5 -15
+1620     pot 1023
+1625     pot 982
+1630     key 14 down
+1630     pot 941
+1632.5   key 15 up
+1635     pot 900
+1640     pot 859
+1642.5   key 15 down
+1645     key 16 up
+1645     pot 818
+1650     pot 777
+1655     key 16 down
+1655     pot 737
+1657.5   key 17 up
+1660     pot 696
+1665     pot 655
+1667.5   key 17 down
+1670     key 18 up
+1670     pot 614
+1675     pot 573
+1680     key 18 down
+1680     pot 532
+1682.5   key 19 up
+1685     pot 491
+1690     pot 450
+1692.5   key 19 down
+1695     key 20 up
+1695     pot 409
+1700     pot 368
+1705     key 20 down
+1705     pot 327
+1707.5   key 21 up
+1710     pot 286
+1715     pot 246
+1717.5   key 21 down
+1720     key 22 up
+1720     pot 205
+1725     pot 164
+1730     key 22 down
+1730     pot 123
+1732.5   key 23 up
+1735     pot 82
+1740     pot 41
+1742.5   key 23 down
+1745     key 24 up
+1745     enc 0 -15
+1745     enc 1 +15
+1745     enc 2 -15
+1745     enc 3 +15
+1745     enc 4 -15
+1745     enc 5 +15
+1745     pot 0
+1750     pot 41
+1755     key 24 down
+1755     pot 82
+1757.5   key 25 up
+1760     pot 123
+1765     pot 164
+1767.5   key 25 down
+1770     key 26 up
+1770     pot 205
+1775     pot 246
+1780     key 26 down
+1780     pot 286
+1782.5   key 27 up
+1785     pot 327
+1790     pot 368
+1792.5   key 27 down
+1795     key 28 up
+1795     pot 409
+1800     pot 450
+1805     key 28 down
+1805     pot 491
+1807.5   key 29 up
+1810     pot 532
+1815     pot 573
+1817.5   key 29 down
+1820     key 30 up
+1820     pot 614
+1825     pot 655
+1830     key 30 down
+1830     pot 696
+1832.5   key 31 up
+1835     pot 737
+1840     pot 777
+1842.5   key 31 down
+1845     key 32 up
+1845     pot 818
+1850     pot 859
+1855     key 32 down
+1855     pot 900
+1857.5   key 33 up
+1860     pot 941
+1865     pot 982
+1867.5   key 33 down
+1870     key 14 up
+1870     enc 0 +15
+1870     enc 1 -15
+1870     enc 2 +15
+1870     enc 3 -15
+1870     enc 4 +15
+1870     enc 5 -15
+1870     pot 1023
+1875     pot 982
+1880     key 14 down
+1880     pot 941
+1882.5   key 15 up
+1885     pot 900
+1890     pot 859
+1892.5   key 15 down
+1895     key 16 up
+1895     pot 818
+1900     pot 777
+1905     key 16 down
+1905     pot 737
+1907.5   key 17 up
+1910     pot 696
+1915     pot 655
+1917.5   key 17 down
+1920     key 18 up
+1920     pot 614
+1925     pot 573
+1930     key 18 down
+1930     pot 532
+1932.5   key 19 up
+1935     pot 491
+1940     pot 450
+1942.5   key 19 down
+1945     key 20 up
+1945     pot 409
+1950     pot 368
+1955     key 20 down
+1955     pot 327
+1957.5   key 21 up
+1960     pot 286
+1965     pot 246
+1967.5   key 21 down
+1970     key 22 up
+1970     pot 205
+1975     pot 164
+1980     key 22 down
+1980     pot 123
+1982.5   key 23 up
+1985     pot 82
+1990     pot 41
+1992.5   key 23 down
+1995     key 24 up
+1995     enc 0 -15
+1995     enc 1 +15
+1995     enc 2 -15
+1995     enc 3 +15
+1995     enc 4 -15
+1995     enc 5 +15
+1995     pot 0
+2000     pot 41
+2005     key 24 down
+2005     pot 82
+2007.5   key 25 up
+2010     pot 123
+2015     pot 164
+2017.5   key 25 down
+2020     key 26 up
+2020     pot 205
+2025     pot 246
+2030     key 26 down
+2030     pot 286
+2032.5   key 27 up
+2035     pot 327
+2040     pot 368
+2042.5   key 27 down
+2045     key 28 up
+2045     pot 409
+2050     pot 450
+2055     key 28 down
+2055     pot 491
+2057.5   key 29 up
+2060     pot 532
+2065     pot 573
+2067.5   key 29 down
+2070     key 30 up
+2070     pot 614
+2075     pot 655
+2080     key 30 down
+2080     pot 696
+2082.5   key 31 up
+2085     pot 737
+2090     pot 777
+2092.5   key 31 down
+2095     key 32 up
+2095     pot 818
+2100     pot 859
+2105     key 32 down
+2105     pot 900
+2107.5   key 33 up
+2110     pot 941
+2115     pot 982
+2117.5   key 33 down
+2120     key 14 up
+2120     enc 0 +15
+2120     enc 1 -15
+2120     enc 2 +15
+2120     enc 3 -15
+2120     enc 4 +15
+2120     enc 5 -15
+2120     pot 1023
+2125     pot 982
+2130     key 14 down
+2130     pot 941
+2132.5   key 15 up
+2135     pot 900
+2140     pot 859
+2142.5   key 15 down
+2145     key 16 up
+2145     pot 818
+2150     pot 777
+2155     key 16 down
+2155     pot 737
+2157.5   key 17 up
+2160     pot 696
+2165     pot 655
+2167.5   key 17 down
+2170     key 18 up
+2170     pot 614
+2175     pot 573
+2180     key 18 down
+2180     pot 532
+2182.5   key 19 up
+2185     pot 491
+2190     pot 450
+2192.5   key 19 down
+2195     key 20 up
+2195     pot 409
+2200     pot 368
+2205     key 20 down
+2205     pot 327
+2207.5   key 21 up
+2210     pot 286
+2215     pot 246
+2217.5   key 21 down
+2220     key 22 up
+2220     pot 205
+2225     pot 164
+2230     key 22 down
+2230     pot 123
+2232.5   key 23 up
+2235     pot 82
+2240     pot 41
+2242.5   key 23 down
+2245     key 24 up
+2245     enc 0 -15
+2245     enc 1 +15
+2245     enc 2 -15
+2245     enc 3 +15
+2245     enc 4 -15
+2245     enc 5 +15
+2245     pot 0
+2250     pot 41
+2255     key 24 down
+2255     pot 82
+2257.5   key 25 up
+2260     pot 123
+2265     pot 164
+2267.5   key 25 down
+2270     key 26 up
+2270     pot 205
+2275     pot 246
+2280     key 26 down
+2280     pot 286
+2282.5   key 27 up
+2285     pot 327
+2290     pot 368
+2292.5   key 27 down
+2295     key 28 up
+2295     pot 409
+2300     pot 450
+2305     key 28 down
+2305     pot 491
+2307.5   key 29 up
+2310     pot 532
+2315     pot 573
+2317.5   key 29 down
+2320     key 30 up
+2320     pot 614
+2325     pot 655
+2330     key 30 down
+2330     pot 696
+2332.5   key 31 up
+2335     pot 737
+2340     pot 777
+2342.5   key 31 down
+2345     key 32 up
+2345     pot 818
+2350     pot 859
+2355     key 32 down
+2355     pot 900
+2357.5   key 33 up
+2360     pot 941
+2365     pot 982
+2367.5   key 33 down
+2370     key 14 up
+2370     enc 0 +15
+2370     enc 1 -15
+2370     enc 2 +15
+2370     enc 3 -15
+2370     enc 4 +15
+2370     enc 5 -15
+2370     pot 1023
+2375     pot 982
+2380     key 14 down
+2380     pot 941
+2382.5   key 15 up
+2385     pot 900
+2390     pot 859
+2392.5   key 15 down
+2395     key 16 up
+2395     pot 818
+2400     pot 777
+2405     key 16 down
+2405     pot 737
+2407.5   key 17 up
+2410     pot 696
+2415     pot 655
+2417.5   key 17 down
+2420     key 18 up
+2420     pot 614
+2425     pot 573
+2430     key 18 down
+2430     pot 532
+2432.5   key 19 up
+2435     pot 491
+2440     pot 450
+2442.5   key 19 down
+2445     key 20 up
+2445     pot 409
+2450     pot 368
+2455     key 20 down
+2455     pot 327
+2457.5   key 21 up
+2460     pot 286
+2465     pot 246
+2467.5   key 21 down
+2470     key 22 up
+2470     pot 205
+2475     pot 164
+2480     key 22 down
+2480     pot 123
+2482.5   key 23 up
+2485     pot 82
+2490     pot 41
+2492.5   key 23 down
+2495     key 24 up
+2495     enc 0 -15
+2495     enc 1 +15
+2495     enc 2 -15
+2495     enc 3 +15
+2495     enc 4 -15
+2495     enc 5 +15
+2495     pot 0
+2500     pot 41
+2505     key 24 down
+2505     pot 82
+2507.5   key 25 up
+2510     pot 123
+2515     pot 164
+2517.5   key 25 down
+2520     key 26 up
+2520     pot 205
+2525     pot 246
+2530     key 26 down
+2530     pot 286
+2532.5   key 27 up
+2535     pot 327
+2540     pot 368
+2542.5   key 27 down
+2545     key 28 up
+2545     pot 409
+2550     pot 450
+2555     key 28 down
+2555     pot 491
+2557.5   key 29 up
+2560     pot 532
+2565     pot 573
+2567.5   key 29 down
+2570     key 30 up
+2570     pot 614
+2575     pot 655
+2580     key 30 down
+2580     pot 696
+2582.5   key 31 up
+2585     pot 737
+2590     pot 777
+2592.5   key 31 down
+2595     key 32 up
+2595     pot 818
+2600     pot 859
+2605     key 32 down
+2605     pot 900
+2607.5   key 33 up
+2610     pot 941
+2615     pot 982
+2617.5   key 33 down
+2620     key 14 up
+2620     enc 0 +15
+2620     enc 1 -15
+2620     enc 2 +15
+2620     enc 3 -15
+2620     enc 4 +15
+2620     enc 5 -15
+2620     pot 1023
+2625     pot 982
+2630     key 14 down
+2630     pot 941
+2632.5   key 15 up
+2635     pot 900
+2640     pot 859
+2642.5   key 15 down
+2645     key 16 up
+2645     pot 818
+2650     pot 777
+2655     key 16 down
+2655     pot 737
+2657.5   key 17 up
+2660     pot 696
+2665     pot 655
+2667.5   key 17 down
+2670     key 18 up
+2670     pot 614
+2675     pot 573
+2680     key 18 down
+2680     pot 532
+2682.5   key 19 up
+2685     pot 491
+2690     pot 450
+2692.5   key 19 down
+2695     key 20 up
+2695     pot 409
+2700     pot 368
+2705     key 20 down
+2705     pot 327
+2707.5   key 21 up
+2710     pot 286
+2715     pot 246
+2717.5   key 21 down
+2720     key 22 up
+2720     pot 205
+2725     pot 164
+2730     key 22 down
+2730     pot 123
+2732.5   key 23 up
+2735     pot 82
+2740     pot 41
+2742.5   key 23 down
+2745     key 24 up
+2745     enc 0 -15
+2745     enc 1 +15
+2745     enc 2 -15
+2745     enc 3 +15
+2745     enc 4 -15
+2745     enc 5 +15
+2745     pot 0
+2750     pot 41
+2755     key 24 down
+2755     pot 82
+2757.5   key 25 up
+2760     pot 123
+2765     pot 164
+2767.5   key 25 down
+2770     key 26 up
+2770     pot 205
+2775     pot 246
+2780     key 26 down
+2780     pot 286
+2782.5   key 27 up
+2785     pot 327
+2790     pot 368
+2792.5   key 27 down
+2795     key 28 up
+2795     pot 409
+2800     pot 450
+2805     key 28 down
+2805     pot 491
+2807.5   key 29 up
+2810     pot 532
+2815     pot 573
+2817.5   key 29 down
+2820     key 30 up
+2820     pot 614
+2825     pot 655
+2830     key 30 down
+2830     pot 696
+2832.5   key 31 up
+2835     pot 737
+2840     pot 777
+2842.5   key 31 down
+2845     key 32 up
+2845     pot 818
+2850     pot 859
+2855     key 32 down
+2855     pot 900
+2857.5   key 33 up
+2860     pot 941
+2865     pot 982
+2867.5   key 33 down
+2870     key 14 up
+2870     enc 0 +15
+2870     enc 1 -15
+2870     enc 2 +15
+2870     enc 3 -15
+2870     enc 4 +15
+2870     enc 5 -15
+2870     pot 1023
+2875     pot 982
+2880     key 14 down
+2880     pot 941
+2882.5   key 15 up
+2885     pot 900
+2890     pot 859
+2892.5   key 15 down
+2895     key 16 up
+2895     pot 818
+2900     pot 777
+2905     key 16 down
+2905     pot 737
+2907.5   key 17 up
+2910     pot 696
+2915     pot 655
+2917.5   key 17 down
+2920     key 18 up
+2920     pot 614
+2925     pot 573
+2930     key 18 down
+2930     pot 532
+2932.5   key 19 up
+2935     pot 491
+2940     pot 450
+2942.5   key 19 down
+2945     key 20 up
+2945     pot 409
+2950     pot 368
+2955     key 20 down
+2955     pot 327
+2957.5   key 21 up
+2960     pot 286
+2965     pot 246
+2967.5   key 21 down
+2970     key 22 up
+2970     pot 205
+2975     pot 164
+2980     key 22 down
+2980     pot 123
+2982.5   key 23 up
+2985     pot 82
+2990     pot 41
+2992.5   key 23 down
+2995     key 24 up
+2995     enc 0 -15
+2995     enc 1 +15
+2995     enc 2 -15
+2995     enc 3 +15
+2995     enc 4 -15
+2995     enc 5 +15
+2995     pot 0
+3000     pot 41
+3005     key 24 down
+3005     pot 82
+3007.5   key 25 up
+3010     pot 123
+3015     pot 164
+3017.5   key 25 down
+3020     key 26 up
+3020     pot 205
+3025     pot 246
+3030     key 26 down
+3030     pot 286
+3032.5   key 27 up
+3035     pot 327
+3040     pot 368
+3042.5   key 27 down
+3045     key 28 up
+3045     pot 409
+3050     pot 450
+3055     key 28 down
+3055     pot 491
+3057.5   key 29 up
+3060     pot 532
+3065     pot 573
+3067.5   key 29 down
+3070     key 30 up
+3070     pot 614
+3075     pot 655
+3080     key 30 down
+3080     pot 696
+3082.5   key 31 up
+3085     pot 737
+3090     pot 777
+3092.5   key 31 down
+3095     key 32 up
+3095     pot 818
+3100     pot 859
+3105     key 32 down
+3105     pot 900
+3107.5   key 33 up
+3110     pot 941
+3115     pot 982
+3117.5   key 33 down
+3120     key 14 up
+3120     enc 0 +15
+3120     enc 1 -15
+3120     enc 2 +15
+3120     enc 3 -15
+3120     enc 4 +15
+3120     enc 5 -15
+3120     pot 1023
+3125     pot 982
+3130     key 14 down
+3130     pot 941
+3132.5   key 15 up
+3135     pot 900
+3140     pot 859
+3142.5   key 15 down
+3145     key 16 up
+3145     pot 818
+3150     pot 777
+3155     key 16 down
+3155     pot 737
+3157.5   key 17 up
+3160     pot 696
+3165     pot 655
+3167.5   key 17 down
+3170     key 18 up
+3170     pot 614
+3175     pot 573
+3180     key 18 down
+3180     pot 532
+3182.5   key 19 up
+3185     pot 491
+3190     pot 450
+3192.5   key 19 down
+3195     key 20 up
+3195     pot 409
+3200     pot 368
+3205     key 20 down
+3205     pot 327
+3207.5   key 21 up
+3210     pot 286
+3215     pot 246
+3217.5   key 21 down
+3220     key 22 up
+3220     pot 205
+3225     pot 164
+3230     key 22 down
+3230     pot 123
+3232.5   key 23 up
+3235     pot 82
+3240     pot 41
+3242.5   key 23 down
+3245     key 24 up
+3245     enc 0 -15
+3245     enc 1 +15
+3245     enc 2 -15
+3245     enc 3 +15
+3245     enc 4 -15
+3245     enc 5 +15
+3245     pot 0
+3250     pot 41
+3255     key 24 down
+3255     pot 82
+3257.5   key 25 up
+3260     pot 123
+3265     pot 164
+3267.5   key 25 down
+3270     key 26 up
+3270     pot 205
+3275     pot 246
+3280     key 26 down
+3280     pot 286
+3282.5   key 27 up
+3285     pot 327
+3290     pot 368
+3292.5   key 27 down
+3295     key 28 up
+3295     pot 409
+3300     pot 450
+3305     key 28 down
+3305     pot 491
+3307.5   key 29 up
+3310     pot 532
+3315     pot 573
+3317.5   key 29 down
+3320     key 30 up
+3320     pot 614
+3325     pot 655
+3330     key 30 down
+3330     pot 696
+3332.5   key 31 up
+3335     pot 737
+3340     pot 777
+3342.5   key 31 down
+3345     key 32 up
+3345     pot 818
+3350     pot 859
+3355     key 32 down
+3355     pot 900
+3357.5   key 33 up
+3360     pot 941
+3365     pot 982
+3367.5   key 33 down
+3370     key 14 up
+3370     enc 0 +15
+3370     enc 1 -15
+3370     enc 2 +15
+3370     enc 3 -15
+3370     enc 4 +15
+3370     enc 5 -15
+3370     pot 1023
+3375     pot 982
+3380     key 14 down
+3380     pot 941
+3382.5   key 15 up
+3385     pot 900
+3390     pot 859
+3392.5   key 15 down
+3395     key 16 up
+3395     pot 818
+3400     pot 777
+3405     key 16 down
+3405     pot 737
+3407.5   key 17 up
+3410     pot 696
+3415     pot 655
+3417.5   key 17 down
+3420     key 18 up
+3420     pot 614
+3425     pot 573
+3430     key 18 down
+3430     pot 532
+3432.5   key 19 up
+3435     pot 491
+3440     pot 450
+3442.5   key 19 down
+3445     key 20 up
+3445     pot 409
+3450     pot 368
+3455     key 20 down
+3455     pot 327
+3457.5   key 21 up
+3460     pot 286
+3465     pot 246
+3467.5   key 21 down
+3470     key 22 up
+3470     pot 205
+3475     pot 164
+3480     key 22 down
+3480     pot 123
+3482.5   key 23 up
+3485     pot 82
+3490     pot 41
+3492.5   key 23 down
+3495     key 24 up
+3495     enc 0 -15
+3495     enc 1 +15
+3495     enc 2 -15
+3495     enc 3 +15
+3495     enc 4 -15
+3495     enc 5 +15
+3495     pot 0
+3500     pot 41
+3505     key 24 down
+3505     pot 82
+3507.5   key 25 up
+3510     pot 123
+3515     pot 164
+3517.5   key 25 down
+3520     key 26 up
+3520     pot 205
+3525     pot 246
+3530     key 26 down
+3530     pot 286
+3532.5   key 27 up
+3535     pot 327
+3540     pot 368
+3542.5   key 27 down
+3545     key 28 up
+3545     pot 409
+3550     pot 450
+3555     key 28 down
+3555     pot 491
+3557.5   key 29 up
+3560     pot 532
+3565     pot 573
+3567.5   key 29 down
+3570     key 30 up
+3570     pot 614
+3575     pot 655
+3580     key 30 down
+3580     pot 696
+3582.5   key 31 up
+3585     pot 737
+3590     pot 777
+3592.5   key 31 down
+3595     key 32 up
+3595     pot 818
+3600     pot 859
+3605     key 32 down
+3605     pot 900
+3607.5   key 33 up
+3610     pot 941
+3615     pot 982
+3617.5   key 33 down
+3620     key 14 up
+3620     enc 0 +15
+3620     enc 1 -15
+3620     enc 2 +15
+3620     enc 3 -15
+3620     enc 4 +15
+3620     enc 5 -15
+3620     pot 1023
+3625     pot 982
+3630     key 14 down
+3630     pot 941
+3632.5   key 15 up
+3635     pot 900
+3640     pot 859
+3642.5   key 15 down
+3645     key 16 up
+3645     pot 818
+3650     pot 777
+3655     key 16 down
+3655     pot 737
+3657.5   key 17 up
+3660     pot 696
+3665     pot 655
+3667.5   key 17 down
+3670     key 18 up
+3670     pot 614
+3675     pot 573
+3680     key 18 down
+3680     pot 532
+3682.5   key 19 up
+3685     pot 491
+3690     pot 450
+3692.5   key 19 down
+3695     key 20 up
+3695     pot 409
+3700     pot 368
+3705     key 20 down
+3705     pot 327
+3707.5   key 21 up
+3710     pot 286
+3715     pot 246
+3717.5   key 21 down
+3720     key 22 up
+3720     pot 205
+3725     pot 164
+3730     key 22 down
+3730     pot 123
+3732.5   key 23 up
+3735     pot 82
+3740     pot 41
+3742.5   key 23 down
+3745     key 24 up
+3745     enc 0 -15
+3745     enc 1 +15
+3745     enc 2 -15
+3745     enc 3 +15
+3745     enc 4 -15
+3745     enc 5 +15
+3745     pot 0
+3750     pot 41
+3755     key 24 down
+3755     pot 82
+3757.5   key 25 up
+3760     pot 123
+3765     pot 164
+3767.5   key 25 down
+3770     key 26 up
+3770     pot 205
+3775     pot 246
+3780     key 26 down
+3780     pot 286
+3782.5   key 27 up
+3785     pot 327
+3790     pot 368
+3792.5   key 27 down
+3795     key 28 up
+3795     pot 409
+3800     pot 450
+3805     key 28 down
+3805     pot 491
+3807.5   key 29 up
+3810     pot 532
+3815     pot 573
+3817.5   key 29 down
+3820     key 30 up
+3820     pot 614
+3825     pot 655
+3830     key 30 down
+3830     pot 696
+3832.5   key 31 up
+3835     pot 737
+3840     pot 777
+3842.5   key 31 down
+3845     key 32 up
+3845     pot 818
+3850     pot 859
+3855     key 32 down
+3855     pot 900
+3857.5   key 33 up
+3860     pot 941
+3865     pot 982
+3867.5   key 33 down
+3870     key 14 up
+3870     enc 0 +15
+3870     enc 1 -15
+3870     enc 2 +15
+3870     enc 3 -15
+3870     enc 4 +15
+3870     enc 5 -15
+3870     pot 1023
+3875     pot 982
+3880     key 14 down
+3880     pot 941
+3882.5   key 15 up
+3885     pot 900
+3890     pot 859
+3892.5   key 15 down
+3895     key 16 up
+3895     pot 818
+3900     pot 777
+3905     key 16 down
+3905     pot 737
+3907.5   key 17 up
+3910     pot 696
+3915     pot 655
+3917.5   key 17 down
+3920     key 18 up
+3920     pot 614
+3925     pot 573
+3930     key 18 down
+3930     pot 532
+3932.5   key 19 up
+3935     pot 491
+3940     pot 450
+3942.5   key 19 down
+3945     key 20 up
+3945     pot 409
+3950     pot 368
+3955     key 20 down
+3955     pot 327
+3957.5   key 21 up
+3960     pot 286
+3965     pot 246
+3967.5   key 21 down
+3970     key 22 up
+3970     pot 205
+3975     pot 164
+3980     key 22 down
+3980     pot 123
+3982.5   key 23 up
+3985     pot 82
+3990     pot 41
+3992.5   key 23 down
+3995     key 24 up
+3995     enc 0 -15
+3995     enc 1 +15
+3995     enc 2 -15
+3995     enc 3 +15
+3995     enc 4 -15
+3995     enc 5 +15
+3995     pot 0
+4000     pot 41
+4005     key 24 down
+4005     pot 82
+4007.5   key 25 up
+4010     pot 123
+4015     pot 164
+4017.5   key 25 down
+4020     key 26 up
+4020     pot 205
+4025     pot 246
+4030     key 26 down
+4030     pot 286
+4032.5   key 27 up
+4035     pot 327
+4040     pot 368
+4042.5   key 27 down
+4045     key 28 up
+4045     pot 409
+4050     pot 450
+4055     key 28 down
+4055     pot 491
+4057.5   key 29 up
+4060     pot 532
+4065     pot 573
+4067.5   key 29 down
+4070     key 30 up
+4070     pot 614
+4075     pot 655
+4080     key 30 down
+4080     pot 696
+4082.5   key 31 up
+4085     pot 737
+4090     pot 777
+4092.5   key 31 down
+4095     key 32 up
+4095     pot 818
+4100     pot 859
+4105     key 32 down
+4105     pot 900
+4107.5   key 33 up
+4110     pot 941
+4115     pot 982
+4117.5   key 33 down
+4120     key 14 up
+4120     enc 0 +15
+4120     enc 1 -15
+4120     enc 2 +15
+4120     enc 3 -15
+4120     enc 4 +15
+4120     enc 5 -15
+4120     pot 1023
+4125     pot 982
+4130     key 14 down
+4130     pot 941
+4132.5   key 15 up
+4135     pot 900
+4140     pot 859
+4142.5   key 15 down
+4145     key 16 up
+4145     pot 818
+4150     pot 777
+4155     key 16 down
+4155     pot 737
+4157.5   key 17 up
+4160     pot 696
+4165     pot 655
+4167.5   key 17 down
+4170     key 18 up
+4170     pot 614
+4175     pot 573
+4180     key 18 down
+4180     pot 532
+4182.5   key 19 up
+4185     pot 491
+4190     pot 450
+4192.5   key 19 down
+4195     key 20 up
+4195     pot 409
+4200     pot 368
+4205     key 20 down
+4205     pot 327
+4207.5   key 21 up
+4210     pot 286
+4215     pot 246
+4217.5   key 21 down
+4220     key 22 up
+4220     pot 205
+4225     pot 164
+4230     key 22 down
+4230     pot 123
+4232.5   key 23 up
+4235     pot 82
+4240     pot 41
+4242.5   key 23 down
+4245     key 24 up
+4245     enc 0 -15
+4245     enc 1 +15
+4245     enc 2 -15
+4245     enc 3 +15
+4245     enc 4 -15
+4245     enc 5 +15
+4245     pot 0
+4250     pot 41
+4255     key 24 down
+4255     pot 82
+4257.5   key 25 up
+4260     pot 123
+4265     pot 164
+4267.5   key 25 down
+4270     key 26 up
+4270     pot 205
+4275     pot 246
+4280     key 26 down
+4280     pot 286
+4282.5   key 27 up
+4285     pot 327
+4290     pot 368
+4292.5   key 27 down
+4295     key 28 up
+4295     pot 409
+4300     pot 450
+4305     key 28 down
+4305     pot 491
+4307.5   key 29 up
+4310     pot 532
+4315     pot 573
+4317.5   key 29 down
+4320     key 30 up
+4320     pot 614
+4325     pot 655
+4330     key 30 down
+4330     pot 696
+4332.5   key 31 up
+4335     pot 737
+4340     pot 777
+4342.5   key 31 down
+4345     key 32 up
+4345     pot 818
+4350     pot 859
+4355     key 32 down
+4355     pot 900
+4357.5   key 33 up
+4360     pot 941
+4365     pot 982
+4367.5   key 33 down
+4370     key 14 up
+4370     enc 0 +15
+4370     enc 1 -15
+4370     enc 2 +15
+4370     enc 3 -15
+4370     enc 4 +15
+4370     enc 5 -15
+4370     pot 1023
+4375     pot 982
+4380     key 14 down
+4380     pot 941
+4382.5   key 15 up
+4385     pot 900
+4390     pot 859
+4392.5   key 15 down
+4395     key 16 up
+4395     pot 818
+4400     pot 777
+4405     key 16 down
+4405     pot 737
+4407.5   key 17 up
+4410     pot 696
+4415     pot 655
+4417.5   key 17 down
+4420     key 18 up
+4420     pot 614
+4425     pot 573
+4430     key 18 down
+4430     pot 532
+4432.5   key 19 up
+4435     pot 491
+4440     pot 450
+4442.5   key 19 down
+4445     key 20 up
+4445     pot 409
+4450     pot 368
+4455     key 20 down
+4455     pot 327
+4457.5   key 21 up
+4460     pot 286
+4465     pot 246
+4467.5   key 21 down
+4470     key 22 up
+4470     pot 205
+4475     pot 164
+4480     key 22 down
+4480     pot 123
+4482.5   key 23 up
+4485     pot 82
+4490     pot 41
+4492.5   key 23 down
+4495     key 24 up
+4495     enc 0 -15
+4495     enc 1 +15
+4495     enc 2 -15
+4495     enc 3 +15
+4495     enc 4 -15
+4495     enc 5 +15
+4495     pot 0
+4500     pot 41
+4505     key 24 down
+4505     pot 82
+4507.5   key 25 up
+4510     pot 123
+4515     pot 164
+4517.5   key 25 down
+4520     key 26 up
+4520     pot 205
+4525     pot 246
+4530     key 26 down
+4530     pot 286
+4532.5   key 27 up
+4535     pot 327
+4540     pot 368
+4542.5   key 27 down
+4545     key 28 up
+4545     pot 409
+4550     pot 450
+4555     key 28 down
+4555     pot 491
+4557.5   key 29 up
+4560     pot 532
+4565     pot 573
+4567.5   key 29 down
+4570     key 30 up
+4570     pot 614
+4575     pot 655
+4580     key 30 down
+4580     pot 696
+4582.5   key 31 up
+4585     pot 737
+4590     pot 777
+4592.5   key 31 down
+4595     key 32 up
+4595     pot 818
+4600     pot 859
+4605     key 32 down
+4605     pot 900
+4607.5   key 33 up
+4610     pot 941
+4615     pot 982
+4617.5   key 33 down
+4620     key 14 up
+4620     enc 0 +15
+4620     enc 1 -15
+4620     enc 2 +15
+4620     enc 3 -15
+4620     enc 4 +15
+4620     enc 5 -15
+4620     pot 1023
+4625     pot 982
+4630     key 14 down
+4630     pot 941
+4632.5   key 15 up
+4635     pot 900
+4640     pot 859
+4642.5   key 15 down
+4645     key 16 up
+4645     pot 818
+4650     pot 777
+4655     key 16 down
+4655     pot 737
+4657.5   key 17 up
+4660     pot 696
+4665     pot 655
+4667.5   key 17 down
+4670     key 18 up
+4670     pot 614
+4675     pot 573
+4680     key 18 down
+4680     pot 532
+4682.5   key 19 up
+4685     pot 491
+4690     pot 450
+4692.5   key 19 down
+4695     key 20 up
+4695     pot 409
+4700     pot 368
+4705     key 20 down
+4705     pot 327
+4707.5   key 21 up
+4710     pot 286
+4715     pot 246
+4717.5   key 21 down
+4720     key 22 up
+4720     pot 205
+4725     pot 164
+4730     key 22 down
+4730     pot 123
+4732.5   key 23 up
+4735     pot 82
+4740     pot 41
+4742.5   key 23 down
+4745     key 24 up
+4745     enc 0 -15
+4745     enc 1 +15
+4745     enc 2 -15
+4745     enc 3 +15
+4745     enc 4 -15
+4745     enc 5 +15
+4745     pot 0
+4750     pot 41
+4755     key 24 down
+4755     pot 82
+4757.5   key 25 up
+4760     pot 123
+4765     pot 164
+4767.5   key 25 down
+4770     key 26 up
+4770     pot 205
+4775     pot 246
+4780     key 26 down
+4780     pot 286
+4782.5   key 27 up
+4785     pot 327
+4790     pot 368
+4792.5   key 27 down
+4795     key 28 up
+4795     pot 409
+4800     pot 450
+4805     key 28 down
+4805     pot 491
+4807.5   key 29 up
+4810     pot 532
+4815     pot 573
+4817.5   key 29 down
+4820     key 30 up
+4820     pot 614
+4825     pot 655
+4830     key 30 down
+4830     pot 696
+4832.5   key 31 up
+4835     pot 737
+4840     pot 777
+4842.5   key 31 down
+4845     key 32 up
+4845     pot 818
+4850     pot 859
+4855     key 32 down
+4855     pot 900
+4857.5   key 33 up
+4860     pot 941
+4865     pot 982
+4867.5   key 33 down
+4870     key 14 up
+4870     enc 0 +15
+4870     enc 1 -15
+4870     enc 2 +15
+4870     enc 3 -15
+4870     enc 4 +15
+4870     enc 5 -15
+4870     pot 1023
+4875     pot 982
+4880     key 14 down
+4880     pot 941
+4882.5   key 15 up
+4885     pot 900
+4890     pot 859
+4892.5   key 15 down
+4895     key 16 up
+4895     pot 818
+4900     pot 777
+4905     key 16 down
+4905     pot 737
+4907.5   key 17 up
+4910     pot 696
+4915     pot 655
+4917.5   key 17 down
+4920     key 18 up
+4920     pot 614
+4925     pot 573
+4930     key 18 down
+4930     pot 532
+4932.5   key 19 up
+4935     pot 491
+4940     pot 450
+4942.5   key 19 down
+4945     key 20 up
+4945     pot 409
+4950     pot 368
+4955     key 20 down
+4955     pot 327
+4957.5   key 21 up
+4960     pot 286
+4965     pot 246
+4967.5   key 21 down
+4970     key 22 up
+4970     pot 205
+4975     pot 164
+4980     key 22 down
+4980     pot 123
+4982.5   key 23 up
+4985     pot 82
+4990     pot 41
+4992.5   key 23 down
+4995     key 24 up
+4995     enc 0 -15
+4995     enc 1 +15
+4995     enc 2 -15
+4995     enc 3 +15
+4995     enc 4 -15
+4995     enc 5 +15
+4995     pot 0
+5000     pot 41
+5005     key 24 down
+5005     pot 82
+5007.5   key 25 up
+5010     pot 123
+5015     pot 164
+5017.5   key 25 down
+5020     key 26 up
+5020     pot 205
+5025     pot 246
+5030     key 26 down
+5030     pot 286
+5032.5   key 27 up
+5035     pot 327
+5040     pot 368
+5042.5   key 27 down
+5045     key 28 up
+5045     pot 409
+5050     pot 450
+5055     key 28 down
+5055     pot 491
+5057.5   key 29 up
+5060     pot 532
+5065     pot 573
+5067.5   key 29 down
+5070     key 30 up
+5070     pot 614
+5075     pot 655
+5080     key 30 down
+5080     pot 696
+5082.5   key 31 up
+5085     pot 737
+5090     pot 777
+5092.5   key 31 down
+5095     key 32 up
+5095     pot 818
+5100     pot 859
+5105     key 32 down
+5105     pot 900
+5107.5   key 33 up
+5110     pot 941
+5115     pot 982
+5117.5   key 33 down
+5120     key 14 up
+5120     enc 0 +15
+5120     enc 1 -15
+5120     enc 2 +15
+5120     enc 3 -15
+5120     enc 4 +15
+5120     enc 5 -15
+5120     pot 1023
+5125     pot 982
+5130     key 14 down
+5130     pot 941
+5132.5   key 15 up
+5135     pot 900
+5140     pot 859
+5142.5   key 15 down
+5145     key 16 up
+5145     pot 818
+5150     pot 777
+5155     key 16 down
+5155     pot 737
+5157.5   key 17 up
+5160     pot 696
+5165     pot 655
+5167.5   key 17 down
+5170     key 18 up
+5170     pot 614
+5175     pot 573
+5180     key 18 down
+5180     pot 532
+5182.5   key 19 up
+5185     pot 491
+5190     pot 450
+5192.5   key 19 down
+5195     key 20 up
+5195     pot 409
+5200     pot 368
+5205     key 20 down
+5205     pot 327
+5207.5   key 21 up
+5210     pot 286
+5215     pot 246
+5217.5   key 21 down
+5220     key 22 up
+5220     pot 205
+5225     pot 164
+5230     key 22 down
+5230     pot 123
+5232.5   key 23 up
+5235     pot 82
+5240     pot 41
+5242.5   key 23 down
+5245     key 24 up
+5245     enc 0 -15
+5245     enc 1 +15
+5245     enc 2 -15
+5245     enc 3 +15
+5245     enc 4 -15
+5245     enc 5 +15
+5245     pot 0
+5250     pot 41
+5255     key 24 down
+5255     pot 82
+5257.5   key 25 up
+5260     pot 123
+5265     pot 164
+5267.5   key 25 down
+5270     key 26 up
+5270     pot 205
+5275     pot 246
+5280     key 26 down
+5280     pot 286
+5282.5   key 27 up
+5285     pot 327
+5290     pot 368
+5292.5   key 27 down
+5295     key 28 up
+5295     pot 409
+5300     pot 450
+5305     key 28 down
+5305     pot 491
+5307.5   key 29 up
+5310     pot 532
+5315     pot 573
+5317.5   key 29 down
+5320     key 30 up
+5320     pot 614
+5325     pot 655
+5330     key 30 down
+5330     pot 696
+5332.5   key 31 up
+5335     pot 737
+5340     pot 777
+5342.5   key 31 down
+5345     key 32 up
+5345     pot 818
+5350     pot 859
+5355     key 32 down
+5355     pot 900
+5357.5   key 33 up
+5360     pot 941
+5365     pot 982
+5367.5   key 33 down
+5370     key 14 up
+5370     enc 0 +15
+5370     enc 1 -15
+5370     enc 2 +15
+5370     enc 3 -15
+5370     enc 4 +15
+5370     enc 5 -15
+5370     pot 1023
+5375     pot 982
+5380     key 14 down
+5380     pot 941
+5382.5   key 15 up
+5385     pot 900
+5390     pot 859
+5392.5   key 15 down
+5395     key 16 up
+5395     pot 818
+5400     pot 777
+5405     key 16 down
+5405     pot 737
+5407.5   key 17 up
+5410     pot 696
+5415     pot 655
+5417.5   key 17 down
+5420     key 18 up
+5420     pot 614
+5425     pot 573
+5430     key 18 down
+5430     pot 532
+5432.5   key 19 up
+5435     pot 491
+5440     pot 450
+5442.5   key 19 down
+5445     key 20 up
+5445     pot 409
+5450     pot 368
+5455     key 20 down
+5455     pot 327
+5457.5   key 21 up
+5460     pot 286
+5465     pot 246
+5467.5   key 21 down
+5470     key 22 up
+5470     pot 205
+5475     pot 164
+5480     key 22 down
+5480     pot 123
+5482.5   key 23 up
+5485     pot 82
+5490     pot 41
+5492.5   key 23 down
+5495     key 24 up
+5495     enc 0 -15
+5495     enc 1 +15
+5495     enc 2 -15
+5495     enc 3 +15
+5495     enc 4 -15
+5495     enc 5 +15
+5495     pot 0
+5500     pot 41
+5505     key 24 down
+5505     pot 82
+5507.5   key 25 up
+5510     pot 123
+5515     pot 164
+5517.5   key 25 down
+5520     key 26 up
+5520     pot 205
+5525     pot 246
+5530     key 26 down
+5530     pot 286
+5532.5   key 27 up
+5535     pot 327
+5540     pot 368
+5542.5   key 27 down
+5545     key 28 up
+5545     pot 409
+5550     pot 450
+5555     key 28 down
+5555     pot 491
+5557.5   key 29 up
+5560     pot 532
+5565     pot 573
+5567.5   key 29 down
+5570     key 30 up
+5570     pot 614
+5575     pot 655
+5580     key 30 down
+5580     pot 696
+5582.5   key 31 up
+5585     pot 737
+5590     pot 777
+5592.5   key 31 down
+5595     key 32 up
+5595     pot 818
+5600     pot 859
+5605     key 32 down
+5605     pot 900
+5607.5   key 33 up
+5610     pot 941
+5615     pot 982
+5617.5   key 33 down
+5620     key 14 up
+5620     enc 0 +15
+5620     enc 1 -15
+5620     enc 2 +15
+5620     enc 3 -15
+5620     enc 4 +15
+5620     enc 5 -15
+5620     pot 1023
+5625     pot 982
+5630     key 14 down
+5630     pot 941
+5632.5   key 15 up
+5635     pot 900
+5640     pot 859
+5642.5   key 15 down
+5645     key 16 up
+5645     pot 818
+5650     pot 777
+5655     key 16 down
+5655     pot 737
+5657.5   key 17 up
+5660     pot 696
+5665     pot 655
+5667.5   key 17 down
+5670     key 18 up
+5670     pot 614
+5675     pot 573
+5680     key 18 down
+5680     pot 532
+5682.5   key 19 up
+5685     pot 491
+5690     pot 450
+5692.5   key 19 down
+5695     key 20 up
+5695     pot 409
+5700     pot 368
+5705     key 20 down
+5705     pot 327
+5707.5   key 21 up
+5710     pot 286
+5715     pot 246
+5717.5   key 21 down
+5720     key 22 up
+5720     pot 205
+5725     pot 164
+5730     key 22 down
+5730     pot 123
+5732.5   key 23 up
+5735     pot 82
+5740     pot 41
+5742.5   key 23 down
+5745     key 24 up
+5745     enc 0 -15
+5745     enc 1 +15
+5745     enc 2 -15
+5745     enc 3 +15
+5745     enc 4 -15
+5745     enc 5 +15
+5745     pot 0
+5750     pot 41
+5755     key 24 down
+5755     pot 82
+5757.5   key 25 up
+5760     pot 123
+5765     pot 164
+5767.5   key 25 down
+5770     key 26 up
+5770     pot 205
+5775     pot 246
+5780     key 26 down
+5780     pot 286
+5782.5   key 27 up
+5785     pot 327
+5790     pot 368
+5792.5   key 27 down
+5795     key 28 up
+5795     pot 409
+5800     pot 450
+5805     key 28 down
+5805     pot 491
+5807.5   key 29 up
+5810     pot 532
+5815     pot 573
+5817.5   key 29 down
+5820     key 30 up
+5820     pot 614
+5825     pot 655
+5830     key 30 down
+5830     pot 696
+5832.5   key 31 up
+5835     pot 737
+5840     pot 777
+5842.5   key 31 down
+5845     key 32 up
+5845     pot 818
+5850     pot 859
+5855     key 32 down
+5855     pot 900
+5857.5   key 33 up
+5860     pot 941
+5865     pot 982
+5867.5   key 33 down
+5870     key 14 up
+5870     enc 0 +15
+5870     enc 1 -15
+5870     enc 2 +15
+5870     enc 3 -15
+5870     enc 4 +15
+5870     enc 5 -15
+5870     pot 1023
+5875     pot 982
+5880     key 14 down
+5880     pot 941
+5882.5   key 15 up
+5885     pot 900
+5890     pot 859
+5892.5   key 15 down
+5895     key 16 up
+5895     pot 818
+5900     pot 777
+5905     key 16 down
+5905     pot 737
+5907.5   key 17 up
+5910     pot 696
+5915     pot 655
+5917.5   key 17 down
+5920     key 18 up
+5920     pot 614
+5925     pot 573
+5930     key 18 down
+5930     pot 532
+5932.5   key 19 up
+5935     pot 491
+5940     pot 450
+5942.5   key 19 down
+5945     key 20 up
+5945     pot 409
+5950     pot 368
+5955     key 20 down
+5955     pot 327
+5957.5   key 21 up
+5960     pot 286
+5965     pot 246
+5967.5   key 21 down
+5970     key 22 up
+5970     pot 205
+5975     pot 164
+5980     key 22 down
+5980     pot 123
+5982.5   key 23 up
+5985     pot 82
+5990     pot 41
+5992.5   key 23 down
+5995     key 24 up
+5995     enc 0 -15
+5995     enc 1 +15
+5995     enc 2 -15
+5995     enc 3 +15
+5995     enc 4 -15
+5995     enc 5 +15
+5995     pot 0
+6000     pot 41
+6005     key 24 down
+6005     pot 82
+6007.5   key 25 up
+6010     pot 123
+6015     pot 164
+6017.5   key 25 down
+6020     key 26 up
+6020     pot 205
+6025     pot 246
+6030     key 26 down
+6030     pot 286
+6032.5   key 27 up
+6035     pot 327
+6040     pot 368
+6042.5   key 27 down
+6045     key 28 up
+6045     pot 409
+6050     pot 450
+6055     key 28 down
+6055     pot 491
+6057.5   key 29 up
+6060     pot 532
+6065     pot 573
+6067.5   key 29 down
+6070     key 30 up
+6070     pot 614
+6075     pot 655
+6080     key 30 down
+6080     pot 696
+6082.5   key 31 up
+6085     pot 737
+6090     pot 777
+6092.5   key 31 down
+6095     key 32 up
+6095     pot 818
+6100     pot 859
+6105     key 32 down
+6105     pot 900
+6107.5   key 33 up
+6110     pot 941
+6115     pot 982
+6117.5   key 33 down
+6120     key 14 up
+6120     enc 0 +15
+6120     enc 1 -15
+6120     enc 2 +15
+6120     enc 3 -15
+6120     enc 4 +15
+6120     enc 5 -15
+6120     pot 1023
+6125     pot 982
+6130     key 14 down
+6130     pot 941
+6132.5   key 15 up
+6135     pot 900
+6140     pot 859
+6142.5   key 15 down
+6145     key 16 up
+6145     pot 818
+6150     pot 777
+6155     key 16 down
+6155     pot 737
+6157.5   key 17 up
+6160     pot 696
+6165     pot 655
+6167.5   key 17 down
+6170     key 18 up
+6170     pot 614
+6175     pot 573
+6180     key 18 down
+6180     pot 532
+6182.5   key 19 up
+6185     pot 491
+6190     pot 450
+6192.5   key 19 down
+6195     key 20 up
+6195     pot 409
+6200     pot 368
+6205     key 20 down
+6205     pot 327
+6207.5   key 21 up
+6210     pot 286
+6215     pot 246
+6217.5   key 21 down
+6220     key 22 up
+6220     pot 205
+6225     pot 164
+6230     key 22 down
+6230     pot 123
+6232.5   key 23 up
+6235     pot 82
+6240     pot 41
+6242.5   key 23 down
+6245     key 24 up
+6245     enc 0 -15
+6245     enc 1 +15
+6245     enc 2 -15
+6245     enc 3 +15
+6245     enc 4 -15
+6245     enc 5 +15
+6245     pot 0
+6250     pot 41
+6255     key 24 down
+6255     pot 82
+6257.5   key 25 up
+6260     pot 123
+6265     pot 164
+6267.5   key 25 down
+6270     key 26 up
+6270     pot 205
+6275     pot 246
+6280     key 26 down
+6280     pot 286
+6282.5   key 27 up
+6285     pot 327
+6290     pot 368
+6292.5   key 27 down
+6295     key 28 up
+6295     pot 409
+6300     pot 450
+6305     key 28 down
+6305     pot 491
+6307.5   key 29 up
+6310     pot 532
+6315     pot 573
+6317.5   key 29 down
+6320     key 30 up
+6320     pot 614
+6325     pot 655
+6330     key 30 down
+6330     pot 696
+6332.5   key 31 up
+6335     pot 737
+6340     pot 777
+6342.5   key 31 down
+6345     key 32 up
+6345     pot 818
+6350     pot 859
+6355     key 32 down
+6355     pot 900
+6357.5   key 33 up
+6360     pot 941
+6365     pot 982
+6367.5   key 33 down
+6370     key 14 up
+6370     enc 0 +15
+6370     enc 1 -15
+6370     enc 2 +15
+6370     enc 3 -15
+6370     enc 4 +15
+6370     enc 5 -15
+6370     pot 1023
+6375     pot 982
+6380     key 14 down
+6380     pot 941
+6382.5   key 15 up
+6385     pot 900
+6390     pot 859
+6392.5   key 15 down
+6395     key 16 up
+6395     pot 818
+6400     pot 777
+6405     key 16 down
+6405     pot 737
+6407.5   key 17 up
+6410     pot 696
+6415     pot 655
+6417.5   key 17 down
+6420     key 18 up
+6420     pot 614
+6425     pot 573
+6430     key 18 down
+6430     pot 532
+6432.5   key 19 up
+6435     pot 491
+6440     pot 450
+6442.5   key 19 down
+6445     key 20 up
+6445     pot 409
+6450     pot 368
+6455     key 20 down
+6455     pot 327
+6457.5   key 21 up
+6460     pot 286
+6465     pot 246
+6467.5   key 21 down
+6470     key 22 up
+6470     pot 205
+6475     pot 164
+6480     key 22 down
+6480     pot 123
+6482.5   key 23 up
+6485     pot 82
+6490     pot 41
+6492.5   key 23 down
+6495     key 24 up
+6495     enc 0 -15
+6495     enc 1 +15
+6495     enc 2 -15
+6495     enc 3 +15
+6495     enc 4 -15
+6495     enc 5 +15
+6495     pot 0
+6500     pot 41
+6505     key 24 down
+6505     pot 82
+6507.5   key 25 up
+6510     pot 123
+6515     pot 164
+6517.5   key 25 down
+6520     key 26 up
+6520     pot 205
+6525     pot 246
+6530     key 26 down
+6530     pot 286
+6532.5   key 27 up
+6535     pot 327
+6540     pot 368
+6542.5   key 27 down
+6545     key 28 up
+6545     pot 409
+6550     pot 450
+6555     key 28 down
+6555     pot 491
+6557.5   key 29 up
+6560     pot 532
+6565     pot 573
+6567.5   key 29 down
+6570     key 30 up
+6570     pot 614
+6575     pot 655
+6580     key 30 down
+6580     pot 696
+6582.5   key 31 up
+6585     pot 737
+6590     pot 777
+6592.5   key 31 down
+6595     key 32 up
+6595     pot 818
+6600     pot 859
+6605     key 32 down
+6605     pot 900
+6607.5   key 33 up
+6610     pot 941
+6615     pot 982
+6617.5   key 33 down
+6620     key 14 up
+6620     enc 0 +15
+6620     enc 1 -15
+6620     enc 2 +15
+6620     enc 3 -15
+6620     enc 4 +15
+6620     enc 5 -15
+6620     pot 1023
+6625     pot 982
+6630     key 14 down
+6630     pot 941
+6632.5   key 15 up
+6635     pot 900
+6640     pot 859
+6642.5   key 15 down
+6645     key 16 up
+6645     pot 818
+6650     pot 777
+6655     key 16 down
+6655     pot 737
+6657.5   key 17 up
+6660     pot 696
+6665     pot 655
+6667.5   key 17 down
+6670     key 18 up
+6670     pot 614
+6675     pot 573
+6680     key 18 down
+6680     pot 532
+6682.5   key 19 up
+6685     pot 491
+6690     pot 450
+6692.5   key 19 down
+6695     key 20 up
+6695     pot 409
+6700     pot 368
+6705     key 20 down
+6705     pot 327
+6707.5   key 21 up
+6710     pot 286
+6715     pot 246
+6717.5   key 21 down
+6720     key 22 up
+6720     pot 205
+6725     pot 164
+6730     key 22 down
+6730     pot 123
+6732.5   key 23 up
+6735     pot 82
+6740     pot 41
+6742.5   key 23 down
+6745     key 24 up
+6745     enc 0 -15
+6745     enc 1 +15
+6745     enc 2 -15
+6745     enc 3 +15
+6745     enc 4 -15
+6745     enc 5 +15
+6745     pot 0
+6750     pot 41
+6755     key 24 down
+6755     pot 82
+6757.5   key 25 up
+6760     pot 123
+6765     pot 164
+6767.5   key 25 down
+6770     key 26 up
+6770     pot 205
+6775     pot 246
+6780     key 26 down
+6780     pot 286
+6782.5   key 27 up
+6785     pot 327
+6790     pot 368
+6792.5   key 27 down
+6795     key 28 up
+6795     pot 409
+6800     pot 450
+6805     key 28 down
+6805     pot 491
+6807.5   key 29 up
+6810     pot 532
+6815     pot 573
+6817.5   key 29 down
+6820     key 30 up
+6820     pot 614
+6825     pot 655
+6830     key 30 down
+6830     pot 696
+6832.5   key 31 up
+6835     pot 737
+6840     pot 777
+6842.5   key 31 down
+6845     key 32 up
+6845     pot 818
+6850     pot 859
+6855     key 32 down
+6855     pot 900
+6857.5   key 33 up
+6860     pot 941
+6865     pot 982
+6867.5   key 33 down
+6870     key 14 up
+6870     enc 0 +15
+6870     enc 1 -15
+6870     enc 2 +15
+6870     enc 3 -15
+6870     enc 4 +15
+6870     enc 5 -15
+6870     pot 1023
+6875     pot 982
+6880     key 14 down
+6880     pot 941
+6882.5   key 15 up
+6885     pot 900
+6890     pot 859
+6892.5   key 15 down
+6895     key 16 up
+6895     pot 818
+6900     pot 777
+6905     key 16 down
+6905     pot 737
+6907.5   key 17 up
+6910     pot 696
+6915     pot 655
+6917.5   key 17 down
+6920     key 18 up
+6920     pot 614
+6925     pot 573
+6930     key 18 down
+6930     pot 532
+6932.5   key 19 up
+6935     pot 491
+6940     pot 450
+6942.5   key 19 down
+6945     key 20 up
+6945     pot 409
+6950     pot 368
+6955     key 20 down
+6955     pot 327
+6957.5   key 21 up
+6960     pot 286
+6965     pot 246
+6967.5   key 21 down
+6970     key 22 up
+6970     pot 205
+6975     pot 164
+6980     key 22 down
+6980     pot 123
+6982.5   key 23 up
+6985     pot 82
+6990     pot 41
+6992.5   key 23 down
+6995     key 24 up
+6995     enc 0 -15
+6995     enc 1 +15
+6995     enc 2 -15
+6995     enc 3 +15
+6995     enc 4 -15
+6995     enc 5 +15
+6995     pot 0
+7000     pot 41
+7005     key 24 down
+7005     pot 82
+7007.5   key 25 up
+7010     pot 123
+7015     pot 164
+7017.5   key 25 down
+7020     key 26 up
+7020     pot 205
+7025     pot 246
+7030     key 26 down
+7030     pot 286
+7032.5   key 27 up
+7035     pot 327
+7040     pot 368
+7042.5   key 27 down
+7045     key 28 up
+7045     pot 409
+7050     pot 450
+7055     key 28 down
+7055     pot 491
+7057.5   key 29 up
+7060     pot 532
+7065     pot 573
+7067.5   key 29 down
+7070     key 30 up
+7070     pot 614
+7075     pot 655
+7080     key 30 down
+7080     pot 696
+7082.5   key 31 up
+7085     pot 737
+7090     pot 777
+7092.5   key 31 down
+7095     key 32 up
+7095     pot 818
+7100     pot 859
+7105     key 32 down
+7105     pot 900
+7107.5   key 33 up
+7110     pot 941
+7115     pot 982
+7117.5   key 33 down
+7120     key 14 up
+7120     enc 0 +15
+7120     enc 1 -15
+7120     enc 2 +15
+7120     enc 3 -15
+7120     enc 4 +15
+7120     enc 5 -15
+7120     pot 1023
+7125     pot 982
+7130     key 14 down
+7130     pot 941
+7132.5   key 15 up
+7135     pot 900
+7140     pot 859
+7142.5   key 15 down
+7145     key 16 up
+7145     pot 818
+7150     pot 777
+7155     key 16 down
+7155     pot 737
+7157.5   key 17 up
+7160     pot 696
+7165     pot 655
+7167.5   key 17 down
+7170     key 18 up
+7170     pot 614
+7175     pot 573
+7180     key 18 down
+7180     pot 532
+7182.5   key 19 up
+7185     pot 491
+7190     pot 450
+7192.5   key 19 down
+7195     key 20 up
+7195     pot 409
+7200     pot 368
+7205     key 20 down
+7205     pot 327
+7207.5   key 21 up
+7210     pot 286
+7215     pot 246
+7217.5   key 21 down
+7220     key 22 up
+7220     pot 205
+7225     pot 164
+7230     key 22 down
+7230     pot 123
+7232.5   key 23 up
+7235     pot 82
+7240     pot 41
+7242.5   key 23 down
+7245     key 24 up
+7245     enc 0 -15
+7245     enc 1 +15
+7245     enc 2 -15
+7245     enc 3 +15
+7245     enc 4 -15
+7245     enc 5 +15
+7245     pot 0
+7250     pot 41
+7255     key 24 down
+7255     pot 82
+7257.5   key 25 up
+7260     pot 123
+7265     pot 164
+7267.5   key 25 down
+7270     key 26 up
+7270     pot 205
+7275     pot 246
+7280     key 26 down
+7280     pot 286
+7282.5   key 27 up
+7285     pot 327
+7290     pot 368
+7292.5   key 27 down
+7295     key 28 up
+7295     pot 409
+7300     pot 450
+7305     key 28 down
+7305     pot 491
+7307.5   key 29 up
+7310     pot 532
+7315     pot 573
+7317.5   key 29 down
+7320     key 30 up
+7320     pot 614
+7325     pot 655
+7330     key 30 down
+7330     pot 696
+7332.5   key 31 up
+7335     pot 737
+7340     pot 777
+7342.5   key 31 down
+7345     key 32 up
+7345     pot 818
+7350     pot 859
+7355     key 32 down
+7355     pot 900
+7357.5   key 33 up
+7360     pot 941
+7365     pot 982
+7367.5   key 33 down
+7370     key 14 up
+7370     enc 0 +15
+7370     enc 1 -15
+7370     enc 2 +15
+7370     enc 3 -15
+7370     enc 4 +15
+7370     enc 5 -15
+7370     pot 1023
+7375     pot 982
+7380     key 14 down
+7380     pot 941
+7382.5   key 15 up
+7385     pot 900
+7390     pot 859
+7392.5   key 15 down
+7395     key 16 up
+7395     pot 818
+7400     pot 777
+7405     key 16 down
+7405     pot 737
+7407.5   key 17 up
+7410     pot 696
+7415     pot 655
+7417.5   key 17 down
+7420     key 18 up
+7420     pot 614
+7425     pot 573
+7430     key 18 down
+7430     pot 532
+7432.5   key 19 up
+7435     pot 491
+7440     pot 450
+7442.5   key 19 down
+7445     key 20 up
+7445     pot 409
+7450     pot 368
+7455     key 20 down
+7455     pot 327
+7457.5   key 21 up
+7460     pot 286
+7465     pot 246
+7467.5   key 21 down
+7470     key 22 up
+7470     pot 205
+7475     pot 164
+7480     key 22 down
+7480     pot 123
+7482.5   key 23 up
+7485     pot 82
+7490     pot 41
+7492.5   key 23 down
+7495     key 24 up
+7495     enc 0 -15
+7495     enc 1 +15
+7495     enc 2 -15
+7495     enc 3 +15
+7495     enc 4 -15
+7495     enc 5 +15
+7495     pot 0
+7500     pot 41
+7505     key 24 down
+7505     pot 82
+7507.5   key 25 up
+7510     pot 123
+7515     pot 164
+7517.5   key 25 down
+7520     key 26 up
+7520     pot 205
+7525     pot 246
+7530     key 26 down
+7530     pot 286
+7532.5   key 27 up
+7535     pot 327
+7540     pot 368
+7542.5   key 27 down
+7545     key 28 up
+7545     pot 409
+7550     pot 450
+7555     key 28 down
+7555     pot 491
+7557.5   key 29 up
+7560     pot 532
+7565     pot 573
+7567.5   key 29 down
+7570     key 30 up
+7570     pot 614
+7575     pot 655
+7580     key 30 down
+7580     pot 696
+7582.5   key 31 up
+7585     pot 737
+7590     pot 777
+7592.5   key 31 down
+7595     key 32 up
+7595     pot 818
+7600     pot 859
+7605     key 32 down
+7605     pot 900
+7607.5   key 33 up
+7610     pot 941
+7615     pot 982
+7617.5   key 33 down
+7620     key 14 up
+7620     enc 0 +15
+7620     enc 1 -15
+7620     enc 2 +15
+7620     enc 3 -15
+7620     enc 4 +15
+7620     enc 5 -15
+7620     pot 1023
+7625     pot 982
+7630     key 14 down
+7630     pot 941
+7632.5   key 15 up
+7635     pot 900
+7640     pot 859
+7642.5   key 15 down
+7645     key 16 up
+7645     pot 818
+7650     pot 777
+7655     key 16 down
+7655     pot 737
+7657.5   key 17 up
+7660     pot 696
+7665     pot 655
+7667.5   key 17 down
+7670     key 18 up
+7670     pot 614
+7675     pot 573
+7680     key 18 down
+7680     pot 532
+7682.5   key 19 up
+7685     pot 491
+7690     pot 450
+7692.5   key 19 down
+7695     key 20 up
+7695     pot 409
+7700     pot 368
+7705     key 20 down
+7705     pot 327
+7707.5   key 21 up
+7710     pot 286
+7715     pot 246
+7717.5   key 21 down
+7720     key 22 up
+7720     pot 205
+7725     pot 164
+7730     key 22 down
+7730     pot 123
+7732.5   key 23 up
+7735     pot 82
+7740     pot 41
+7742.5   key 23 down
+7745     key 24 up
+7745     enc 0 -15
+7745     enc 1 +15
+7745     enc 2 -15
+7745     enc 3 +15
+7745     enc 4 -15
+7745     enc 5 +15
+7745     pot 0
+7750     pot 41
+7755     key 24 down
+7755     pot 82
+7757.5   key 25 up
+7760     pot 123
+7765     pot 164
+7767.5   key 25 down
+7770     key 26 up
+7770     pot 205
+7775     pot 246
+7780     key 26 down
+7780     pot 286
+7782.5   key 27 up
+7785     pot 327
+7790     pot 368
+7792.5   key 27 down
+7795     key 28 up
+7795     pot 409
+7800     pot 450
+7805     key 28 down
+7805     pot 491
+7807.5   key 29 up
+7810     pot 532
+7815     pot 573
+7817.5   key 29 down
+7820     key 30 up
+7820     pot 614
+7825     pot 655
+7830     key 30 down
+7830     pot 696
+7832.5   key 31 up
+7835     pot 737
+7840     pot 777
+7842.5   key 31 down
+7845     key 32 up
+7845     pot 818
+7850     pot 859
+7855     key 32 down
+7855     pot 900
+7857.5   key 33 up
+7860     pot 941
+7865     pot 982
+7867.5   key 33 down
+7870     key 14 up
+7870     enc 0 +15
+7870     enc 1 -15
+7870     enc 2 +15
+7870     enc 3 -15
+7870     enc 4 +15
+7870     enc 5 -15
+7870     pot 1023
+7875     pot 982
+7880     key 14 down
+7880     pot 941
+7882.5   key 15 up
+7885     pot 900
+7890     pot 859
+7892.5   key 15 down
+7895     key 16 up
+7895     pot 818
+7900     pot 777
+7905     key 16 down
+7905     pot 737
+7907.5   key 17 up
+7910     pot 696
+7915     pot 655
+7917.5   key 17 down
+7920     key 18 up
+7920     pot 614
+7925     pot 573
+7930     key 18 down
+7930     pot 532
+7932.5   key 19 up
+7935     pot 491
+7940     pot 450
+7942.5   key 19 down
+7945     key 20 up
+7945     pot 409
+7950     pot 368
+7955     key 20 down
+7955     pot 327
+7957.5   key 21 up
+7960     pot 286
+7965     pot 246
+7967.5   key 21 down
+7970     key 22 up
+7970     pot 205
+7975     pot 164
+7980     key 22 down
+7980     pot 123
+7982.5   key 23 up
+7985     pot 82
+7990     pot 41
+7992.5   key 23 down
+7995     key 24 up
+7995     enc 0 -15
+7995     enc 1 +15
+7995     enc 2 -15
+7995     enc 3 +15
+7995     enc 4 -15
+7995     enc 5 +15
+7995     pot 0
+8000     pot 41
+8005     key 24 down
+8005     pot 82
+8007.5   key 25 up
+8010     pot 123
+8015     pot 164
+8017.5   key 25 down
+8020     key 26 up
+8020     pot 205
+8025     pot 246
+8030     key 26 down
+8030     pot 286
+8032.5   key 27 up
+8035     pot 327
+8040     pot 368
+8042.5   key 27 down
+8045     key 28 up
+8045     pot 409
+8050     pot 450
+8055     key 28 down
+8055     pot 491
+8057.5   key 29 up
+8060     pot 532
+8065     pot 573
+8067.5   key 29 down
+8070     key 30 up
+8070     pot 614
+8075     pot 655
+8080     key 30 down
+8080     pot 696
+8082.5   key 31 up
+8085     pot 737
+8090     pot 777
+8092.5   key 31 down
+8095     key 32 up
+8095     pot 818
+8100     pot 859
+8105     key 32 down
+8105     pot 900
+8107.5   key 33 up
+8110     pot 941
+8115     pot 982
+8117.5   key 33 down
+8120     key 14 up
+8120     enc 0 +15
+8120     enc 1 -15
+8120     enc 2 +15
+8120     enc 3 -15
+8120     enc 4 +15
+8120     enc 5 -15
+8120     pot 1023
+8125     pot 982
+8130     key 14 down
+8130     pot 941
+8132.5   key 15 up
+8135     pot 900
+8140     pot 859
+8142.5   key 15 down
+8145     key 16 up
+8145     pot 818
+8150     pot 777
+8155     key 16 down
+8155     pot 737
+8157.5   key 17 up
+8160     pot 696
+8165     pot 655
+8167.5   key 17 down
+8170     key 18 up
+8170     pot 614
+8175     pot 573
+8180     key 18 down
+8180     pot 532
+8182.5   key 19 up
+8185     pot 491
+8190     pot 450
+8192.5   key 19 down
+8195     key 20 up
+8195     pot 409
+8200     pot 368
+8205     key 20 down
+8205     pot 327
+8207.5   key 21 up
+8210     pot 286
+8215     pot 246
+8217.5   key 21 down
+8220     key 22 up
+8220     pot 205
+8225     pot 164
+8230     key 22 down
+8230     pot 123
+8232.5   key 23 up
+8235     pot 82
+8240     pot 41
+8242.5   key 23 down
+8245     key 24 up
+8245     enc 0 -15
+8245     enc 1 +15
+8245     enc 2 -15
+8245     enc 3 +15
+8245     enc 4 -15
+8245     enc 5 +15
+8245     pot 0
+8250     pot 41
+8255     key 24 down
+8255     pot 82
+8257.5   key 25 up
+8260     pot 123
+8265     pot 164
+8267.5   key 25 down
+8270     key 26 up
+8270     pot 205
+8275     pot 246
+8280     key 26 down
+8280     pot 286
+8282.5   key 27 up
+8285     pot 327
+8290     pot 368
+8292.5   key 27 down
+8295     key 28 up
+8295     pot 409
+8300     pot 450
+8305     key 28 down
+8305     pot 491
+8307.5   key 29 up
+8310     pot 532
+8315     pot 573
+8317.5   key 29 down
+8320     key 30 up
+8320     pot 614
+8325     pot 655
+8330     key 30 down
+8330     pot 696
+8332.5   key 31 up
+8335     pot 737
+8340     pot 777
+8342.5   key 31 down
+8345     key 32 up
+8345     pot 818
+8350     pot 859
+8355     key 32 down
+8355     pot 900
+8357.5   key 33 up
+8360     pot 941
+8365     pot 982
+8367.5   key 33 down
+8370     key 14 up
+8370     enc 0 +15
+8370     enc 1 -15
+8370     enc 2 +15
+8370     enc 3 -15
+8370     enc 4 +15
+8370     enc 5 -15
+8370     pot 1023
+8375     pot 982
+8380     key 14 down
+8380     pot 941
+8382.5   key 15 up
+8385     pot 900
+8390     pot 859
+8392.5   key 15 down
+8395     key 16 up
+8395     pot 818
+8400     pot 777
+8405     key 16 down
+8405     pot 737
+8407.5   key 17 up
+8410     pot 696
+8415     pot 655
+8417.5   key 17 down
+8420     key 18 up
+8420     pot 614
+8425     pot 573
+8430     key 18 down
+8430     pot 532
+8432.5   key 19 up
+8435     pot 491
+8440     pot 450
+8442.5   key 19 down
+8445     key 20 up
+8445     pot 409
+8450     pot 368
+8455     key 20 down
+8455     pot 327
+8457.5   key 21 up
+8460     pot 286
+8465     pot 246
+8467.5   key 21 down
+8470     key 22 up
+8470     pot 205
+8475     pot 164
+8480     key 22 down
+8480     pot 123
+8482.5   key 23 up
+8485     pot 82
+8490     pot 41
+8492.5   key 23 down
+8495     key 24 up
+8495     enc 0 -15
+8495     enc 1 +15
+8495     enc 2 -15
+8495     enc 3 +15
+8495     enc 4 -15
+8495     enc 5 +15
+8495     pot 0
+8500     pot 41
+8505     key 24 down
+8505     pot 82
+8507.5   key 25 up
+8510     pot 123
+8515     pot 164
+8517.5   key 25 down
+8520     key 26 up
+8520     pot 205
+8525     pot 246
+8530     key 26 down
+8530     pot 286
+8532.5   key 27 up
+8535     pot 327
+8540     pot 368
+8542.5   key 27 down
+8545     key 28 up
+8545     pot 409
+8550     pot 450
+8555     key 28 down
+8555     pot 491
+8557.5   key 29 up
+8560     pot 532
+8565     pot 573
+8567.5   key 29 down
+8570     key 30 up
+8570     pot 614
+8575     pot 655
+8580     key 30 down
+8580     pot 696
+8582.5   key 31 up
+8585     pot 737
+8590     pot 777
+8592.5   key 31 down
+8595     key 32 up
+8595     pot 818
+8600     pot 859
+8605     key 32 down
+8605     pot 900
+8607.5   key 33 up
+8610     pot 941
+8615     pot 982
+8617.5   key 33 down
+8620     key 14 up
+8620     enc 0 +15
+8620     enc 1 -15
+8620     enc 2 +15
+8620     enc 3 -15
+8620     enc 4 +15
+8620     enc 5 -15
+8620     pot 1023
+8625     pot 982
+8630     key 14 down
+8630     pot 941
+8632.5   key 15 up
+8635     pot 900
+8640     pot 859
+8642.5   key 15 down
+8645     key 16 up
+8645     pot 818
+8650     pot 777
+8655     key 16 down
+8655     pot 737
+8657.5   key 17 up
+8660     pot 696
+8665     pot 655
+8667.5   key 17 down
+8670     key 18 up
+8670     pot 614
+8675     pot 573
+8680     key 18 down
+8680     pot 532
+8682.5   key 19 up
+8685     pot 491
+8690     pot 450
+8692.5   key 19 down
+8695     key 20 up
+8695     pot 409
+8700     pot 368
+8705     key 20 down
+8705     pot 327
+8707.5   key 21 up
+8710     pot 286
+8715     pot 246
+8717.5   key 21 down
+8720     key 22 up
+8720     pot 205
+8725     pot 164
+8730     key 22 down
+8730     pot 123
+8732.5   key 23 up
+8735     pot 82
+8740     pot 41
+8742.5   key 23 down
+8745     key 24 up
+8745     enc 0 -15
+8745     enc 1 +15
+8745     enc 2 -15
+8745     enc 3 +15
+8745     enc 4 -15
+8745     enc 5 +15
+8745     pot 0
+8750     pot 41
+8755     key 24 down
+8755     pot 82
+8757.5   key 25 up
+8760     pot 123
+8765     pot 164
+8767.5   key 25 down
+8770     key 26 up
+8770     pot 205
+8775     pot 246
+8780     key 26 down
+8780     pot 286
+8782.5   key 27 up
+8785     pot 327
+8790     pot 368
+8792.5   key 27 down
+8795     key 28 up
+8795     pot 409
+8800     pot 450
+8805     key 28 down
+8805     pot 491
+8807.5   key 29 up
+8810     pot 532
+8815     pot 573
+8817.5   key 29 down
+8820     key 30 up
+8820     pot 614
+8825     pot 655
+8830     key 30 down
+8830     pot 696
+8832.5   key 31 up
+8835     pot 737
+8840     pot 777
+8842.5   key 31 down
+8845     key 32 up
+8845     pot 818
+8850     pot 859
+8855     key 32 down
+8855     pot 900
+8857.5   key 33 up
+8860     pot 941
+8865     pot 982
+8867.5   key 33 down
+8870     key 14 up
+8870     enc 0 +15
+8870     enc 1 -15
+8870     enc 2 +15
+8870     enc 3 -15
+8870     enc 4 +15
+8870     enc 5 -15
+8870     pot 1023
+8875     pot 982
+8880     key 14 down
+8880     pot 941
+8882.5   key 15 up
+8885     pot 900
+8890     pot 859
+8892.5   key 15 down
+8895     key 16 up
+8895     pot 818
+8900     pot 777
+8905     key 16 down
+8905     pot 737
+8907.5   key 17 up
+8910     pot 696
+8915     pot 655
+8917.5   key 17 down
+8920     key 18 up
+8920     pot 614
+8925     pot 573
+8930     key 18 down
+8930     pot 532
+8932.5   key 19 up
+8935     pot 491
+8940     pot 450
+8942.5   key 19 down
+8945     key 20 up
+8945     pot 409
+8950     pot 368
+8955     key 20 down
+8955     pot 327
+8957.5   key 21 up
+8960     pot 286
+8965     pot 246
+8967.5   key 21 down
+8970     key 22 up
+8970     pot 205
+8975     pot 164
+8980     key 22 down
+8980     pot 123
+8982.5   key 23 up
+8985     pot 82
+8990     pot 41
+8992.5   key 23 down
+8995     key 24 up
+8995     enc 0 -15
+8995     enc 1 +15
+8995     enc 2 -15
+8995     enc 3 +15
+8995     enc 4 -15
+8995     enc 5 +15
+8995     pot 0
+9000     pot 41
+9005     key 24 down
+9005     pot 82
+9007.5   key 25 up
+9010     pot 123
+9015     pot 164
+9017.5   key 25 down
+9020     key 26 up
+9020     pot 205
+9025     pot 246
+9030     key 26 down
+9030     pot 286
+9032.5   key 27 up
+9035     pot 327
+9040     pot 368
+9042.5   key 27 down
+9045     key 28 up
+9045     pot 409
+9050     pot 450
+9055     key 28 down
+9055     pot 491
+9057.5   key 29 up
+9060     pot 532
+9065     pot 573
+9067.5   key 29 down
+9070     key 30 up
+9070     pot 614
+9075     pot 655
+9080     key 30 down
+9080     pot 696
+9082.5   key 31 up
+9085     pot 737
+9090     pot 777
+9092.5   key 31 down
+9095     key 32 up
+9095     pot 818
+9100     pot 859
+9105     key 32 down
+9105     pot 900
+9107.5   key 33 up
+9110     pot 941
+9115     pot 982
+9117.5   key 33 down
+9120     key 14 up
+9120     enc 0 +15
+9120     enc 1 -15
+9120     enc 2 +15
+9120     enc 3 -15
+9120     enc 4 +15
+9120     enc 5 -15
+9120     pot 1023
+9125     pot 982
+9130     key 14 down
+9130     pot 941
+9132.5   key 15 up
+9135     pot 900
+9140     pot 859
+9142.5   key 15 down
+9145     key 16 up
+9145     pot 818
+9150     pot 777
+9155     key 16 down
+9155     pot 737
+9157.5   key 17 up
+9160     pot 696
+9165     pot 655
+9167.5   key 17 down
+9170     key 18 up
+9170     pot 614
+9175     pot 573
+9180     key 18 down
+9180     pot 532
+9182.5   key 19 up
+9185     pot 491
+9190     pot 450
+9192.5   key 19 down
+9195     key 20 up
+9195     pot 409
+9200     pot 368
+9205     key 20 down
+9205     pot 327
+9207.5   key 21 up
+9210     pot 286
+9215     pot 246
+9217.5   key 21 down
+9220     key 22 up
+9220     pot 205
+9225     pot 164
+9230     key 22 down
+9230     pot 123
+9232.5   key 23 up
+9235     pot 82
+9240     pot 41
+9242.5   key 23 down
+9245     key 24 up
+9245     enc 0 -15
+9245     enc 1 +15
+9245     enc 2 -15
+9245     enc 3 +15
+9245     enc 4 -15
+9245     enc 5 +15
+9245     pot 0
+9250     pot 41
+9255     key 24 down
+9255     pot 82
+9257.5   key 25 up
+9260     pot 123
+9265     pot 164
+9267.5   key 25 down
+9270     key 26 up
+9270     pot 205
+9275     pot 246
+9280     key 26 down
+9280     pot 286
+9282.5   key 27 up
+9285     pot 327
+9290     pot 368
+9292.5   key 27 down
+9295     key 28 up
+9295     pot 409
+9300     pot 450
+9305     key 28 down
+9305     pot 491
+9307.5   key 29 up
+9310     pot 532
+9315     pot 573
+9317.5   key 29 down
+9320     key 30 up
+9320     pot 614
+9325     pot 655
+9330     key 30 down
+9330     pot 696
+9332.5   key 31 up
+9335     pot 737
+9340     pot 777
+9342.5   key 31 down
+9345     key 32 up
+9345     pot 818
+9350     pot 859
+9355     key 32 down
+9355     pot 900
+9357.5   key 33 up
+9360     pot 941
+9365     pot 982
+9367.5   key 33 down
+9370     key 14 up
+9370     enc 0 +15
+9370     enc 1 -15
+9370     enc 2 +15
+9370     enc 3 -15
+9370     enc 4 +15
+9370     enc 5 -15
+9370     pot 1023
+9375     pot 982
+9380     key 14 down
+9380     pot 941
+9382.5   key 15 up
+9385     pot 900
+9390     pot 859
+9392.5   key 15 down
+9395     key 16 up
+9395     pot 818
+9400     pot 777
+9405     key 16 down
+9405     pot 737
+9407.5   key 17 up
+9410     pot 696
+9415     pot 655
+9417.5   key 17 down
+9420     key 18 up
+9420     pot 614
+9425     pot 573
+9430     key 18 down
+9430     pot 532
+9432.5   key 19 up
+9435     pot 491
+9440     pot 450
+9442.5   key 19 down
+9445     key 20 up
+9445     pot 409
+9450     pot 368
+9455     key 20 down
+9455     pot 327
+9457.5   key 21 up
+9460     pot 286
+9465     pot 246
+9467.5   key 21 down
+9470     key 22 up
+9470     pot 205
+9475     pot 164
+9480     key 22 down
+9480     pot 123
+9482.5   key 23 up
+9485     pot 82
+9490     pot 41
+9492.5   key 23 down
+9495     key 24 up
+9495     enc 0 -15
+9495     enc 1 +15
+9495     enc 2 -15
+9495     enc 3 +15
+9495     enc 4 -15
+9495     enc 5 +15
+9495     pot 0
+9500     pot 41
+9505     key 24 down
+9505     pot 82
+9507.5   key 25 up
+9510     pot 123
+9515     pot 164
+9517.5   key 25 down
+9520     key 26 up
+9520     pot 205
+9525     pot 246
+9530     key 26 down
+9530     pot 286
+9532.5   key 27 up
+9535     pot 327
+9540     pot 368
+9542.5   key 27 down
+9545     key 28 up
+9545     pot 409
+9550     pot 450
+9555     key 28 down
+9555     pot 491
+9557.5   key 29 up
+9560     pot 532
+9565     pot 573
+9567.5   key 29 down
+9570     key 30 up
+9570     pot 614
+9575     pot 655
+9580     key 30 down
+9580     pot 696
+9582.5   key 31 up
+9585     pot 737
+9590     pot 777
+9592.5   key 31 down
+9595     key 32 up
+9595     pot 818
+9600     pot 859
+9605     key 32 down
+9605     pot 900
+9607.5   key 33 up
+9610     pot 941
+9615     pot 982
+9617.5   key 33 down
+9620     key 14 up
+9620     enc 0 +15
+9620     enc 1 -15
+9620     enc 2 +15
+9620     enc 3 -15
+9620     enc 4 +15
+9620     enc 5 -15
+9620     pot 1023
+9625     pot 982
+9630     key 14 down
+9630     pot 941
+9632.5   key 15 up
+9635     pot 900
+9640     pot 859
+9642.5   key 15 down
+9645     key 16 up
+9645     pot 818
+9650     pot 777
+9655     key 16 down
+9655     pot 737
+9657.5   key 17 up
+9660     pot 696
+9665     pot 655
+9667.5   key 17 down
+9670     key 18 up
+9670     pot 614
+9675     pot 573
+9680     key 18 down
+9680     pot 532
+9682.5   key 19 up
+9685     pot 491
+9690     pot 450
+9692.5   key 19 down
+9695     key 20 up
+9695     pot 409
+9700     pot 368
+9705     key 20 down
+9705     pot 327
+9707.5   key 21 up
+9710     pot 286
+9715     pot 246
+9717.5   key 21 down
+9720     key 22 up
+9720     pot 205
+9725     pot 164
+9730     key 22 down
+9730     pot 123
+9732.5   key 23 up
+9735     pot 82
+9740     pot 41
+9742.5   key 23 down
+9745     key 24 up
+9745     enc 0 -15
+9745     enc 1 +15
+9745     enc 2 -15
+9745     enc 3 +15
+9745     enc 4 -15
+9745     enc 5 +15
+9745     pot 0
+9750     pot 41
+9755     key 24 down
+9755     pot 82
+9757.5   key 25 up
+9760     pot 123
+9765     pot 164
+9767.5   key 25 down
+9770     key 26 up
+9770     pot 205
+9775     pot 246
+9780     key 26 down
+9780     pot 286
+9782.5   key 27 up
+9785     pot 327
+9790     pot 368
+9792.5   key 27 down
+9795     key 28 up
+9795     pot 409
+9800     pot 450
+9805     key 28 down
+9805     pot 491
+9807.5   key 29 up
+9810     pot 532
+9815     pot 573
+9817.5   key 29 down
+9820     key 30 up
+9820     pot 614
+9825     pot 655
+9830     key 30 down
+9830     pot 696
+9832.5   key 31 up
+9835     pot 737
+9840     pot 777
+9842.5   key 31 down
+9845     key 32 up
+9845     pot 818
+9850     pot 859
+9855     key 32 down
+9855     pot 900
+9857.5   key 33 up
+9860     pot 941
+9865     pot 982
+9867.5   key 33 down
+9870     key 14 up
+9870     enc 0 +15
+9870     enc 1 -15
+9870     enc 2 +15
+9870     enc 3 -15
+9870     enc 4 +15
+9870     enc 5 -15
+9870     pot 1023
+9875     pot 982
+9880     key 14 down
+9880     pot 941
+9882.5   key 15 up
+9885     pot 900
+9890     pot 859
+9892.5   key 15 down
+9895     key 16 up
+9895     pot 818
+9900     pot 777
+9905     key 16 down
+9905     pot 737
+9907.5   key 17 up
+9910     pot 696
+9915     pot 655
+9917.5   key 17 down
+9920     key 18 up
+9920     pot 614
+9925     pot 573
+9930     key 18 down
+9930     pot 532
+9932.5   key 19 up
+9935     pot 491
+9940     pot 450
+9942.5   key 19 down
+9945     key 20 up
+9945     pot 409
+9950     pot 368
+9955     key 20 down
+9955     pot 327
+9957.5   key 21 up
+9960     pot 286
+9965     pot 246
+9967.5   key 21 down
+9970     key 22 up
+9970     pot 205
+9975     pot 164
+9980     key 22 down
+9980     pot 123
+9982.5   key 23 up
+9985     pot 82
+9990     pot 41
+9992.5   key 23 down
+9995     key 24 up
+9995     enc 0 -15
+9995     enc 1 +15
+9995     enc 2 -15
+9995     enc 3 +15
+9995     enc 4 -15
+9995     enc 5 +15
+9995     pot 0
+10000    pot 41
+10005    key 24 down
+10005    pot 82
+10007.5  key 25 up
+10010    pot 123
+10015    pot 164
+10017.5  key 25 down
+10020    key 26 up
+10020    pot 205
+10025    pot 246
+10030    key 26 down
+10030    pot 286
+10032.5  key 27 up
+10035    pot 327
+10040    pot 368
+10042.5  key 27 down
+10045    key 28 up
+10045    pot 409
+10050    pot 450
+10055    key 28 down
+10055    pot 491
+10057.5  key 29 up
+10060    pot 532
+10065    pot 573
+10067.5  key 29 down
+10070    key 30 up
+10070    pot 614
+10075    pot 655
+10080    key 30 down
+10080    pot 696
+10082.5  key 31 up
+10085    pot 737
+10090    pot 777
+10092.5  key 31 down
+10095    key 32 up
+10095    pot 818
+10100    pot 859
+10105    key 32 down
+10105    pot 900
+10107.5  key 33 up
+10110    pot 941
+10115    pot 982
+10117.5  key 33 down
+10120    key 14 up
+10120    enc 0 +15
+10120    enc 1 -15
+10120    enc 2 +15
+10120    enc 3 -15
+10120    enc 4 +15
+10120    enc 5 -15
+10120    pot 1023
+10125    pot 982
+10130    key 14 down
+10130    pot 941
+10132.5  key 15 up
+10135    pot 900
+10140    pot 859
+10142.5  key 15 down
+10145    key 16 up
+10145    pot 818
+10150    pot 777
+10155    key 16 down
+10155    pot 737
+10157.5  key 17 up
+10160    pot 696
+10165    pot 655
+10167.5  key 17 down
+10170    key 18 up
+10170    pot 614
+10175    pot 573
+10180    key 18 down
+10180    pot 532
+10182.5  key 19 up
+10185    pot 491
+10190    pot 450
+10192.5  key 19 down
+10195    key 20 up
+10195    pot 409
+10200    pot 368
+10205    key 20 down
+10205    pot 327
+10207.5  key 21 up
+10210    pot 286
+10215    pot 246
+10217.5  key 21 down
+10220    key 22 up
+10220    pot 205
+10225    pot 164
+10230    key 22 down
+10230    pot 123
+10232.5  key 23 up
+10235    pot 82
+10240    pot 41
+10242.5  key 23 down
+10245    key 24 up
+10245    enc 0 -15
+10245    enc 1 +15
+10245    enc 2 -15
+10245    enc 3 +15
+10245    enc 4 -15
+10245    enc 5 +15
+10245    pot 0
+10250    pot 41
+10255    key 24 down
+10255    pot 82
+10257.5  key 25 up
+10260    pot 123
+10265    pot 164
+10267.5  key 25 down
+10270    key 26 up
+10270    pot 205
+10275    pot 246
+10280    key 26 down
+10280    pot 286
+10282.5  key 27 up
+10285    pot 327
+10290    pot 368
+10292.5  key 27 down
+10295    key 28 up
+10295    pot 409
+10300    pot 450
+10305    key 28 down
+10305    pot 491
+10307.5  key 29 up
+10310    pot 532
+10315    pot 573
+10317.5  key 29 down
+10320    key 30 up
+10320    pot 614
+10325    pot 655
+10330    key 30 down
+10330    pot 696
+10332.5  key 31 up
+10335    pot 737
+10340    pot 777
+10342.5  key 31 down
+10345    key 32 up
+10345    pot 818
+10350    pot 859
+10355    key 32 down
+10355    pot 900
+10357.5  key 33 up
+10360    pot 941
+10365    pot 982
+10367.5  key 33 down
+10370    key 14 up
+10370    enc 0 +15
+10370    enc 1 -15
+10370    enc 2 +15
+10370    enc 3 -15
+10370    enc 4 +15
+10370    enc 5 -15
+10370    pot 1023
+10375    pot 982
+10380    key 14 down
+10380    pot 941
+10382.5  key 15 up
+10385    pot 900
+10390    pot 859
+10392.5  key 15 down
+10395    key 16 up
+10395    pot 818
+10400    pot 777
+10405    key 16 down
+10405    pot 737
+10407.5  key 17 up
+10410    pot 696
+10415    pot 655
+10417.5  key 17 down
+10420    key 18 up
+10420    pot 614
+10425    pot 573
+10430    key 18 down
+10430    pot 532
+10432.5  key 19 up
+10435    pot 491
+10440    pot 450
+10442.5  key 19 down
+10445    key 20 up
+10445    pot 409
+10450    pot 368
+10455    key 20 down
+10455    pot 327
+10457.5  key 21 up
+10460    pot 286
+10465    pot 246
+10467.5  key 21 down
+10470    key 22 up
+10470    pot 205
+10475    pot 164
+10480    key 22 down
+10480    pot 123
+10482.5  key 23 up
+10485    pot 82
+10490    pot 41
+10492.5  key 23 down
+10495    key 24 up
+10495    enc 0 -15
+10495    enc 1 +15
+10495    enc 2 -15
+10495    enc 3 +15
+10495    enc 4 -15
+10495    enc 5 +15
+10495    pot 0
+10500    pot 41
+10505    key 24 down
+10505    pot 82
+10507.5  key 25 up
+10510    pot 123
+10515    pot 164
+10517.5  key 25 down
+10520    key 26 up
+10520    pot 205
+10525    pot 246
+10530    key 26 down
+10530    pot 286
+10532.5  key 27 up
+10535    pot 327
+10540    pot 368
+10542.5  key 27 down
+10545    key 28 up
+10545    pot 409
+10550    pot 450
+10555    key 28 down
+10555    pot 491
+10557.5  key 29 up
+10560    pot 532
+10565    pot 573
+10567.5  key 29 down
+10570    key 30 up
+10570    pot 614
+10575    pot 655
+10580    key 30 down
+10580    pot 696
+10582.5  key 31 up
+10585    pot 737
+10590    pot 777
+10592.5  key 31 down
+10595    key 32 up
+10595    pot 818
+10600    pot 859
+10605    key 32 down
+10605    pot 900
+10607.5  key 33 up
+10610    pot 941
+10615    pot 982
+10617.5  key 33 down
+10620    key 14 up
+10620    enc 0 +15
+10620    enc 1 -15
+10620    enc 2 +15
+10620    enc 3 -15
+10620    enc 4 +15
+10620    enc 5 -15
+10620    pot 1023
+10625    pot 982
+10630    key 14 down
+10630    pot 941
+10632.5  key 15 up
+10635    pot 900
+10640    pot 859
+10642.5  key 15 down
+10645    key 16 up
+10645    pot 818
+10650    pot 777
+10655    key 16 down
+10655    pot 737
+10657.5  key 17 up
+10660    pot 696
+10665    pot 655
+10667.5  key 17 down
+10670    key 18 up
+10670    pot 614
+10675    pot 573
+10680    key 18 down
+10680    pot 532
+10682.5  key 19 up
+10685    pot 491
+10690    pot 450
+10692.5  key 19 down
+10695    key 20 up
+10695    pot 409
+10700    pot 368
+10705    key 20 down
+10705    pot 327
+10707.5  key 21 up
+10710    pot 286
+10715    pot 246
+10717.5  key 21 down
+10720    key 22 up
+10720    pot 205
+10725    pot 164
+10730    key 22 down
+10730    pot 123
+10732.5  key 23 up
+10735    pot 82
+10740    pot 41
+10742.5  key 23 down
+10745    key 24 up
+10745    enc 0 -15
+10745    enc 1 +15
+10745    enc 2 -15
+10745    enc 3 +15
+10745    enc 4 -15
+10745    enc 5 +15
+10745    pot 0
+10750    pot 41
+10755    key 24 down
+10755    pot 82
+10757.5  key 25 up
+10760    pot 123
+10765    pot 164
+10767.5  key 25 down
+10770    key 26 up
+10770    pot 205
+10775    pot 246
+10780    key 26 down
+10780    pot 286
+10782.5  key 27 up
+10785    pot 327
+10790    pot 368
+10792.5  key 27 down
+10795    key 28 up
+10795    pot 409
+10800    pot 450
+10805    key 28 down
+10805    pot 491
+10807.5  key 29 up
+10810    pot 532
+10815    pot 573
+10817.5  key 29 down
+10820    key 30 up
+10820    pot 614
+10825    pot 655
+10830    key 30 down
+10830    pot 696
+10832.5  key 31 up
+10835    pot 737
+10840    pot 777
+10842.5  key 31 down
+10845    key 32 up
+10845    pot 818
+10850    pot 859
+10855    key 32 down
+10855    pot 900
+10857.5  key 33 up
+10860    pot 941
+10865    pot 982
+10867.5  key 33 down
+10870    key 14 up
+10870    enc 0 +15
+10870    enc 1 -15
+10870    enc 2 +15
+10870    enc 3 -15
+10870    enc 4 +15
+10870    enc 5 -15
+10870    pot 1023
+10875    pot 982
+10880    key 14 down
+10880    pot 941
+10882.5  key 15 up
+10885    pot 900
+10890    pot 859
+10892.5  key 15 down
+10895    key 16 up
+10895    pot 818
+10900    pot 777
+10905    key 16 down
+10905    pot 737
+10907.5  key 17 up
+10910    pot 696
+10915    pot 655
+10917.5  key 17 down
+10920    key 18 up
+10920    pot 614
+10925    pot 573
+10930    key 18 down
+10930    pot 532
+10932.5  key 19 up
+10935    pot 491
+10940    pot 450
+10942.5  key 19 down
+10945    key 20 up
+10945    pot 409
