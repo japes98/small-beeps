@@ -2315,6 +2315,47 @@ SR-3 wrote only its barrier-log row.*
   (`~/<top>/drop/fwtest-patches/`) for the app.
 - Disk: 6.6 GB free at the start; 4.8 GB at the lowest.
 
+### Session clean-pin-flags (pin fwtest 0.10.0, the folder's CPU and float, the owner's store-region answers)
+- Date: 2026-10-29 (UTC; the evening of 2026-10-28 local time)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.312 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `dad12a8a-540e-41f5-9298-d8f486e2ea71`,
+  started by a `/clear` at 02:47:30Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `e5a0b353` (#173's merge; #172 to #175 merged) and
+  ended "no spec-side files on disk or in .git";
+  `tools/private-terms.local` exists (not opened); lazy fetching off
+  (`GIT_NO_LAZY_FETCH=1`). It archived clean-store-region (`264a9b42`)
+  into `sessions/clean/` (its last report read first, for the owner's
+  answers); every other clean session was already archived.
+  `tools/check-transcripts.py`: 24 archived transcripts, PASS; no reviewed
+  entries were added. The Mac had 5.2 GB free.
+- A spec session may work at the same time; this session opens none of its
+  branches.
+- Reads: this file, sessions/README.md, docs/HARNESS.md ("Outcomes and
+  exit codes", and the lines naming C-HARNESS-ISA and
+  C-HARNESS-IMAGE-REPRO), docs/STORE-FORMAT.md, docs/DESIGN-NOTES.md,
+  docs/REQUIREMENTS.md and docs/BUILDING-ON-SMALL-BEEPS.md (the parts
+  these changes touch), #169's description (as a model), and this
+  repository's firmware, tools and tests. Nothing fetched from outside
+  the repository but the build image's and fwtest's own downloads.
+- GitHub: #172 to #175's state and file lists (names only; #175's include
+  spec-side paths, not opened); the image workflow's runs listed, and of
+  the run on `27913cf0` (#175's merge) the log read through a filter
+  printing only the pushed digest and fwtest's version lines; open pull
+  requests listed (none open).
+- Toolchain probes, in the build image: clang's `-###` reading of CPU and
+  feature flags (`-mcpu`, `-mfprev1`, `-mno-fprev1`, `-mfprev2`,
+  `-msimd`, `-mcordic`, `-Xclang -target-feature`, `-mllvm`, `-march`,
+  `-mtune`, the float-ABI flags), the same with C++ and assembly flags,
+  and `clang -mcpu=help` (the target's CPU and feature lists).
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
