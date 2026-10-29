@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range f6b8a7552f2ec142d725ab14abf2a4249456b79a..1881f8c06140e149658e8d51b9081623aaa28fcb
+OK     d94a58a9aa12 sessions: clean-pin-flags archived; clean-mllvm starts
+OK     603803abd4f8 tools: a folder may not set -mllvm (BR-11); fwtest 0.10.0's counts explained
+EXEMPT 1881f8c06140 (merge) Merge pull request #178 from japes98/build/no-mllvm
+3 commit(s) checked: PASS
+
+exit status 0
