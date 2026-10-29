@@ -2546,7 +2546,8 @@ spec request can turn one into a fact.
   pc, cnum, uspn, icfgn and icfgs as moved, pushed and popped, and what
   the pushes marked `(c)` clear. The compiler emits `bkpt` for
   `__builtin_trap` and `syscall` and `trigger` for their builtins. fwtest
-  ends a run on each as an instruction it does not run.
+  ends a run on `bkpt` as a trap and on the others as an instruction it
+  does not run.
 - **Q-35. Halves, fields and special registers at their edges.** What
   `sat8 (u)` gives for a negative half (fwtest: 0, as the 16-bit `(u)` clamp of a word gives for a
   negative word), what the field forms give for l = 0 or p + l over 32

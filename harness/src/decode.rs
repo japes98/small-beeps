@@ -6,7 +6,7 @@
 //! bytes). Each output line is the same hex, the length fwtest decodes it
 //! to (`-` when it cannot) and one word: `runs` (decoded and executed),
 //! `no-decode` (an instruction the emulated CPU cannot decode), `unsupported`
-//! (decoded, but an instruction it does not run) or `panic`. Nothing else of
+//! (decoded, but an instruction it does not run), `trap` (`bkpt`) or `panic`. Nothing else of
 //! the emulator is printed.
 //!
 //! The instruction runs once on core 0 at 0x02001000 over a flat memory,
@@ -75,6 +75,7 @@ pub fn probe(bytes: &[u8]) -> (Option<usize>, &'static str) {
         match cpu.step(&mut mem) {
             Ok(()) => "runs",
             Err(CoreError::Decode(_)) => "no-decode",
+            Err(CoreError::Trap { .. }) => "trap",
             Err(_) => "unsupported",
         }
     })

@@ -62,7 +62,12 @@ pub enum Stop {
     Fault { core: u32, pc: u32, what: String },
     /// cpu0 jumped to itself with interrupts disabled: a deliberate stop.
     Halt { pc: u32 },
+    /// A breakpoint (`bkpt`, the compiler's `__builtin_trap`) on either core.
+    Trap { core: u32, pc: u32 },
 }
+
+/// describe()'s text for a trap, which the callers turn into Stop::Trap.
+const TRAP: &str = "\u{1}trap";
 
 /// One finished audio half-buffer: when, and the instructions each core had
 /// retired by then (cpu0 exactly; cpu1 at the end of that run call).
@@ -190,6 +195,9 @@ impl Board {
             // cpu1's errors come back from upstream's runner as debug text: keep only the
             // kind (the clean side reads these messages)
             return Err(match self.cpu1.as_ref() {
+                Some(c) if e.starts_with(CORE1) && &e[CORE1.len()..] == TRAP => Stop::Trap { core: 1, pc: c.pc },
+                Some(c) if e.starts_with("cpu1: Trap") => Stop::Trap { core: 1, pc: c.pc },
+                _ if e == TRAP => Stop::Trap { core: 0, pc: self.cpu0.pc },
                 Some(c) if e.starts_with(CORE1) => Stop::Fault { core: 1, pc: c.pc, what: e[CORE1.len()..].into() },
                 Some(c) if e.starts_with("cpu1:") => Stop::Fault {
                     core: 1,
@@ -214,7 +222,7 @@ impl Board {
             let (pc, count) = (self.cpu0.pc, self.cpu0.insn_count);
             let Board { soc, cpu0, pending_tick, blocks, halves_seen, .. } = self;
             if let Err(e) = run_blocks(cpu0, soc, 1, pending_tick, blocks, halves_seen) {
-                return Err(Stop::Fault { core: 0, pc: self.cpu0.pc, what: e });
+                return Err(if e == TRAP { Stop::Trap { core: 0, pc: self.cpu0.pc } } else { Stop::Fault { core: 0, pc: self.cpu0.pc, what: e } });
             }
             if self.cpu0.insn_count == count + 1 && (self.cpu0.pc, self.cpu0.regs, self.cpu0.sp) == before {
                 return Err(Stop::Halt { pc });
@@ -465,5 +473,6 @@ fn describe(e: CoreError) -> String {
         CoreError::Decode(_) => "an instruction the emulated CPU cannot decode".into(),
         CoreError::Unsupported { raw, .. } => format!("an instruction the emulator does not implement (bytes {:012x})", raw),
         CoreError::MissingSlot { .. } => "an instruction the emulator does not implement".into(),
+        CoreError::Trap { .. } => TRAP.into(),
     }
 }

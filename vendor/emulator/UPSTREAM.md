@@ -12,7 +12,7 @@ SPDX-FileCopyrightText: 2026 japes98
 - Licence: MIT, copyright 2026 Joakim Eriksson (`LICENSE` here, copied
   unmodified).
 - What: `crates/fm1-isa`, `crates/fm1-core` and `crates/fm1-soc`, at the
-  same paths, unmodified but for the patches below (0002 to 0016: bug
+  same paths, unmodified but for the patches below (0002 to 0017: bug
   fixes, two speed-only changes and MIDI out) and the workspace manifest
   `Cargo.toml` (patched, 0001). docs/EMULATOR-PARITY.md compares them with
   the F-Emulator app's.
@@ -22,7 +22,7 @@ SPDX-FileCopyrightText: 2026 japes98
   sparse checkout of exactly those paths) and checked by
   `tools/fetch-emulator.sh --verify` (C-EMU-PIN): every file against
   `SHA256SUMS`, whose own SHA-256 (the tree hash) is
-  `35c06f37c29f5ec8c70acc8d897c190eb2ea411a5cf7882c55d8ed173ba7cdd8`.
+  `9d38bfda8e56e9794ce222c992da0ed485202927092bca777867a008e2df0e6c`.
 - Provenance: PROVENANCE.md P-7. Exposure: docs/EXPOSURE.md (session M0b).
 
 ## Patches
@@ -172,6 +172,13 @@ Applied in file-name order by the fetch script, after checkout:
   (`70 e0 40`). The crate tests and the harness test
   `forms_with_an_open_detail` (image `tests/images/isaops.S`) fail
   without it (fwtest 0.10.0).
+
+- `patches/0017-bkpt-is-a-trap.patch` (session spec-isa-audit, the owner's
+  answer): `crates/fm1-core/src/lib.rs`, `bkpt` ends execution with
+  `CoreError::Trap { pc }` instead of the unsupported-instruction error;
+  fwtest reports it as the outcome `trap`. The crate test
+  `bkpt_is_a_trap` and the harness test `bkpt_ends_the_run_as_a_trap`
+  (image `tests/images/trap.c`) fail without it (fwtest 0.10.0).
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
 and the harness suite gave byte-identical outputs (284 files) from fwtest

@@ -18,7 +18,7 @@ IMAGES="heartbeat halt wild hang console lcd leds keys pot midi midiout audio sp
 # C with code in RAM (image-ram.ld, flash.h)
 RAM_IMAGES="flashrw flashcall flashload flashirq flashkeep flashhelper"
 # built with the firmware's CPU flags (tools/build.sh, CPU), as the firmware is
-FW_IMAGES="blockc rotc selfc isac"
+FW_IMAGES="blockc rotc selfc isac trap"
 # C linked where a package's app runs (image-pkg.ld), for tests/package.rs
 PKG_IMAGES="pkgapp"
 # assembly, linked after start.S like the C images
@@ -96,6 +96,11 @@ inside() {
             exit 1
         fi
     done
+    # trap exists for `bkpt`, the compiler's __builtin_trap
+    if ! grep -q 'bkpt$' "$out/trap.dis"; then
+        echo "trap: the compiler no longer emits bkpt for __builtin_trap" >&2
+        exit 1
+    fi
     # pairwaw.S stands for a pair whose halves write one register, which the
     # compiler emits in flashkeep.c (a head, then a load into the same register)
     if ! awk -F '\t' '$NF ~ /^r[0-9]+ = .*# *$/ { h = $NF; sub(/ .*/, "", h); next }

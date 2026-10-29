@@ -701,6 +701,23 @@ fn forms_with_an_open_detail() {
     assert_eq!(w[16], 0x5678_1234, "rev16");
 }
 
+/// `bkpt` (the compiler's `__builtin_trap`, trap.c) ends the run as a trap,
+/// with its own exit code, not as an instruction fwtest does not run (the
+/// owner's answer, session spec-isa-audit; fwtest 0.9.0 ended it as a fault).
+#[test]
+fn bkpt_ends_the_run_as_a_trap() {
+    let mut o = opts(5);
+    o.ram = vec![(OUT0, 4, When::End)];
+    let r = run(&image("trap"), &o).unwrap();
+    match r.outcome {
+        Outcome::Trap { core, pc } => assert_eq!(core, 0, "trap at {pc:#x}"),
+        ref o => panic!("not a trap: {o:?}"),
+    }
+    assert_eq!(r.outcome.name(), "trap");
+    assert_eq!(words(output(&r, "ram-01c00100-4-end.bin")), vec![0x7a7a_7a7a]);
+    assert_eq!(fwtest::exit::TRAP, 6);
+}
+
 fn fault_text(r: &fwtest::run::Report) -> (u32, u32, String) {
     match &r.outcome {
         Outcome::Fault { core, pc, what } => (*core, *pc, what.clone()),

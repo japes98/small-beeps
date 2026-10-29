@@ -20,6 +20,8 @@
 #   them (HARDWARE-SPEC Q-32)
 # reason push-clear: the pushes marked (c), whose clearing the toolchain
 #   does not show (Q-34)
+# reason trap: `bkpt` (the compiler's __builtin_trap) ends the run as a
+#   trap, by design (the owner, 2026-10-28; fwtest decode says `trap`)
 # reason system: privileged and system instructions (returns from
 #   exceptions, events, breakpoints, software interrupts, secure-state
 #   jumps, trigger): what they do is the chip's (Q-34)
@@ -27,7 +29,7 @@
 #   icfgn and icfgs, which fwtest does not model (Q-34)
 
 # system
-bkpt	system
+bkpt	trap
 gotoss #	system
 hbkpt	system
 ifs2ns goto # (c)	system

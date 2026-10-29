@@ -1,0 +1,54 @@
+`bkpt` (`02 00`, which the vendor compiler emits for its trap builtin)
+ends execution with a new error, CoreError::Trap { pc }, the pc left on
+the instruction, instead of the unsupported-instruction error it gave
+before. fwtest reports it as its own outcome, `trap` (exit code 6), so a
+firmware's deliberate trap is told apart from an instruction the
+emulator cannot run (the owner's answer, session spec-isa-audit,
+2026-10-28). What the chip does on `bkpt` (a debug exception, a halt) is
+not established (HARDWARE-SPEC Q-34); `hbkpt`, `swi`, `syscall` and
+`trigger` stay unsupported. The crate test bkpt_is_a_trap and the
+harness test bkpt_ends_the_run_as_a_trap (tests/images/trap.c) fail
+without it.
+
+diff --git a/crates/fm1-core/src/lib.rs b/crates/fm1-core/src/lib.rs
+index 87261baf..b96af9b5 100644
+--- a/crates/fm1-core/src/lib.rs
++++ b/crates/fm1-core/src/lib.rs
+@@ -2127,6 +2127,10 @@ impl Cpu {
+     ) -> Result<(), CoreError> {
+         let name = insn.entry.name;
+         let mut jumped: Option<u32> = None;
++        if name == "bkpt" {
++            self.stuck_on = Some(name);
++            return Err(CoreError::Trap { pc: self.pc });
++        }
+         if trace_on() {
+             eprintln!("[{}] c{} pc={:#010x} class={} len={} sp={:#x} r0-11={:x?} ",
+                 self.insn_count, self.core_id, self.pc, name, insn.entry.len, self.sp, &self.regs[..12]);
+@@ -4154,6 +4158,10 @@ fn sext(v: u32, bits: u8) -> i64 {
+ #[derive(Debug)]
+ pub enum CoreError {
+     Decode(DecodeError),
++    /// `bkpt` (`02 00`; the compiler's trap builtin): a breakpoint, which ends a run as a trap
++    /// rather than as an instruction not run (the owner's answer, session spec-isa-audit). What
++    /// the chip does with it is HARDWARE-SPEC Q-34.
++    Trap { pc: u32 },
+     Unsupported { name: &'static str, pc: u32, raw: u64 },
+     MissingSlot { name: &'static str, pc: u32, slot: usize },
+ }
+@@ -5168,6 +5176,15 @@ mod tests {
+         assert_eq!((cpu.regs[5], cpu.regs[7], cpu.regs[3]), (0x1111_2222, 0x3333_4444, 0x0000_0100u32.rotate_right(16)));
+     }
+ 
++    #[test]
++    fn bkpt_is_a_trap() {
++        // `02 00` bkpt: a trap at its own pc, the pc not moved; `10 18` r0 += r1 before it runs
++        let (mut cpu, mut ram) = run_words(&[0x10, 0x18, 0x02, 0x00], 1, |c| (c.regs[0], c.regs[1]) = (1, 2));
++        assert_eq!(cpu.regs[0], 3);
++        assert!(matches!(cpu.step(&mut ram), Err(CoreError::Trap { pc: 2 })));
++        assert_eq!(cpu.pc, 2);
++    }
++
+     #[test]
+     fn push_pop_register_mask() {
+         // `d9 e8 f0 0d` [--sp] = {rets, r11, r10, r8-r4}, `d5 e8 f0 0d` the matching pop

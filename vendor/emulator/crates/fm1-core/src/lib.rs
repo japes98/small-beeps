@@ -2127,6 +2127,10 @@ impl Cpu {
     ) -> Result<(), CoreError> {
         let name = insn.entry.name;
         let mut jumped: Option<u32> = None;
+        if name == "bkpt" {
+            self.stuck_on = Some(name);
+            return Err(CoreError::Trap { pc: self.pc });
+        }
         if trace_on() {
             eprintln!("[{}] c{} pc={:#010x} class={} len={} sp={:#x} r0-11={:x?} ",
                 self.insn_count, self.core_id, self.pc, name, insn.entry.len, self.sp, &self.regs[..12]);
@@ -4154,6 +4158,10 @@ fn sext(v: u32, bits: u8) -> i64 {
 #[derive(Debug)]
 pub enum CoreError {
     Decode(DecodeError),
+    /// `bkpt` (`02 00`; the compiler's trap builtin): a breakpoint, which ends a run as a trap
+    /// rather than as an instruction not run (the owner's answer, session spec-isa-audit). What
+    /// the chip does with it is HARDWARE-SPEC Q-34.
+    Trap { pc: u32 },
     Unsupported { name: &'static str, pc: u32, raw: u64 },
     MissingSlot { name: &'static str, pc: u32, slot: usize },
 }
@@ -5166,6 +5174,15 @@ mod tests {
             cpu.step(&mut ram).unwrap();
         }
         assert_eq!((cpu.regs[5], cpu.regs[7], cpu.regs[3]), (0x1111_2222, 0x3333_4444, 0x0000_0100u32.rotate_right(16)));
+    }
+
+    #[test]
+    fn bkpt_is_a_trap() {
+        // `02 00` bkpt: a trap at its own pc, the pc not moved; `10 18` r0 += r1 before it runs
+        let (mut cpu, mut ram) = run_words(&[0x10, 0x18, 0x02, 0x00], 1, |c| (c.regs[0], c.regs[1]) = (1, 2));
+        assert_eq!(cpu.regs[0], 3);
+        assert!(matches!(cpu.step(&mut ram), Err(CoreError::Trap { pc: 2 })));
+        assert_eq!(cpu.pc, 2);
     }
 
     #[test]

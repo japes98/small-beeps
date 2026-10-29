@@ -26,6 +26,7 @@ pub mod exit {
     pub const FAULT: i32 = 3;
     pub const HALT: i32 = 4;
     pub const HANG: i32 = 5;
+    pub const TRAP: i32 = 6;
 }
 
 pub const USAGE: &str = "\
@@ -58,7 +59,7 @@ WHEN is a time in ms (up to three decimals) or `end`.
 
 decode: FILE has one instruction per line, its bytes in hex as they lie in
 memory; each output line is the hex, the length fwtest decodes it to (- if
-none) and runs, no-decode, unsupported or panic (docs/HARNESS.md,
+none) and runs, no-decode, unsupported, trap or panic (docs/HARNESS.md,
 \"Instructions\").";
 
 /// Removes every FM1_* variable: upstream reads several to switch traces and
@@ -198,6 +199,7 @@ pub fn execute(a: &RunArgs, suite_name: &str) -> Result<Done, String> {
     let mismatch = checks.iter().any(|c| c.problem.is_some());
     let exit = match &report.outcome {
         Outcome::Fault { .. } => exit::FAULT,
+        Outcome::Trap { .. } => exit::TRAP,
         Outcome::Hang { .. } => exit::HANG,
         _ if mismatch => exit::GOLDEN_MISMATCH,
         Outcome::Halt { .. } if !a.opt.halt_ok => exit::HALT,
@@ -267,8 +269,8 @@ pub fn suite(file: &Path, out: &Path) -> Result<i32, String> {
             return Err(format!("suite line {}: expected `NAME EXPECT IMAGE [options]`", n + 1));
         }
         let (name, expect) = (&w[0], &w[1]);
-        if !["completed", "halt", "fault", "hang", "power-cut"].contains(&expect.as_str()) || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
-            return Err(format!("suite line {}: bad name or expectation (completed, halt, fault, hang, power-cut)", n + 1));
+        if !["completed", "halt", "fault", "trap", "hang", "power-cut"].contains(&expect.as_str()) || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+            return Err(format!("suite line {}: bad name or expectation (completed, halt, fault, trap, hang, power-cut)", n + 1));
         }
         let mut args = w[2..].to_vec();
         args.push("--out".into());

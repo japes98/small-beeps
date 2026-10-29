@@ -463,9 +463,11 @@ out the firmware's own poll limit.
 | 3 | fault | A core met an instruction it cannot decode or the emulator does not implement, or its program counter left every memory that can hold code (the image, RAM, the other RAM banks), or it ran or read the code window while the flash chip was busy ("The flash chip"). |
 | 4 | halt | Core 0 executed a jump to itself with interrupts disabled: a deliberate stop. The run ends there. |
 | 5 | hang | The `--watchdog` word did not change for longer than its time. |
+| 6 | trap | A core executed `bkpt`, the compiler's `__builtin_trap` (since 0.10.0; before, a fault). `detail` names the core and the pc of the `bkpt`. The run ends there. |
 
-When several apply, the first in this order wins: 2, 3, 5, 1, 4, 0. Captures
-and `result.json` are written for 1, 3, 4 and 5 too. Any other exit code
+When several apply, the first in this order wins: 2, 3, 6, 5, 1, 4, 0. Captures
+and `result.json` are written for 1, 3, 4, 5 and 6 too. A suite case may
+expect `trap`. Any other exit code
 means fwtest itself failed.
 
 ### Faults and CPU exceptions
@@ -642,10 +644,17 @@ with its reason in `harness/isa/known-gaps.txt`:
   compiler treats as a function of its two arguments alone, nothing
   more) and `copex`.
 - **System instructions and registers fwtest does not model** (Q-34):
-  `bkpt` (`__builtin_trap`), `syscall` and `trigger` (their builtins),
+  `syscall` and `trigger` (their builtins) and `__builtin_pi32v2_rotrc`'s
+  `<c>` stay faults (the owner, 2026-10-28), and so do `hbkpt`,
   `swi`, the exception returns, events, secure-state jumps, the pushes
   marked `(c)`, and pc, cnum, uspn, icfgn and icfgs as moved, pushed or
-  popped.
+  popped. `bkpt` (`__builtin_trap`) ends the run as a trap (exit 6,
+  "Outcomes and exit codes").
+- **Not the firmware's flags.** A firmware built on the base keeps the
+  base's CPU flags (`-mcpu=r3 -mfprev1`): `tools/build.sh` refuses CPU and
+  feature flags for a folder (the owner, 2026-10-28; the clean side's
+  change). fwtest has no double-precision float (`-mfprev2`) and no other
+  CPU model's forms, and won't.
 
 C-HARNESS-ISA (`harness/isa/isa_check.py`) does the walk again on every
 commit, with the pinned toolchain, and fails if a form does not run and
@@ -654,8 +663,8 @@ cannot find the toolchain's tables: a later toolchain pin cannot open a gap
 silently. `fwtest decode FILE` is what it uses: each line of FILE one
 instruction's bytes in hex, each output line the hex, the length fwtest
 decodes it to (`-` if none) and `runs`, `no-decode`, `unsupported` or
-`panic` (the instruction run once, from a fixed state, as after an
-`fcmp`). Use it to see whether fwtest knows an instruction your firmware
+`trap` (`bkpt`) or `panic` (the instruction run once, from a fixed state,
+as after an `fcmp`). Use it to see whether fwtest knows an instruction your firmware
 uses.
 
 ### Block moves with a register base
@@ -763,7 +772,8 @@ digest, so a firmware test always names the exact runner it used.
   the memory shifts by a register and `&= ~R`, the 64-bit index scaled by
   8, `zcmp`, half moves, `sat8` of a half, fields in a register, the
   special registers `retx`, `sr4`, `sspn`, the rounding pair shifts, the
-  memory multiplies, the `npc` loads, `rev16`; `fwtest decode`. Its pin is the
+  memory multiplies, the `npc` loads, `rev16`; `bkpt` ends a run as a
+  trap (exit 6); `fwtest decode`. Its pin is the
   clean side's pull request, opened once the image is published.
 - 0.9.0: a store with a base update whose stored register is its base
   stores the base as it was (SR-10, "Instructions"); the image rebuilds

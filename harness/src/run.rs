@@ -59,6 +59,8 @@ pub enum Outcome {
     Completed,
     Halt { pc: u32 },
     Fault { core: u32, pc: u32, what: String },
+    /// A breakpoint (`bkpt`, the compiler's `__builtin_trap`) on a core.
+    Trap { core: u32, pc: u32 },
     Hang { addr: u32, ms: u64 },
     /// The power was cut at the time asked; the erase or program then in progress, if any:
     /// its command, chip offset, length and the bytes done.
@@ -71,6 +73,7 @@ impl Outcome {
             Outcome::Completed => "completed",
             Outcome::Halt { .. } => "halt",
             Outcome::Fault { .. } => "fault",
+            Outcome::Trap { .. } => "trap",
             Outcome::Hang { .. } => "hang",
             Outcome::PowerCut { .. } => "power-cut",
         }
@@ -81,6 +84,7 @@ impl Outcome {
             Outcome::Completed => "ran for the whole time asked".into(),
             Outcome::Halt { pc } => format!("core 0 jumped to itself with interrupts disabled at pc {pc:#010x}"),
             Outcome::Fault { core, pc, what } => format!("core {core} at pc {pc:#010x}: {what}"),
+            Outcome::Trap { core, pc } => format!("core {core} at pc {pc:#010x}: a breakpoint (bkpt, the compiler's __builtin_trap)"),
             Outcome::Hang { addr, ms } => format!("the watched word at {addr:#010x} did not change for {ms} ms"),
             Outcome::PowerCut { op: None } => "the power was cut at the time asked, with no erase or program in progress".into(),
             Outcome::PowerCut { op: Some((cmd, at, len, done)) } => format!(
@@ -204,6 +208,7 @@ pub fn run(image: &[u8], opt: &Options) -> Result<Report, String> {
             Ok(()) => {}
             Err(Stop::Halt { pc }) => break Outcome::Halt { pc },
             Err(Stop::Fault { core, pc, what }) => break Outcome::Fault { core, pc, what },
+            Err(Stop::Trap { core, pc }) => break Outcome::Trap { core, pc },
         }
     };
 
