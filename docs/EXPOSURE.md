@@ -2355,6 +2355,26 @@ SR-3 wrote only its barrier-log row.*
   `-msimd`, `-mcordic`, `-Xclang -target-feature`, `-mllvm`, `-march`,
   `-mtune`, the float-ABI flags), the same with C++ and assembly flags,
   and `clang -mcpu=help` (the target's CPU and feature lists).
+- **#176 (the pin, fwtest 0.10.0):** main's image (build A at
+  `e5a0b353`) ran the firmware suite on 0.10.0 and on 0.9.0, from
+  copies of the tree in the job's temporary folder, one at a time: both
+  PASS, no trap outcome, the one fault badinsn's, as expected; the
+  output trees compared file by file (three save cases' instruction
+  counts per block differ, nothing else but fwtest's version and the
+  runner). The 0.9.0 copy was deleted before every changed row had been
+  read, so the pull request gives only the counts of differing blocks
+  and the totals. #176's CI result lines read through a filter printing
+  only named checks' results (C-HARNESS-IMAGE-REPRO, C-HARNESS-ISA,
+  C-FW-SUITE, C-SEP-TERMS, C-UNIT: PASS).
+- **#177 (a folder's CPU and float):** a refused build tried by hand;
+  the seams suite from a copy (nine cases PASS, flags FAIL: its message
+  named every folder whose flags apply to the file, so the check was
+  changed to name only the folder giving the effect, and the flags case
+  rerun alone: PASS); the Plaits demo built plain and with
+  `PLAITS_HWFLOAT`; C-UNIT (405 tests) in this folder. #177's first CI
+  run passed (its check status only).
+- Force-pushes: none.
+- Disk: 5.2 GB free at the start; about 4.5 GB at the lowest.
 
 ## Corrections
 
