@@ -75,7 +75,9 @@
 # not those that would reach the host, the outputs' determinism or
 # another tool: an absolute path or one with "..", -fdebug-prefix-map
 # and its kin, -fprofile..., -fplugin..., -fpass-plugin...,
-# -fsave-optimization-record, -Wa, -Wp, -Wl (check_flags). And since
+# -fsave-optimization-record, -Wa, -Wp, -Wl (check_flags); and -mllvm,
+# which passes options to the code generator past clang's reading of the
+# CPU and float (since clean-mllvm, the owner's answer). And since
 # clean-pin-flags (amending BR-11) a folder's objects are built for the
 # SDK's CPU and float, whatever its -m flags: clang's reading of each
 # file's flags (read_cpu, BR-13's) must give CPU r3 and of the features
@@ -125,6 +127,8 @@ check_flags() {
             -fdebug-prefix-map=*|-ffile-prefix-map=*|-fmacro-prefix-map=*|-fcoverage-prefix-map=*| \
             -fprofile*|-fplugin*|-fpass-plugin*|-fsave-optimization-record*|-Wa,*|-Wp,*|-Wl,*)
                 echo "build: $1 '$w' is not one a folder may set" >&2; exit 2 ;;
+            -mllvm|-mllvm=*)
+                echo "build: $1 '$w' is not one a folder may set: it passes options straight to the code generator, past the reading that keeps a folder's code to the SDK's CPU and float (BR-11)" >&2; exit 2 ;;
             -D?*|-U?*|-O|-O?|-W?*|-w|-f?*|-m?*|-std=?*|-I?*|-isystem?*|-iquote?*|-g|-g0|-g1|-g2|-g3| \
             -pedantic|-pedantic-errors|-ansi) ;;
             *) echo "build: $1 '$w' is not one a folder may set (-D, -U, -O, -W, -w, -f, -m, -std=, -I, -isystem, -iquote, -g, -pedantic, -ansi)" >&2; exit 2 ;;

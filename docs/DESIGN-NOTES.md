@@ -3640,3 +3640,28 @@ objects are built for CPU `r3`, with the features `+fprev1` or none.
   `-mfprev1` and assembly `-mcpu=r3`; and refused, each before any of
   its files is compiled, with its message: inner/ `-mcpu=r4`, the C++
   `-O2 -mfprev2` (only `-mfprev2` named) and the assembly `-msimd`.
+
+### 2026-10-29 clean-mllvm: the owner's answers on `-Xclang`, `-mllvm` and fwtest 0.10.0's counts (BR-11, R-BUILD-5)
+
+clean-pin-flags left two questions on the flags a folder may set, and an
+unexplained change in fwtest 0.10.0's instruction counts.
+
+- **`-Xclang` stays refused.** As since clean-1028: it is not one of the
+  families `check_flags` takes (exit 2).
+- **`-mllvm` is refused outright.** It came in under `-m`, and passes
+  options to the code generator past the driver, so the `-###` reading
+  that keeps a folder's code to the SDK's CPU and float can't see what it
+  does. `check_flags` now refuses `-mllvm` and its joined spelling
+  `-mllvm=...` (exit 2) with a message saying why, before anything is
+  built. Tested in C-UNIT (`FolderFlagsTest`: `-mllvm -fast-isel` and
+  `-mllvm=-fast-isel` refused with the message, `-Xclang` still refused,
+  plain `-m` flags taken) and among the flags case's refusals (C-SEAMS).
+  The guide's section 5 says so.
+- **fwtest 0.9.0 to 0.10.0: why three cases' counts moved.** The pin
+  (#176) found audioload, store-busy and store-wipe's instruction counts
+  per block differing in 28, 7 and 2 blocks (totals under 0.01 %), with
+  every golden, outcome and check the same. The cause, from the spec
+  side: 0.10.0 runs `*p &= ~m` on the same path as the other memory
+  operations, which moves instruction counts slightly with the same
+  results. These three cases are the ones that save while the audio
+  runs.

@@ -68,5 +68,42 @@ class FolderCpuTest(unittest.TestCase):
                           "double-precision float (fprev2)"])
 
 
+class FolderFlagsTest(unittest.TestCase):
+    """Requirements: R-BUILD-5
+
+    The families a folder may set (tools/build.sh's check_flags): -Xclang
+    stays refused, and -mllvm, which passes options to the code generator
+    past clang's reading of the CPU and float, is refused outright
+    (clean-mllvm, the owner's answers)."""
+
+    def setUp(self):
+        with open(os.path.join(ROOT, "tools", "build.sh"), encoding="utf-8") as f:
+            m = re.search(r"^check_flags\(\) \{\n.*?^\}\n", f.read(), re.M | re.S)
+        self.assertIsNotNone(m)
+        self.func = m.group(0)
+
+    def check(self, flags):
+        return subprocess.run(["sh", "-c", self.func + 'check_flags --cflags "$1"', "sh", flags],
+                              capture_output=True, text=True)
+
+    def test_m_flags_pass(self):
+        for flags in ("-mfprev1 -O2", "-mcpu=r3", "-mno-fprev1"):
+            r = self.check(flags)
+            self.assertEqual((r.returncode, r.stderr), (0, ""), flags)
+
+    def test_mllvm_is_refused(self):
+        # -fast-isel would pass on its own (-f); -mllvm= is clang's joined spelling.
+        for flags, word in (("-mllvm -fast-isel", "-mllvm"), ("-O2 -mllvm=-fast-isel", "-mllvm=-fast-isel")):
+            r = self.check(flags)
+            self.assertEqual(r.returncode, 2, flags)
+            self.assertIn("build: --cflags '%s' is not one a folder may set: it passes options "
+                          "straight to the code generator" % word, r.stderr)
+
+    def test_xclang_stays_refused(self):
+        r = self.check("-Xclang -target-feature -Xclang +fprev2")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("'-Xclang' is not one a folder may set", r.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

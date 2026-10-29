@@ -2376,6 +2376,44 @@ SR-3 wrote only its barrier-log row.*
 - Force-pushes: none.
 - Disk: 5.2 GB free at the start; about 4.5 GB at the lowest.
 
+### Session clean-mllvm (the owner's answers: -Xclang, -mllvm, fwtest 0.10.0's counts)
+- Date: 2026-10-29 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.312 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `07832bdb-1d32-4069-9461-2769c62ff9f6`,
+  started by a `/clear` at 12:19:07Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `f6b8a755` (#177's merge; #176 and #177 merged) and
+  ended "no spec-side files on disk or in .git";
+  lazy fetching off (`GIT_NO_LAZY_FETCH=1`). It archived clean-pin-flags
+  (`dad12a8a`) into `sessions/clean/`; every other clean session was
+  already archived. `tools/check-transcripts.py`: 25 archived
+  transcripts, PASS; no reviewed entries were added. The Mac had 6.0 GB
+  free.
+- A spec session may work at the same time; this session opens none of its
+  branches.
+- Reads: this file, docs/DESIGN-NOTES.md, docs/REQUIREMENTS.md and
+  docs/BUILDING-ON-SMALL-BEEPS.md (the parts these changes touch), the
+  lines of docs/HARNESS.md and docs/EMULATOR-PARITY.md naming 0.10.0,
+  clean-pin-flags' and clean-pin-answers' prompts, #176 and #177's
+  commits, and this repository's tools and tests. Nothing fetched from
+  outside the repository but the build image's and fwtest's own
+  downloads.
+- GitHub: pull requests listed (#172 to #177, all merged).
+- **The pull request (-mllvm refused):** C-UNIT (408 tests) in this
+  folder, and the check without the change (its new test fails); build A
+  and the seams suite's flags case from a copy of the tree: PASS, 12
+  refused, `-mllvm -fast-isel` among them with its message. The cause of
+  #176's count change, from the owner's answer, is in DESIGN-NOTES.
+- Force-pushes: none.
+- Disk: 6.0 GB free at the start; about 5.8 GB at the lowest.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
