@@ -1,0 +1,7 @@
+code 55108
+data 80
+bss 162608
+image 55188
+stack 4096
+irq_stack 2048
+ram_code 54988

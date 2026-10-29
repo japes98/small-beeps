@@ -1,0 +1,18 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 4ba1f27583638c13813c5794b82142b20635a955..27913cf0912e0dff915f73da60f5c7de88b77cd1
+OK     a0a29cff8872 harness: fwtest runs the compiler's and the float forms the toolchain audit found (patch 0014)
+OK     2c8f5a3cff30 harness: fwtest runs the halves, fields and special-register forms (patch 0015)
+OK     cf5d39f0767b harness: patches 0014 and 0015 keep the toolchain's words out of the emulator's tree
+OK     1a0b2e228026 harness: C-HARNESS-ISA, fwtest decode, and the toolchain audit's facts (fwtest 0.10.0)
+OK     cad887144701 harness: forms with an open detail (patch 0016); C-HARNESS-ISA checks the compiler's code too
+EXEMPT 8fc23613e4ed (merge) sessions: main (clean's #169 to #171) merged into spec/isa-fwtest
+EXEMPT 001c66486292 (merge) sessions: clean's build/disasm-flags (#172) merged into spec/isa-fwtest
+OK     5aeec53acb87 docs: HW-102 and Q-35 without words the emulator's tree uses
+EXEMPT fce4a3932ae2 (merge) sessions: clean's build/disasm-flags (#172) head merged again
+EXEMPT ff922e330d26 (merge) sessions: spec/isa-start merged into spec/isa-fwtest (the chain, cumulative)
+OK     b723b8d33aeb docs: P-64 and the exposure entry say which SDK build files arrived
+OK     43f0eed252f7 harness: bkpt ends a run as a trap (patch 0017, exit 6); the BR-11 answer
+OK     d12b41c25f99 docs: the exposure entry's last part (0017, the drop folder)
+EXEMPT 27913cf0912e (merge) Merge pull request #175 from japes98/spec/isa-fwtest
+14 commit(s) checked: PASS
+
+exit status 0
