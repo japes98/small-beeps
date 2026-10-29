@@ -4,6 +4,7 @@
 //! (docs/HARNESS.md is the user's manual; nothing here is visible to the
 //! firmware side except through it).
 
+pub mod decode;
 pub mod formats;
 pub mod golden;
 pub mod machine;
@@ -25,6 +26,7 @@ pub mod exit {
     pub const FAULT: i32 = 3;
     pub const HALT: i32 = 4;
     pub const HANG: i32 = 5;
+    pub const TRAP: i32 = 6;
 }
 
 pub const USAGE: &str = "\
@@ -32,6 +34,7 @@ usage:
   fwtest run IMAGE --ms MS --out DIR [options]
   fwtest run PACKAGE --package --ms MS --out DIR [options]
   fwtest suite FILE --out DIR
+  fwtest decode FILE
   fwtest version
 
 run options:
@@ -52,7 +55,12 @@ run options:
   --watchdog ADDR:MS     a hang if the word at ADDR stays the same for MS
   --halt-ok              a halt counts as success
   --golden DIR           compare the outputs with the golden files in DIR
-WHEN is a time in ms (up to three decimals) or `end`.";
+WHEN is a time in ms (up to three decimals) or `end`.
+
+decode: FILE has one instruction per line, its bytes in hex as they lie in
+memory; each output line is the hex, the length fwtest decodes it to (- if
+none) and runs, no-decode, unsupported, trap or panic (docs/HARNESS.md,
+\"Instructions\").";
 
 /// Removes every FM1_* variable: upstream reads several to switch traces and
 /// execution paths, which would break determinism (machine.rs).
@@ -191,6 +199,7 @@ pub fn execute(a: &RunArgs, suite_name: &str) -> Result<Done, String> {
     let mismatch = checks.iter().any(|c| c.problem.is_some());
     let exit = match &report.outcome {
         Outcome::Fault { .. } => exit::FAULT,
+        Outcome::Trap { .. } => exit::TRAP,
         Outcome::Hang { .. } => exit::HANG,
         _ if mismatch => exit::GOLDEN_MISMATCH,
         Outcome::Halt { .. } if !a.opt.halt_ok => exit::HALT,
@@ -260,8 +269,8 @@ pub fn suite(file: &Path, out: &Path) -> Result<i32, String> {
             return Err(format!("suite line {}: expected `NAME EXPECT IMAGE [options]`", n + 1));
         }
         let (name, expect) = (&w[0], &w[1]);
-        if !["completed", "halt", "fault", "hang", "power-cut"].contains(&expect.as_str()) || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
-            return Err(format!("suite line {}: bad name or expectation (completed, halt, fault, hang, power-cut)", n + 1));
+        if !["completed", "halt", "fault", "trap", "hang", "power-cut"].contains(&expect.as_str()) || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+            return Err(format!("suite line {}: bad name or expectation (completed, halt, fault, trap, hang, power-cut)", n + 1));
         }
         let mut args = w[2..].to_vec();
         args.push("--out".into());
@@ -321,6 +330,16 @@ pub fn main_with(args: &[String]) -> i32 {
                 Err(e) => fail(e),
             }
         }
+        Some("decode") => match &args[1..] {
+            [f] => match std::fs::read_to_string(f).map_err(|e| format!("{f}: {e}")).and_then(|t| decode::report(&t)) {
+                Ok(r) => {
+                    print!("{r}");
+                    exit::OK
+                }
+                Err(e) => fail(e),
+            },
+            _ => fail(format!("bad decode arguments\n{USAGE}")),
+        },
         Some("version") | Some("--version") => {
             println!("fwtest {} (emulator {})", env!("CARGO_PKG_VERSION"), &EMULATOR_COMMIT[..12]);
             exit::OK

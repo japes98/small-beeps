@@ -613,6 +613,111 @@ fn stores_of_the_base_keep_its_old_value() {
     assert_eq!((w[8], w[9]), (BUF + 920 + 748, BUF + 920 + 748), "moved: the moved pointer");
 }
 
+/// The toolchain audit (session spec-isa-audit): C for which the pinned
+/// compiler emits forms fwtest 0.9.0 could not run (isac.c, built with the
+/// firmware's flags): floorf, ceilf and truncf, `__fp16` conversions, a
+/// word in memory shifted by a register and cleared by a mask, and zcmp;
+/// and one it ran wrongly, the 64-bit load whose index is scaled by 8.
+#[test]
+fn forms_the_compiler_emits() {
+    let mut o = opts(5);
+    o.ram = vec![(OUT0, 64, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("isac"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-40-end.bin"));
+    let f = |x: f32| x.to_bits();
+    assert_eq!(&w[0..5], &[f(-3.0), f(-2.0), f(-2.0), f(7.0), f(-0.0)], "floorf, ceilf, truncf");
+    // 0.1 to half is 0x2e66, 65520 rounds to infinity; 0x2e66 back is 0.0999755859375
+    assert_eq!(w[5], 0x7c00_2e66, "float to __fp16");
+    assert_eq!(w[6], f(0.099_975_586), "__fp16 to float");
+    assert_eq!(&w[7..11], &[0x0000_f0f0, 1, 0xc000_0000, 0x0000_f00f], "<<=, >>=, >>>= and &= ~ in memory");
+    assert_eq!((w[11], w[12]), (0x3f, 0x3f), "d[rB+rI<<3]");
+    assert_eq!(&w[13..16], &[1, 0, u32::MAX], "zcmp");
+}
+
+/// The toolchain audit: forms only the assembler emits that fwtest 0.9.0
+/// could not run or ran wrongly (isaasm.S): the float to integer
+/// conversions rounding to even, up and down, the float rounding to even,
+/// fcmp and the ten flag branches after it, ifne after testset, and a
+/// word in memory shifted by 32.
+#[test]
+fn forms_only_the_assembler_emits() {
+    let mut o = opts(1);
+    o.ram = vec![(OUT0, 80, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("isaasm"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-50-end.bin"));
+    assert_eq!(&w[0..7], &[2, (-2i32) as u32, (-3i32) as u32, 2, 3, 2, (-2.0f32).to_bits()], "rounding conversions");
+    // fcmp 1.0, 2.0: eq ne cs cc hi ls ge lt gt le
+    assert_eq!(&w[7..17], &[0, 1, 0, 1, 0, 1, 0, 1, 0, 1], "flag branches after fcmp");
+    assert_eq!(w[17], 1, "ifne after testset of a free byte");
+    assert_eq!((w[18], w[19]), (0, u32::MAX), "<<= 32 and >>>= 32 in memory");
+}
+
+/// The toolchain audit: forms only the assembler emits whose result the
+/// printed form leaves no choice in (isaregs.S): half moves, sat8 of a
+/// half, the bit-field extract and insert with the field in a register,
+/// the saturating shift in memory, the high half stored, the special
+/// registers retx, sr4 and sspn, and the 4-byte push / pop of a list of
+/// them.
+#[test]
+fn registers_halves_and_fields() {
+    let mut o = opts(1);
+    o.ram = vec![(OUT0, 64, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("isaregs"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-40-end.bin"));
+    assert_eq!(&w[0..2], &[0x1111_abcd, 0x0004_2222], "half moves");
+    assert_eq!(&w[2..4], &[0xabcd_ff80, 0x0000_0004], "sat8 of a half");
+    assert_eq!(&w[4..7], &[0xf8, 0xffff_fff8, 0xffff_f12f], "u/sextra and insert, the field in a register");
+    assert_eq!(&w[7..9], &[0x7fff_ffff, 0x8000_0000], "<<<= in memory");
+    assert_eq!(w[9], 0x0000_beef, "h[rB+rI<<1] = rS.h");
+    assert_eq!(&w[10..13], &[0x1234, 0x5678, 0xaa], "sr4, sspn, retx");
+    assert_eq!(&w[13..16], &[16, 0x1234, 0xbb], "push and pop of special registers");
+}
+
+/// The toolchain audit: forms only the assembler emits whose syntax is
+/// explicit but a detail of whose result the toolchain leaves open
+/// (isaops.S; HARDWARE-SPEC Q-31 to Q-33): the pair shifts rounding up, to
+/// nearest with ties up, to even and toward zero; the memory multiplies; the
+/// npc loads; rev16.
+#[test]
+fn forms_with_an_open_detail() {
+    let mut o = opts(1);
+    o.ram = vec![(OUT0, 68, When::End)];
+    o.halt_ok = true;
+    let r = run(&image("isaops"), &o).unwrap();
+    assert!(matches!(r.outcome, Outcome::Halt { .. }), "{:?}", r.outcome);
+    let w = words(output(&r, "ram-01c00100-44-end.bin"));
+    // 2.5: up 3, round 3, even 2, zero 2; -1.5: up -1, round -1, even -2, zero -1
+    assert_eq!(&w[0..4], &[3, 3, 2, 2], "rounding shifts, unsigned");
+    assert_eq!(&w[4..8], &[-1i32 as u32, -1i32 as u32, -2i32 as u32, -1i32 as u32], "rounding shifts, signed");
+    assert_eq!(&w[8..12], &[-15i32 as u32, u32::MAX, 327_660, 0x01c0_0408], "[rA ++= i]*rB, h[..]*rB");
+    assert_eq!(&w[12..14], &[-14i32 as u32, u32::MAX], "[rA ++= i]*[rB ++= j]");
+    assert_eq!(&w[14..16], &[0x600d_f00d, 0x5a5a_a5a5], "npc loads");
+    assert_eq!(w[16], 0x5678_1234, "rev16");
+}
+
+/// `bkpt` (the compiler's `__builtin_trap`, trap.c) ends the run as a trap,
+/// with its own exit code, not as an instruction fwtest does not run (the
+/// owner's answer, session spec-isa-audit; fwtest 0.9.0 ended it as a fault).
+#[test]
+fn bkpt_ends_the_run_as_a_trap() {
+    let mut o = opts(5);
+    o.ram = vec![(OUT0, 4, When::End)];
+    let r = run(&image("trap"), &o).unwrap();
+    match r.outcome {
+        Outcome::Trap { core, pc } => assert_eq!(core, 0, "trap at {pc:#x}"),
+        ref o => panic!("not a trap: {o:?}"),
+    }
+    assert_eq!(r.outcome.name(), "trap");
+    assert_eq!(words(output(&r, "ram-01c00100-4-end.bin")), vec![0x7a7a_7a7a]);
+    assert_eq!(fwtest::exit::TRAP, 6);
+}
+
 fn fault_text(r: &fwtest::run::Report) -> (u32, u32, String) {
     match &r.outcome {
         Outcome::Fault { core, pc, what } => (*core, *pc, what.clone()),

@@ -1,0 +1,610 @@
+The toolchain audit (session spec-isa-audit, 2026-10-28): the vendor
+toolchain's own decoder table (in its objdump), assembler and compiler
+know instruction forms fwtest could not run, or ran wrongly. This patch
+takes the ones the compiler emits with the firmware's flags
+(-mcpu=r3 -mfprev1) and the rest of the float forms:
+
+- The FPU's unary row (`3f e5 Xf DS`, `3f f5` a pair's head): ftoi and
+  ftou rounding to even, up and down (0f 2f 3f, 4f 6f 7f), saturating as
+  the truncating ones do; `R = ftof(R)` rounded to an integral value
+  (cf even, df trunc, ef ceil, ff floor), which the compiler emits for
+  rintf, truncf, ceilf and floorf, so C's results; `R.l = ftof(R)` (af)
+  and `R = ftof(R.l)` (bf), the half-precision conversions, rounding to
+  nearest even, the high half left as it was (the compiler's code stores
+  the low half only).
+- `fcmp rA, rB` (`3f e5 A4 0B`) and the flag branches `ifeq` .. `ifle`
+  (`40|c0 e8|e9|ec|ed|ee`, off 2*sext16(bits 16-31)). Their byte 1 is
+  the compare branches' family and bit 7 the opposite condition, so after
+  an fcmp each is that family's float compare (as `iff (rA cond rB)`).
+  After a testset, ifeq / ifne read its flag as before; the other
+  conditions end the run as an unsupported instruction. The table had
+  `ifeq` backwards only (the compiler's spin loop) and took `41 e8`, no
+  instruction, for `ifne` (`c0 e8`).
+- The memory row `[R+#i] op= R`: `&= ~R` (`64 e8`, op 3; the compiler's
+  `*p &= ~m`) and the shifts by a register `6e e8` (op 0 `<<=`, 2 `>>=`,
+  3 `>>>=`; `*p <<= n`), in the `64 e8` layout, the amount as the
+  register shifts take it (bits 0-4). `6c e8` with a shift field of 0
+  shifts by 32 (it shifted by 0).
+- `rH_rL = d[rB+rI<<3]` / `d[rB+rI<<3] = rH_rL`: bit 19 of the plain
+  indexed form scales the index by 8 (the compiler's 64-bit `p[1000]`);
+  it was added unscaled.
+- `rD = zcmp(rS)` (`80 e1 02 DS`; the zcmp builtin): the sign,
+  -1, 0 or 1, as the compiler folds the builtin's constants.
+
+Fields from the vendor assembler; behaviour from the compiler's use and
+constant folding, and where the toolchain leaves a detail open (NaN
+results, out-of-range conversions, the conditions' sources, amounts of
+32 or more) the choice above, HARDWARE-SPEC Q-28 to Q-30. The crate tests
+float_rounding_to_integral, float_to_integer_rounding,
+half_precision_conversions, memory_shifts_and_and_not, flag_branches,
+pair_load_with_a_scaled_index and zcmp_is_the_sign, and the harness
+tests forms_the_compiler_emits (tests/images/isac.c, built with the
+firmware's flags) and forms_only_the_assembler_emits (isaasm.S), fail
+without it. From the vendor toolchain (PROVENANCE P-1) only.
+
+diff --git a/crates/fm1-core/src/lib.rs b/crates/fm1-core/src/lib.rs
+index 1405d96f..f4cc8f88 100644
+--- a/crates/fm1-core/src/lib.rs
++++ b/crates/fm1-core/src/lib.rs
+@@ -175,6 +175,9 @@ pub struct Cpu {
+     pub pred_skips: Vec<(u32, u32)>,
+     /// Condition flag set by `testset` (see its arm for the assumed sense).
+     pub cc: bool,
++    /// The operands of the last `fcmp rA, rB` (float bits), which the flag branches `ifeq` ..
++    /// `ifle` read (route 24); `testset` clears it (its `cc` is then the condition).
++    pub fcmp_ab: Option<(u32, u32)>,
+     /// Arithmetic flags in `psr`'s low bits (F_N | F_C | F_Z | F_V), set by the add / subtract
+     /// forms and read by `+ c`, `- !c` and `psr`: clang's 64-bit add / subtract / compare
+     /// sequences (and so compiler-rt's soft double) need them. Which forms set them on the real
+@@ -2441,17 +2444,38 @@ impl Cpu {
+                 let addr = self.regs[(insn.raw & 0xf) as usize];
+                 let old = bus.read8(addr);
+                 self.cc = old != 0;
++                self.fcmp_ab = None;
+                 bus.write8(addr, old | 0x80);
+             }
+             24 => {
+-                // `ifeq/ifne goto #off` (40/41 e8): off = 2*sext16(bits(16,31))
++                // the flag branches `if<cond> goto #off` (40 / c0, then e8 eq, e9 cs, ec hi,
++                // ed ge, ee gt; bit 7 the opposite: ne, cc, ls, lt, le), off = 2*sext16(bits(16,31))
++                // (the vendor assembler and decoder table; session spec-isa-audit: `ifne` is
++                // `c0 e8`, `41 e8` no instruction). Their byte 1 is the compare branches' family.
++                // After an `fcmp rA, rB` each is that family's float compare of rA with rB (as
++                // `iff (rA <cond> rB) goto`); after a `testset`, eq is its flag (the compiler's
++                // `testset b[rN]; ifeq goto` spin) and the other families are not known.
+                 let raw = insn.raw;
+                 let off = 2 * ((raw >> 16) as u16 as i16 as i64);
+-                let want = raw & 1 == 0;
+-                if self.cc == want {
++                let (fam, alt) = ((raw >> 8) & 7, raw & 0x80 != 0);
++                let take = match self.fcmp_ab {
++                    Some((a, b)) => cmp_cond(fam | 8, alt, a, b),
++                    None if fam == 0 => self.cc != alt,
++                    None => {
++                        self.stuck_on = Some(name);
++                        return Err(CoreError::Unsupported { name, pc: self.pc, raw });
++                    }
++                };
++                if take {
+                     jumped = Some((next_pc as i64 + off) as u32);
+                 }
+             }
++            43 => {
++                // `fcmp rA, rB` (3f e5 A4 0B; 3f f5, a pair's head): the operands the flag
++                // branches compare (route 24)
++                let raw = insn.raw;
++                self.fcmp_ab = Some((self.regs[((raw >> 20) & 0xf) as usize], self.regs[((raw >> 24) & 0xf) as usize]));
++            }
+             25 => {
+                 let v = self.slot(insn, 0)? as u32;
+                 let cond = if has(name, "ne") {
+@@ -2588,7 +2612,7 @@ impl Cpu {
+                 let m = decode_pair_mem(raw);
+                 let (hi, lo) = (2 * m.pair + 1, 2 * m.pair);
+                 let base = match m.base { Some(b) => self.regs[b], None => self.sp };
+-                let step = match m.index { Some(i) => self.regs[i], None => m.off as u32 };
++                let step = match m.index { Some(i) => self.regs[i] << m.shl, None => m.off as u32 };
+                 let addr = if m.post { base } else { base.wrapping_add(step) };
+                 // the base update reads the index before a load can overwrite it
+                 if let Some(b) = m.base.filter(|_| m.pre || m.post) {
+@@ -2829,6 +2853,7 @@ impl Cpu {
+                         }
+                     }
+                     Dsp::BrevAdd => (self.regs[d].reverse_bits().wrapping_add(self.regs[b].reverse_bits())).reverse_bits(),
++                    Dsp::Zcmp => (self.regs[b] as i32).signum() as u32,
+                 };
+             }
+             39 => {
+@@ -2932,6 +2957,11 @@ static PAIR_OP_PAIR_RAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+ fn decode_any(win: u64, pc: u32) -> Result<fm1_isa::Instruction, fm1_isa::DecodeError> {
+     // the add / subtract-with-carry family before the table: its corpus classes fit only
+     // the registers the corpora used (see carry_op_raw)
++    // `40|c0 e8|e9|ec|ed|ee`: the flag branches (route 24), before the table: its classes
++    // knew `ifeq` backwards only and took `41 e8`, no instruction, for `ifne`
++    if matches!(win & 0xff, 0x40 | 0xc0) && matches!((win >> 8) & 0xff, 0xe8 | 0xe9 | 0xec | 0xed | 0xee) {
++        return Ok(fm1_isa::Instruction { addr: pc, raw: win & 0xffff_ffff, entry: &FLAG_BRANCH_CRAW });
++    }
+     let decoded = match carry_op_raw(win) {
+         Some(entry) => Ok(fm1_isa::Instruction { addr: pc, raw: win & 0xffff_ffff, entry }),
+         // `d8|d9|dc|dd e9`, sp-relative byte / halfword accesses (route 37), before the table too:
+@@ -3109,6 +3139,10 @@ enum Dsp {
+     /// `b0 e0 00 DS`: rD += rS (brev), an add whose carry runs from bit 31 down to bit 0 (FFT
+     /// addressing; `__builtin_pi32v2_brevadd`)
+     BrevAdd,
++    /// `80 e1 02 DS`: rD = zcmp(rS), the sign of rS as -1, 0 or 1 (the zcmp builtin, whose
++    /// constants the compiler folds so: 5, 256, 0x7fffffff to 1, 0 to 0, -1, -256, 0x80000000 to
++    /// -1; session spec-isa-audit)
++    Zcmp,
+ }
+ fn dsp_raw(raw: u64) -> Option<Dsp> {
+     let pair = matches!((raw >> 8) & 0xff, 0xf0 | 0xf1 | 0xf4);
+@@ -3117,6 +3151,7 @@ fn dsp_raw(raw: u64) -> Option<Dsp> {
+         (0xc0, 0xe1) if (raw >> 25) & 7 == 2 => Some(Dsp::QaslImm),
+         (0xc8, 0xe1) if (raw >> 16) & 0xf == 1 => Some(Dsp::QaslReg),
+         (0x80, 0xe1) if (raw >> 16) & 0xff == 1 => Some(Dsp::Cls),
++        (0x80, 0xe1) if (raw >> 16) & 0xff == 2 => Some(Dsp::Zcmp),
+         (0xb0, 0xe0) if (raw >> 16) & 0xff == 0 => Some(Dsp::BrevAdd),
+         (0x34 | 0x35, 0xe4) if (raw >> 17) & 7 == 0 => Some(Dsp::MinMax),
+         _ => None,
+@@ -3325,6 +3360,10 @@ static PC_POP_MASK_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+     name: "pc_mask_mov_sp_craw", syntax: "{pc, R*4} = [sp++]", len: 4, count: 0, mask: 0, match_: 0,
+     group: "stack", alt: &[], samples: &[], slots: &[],
+ };
++static FLAG_BRANCH_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
++    name: "flag_branch_craw", syntax: "if<cond> goto #i", len: 4, count: 0, mask: 0, match_: 0,
++    group: "branch", alt: &[], samples: &[], slots: &[],
++};
+ static FPU_MAC_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+     name: "fpu_mac_craw", syntax: "R += R * R (f)", len: 4, count: 0, mask: 0, match_: 0,
+     group: "alu", alt: &[], samples: &[], slots: &[],
+@@ -3439,7 +3478,7 @@ fn decode_cmp_rr_branch(raw: u64, len: u8) -> Option<(u64, bool, usize, usize, i
+ 
+ /// A 64-bit register-pair access `rH_rL = d[...]` / `d[...] = rH_rL`.
+ #[derive(Clone, Copy, Debug)]
+-struct PairMem { pair: usize, store: bool, base: Option<usize>, off: i32, index: Option<usize>, pre: bool, post: bool }
++struct PairMem { pair: usize, store: bool, base: Option<usize>, off: i32, index: Option<usize>, pre: bool, post: bool, shl: u32 }
+ 
+ /// `5x ec`: pair = bits(29,31) (rH_rL = r2p+1, r2p), store = bit16, base = bits(20,23),
+ /// off = 4*sext9(bits(18,19) | bits(24,27)<<2 | bit0<<6 | bit1<<7 | bit2<<8); the mode:
+@@ -3464,19 +3503,23 @@ fn decode_pair_mem(raw: u64) -> PairMem {
+     let pair = ((raw >> 29) & 7) as usize;
+     let store = (raw >> 16) & 1 != 0;
+     if (raw >> 8) & 0xff != 0xec {
+-        return PairMem { pair, store, base: None, off: (((raw >> 17) & 0x7ff) << 1) as i32, index: None, pre: false, post: false };
++        return PairMem { pair, store, base: None, off: (((raw >> 17) & 0x7ff) << 1) as i32, index: None, pre: false, post: false, shl: 0 };
+     }
+     let base = Some(((raw >> 20) & 0xf) as usize);
+     let f = (((raw >> 18) & 3) | (((raw >> 24) & 0xf) << 2) | ((raw & 1) << 6) | (((raw >> 1) & 1) << 7) | (((raw >> 2) & 1) << 8)) as i32;
+     let off = 4 * if f & 0x100 != 0 { f - 0x200 } else { f };
+     let bit17 = (raw >> 17) & 1 != 0;
+     if raw & 8 == 0 {
+-        PairMem { pair, store, base, off, index: None, pre: bit17, post: false }
++        PairMem { pair, store, base, off, index: None, pre: bit17, post: false, shl: 0 }
+     } else if !bit17 {
+-        PairMem { pair, store, base, off, index: None, pre: false, post: true }
++        PairMem { pair, store, base, off, index: None, pre: false, post: true, shl: 0 }
+     } else {
+         let index = Some(((raw >> 24) & 0xf) as usize);
+-        PairMem { pair, store, base, off: 0, index, pre: raw & 6 == 4, post: raw & 6 == 6 }
++        // bit 19 in the plain form: the index scaled by 8, `d[rB+rI<<3]` (the vendor
++        // assembler's `58 ec 2a 03`, against `d[r2+r3]` `58 ec 22 03`; the compiler's `p[i]` for
++        // 64-bit elements; session spec-isa-audit)
++        let shl = if raw & 6 == 0 && (raw >> 19) & 1 != 0 { 3 } else { 0 };
++        PairMem { pair, store, base, off: 0, index, pre: raw & 6 == 4, post: raw & 6 == 6, shl }
+     }
+ }
+ 
+@@ -3614,7 +3657,31 @@ fn decode_alu4(raw: u64) -> Option<Alu4> {
+         0xe8 if b0 == 0x6c || b0 == 0x6d => {
+             // `[R+#i] <<= #n` (6c e8): base bits 28-31, word offset bits
+             // 18-23, shift bits 24-27, op bits 16-17 like the e1 shifts;
+-            // 6d e8: the same with 16 added to the shift (`6d e8 02 16` [r1+0] >>= 22)
++            // 6d e8: the same with 16 added to the shift (`6d e8 02 16` [r1+0] >>= 22).
++            // `6c` with a shift field of 0 is a shift by 32 (the vendor assembler's `[r1+0] <<= 32`
++            // is `6c e8 00 10`, its `<<= 16` is `6d e8 00 10`; session spec-isa-audit): every bit
++            // shifted out, or the sign copied into every bit.
++            let n = ((raw >> 24) & 0xf) as u32 + 16 * (b0 & 1);
++            let (op, n) = match ((raw >> 16) & 3, n) {
++                (0 | 2, 0) => (Op::And, 0),
++                (3, 0) => (Op::Sar, 31),
++                (0, n) => (Op::Shl, n),
++                (2, n) => (Op::Shr, n),
++                (3, n) => (Op::Sar, n),
++                _ => return None,
++            };
++            Some(Alu4 {
++                dst: Dst::Mem(sext6x4(raw >> 18)),
++                src: s_hi,
++                op,
++                rhs: Rhs::Imm(n),
++            })
++        }
++        0xe8 if b0 == 0x6e => {
++            // `[R+#i] <<= R` / `>>= R` / `>>>= R` (6e e8, the vendor decoder's table; session
++            // spec-isa-audit): the 64 e8 layout, op bits 16-17 {0 <<, 2 >>, 3 >>>} (1, `<<<=`, is
++            // the saturating shift: route 42). The compiler's `*p <<= n`. The amount as the
++            // register shifts take it (bits 0-4).
+             let op = match (raw >> 16) & 3 {
+                 0 => Op::Shl,
+                 2 => Op::Shr,
+@@ -3625,7 +3692,7 @@ fn decode_alu4(raw: u64) -> Option<Alu4> {
+                 dst: Dst::Mem(sext6x4(raw >> 18)),
+                 src: s_hi,
+                 op,
+-                rhs: Rhs::Imm(((raw >> 24) & 0xf) as u32 + 16 * (b0 & 1)),
++                rhs: Rhs::Reg(((raw >> 24) & 0xf) as usize),
+             })
+         }
+         0xe8 if b0 == 0x66 => {
+@@ -3649,6 +3716,8 @@ fn decode_alu4(raw: u64) -> Option<Alu4> {
+                 (0x64, 0) => Op::Or,
+                 (0x64, 1) => Op::Xor,
+                 (0x64, 2) => Op::And,
++                // `[R+#i] &= ~R` (the vendor decoder's table; the compiler's `*p &= ~m`)
++                (0x64, 3) => Op::AndNot,
+                 (0x68, 0) => Op::Add,
+                 (0x68, 2) => Op::Sub,
+                 _ => return None,
+@@ -4494,6 +4563,177 @@ mod tests {
+         assert_eq!(cpu.regs[2], 0);
+     }
+ 
++    // ---- the toolchain audit (session spec-isa-audit): forms the vendor decoder's table and
++    // assembler know that had no decoder here; encodings from the vendor assembler
++
++    fn run_words(code: &[u8], steps: usize, setup: impl FnOnce(&mut Cpu)) -> (Cpu, FlatRam) {
++        let mut mem = vec![0u8; 0x400];
++        mem[..code.len()].copy_from_slice(code);
++        let mut ram = FlatRam::new(mem);
++        let mut cpu = Cpu::new(0);
++        setup(&mut cpu);
++        for _ in 0..steps {
++            cpu.step(&mut ram).unwrap();
++        }
++        (cpu, ram)
++    }
++
++    #[test]
++    fn float_rounding_to_integral() {
++        // `3f e5 Xf 12`: r1 = ftof(r2) (even c, trunc d, ceil e, floor f), as rintf, truncf,
++        // ceilf, floorf
++        for (b2, x, want) in [
++            (0xffu8, -2.5f32, -3.0f32), (0xef, -2.5, -2.0), (0xdf, -2.5, -2.0), (0xcf, 2.5, 2.0),
++            (0xcf, 3.5, 4.0), (0xcf, -0.5, -0.0), (0xff, 7.0, 7.0), (0xef, 1.0e-3, 1.0),
++            (0xff, f32::INFINITY, f32::INFINITY), (0xdf, 16777217.0, 16777217.0),
++        ] {
++            let (cpu, _) = run_words(&[0x3f, 0xe5, b2, 0x12], 1, |c| c.regs[2] = x.to_bits());
++            assert_eq!(cpu.regs[1], want.to_bits(), "{b2:#x} {x}");
++        }
++        // ceil of -0.5 is -0.0, floor of a NaN a NaN
++        let (cpu, _) = run_words(&[0x3f, 0xe5, 0xef, 0x12], 1, |c| c.regs[2] = (-0.5f32).to_bits());
++        assert_eq!(cpu.regs[1], 0x8000_0000);
++        let (cpu, _) = run_words(&[0x3f, 0xe5, 0xff, 0x12], 1, |c| c.regs[2] = f32::NAN.to_bits());
++        assert!(cpu.regs[1] & 0x7fff_ffff > 0x7f80_0000);
++    }
++
++    #[test]
++    fn float_to_integer_rounding() {
++        // `3f e5 Xf 12`: r1 = ftoi(r2) (even 0f, ceil 2f, floor 3f), ftou (4f, 6f, 7f); the pair
++        // head `3f f5` the same
++        for (b2, x, want) in [
++            (0x0fu8, 2.5f32, 2u32), (0x0f, -3.5, -4i32 as u32), (0x2f, 2.1, 3), (0x2f, -2.9, -2i32 as u32),
++            (0x3f, -2.1, -3i32 as u32), (0x3f, 2.9, 2), (0x4f, 3.5, 4), (0x6f, 3.1, 4), (0x7f, 3.9, 3),
++            (0x3f, 3.0e9, i32::MAX as u32), (0x7f, -1.0, 0),
++        ] {
++            let (cpu, _) = run_words(&[0x3f, 0xe5, b2, 0x12], 1, |c| c.regs[2] = x.to_bits());
++            assert_eq!(cpu.regs[1], want, "{b2:#x} {x}");
++        }
++    }
++
++    #[test]
++    fn half_precision_conversions() {
++        for (x, h) in [
++            (1.0f32, 0x3c00u16), (-2.0, 0xc000), (65504.0, 0x7bff), (65520.0, 0x7c00), (1.0e9, 0x7c00),
++            (5.960_464_5e-8, 0x0001), (2.980_232_2e-8, 0x0000), (8.940_697e-8, 0x0002),
++            (6.103_515_6e-5, 0x0400), (1.000_488_3, 0x3c00), (1.001_464_8, 0x3c02), (-0.0, 0x8000),
++            (f32::NEG_INFINITY, 0xfc00), (0.1, 0x2e66), (1.0e-10, 0x0000),
++        ] {
++            assert_eq!(f32_to_f16(x), h, "{x}");
++        }
++        assert_eq!(f32_to_f16(f32::NAN) & 0x7e00, 0x7e00);
++        for h in [0x3c00u16, 0x0001, 0x03ff, 0x0400, 0x7bff, 0xfc00, 0x8000, 0x2e66, 0x1234] {
++            assert_eq!(f32_to_f16(f16_to_f32(h)), h, "{h:#x}");
++        }
++        // `3f e5 af 12` r1.l = ftof(r2): the high half stays; `3f e5 bf 31` r3 = ftof(r1.l)
++        let (cpu, _) = run_words(&[0x3f, 0xe5, 0xaf, 0x12, 0x3f, 0xe5, 0xbf, 0x31], 2, |c| {
++            c.regs[1] = 0xabcd_0000;
++            c.regs[2] = 0.1f32.to_bits();
++        });
++        assert_eq!(cpu.regs[1], 0xabcd_2e66);
++        assert_eq!(f32::from_bits(cpu.regs[3]), f16_to_f32(0x2e66));
++        assert_eq!(f16_to_f32(0x2e66), 0.099_975_586);
++    }
++
++    #[test]
++    fn memory_shifts_and_and_not() {
++        // `6e e8 fc 35` [r3+-4] <<= r5, `6e e8 7e b7` [r11+124] >>= r7, `6e e8 83 f0`
++        // [r15+-128] >>>= r0, `64 e8 ff 35` [r3+-4] &= ~r5, `6c e8 00 10` [r1+0] <<= 32,
++        // `6c e8 03 20` [r2+0] >>>= 32
++        let code = [
++            0x6e, 0xe8, 0xfc, 0x35, 0x6e, 0xe8, 0x7e, 0xb7, 0x6e, 0xe8, 0x83, 0xf0, 0x64, 0xe8, 0xff, 0x35,
++            0x6c, 0xe8, 0x00, 0x10, 0x6c, 0xe8, 0x03, 0x20,
++        ];
++        let mut mem = vec![0u8; 0x400];
++        mem[..code.len()].copy_from_slice(&code);
++        let mut ram = FlatRam::new(mem);
++        ram.write32(0x1fc, 0x0000_0f0f);
++        ram.write32(0x27c, 0x8000_0000);
++        ram.write32(0x280, 0x8000_0000);
++        ram.write32(0x300, 0x1234_5678);
++        ram.write32(0x310, 0x8000_0001);
++        let mut cpu = Cpu::new(0);
++        (cpu.regs[3], cpu.regs[5], cpu.regs[11], cpu.regs[7], cpu.regs[15], cpu.regs[0]) = (0x200, 4, 0x200, 31, 0x300, 1);
++        (cpu.regs[1], cpu.regs[2]) = (0x300, 0x310);
++        for _ in 0..3 {
++            cpu.step(&mut ram).unwrap();
++        }
++        assert_eq!(ram.read32(0x1fc), 0x0000_f0f0);
++        assert_eq!(ram.read32(0x27c), 1);
++        assert_eq!(ram.read32(0x280), 0xc000_0000);
++        cpu.regs[5] = 0x0000_00f0;
++        cpu.step(&mut ram).unwrap();
++        assert_eq!(ram.read32(0x1fc), 0x0000_f000);
++        cpu.step(&mut ram).unwrap();
++        cpu.step(&mut ram).unwrap();
++        assert_eq!(ram.read32(0x300), 0);
++        assert_eq!(ram.read32(0x310), 0xffff_ffff);
++    }
++
++    #[test]
++    fn flag_branches() {
++        // `3f e5 14 02` fcmp r1, r2; `c0 ed 02 00` iflt goto +4 (over `41 20` r1 = 0, `41 20`)
++        let lt = [0x3f, 0xe5, 0x14, 0x02, 0xc0, 0xed, 0x02, 0x00, 0x41, 0x20, 0x41, 0x20];
++        let (cpu, _) = run_words(&lt, 2, |c| (c.regs[1], c.regs[2]) = (1.0f32.to_bits(), 2.0f32.to_bits()));
++        assert_eq!(cpu.pc, 12);
++        let (cpu, _) = run_words(&lt, 2, |c| (c.regs[1], c.regs[2]) = (3.0f32.to_bits(), 2.0f32.to_bits()));
++        assert_eq!(cpu.pc, 8);
++        // `40 e9` ifcs (u>=): a NaN compares unordered, so it is taken
++        let mut cs = lt;
++        (cs[4], cs[5]) = (0x40, 0xe9);
++        let (cpu, _) = run_words(&cs, 2, |c| (c.regs[1], c.regs[2]) = (f32::NAN.to_bits(), 2.0f32.to_bits()));
++        assert_eq!(cpu.pc, 12);
++        // `b0 00` testset b[r0], then `c0 e8 02 00` ifne goto +4 forward: taken, the byte was
++        // free (eq: already taken, the SDK's `testset; ifeq goto retry`)
++        let ts = [0xb0, 0x00, 0xc0, 0xe8, 0x02, 0x00, 0x41, 0x20, 0x41, 0x20];
++        let (cpu, _) = run_words(&ts, 2, |c| c.regs[0] = 0x200);
++        assert_eq!(cpu.pc, 10);
++        // `40 e8 01 00` ifeq goto +2 forward, the byte already taken: taken
++        let ts = [0xb0, 0x00, 0x40, 0xe8, 0x01, 0x00, 0x41, 0x20, 0x41, 0x20];
++        let mut mem = vec![0u8; 0x400];
++        mem[..ts.len()].copy_from_slice(&ts);
++        mem[0x200] = 0x80;
++        let mut ram = FlatRam::new(mem);
++        let mut cpu = Cpu::new(0);
++        cpu.regs[0] = 0x200;
++        cpu.step(&mut ram).unwrap();
++        cpu.step(&mut ram).unwrap();
++        assert_eq!(cpu.pc, 8);
++        // after a testset, a condition other than eq / ne is not known: a fault
++        let ts = [0xb0, 0x00, 0x40, 0xee, 0x01, 0x00];
++        let mut ram = FlatRam::new({ let mut m = vec![0u8; 0x400]; m[..6].copy_from_slice(&ts); m });
++        let mut cpu = Cpu::new(0);
++        cpu.regs[0] = 0x200;
++        cpu.step(&mut ram).unwrap();
++        assert!(matches!(cpu.step(&mut ram), Err(CoreError::Unsupported { .. })));
++    }
++
++    #[test]
++    fn pair_load_with_a_scaled_index() {
++        // `58 ec 2a 03` r1_r0 = d[r2+r3<<3], `58 ec 22 03` r1_r0 = d[r2+r3] (into r5_r4: `58 ec 22 43`)
++        let mut mem = vec![0u8; 0x400];
++        mem[..8].copy_from_slice(&[0x58, 0xec, 0x2a, 0x03, 0x58, 0xec, 0x22, 0x43]);
++        let mut ram = FlatRam::new(mem);
++        ram.write32(0x218, 0x1111_1111);
++        ram.write32(0x21c, 0x2222_2222);
++        ram.write32(0x203, 0x3333_3333);
++        let mut cpu = Cpu::new(0);
++        (cpu.regs[2], cpu.regs[3]) = (0x200, 3);
++        cpu.step(&mut ram).unwrap();
++        assert_eq!((cpu.regs[0], cpu.regs[1]), (0x1111_1111, 0x2222_2222));
++        cpu.step(&mut ram).unwrap();
++        assert_eq!(cpu.regs[4], 0x3333_3333);
++    }
++
++    #[test]
++    fn zcmp_is_the_sign() {
++        // `80 e1 02 01` r0 = zcmp(r1)
++        for (x, want) in [(5u32, 1u32), (0, 0), (0xffff_ffff, 0xffff_ffff), (0x8000_0000, 0xffff_ffff), (0x7fff_ffff, 1)] {
++            let (cpu, _) = run_words(&[0x80, 0xe1, 0x02, 0x01], 1, |c| c.regs[1] = x);
++            assert_eq!(cpu.regs[0], want, "{x:#x}");
++        }
++    }
++
+     #[test]
+     fn push_pop_register_mask() {
+         // `d9 e8 f0 0d` [--sp] = {rets, r11, r10, r8-r4}, `d5 e8 f0 0d` the matching pop
+@@ -5037,7 +5277,8 @@ fn route_of(insn: &Instruction, alu4: &Option<Alu4>, bittest: &Option<BitTest>)
+             "pair_op_raw" => 21,
+             _ if insn.entry.len == 4 && (insn.raw & 0xffff) == 0xe070 || (insn.raw & 0xffff) == 0xf070 => 22,
+             "testset_b_r" | "testset_r" => 23,
+-            "ifeq_goto_i" | "ifne_goto_i" => 24,
++            "ifeq_goto_i" | "ifne_goto_i" | "flag_branch_craw" => 24,
++            "fcmp" | "fcmp_p" => 43,
+             "if_ret_eq_i_goto_i" | "if_ret_ne_i_goto_i" => 25,
+             "sp_mov_rets_r_1" | "sp_mov_rets_r_2" | "sp_mov_rets_r_3"
+             | "sp_mov_rets_r_4" | "sp_mov_rets_r_6" | "sp_mov_rets_r_7" | "sp_mov_rets_mask_craw" => 26,
+@@ -5494,6 +5735,12 @@ fn fcond(c: Cond, l: u32, r: u32) -> bool {
+ 
+ /// The FPU ops (`3f e5`, see fm1-isa's fpu.rs): binary op 0 +, 1 -, 2 *, 3 /, 5 fmin, 6 fmax on
+ /// (a, b); unary 0x1f ftoi, 0x5f ftou (both truncating), 0x8f itof, 0x9f utof on a.
++/// Since session spec-isa-audit, from the vendor decoder's table: the rest of the unary row, the
++/// conversions to an integer rounding to even (0x0f, 0x4f), up (0x2f, 0x6f) and down (0x3f, 0x7f),
++/// saturating as the truncating ones do; 0xbf, a half-precision value in a's low half to single;
++/// 0xcf..0xff, a rounded to an integral value (even, trunc, ceil, floor), as C's rintf, truncf,
++/// ceilf and floorf, which the compiler emits them for (a NaN stays a NaN, -0.0 stays -0.0).
++/// 0xaf, to half precision, writes only the low half (fpu_d).
+ fn fpu(op: u8, a: u32, b: u32) -> u32 {
+     let (x, y) = (f32::from_bits(a), f32::from_bits(b));
+     match op {
+@@ -5505,11 +5752,84 @@ fn fpu(op: u8, a: u32, b: u32) -> u32 {
+         6 => x.max(y).to_bits(),
+         0x1f => x as i32 as u32,
+         0x5f => x as u32,
++        0x0f => x.round_ties_even() as i32 as u32,
++        0x2f => x.ceil() as i32 as u32,
++        0x3f => x.floor() as i32 as u32,
++        0x4f => x.round_ties_even() as u32,
++        0x6f => x.ceil() as u32,
++        0x7f => x.floor() as u32,
++        0xbf => f16_to_f32(a as u16).to_bits(),
++        0xcf => x.round_ties_even().to_bits(),
++        0xdf => x.trunc().to_bits(),
++        0xef => x.ceil().to_bits(),
++        0xff => x.floor().to_bits(),
+         0x8f => (a as i32 as f32).to_bits(),
+         _ => (a as f32).to_bits(),
+     }
+ }
+ 
++/// IEEE 754 half to single precision (exact; a NaN keeps its payload's top bits).
++fn f16_to_f32(h: u16) -> f32 {
++    let sign = ((h >> 15) as u32) << 31;
++    let exp = ((h >> 10) & 0x1f) as u32;
++    let man = (h & 0x3ff) as u32;
++    let bits = match (exp, man) {
++        (0, 0) => sign,
++        (0, m) => {
++            // subnormal: normalise
++            let shift = m.leading_zeros() - 21;
++            sign | ((113 - shift) << 23) | (((m << shift) & 0x3ff) << 13)
++        }
++        (0x1f, m) => sign | 0x7f80_0000 | (m << 13) | if m != 0 { 0x40_0000 } else { 0 },
++        (e, m) => sign | ((e + 112) << 23) | (m << 13),
++    };
++    f32::from_bits(bits)
++}
++
++/// IEEE 754 single to half precision, rounding to nearest, ties to even (C's default rounding, which
++/// the compiler's half-precision conversions rely on): overflow gives an infinity, small values
++/// subnormals or zero; a NaN stays a quiet NaN.
++fn f32_to_f16(x: f32) -> u16 {
++    let b = x.to_bits();
++    let sign = ((b >> 16) & 0x8000) as u16;
++    let exp = ((b >> 23) & 0xff) as i32;
++    let man = b & 0x7f_ffff;
++    if exp == 0xff {
++        return sign | 0x7c00 | if man != 0 { 0x200 | (man >> 13) as u16 } else { 0 };
++    }
++    // the value as man24 * 2^(e - 150), man24 with the hidden bit
++    let (m, e) = if exp == 0 { (man, -149) } else { (man | 0x80_0000, exp - 150) };
++    if m == 0 {
++        return sign;
++    }
++    // target: half's man11 * 2^(he - 25); shift m right so its exponent reaches the target
++    let he = (e + 23 + 15).max(1); // biased half exponent if normal, at least 1 (subnormal range)
++    let shift = (he - 25) - e; // >= 13 for normal halves
++    let rounded = if shift <= 0 {
++        m << (-shift) as u32
++    } else if shift >= 32 {
++        0
++    } else {
++        let q = m >> shift;
++        let rem = m & ((1 << shift) - 1);
++        let half = 1u32 << (shift - 1);
++        if rem > half || (rem == half && q & 1 == 1) { q + 1 } else { q }
++    };
++    // rounded is the half's significand at exponent he (subnormal when he == 1 and below 0x400)
++    let (mut hm, mut hexp) = (rounded, he as u32);
++    if hm >= 0x800 {
++        hm >>= 1;
++        hexp += 1;
++    }
++    if hm < 0x400 {
++        hexp = 0; // subnormal (or zero)
++    }
++    if hexp >= 0x1f {
++        return sign | 0x7c00;
++    }
++    sign | ((hexp as u16) << 10) | (hm as u16 & 0x3ff)
++}
++
+ /// `d8|d9|dc|dd e9 OO RX`: sp-relative byte / halfword accesses, R = bits(28,31), off12 = X << 8 |
+ /// OO (the vendor objdump's layout, tools/fuzz_decode.py; all corpus samples fit):
+ ///   `dc` rR = b[sp+off] (u), `dd` (s); `d9` rR = h[sp+off] (s), an odd off not an instruction;
+@@ -5626,6 +5946,9 @@ fn fpu_d(op: u8, d: u32, a: u32, b: u32) -> u32 {
+     match op {
+         7 => (acc + x * y).to_bits(),
+         8 => (acc - x * y).to_bits(),
++        // `R.l = ftof(R)`: the compiler's half-precision stores use only the low half (`r1.l = ftof(r1);
++        // h[r0+0] = r1`); the high half is left as it was, as the `.l` moves leave it
++        0xaf => (d & 0xffff_0000) | f32_to_f16(x) as u32,
+         _ => fpu(op, a, b),
+     }
+ }
+@@ -5901,7 +6224,7 @@ pub fn describe(win: u64, pc: u32) -> Option<String> {
+         let m = decode_pair_mem(insn.raw);
+         let b = m.base.map_or("sp".to_string(), |b| format!("r{}", b));
+         let base = if m.pre { format!("++{}", b) } else if m.post { format!("{}++", b) } else { b };
+-        let off = m.index.map_or(format!("{}", m.off), |i| format!("+r{}", i));
++        let off = m.index.map_or(format!("{}", m.off), |i| if m.shl != 0 { format!("+r{}<<{}", i, m.shl) } else { format!("+r{}", i) });
+         return Some(format!("P r{}_r{} {} {} {}", 2 * m.pair + 1, 2 * m.pair, base, off, if m.store { "st" } else { "ld" }));
+     }
+     if route == 14 {
+diff --git a/crates/fm1-isa/src/fpu.rs b/crates/fm1-isa/src/fpu.rs
+index 1ac6fda4..bf2b61e3 100644
+--- a/crates/fm1-isa/src/fpu.rs
++++ b/crates/fm1-isa/src/fpu.rs
+@@ -5,7 +5,10 @@
+ //!   `3f e5 b2 b3`  binary  R = R op R: op = b2 & 15 (0 +, 1 -, 2 *, 3 /, 5 fmin, 6 fmax),
+ //!                  a = b2 >> 4, d = b3 >> 4, b = b3 & 15
+ //!                  unary   R = fn(R): b2 = 1f ftoi (trunc), 5f ftou (trunc), 8f itof, 9f utof;
+-//!                  d = b3 >> 4, s = b3 & 15
++//!                  d = b3 >> 4, s = b3 & 15; and (the vendor decoder's table, session
++//!                  spec-isa-audit) 0f/2f/3f ftoi and 4f/6f/7f ftou rounding to even, up and down,
++//!                  af `R.l = ftof(R)` (to half precision), bf `R = ftof(R.l)` (from it),
++//!                  cf/df/ef/ff `R = ftof(R)` rounded to an integral value (even, trunc, ceil, floor)
+ //!   `3f f5 b2 b3`  the same ops as the head of a dual-issue pair (bit 12, as e0/e1 -> f0/f1)
+ //!   compares       the integer `if (R op R) goto` (4-byte: bit 27; 6-byte `4x ff`: bit 23) and
+ //!                  `if (R op R) {` (bit 23) forms with a float flag; families e8 ==, e9 u>=,
+@@ -43,6 +46,22 @@ pub static FPU: &[IsaEntry] = &[
+     e!("fpu_ftou", "R = ftou(R) (trunc)", 0x00ff_ffff, 0x005f_e53f),
+     e!("fpu_itof", "R = itof(R)", 0x00ff_ffff, 0x008f_e53f),
+     e!("fpu_utof", "R = utof(R)", 0x00ff_ffff, 0x009f_e53f),
++    e!("fpu_ftoi_even", "R = ftoi(R) (even)", 0x00ff_ffff, 0x000f_e53f),
++    e!("fpu_ftoi_ceil", "R = ftoi(R) (ceil)", 0x00ff_ffff, 0x002f_e53f),
++    e!("fpu_ftoi_floor", "R = ftoi(R) (floor)", 0x00ff_ffff, 0x003f_e53f),
++    e!("fpu_ftou_even", "R = ftou(R) (even)", 0x00ff_ffff, 0x004f_e53f),
++    e!("fpu_ftou_ceil", "R = ftou(R) (ceil)", 0x00ff_ffff, 0x006f_e53f),
++    e!("fpu_ftou_floor", "R = ftou(R) (floor)", 0x00ff_ffff, 0x007f_e53f),
++    e!("fpu_ftoh", "R.l = ftof(R)", 0x00ff_ffff, 0x00af_e53f),
++    e!("fpu_htof", "R = ftof(R.l)", 0x00ff_ffff, 0x00bf_e53f),
++    e!("fpu_ftof_even", "R = ftof(R) (even)", 0x00ff_ffff, 0x00cf_e53f),
++    e!("fpu_ftof_trunc", "R = ftof(R) (trunc)", 0x00ff_ffff, 0x00df_e53f),
++    e!("fpu_ftof_ceil", "R = ftof(R) (ceil)", 0x00ff_ffff, 0x00ef_e53f),
++    e!("fpu_ftof_floor", "R = ftof(R) (floor)", 0x00ff_ffff, 0x00ff_e53f),
++    // `fcmp rA, rB` (3f e5 A4 0B): sets what the flag branches `ifeq` .. `ifle` test (session
++    // spec-isa-audit; fm1-core route 43)
++    e!("fcmp", "fcmp R, R", 0x000f_ffff, 0x0004_e53f),
++    e!("fcmp_p", "fcmp R, R #", 0x000f_ffff, 0x0004_f53f),
+     e!("iff_r_eq_r_goto_i", "iff (R == R) goto #i", 0x0800_ff70, 0x0800_e800),
+     e!("iff_r_uge_r_goto_i", "iff (R u>= R) goto #i", 0x0800_ff70, 0x0800_e900),
+     e!("iff_r_ugt_r_goto_i", "iff (R u> R) goto #i", 0x0800_ff70, 0x0800_ec00),
+@@ -63,6 +82,18 @@ pub static FPU: &[IsaEntry] = &[
+     e!("fpu_ftou_p", "R = ftou(R) (trunc) #", 0x00ff_ffff, 0x005f_f53f),
+     e!("fpu_itof_p", "R = itof(R) #", 0x00ff_ffff, 0x008f_f53f),
+     e!("fpu_utof_p", "R = utof(R) #", 0x00ff_ffff, 0x009f_f53f),
++    e!("fpu_ftoi_even_p", "R = ftoi(R) (even) #", 0x00ff_ffff, 0x000f_f53f),
++    e!("fpu_ftoi_ceil_p", "R = ftoi(R) (ceil) #", 0x00ff_ffff, 0x002f_f53f),
++    e!("fpu_ftoi_floor_p", "R = ftoi(R) (floor) #", 0x00ff_ffff, 0x003f_f53f),
++    e!("fpu_ftou_even_p", "R = ftou(R) (even) #", 0x00ff_ffff, 0x004f_f53f),
++    e!("fpu_ftou_ceil_p", "R = ftou(R) (ceil) #", 0x00ff_ffff, 0x006f_f53f),
++    e!("fpu_ftou_floor_p", "R = ftou(R) (floor) #", 0x00ff_ffff, 0x007f_f53f),
++    e!("fpu_ftoh_p", "R.l = ftof(R) #", 0x00ff_ffff, 0x00af_f53f),
++    e!("fpu_htof_p", "R = ftof(R.l) #", 0x00ff_ffff, 0x00bf_f53f),
++    e!("fpu_ftof_even_p", "R = ftof(R) (even) #", 0x00ff_ffff, 0x00cf_f53f),
++    e!("fpu_ftof_trunc_p", "R = ftof(R) (trunc) #", 0x00ff_ffff, 0x00df_f53f),
++    e!("fpu_ftof_ceil_p", "R = ftof(R) (ceil) #", 0x00ff_ffff, 0x00ef_f53f),
++    e!("fpu_ftof_floor_p", "R = ftof(R) (floor) #", 0x00ff_ffff, 0x00ff_f53f),
+     e!("iff_r_eq_r_goto_i_l6", "iff (R == R) goto #i", 0x0080_fffe, 0x0080_ff40, 6),
+     e!("iff_r_uge_r_goto_i_l6", "iff (R u>= R) goto #i", 0x0080_fffe, 0x0080_ff42, 6),
+     e!("iff_r_ugt_r_goto_i_l6", "iff (R u> R) goto #i", 0x0080_fffe, 0x0080_ff48, 6),

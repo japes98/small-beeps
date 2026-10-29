@@ -18,14 +18,16 @@ IMAGES="heartbeat halt wild hang console lcd leds keys pot midi midiout audio sp
 # C with code in RAM (image-ram.ld, flash.h)
 RAM_IMAGES="flashrw flashcall flashload flashirq flashkeep flashhelper"
 # built with the firmware's CPU flags (tools/build.sh, CPU), as the firmware is
-FW_IMAGES="blockc rotc selfc"
+FW_IMAGES="blockc rotc selfc isac trap"
 # C linked where a package's app runs (image-pkg.ld), for tests/package.rs
 PKG_IMAGES="pkgapp"
 # assembly, linked after start.S like the C images
 ASM_IMAGES="blockmv pairhead rotr pushpop ramcode pairwaw selfstore"
 # assembly with its own _start, linked alone
 RAW_IMAGES="sr7"
-ALL="$IMAGES $RAM_IMAGES $FW_IMAGES $PKG_IMAGES $ASM_IMAGES $RAW_IMAGES"
+# assembly linked after start.S, assembled with the firmware's CPU flags (its float forms)
+ASM_FW_IMAGES="isaasm isaregs isaops"
+ALL="$IMAGES $RAM_IMAGES $FW_IMAGES $PKG_IMAGES $ASM_IMAGES $RAW_IMAGES $ASM_FW_IMAGES"
 
 inside() {
     out=$1
@@ -64,7 +66,7 @@ inside() {
         clang $flags -mcpu=r3 -mfprev1 -c "$n.c" -o "$out/$n.o"
         ld -nostdlib -T image.ld -o "$out/$n.elf" "$out/start.o" "$out/$n.o"
         objcopy -O binary -j .text "$out/$n.elf" "$out/$n.bin"
-        objdump -d "$out/$n.elf" > "$out/$n.dis"
+        objdump -d -mcpu=r3 -mattr=+fprev1 "$out/$n.elf" > "$out/$n.dis"
         rm "$out/$n.o" "$out/$n.elf"
     done
     # blockc exists for the two forms below a base the compiler emits (SR-7)
@@ -84,6 +86,21 @@ inside() {
         echo "selfc: the compiler no longer emits [++rN=k] = rN" >&2
         exit 1
     fi
+    # isac exists for the forms the toolchain audit found the compiler emits
+    # and fwtest 0.9.0 could not run (session spec-isa-audit)
+    for f in 'ftof(r[0-9]*) (floor)' 'ftof(r[0-9]*) (ceil)' 'ftof(r[0-9]*) (trunc)' \
+             'r[0-9]*\.l = ftof(r[0-9]*)' 'ftof(r[0-9]*\.l)' '\] <<= r[0-9]*$' '\] >>= r[0-9]*$' \
+             '\] >>>= r[0-9]*$' '\] &= ~r[0-9]*$' 'd\[r[0-9]*+r[0-9]*<<3\]' 'zcmp(r[0-9]*)'; do
+        if ! grep -q "$f" "$out/isac.dis"; then
+            echo "isac: the compiler no longer emits $f" >&2
+            exit 1
+        fi
+    done
+    # trap exists for `bkpt`, the compiler's __builtin_trap
+    if ! grep -q 'bkpt$' "$out/trap.dis"; then
+        echo "trap: the compiler no longer emits bkpt for __builtin_trap" >&2
+        exit 1
+    fi
     # pairwaw.S stands for a pair whose halves write one register, which the
     # compiler emits in flashkeep.c (a head, then a load into the same register)
     if ! awk -F '\t' '$NF ~ /^r[0-9]+ = .*# *$/ { h = $NF; sub(/ .*/, "", h); next }
@@ -95,6 +112,12 @@ inside() {
     for n in $FW_IMAGES $RAM_IMAGES; do rm "$out/$n.dis"; done
     for n in $ASM_IMAGES; do
         clang -target pi32v2 -mcpu=r3 -c "$n.S" -o "$out/$n.o"
+        ld -nostdlib -T image.ld -o "$out/$n.elf" "$out/start.o" "$out/$n.o"
+        objcopy -O binary -j .text "$out/$n.elf" "$out/$n.bin"
+        rm "$out/$n.o" "$out/$n.elf"
+    done
+    for n in $ASM_FW_IMAGES; do
+        clang -target pi32v2 -mcpu=r3 -mfprev1 -c "$n.S" -o "$out/$n.o"
         ld -nostdlib -T image.ld -o "$out/$n.elf" "$out/start.o" "$out/$n.o"
         objcopy -O binary -j .text "$out/$n.elf" "$out/$n.bin"
         rm "$out/$n.o" "$out/$n.elf"

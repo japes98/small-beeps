@@ -1,0 +1,314 @@
+The toolchain audit (session spec-isa-audit, 2026-10-28), third part:
+forms only the vendor assembler emits whose printed form is explicit but
+a detail of whose result the toolchain leaves open; each detail is the
+choice below, recorded as an open question (HARDWARE-SPEC Q-31 to Q-33):
+
+- `d2 e1` / `d3 e1` (`d2 f1`, `d3 f1` a pair's head): rD = rH_rL >> n
+  or >>> n rounded up, to nearest with ties up, to nearest with ties to
+  even, or toward zero, then saturated into rD as the plain `de` / `df`
+  forms are; n 0 to 63 (`d2`: bits 16-19 and 24-25; `d3`: a register's
+  bits 0-5).
+- The multiplies with a memory operand (`e0..ee ee`, `60..6e ee`,
+  `e0..ee e8`, `6x|ex e9|ec|ed`): rH_rL (=|+=|-=) the first operand,
+  a word or (`h[`) a halfword, times a register or a word; the vendor
+  assembler counts the first increment in the first operand's size and
+  the second's in words, so `h[` is the first operand only. (s) signed,
+  (u) unsigned, for the halfword's extension and the product. Both
+  addresses are the registers before the instruction; the increments
+  follow (the first, then the second), and the pair is written last.
+- `60 e8 00 DI` rD = [npc + rI] and `aD ff <imm32>` rD = [npc + #i]:
+  npc taken as the next instruction's address. The table took the
+  6-byte one for another class that ended the run.
+- `70 e0 40 DS` (`70 f0`): rD = rS with its halves swapped, the
+  halfword counterpart of `70 e0 00`'s byte reversal.
+
+Decoded before the table, by the vendor decoder table's masks. The crate
+tests pair_shifts_with_rounding, memory_multiplies and
+npc_loads_and_the_halves_swap, and the harness test
+forms_with_an_open_detail (tests/images/isaops.S), fail without it. From
+the vendor toolchain (PROVENANCE P-1, P-64) only.
+
+diff --git a/crates/fm1-core/src/lib.rs b/crates/fm1-core/src/lib.rs
+index 500a287f..87261baf 100644
+--- a/crates/fm1-core/src/lib.rs
++++ b/crates/fm1-core/src/lib.rs
+@@ -2470,6 +2470,16 @@ impl Cpu {
+                     jumped = Some((next_pc as i64 + off) as u32);
+                 }
+             }
++            44 => {
++                // `R = [npc + R]` / `R = [npc + #i]`: npc the next instruction's address (Q-33)
++                let raw = insn.raw;
++                let (d, off) = if insn.entry.len == 6 {
++                    ((raw & 0xf) as usize, (raw >> 16) as u32)
++                } else {
++                    (((raw >> 28) & 0xf) as usize, self.regs[((raw >> 24) & 0xf) as usize])
++                };
++                self.regs[d] = bus.read32(next_pc.wrapping_add(off));
++            }
+             43 => {
+                 // `fcmp rA, rB` (3f e5 A4 0B; 3f f5, a pair's head): the operands the flag
+                 // branches compare (route 24)
+@@ -2907,6 +2917,57 @@ impl Cpu {
+                             bus.write32(self.sp, val);
+                         }
+                     }
++                    Aud::RoundShift => {
++                        let reg_form = raw & 0xff == 0xd3;
++                        let p = ((b2 >> 5) & 7) as usize;
++                        let x = (self.regs[2 * p + 1] as u64) << 32 | self.regs[2 * p] as u64;
++                        let b3 = (raw >> 24) & 0xff;
++                        let (signed, mode, n) = if reg_form {
++                            (b2 & 1 != 0, ((b2 >> 1) & 3) as u8, self.regs[(b3 & 0xf) as usize] & 63)
++                        } else {
++                            let m = match (b2 & 0x10 != 0, b3 & 4 != 0) { (false, false) => 0, (true, false) => 1, (false, true) => 2, (true, true) => 3 };
++                            (b3 & 8 != 0, m, ((b2 & 0xf) | (b3 & 3) << 4) as u32)
++                        };
++                        let v: i128 = if signed { x as i64 as i128 } else { x as i128 };
++                        let q = if n == 0 {
++                            v
++                        } else {
++                            let floor = v >> n;
++                            let rem = v - (floor << n);
++                            let half = 1i128 << (n - 1);
++                            floor + match mode {
++                                0 => (rem != 0) as i128,
++                                1 => (rem > half || (rem == half && floor & 1 != 0)) as i128,
++                                2 => (rem >= half) as i128,
++                                _ => (v < 0 && rem != 0) as i128,
++                            }
++                        };
++                        self.regs[d] = if signed { q.clamp(i32::MIN as i128, i32::MAX as i128) as i32 as u32 } else { q.clamp(0, u32::MAX as i128) as u32 };
++                    }
++                    Aud::MemMul => {
++                        let m = mem_mul(&self.regs, raw).unwrap();
++                        let (pa, pb) = (self.regs[m.a], self.regs[m.b]);
++                        let v1 = if m.h {
++                            let h = bus.read16(pa);
++                            if m.signed { h as i16 as i32 as u32 } else { h as u32 }
++                        } else {
++                            bus.read32(pa)
++                        };
++                        let v2 = if m.two { bus.read32(pb) } else { pb };
++                        let prod = if m.signed { (v1 as i32 as i64).wrapping_mul(v2 as i32 as i64) as u64 } else { (v1 as u64).wrapping_mul(v2 as u64) };
++                        let (lo, hi) = (2 * m.pair, 2 * m.pair + 1);
++                        let acc = (self.regs[hi] as u64) << 32 | self.regs[lo] as u64;
++                        let r = match m.op { 0 => prod, 2 => acc.wrapping_add(prod), _ => acc.wrapping_sub(prod) };
++                        self.regs[m.a] = self.regs[m.a].wrapping_add(m.i1 as u32);
++                        if let Some(i2) = m.i2 {
++                            self.regs[m.b] = self.regs[m.b].wrapping_add(i2 as u32);
++                        }
++                        self.regs[lo] = r as u32;
++                        self.regs[hi] = (r >> 32) as u32;
++                    }
++                    Aud::HalvesSwap => {
++                        self.regs[d] = self.regs[((raw >> 24) & 0xf) as usize].rotate_right(16);
++                    }
+                     Aud::SregPop => {
+                         let mask = (raw >> 16) as u16;
+                         if mask & 1 != 0 {
+@@ -3026,6 +3087,19 @@ fn decode_any(win: u64, pc: u32) -> Result<fm1_isa::Instruction, fm1_isa::Decode
+     if matches!(win & 0xff, 0x40 | 0xc0) && matches!((win >> 8) & 0xff, 0xe8 | 0xe9 | 0xec | 0xed | 0xee) {
+         return Ok(fm1_isa::Instruction { addr: pc, raw: win & 0xffff_ffff, entry: &FLAG_BRANCH_CRAW });
+     }
++    // the toolchain audit's forms with exact masks the table took for other classes or not at
++    // all (route 42 / 44): the rounding pair shifts, the memory multiplies, the halves swap, the
++    // npc loads
++    if let Some(Aud::RoundShift | Aud::MemMul | Aud::HalvesSwap) = aud_raw(win) {
++        let entry = if (win >> 8) & 0x10 != 0 { &AUD_PAIR_CRAW } else { &AUD_CRAW };
++        return Ok(fm1_isa::Instruction { addr: pc, raw: win & 0xffff_ffff, entry });
++    }
++    if win & 0xff_ffff == 0x00_e860 {
++        return Ok(fm1_isa::Instruction { addr: pc, raw: win & 0xffff_ffff, entry: &NPC_CRAW });
++    }
++    if win & 0x1_fff0 == 0xffa0 {
++        return Ok(fm1_isa::Instruction { addr: pc, raw: win & 0xffff_ffff_ffff, entry: &NPC6_CRAW });
++    }
+     let decoded = match carry_op_raw(win) {
+         Some(entry) => Ok(fm1_isa::Instruction { addr: pc, raw: win & 0xffff_ffff, entry }),
+         // `d8|d9|dc|dd e9`, sp-relative byte / halfword accesses (route 37), before the table too:
+@@ -3457,6 +3531,56 @@ enum Aud {
+     /// printed order, the highest number first, as the 2-byte forms are
+     SregPush,
+     SregPop,
++    /// `d2 e1 PX DM` / `d3 e1 PM DR`: rD = rH_rL >> n | >>> n (up | round | even | zero), the
++    /// pair rounded to an integer and saturated into rD as the plain `de` / `df` forms are
++    /// (Q-32): pair = P >> 1; `d2`: n = X | (M & 3) << 4, M bit 3 signed, mode from P bit 0 and
++    /// M bit 2 ((0, 0) up, (0, 1) round, (1, 0) even, (1, 1) zero); `d3`: n = rR & 63, M bit 0
++    /// signed, mode M >> 1 (0 up, 1 even, 2 round, 3 zero). Up rounds toward +inf, round to
++    /// nearest with ties up, even to nearest with ties to even, zero toward zero.
++    RoundShift,
++    /// The multiply forms with a memory operand (Q-31): rH_rL (=|+=|-=) [rA ++= i]*rB,
++    /// h[rA ++= i]*rB, [rA ++= rI]*rB, [rA ++= rI.h]*[rB ++= rI.l] and [rA ++= i]*[rB ++= j],
++    /// `h[` a halfword first operand (the vendor assembler scales its increment by 2 and the
++    /// second load's by 4, so the second is a word); (s) signed operands and product, (u)
++    /// unsigned. Both addresses are the registers before the instruction; the increments come
++    /// after the loads (the first, then the second), and the pair is written last. Fields in
++    /// `mem_mul`.
++    MemMul,
++    /// `70 e0 40 DS`: rD = rS with its two halves swapped (`70 e0 00` reverses the bytes; this
++    /// one, by the same rule, the halfwords: Q-32)
++    HalvesSwap,
++}
++
++/// A memory multiply's fields: (a, b, i1 increment of a, i2 increment of b or None, h, two
++/// loads, op 0 = / 2 += / 3 -=, pair, signed).
++#[derive(Clone, Copy, Debug)]
++struct MemMulF { a: usize, b: usize, i1: i32, i2: Option<i32>, h: bool, two: bool, op: u32, pair: usize, signed: bool }
++fn mem_mul(cpu_regs: &[u32; 16], raw: u64) -> Option<MemMulF> {
++    let (b0, b1, b2, b3) = (raw & 0xff, (raw >> 8) & 0xff, (raw >> 16) & 0xff, (raw >> 24) & 0xff);
++    let sext4 = |v: u64| ((v as i32) << 28) >> 28;
++    let (pair, signed, b) = (((b3 >> 5) & 7) as usize, b3 & 0x10 != 0, (b3 & 0xf) as usize);
++    let a = (b2 >> 4) as usize;
++    let f = |i1, i2, h, two, op| Some(MemMulF { a, b, i1, i2, h, two, op, pair, signed });
++    match (b1, b0) {
++        (0xee, 0xe0 | 0xe4 | 0xe6 | 0xe8 | 0xec | 0xee) => {
++            let h = b0 & 8 != 0;
++            f(sext4(b2 & 0xf) * if h { 2 } else { 4 }, None, h, false, ((b0 >> 1) & 3) as u32)
++        }
++        (0xee, 0x60 | 0x64 | 0x66 | 0x68 | 0x6c | 0x6e) => {
++            f(cpu_regs[(b2 & 0xf) as usize] as i32, None, b0 & 8 != 0, false, ((b0 >> 1) & 3) as u32)
++        }
++        (0xe8, 0xe0 | 0xe4 | 0xe6 | 0xe8 | 0xec | 0xee) => {
++            let x = cpu_regs[(b2 & 0xf) as usize];
++            f((x >> 16) as i16 as i32, Some(x as i16 as i32), b0 & 8 != 0, true, ((b0 >> 1) & 3) as u32)
++        }
++        (0xe9 | 0xec | 0xed, _) if b0 & 0x70 == 0x60 => {
++            // (e9, 0) =, (e9, 1) +=, (ec, 0) -=; then the h forms (ec, 1) =, (ed, 0) +=, (ed, 1) -=
++            let k = match b1 { 0xe9 => 0, 0xec => 2, _ => 4 } + (b0 >> 7) as u32;
++            let (h, op) = match k { 0 => (false, 0), 1 => (false, 2), 2 => (false, 3), 3 => (true, 0), 4 => (true, 2), _ => (true, 3) };
++            f(sext4(b2 & 0xf) * if h { 2 } else { 4 }, Some(sext4(b0 & 0xf) * 4), h, true, op)
++        }
++        _ => None,
++    }
+ }
+ /// The special registers by their number in the push / pop masks (None: not modelled).
+ const SREG_BY_NUMBER: [Option<&str>; 16] = [
+@@ -3475,6 +3599,10 @@ fn aud_raw(raw: u64) -> Option<Aud> {
+         0xe86e if b2 & 3 == 1 => Some(Aud::MemQasl),
+         0xe86c | 0xe86d if b2 & 3 == 1 => Some(Aud::MemQasl),
+         0xedd8 if b2 & 7 == 3 => Some(Aud::HighHalfStore),
++        0xe1d2 | 0xf1d2 => Some(Aud::RoundShift),
++        0xe1d3 | 0xf1d3 if b2 & 0x18 == 0 => Some(Aud::RoundShift),
++        0xe070 | 0xf070 if b2 == 0x40 => Some(Aud::HalvesSwap),
++        _ if mem_mul(&[0; 16], raw).is_some() => Some(Aud::MemMul),
+         0xe958 | 0xe950 => {
+             let mask = raw >> 16;
+             if (0..16).all(|n| (mask >> n) & 1 == 0 || SREG_BY_NUMBER[n].is_some()) {
+@@ -3494,6 +3622,16 @@ static AUD_PAIR_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+     name: "aud_craw", syntax: "audit (raw)  #", len: 4, count: 0, mask: 0, match_: 0,
+     group: "alu", alt: &[], samples: &[], slots: &[],
+ };
++/// `60 e8 00 DI` rD = [npc + rI] and `aD ff <imm32>` rD = [npc + #i] (route 44; Q-33): npc
++/// taken as the next instruction's address.
++static NPC_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
++    name: "npc_craw", syntax: "R = [npc + R]", len: 4, count: 0, mask: 0, match_: 0,
++    group: "load", alt: &[], samples: &[], slots: &[],
++};
++static NPC6_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
++    name: "npc_craw", syntax: "R = [npc + #i]", len: 6, count: 0, mask: 0, match_: 0,
++    group: "load", alt: &[], samples: &[], slots: &[],
++};
+ static FLAG_BRANCH_CRAW: fm1_isa::IsaEntry = fm1_isa::IsaEntry {
+     name: "flag_branch_craw", syntax: "if<cond> goto #i", len: 4, count: 0, mask: 0, match_: 0,
+     group: "branch", alt: &[], samples: &[], slots: &[],
+@@ -4945,6 +5083,91 @@ mod tests {
+         assert_eq!((cpu.sp, cpu.sregs("sr4"), cpu.sregs("retx"), cpu.sregs("rete")), (0x300, 0x1234, 0xaa, 0xbb));
+     }
+ 
++    #[test]
++    fn pair_shifts_with_rounding() {
++        // r5 = r3_r2 >> 7 | >>> 7 (mode): `d2 e1 27|37 50|54|58|5c`
++        let enc = |mode: &str, signed: bool| -> [u8; 4] {
++            let (b2, b3) = match mode { "up" => (0x27, 0x50), "round" => (0x27, 0x54), "even" => (0x37, 0x50), _ => (0x37, 0x54) };
++            [0xd2, 0xe1, b2, b3 | if signed { 8 } else { 0 }]
++        };
++        // x / 128 for x = 385 (3.008), 192 (1.5), 320 (2.5), and their negatives (signed)
++        for (x, up, round, even, zero) in [
++            (385i64, 4i64, 3, 3, 3), (192, 2, 2, 2, 1), (320, 3, 3, 2, 2),
++            (-385, -3, -3, -3, -3), (-192, -1, -1, -2, -1), (-320, -2, -2, -2, -2),
++        ] {
++            for (mode, want) in [("up", up), ("round", round), ("even", even), ("zero", zero)] {
++                let signed = x < 0;
++                let (cpu, _) = run_words(&enc(mode, signed), 1, |c| (c.regs[2], c.regs[3]) = (x as u64 as u32, (x as u64 >> 32) as u32));
++                assert_eq!(cpu.regs[5] as i32 as i64, want, "{x} {mode}");
++            }
++        }
++        // by a register: `d3 e1 23 5b` r5 = r3_r2 >>> r11 (even), r11 = 7; `d3 e1 20 5b` >> r11 (up)
++        let (cpu, _) = run_words(&[0xd3, 0xe1, 0x23, 0x5b], 1, |c| (c.regs[2], c.regs[3], c.regs[11]) = (-192i32 as u32, u32::MAX, 7));
++        assert_eq!(cpu.regs[5] as i32, -2);
++        // saturated as the plain forms: 2^32 >> 0 (up) unsigned is u32::MAX
++        let (cpu, _) = run_words(&[0xd3, 0xe1, 0x20, 0x5b], 1, |c| (c.regs[2], c.regs[3], c.regs[11]) = (0, 1, 0));
++        assert_eq!(cpu.regs[5], u32::MAX);
++    }
++
++    #[test]
++    fn memory_multiplies() {
++        // `e0 ee 61 59` r5_r4 = [r6 ++= 4]*r9 (s), `ec ee 62 49` r5_r4 += h[r6 ++= 4]*r9 (u),
++        // `62 e9 31 9b` r9_r8 = [r3 ++= 4]*[r11 ++= 8] (s), `ed ed 3e 8b` r9_r8 -= h[r3 ++= -4]*[r11 ++= -12] (u),
++        // `e0 e8 6a 57` r5_r4 = [r6 ++= r10.h]*[r7 ++= r10.l] (s), `64 ee 6a 59` r5_r4 += [r6 ++= r10]*r9 (s)
++        let code = [
++            0xe0, 0xee, 0x61, 0x59, 0xec, 0xee, 0x62, 0x49, 0x62, 0xe9, 0x31, 0x9b, 0xed, 0xed, 0x3e, 0x8b,
++            0xe0, 0xe8, 0x6a, 0x57, 0x64, 0xee, 0x6a, 0x59,
++        ];
++        let mut mem = vec![0u8; 0x400];
++        mem[..code.len()].copy_from_slice(&code);
++        let mut ram = FlatRam::new(mem);
++        ram.write32(0x200, -3i32 as u32);
++        ram.write32(0x204, 0x0000_ffff);
++        ram.write32(0x300, 7);
++        ram.write32(0x304, 0xffff_fffe);
++        ram.write32(0x310, 3);
++        ram.write32(0x308, 0x0000_0002);
++        let mut cpu = Cpu::new(0);
++        (cpu.regs[6], cpu.regs[9]) = (0x200, 5);
++        cpu.step(&mut ram).unwrap();
++        assert_eq!((cpu.regs[4], cpu.regs[5], cpu.regs[6]), (-15i32 as u32, u32::MAX, 0x204));
++        cpu.step(&mut ram).unwrap();
++        // -15 + 65535 * 5 (the halfword unsigned)
++        assert_eq!((cpu.regs[4], cpu.regs[5], cpu.regs[6]), (327_660, 0, 0x208));
++        (cpu.regs[3], cpu.regs[11]) = (0x300, 0x308);
++        cpu.step(&mut ram).unwrap();
++        // 7 * 2, then r3 + 4, r11 + 8
++        assert_eq!((cpu.regs[8], cpu.regs[9], cpu.regs[3], cpu.regs[11]), (14, 0, 0x304, 0x310));
++        cpu.step(&mut ram).unwrap();
++        // 14 - 0xfffe (the halfword at 0x304, unsigned) * 3 (the word at 0x310), then r3 - 4, r11 - 12
++        assert_eq!((cpu.regs[8] as i32, cpu.regs[3], cpu.regs[11]), (14 - 0xfffe * 3, 0x300, 0x304));
++        (cpu.regs[6], cpu.regs[7], cpu.regs[10]) = (0x200, 0x304, 8 << 16 | 0xfffc);
++        cpu.step(&mut ram).unwrap();
++        // -3 * -2, then r6 + 8, r7 - 4
++        assert_eq!((cpu.regs[4], cpu.regs[5], cpu.regs[6], cpu.regs[7]), (6, 0, 0x208, 0x300));
++        (cpu.regs[6], cpu.regs[10], cpu.regs[9]) = (0x300, 16, 5);
++        cpu.step(&mut ram).unwrap();
++        assert_eq!((cpu.regs[4], cpu.regs[6]), (6 + 7 * 5, 0x310));
++    }
++
++    #[test]
++    fn npc_loads_and_the_halves_swap() {
++        // `60 e8 00 59` r5 = [npc + r9] at 0 (npc 4), `a7 ff 08 00 00 00` r7 = [npc + 8] at 4
++        // (npc 10), `70 e0 40 39` r3 = r9's halves swapped
++        let code = [0x60, 0xe8, 0x00, 0x59, 0xa7, 0xff, 0x08, 0x00, 0x00, 0x00, 0x70, 0xe0, 0x40, 0x39];
++        let mut mem = vec![0u8; 0x400];
++        mem[..code.len()].copy_from_slice(&code);
++        let mut ram = FlatRam::new(mem);
++        ram.write32(0x104, 0x1111_2222);
++        ram.write32(0x12, 0x3333_4444);
++        let mut cpu = Cpu::new(0);
++        cpu.regs[9] = 0x100;
++        for _ in 0..3 {
++            cpu.step(&mut ram).unwrap();
++        }
++        assert_eq!((cpu.regs[5], cpu.regs[7], cpu.regs[3]), (0x1111_2222, 0x3333_4444, 0x0000_0100u32.rotate_right(16)));
++    }
++
+     #[test]
+     fn push_pop_register_mask() {
+         // `d9 e8 f0 0d` [--sp] = {rets, r11, r10, r8-r4}, `d5 e8 f0 0d` the matching pop
+@@ -5436,6 +5659,7 @@ fn route_of(insn: &Instruction, alu4: &Option<Alu4>, bittest: &Option<BitTest>)
+     match name {
+             // the toolchain audit's raw forms first (`d8 ed .3` would pass for an index increment)
+             "aud_craw" => 42,
++            "npc_craw" => 44,
+             // `[++R=R]` / `[R++=R]`, the table's classes too (one executed `h[r9++=r0] = r0.h`
+             // as an immediate increment); before route 19, whose `++=` test would take it so
+             _ if insn.entry.len == 4 && idx_inc(insn.raw).is_some() => 32,

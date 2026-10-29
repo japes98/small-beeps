@@ -463,9 +463,11 @@ out the firmware's own poll limit.
 | 3 | fault | A core met an instruction it cannot decode or the emulator does not implement, or its program counter left every memory that can hold code (the image, RAM, the other RAM banks), or it ran or read the code window while the flash chip was busy ("The flash chip"). |
 | 4 | halt | Core 0 executed a jump to itself with interrupts disabled: a deliberate stop. The run ends there. |
 | 5 | hang | The `--watchdog` word did not change for longer than its time. |
+| 6 | trap | A core executed `bkpt`, the compiler's `__builtin_trap` (since 0.10.0; before, a fault). `detail` names the core and the pc of the `bkpt`. The run ends there. |
 
-When several apply, the first in this order wins: 2, 3, 5, 1, 4, 0. Captures
-and `result.json` are written for 1, 3, 4 and 5 too. Any other exit code
+When several apply, the first in this order wins: 2, 3, 6, 5, 1, 4, 0. Captures
+and `result.json` are written for 1, 3, 4, 5 and 6 too. A suite case may
+expect `trap`. Any other exit code
 means fwtest itself failed.
 
 ### Faults and CPU exceptions
@@ -495,9 +497,11 @@ values):
 ## Instructions
 
 fwtest runs the code the pinned toolchain's compiler emits for the
-firmware's flags (`-target pi32v2 -mcpu=r3 -mfprev1`, tools/build.sh);
-the two gaps the checks below found run since 0.4.0. That was checked on a corpus, not proven for
-every instruction (SR-7). The corpus: the firmware at `18d9459`, the
+firmware's flags (`-target pi32v2 -mcpu=r3 -mfprev1`, tools/build.sh),
+and since 0.10.0 every instruction form the toolchain itself knows for
+those flags, except the documented gaps below ("The toolchain audit");
+C-HARNESS-ISA checks it on every commit. Before that it was checked on a
+corpus, not proven for every instruction (SR-7). The corpus: the firmware at `18d9459`, the
 vendored Plaits and the demo's C++ built with the firmware's CPU flags,
 and several hundred small C functions written to vary types, operations
 and pointer patterns, each at `-Os` and `-O2`. Two checks ran in fwtest
@@ -517,8 +521,9 @@ computes what the chip does. An instruction neither check held can still
 end a run as a fault ("Outcomes and exit codes"): report it as SR-7 was,
 with its bytes and the smallest image that shows it.
 
-No known gaps since fwtest 0.9.0 (0.8.0 and earlier: a store of its own
-base, below; 0.5.0 and earlier: the pairs below, "Both halves writing one
+No known gaps in the compiler's code from C since fwtest 0.10.0 but for
+the few instructions "The toolchain audit" names (0.9.0 and earlier: the
+forms it lists; 0.8.0 and earlier: a store of its own base, below; 0.5.0 and earlier: the pairs below, "Both halves writing one
 register"). In 0.3.0 and earlier two forms ended the run as
 a fault, "an instruction the emulated CPU cannot decode"; 0.4.0 runs them,
 and one more change makes dual-issue pairs behave as the compiler expects:
@@ -572,6 +577,95 @@ The compiler relies on this: `q = p + 187; *q = p;` compiles to
 `[++r0=748] = r0`. fwtest 0.8.0 and earlier stored the moved base in the
 pre-increment forms with a number step. What the chip stores is open
 (Q-27). Loads into their own base are unchanged.
+
+### The toolchain audit (0.10.0)
+
+The pinned toolchain's disassembler carries a decoder table: one leaf per
+instruction form it knows. Session spec-isa-audit walked every leaf, made
+encodings for it, disassembled them and assembled the text again with the
+firmware's flags, so each form is checked as the assembler (and the
+compiler) encodes it; it also compiled a wide corpus of C and C++
+(HARDWARE-SPEC.md HW-96). Of the 947 forms the toolchain takes with those
+flags, fwtest 0.9.0 ran 431 in full and 0.10.0 runs 562 (7 more run for
+some operands only, as below); of the 326 the compiler emits, 316 (300 in
+0.9.0). What 0.10.0 adds (HW-97 to HW-102):
+
+- **Float.** `R = ftof(R)` rounded to an integral value (to even, toward
+  zero, up, down), which the compiler emits for `rintf`, `truncf`,
+  `ceilf` and `floorf`: C's results, -0.0 and NaN included; `ftoi` and
+  `ftou` rounding to even, up and down, saturating as the truncating ones;
+  the `__fp16` conversions `rD.l = ftof(rS)` (to nearest even, rD's high
+  half kept) and `rD = ftof(rS.l)`.
+- **`fcmp rA, rB` and the flag branches** `ifeq` .. `ifle`: after an
+  `fcmp`, each is its family's float compare of rA with rB. After a
+  `testset`, `ifeq` and `ifne` read its flag (forwards too: 0.9.0 knew
+  `ifeq` backwards only, and took `41 e8`, no instruction, for `ifne`,
+  which is `c0 e8`); the other conditions without an `fcmp` before them
+  end the run as an instruction fwtest does not run.
+- **Memory.** `[rB+k] &= ~rS`, the shifts by a register `<<=`, `>>=`,
+  `>>>=` (by bits 0-4 of it, as the register shifts) and `<<<=`
+  (saturating), and `<<= 32` / `>>>= 32` (0.9.0 shifted by 0).
+- **64-bit index.** the 64-bit load `d[rB+rI<<3]` and its store scale the index by
+  8 (0.9.0 added it unscaled); the compiler emits them for 64-bit
+  elements at large indexes.
+- **Builtins.** `zcmp` (the sign, as the compiler folds it).
+- **With a detail the toolchain leaves open** (the choice recorded as
+  Q-31 to Q-33): the pair shifts rounding (`R = RR >> n (up|round|even|zero)`
+  and `>>>`: toward +inf, to nearest with ties up, to nearest with ties to
+  even, toward zero, then saturated as the plain forms), the multiplies
+  with a memory operand (`RR += [rA ++= i]*rB` and the rest: the
+  addresses from the registers before, then the increments, the pair
+  last; `h[` the first operand only), the `npc` loads (npc the next
+  instruction's address) and `rev16` (the halves swapped). Code that
+  depends on those details may run differently on the chip.
+- **Halves, fields, special registers.** `rD.l|h = rS.l|h`,
+  `rD.l|h = sat8(rS.l|h) (s|u)`, `uextra`, `sextra` and `insert` with the
+  field in a register, `h[rB+rI] = rS.h`, moves of `retx`, `sr4` and
+  `sspn`, and the 4-byte push and pop of any list of the special registers
+  fwtest models.
+
+One change reaches our own firmware: `[rB+k] &= ~rS` (in its MIDI output
+and key handling) now runs on the same path as the other memory forms
+(`|=`, `&=`, `^=`) instead of the general one. It computes the same, but
+a run's instruction counts move a little (the firmware suite's
+`midiout`, `audioload`, `store-busy` and `store-wipe`: 179 more on core 0
+in `midiout`, its MIDI output the same), and every case still passes.
+
+What fwtest still does not run ends a run as a fault, "an instruction
+the emulated CPU cannot decode" or one it does not run, and is listed
+with its reason in `harness/isa/known-gaps.txt`:
+
+- **SIMD and DSP forms** (about 330), which only hand-written assembly
+  reaches: the compiler emits none and has no builtin for them (except
+  the scalar `abs`, `min` and `max` it uses, which run). They wait until a
+  firmware needs one (the owner, 2026-10-28): report it as a spec request.
+- **Forms whose result the toolchain does not show at all** (Q-32): `><`
+  (with or without `(sat)`), `<c>` (`__builtin_pi32v2_rotrc`, which the
+  compiler treats as a function of its two arguments alone, nothing
+  more) and `copex`.
+- **System instructions and registers fwtest does not model** (Q-34):
+  `syscall` and `trigger` (their builtins) and `__builtin_pi32v2_rotrc`'s
+  `<c>` stay faults (the owner, 2026-10-28), and so do `hbkpt`,
+  `swi`, the exception returns, events, secure-state jumps, the pushes
+  marked `(c)`, and pc, cnum, uspn, icfgn and icfgs as moved, pushed or
+  popped. `bkpt` (`__builtin_trap`) ends the run as a trap (exit 6,
+  "Outcomes and exit codes").
+- **Not the firmware's flags.** A firmware built on the base keeps the
+  base's CPU flags (`-mcpu=r3 -mfprev1`): `tools/build.sh` refuses CPU and
+  feature flags for a folder (the owner, 2026-10-28; the clean side's
+  change). fwtest has no double-precision float (`-mfprev2`) and no other
+  CPU model's forms, and won't.
+
+C-HARNESS-ISA (`harness/isa/isa_check.py`) does the walk again on every
+commit, with the pinned toolchain, and fails if a form does not run and
+is not listed, if a listed form now runs (the list stays exact), or if it
+cannot find the toolchain's tables: a later toolchain pin cannot open a gap
+silently. `fwtest decode FILE` is what it uses: each line of FILE one
+instruction's bytes in hex, each output line the hex, the length fwtest
+decodes it to (`-` if none) and `runs`, `no-decode`, `unsupported` or
+`trap` (`bkpt`) or `panic` (the instruction run once, from a fixed state,
+as after an `fcmp`). Use it to see whether fwtest knows an instruction your firmware
+uses.
 
 ### Block moves with a register base
 
@@ -673,6 +767,14 @@ pushing Docker compresses the layers; the image ID does not.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.10.0: the toolchain audit ("Instructions", "The toolchain audit"):
+  the float rounding and `__fp16` forms, `fcmp` and the flag branches,
+  the memory shifts by a register and `&= ~R`, the 64-bit index scaled by
+  8, `zcmp`, half moves, `sat8` of a half, fields in a register, the
+  special registers `retx`, `sr4`, `sspn`, the rounding pair shifts, the
+  memory multiplies, the `npc` loads, `rev16`; `bkpt` ends a run as a
+  trap (exit 6); `fwtest decode`. Its pin is the
+  clean side's pull request, opened once the image is published.
 - 0.9.0: a store with a base update whose stored register is its base
   stores the base as it was (SR-10, "Instructions"); the image rebuilds
   to the same image ID ("Determinism").

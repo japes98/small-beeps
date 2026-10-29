@@ -12,7 +12,7 @@ SPDX-FileCopyrightText: 2026 japes98
 - Licence: MIT, copyright 2026 Joakim Eriksson (`LICENSE` here, copied
   unmodified).
 - What: `crates/fm1-isa`, `crates/fm1-core` and `crates/fm1-soc`, at the
-  same paths, unmodified but for the patches below (0002 to 0013: bug
+  same paths, unmodified but for the patches below (0002 to 0017: bug
   fixes, two speed-only changes and MIDI out) and the workspace manifest
   `Cargo.toml` (patched, 0001). docs/EMULATOR-PARITY.md compares them with
   the F-Emulator app's.
@@ -22,7 +22,7 @@ SPDX-FileCopyrightText: 2026 japes98
   sparse checkout of exactly those paths) and checked by
   `tools/fetch-emulator.sh --verify` (C-EMU-PIN): every file against
   `SHA256SUMS`, whose own SHA-256 (the tree hash) is
-  `9b3e9a17577c416aa8f2f58d3dc1f8fa81e3b8f77752efc0f656439f4b2b8d8e`.
+  `9d38bfda8e56e9794ce222c992da0ed485202927092bca777867a008e2df0e6c`.
 - Provenance: PROVENANCE.md P-7. Exposure: docs/EXPOSURE.md (session M0b).
 
 ## Patches
@@ -142,6 +142,43 @@ Applied in file-name order by the fetch script, after checkout:
   (images `tests/images/selfstore.S` and `selfc.c`, suite case
   `selfstore`) fail without it (`harness/upstream/fm1-emu-store-of-the-base.md`;
   fwtest 0.9.0).
+
+- `patches/0014-toolchain-audit-compiler-and-float-forms.patch` (session
+  spec-isa-audit, 2026-10-28; from the vendor toolchain, PROVENANCE P-1
+  and P-64): `crates/fm1-isa/src/fpu.rs` and `crates/fm1-core/src/lib.rs`,
+  the forms the toolchain audit found the compiler emits, or that are
+  float, and fwtest could not run or ran wrongly: the FPU's unary row
+  (rounding conversions, half precision), `fcmp` and the flag branches, the
+  memory row's `&= ~R` and shifts by a register (and `6c e8`'s shift by
+  32), the 64-bit index scaled by 8, `zcmp`. The crate tests and the
+  harness tests `forms_the_compiler_emits` and
+  `forms_only_the_assembler_emits` (images `tests/images/isac.c`,
+  `isaasm.S`) fail without it (fwtest 0.10.0).
+- `patches/0015-toolchain-audit-registers-halves-and-fields.patch` (session
+  spec-isa-audit, as 0014): `crates/fm1-core/src/lib.rs`, forms only the
+  assembler emits whose result the printed form fixes: half moves, a half
+  clamped to 8 bits, bit fields with the field in a register, `<<<=` in memory,
+  the high half stored, the special registers retx, sr4 and sspn, and the
+  4-byte push and pop of special registers. The crate tests and the
+  harness test `registers_halves_and_fields` (image
+  `tests/images/isaregs.S`) fail without it (fwtest 0.10.0).
+
+- `patches/0016-toolchain-audit-forms-with-an-open-detail.patch` (session
+  spec-isa-audit, as 0014): `crates/fm1-core/src/lib.rs`, forms only the
+  assembler emits whose printed form is explicit but a detail of whose
+  result the toolchain leaves open, each detail a recorded choice
+  (HARDWARE-SPEC Q-31 to Q-33): the pair shifts with rounding, the
+  multiplies with a memory operand, the `npc` loads, the halves swap
+  (`70 e0 40`). The crate tests and the harness test
+  `forms_with_an_open_detail` (image `tests/images/isaops.S`) fail
+  without it (fwtest 0.10.0).
+
+- `patches/0017-bkpt-is-a-trap.patch` (session spec-isa-audit, the owner's
+  answer): `crates/fm1-core/src/lib.rs`, `bkpt` ends execution with
+  `CoreError::Trap { pc }` instead of the unsupported-instruction error;
+  fwtest reports it as the outcome `trap`. The crate test
+  `bkpt_is_a_trap` and the harness test `bkpt_ends_the_run_as_a_trap`
+  (image `tests/images/trap.c`) fail without it (fwtest 0.10.0).
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
 and the harness suite gave byte-identical outputs (284 files) from fwtest

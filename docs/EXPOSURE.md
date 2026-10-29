@@ -2263,7 +2263,51 @@ SR-3 wrote only its barrier-log row.*
 - What it archived: spec-1027's transcript (`541eb13f`) into
   `sessions/spec/`; `tools/check-transcripts.py` PASS (40 archived
   transcripts).
-- Exposure: (filled in at the end of the session.)
+- Exposure: the spec side's usual material (the vendored emulator and
+  `harness/`, the pinned toolchain, this repository). Never opened,
+  fetched or searched M-VAVE's stock firmware files, anyone else's
+  firmware, another emulator or the owner's other projects.
+- Section 0: this repository; spec-1027's transcript (archived).
+- Section 1 (the toolchain audit): the pinned toolchain (P-1) in the build
+  image, as PROVENANCE P-64 says: its `objdump` and `clang` binaries
+  copied into the session's scratch folder and read for LLVM's generated
+  tables (decoder tables, opcode names, instruction descriptors, the
+  builtin table), found by their content; nothing of them written into
+  this repository (C-HARNESS-ISA finds them again at run time). Its
+  objdump, assembler and compiler run on encodings made from every
+  decoder leaf, on about 1,640 C functions and a C++ file of our own,
+  every pi32v2 builtin, main's firmware and the Plaits demo (built by
+  `tools/build.sh` into the scratch folder). The JieLi SDK (P-2), the
+  commit P-63 names: its file tree through Gitee's tree API (names), its
+  15 `board/wl82/Makefile`s and 42 `.cbp` project files by raw URL; the
+  first fetch got Gitee's redirect pages (to raw.giteeusercontent.com),
+  the second followed them; 15 of the 57 arrived before it was stopped. The vendored emulator: read, patched (0014 to
+  0016) and tested; the upstream emulator fetched four times by
+  `tools/fetch-emulator.sh --fetch` (its sparse checkout of the three
+  crates) to show the patches apply; main's crates unpacked into the
+  scratch folder (`git archive`) for a 0.9.0 baseline probe. fwtest's
+  image built locally (`harness/ci.sh image`) several times.
+- Clean's pull requests #169 to #172: `gh pr view --json files` (file
+  names), and the lines #169 to #171 add to docs/REQUIREMENTS.md,
+  PROVENANCE.md and docs/HARDWARE-SPEC.md (`git diff` of those files
+  only), to keep IDs apart; their firmware changes not read. #169 to #171
+  merged into main during the session and main merged here; #172's branch
+  merged twice (its newer head allows the bad instruction test build's
+  bytes, which the firmware suite had stopped on). Read of them besides:
+  `tools/build.sh`'s per-folder flag rules (BR-11: a folder may set `-m`
+  flags), the suite's build log of the `badinsn` test image, and the
+  names of the firmware's functions holding `[R+k] &= ~R` in our own
+  firmware's disassembly. #172's CI result lines (`gh run view --log`,
+  the check lines).
+- The firmware suite run with the pinned image and with local 0.10.0,
+  twice (on main's firmware and after the merges), and one case
+  (`midiout`) with fwtest built at three of this session's commits to
+  find which change moved its instruction counts.
+- After the owner's answers: patch 0017 (`bkpt` a trap) and the firmware
+  suite once more with local 0.10.0; patches 0014 to 0017 copied, with a
+  NOTES.txt, to the owner's drop folder outside the repository
+  (`~/<top>/drop/fwtest-patches/`) for the app.
+- Disk: 6.6 GB free at the start; 4.8 GB at the lowest.
 
 ## Corrections
 

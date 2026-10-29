@@ -7,9 +7,9 @@ c243be1f7b46c2225eb1c9dcf7e8472767ae1b835cf08bcc61d7d6050a39fab9  crates/fm1-cor
 8ff587b33d2d6403f96b2145ebe4be471b26704e5ba1d80af368e1a1ea7b6808  crates/fm1-core/src/jit_a64.rs
 f03f1546903a939ef8e0d774cb3c53126790411cd30a5ff01047726bba49eb66  crates/fm1-core/src/jit_wasm.rs
 dbe0d0a9daed044e060b620eb52924dfbba43a131d439907714bb2018e47be2e  crates/fm1-core/src/jit_x64.rs
-d2c653ed1af14b0ad736f2abb40403ef6437e0663b8fbab18e92ae759556ed37  crates/fm1-core/src/lib.rs
+b9daccefc591a2e18e607b0b0be2d280ef07eec87790adefe752cd5230b77850  crates/fm1-core/src/lib.rs
 3889ecda35f93e62021b4e5330a39aa00e8648c43e3e4455c55bfbde1a631a73  crates/fm1-isa/Cargo.toml
-3ffd450a3a80aadecfbbee288aebf6792a6a1ddfdd3e601d2234fade80f3d477  crates/fm1-isa/src/fpu.rs
+9865c0644a99dcdb01801a5e614929460ad2a54098e86712c355a8c72bdf8f0c  crates/fm1-isa/src/fpu.rs
 42f5a32abc5223916387e31a90402a21b23d4a02ff288321251f499bbf5b2a3e  crates/fm1-isa/src/generated_isa.rs
 c4ef36b4939e67d67e3dd9d0445ff40f80b83c7e0113d0552f4d547436bd9ffc  crates/fm1-isa/src/lib.rs
 f28133c7c313de7d6c6132c14734810c08e1a3aac36bce70c2c38a7ac5446a55  crates/fm1-soc/Cargo.toml
@@ -37,3 +37,7 @@ cf71696b55979a7dffde6b54892ac0d5be4b58b4cc457e08e05439c767bf78be  patches/0010-f
 7e275740d9e487a33334831ff6e28d7abcfd01f19132631d9a8f27829cea297b  patches/0011-pair-head-wins-over-its-second-half.patch
 be6eae45c5cbe5c80988df54896386d6a6d32bb615b996079fdf257ebe8fdde5  patches/0012-usb-port-answers.patch
 ea12d063c37a25c8160fcbd62748f4cb2cb3a30e0e8836ed0ff121e67badfa8d  patches/0013-store-of-the-base-keeps-its-old-value.patch
+0e954aa61ac09e6d3b0b7a4d1690a13ad6b68e9d29a0a2ba463912551b3ee7f1  patches/0014-toolchain-audit-compiler-and-float-forms.patch
+51cda57af91921c6c2bf4fa9ff719d4fbb7e11e4495bbc8587e74dde32df7ae9  patches/0015-toolchain-audit-registers-halves-and-fields.patch
+211cb7aaf93703847deaef64ab6510eb4ecd83adecaaf15a0d27ff5c33cb3882  patches/0016-toolchain-audit-forms-with-an-open-detail.patch
+858ae363df67f04624f9c23b8714bb97dc949b906563930415bc53eea07f1a6e  patches/0017-bkpt-is-a-trap.patch
