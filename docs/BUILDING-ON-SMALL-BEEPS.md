@@ -239,7 +239,10 @@ The build is deterministic: the same sources give the same bytes, from
 any folder on any machine. It refuses an object holding a store that
 writes back into its own base register (`[++rN=k] = rN`, ...), as what
 the chip does then is still open (R-BUILD-3); if your code trips it, the
-message names the file, the function and the instruction.
+message names the file, the function and the instruction. It reads each
+object as it was compiled, with the CPU and float features your flags
+gave it (`-mfprev1`, or a folder's own `-m` flags), and it refuses code
+it can't read at all (`unreadable`), rather than guess past it.
 
 ## 6. Test with fwtest, run in the app
 
