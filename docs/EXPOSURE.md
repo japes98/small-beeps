@@ -2274,6 +2274,10 @@ SR-3 wrote only its barrier-log row.*
   twice (on main's firmware and after the merges), and one case
   (`midiout`) with fwtest built at three of this session's commits to
   find which change moved its instruction counts.
+- After the owner's answers: patch 0017 (`bkpt` a trap) and the firmware
+  suite once more with local 0.10.0; patches 0014 to 0017 copied, with a
+  NOTES.txt, to the owner's drop folder outside the repository
+  (`~/<top>/drop/fwtest-patches/`) for the app.
 - Disk: 6.6 GB free at the start; 4.8 GB at the lowest.
 
 ## Corrections
