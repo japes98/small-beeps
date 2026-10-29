@@ -20,9 +20,12 @@ stock firmware's user patch region (`0xEA000` to `0xFBFFF`, where M7's
 store was) as it is, so the stock firmware's saved patches survive; why
 three sectors are enough is in docs/DESIGN-NOTES.md (M8a). The format
 does not depend on the number of sectors. Where it sits is one
-definition (`STORE_BASE` and `STORE_SIZE` in `store.h`), since where our
-own image sits on the chip is M9's; `firmware/app.ld` keeps the image
-clear of it. The firmware reads and writes the region only through
+definition, the link's (`STORE_BASE` and `STORE_SIZE` in
+`firmware/platform.ld`, since clean-store-region), which is small-beeps'
+own region; a firmware built on the base may set its own, 3 to 128
+sectors in the app area after its image or in this one
+(docs/BUILDING-ON-SMALL-BEEPS.md, "Where the store goes"; R-STORE-12),
+and `tools/build.sh` keeps the image clear of it. The firmware reads and writes the region only through
 SPI0's flash commands (HW-47, HW-78), never through the code window
 (HW-81).
 
@@ -142,14 +145,16 @@ nothing live by the time the ring comes round to erase it. If a sector
 can't be freed without losing a live record, the write is refused and
 nothing is written.
 
-## The wide region test build
+## Other regions
 
-`SB_TEST_STORE_WIDE` (a test build only, tools/seams_suite.py) gives the
-store 5 sectors, chip offsets `0xFA000` to `0xFEFFF`: the size a 4 096-byte
-payload needs to be rewritten atomically beside the base's full store
-(docs/DESIGN-NOTES.md, clean-1028). Its first two sectors are in the stock
-firmware's user patch region, which no shipping build takes. The format is
-the same; `tools/store.py` takes the region's size (`sectors`).
+A region of another size or place (R-STORE-12) has the same format: the
+same ring of the same sectors, sector 0 at `STORE_BASE`. The test
+engine's own regions (`tests/seams/engine/store5.ld` and `store16.ld`) are
+5 and 16 sectors from `0x20000`. `tools/store.py` takes a region's size in
+sectors and its base (`store.py show FLASH.bin --region BASE SECTORS`).
+Until clean-store-region a test build, `SB_TEST_STORE_WIDE`, gave the store
+5 sectors from `0xFA000`; the build now refuses that region, two of its
+sectors being the stock firmware's user patch region.
 
 ## Versions
 

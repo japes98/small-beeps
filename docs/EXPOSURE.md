@@ -2243,6 +2243,12 @@ SR-3 wrote only its barrier-log row.*
   fetched or written. Main's `firmware/` and two tools were then taken
   with `git checkout main --` in a copy of this folder, whose files are
   all clean-side.
+- **#173's first CI run failed C-SEP-TERMS:** its report artifact was
+  fetched by the API as a zip, only `logs/C-SEP-TERMS.log` read out of it
+  (`unzip -p`, nothing extracted), the zip deleted at once. Seven hits,
+  two words, each a hex number in the store region's guide and tests (the
+  worked example's start and a test's): found by hashing the flagged
+  lines' words, the numbers replaced, the pull request's text reworded.
 - Force-pushes: none.
 - Disk: 6.1 GB free at the start; 4.5 GB at the lowest.
 

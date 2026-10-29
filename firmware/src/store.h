@@ -49,28 +49,26 @@
 
 #include "sb.h"
 
-/* The region: the stock layout's unused region, chip offsets 0xFC000 to
- * 0xFEFFF, 3 sectors (HW-80: out of the boot area, the Bluetooth sector,
- * the stock firmware's user patch region, which it leaves as it is, and
- * the per-unit last sector; where our image sits on the chip is M9's, so
- * this stays one definition). Since M8a; M7's store took the user patch
- * region (docs/DESIGN-NOTES.md, M8a, has why three sectors are enough).
- * firmware/app.ld keeps the image clear of both. */
-#if defined(SB_TEST_STORE_WIDE)
-/* The wide region test build (tools/seams_suite.py, BR-12): 5 sectors
- * ending where today's region ends, its first two in the stock
- * firmware's user patch region, which no shipping build takes: the size
- * a 4 096-byte payload needs to be rewritten atomically beside the
- * base's full store (docs/DESIGN-NOTES.md, "Saves that survive a power
- * cut"). Where a larger region would go on a unit is the owner's. */
-#define STORE_BASE       0xFA000u    /* chip offset */
-#define STORE_SIZE       0x5000u
-#else
-#define STORE_BASE       0xFC000u    /* chip offset */
-#define STORE_SIZE       0x3000u
-#endif
+/* The region: by default the stock layout's unused region, chip offsets
+ * 0xFC000 to 0xFEFFF, 3 sectors (HW-80: out of the boot area, the
+ * Bluetooth sector, the stock firmware's user patch region, which it
+ * leaves as it is, and the per-unit last sector). Since M8a; M7's store
+ * took the user patch region (docs/DESIGN-NOTES.md, M8a, has why three
+ * sectors are enough). Since clean-store-region the link sets it, one
+ * definition: firmware/platform.ld's STORE_BASE and STORE_SIZE, which a
+ * firmware built on the base may set in its own linker script, a region
+ * of STORE_SECTORS_MIN to STORE_SECTORS_MAX sectors, in the app area after
+ * its image or in the unused region; tools/build.sh refuses any other
+ * (tools/store-region.pl; docs/BUILDING-ON-SMALL-BEEPS.md, "Where the
+ * store goes"). The store reads them as link symbols, so the same code
+ * runs in any region. */
+extern const u8 sb_store_base[], sb_store_size[];
+#define STORE_BASE       ((u32)sb_store_base)    /* chip offset */
+#define STORE_SIZE       ((u32)sb_store_size)
+#define STORE_SECTORS_MIN 3u
+#define STORE_SECTORS_MAX 128u
 #define STORE_SECTOR     4096u
-#define STORE_SECTORS    (STORE_SIZE / STORE_SECTOR)
+#define STORE_SECTORS    (STORE_SIZE / STORE_SECTOR)   /* at run time */
 #define STORE_PAGE       256u        /* a page program's reach */
 
 /* Record kinds, ids and payload versions. */
@@ -91,25 +89,31 @@
  * last part is written (after every other part reads back), then the
  * new one; cut short (power lost), never neither. So replacing a
  * payload needs room for the whole new payload beside everything live,
- * the old one included. Today's three sectors hold, and rewrite as
- * often as asked, one payload of up to 3 920 bytes with nothing else
- * stored; beside the base's full store (16 user slots, the selection
- * and the settings, saved in between) and a small payload of its own,
- * 1 664 bytes in every history tools/store.py's model tried. A 4 096-byte payload needs 4 sectors
- * alone and 5 beside the base's full store (SB_TEST_STORE_WIDE's;
- * docs/DESIGN-NOTES.md, "Saves that survive a power cut"). Past what
- * fits a write is refused (STORE_ERR_FULL) before anything is written,
- * or, if the ring's layout leaves no room part way, with the old payload
- * kept. STORE_FW_KEYS parts and STORE_FW_PAYLOADS payloads are kept
- * track of at once (a rewrite's parts beside the old write's). A reset
- * voids these kinds too. */
+ * the old one included: everything live and the new payload's records
+ * must fit in the region's sectors but one, each less its 16-byte
+ * header, (STORE_SECTORS - 1) * 4 080 bytes, and each part's record
+ * (512 bytes for a full one) within one sector. Today's three sectors
+ * hold, and rewrite as often as asked, one payload of up to 3 920 bytes
+ * with nothing else stored; beside the base's full store (16 user
+ * slots, the selection and the settings, saved in between) and a small
+ * payload of its own, 2 444 bytes in every history tools/store.py's
+ * model tried. A 4 096-byte payload needs 4 sectors, alone or beside the
+ * base's full store; 16 sectors keep 12 (docs/DESIGN-NOTES.md,
+ * "Each firmware chooses its own store region"). Past what fits a write
+ * is refused (STORE_ERR_FULL) before anything is written, or, if the
+ * ring's layout leaves no room part way, with the old payload kept.
+ * STORE_FW_KEYS parts and STORE_FW_PAYLOADS payloads are kept track of
+ * at once (a rewrite's parts beside the old write's: a 4 096-byte
+ * payload is 9 parts, so 128 places hold 14 such payloads, or 13 beside
+ * a rewrite of one; 32 until clean-store-region). A reset voids these
+ * kinds too. */
 #define STORE_FW_KIND_FIRST 0x80u
 #define STORE_FW_KIND_LAST  0xFEu
 #define STORE_FW_TAG     4u
 #define STORE_FW_PART    492u        /* a part's record: 512 bytes */
 #define STORE_FW_PARTS   12u
 #define STORE_FW_MAX     (STORE_FW_PARTS * STORE_FW_PART)   /* 5 904 */
-#define STORE_FW_KEYS    32u
+#define STORE_FW_KEYS    128u
 #define STORE_FW_PAYLOADS 32u
 
 #define STORE_SELECTION_VERSION 1u

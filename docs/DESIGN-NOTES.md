@@ -3416,3 +3416,141 @@ C-SEAMS) and its part below.
   is refused for that store alone, named at its place. The same object
   under the check as it was (no CPU options) is refused for the
   conditional block's misread store: what the downstream firmware saw.
+
+### 2026-10-28 clean-store-region: each firmware chooses its own store region (R-STORE-12)
+
+- **What.** The owner's answer to where a larger store goes (BR-9 and
+  BR-12 left it open): small-beeps keeps today's three sectors at
+  `0xFC000` as its default, the stock firmware's user patch region below
+  them untouched (M8a's promise), and a firmware built on the base sets
+  its own region's start and size in its linker settings, for example a
+  larger region in the flash its own image's app area spans.
+- **One definition, at link time.** `firmware/platform.ld` sets
+  `STORE_BASE` and `STORE_SIZE` (chip offsets, bytes) with `DEFINED()`
+  defaults, so a firmware's own script sets them first and includes the
+  platform's (BUILDING-ON-SMALL-BEEPS.md, "Where the store goes"; ld
+  2.26 takes a symbol its including script assigned before the
+  `INCLUDE`, and `--defsym` too). The store reads them as link symbols,
+  `sb_store_base` and `sb_store_size`, so one compiled `store.c` runs in
+  any region: no define, no rebuild of the base's objects per firmware.
+  `store.h`'s `STORE_BASE` and `STORE_SIZE` were constants (and
+  `SB_TEST_STORE_WIDE` a second pair for a test build); they are the
+  symbols' addresses now. The tables sized by sectors take
+  `STORE_SECTORS_MAX` (128, 512 KiB, more than the app area can hold
+  after any image; 768 bytes of RAM), and a sector's "holds a firmware
+  kind" flag, a 32-bit mask until now (32 sectors at most), is a byte a
+  sector. The ring's next sector is a compare, not a modulo (no divide at
+  run time). The test engine's linker scripts `store5.ld` and
+  `store16.ld` are the documented way, used.
+- **The build refuses what doesn't fit** (`tools/store-region.pl`, run by
+  `tools/build.sh` on both links, `app.elf` and `app-pkg.elf`, whose
+  image is the longer by the app area's 0x120-byte directory): a start
+  off a 4 KiB sector boundary or a size not whole sectors; fewer than 3
+  sectors (the store's minimum: a head, a sector to move on to, and one
+  to compact) or more than `STORE_SECTORS_MAX`; a region over the image
+  (window address `0x02000000 + n` is chip offset `0x4000 + n`, HW-5,
+  HW-91) or the boot area; a region across the app area's end, or in the
+  stock layout past it (the VM region, the Bluetooth sector, the stock
+  user patch region, the per-unit last sector: HW-80). Each message says
+  what is wrong, with the numbers, and where a region of that size would
+  fit (from the first sector after the image to the last start that ends
+  by the app area's end, and the unused region's 3 sectors). The checks
+  are in a script, not ld `ASSERT`s, because an `ASSERT`'s message can't
+  carry numbers, and an `ASSERT` would stop the link before the script
+  could say more; platform.ld's two store asserts are gone.
+- **Stricter than asked, where HW-80 says so.** The owner named five
+  refusals (over the image, across the app area's end, the stock user
+  patch region, off a sector boundary, below the store's minimum). The
+  build also refuses: more than the store keeps track of (an array
+  bound, so a must), the boot area, and the stock layout's regions past
+  the app area that aren't the unused one, the VM region (the stock
+  firmware's settings, and where an update stages its loader), the
+  Bluetooth sector and the last sector (never to be erased). HW-80 says a
+  store "must stay out of" or "should stay out of" each.
+- **Where the app area ends: a reading, SR-11.** HW-87 to HW-93 give the
+  app area's start (`0x4000`) and its length as its area head says (our
+  packager's: our app's), not a fixed end; HW-80 gives the stock
+  layout's, `0x93FFF`. The build takes `0x94000` as the end, the most
+  conservative reading that leaves the owner's example (a region in the
+  space a stock image would take, after our smaller one) possible.
+  SR-11 asks the spec side where the area may end, whether the chip's
+  loader or an update touches flash past our package's image, and
+  whether the window's decryption reaches there.
+- **The store's room-making moves on more than once.** With the region
+  free, the worked example (16 sectors for several 4 096-byte records)
+  showed what bigger regions need. The ring made room by moving the head
+  on once: open the next sector, copy the live records of the one after
+  it into it (compaction), and, if what was left was still too small,
+  refuse. With large payloads most sectors are mostly live, so one move
+  often frees nothing: in the model, 16 sectors kept only one rewritable
+  4 096-byte payload beside the base's full store in every history (two
+  alone), though they have room for twelve. `make_room` (and the model's
+  `_room`) now moves on while the new head has no room, once round the
+  ring at most, each move an erase of a sector holding nothing live and
+  a copy of the next's live records, as before; still `STORE_ERR_FULL`
+  when the sector to move to holds something live. A save that one move
+  served makes exactly the commands it made before (the loop only goes
+  on where the old code refused), so every history the store took before
+  is unchanged. The cost: in a nearly full region one save can erase
+  several sectors (in the power-cut case's save, 2 for one part; up to 7
+  seen in the model's searches), still spread over the ring.
+- **More parts kept track of.** `STORE_FW_KEYS`, the places for parts,
+  was 32: three 4 096-byte payloads (9 parts each) left no room for a
+  rewrite of one, in any region. It is 128 (1.5 KiB more RAM): 14 such
+  payloads, 13 beside a rewrite. Past it a write is refused as full, as
+  before. `STORE_FW_PAYLOADS` (32 payloads) stays.
+- **Start-up grows with what the region holds.** `store_init` reads
+  every sector's header, every valid sector whole, and those holding a
+  firmware kind's record twice more (BR-12). Measured in fwtest (the
+  store record's `init_ticks`): the default region holding the base's
+  full store, a 10-byte and a 1 500-byte payload, 1.13 ms (the base's own
+  records alone: 0.28 ms, clean-1028); 5 sectors holding the base's full
+  store and a 4 096-byte payload, 2.17 ms; 16 sectors holding the base's
+  full store and eleven 4 096-byte payloads after 27 rewrites, 18.1 ms.
+  The larger key table is about 1 % of it (2.14 ms in 5 sectors with 32
+  places). A firmware calls `store_init` once, in its init.
+- **The sizing rule, plainly.** A rewrite is atomic (BR-12), so it needs
+  room for the old payload and the new one at once: everything live plus
+  the new payload's records must fit in the region's sectors but one, at
+  4 080 bytes of records a sector (`(STORE_SECTORS - 1) * 4 080`, the
+  check `put_fw` makes before writing anything), with no record across
+  two sectors, and its parts within the places for parts. A payload of
+  n bytes is `ceil(n / 492)` parts of 512 bytes as records (the last
+  smaller); 4 096 bytes take 4 288. The ring's layout takes some of that
+  room back, so what fits in every history is less; from the model
+  (`tools/store.py`), histories as clean-1028's table describes them;
+  this session's script, run on main's model, gives that table's figures
+  for 3 and 5 sectors (3 920, 1 664 and never; 5 904, 4 948 and every
+  one) and for 4 gives 4 904, 3 268 (the table: 3 300) and never, so the
+  "before" figures below are its own:
+
+  | Region | One payload alone, rewritten 40 times | One payload beside the base's full store and a small payload (100 histories) | A 4 096-byte payload beside the base's full store (300 histories) | 4 096-byte payloads, each rewritable: alone (beside the base's full store; 100 histories in 16 sectors, 300 in 5) |
+  |-------:|------:|------:|------:|------:|
+  | 3 sectors (the default) | 3 920 bytes | 2 444 bytes (1 664 before) | never | none |
+  | 4 sectors | 5 396 (4 904 before) | 4 284 (3 268) | every one (never) | 1 (1) |
+  | 5 sectors | 5 904 | 5 904 (4 948) | every one | 2 (2) (1 (1) before) |
+  | 16 sectors | 5 904 | 5 904 | every one | 12 (11) (2 (1) before) |
+
+  So a 4 096-byte payload now needs 4 sectors beside the base's full
+  store, where clean-1028 found 5. The store's format is unchanged
+  (docs/STORE-FORMAT.md): a region of any size from 3 sectors up is the
+  same ring of the same sectors.
+- **Tested.** C-UNIT: `tests/test_store_region.py`, each refusal on the
+  check's own input (the symbols `nm` prints), with its message and the
+  place it offers, the default and both test regions taken, every
+  problem of a region listed; `tests/test_store.py`, the model in 5 and
+  16 sectors from `0x20000`: a 4 096-byte rewrite beside the base's full
+  store cut at every fourth byte of every command, one of four 4 096-byte
+  payloads rewritten in 16 sectors cut at every eighth, eleven 4 096-byte
+  payloads rewritten in turn beside the base's full store, and the
+  figures above that the tests pin (2 808 bytes beside the full store in
+  3 sectors by the deterministic history, 2 316 before; 4 096 bytes in
+  4). C-SEAMS: case region (the test engine linked with `store5.ld` and
+  `store16.ld`, both links' regions as set; five regions refused through
+  real builds, each saying why and where one would fit), and case
+  powercut, whose 4 096-byte rewrite now runs in the 5-sector region and
+  which gains a fifth save: in the 16-sector region, one of eleven
+  4 096-byte payloads rewritten after 27 rewrites, the ring so full that
+  the save moves the head on twice for one part's room, the firmware's
+  flash commands the model's one for one, every command in the region,
+  cut at every command, the other ten payloads unchanged.

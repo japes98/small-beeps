@@ -23,4 +23,8 @@
 3190     enc 6 +1
 3250     key 30 tap 250
 3640     enc 6 +1
-3700     key 30 tap 250
+# The last note's release at 3950.7, not 3950.0 (since clean-store-region):
+# at 3950.0 it fell within 10 us of where the panel's scan meets an audio
+# block, and a bigger image's blocks, a few microseconds later, moved the
+# note off by a block (the timing goldens' policy); the golden is the same.
+3700     key 30 tap 250.7

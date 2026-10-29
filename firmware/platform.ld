@@ -24,7 +24,8 @@
  *   image ends before chip offset 0xEA000, where the stock firmware's
  *   user patch region begins (HW-80), so it never overwrites the stock
  *   firmware's saved patches; since M8a the store (store.h) takes chip
- *   offsets 0xFC000 to 0xFEFFF, past that region.
+ *   offsets 0xFC000 to 0xFEFFF, past that region, unless a firmware
+ *   built on the base chooses its own region (STORE_BASE, below).
  * RAM: main RAM is 512 KiB from 0x01C00000 on the chip (HW-6). Its top,
  *   from 0x01C7FC00, is not part of RAM here: the block r0 points to at
  *   entry (HW-4) and the SDK's boot and update area are left alone, and
@@ -39,10 +40,21 @@
 OUTPUT_ARCH(pi32v2)
 ENTRY(_start)
 
-/* The store (store.h) begins at chip offset 0xFC000, which the window
- * shows at 0x02000000 + 0xFC000 - 0x4000 in fwtest (HW-5). The stock
- * user patch region begins at chip offset 0xEA000 (HW-80). */
-STORE_BASE = 0xFC000;
+/* The store's region (store.h), chip offsets STORE_BASE to STORE_BASE +
+ * STORE_SIZE - 1: by default the stock layout's unused region, 0xFC000
+ * to 0xFEFFF, 3 sectors (HW-80; M8a). Since clean-store-region a
+ * firmware built on the base may choose its own: its linker script sets
+ * both before its INCLUDE platform.ld (docs/BUILDING-ON-SMALL-BEEPS.md,
+ * "Where the store goes"). The store reads them as sb_store_base and
+ * sb_store_size. tools/build.sh checks every link's region
+ * (tools/store-region.pl): whole sectors, 3 at least and
+ * STORE_SECTORS_MAX at most, either in the app area after the image or
+ * in the unused region, never in the stock firmware's user patch region,
+ * which begins at chip offset 0xEA000 (HW-80). */
+STORE_BASE = DEFINED(STORE_BASE) ? STORE_BASE : 0xFC000;
+STORE_SIZE = DEFINED(STORE_SIZE) ? STORE_SIZE : 0x3000;
+sb_store_base = STORE_BASE;
+sb_store_size = STORE_SIZE;
 USER_REGION = 0xEA000;
 
 /* Where the image's first byte runs (Phase A1, HW-91): the raw image at
@@ -152,8 +164,6 @@ SECTIONS
     ASSERT(__irq_stack_top % 8 == 0, "the interrupt stack must be 8-byte aligned")
     ASSERT(__vectors == __stack_top + 0x200, "the vector table is HW-18's, above the reserved area")
     ASSERT(sb_irq_stubs_end - sb_irq_stubs == 128 * 2, "crt0.S's stubs must be 2 bytes each")
-    ASSERT(STORE_BASE == 0xFC000, "the store begins at store.h's STORE_BASE")
-    ASSERT(STORE_BASE >= USER_REGION + 0x12000, "the store keeps out of the stock user patch region")
 
     /* Debug information: kept in the ELF, never loaded. Every section is
      * placed by name (the build links with --orphan-handling=error). */

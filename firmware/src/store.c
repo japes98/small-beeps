@@ -59,14 +59,17 @@ static struct { u8 kind, id, part, parts; u32 tag; } fwk[STORE_FW_KEYS];
 static struct { u8 kind, id, parts; u32 tag; } fwc[STORE_FW_PAYLOADS];
 volatile struct sb_store_fw_record sb_store_fw;
 
-/* The sectors' sequence numbers as start-up found them, and the ring. */
-static u32 sector_seq[STORE_SECTORS];
-static u8 sector_valid[STORE_SECTORS];
+/* The sectors' sequence numbers as start-up found them, and the ring:
+ * the region's STORE_SECTORS, the link's (since clean-store-region), of
+ * STORE_SECTORS_MAX at most. */
+static u32 sector_seq[STORE_SECTORS_MAX];
+static u8 sector_valid[STORE_SECTORS_MAX];
 static u32 head = NONE, head_seq, append, next_seq = 1;
-/* Start-up: bit s set if sector s holds a firmware kind's record, which
- * the second and third passes read again (BR-12); the reset's sequence
+/* Start-up: whether sector s holds a firmware kind's record, which the
+ * second and third passes read again (BR-12); the reset's sequence
  * number (0: none). */
-static u32 fw_sectors, reset_seq;
+static u8 sector_fw[STORE_SECTORS_MAX];
+static u32 reset_seq;
 
 static u8 sector_buf[STORE_SECTOR] __attribute__((aligned(4)));
 static u8 record_buf[RECORD_MAX], check_buf[RECORD_MAX];
@@ -305,7 +308,7 @@ static u32 sector_addr(u32 s)
 
 static u32 next_sector(u32 s)
 {
-    return s == NONE ? 0 : (s + 1) % STORE_SECTORS;
+    return s == NONE || s + 1 == STORE_SECTORS ? 0 : s + 1;
 }
 
 static int key_of(u32 kind, u32 id)
@@ -482,7 +485,7 @@ static void scan(u32 s, u32 pass)
         if (pass == 1) {
             if (seq >= next_seq)
                 next_seq = seq + 1;
-            fw_sectors |= 1u << s;
+            sector_fw[s] = 1;
         } else if (pass == 2) {
             if (p[6] + 1u != p[7] || seq < reset_seq)
                 continue;
@@ -565,10 +568,10 @@ void store_init(void)
     /* The firmware kinds (BR-12): each payload's committed write, then its
      * parts; a part of any other write is not live. */
     for (s = 0; s < STORE_SECTORS; s++)
-        if (fw_sectors >> s & 1u)
+        if (sector_fw[s])
             scan(s, 2);
     for (s = 0; s < STORE_SECTORS; s++)
-        if (fw_sectors >> s & 1u)
+        if (sector_fw[s])
             scan(s, 3);
     count_live();
     sb_store.head = head;
@@ -710,25 +713,29 @@ static int compact(void)
 }
 
 /* Room in the head for a record of size bytes, the ring kept so the
- * sector after the head holds nothing live. */
+ * sector after the head holds nothing live. Since clean-store-region, if
+ * the next sector's live records, copied into the new head, leave it no
+ * room, on to the one after, and so on, once round the ring at most:
+ * where live records fill most of every sector (large payloads), one
+ * move rarely frees enough. A save that one move served makes the same
+ * commands as before. */
 static int make_room(u32 size)
 {
+    u32 moves;
     int r;
 
     if (head == NONE && (r = open_sector(0)) != STORE_OK)
         return r;
     if ((r = compact()) != STORE_OK)
         return r;
-    if (append + size > STORE_SECTOR) {
+    for (moves = 0; append + size > STORE_SECTOR; moves++) {
         u32 n = next_sector(head);
-        if (live_in(n))
+        if (moves == STORE_SECTORS || live_in(n))
             return STORE_ERR_FULL;
         if ((r = open_sector(n)) != STORE_OK)
             return r;
         if ((r = compact()) != STORE_OK)
             return r;
-        if (append + size > STORE_SECTOR)
-            return STORE_ERR_FULL;
     }
     return STORE_OK;
 }

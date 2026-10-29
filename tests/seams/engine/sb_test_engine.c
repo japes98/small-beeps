@@ -161,7 +161,8 @@ static void store_step(void)
         sb_test_engine.put_len = read_back(HUGE_KIND, 0, &sb_test_engine.put_sum);
     } else if (s == 0x83) {
         /* BR-12, on the first key press: the large payload rewritten,
-         * pattern 3 (on the wide region test build). */
+         * pattern 3 (in a region of the test engine's own, store5.ld or
+         * store16.ld; since clean-store-region). */
         pattern(3, LARGE_LEN);
         sb_test_engine.put_result = store_put(LARGE_KIND, LARGE_ID, 1, store_buf, LARGE_LEN);
         sb_test_engine.put_len = read_back(LARGE_KIND, LARGE_ID, &sb_test_engine.put_sum);

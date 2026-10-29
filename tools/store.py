@@ -5,7 +5,9 @@
 reads a flash image as the firmware does, and writes one as the firmware
 would, for the tests (tools/fw-suite.py) and for people.
 
-  store.py show FLASH.bin      what the store in a flash image holds
+  store.py show FLASH.bin [--region BASE SECTORS]
+                               what the store in a flash image holds (in
+                               today's region unless given another)
 
 The reader follows store.c's rules exactly: the valid sector with the
 highest sequence number is the head; every valid sector is read whole in
@@ -20,6 +22,10 @@ on the base") kinds FW_KIND_FIRST to FW_KIND_LAST are kept for firmwares
 built on the base: a payload of up to FW_MAX bytes, written as up to
 FW_PARTS records (its parts), read whole or not at all (Image.get_fw,
 Store.put_fw), voided by a reset as every other kind.
+
+Since clean-store-region a firmware built on the base chooses its own
+region (firmware/platform.ld's STORE_BASE and STORE_SIZE): Image and Store
+take its base and its size in sectors; by default today's.
 """
 
 import struct
@@ -30,9 +36,12 @@ CHIP = 0x100000
 REGION_END = 0xFF000           # the region ends where the per-unit last sector begins (HW-80)
 USER_REGION = (0xEA000, 0xFC000)   # the stock firmware's saved patches (HW-80): never touched
 SECTOR = 4096
-SECTORS = 3                    # today's region: 0xFC000 to 0xFEFFF
+SECTORS = 3                    # today's region, the default: 0xFC000 to 0xFEFFF
 SIZE = SECTORS * SECTOR
-WIDE_SECTORS = 5               # the wide region test build's (SB_TEST_STORE_WIDE; BR-12)
+SECTORS_MIN, SECTORS_MAX = 3, 128   # what a region may be (store.h)
+# The test engine's own regions (tests/seams/engine/store5.ld and
+# store16.ld; clean-store-region): in the app area, after its small image.
+TEST_REGIONS = {5: (0x20000, 5), 16: (0x20000, 16)}
 PAGE = 256
 BLOCK = 16
 HEADER = 12
@@ -55,12 +64,13 @@ PART_DATA = 492
 PART_MAX = TAG + PART_DATA       # a part's payload: its record is 512 bytes
 FW_PARTS = 12
 FW_MAX = FW_PARTS * PART_DATA     # 5 904 bytes, more than the region can hold beside anything
-FW_KEYS = 32                      # parts the store keeps track of at once
+FW_KEYS = 128                     # parts the store keeps track of at once (32 until clean-store-region)
 FW_PAYLOADS = 32                  # payloads the store keeps track of at once (since BR-12)
 
 
 def region_base(sectors=SECTORS):
-    """Where a region of this many sectors begins: it ends at REGION_END."""
+    """Where a region of this many sectors begins if it ends at
+    REGION_END, as today's does."""
     return REGION_END - sectors * SECTOR
 
 
@@ -127,13 +137,12 @@ def check_record(b, off, room):
 
 class Image:
     """What the firmware's start-up finds in a flash image (1 MiB, or the
-    store's region alone). sectors: the region's size in sectors, ending at
-    REGION_END (SECTORS, today's; WIDE_SECTORS for the wide region test
-    build)."""
+    store's region alone). sectors: the region's size in sectors; base:
+    where it begins (by default, ending at REGION_END, as today's does)."""
 
-    def __init__(self, data, sectors=SECTORS):
+    def __init__(self, data, sectors=SECTORS, base=None):
         data = bytes(data)
-        self.sectors, self.base = sectors, region_base(sectors)
+        self.sectors, self.base = sectors, region_base(sectors) if base is None else base
         size = sectors * SECTOR
         self.region = data[self.base:self.base + size] if len(data) == CHIP else data
         assert len(self.region) == size, "a 1 MiB chip or the store's region alone"
@@ -283,9 +292,9 @@ class Image:
 class Store:
     """A flash image the firmware's way: Store().put(...), then .chip()."""
 
-    def __init__(self, chip=None, sectors=SECTORS):
+    def __init__(self, chip=None, sectors=SECTORS, base=None):
         self.data = bytearray(chip) if chip is not None else bytearray(b"\xff" * CHIP)
-        img = Image(self.data, sectors)
+        img = Image(self.data, sectors, base)
         self.sectors, self.base = sectors, img.base
         self.head, self.head_seq, self.append, self.next_seq = img.head, img.head_seq, img.append, img.next_seq
         self.key = [(e[0], e[1]) if e else None for e in img.keys]
@@ -370,18 +379,21 @@ class Store:
                 self._append(None, kind, ident, version, payload, part, parts)
 
     def _room(self, size):
+        # Since clean-store-region on to the next sector while the new
+        # head has no room, once round the ring at most (store.c,
+        # make_room).
         if self.head is None:
             self._open(0)
         self._compact()
-        if self.append + size > SECTOR:
+        moves = 0
+        while self.append + size > SECTOR:
             n = self._next()
-            if any(e and self._sector_of(e[1]) == n for e in self.key) \
+            if moves == self.sectors or any(e and self._sector_of(e[1]) == n for e in self.key) \
                     or any(f and self._sector_of(f[5]) == n for f in self.fw):
                 raise RuntimeError("full")
             self._open(n)
             self._compact()
-            if self.append + size > SECTOR:
-                raise RuntimeError("full")
+            moves += 1
 
     def live_size(self):
         """The bytes the live records take (store.c's live_size)."""
@@ -494,13 +506,14 @@ def with_cut(chip, after, nbytes=0):
 
 
 def main(argv):
-    if len(argv) != 3 or argv[1] != "show":
+    if not ((len(argv) == 3 or len(argv) == 6 and argv[3] == "--region") and argv[1] == "show"):
         print(__doc__.split("\n\n")[1])
         return 2
+    base, sectors = (int(argv[4], 0), int(argv[5], 0)) if len(argv) == 6 else (None, SECTORS)
     with open(argv[2], "rb") as f:
-        img = Image(f.read())
+        img = Image(f.read(), sectors, base)
     print("head: %s (seq %d), append %d, next seq %d" % (img.head, img.head_seq, img.append, img.next_seq))
-    print("valid sectors: %s" % [s for s in range(SECTORS) if img.valid[s]])
+    print("valid sectors: %s" % [s for s in range(sectors) if img.valid[s]])
     print("counts: %s" % img.counts)
     for name, (version, payload) in img.live().items():
         print("%-10s version %d, %d bytes: %s" % (name, version, len(payload), payload[:16].hex()))
