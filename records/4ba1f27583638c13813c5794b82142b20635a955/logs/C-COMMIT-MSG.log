@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 547fa49cd918d79cff8d289292549139ea6e8217..4ba1f27583638c13813c5794b82142b20635a955
+OK     fda5a5da9591 sessions: spec-isa-audit starts (spec-1027 archived, the prompt, the exposure entry)
+EXEMPT fb9b6c7fa886 (merge) sessions: clean's build/disasm-flags (#172, with #169 to #171) merged into spec/isa-start
+EXEMPT c0a4fc4b3139 (merge) sessions: clean's build/disasm-flags (#172) head merged again
+EXEMPT 4ba1f2758363 (merge) Merge pull request #174 from japes98/spec/isa-start
+4 commit(s) checked: PASS
+
+exit status 0
