@@ -2414,6 +2414,37 @@ SR-3 wrote only its barrier-log row.*
 - Force-pushes: none.
 - Disk: 6.0 GB free at the start; about 5.8 GB at the lowest.
 
+### Session clean-br16 (BR-16: starting without the base's bring-up screens)
+- Date: 2026-10-30 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.314 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  started by a `/clear` at 23:48:30Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `1881f8c0` (#178's merge) and ended "no spec-side
+  files on disk or in .git"; lazy fetching off (`GIT_NO_LAZY_FETCH=1`).
+  It archived clean-mllvm (`07832bdb`) into `sessions/clean/`; every
+  other clean session was already archived. `tools/check-transcripts.py`:
+  26 archived transcripts, PASS; no reviewed entries were added. The Mac
+  had 4.3 GB free.
+- A spec session may work at the same time; this session opens none of its
+  branches.
+- Reads: this file, CONTRIBUTING.md, sessions/README.md,
+  docs/REQUIREMENTS.md, docs/DESIGN-NOTES.md and
+  docs/BUILDING-ON-SMALL-BEEPS.md (the parts these changes touch),
+  docs/HARNESS.md (its run options, outputs and timing), clean-mllvm's
+  prompt and commits, the firmware's main, screen, LCD and engine
+  sources, and this repository's tools and tests. Nothing fetched from
+  outside the repository but the build image's and fwtest's own
+  downloads.
+- GitHub: pull requests listed (#175 to #178, all merged).
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
