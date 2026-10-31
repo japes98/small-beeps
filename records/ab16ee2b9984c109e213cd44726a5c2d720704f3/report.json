@@ -1,0 +1,3319 @@
+{
+  "checks": [
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -m unittest discover -s tests -t . -v",
+      "exit_status": 0,
+      "id": "C-UNIT",
+      "log": "logs/C-UNIT.log",
+      "reqs": [
+        "R-PROC-1",
+        "R-PROC-4",
+        "R-REC-1",
+        "R-CLEAN-3",
+        "R-CLEAN-4",
+        "R-PUB-1",
+        "R-SEP-2",
+        "R-SPEC-1",
+        "R-SPEC-3",
+        "R-AUDIT-1",
+        "R-AUDIT-2",
+        "R-AUDIT-3",
+        "R-AUDIT-4",
+        "R-AUDIT-5",
+        "R-PERF-4",
+        "R-BUILD-1",
+        "R-FM-1",
+        "R-FM-7",
+        "R-MIDI-1",
+        "R-MIDI-4",
+        "R-MIDIOUT-2",
+        "R-MIDIOUT-6",
+        "R-STORE-1",
+        "R-STORE-3",
+        "R-STORE-4",
+        "R-STORE-5",
+        "R-STORE-6",
+        "R-STORE-8",
+        "R-UI-6",
+        "R-UI-7",
+        "R-UI-8",
+        "R-PRESET-1",
+        "R-ARP-1",
+        "R-ARP-2",
+        "R-ARP-7",
+        "R-GOLD-1",
+        "R-GOLD-2",
+        "R-GOLD-3",
+        "R-REL-1",
+        "R-REL-2",
+        "R-REL-3",
+        "R-PKG-1",
+        "R-BUILD-3",
+        "R-STORE-10",
+        "R-STORE-11"
+      ],
+      "result": "PASS",
+      "seconds": 23.3,
+      "title": "Unit tests of the tools"
+    },
+    {
+      "command": "reuse lint",
+      "exit_status": 0,
+      "id": "C-REUSE",
+      "log": "logs/C-REUSE.log",
+      "reqs": [
+        "R-LIC-1",
+        "R-LIC-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.8,
+      "title": "reuse lint (SPDX licence and copyright on every file)"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-commit-msg.py --range 1881f8c06140e149658e8d51b9081623aaa28fcb..ab16ee2b9984c109e213cd44726a5c2d720704f3",
+      "exit_status": 0,
+      "id": "C-COMMIT-MSG",
+      "log": "logs/C-COMMIT-MSG.log",
+      "reqs": [
+        "R-PROC-1"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "Commit messages follow .gitmessage"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-low-profile.py --require-api",
+      "exit_status": 0,
+      "id": "C-LOW-PROFILE",
+      "log": "logs/C-LOW-PROFILE.log",
+      "reqs": [
+        "R-PUB-1"
+      ],
+      "result": "PASS",
+      "seconds": 0.4,
+      "title": "Low profile: name, description, topics, README"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-tracked.py secrets",
+      "exit_status": 0,
+      "id": "C-SECRETS",
+      "log": "logs/C-SECRETS.log",
+      "reqs": [
+        "R-PUB-2"
+      ],
+      "result": "PASS",
+      "seconds": 8.8,
+      "title": "No secrets in tracked files"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-private.py --require",
+      "exit_status": 0,
+      "id": "C-PRIVATE",
+      "log": "logs/C-PRIVATE.log",
+      "reqs": [
+        "R-PUB-3"
+      ],
+      "result": "PASS",
+      "seconds": 1.9,
+      "title": "No private terms in tracked files or commit messages"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-tracked.py no-toolchain",
+      "exit_status": 0,
+      "id": "C-NO-TOOLCHAIN",
+      "log": "logs/C-NO-TOOLCHAIN.log",
+      "reqs": [
+        "R-REPRO-1"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "No toolchain parts or binaries tracked"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-deny-lists.py",
+      "exit_status": 0,
+      "id": "C-DENY-LISTS",
+      "log": "logs/C-DENY-LISTS.log",
+      "reqs": [
+        "R-CLEAN-4",
+        "R-SEP-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "Claude Code deny lists never drop an entry"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-transcripts.py",
+      "exit_status": 0,
+      "id": "C-TRANSCRIPTS",
+      "log": "logs/C-TRANSCRIPTS.log",
+      "reqs": [
+        "R-CLEAN-1",
+        "R-CLEAN-3",
+        "R-CLEAN-5",
+        "R-SEP-2"
+      ],
+      "result": "PASS",
+      "seconds": 2.8,
+      "title": "Archived session transcripts: banners and forbidden material"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-emulator-terms.py",
+      "exit_status": 0,
+      "id": "C-SEP-TERMS",
+      "log": "logs/C-SEP-TERMS.log",
+      "reqs": [
+        "R-SEP-1",
+        "R-SPEC-2"
+      ],
+      "result": "PASS",
+      "seconds": 2.2,
+      "title": "No emulator-only identifiers outside the spec side's folders"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-hardware-spec.py",
+      "exit_status": 0,
+      "id": "C-SPEC-LINT",
+      "log": "logs/C-SPEC-LINT.log",
+      "reqs": [
+        "R-SPEC-1",
+        "R-SPEC-3"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "docs/HARDWARE-SPEC.md: every entry has an ID, fact, sources, standing; no code; IDs kept"
+    },
+    {
+      "command": "sh tools/check-clean-folder.sh",
+      "exit_status": 0,
+      "id": "C-CLEAN-FOLDER",
+      "log": "logs/C-CLEAN-FOLDER.log",
+      "reqs": [
+        "R-CLEAN-1",
+        "R-SEP-2"
+      ],
+      "result": "PASS",
+      "seconds": 55.4,
+      "title": "A fresh clean folder has no spec-side files and denies them"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-fwtest-pin.py",
+      "exit_status": 0,
+      "id": "C-FWTEST-PIN",
+      "log": "logs/C-FWTEST-PIN.log",
+      "reqs": [
+        "R-SEP-3",
+        "R-HARN-10"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "tools/fwtest runs an image pinned by digest"
+    },
+    {
+      "command": "sh tools/fetch-sdk.sh --verify",
+      "exit_status": 0,
+      "id": "C-SDK-PIN",
+      "log": "logs/C-SDK-PIN.log",
+      "reqs": [
+        "R-REPRO-5",
+        "R-LIC-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "Vendored SDK files match the pinned commit"
+    },
+    {
+      "command": "sh tools/fetch-plaits.sh --verify",
+      "exit_status": 0,
+      "id": "C-PLAITS-PIN",
+      "log": "logs/C-PLAITS-PIN.log",
+      "reqs": [
+        "R-REPRO-7",
+        "R-LIC-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.5,
+      "title": "Vendored Plaits files match the pinned upstream commits"
+    },
+    {
+      "command": "sh tools/fetch-emulator.sh --verify",
+      "exit_status": 0,
+      "id": "C-EMU-PIN",
+      "log": "logs/C-EMU-PIN.log",
+      "reqs": [
+        "R-REPRO-6",
+        "R-LIC-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.1,
+      "title": "Vendored emulator crates match the pinned upstream commit"
+    },
+    {
+      "command": "sh tools/build.sh image",
+      "exit_status": 0,
+      "id": "C-IMAGE",
+      "log": "logs/C-IMAGE.log",
+      "reqs": [
+        "R-REPRO-1",
+        "R-REPRO-2"
+      ],
+      "result": "PASS",
+      "seconds": 15.1,
+      "title": "Build container (pinned base, toolchain SHA-256 checked)"
+    },
+    {
+      "command": "sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/build-a",
+      "exit_status": 0,
+      "id": "C-BUILD-A",
+      "log": "logs/C-BUILD-A.log",
+      "reqs": [
+        "R-REPRO-3",
+        "R-BUILD-1"
+      ],
+      "result": "PASS",
+      "seconds": 2.3,
+      "title": "Build A in a fresh container (source at /mnt/small-beeps-src)"
+    },
+    {
+      "command": "sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/build-b --src-mount /tmp/elsewhere/small-beeps-src-b",
+      "exit_status": 0,
+      "id": "C-BUILD-B",
+      "log": "logs/C-BUILD-B.log",
+      "reqs": [
+        "R-REPRO-3"
+      ],
+      "result": "PASS",
+      "seconds": 2.3,
+      "title": "Build B in a fresh container (source at another path)"
+    },
+    {
+      "command": "(internal) determinism",
+      "exit_status": 0,
+      "id": "C-DETERMINISM",
+      "log": "logs/C-DETERMINISM.log",
+      "reqs": [
+        "R-REPRO-3"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "Builds A and B are byte-identical"
+    },
+    {
+      "command": "(internal) firmware_size",
+      "exit_status": 0,
+      "id": "C-FW-SIZE",
+      "log": "logs/C-FW-SIZE.log",
+      "reqs": [
+        "R-BUILD-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "Firmware image size (code, data, bss) from build A"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/fw-suite.py --build /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/build-a --out /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/fwtest",
+      "exit_status": 0,
+      "id": "C-FW-SUITE",
+      "log": "logs/C-FW-SUITE.log",
+      "reqs": [
+        "R-BOOT-1",
+        "R-BOOT-2",
+        "R-BOOT-3",
+        "R-BOOT-4",
+        "R-BOOT-5",
+        "R-CLK-1",
+        "R-IRQ-1",
+        "R-IRQ-2",
+        "R-IRQ-3",
+        "R-IRQ-4",
+        "R-LCD-1",
+        "R-LCD-2",
+        "R-LCD-3",
+        "R-LCD-4",
+        "R-LCD-5",
+        "R-LCD-6",
+        "R-KEY-1",
+        "R-KEY-2",
+        "R-KEY-3",
+        "R-ENC-1",
+        "R-ENC-2",
+        "R-POT-1",
+        "R-POT-2",
+        "R-LED-1",
+        "R-LED-2",
+        "R-LED-3",
+        "R-INPUT-1",
+        "R-INPUT-2",
+        "R-INPUT-3",
+        "R-AUD-1",
+        "R-AUD-2",
+        "R-AUD-3",
+        "R-AUD-4",
+        "R-AUD-5",
+        "R-AUD-6",
+        "R-AUD-7",
+        "R-FM-1",
+        "R-FM-3",
+        "R-FM-4",
+        "R-FM-5",
+        "R-FM-6",
+        "R-FM-8",
+        "R-FM-9",
+        "R-MIDI-1",
+        "R-MIDI-2",
+        "R-MIDI-3",
+        "R-MIDI-4",
+        "R-MIDI-5",
+        "R-MIDI-6",
+        "R-MIDI-7",
+        "R-MIDIOUT-1",
+        "R-MIDIOUT-2",
+        "R-MIDIOUT-3",
+        "R-MIDIOUT-4",
+        "R-MIDIOUT-5",
+        "R-MIDIOUT-6",
+        "R-MIDIOUT-7",
+        "R-MIDIOUT-8",
+        "R-STORE-1",
+        "R-STORE-2",
+        "R-STORE-3",
+        "R-STORE-4",
+        "R-STORE-5",
+        "R-STORE-6",
+        "R-STORE-7",
+        "R-STORE-8",
+        "R-STORE-9",
+        "R-UI-1",
+        "R-UI-2",
+        "R-UI-3",
+        "R-UI-4",
+        "R-UI-5",
+        "R-UI-6",
+        "R-UI-7",
+        "R-UI-8",
+        "R-UI-9",
+        "R-UI-10",
+        "R-UI-11",
+        "R-UI-12",
+        "R-UI-13",
+        "R-UI-14",
+        "R-ARP-7",
+        "R-GOLD-1",
+        "R-GOLD-2"
+      ],
+      "result": "PASS",
+      "seconds": 217.1,
+      "title": "Firmware in fwtest: boot, clock, tick and heartbeat timing, vector table, idle, fault and stray reports, the screen, the panel's keys, encoders, pot and LEDs, the audio output and the test instrument (tests/fw/boot.suite)"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/preset_suite.py --image /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/build-a/app.bin --out /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/presets",
+      "exit_status": 0,
+      "id": "C-PRESETS",
+      "log": "logs/C-PRESETS.log",
+      "reqs": [
+        "R-PRESET-1",
+        "R-PRESET-2",
+        "R-PRESET-3",
+        "R-PRESET-4"
+      ],
+      "result": "PASS",
+      "seconds": 41.4,
+      "title": "The preset bank in fwtest: each preset's reference note (clipping, DC, clicks, loudness, its category's shape), 16 voices, golden SHA-256 (tools/preset_suite.py)"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/arp_suite.py --image /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/build-a/app.bin --out /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/arp",
+      "exit_status": 0,
+      "id": "C-ARP",
+      "log": "logs/C-ARP.log",
+      "reqs": [
+        "R-ARP-1",
+        "R-ARP-2",
+        "R-ARP-3",
+        "R-ARP-4",
+        "R-ARP-5",
+        "R-ARP-6",
+        "R-ARP-7",
+        "R-ARP-8",
+        "R-GOLD-1"
+      ],
+      "result": "PASS",
+      "seconds": 17.2,
+      "title": "The arpeggiator in fwtest: each mode and rate against its model, the frames of its steps, MIDI clock in and out, MIDI out, no stuck notes, its screen, saving, under load (tools/arp_suite.py)"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/package_suite.py --build /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/build-a --out /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/package",
+      "exit_status": 0,
+      "id": "C-PACKAGE",
+      "log": "logs/C-PACKAGE.log",
+      "reqs": [
+        "R-PKG-1",
+        "R-PKG-2"
+      ],
+      "result": "PASS",
+      "seconds": 8.1,
+      "title": "The firmware as a .fwsc: packed from build A's package link, it boots in fwtest's package path as the raw image does in the suite's main cases, and fwtest refuses each broken package at the reader's check (tools/package_suite.py)"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/seams_suite.py --build /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/build-a --out /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/seams",
+      "exit_status": 0,
+      "id": "C-SEAMS",
+      "log": "logs/C-SEAMS.log",
+      "reqs": [
+        "R-BUILD-3",
+        "R-BUILD-4",
+        "R-BUILD-5",
+        "R-ENG-1",
+        "R-ENG-2",
+        "R-PLAT-1",
+        "R-CORE-1",
+        "R-RT-1",
+        "R-MIDI-8",
+        "R-MIDIOUT-9",
+        "R-STORE-10",
+        "R-STORE-11"
+      ],
+      "result": "PASS",
+      "seconds": 345.8,
+      "title": "Seams for firmwares built on small-beeps: the build's write-back store check, outside sources, per-folder flags, the engine seam, the platform alone, core 1's start, the runtime, the SysEx tap, raw MIDI out, the store's firmware kinds, saves cut by a power cut, starting without the bring-up screens (tools/seams_suite.py)"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/release.py selftest --build /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/build-a --out /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/release",
+      "exit_status": 0,
+      "id": "C-RELEASE",
+      "log": "logs/C-RELEASE.log",
+      "reqs": [
+        "R-REL-1",
+        "R-REL-2"
+      ],
+      "result": "PASS",
+      "seconds": 0.1,
+      "title": "The app release from build A, made twice: byte for byte the same; release.json format 1.0; the .fm1img passes the app's checks in order (tools/release.py selftest)"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py check --build /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/build-a --out /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/perf --base-ref ab16ee2b9984c109e213cd44726a5c2d720704f3^1 --require-records",
+      "exit_status": 0,
+      "id": "C-PERF",
+      "log": "logs/C-PERF.log",
+      "reqs": [
+        "R-PERF-1",
+        "R-PERF-2",
+        "R-PERF-3",
+        "R-LCD-6",
+        "R-MIDIOUT-3",
+        "R-UI-4",
+        "R-ARP-8"
+      ],
+      "result": "PASS",
+      "seconds": 9.3,
+      "title": "Firmware size, RAM, stack high-water and instructions per period, within budget and the 3% speed gate"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/perf.py probes --build /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/build-a --out /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/perf-probes",
+      "exit_status": 0,
+      "id": "C-PERF-PROBES",
+      "log": "logs/C-PERF-PROBES.log",
+      "reqs": [
+        "R-PERF-3",
+        "R-PERF-5"
+      ],
+      "result": "PASS",
+      "seconds": 29.8,
+      "title": "Deliberately slower and bigger builds fail the performance gates; a known stack use shows"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/plaits-bench.py run --out /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/plaits --perf /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/perf/perf.json",
+      "exit_status": 0,
+      "id": "C-PLAITS-BENCH",
+      "log": "logs/C-PLAITS-BENCH.log",
+      "reqs": [
+        "R-PLAITS-1",
+        "R-PLAITS-2",
+        "R-PLAITS-3",
+        "R-PLAITS-4"
+      ],
+      "result": "PASS",
+      "seconds": 40.1,
+      "title": "The Plaits load test: demo builds, soft-float exact, every engine measured, clean audio"
+    },
+    {
+      "command": "sh harness/ci.sh scope",
+      "exit_status": 0,
+      "id": "C-HARNESS-SCOPE",
+      "log": "logs/C-HARNESS-SCOPE.log",
+      "reqs": [
+        "R-HARN-9"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "The harness uses no stock-boot path (packages only through the package reader)"
+    },
+    {
+      "command": "sh harness/tests/images/build.sh --check",
+      "exit_status": 0,
+      "id": "C-HARNESS-IMAGES",
+      "log": "logs/C-HARNESS-IMAGES.log",
+      "reqs": [
+        "R-HARN-8"
+      ],
+      "result": "PASS",
+      "seconds": 0.9,
+      "title": "Harness test images rebuild identically with the pinned toolchain"
+    },
+    {
+      "command": "sh harness/ci.sh image",
+      "exit_status": 0,
+      "id": "C-HARNESS-IMAGE",
+      "log": "logs/C-HARNESS-IMAGE.log",
+      "reqs": [
+        "R-HARN-8"
+      ],
+      "result": "PASS",
+      "seconds": 23.7,
+      "title": "fwtest container (pinned bases, offline build)"
+    },
+    {
+      "command": "sh harness/ci.sh repro",
+      "exit_status": 0,
+      "id": "C-HARNESS-IMAGE-REPRO",
+      "log": "logs/C-HARNESS-IMAGE-REPRO.log",
+      "reqs": [
+        "R-HARN-8"
+      ],
+      "result": "PASS",
+      "seconds": 21.7,
+      "title": "The fwtest container rebuilds to the same image ID (from scratch, later, from a context with other file times and owners)"
+    },
+    {
+      "command": "sh harness/ci.sh test",
+      "exit_status": 0,
+      "id": "C-HARNESS-TEST",
+      "log": "logs/C-HARNESS-TEST.log",
+      "reqs": [
+        "R-HARN-1",
+        "R-HARN-2",
+        "R-HARN-3",
+        "R-HARN-4",
+        "R-HARN-5",
+        "R-HARN-6",
+        "R-HARN-7"
+      ],
+      "result": "PASS",
+      "seconds": 5.0,
+      "title": "The harness's own tests (cargo test in the container)"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I harness/isa/isa_check.py --out /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/isa",
+      "exit_status": 0,
+      "id": "C-HARNESS-ISA",
+      "log": "logs/C-HARNESS-ISA.log",
+      "reqs": [
+        "R-HARN-14"
+      ],
+      "result": "PASS",
+      "seconds": 216.4,
+      "title": "fwtest runs every instruction form the pinned toolchain knows for the firmware's CPU flags, or the form is a documented gap (harness/isa/known-gaps.txt)"
+    },
+    {
+      "command": "sh harness/ci.sh suite /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/harness-a /mnt/harness-a",
+      "exit_status": 0,
+      "id": "C-HARNESS-SUITE-A",
+      "log": "logs/C-HARNESS-SUITE-A.log",
+      "reqs": [
+        "R-HARN-1",
+        "R-HARN-2",
+        "R-HARN-3",
+        "R-HARN-4",
+        "R-HARN-5",
+        "R-HARN-7"
+      ],
+      "result": "PASS",
+      "seconds": 1.2,
+      "title": "Harness suite, run A (fresh container, tests at /mnt/harness-a)"
+    },
+    {
+      "command": "sh harness/ci.sh suite /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/harness-b /tmp/elsewhere/harness-b",
+      "exit_status": 0,
+      "id": "C-HARNESS-SUITE-B",
+      "log": "logs/C-HARNESS-SUITE-B.log",
+      "reqs": [
+        "R-HARN-6"
+      ],
+      "result": "PASS",
+      "seconds": 1.2,
+      "title": "Harness suite, run B (fresh container, tests at another path)"
+    },
+    {
+      "command": "(internal) harness_determinism",
+      "exit_status": 0,
+      "id": "C-HARNESS-DET",
+      "log": "logs/C-HARNESS-DET.log",
+      "reqs": [
+        "R-HARN-6"
+      ],
+      "result": "PASS",
+      "seconds": 0.0,
+      "title": "Harness suite runs A and B are byte-identical"
+    },
+    {
+      "command": "sh harness/spec-experiments/run.sh /home/runner/work/small-beeps/small-beeps/out/ab16ee2b9984c109e213cd44726a5c2d720704f3/spec-experiments",
+      "exit_status": 0,
+      "id": "C-SPEC-EXPERIMENTS",
+      "log": "logs/C-SPEC-EXPERIMENTS.log",
+      "reqs": [
+        "R-SPEC-4"
+      ],
+      "result": "PASS",
+      "seconds": 3.8,
+      "title": "Spec-side experiments rebuild identically and give the results the spec cites"
+    },
+    {
+      "command": "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python -I tools/check-merge.py ab16ee2b9984c109e213cd44726a5c2d720704f3",
+      "exit_status": 0,
+      "id": "C-MERGE",
+      "log": "logs/C-MERGE.log",
+      "reqs": [
+        "R-PROC-2"
+      ],
+      "result": "PASS",
+      "seconds": 1.4,
+      "title": "Signed owner merge of a pull request that passed CI"
+    },
+    {
+      "command": "(internal) record_private",
+      "exit_status": 0,
+      "id": "C-RECORD-PRIVATE",
+      "log": "logs/C-RECORD-PRIVATE.log",
+      "reqs": [
+        "R-PUB-3"
+      ],
+      "result": "PASS",
+      "seconds": 0.5,
+      "title": "No private terms in the record's own files (any that hold one are withheld, named with their SHA-256)"
+    }
+  ],
+  "commit": "ab16ee2b9984c109e213cd44726a5c2d720704f3",
+  "created_utc": "2026-10-31T03:28:59Z",
+  "environment": {
+    "build_image_id": "sha256:d66303fb9c50282d70fa1fa6272a80bfce1f1e6321d212a0af6454c521e33be2",
+    "build_image_tag": "small-beeps-build:2f1adc7009fddc03",
+    "claude_configs": {
+      "clean.json": "7577a4fc70762a34a55887a7a96eb18842cf056d9a82b207306b4231223ad7a0",
+      "handmade-settings.json": "a557bd84008372ff9d3e24cd648df9986d76a05928d9f50b5d3e60975bf29b32",
+      "handmade-spec-settings.json": "daa6c52d7e54c363b17ebace836c3019a6c4a9551f9d8af7b9175f88459ce27d",
+      "spec.json": "84a7e56cfaa514639a55cf17627338970f1627738543c02999da9cf1d0f947bc"
+    },
+    "docker": "client 28.0.4 server 28.0.4",
+    "dockerfile": {
+      "base": "debian:bookworm-slim@sha256:ec31d744f83f4a73447ba045aaab9409997efe5cc706eca4890c1be36cc1606a",
+      "dockerfile_frontend": "docker/dockerfile:1.10@sha256:865e5dd094beca432e8c0a1d5e1c465db5f998dca4e439981029b3b81fb39ed5",
+      "snapshot": "20261020T000000Z",
+      "source_date_epoch": "1767225600",
+      "toolchain_name": "jieli-linux-toolchains-20250324.1",
+      "toolchain_sha256": "f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958",
+      "toolchain_url": "https://jl-update.oss-cn-shenzhen.aliyuncs.com/jieli-linux-toolchains-20250324.1.tar.xz"
+    },
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f",
+    "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:ba10d209195877efeb796e45ac134238e43b0d0eb2a551094eb55da740b8f78b",
+    "git": "git version 2.56.0",
+    "github": {
+      "GITHUB_EVENT_NAME": "push",
+      "GITHUB_REF": "refs/heads/main",
+      "GITHUB_REPOSITORY": "japes98/small-beeps",
+      "GITHUB_RUN_ATTEMPT": "1",
+      "GITHUB_RUN_ID": "41163191017",
+      "GITHUB_SHA": "ab16ee2b9984c109e213cd44726a5c2d720704f3",
+      "GITHUB_WORKFLOW": "records",
+      "ImageOS": "ubuntu24",
+      "ImageVersion": "20261026.354.1",
+      "RUNNER_ARCH": "X64",
+      "RUNNER_OS": "Linux"
+    },
+    "harness_image_tag": "small-beeps-fwtest:588cb83846027bc6",
+    "host": "Linux 7.0.0-1017-azure x86_64",
+    "python": "3.12.15",
+    "reuse": "reuse, version 6.2.0",
+    "sdk_commit": "5fa84a9b2f723a5e9337ad79dc2ad741fc98fe2d",
+    "sdk_sha256sums": "49ddeb5feab02203f64e14f581808fc8e84d9af858953dd76b8602c906a95fa6"
+  },
+  "firmware_size": {
+    "bss": 164880,
+    "code": 55240,
+    "data": 80,
+    "image": 55320,
+    "irq_stack": 2048,
+    "ram_code": 55120,
+    "stack": 4096
+  },
+  "outputs": {
+    "app-pkg.bin": "3577c147259644c5ef83c8e6a02c88fc4c44b26b518bd5b7e9dfdfa7dfde2401",
+    "app-pkg.elf": "69fc36add1ed511c18af909827c7deac6adb2d4773daec34ae4949f559cbf053",
+    "app.bin": "5bc12a3465ccf32e5b50fc42a7f9673483719165504c05ad42e1eb16eb7ac034",
+    "app.elf": "7d5217730ed511962fac8f18527b93f3002a63c49873962acf9859ef50664f48",
+    "app.size": "060eeece056f6eb666a92f04c28fcf2c4a044663a8c0975db4f4b0647e25f1c5"
+  },
+  "overall": "PASS",
+  "perf": {
+    "baseline": {
+      "beats": 2250,
+      "bss": 164880,
+      "code": 55240,
+      "commit": "1881f8c06140e149658e8d51b9081623aaa28fcb",
+      "data": 80,
+      "emulated_ms": "2250.738",
+      "frame_update_us": 3.125,
+      "fwtest_exit": 0,
+      "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:ba10d209195877efeb796e45ac134238e43b0d0eb2a551094eb55da740b8f78b",
+      "heartbeat_update_us": 3.667,
+      "image": 55320,
+      "instructions": 1301356,
+      "instructions_per_period": 1886.023,
+      "label": "baseline",
+      "loaded": {
+        "instructions": 75215535,
+        "instructions_per_period": 109166.234,
+        "label": "baseline loaded",
+        "options": [
+          [
+            "--ms",
+            "1250",
+            "--ipb",
+            "--ram",
+            "0x01c00000:0x60@end",
+            "--ram",
+            "0x01c7ec00:0x1000@end",
+            "--script",
+            "tests/fw/scripts/perfload.txt"
+          ],
+          [
+            "--ms",
+            "2250",
+            "--ipb",
+            "--ram",
+            "0x01c00000:0x60@end",
+            "--ram",
+            "0x01c7ec00:0x1000@end",
+            "--script",
+            "tests/fw/scripts/perfload.txt"
+          ]
+        ],
+        "periods": 689,
+        "runs": [
+          {
+            "emulated_ms": "1250.000",
+            "instructions": 79363146,
+            "ms": 1250,
+            "outcome": "completed",
+            "periods": 861
+          },
+          {
+            "emulated_ms": "2250.489",
+            "instructions": 154578681,
+            "ms": 2250,
+            "outcome": "completed",
+            "periods": 1550
+          }
+        ],
+        "script": "tests/fw/scripts/perfload.txt",
+        "script_sha256": "5ef283c100b0de5a37b9c195b0af41b3f7c2e7af70536d897672e4a7dfefb102"
+      },
+      "marker": "0x44304253",
+      "ms": 2250,
+      "options": [
+        [
+          "--ms",
+          "1250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end"
+        ],
+        [
+          "--ms",
+          "2250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end"
+        ]
+      ],
+      "outcome": "completed",
+      "periods": 690,
+      "render_us": 812.708,
+      "runs": [
+        {
+          "emulated_ms": "1250.087",
+          "instructions": 2694782,
+          "ms": 1250,
+          "outcome": "completed",
+          "periods": 861
+        },
+        {
+          "emulated_ms": "2250.738",
+          "instructions": 3996138,
+          "ms": 2250,
+          "outcome": "completed",
+          "periods": 1551
+        }
+      ],
+      "stack": 4096,
+      "stack_high_water": 572,
+      "stack_method": "pattern, two stacks",
+      "stack_reserved": 4096,
+      "startup_instructions": 1070916,
+      "static_ram": 220080
+    },
+    "baseline_budgets": {
+      "limits": {
+        "code": 57344,
+        "loaded_per_period": 147456,
+        "stack_high_water": 768,
+        "startup_instructions": 1572864,
+        "static_ram": 229376,
+        "steady_per_period": 2048
+      },
+      "milestone": "ARP",
+      "speed_rise_percent": 3
+    },
+    "baseline_note": "the record of 1881f8c06140, the latest of ab16ee2b9984c109e213cd44726a5c2d720704f3^1 on origin/records",
+    "baseline_recorded": {
+      "beats": 2250,
+      "bss": 164880,
+      "code": 55240,
+      "data": 80,
+      "emulated_ms": "2250.738",
+      "frame_update_us": 3.125,
+      "fwtest_exit": 0,
+      "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:ba10d209195877efeb796e45ac134238e43b0d0eb2a551094eb55da740b8f78b",
+      "heartbeat_update_us": 3.667,
+      "image": 55320,
+      "instructions": 1301356,
+      "instructions_per_period": 1886.023,
+      "label": "current",
+      "loaded": {
+        "instructions": 75215535,
+        "instructions_per_period": 109166.234,
+        "label": "current loaded",
+        "options": [
+          [
+            "--ms",
+            "1250",
+            "--ipb",
+            "--ram",
+            "0x01c00000:0x60@end",
+            "--ram",
+            "0x01c7ec00:0x1000@end",
+            "--script",
+            "tests/fw/scripts/perfload.txt"
+          ],
+          [
+            "--ms",
+            "2250",
+            "--ipb",
+            "--ram",
+            "0x01c00000:0x60@end",
+            "--ram",
+            "0x01c7ec00:0x1000@end",
+            "--script",
+            "tests/fw/scripts/perfload.txt"
+          ]
+        ],
+        "periods": 689,
+        "runs": [
+          {
+            "emulated_ms": "1250.000",
+            "instructions": 79363146,
+            "ms": 1250,
+            "outcome": "completed",
+            "periods": 861
+          },
+          {
+            "emulated_ms": "2250.489",
+            "instructions": 154578681,
+            "ms": 2250,
+            "outcome": "completed",
+            "periods": 1550
+          }
+        ],
+        "script": "tests/fw/scripts/perfload.txt",
+        "script_sha256": "5ef283c100b0de5a37b9c195b0af41b3f7c2e7af70536d897672e4a7dfefb102"
+      },
+      "marker": "0x44304253",
+      "ms": 2250,
+      "options": [
+        [
+          "--ms",
+          "1250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end"
+        ],
+        [
+          "--ms",
+          "2250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end"
+        ]
+      ],
+      "outcome": "completed",
+      "periods": 690,
+      "render_us": 812.708,
+      "runs": [
+        {
+          "emulated_ms": "1250.087",
+          "instructions": 2694782,
+          "ms": 1250,
+          "outcome": "completed",
+          "periods": 861
+        },
+        {
+          "emulated_ms": "2250.738",
+          "instructions": 3996138,
+          "ms": 2250,
+          "outcome": "completed",
+          "periods": 1551
+        }
+      ],
+      "stack": 4096,
+      "stack_high_water": 572,
+      "stack_method": "pattern, two stacks",
+      "stack_reserved": 4096,
+      "startup_instructions": 1070916,
+      "static_ram": 220080
+    },
+    "budgets": {
+      "limits": {
+        "code": 57344,
+        "loaded_per_period": 147456,
+        "stack_high_water": 768,
+        "startup_instructions": 1572864,
+        "static_ram": 229376,
+        "steady_per_period": 2048
+      },
+      "milestone": "ARP",
+      "speed_rise_percent": 3
+    },
+    "current": {
+      "beats": 2250,
+      "bss": 164880,
+      "code": 55240,
+      "data": 80,
+      "emulated_ms": "2250.738",
+      "frame_update_us": 3.125,
+      "fwtest_exit": 0,
+      "fwtest_image": "ghcr.io/japes98/small-beeps@sha256:ba10d209195877efeb796e45ac134238e43b0d0eb2a551094eb55da740b8f78b",
+      "heartbeat_update_us": 3.667,
+      "image": 55320,
+      "instructions": 1301356,
+      "instructions_per_period": 1886.023,
+      "label": "current",
+      "loaded": {
+        "instructions": 75215535,
+        "instructions_per_period": 109166.234,
+        "label": "current loaded",
+        "options": [
+          [
+            "--ms",
+            "1250",
+            "--ipb",
+            "--ram",
+            "0x01c00000:0x60@end",
+            "--ram",
+            "0x01c7ec00:0x1000@end",
+            "--script",
+            "tests/fw/scripts/perfload.txt"
+          ],
+          [
+            "--ms",
+            "2250",
+            "--ipb",
+            "--ram",
+            "0x01c00000:0x60@end",
+            "--ram",
+            "0x01c7ec00:0x1000@end",
+            "--script",
+            "tests/fw/scripts/perfload.txt"
+          ]
+        ],
+        "periods": 689,
+        "runs": [
+          {
+            "emulated_ms": "1250.000",
+            "instructions": 79363146,
+            "ms": 1250,
+            "outcome": "completed",
+            "periods": 861
+          },
+          {
+            "emulated_ms": "2250.489",
+            "instructions": 154578681,
+            "ms": 2250,
+            "outcome": "completed",
+            "periods": 1550
+          }
+        ],
+        "script": "tests/fw/scripts/perfload.txt",
+        "script_sha256": "5ef283c100b0de5a37b9c195b0af41b3f7c2e7af70536d897672e4a7dfefb102"
+      },
+      "marker": "0x44304253",
+      "ms": 2250,
+      "options": [
+        [
+          "--ms",
+          "1250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end"
+        ],
+        [
+          "--ms",
+          "2250",
+          "--ipb",
+          "--ram",
+          "0x01c00000:0x60@end",
+          "--ram",
+          "0x01c7ec00:0x1000@end"
+        ]
+      ],
+      "outcome": "completed",
+      "periods": 690,
+      "render_us": 812.708,
+      "runs": [
+        {
+          "emulated_ms": "1250.087",
+          "instructions": 2694782,
+          "ms": 1250,
+          "outcome": "completed",
+          "periods": 861
+        },
+        {
+          "emulated_ms": "2250.738",
+          "instructions": 3996138,
+          "ms": 2250,
+          "outcome": "completed",
+          "periods": 1551
+        }
+      ],
+      "stack": 4096,
+      "stack_high_water": 572,
+      "stack_method": "pattern, two stacks",
+      "stack_reserved": 4096,
+      "startup_instructions": 1070916,
+      "static_ram": 220080
+    },
+    "gates": [
+      {
+        "detail": "55240 of 57344 bytes (ARP budget)",
+        "gate": "code",
+        "result": "PASS"
+      },
+      {
+        "detail": "220080 of 229376 bytes (ARP budget)",
+        "gate": "static_ram",
+        "result": "PASS"
+      },
+      {
+        "detail": "572 of 768 bytes (ARP budget)",
+        "gate": "stack_high_water",
+        "result": "PASS"
+      },
+      {
+        "detail": "1070916 of 1572864 instructions (ARP budget)",
+        "gate": "startup_instructions",
+        "result": "PASS"
+      },
+      {
+        "detail": "1886.023 of 2048 instructions per period (ARP budget)",
+        "gate": "steady_per_period",
+        "result": "PASS"
+      },
+      {
+        "detail": "109166.234 of 147456 instructions per period (ARP budget)",
+        "gate": "loaded_per_period",
+        "result": "PASS"
+      },
+      {
+        "detail": "1886.023 steady-state instructions per period, 1886.023 before: +0.00%, within 3%",
+        "gate": "speed",
+        "result": "PASS"
+      },
+      {
+        "detail": "109166.234 loaded instructions per period, 109166.234 before: +0.00%, within 3%",
+        "gate": "loaded_speed",
+        "result": "PASS"
+      }
+    ],
+    "loaded": {
+      "baseline": {
+        "commit": "1881f8c06140e149658e8d51b9081623aaa28fcb",
+        "instructions": 75215535,
+        "instructions_per_period": 109166.234,
+        "label": "baseline loaded",
+        "options": [
+          [
+            "--ms",
+            "1250",
+            "--ipb",
+            "--ram",
+            "0x01c00000:0x60@end",
+            "--ram",
+            "0x01c7ec00:0x1000@end",
+            "--script",
+            "tests/fw/scripts/perfload.txt"
+          ],
+          [
+            "--ms",
+            "2250",
+            "--ipb",
+            "--ram",
+            "0x01c00000:0x60@end",
+            "--ram",
+            "0x01c7ec00:0x1000@end",
+            "--script",
+            "tests/fw/scripts/perfload.txt"
+          ]
+        ],
+        "periods": 689,
+        "runs": [
+          {
+            "emulated_ms": "1250.000",
+            "instructions": 79363146,
+            "ms": 1250,
+            "outcome": "completed",
+            "periods": 861
+          },
+          {
+            "emulated_ms": "2250.489",
+            "instructions": 154578681,
+            "ms": 2250,
+            "outcome": "completed",
+            "periods": 1550
+          }
+        ],
+        "script": "tests/fw/scripts/perfload.txt",
+        "script_sha256": "5ef283c100b0de5a37b9c195b0af41b3f7c2e7af70536d897672e4a7dfefb102"
+      },
+      "baseline_budgets": {
+        "limits": {
+          "code": 57344,
+          "loaded_per_period": 147456,
+          "stack_high_water": 768,
+          "startup_instructions": 1572864,
+          "static_ram": 229376,
+          "steady_per_period": 2048
+        },
+        "milestone": "ARP",
+        "speed_rise_percent": 3
+      },
+      "baseline_note": "the record of 1881f8c06140, the latest of ab16ee2b9984c109e213cd44726a5c2d720704f3^1 on origin/records",
+      "change_percent": 0.0,
+      "gated": true,
+      "script": "tests/fw/scripts/perfload.txt",
+      "script_sha256": "5ef283c100b0de5a37b9c195b0af41b3f7c2e7af70536d897672e4a7dfefb102"
+    },
+    "period": "audio-block-steady",
+    "result": "PASS",
+    "runs_ms": [
+      1250,
+      2250
+    ],
+    "speed_change_percent": 0.0
+  },
+  "plaits": {
+    "bench_instructions": {
+      "hw": {
+        "core0": 55698291,
+        "core1": 99344
+      },
+      "soft": {
+        "core0": 931770290,
+        "core1": 2293697
+      }
+    },
+    "block": {
+      "cycles": 348160,
+      "frames": 64,
+      "render_frames": 16
+    },
+    "checks": [
+      {
+        "check": "demo builds",
+        "detail": "",
+        "result": "PASS"
+      },
+      {
+        "check": "demo build is deterministic",
+        "detail": "",
+        "result": "PASS"
+      },
+      {
+        "check": "live demo plays without underrun (soft)",
+        "detail": "engine 7, 0 underruns while playing, peak 12656",
+        "result": "PASS"
+      },
+      {
+        "check": "live demo plays without underrun (hw)",
+        "detail": "engine 0, 0 underruns while playing, peak 9865",
+        "result": "PASS"
+      },
+      {
+        "check": "soft-float bit for bit (soft image)",
+        "detail": "15 operations, 20000 cases each",
+        "result": "PASS"
+      },
+      {
+        "check": "bench completes (soft)",
+        "detail": "",
+        "result": "PASS"
+      },
+      {
+        "check": "core 1 starts and renders (soft)",
+        "detail": "",
+        "result": "PASS"
+      },
+      {
+        "check": "soft-float bit for bit (hw image)",
+        "detail": "15 operations, 20000 cases each",
+        "result": "PASS"
+      },
+      {
+        "check": "bench completes (hw)",
+        "detail": "",
+        "result": "PASS"
+      },
+      {
+        "check": "core 1 starts and renders (hw)",
+        "detail": "",
+        "result": "PASS"
+      },
+      {
+        "check": "no NaN, infinity or bad conversion",
+        "detail": "soft-float flags {'invalid': 0, 'overflow': 0, 'convert': 0}",
+        "result": "PASS"
+      },
+      {
+        "check": "hardware float sounds the same",
+        "detail": "24 of 24 engines' checksums equal",
+        "result": "PASS"
+      }
+    ],
+    "dual": {
+      "hw": [
+        {
+          "apart": 56240,
+          "both": 28320,
+          "engine": 0,
+          "name": "virtual analog VCF",
+          "speedup": 1.986
+        },
+        {
+          "apart": 60610,
+          "both": 29950,
+          "engine": 8,
+          "name": "virtual analog",
+          "speedup": 2.024
+        },
+        {
+          "apart": 73430,
+          "both": 36920,
+          "engine": 19,
+          "name": "string",
+          "speedup": 1.989
+        }
+      ],
+      "soft": [
+        {
+          "apart": 1792030,
+          "both": 972400,
+          "engine": 0,
+          "name": "virtual analog VCF",
+          "speedup": 1.843
+        },
+        {
+          "apart": 1510230,
+          "both": 778490,
+          "engine": 8,
+          "name": "virtual analog",
+          "speedup": 1.94
+        },
+        {
+          "apart": 1456230,
+          "both": 858550,
+          "engine": 19,
+          "name": "string",
+          "speedup": 1.696
+        }
+      ]
+    },
+    "engines": [
+      {
+        "engine": 0,
+        "hw": {
+          "checksum": "9e91c54d",
+          "clipped": 0,
+          "max": 29150,
+          "mean": 28833,
+          "peak": 26872,
+          "set_up": 27900,
+          "share": 8.37,
+          "voices_loaded": 8,
+          "voices_rest": 11
+        },
+        "name": "virtual analog VCF",
+        "soft": {
+          "checksum": "9e91c54d",
+          "clipped": 0,
+          "max": 1005720,
+          "mean": 960417,
+          "peak": 26872,
+          "set_up": 787270,
+          "share": 288.87,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 1,
+        "hw": {
+          "checksum": "0102d565",
+          "clipped": 0,
+          "max": 40840,
+          "mean": 39974,
+          "peak": 22790,
+          "set_up": 38790,
+          "share": 11.73,
+          "voices_loaded": 5,
+          "voices_rest": 8
+        },
+        "name": "phase distortion",
+        "soft": {
+          "checksum": "0102d565",
+          "clipped": 0,
+          "max": 1149220,
+          "mean": 1097263,
+          "peak": 22790,
+          "set_up": 1112680,
+          "share": 330.08,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 2,
+        "hw": {
+          "checksum": "cf318aa0",
+          "clipped": 0,
+          "max": 30560,
+          "mean": 27814,
+          "peak": 28892,
+          "set_up": 25520,
+          "share": 8.78,
+          "voices_loaded": 7,
+          "voices_rest": 11
+        },
+        "name": "six-op FM (bank 1)",
+        "soft": {
+          "checksum": "cf318aa0",
+          "clipped": 0,
+          "max": 818620,
+          "mean": 732996,
+          "peak": 28892,
+          "set_up": 62270,
+          "share": 235.13,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 3,
+        "hw": {
+          "checksum": "4efa36c6",
+          "clipped": 0,
+          "max": 30760,
+          "mean": 28188,
+          "peak": 30122,
+          "set_up": 25220,
+          "share": 8.84,
+          "voices_loaded": 7,
+          "voices_rest": 11
+        },
+        "name": "six-op FM (bank 2)",
+        "soft": {
+          "checksum": "4efa36c6",
+          "clipped": 0,
+          "max": 828940,
+          "mean": 746783,
+          "peak": 30122,
+          "set_up": 71870,
+          "share": 238.09,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 4,
+        "hw": {
+          "checksum": "903c85f1",
+          "clipped": 0,
+          "max": 30510,
+          "mean": 27975,
+          "peak": 32355,
+          "set_up": 25420,
+          "share": 8.76,
+          "voices_loaded": 7,
+          "voices_rest": 11
+        },
+        "name": "six-op FM (bank 3)",
+        "soft": {
+          "checksum": "903c85f1",
+          "clipped": 0,
+          "max": 825170,
+          "mean": 743337,
+          "peak": 32355,
+          "set_up": 74330,
+          "share": 237.01,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 5,
+        "hw": {
+          "checksum": "0c88856c",
+          "clipped": 0,
+          "max": 29900,
+          "mean": 27727,
+          "peak": 22786,
+          "set_up": 23670,
+          "share": 8.59,
+          "voices_loaded": 7,
+          "voices_rest": 11
+        },
+        "name": "wave terrain",
+        "soft": {
+          "checksum": "0c88856c",
+          "clipped": 0,
+          "max": 1141270,
+          "mean": 1026113,
+          "peak": 22786,
+          "set_up": 862170,
+          "share": 327.8,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 6,
+        "hw": {
+          "checksum": "7e993a28",
+          "clipped": 0,
+          "max": 40500,
+          "mean": 40395,
+          "peak": 9229,
+          "set_up": 43410,
+          "share": 11.63,
+          "voices_loaded": 5,
+          "voices_rest": 8
+        },
+        "name": "string machine",
+        "soft": {
+          "checksum": "7e993a28",
+          "clipped": 0,
+          "max": 1215960,
+          "mean": 1128884,
+          "peak": 9229,
+          "set_up": 954030,
+          "share": 349.25,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 7,
+        "hw": {
+          "checksum": "80a20f9b",
+          "clipped": 0,
+          "max": 10560,
+          "mean": 10273,
+          "peak": 16384,
+          "set_up": 10140,
+          "share": 3.03,
+          "voices_loaded": 22,
+          "voices_rest": 32
+        },
+        "name": "chiptune",
+        "soft": {
+          "checksum": "80a20f9b",
+          "clipped": 0,
+          "max": 184280,
+          "mean": 174173,
+          "peak": 16384,
+          "set_up": 163100,
+          "share": 52.93,
+          "voices_loaded": 1,
+          "voices_rest": 1
+        }
+      },
+      {
+        "engine": 8,
+        "hw": {
+          "checksum": "4a1ec751",
+          "clipped": 0,
+          "max": 32490,
+          "mean": 31364,
+          "peak": 18296,
+          "set_up": 29640,
+          "share": 9.33,
+          "voices_loaded": 7,
+          "voices_rest": 10
+        },
+        "name": "virtual analog",
+        "soft": {
+          "checksum": "4a1ec751",
+          "clipped": 0,
+          "max": 864770,
+          "mean": 803401,
+          "peak": 18296,
+          "set_up": 728720,
+          "share": 248.38,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 9,
+        "hw": {
+          "checksum": "3e95c393",
+          "clipped": 0,
+          "max": 19500,
+          "mean": 19192,
+          "peak": 18467,
+          "set_up": 18550,
+          "share": 5.6,
+          "voices_loaded": 12,
+          "voices_rest": 17
+        },
+        "name": "waveshaping",
+        "soft": {
+          "checksum": "3e95c393",
+          "clipped": 0,
+          "max": 751780,
+          "mean": 729522,
+          "peak": 18467,
+          "set_up": 742080,
+          "share": 215.93,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 10,
+        "hw": {
+          "checksum": "b90506bd",
+          "clipped": 0,
+          "max": 41400,
+          "mean": 41319,
+          "peak": 19545,
+          "set_up": 40670,
+          "share": 11.89,
+          "voices_loaded": 5,
+          "voices_rest": 8
+        },
+        "name": "FM",
+        "soft": {
+          "checksum": "b90506bd",
+          "clipped": 0,
+          "max": 1122140,
+          "mean": 1076868,
+          "peak": 19545,
+          "set_up": 1066110,
+          "share": 322.31,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 11,
+        "hw": {
+          "checksum": "d96b4fa9",
+          "clipped": 0,
+          "max": 28580,
+          "mean": 27239,
+          "peak": 21212,
+          "set_up": 27140,
+          "share": 8.21,
+          "voices_loaded": 8,
+          "voices_rest": 12
+        },
+        "name": "grain",
+        "soft": {
+          "checksum": "d96b4fa9",
+          "clipped": 0,
+          "max": 1023190,
+          "mean": 870878,
+          "peak": 21212,
+          "set_up": 982810,
+          "share": 293.88,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 12,
+        "hw": {
+          "checksum": "765c7dbe",
+          "clipped": 0,
+          "max": 45790,
+          "mean": 45759,
+          "peak": 24161,
+          "set_up": 45100,
+          "share": 13.15,
+          "voices_loaded": 5,
+          "voices_rest": 7
+        },
+        "name": "additive",
+        "soft": {
+          "checksum": "765c7dbe",
+          "clipped": 0,
+          "max": 1679090,
+          "mean": 1636539,
+          "peak": 24161,
+          "set_up": 1588050,
+          "share": 482.28,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 13,
+        "hw": {
+          "checksum": "0ed1d21d",
+          "clipped": 0,
+          "max": 30680,
+          "mean": 30605,
+          "peak": 27292,
+          "set_up": 32580,
+          "share": 8.81,
+          "voices_loaded": 7,
+          "voices_rest": 11
+        },
+        "name": "wavetable",
+        "soft": {
+          "checksum": "0ed1d21d",
+          "clipped": 0,
+          "max": 1291050,
+          "mean": 1271206,
+          "peak": 27292,
+          "set_up": 1280260,
+          "share": 370.82,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 14,
+        "hw": {
+          "checksum": "c64867cc",
+          "clipped": 33,
+          "max": 35620,
+          "mean": 33122,
+          "peak": 32768,
+          "set_up": 31080,
+          "share": 10.23,
+          "voices_loaded": 6,
+          "voices_rest": 9
+        },
+        "name": "chords",
+        "soft": {
+          "checksum": "c64867cc",
+          "clipped": 33,
+          "max": 1139300,
+          "mean": 1054855,
+          "peak": 32768,
+          "set_up": 879510,
+          "share": 327.23,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 15,
+        "hw": {
+          "checksum": "2b3e6917",
+          "clipped": 0,
+          "max": 26340,
+          "mean": 17532,
+          "peak": 19208,
+          "set_up": 65290,
+          "share": 7.57,
+          "voices_loaded": 9,
+          "voices_rest": 13
+        },
+        "name": "speech",
+        "soft": {
+          "checksum": "2b3e6917",
+          "clipped": 0,
+          "max": 888940,
+          "mean": 487133,
+          "peak": 19208,
+          "set_up": 223390,
+          "share": 255.33,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 16,
+        "hw": {
+          "checksum": "ce303a5d",
+          "clipped": 0,
+          "max": 28210,
+          "mean": 27369,
+          "peak": 24168,
+          "set_up": 27010,
+          "share": 8.1,
+          "voices_loaded": 8,
+          "voices_rest": 12
+        },
+        "name": "swarm",
+        "soft": {
+          "checksum": "ce303a5d",
+          "clipped": 0,
+          "max": 1073190,
+          "mean": 1043340,
+          "peak": 24168,
+          "set_up": 1011710,
+          "share": 308.25,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 17,
+        "hw": {
+          "checksum": "cc3c4c97",
+          "clipped": 1,
+          "max": 48380,
+          "mean": 47297,
+          "peak": 32768,
+          "set_up": 46150,
+          "share": 13.9,
+          "voices_loaded": 4,
+          "voices_rest": 7
+        },
+        "name": "noise",
+        "soft": {
+          "checksum": "cc3c4c97",
+          "clipped": 1,
+          "max": 1039730,
+          "mean": 949790,
+          "peak": 32768,
+          "set_up": 716610,
+          "share": 298.64,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 18,
+        "hw": {
+          "checksum": "b7320ad2",
+          "clipped": 0,
+          "max": 47720,
+          "mean": 41848,
+          "peak": 32126,
+          "set_up": 62270,
+          "share": 13.71,
+          "voices_loaded": 5,
+          "voices_rest": 7
+        },
+        "name": "particle",
+        "soft": {
+          "checksum": "b7320ad2",
+          "clipped": 0,
+          "max": 1184630,
+          "mean": 1119922,
+          "peak": 32126,
+          "set_up": 643260,
+          "share": 340.25,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 19,
+        "hw": {
+          "checksum": "4c0c43c4",
+          "clipped": 0,
+          "max": 38530,
+          "mean": 35533,
+          "peak": 25147,
+          "set_up": 48280,
+          "share": 11.07,
+          "voices_loaded": 6,
+          "voices_rest": 8
+        },
+        "name": "string",
+        "soft": {
+          "checksum": "4c0c43c4",
+          "clipped": 0,
+          "max": 1126790,
+          "mean": 949440,
+          "peak": 25147,
+          "set_up": 603690,
+          "share": 323.64,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 20,
+        "hw": {
+          "checksum": "b2400470",
+          "clipped": 23,
+          "max": 52640,
+          "mean": 52586,
+          "peak": 32768,
+          "set_up": 52150,
+          "share": 15.12,
+          "voices_loaded": 4,
+          "voices_rest": 6
+        },
+        "name": "modal",
+        "soft": {
+          "checksum": "b2400470",
+          "clipped": 23,
+          "max": 1838250,
+          "mean": 1785765,
+          "peak": 32768,
+          "set_up": 723280,
+          "share": 527.99,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 21,
+        "hw": {
+          "checksum": "3cebea97",
+          "clipped": 149,
+          "max": 27000,
+          "mean": 26378,
+          "peak": 32768,
+          "set_up": 25830,
+          "share": 7.76,
+          "voices_loaded": 8,
+          "voices_rest": 12
+        },
+        "name": "bass drum",
+        "soft": {
+          "checksum": "3cebea97",
+          "clipped": 149,
+          "max": 922440,
+          "mean": 867906,
+          "peak": 32768,
+          "set_up": 611980,
+          "share": 264.95,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 22,
+        "hw": {
+          "checksum": "aa53f024",
+          "clipped": 3,
+          "max": 35080,
+          "mean": 33394,
+          "peak": 32768,
+          "set_up": 34390,
+          "share": 10.08,
+          "voices_loaded": 6,
+          "voices_rest": 9
+        },
+        "name": "snare drum",
+        "soft": {
+          "checksum": "aa53f024",
+          "clipped": 3,
+          "max": 1031790,
+          "mean": 967518,
+          "peak": 32768,
+          "set_up": 570060,
+          "share": 296.36,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      },
+      {
+        "engine": 23,
+        "hw": {
+          "checksum": "5f408d0c",
+          "clipped": 0,
+          "max": 25220,
+          "mean": 25141,
+          "peak": 17003,
+          "set_up": 24480,
+          "share": 7.24,
+          "voices_loaded": 9,
+          "voices_rest": 13
+        },
+        "name": "hi-hat",
+        "soft": {
+          "checksum": "5f408d0c",
+          "clipped": 0,
+          "max": 627630,
+          "mean": 609789,
+          "peak": 17003,
+          "set_up": 512210,
+          "share": 180.27,
+          "voices_loaded": 0,
+          "voices_rest": 0
+        }
+      }
+    ],
+    "format": 1,
+    "image": {
+      "app_bin_sha256": "d0477a65a14663f33e360a14b1b3bf341f2214c30fab18c1c6896772c9749fac",
+      "size": {
+        "bss": 215628,
+        "code": 245580,
+        "data": 84,
+        "image": 245664,
+        "irq_stack": 2048,
+        "ram_code": 245460,
+        "stack": 4096
+      }
+    },
+    "live": {
+      "hw": {
+        "blocks": 688,
+        "engine": 0,
+        "engine_set": 0,
+        "fill_max_ticks": 4489,
+        "outcome": "completed",
+        "peak": 9865,
+        "underruns_while_playing": 0
+      },
+      "soft": {
+        "blocks": 687,
+        "engine": 7,
+        "engine_set": 7,
+        "fill_max_ticks": 28443,
+        "outcome": "completed",
+        "peak": 12656,
+        "underruns_while_playing": 0
+      }
+    },
+    "platform": {
+      "from": "this record's perf.json",
+      "loaded": 109166.234,
+      "rest": 1886.023
+    },
+    "result": "PASS",
+    "vendor": {
+      "eurorack": "f4cfa7697095a28d292bff758beb51deb49b5a86",
+      "stmlib": "e3bd7c9cc00e4364166f9905c0509b6ffd0535ec"
+    }
+  },
+  "plaits_md": "## Plaits load test (M4b): PASS\n\nfwtest's instructions per audio block (64 frames, 348160 of core 0's cycles), each engine at its heaviest over nine settings; voices that fit on core 0 beside the firmware at rest (1886.023 instructions a block; under the heaviest input 109166.234). Soft-float is our runtime's; hardware float is the toolchain's instructions, which fwtest runs; whether the chip has them is open (SR-5).\n\n| # | Engine | Soft-float max | mean | voices | Hardware float max | mean | voices | Full-scale samples |\n|---|---|---|---|---|---|---|---|---|\n| 0 | virtual analog VCF | 1005720 | 960417 | 0 | 29150 | 28833 | 11 | 0 |\n| 1 | phase distortion | 1149220 | 1097263 | 0 | 40840 | 39974 | 8 | 0 |\n| 2 | six-op FM (bank 1) | 818620 | 732996 | 0 | 30560 | 27814 | 11 | 0 |\n| 3 | six-op FM (bank 2) | 828940 | 746783 | 0 | 30760 | 28188 | 11 | 0 |\n| 4 | six-op FM (bank 3) | 825170 | 743337 | 0 | 30510 | 27975 | 11 | 0 |\n| 5 | wave terrain | 1141270 | 1026113 | 0 | 29900 | 27727 | 11 | 0 |\n| 6 | string machine | 1215960 | 1128884 | 0 | 40500 | 40395 | 8 | 0 |\n| 7 | chiptune | 184280 | 174173 | 1 | 10560 | 10273 | 32 | 0 |\n| 8 | virtual analog | 864770 | 803401 | 0 | 32490 | 31364 | 10 | 0 |\n| 9 | waveshaping | 751780 | 729522 | 0 | 19500 | 19192 | 17 | 0 |\n| 10 | FM | 1122140 | 1076868 | 0 | 41400 | 41319 | 8 | 0 |\n| 11 | grain | 1023190 | 870878 | 0 | 28580 | 27239 | 12 | 0 |\n| 12 | additive | 1679090 | 1636539 | 0 | 45790 | 45759 | 7 | 0 |\n| 13 | wavetable | 1291050 | 1271206 | 0 | 30680 | 30605 | 11 | 0 |\n| 14 | chords | 1139300 | 1054855 | 0 | 35620 | 33122 | 9 | 33 |\n| 15 | speech | 888940 | 487133 | 0 | 26340 | 17532 | 13 | 0 |\n| 16 | swarm | 1073190 | 1043340 | 0 | 28210 | 27369 | 12 | 0 |\n| 17 | noise | 1039730 | 949790 | 0 | 48380 | 47297 | 7 | 1 |\n| 18 | particle | 1184630 | 1119922 | 0 | 47720 | 41848 | 7 | 0 |\n| 19 | string | 1126790 | 949440 | 0 | 38530 | 35533 | 8 | 0 |\n| 20 | modal | 1838250 | 1785765 | 0 | 52640 | 52586 | 6 | 23 |\n| 21 | bass drum | 922440 | 867906 | 0 | 27000 | 26378 | 12 | 149 |\n| 22 | snare drum | 1031790 | 967518 | 0 | 35080 | 33394 | 9 | 3 |\n| 23 | hi-hat | 627630 | 609789 | 0 | 25220 | 25141 | 13 | 0 |\n\nTwo voices at once, core 0 and core 1, against one after the other on core 0:\n\n| Engine | Float | apart | at once | speed-up |\n|---|---|---|---|---|\n| virtual analog VCF | soft | 1792030 | 972400 | 1.843 |\n| virtual analog | soft | 1510230 | 778490 | 1.940 |\n| string | soft | 1456230 | 858550 | 1.696 |\n| virtual analog VCF | hardware | 56240 | 28320 | 1.986 |\n| virtual analog | hardware | 60610 | 29950 | 2.024 |\n| string | hardware | 73430 | 36920 | 1.989 |\n\n| Check | Result | Detail |\n|---|---|---|\n| demo builds | PASS |  |\n| demo build is deterministic | PASS |  |\n| live demo plays without underrun (soft) | PASS | engine 7, 0 underruns while playing, peak 12656 |\n| live demo plays without underrun (hw) | PASS | engine 0, 0 underruns while playing, peak 9865 |\n| soft-float bit for bit (soft image) | PASS | 15 operations, 20000 cases each |\n| bench completes (soft) | PASS |  |\n| core 1 starts and renders (soft) | PASS |  |\n| soft-float bit for bit (hw image) | PASS | 15 operations, 20000 cases each |\n| bench completes (hw) | PASS |  |\n| core 1 starts and renders (hw) | PASS |  |\n| no NaN, infinity or bad conversion | PASS | soft-float flags {'invalid': 0, 'overflow': 0, 'convert': 0} |\n| hardware float sounds the same | PASS | 24 of 24 engines' checksums equal |\n",
+  "schema": 1,
+  "subject": "Merge pull request #179 from japes98/engine/no-start-screens",
+  "traceability": [
+    {
+      "checks": [
+        "C-UNIT",
+        "C-COMMIT-MSG"
+      ],
+      "requirement": "R-PROC-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-MERGE"
+      ],
+      "requirement": "R-PROC-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-PROC-3",
+      "result": "not machine-checked (review)"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-PROC-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-REC-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-REC-2",
+      "result": "not machine-checked (records.yml, ots-upgrade.yml)"
+    },
+    {
+      "checks": [
+        "C-NO-TOOLCHAIN",
+        "C-IMAGE"
+      ],
+      "requirement": "R-REPRO-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-IMAGE"
+      ],
+      "requirement": "R-REPRO-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-BUILD-A",
+        "C-BUILD-B",
+        "C-DETERMINISM"
+      ],
+      "requirement": "R-REPRO-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-REPRO-4",
+      "result": "not machine-checked (review (run by hand; result in the PR))"
+    },
+    {
+      "checks": [
+        "C-SDK-PIN"
+      ],
+      "requirement": "R-REPRO-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-EMU-PIN"
+      ],
+      "requirement": "R-REPRO-6",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PLAITS-PIN"
+      ],
+      "requirement": "R-REPRO-7",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-BUILD-A"
+      ],
+      "requirement": "R-BUILD-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SIZE"
+      ],
+      "requirement": "R-BUILD-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-SEAMS"
+      ],
+      "requirement": "R-BUILD-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEAMS"
+      ],
+      "requirement": "R-BUILD-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEAMS"
+      ],
+      "requirement": "R-BUILD-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEAMS"
+      ],
+      "requirement": "R-ENG-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEAMS"
+      ],
+      "requirement": "R-ENG-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEAMS"
+      ],
+      "requirement": "R-PLAT-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEAMS"
+      ],
+      "requirement": "R-CORE-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEAMS"
+      ],
+      "requirement": "R-RT-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-REUSE"
+      ],
+      "requirement": "R-LIC-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-REUSE",
+        "C-SDK-PIN",
+        "C-PLAITS-PIN",
+        "C-EMU-PIN"
+      ],
+      "requirement": "R-LIC-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-LOW-PROFILE"
+      ],
+      "requirement": "R-PUB-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SECRETS"
+      ],
+      "requirement": "R-PUB-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PRIVATE",
+        "C-RECORD-PRIVATE"
+      ],
+      "requirement": "R-PUB-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-TRANSCRIPTS",
+        "C-CLEAN-FOLDER"
+      ],
+      "requirement": "R-CLEAN-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-CLEAN-2",
+      "result": "not machine-checked (review)"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-TRANSCRIPTS"
+      ],
+      "requirement": "R-CLEAN-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-DENY-LISTS"
+      ],
+      "requirement": "R-CLEAN-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-TRANSCRIPTS"
+      ],
+      "requirement": "R-CLEAN-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEP-TERMS"
+      ],
+      "requirement": "R-SEP-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-DENY-LISTS",
+        "C-TRANSCRIPTS",
+        "C-CLEAN-FOLDER"
+      ],
+      "requirement": "R-SEP-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FWTEST-PIN"
+      ],
+      "requirement": "R-SEP-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-A"
+      ],
+      "requirement": "R-HARN-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-A"
+      ],
+      "requirement": "R-HARN-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-A"
+      ],
+      "requirement": "R-HARN-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-A"
+      ],
+      "requirement": "R-HARN-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-A"
+      ],
+      "requirement": "R-HARN-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-B",
+        "C-HARNESS-DET"
+      ],
+      "requirement": "R-HARN-6",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-TEST",
+        "C-HARNESS-SUITE-A"
+      ],
+      "requirement": "R-HARN-7",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-IMAGES",
+        "C-HARNESS-IMAGE",
+        "C-HARNESS-IMAGE-REPRO"
+      ],
+      "requirement": "R-HARN-8",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-HARNESS-SCOPE"
+      ],
+      "requirement": "R-HARN-9",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FWTEST-PIN"
+      ],
+      "requirement": "R-HARN-10",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-HARN-11",
+      "result": "not machine-checked (C-HARNESS-TEST, C-SPEC-EXPERIMENTS)"
+    },
+    {
+      "checks": [],
+      "requirement": "R-HARN-12",
+      "result": "not machine-checked (C-HARNESS-TEST)"
+    },
+    {
+      "checks": [],
+      "requirement": "R-HARN-13",
+      "result": "not machine-checked (C-HARNESS-TEST, C-HARNESS-SUITE-A)"
+    },
+    {
+      "checks": [
+        "C-HARNESS-ISA"
+      ],
+      "requirement": "R-HARN-14",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-SPEC-LINT"
+      ],
+      "requirement": "R-SPEC-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEP-TERMS"
+      ],
+      "requirement": "R-SPEC-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-SPEC-LINT"
+      ],
+      "requirement": "R-SPEC-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SPEC-EXPERIMENTS"
+      ],
+      "requirement": "R-SPEC-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-BOOT-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-BOOT-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-BOOT-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-BOOT-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-BOOT-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-CLK-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-IRQ-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-IRQ-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-IRQ-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-IRQ-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-IRQ-5",
+      "result": "not machine-checked (planned (SR-1))"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LCD-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LCD-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LCD-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LCD-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LCD-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE",
+        "C-PERF"
+      ],
+      "requirement": "R-LCD-6",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-KEY-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-KEY-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-KEY-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-ENC-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-ENC-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-POT-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-POT-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LED-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LED-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-LED-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-INPUT-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-INPUT-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-INPUT-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-AUD-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-AUD-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-AUD-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-AUD-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-AUD-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-AUD-6",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-AUD-7",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-FM-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-FM-2",
+      "result": "not machine-checked (review; C-FW-SUITE (R-FM-8))"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-FM-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-FM-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-FM-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-FM-6",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-FM-7",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-FM-8",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-FM-9",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDI-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDI-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDI-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDI-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDI-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDI-6",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDI-7",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEAMS"
+      ],
+      "requirement": "R-MIDI-8",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDIOUT-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDIOUT-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE",
+        "C-PERF"
+      ],
+      "requirement": "R-MIDIOUT-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDIOUT-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDIOUT-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDIOUT-6",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDIOUT-7",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-MIDIOUT-8",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-SEAMS"
+      ],
+      "requirement": "R-MIDIOUT-9",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-STORE-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-STORE-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-STORE-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-STORE-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-STORE-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-STORE-6",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-STORE-7",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-STORE-8",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-STORE-9",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-SEAMS"
+      ],
+      "requirement": "R-STORE-10",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-SEAMS"
+      ],
+      "requirement": "R-STORE-11",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-STORE-12",
+      "result": "not machine-checked (C-UNIT, C-SEAMS)"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE",
+        "C-PERF"
+      ],
+      "requirement": "R-UI-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-6",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-7",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-8",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-9",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-10",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-11",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-12",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-13",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-UI-14",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-PRESETS"
+      ],
+      "requirement": "R-PRESET-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PRESETS"
+      ],
+      "requirement": "R-PRESET-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PRESETS"
+      ],
+      "requirement": "R-PRESET-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PRESETS"
+      ],
+      "requirement": "R-PRESET-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-ARP"
+      ],
+      "requirement": "R-ARP-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-ARP"
+      ],
+      "requirement": "R-ARP-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-ARP"
+      ],
+      "requirement": "R-ARP-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-ARP"
+      ],
+      "requirement": "R-ARP-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-ARP"
+      ],
+      "requirement": "R-ARP-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-ARP"
+      ],
+      "requirement": "R-ARP-6",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE",
+        "C-ARP"
+      ],
+      "requirement": "R-ARP-7",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-ARP",
+        "C-PERF"
+      ],
+      "requirement": "R-ARP-8",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE",
+        "C-ARP"
+      ],
+      "requirement": "R-GOLD-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-FW-SUITE"
+      ],
+      "requirement": "R-GOLD-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-GOLD-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-RELEASE"
+      ],
+      "requirement": "R-REL-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-RELEASE"
+      ],
+      "requirement": "R-REL-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-REL-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT",
+        "C-PACKAGE"
+      ],
+      "requirement": "R-PKG-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PACKAGE"
+      ],
+      "requirement": "R-PKG-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-AUDIT-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-AUDIT-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-AUDIT-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-AUDIT-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-AUDIT-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [],
+      "requirement": "R-AUDIT-6",
+      "result": "not machine-checked (review; C-TRANSCRIPTS (no transcript outside `sessions/clean/` and `sessions/spec/`))"
+    },
+    {
+      "checks": [
+        "C-PERF"
+      ],
+      "requirement": "R-PERF-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PERF"
+      ],
+      "requirement": "R-PERF-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PERF",
+        "C-PERF-PROBES"
+      ],
+      "requirement": "R-PERF-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-UNIT"
+      ],
+      "requirement": "R-PERF-4",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PERF-PROBES"
+      ],
+      "requirement": "R-PERF-5",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PLAITS-BENCH"
+      ],
+      "requirement": "R-PLAITS-1",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PLAITS-BENCH"
+      ],
+      "requirement": "R-PLAITS-2",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PLAITS-BENCH"
+      ],
+      "requirement": "R-PLAITS-3",
+      "result": "PASS"
+    },
+    {
+      "checks": [
+        "C-PLAITS-BENCH"
+      ],
+      "requirement": "R-PLAITS-4",
+      "result": "PASS"
+    }
+  ],
+  "tree": "72801d401450cde988ecfc04e7bf6c668b2f2018",
+  "withheld": [],
+  "worktree_clean": true
+}
