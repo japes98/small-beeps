@@ -165,8 +165,8 @@ CHECKS = [
      "cmd": lambda: [PY, "-I", "tools/package_suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "package")]},
     # The seams for firmwares built on small-beeps (clean-1027).
-    {"id": "C-SEAMS", "title": "Seams for firmwares built on small-beeps: the build's write-back store check, outside sources, per-folder flags, the engine seam, the platform alone, core 1's start, the runtime, the SysEx tap, raw MIDI out, the store's firmware kinds, saves cut by a power cut (tools/seams_suite.py)",
-     "reqs": ["R-BUILD-3", "R-BUILD-4", "R-BUILD-5", "R-ENG-1", "R-PLAT-1", "R-CORE-1", "R-RT-1", "R-MIDI-8",
+    {"id": "C-SEAMS", "title": "Seams for firmwares built on small-beeps: the build's write-back store check, outside sources, per-folder flags, the engine seam, the platform alone, core 1's start, the runtime, the SysEx tap, raw MIDI out, the store's firmware kinds, saves cut by a power cut, starting without the bring-up screens (tools/seams_suite.py)",
+     "reqs": ["R-BUILD-3", "R-BUILD-4", "R-BUILD-5", "R-ENG-1", "R-ENG-2", "R-PLAT-1", "R-CORE-1", "R-RT-1", "R-MIDI-8",
               "R-MIDIOUT-9", "R-STORE-10", "R-STORE-11"],
      "cmd": lambda: [PY, "-I", "tools/seams_suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "seams")]},
