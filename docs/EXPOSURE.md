@@ -2414,6 +2414,55 @@ SR-3 wrote only its barrier-log row.*
 - Force-pushes: none.
 - Disk: 6.0 GB free at the start; about 5.8 GB at the lowest.
 
+### Session clean-br16 (BR-16: starting without the base's bring-up screens)
+- Date: 2026-10-30 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.314 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  started by a `/clear` at 23:48:30Z (banner `source: clear`,
+  `status: OK`). Its own transcript is left for the next clean session to
+  archive.
+- Where it ran: the owner's Mac, in `~/<top>/clean`.
+- Start: the role file says `clean`. `tools/clean-update.sh`, run from
+  main, found main at `1881f8c0` (#178's merge) and ended "no spec-side
+  files on disk or in .git"; lazy fetching off (`GIT_NO_LAZY_FETCH=1`).
+  It archived clean-mllvm (`07832bdb`) into `sessions/clean/`; every
+  other clean session was already archived. `tools/check-transcripts.py`:
+  26 archived transcripts, PASS; no reviewed entries were added. The Mac
+  had 4.3 GB free.
+- A spec session may work at the same time; this session opens none of its
+  branches.
+- Reads: this file, CONTRIBUTING.md, sessions/README.md,
+  docs/REQUIREMENTS.md, docs/DESIGN-NOTES.md and
+  docs/BUILDING-ON-SMALL-BEEPS.md (the parts these changes touch),
+  docs/HARNESS.md (its run options, outputs and timing), clean-mllvm's
+  prompt and commits, the firmware's main, screen, LCD and engine
+  sources, and this repository's tools and tests. Nothing fetched from
+  outside the repository but the build image's and fwtest's own
+  downloads.
+- GitHub: pull requests listed (#175 to #178, all merged).
+- A history command without a pathspec: to build main's build A for
+  comparison, the session ran `git archive 1881f8c0` over the whole
+  tree, against CONTRIBUTING's rule that history commands leave the
+  three spec-side folders out. With lazy fetching off it failed ("could
+  not fetch ... from promisor remote") and nothing was downloaded or
+  extracted; a second try, given firmware/, tools/, tests/, config/ and
+  vendor/plaits/, also gave nothing (its error went into tar). Main's
+  build A was then built from a copy of the working tree with main's
+  versions of the five changed files (`git show main:<file>`).
+- **#179 (BR-16, R-ENG-2):** C-UNIT (408 tests) in this folder; build
+  A's `app.bin` from a copy of the tree the same bytes as main's
+  (`5bc12a34…`); the seams suite's nostart, engine and platform cases
+  from that copy: PASS, the first serve at 500 ms by default and at
+  127 ms with `SB_NO_START_SCREENS` (373 ms sooner: `lcd_init`'s own
+  125 ms stays), the option alone refused; with main's `main.c` the
+  nostart case fails on every check.
+- Force-pushes: none.
+- Disk: 4.3 GB free at the start; about 3.1 GB at the lowest.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

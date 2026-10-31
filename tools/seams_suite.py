@@ -159,6 +159,18 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   region test build's until now), one off a sector boundary (0x20800)
   and one of 2 sectors. tools/store-region.pl's every refusal is
   unit-tested (tests/test_store_region.py).
+- nostart (R-ENG-2): starting without the base's bring-up screens
+  (BR-16). The test engine built with SB_ENGINE_EXTERNAL alone and with
+  SB_NO_START_SCREENS as well, each run for 800 ms. Its first serve
+  records what main left: by default the test screen (the second whole
+  frame) at 500 ms; with the option black (SB_SCREEN_BLANK) after one
+  whole frame, at least NOSTART_SOONER ms sooner (lcd_init's own waits
+  stay), and there it draws its own frame, a square. At the end the
+  panel is that square on black, nothing else (so the one frame before
+  it was black: neither the pattern nor the test screen reached the
+  panel), and the beacon shows the engine's screen, no test screen
+  drawn (render time 0) and no heartbeat shown. The option without
+  SB_ENGINE_EXTERNAL (the base's instrument) is refused.
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -448,7 +460,8 @@ ENGINE_FIELDS = ("marker", "inits", "init_ticks", "init_blocks", "blocks", "fram
                  "sysex_len", "sysex_sum", "sysex_first", "sysex_last", "realtime", "notes",
                  "raw_started", "raw_done", "out_notes", "out_clocks", "out_refused",
                  "step", "boot_large", "boot_large_sum", "boot_small", "boot_small_sum", "put_result",
-                 "put2_result", "put_len", "put_sum", "boot_patch", "boot_patch_sum", "stepped")
+                 "put2_result", "put_len", "put_sum", "boot_patch", "boot_patch_sum", "stepped",
+                 "first_beats", "first_screen", "first_frames", "drawn_beats")
 RUNTIME_RESULT = 1301           # tests/seams/engine/sb_test_runtime.cc
 RUNTIME_SYMBOLS = ("memcpy", "memmove", "memset", "__cxa_pure_virtual", "_ZdlPv")
 CORE1_START_WORD = 0x01c7fff8   # source 126's vector word, core 1's start address (HW-9)
@@ -1046,6 +1059,68 @@ def case_region(a, work, log):
     return problems
 
 
+# --- nostart --------------------------------------------------------------
+
+NOSTART_MS = 800
+NOSTART_SOONER = 300            # ms; measured 373 (DESIGN-NOTES, clean-br16)
+SCREEN_TEST, SCREEN_PANEL, SCREEN_BLANK = 2, 3, 4   # firmware/src/sb.h, SB_SCREEN_*
+BEACON_ADDR = 0x01c00000
+DRAWN = (100, 100, 40)          # tests/seams/engine/sb_test_engine.c: DRAWN_X, DRAWN_Y, DRAWN_SIZE
+
+
+def case_nostart(a, work, log):
+    problems, first = [], {}
+    fws = fw_suite()
+    for name, opts in (("default", ()), ("nostart", ("--define", "SB_NO_START_SCREENS"))):
+        b = os.path.join(work, name)
+        build(b, log, "--src", "tests/seams/engine", "--define", "SB_ENGINE_EXTERNAL", *opts)
+        rec = fws.elf_symbols(os.path.join(b, "app.elf"))["sb_test_engine"]
+        run = os.path.join(work, name + "-run")
+        r = fwtest(os.path.join(b, "app.bin"), run, log, "--ms", str(NOSTART_MS),
+                   "--ram", "0x%08x:%d@end" % (rec, 4 * len(ENGINE_FIELDS)),
+                   "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN), "--lcd", "end")
+        if r["run"]["outcome"] != "completed":
+            return ["%s: the run %s (%s)" % (name, r["run"]["outcome"], r["run"].get("detail"))]
+        e = words(ram(run, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS)
+        bc = fws.beacon(ram(run, BEACON_ADDR, fws.BEACON_LEN))
+        _, _, rows = fws.read_png(os.path.join(run, "lcd-end.png"))
+        first[name] = e
+        if name == "default":
+            want = {"first_screen": SCREEN_TEST, "first_frames": 2, "drawn_beats": 0}
+            if e["first_beats"] < 499:
+                problems.append("default: the first serve at %d ms, before the test screen's 500" % e["first_beats"])
+        else:
+            want = {"first_screen": SCREEN_BLANK, "first_frames": 1}
+            if not e["first_beats"] <= e["drawn_beats"] <= e["first_beats"] + 2:
+                problems.append("nostart: its frame sent at %d ms, the first serve at %d" % (
+                    e["drawn_beats"], e["first_beats"]))
+            for k, v in (("screen", SCREEN_PANEL), ("render_ticks", 0), ("shown", 0)):
+                if bc[k] != v:
+                    problems.append("nostart: the beacon's %s is %d, not %d" % (k, bc[k], v))
+            x0, y0, n = DRAWN
+            square = fws.rgb8(0, 63, 31)
+            wrong = [(x, y) for y, row in enumerate(rows) for x, p in enumerate(row)
+                     if p != (square if x0 <= x < x0 + n and y0 <= y < y0 + n else (0, 0, 0))]
+            if wrong:
+                problems.append("nostart: %d pixels at the end are not the square on black, the first at %s"
+                                % (len(wrong), wrong[0]))
+        for k, v in want.items():
+            if e[k] != v:
+                problems.append("%s: %s is %d, not %d" % (name, k, e[k], v))
+    sooner = first["default"]["first_beats"] - first["nostart"]["first_beats"]
+    if sooner < NOSTART_SOONER:
+        problems.append("the first serve only %d ms sooner with SB_NO_START_SCREENS" % sooner)
+    code, out = build(os.path.join(work, "alone"), log, "--define", "SB_NO_START_SCREENS", check=False)
+    if not code or "SB_NO_START_SCREENS is for an engine built on the base" not in out:
+        problems.append("SB_NO_START_SCREENS without SB_ENGINE_EXTERNAL not refused (exit %d)" % code)
+    d, n = first["default"], first["nostart"]
+    print("nostart: the first serve at %d ms by default (screen %d, %d frames), at %d ms with"
+          " SB_NO_START_SCREENS (screen %d, %d frame), %d ms sooner; the option without an external"
+          " engine refused" % (d["first_beats"], d["first_screen"], d["first_frames"], n["first_beats"],
+                               n["first_screen"], n["first_frames"], sooner))
+    return problems
+
+
 CASES = [
     ("ownbase", case_ownbase),
     ("outside", case_outside),
@@ -1057,6 +1132,7 @@ CASES = [
     ("store", case_store),
     ("powercut", case_powercut),
     ("region", case_region),
+    ("nostart", case_nostart),
 ]
 
 

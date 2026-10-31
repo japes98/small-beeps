@@ -27,6 +27,10 @@
  *   is called main has brought up the screen and shown the test screen;
  *   main keeps the heartbeat on it while sb_beacon.screen is
  *   SB_SCREEN_TEST, so an engine that draws its own sets another value.
+ *   Built with SB_NO_START_SCREENS as well (since BR-16), main sends a
+ *   black frame before the display goes on, shows neither the address
+ *   pattern nor the test screen and does not wait for the test screen's
+ *   time: the screen is black (SB_SCREEN_BLANK) until the engine draws.
  */
 
 #ifndef ENGINE_H

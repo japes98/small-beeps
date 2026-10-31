@@ -11,7 +11,8 @@
  * second and, from the first touch on, the instrument's screens (M8a,
  * views.c). Built with SB_ENGINE_EXTERNAL (since clean-1027, BR-1) it
  * runs an engine defined outside the base's instrument instead
- * (engine.h).
+ * (engine.h), and with SB_NO_START_SCREENS as well (since BR-16) shows
+ * black in place of the pattern and the test screen.
  */
 
 #include "sb.h"
@@ -51,6 +52,10 @@
 /* When the test screen replaces the address pattern, in beats. */
 #define TEST_SCREEN_MS 500u
 #define BEATS_PER_SECOND 1000u
+
+#if defined(SB_NO_START_SCREENS) && !defined(SB_ENGINE_EXTERNAL)
+#error "SB_NO_START_SCREENS is for an engine built on the base (SB_ENGINE_EXTERNAL)"
+#endif
 
 extern u32 __stack_limit[], __irq_stack_top[];
 
@@ -275,6 +280,16 @@ int main(void)
     /* The screen: the controller's start, the address pattern sent while
      * the display is still off, then display on (DESIGN-NOTES.md, M2). */
     lcd_init();
+#if defined(SB_NO_START_SCREENS)
+    /* Since BR-16 an engine may start without the bring-up screens: a
+     * black frame in place of the pattern (the engine's init may have
+     * drawn into the frame buffer), no wait and no test screen, so its
+     * first serve comes as soon as the display is on. */
+    gfx_fill(0, 0, SCREEN_W, SCREEN_H, 0);
+    lcd_send_rows(0, SCREEN_H);
+    lcd_command(LCD_DISPON, 0, 0);
+    sb_beacon.screen = SB_SCREEN_BLANK;
+#else
     screen_pattern();
     lcd_send_rows(0, SCREEN_H);
     lcd_command(LCD_DISPON, 0, 0);
@@ -289,6 +304,7 @@ int main(void)
     }
     lcd_send_rows(0, SCREEN_H);
     sb_beacon.screen = SB_SCREEN_TEST;
+#endif
 #if defined(SB_TEST_STORE_WIPE)
     sb_test_store_wipe();
 #endif
