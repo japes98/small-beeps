@@ -98,6 +98,15 @@ void sb_engine_serve(void)
   draw into the frame buffer with `gfx_*` and send rows with
   `lcd_send_rows()` or a rectangle with `lcd_send_rect()` (`sb.h`; wait
   for `lcd_busy()` to be 0 first), from your serve.
+- **Starting without the base's screens.** Build with
+  `--define SB_NO_START_SCREENS` as well and main skips its bring-up
+  screens (BR-16): it sends a black frame before the display goes on,
+  shows neither the address pattern nor the test screen, and calls your
+  first serve as soon as the display is on, about 130 ms after start-up
+  instead of 500 (the controller's own start, 125 ms, stays).
+  `sb_beacon.screen` is `SB_SCREEN_BLANK` until you set your own; there
+  is no heartbeat to stop. It needs `SB_ENGINE_EXTERNAL` (`--platform`
+  gives it): without it the build stops with an error.
 - **C++** works too: name the file `.cc`. The platform's runtime has
   `memcpy`, `memmove`, `memset`, `<algorithm>`, `<string.h>`,
   `<inttypes.h>`, `<stddef.h>`, `<math.h>` and what virtual classes and
@@ -306,6 +315,7 @@ sh base/tools/build.sh build --out out --platform --src src --ld src/my.ld
 | `--src DIR` | every `.c`, `.S` and `.cc` under DIR, built with the firmware's flags and `-I DIR`; repeat it for more folders (not a folder holding `base/`) |
 | `--ld SCRIPT` | your linker script (in `base/` or in a `--src` folder) |
 | `--define NAME` | `-DNAME` for every source (yours and the base's) |
+| `--define SB_NO_START_SCREENS` | with `SB_ENGINE_EXTERNAL`: start on a black screen, without the address pattern, the test screen and their 500 ms (section 2, "Starting without the base's screens") |
 | `--leave-out FILE` | a base source left out (`firmware/src/...`), to replace it with your own |
 | `--cflags DIR FLAGS` | FLAGS for the C files under DIR (a `--src` folder or a folder inside one), after the firmware's flags; the base's own files never get them |
 | `--cxxflags DIR FLAGS` | the same for the C++ (`.cc`) files under DIR |

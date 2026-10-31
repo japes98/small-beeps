@@ -3665,3 +3665,40 @@ unexplained change in fwtest 0.10.0's instruction counts.
   operations, which moves instruction counts slightly with the same
   results. These three cases are the ones that save while the audio
   runs.
+
+### 2026-10-30 clean-br16: starting without the base's bring-up screens (BR-16, R-ENG-2)
+
+A firmware built on the base asked (BR-16) to start without the base's
+bring-up screens: today main shows the address pattern, waits until
+500 ms and draws the test screen at every power-on, before the engine's
+first serve can draw its own.
+
+- **The option.** `SB_NO_START_SCREENS`, given with `--define` (so main.c
+  sees it; a folder's `--cflags` never reach the base's files). Under
+  it main, after `lcd_init()`, fills the frame buffer black (the
+  engine's init may already have drawn into it), sends it and turns the
+  display on, as the pattern is sent today: the panel's memory is
+  written before the display shows it. It does not wait for the test
+  screen's time and never draws the test screen.
+- **A state of its own.** `sb_beacon.screen` is `SB_SCREEN_BLANK` (4,
+  after the existing values, which keep their numbers) until the engine
+  sets its own. The heartbeat is drawn only while the state is
+  `SB_SCREEN_TEST`, so it stays off; `render_ticks` stays 0. The
+  firmware suite's checks read the default build only, which is
+  unchanged: build A's image is the same bytes as before
+  (`5bc12a34…`), so every golden is too.
+- **Only with an external engine.** Without `SB_ENGINE_EXTERNAL` the
+  base's instrument would show black until the first touch (its screens
+  start then), a configuration nothing tests; main.c stops the build
+  with an `#error` instead.
+- **How much sooner.** The first serve moves from 500 ms to 127 ms in
+  fwtest: 373 ms, not the whole 500, because `lcd_init()`'s own waits
+  (120 ms after the reset, 5 ms after sleep out) stay. The case's bound
+  is 300 ms.
+- **Tested.** C-SEAMS, case nostart: the test engine (which since this
+  change records, at its first serve, the heartbeat's time, the screen
+  state and the whole frames sent, and with the option draws a square
+  of its own there) built with and without the option, and the option
+  alone refused. Without the change in main.c the case fails on every
+  check (the first serve at 500 ms both ways, the test screen on the
+  panel).

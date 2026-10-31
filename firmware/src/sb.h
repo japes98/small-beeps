@@ -69,6 +69,7 @@ struct sb_beacon {
 #define SB_SCREEN_PATTERN 1u  /* the address pattern (screen.c) */
 #define SB_SCREEN_TEST    2u  /* the test screen with the heartbeat */
 #define SB_SCREEN_PANEL   3u  /* the live panel screen (panel.c, M3); since M8a the instrument's screens (views.c) */
+#define SB_SCREEN_BLANK   4u  /* since BR-16: black, with SB_NO_START_SCREENS, in place of the first two */
 
 #define SB_MARKER     0x44304253u  /* "SB0D" in memory order */
 #define SB_MARKER_BAD 0x21444142u  /* "BAD!": startup left data wrong */

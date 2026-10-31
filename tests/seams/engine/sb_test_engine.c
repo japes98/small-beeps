@@ -25,7 +25,10 @@
  * first key press (so a run without one only reads the store at
  * start-up): a payload rewritten, large or small, or a user slot's patch
  * (the base's kind), for the suite to cut the power part way; and it
- * records a user slot's patch at start-up too.
+ * records a user slot's patch at start-up too. Since BR-16 its first
+ * serve records the heartbeat's time and what the screen shows, and
+ * built with SB_NO_START_SCREENS it draws its own first frame there: a
+ * square of DRAWN_COLOUR on black.
  */
 
 #include "audio.h"
@@ -39,6 +42,13 @@
 #define TEST_ENGINE_MARKER 0x31474E45u   /* "ENG1" in memory order */
 #define HALF_PERIOD        50u           /* frames: about 441 Hz */
 #define LEVEL              (AUDIO_FULL / 16)
+
+/* Since BR-16: its own first frame (tools/seams_suite.py, case
+ * nostart), the square's place and colour. */
+#define DRAWN_X      100u
+#define DRAWN_Y      100u
+#define DRAWN_SIZE   40u
+#define DRAWN_COLOUR RGB565(0, 63, 31)
 
 struct sb_test_engine_record {
     u32 marker;
@@ -89,6 +99,11 @@ struct sb_test_engine_record {
     u32 boot_patch;     /* STORE_PATCH, PATCH_SLOT at start-up */
     u32 boot_patch_sum;
     u32 stepped;        /* the block in which the serve did the step, or 0 */
+    /* Since BR-16, what main left when the first serve came: */
+    u32 first_beats;    /* the heartbeat's beats (ms since main started it) */
+    u32 first_screen;   /* sb_beacon.screen */
+    u32 first_frames;   /* whole frames sent to the panel */
+    u32 drawn_beats;    /* with SB_NO_START_SCREENS: beats when it sent its own frame, or 0 */
 };
 
 u32 sb_test_runtime(void);
@@ -351,6 +366,19 @@ void sb_engine_serve(void)
                                     : sb_test_engine.presses > 0)) {
         sb_test_engine.stepped = sb_audio.blocks + 1;
         store_step();
+    }
+    if (!sb_test_engine.serves) {
+        sb_test_engine.first_beats = sb_beacon.beats;
+        sb_test_engine.first_screen = sb_beacon.screen;
+        sb_test_engine.first_frames = sb_beacon.frames;
+#if defined(SB_NO_START_SCREENS)
+        sb_beacon.screen = SB_SCREEN_PANEL;
+        gfx_fill(DRAWN_X, DRAWN_Y, DRAWN_SIZE, DRAWN_SIZE, DRAWN_COLOUR);
+        while (lcd_busy())
+            ;
+        lcd_send_rect(DRAWN_X, DRAWN_Y, DRAWN_SIZE, DRAWN_SIZE);
+        sb_test_engine.drawn_beats = sb_beacon.beats;
+#endif
     }
     sb_test_engine.serves++;
     sb_test_engine.serve_seconds = sb_seconds;
