@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range a73fbeff5333931814e20165198b01015ec6ea41..e13af89e496266b600640332be9f75366f1841bf
+OK     bf17c751cd66 sessions: clean-br17-round2 starts (nothing to archive)
+OK     1077faacd1ca tools: the hardware package and the unit's checks (BR-17 round 2)
+OK     e4593f3c5f7c firmware: an entry-return probe for Phase B; SR-14 (BR-17 round 2)
+OK     85c545d25e06 spec: the FM-1's panel, backlight, keys, LEDs and app entry (SR-14)
+OK     1557e5fda3ed docs: P-68 no longer quotes an SPDX tag (C-REUSE)
+EXEMPT e13af89e4962 (merge) Merge pull request #186 from japes98/spec/sr14
+6 commit(s) checked: PASS
+
+exit status 0
