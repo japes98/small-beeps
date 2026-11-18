@@ -2628,6 +2628,34 @@ SR-3 wrote only its barrier-log row.*
 - Force-pushes: none.
 - Disk: 5.5 GB free at the start; about 5.4 GB at the lowest.
 
+### Session clean-br17-round2 (BR-17 round 2: a hardware package from section 25)
+- Date: 2026-11-18 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.325, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br16's and clean-br17's, continued. The owner's prompt is the
+  file `~/<top>/drop/prompts/clean-br17-round2.md`, read as the owner
+  asked and saved unedited as docs/prompts/clean-br17-round2.md.
+- Where it ran: the owner's Mac, in `~/<top>/clean`; the role file says
+  `clean`.
+- Start: `tools/clean-update.sh`, run from main, found main at `a73fbeff`
+  (#184's merge: HARDWARE-SPEC section 25; #183 merged into it) and ended
+  "no spec-side files on disk or in .git"; lazy fetching off. Nothing to
+  archive: the only clean transcript not in `sessions/clean/` is this
+  session's own, still being written. The Mac had 2.7 GB free, so no
+  copy of the tree was made: main's firmware is unchanged since build A
+  was last built here, and its package link (`3577c147…`) is reused.
+- A spec session may work at the same time; this session opens none of its
+  branches. #184 was read only as merged on main.
+- Reads: HARDWARE-SPEC sections 21, 24 and 25 (HW-109 to HW-114), HW-80,
+  Q-25 and Q-26; SPEC-REQUESTS.md (SR-12, SR-13); PROVENANCE.md (P-67's
+  row, to number P-68); this repository's tools, tests and docs that the
+  change touches.
+- GitHub: pull requests listed (#181 to #184, all merged).
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
