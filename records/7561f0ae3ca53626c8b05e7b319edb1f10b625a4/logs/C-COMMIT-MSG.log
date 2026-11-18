@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 848293e5e8f94e0f18abf66f2bd4e7366c769170..7561f0ae3ca53626c8b05e7b319edb1f10b625a4
+OK     82aac03a4361 ci: quick checks first, the rest in parallel jobs; the numbering rule
+EXEMPT 7561f0ae3ca5 (merge) Merge pull request #191 from japes98/spec/ci-speed
+2 commit(s) checked: PASS
+
+exit status 0

@@ -1,0 +1,33 @@
+{
+  "fwtest": {
+    "version": "0.10.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 55808,
+    "sha256": "2649dd70b1913f6a50393d57f22d144efe6dc0d60ccccb283ab0ef13bd2321e7"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "3000.492",
+    "instructions": {
+      "core0": 401656224,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "lcd-end.png",
+        "bytes": 173118,
+        "sha256": "23c27ca23a8a8b50406a215af27a8b06dcb35bc8f31300d7fb499f34e28eb41d"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
