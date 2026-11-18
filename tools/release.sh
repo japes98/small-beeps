@@ -131,7 +131,8 @@ created=$(TZ=UTC git -C "$ROOT" log -1 --date=format-local:%Y-%m-%dT%H:%M:%SZ --
 for d in r1 r2; do
     "$PY" -I "$ROOT/tools/release.py" build --tag "$tag" --version "$version" --commit "$commit" \
         --src "$work/src" --build "$work/b1" --report "$report" --record-sums-sha256 "$sums" \
-        --fwtest-version "$fwver" --created "$created" --build-container "$container" --out "$work/$d"
+        --fwtest-version "$fwver" --created "$created" --build-container "$container" --out "$work/$d" \
+        --releases "$ROOT/config/releases.json"
 done
 diff -r "$work/r1" "$work/r2" >/dev/null || fail "the two releases differ"
 "$PY" -I "$ROOT/tools/release.py" verify "$work/r1"

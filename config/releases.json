@@ -1,6 +1,7 @@
 {
-  "comment": "App releases (docs/RELEASING.md): each signed milestone tag that gets one, and its version. tools/release.sh and .github/workflows/release.yml refuse a tag not listed. App releases start at 0.9.0 (docs/M9-PLAN.md, the owner's answer 6). Added only by pull request.",
+  "comment": "App releases (docs/RELEASING.md): each signed milestone tag that gets one, and its version. tools/release.sh and .github/workflows/release.yml refuse a tag not listed. App releases start at 0.9.0 (docs/M9-PLAN.md, the owner's answer 6). Added only by pull request. unit_checks (since BR-17): a tag whose build was checked on an FM-1 unit, with how much was checked (checked, one line, quoted in the release notes) and where the check is recorded (record); only such a tag's release names the hardware target fm1-unit. None yet.",
   "versions": {
     "m9": "0.9.0"
-  }
+  },
+  "unit_checks": {}
 }

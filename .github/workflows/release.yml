@@ -40,6 +40,7 @@ jobs:
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
       skip: ${{ steps.tag.outputs.skip }}
+      unit: ${{ steps.tag.outputs.unit }}
     steps:
       # main's tools, whatever the tag (older tags have no release tools).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -68,6 +69,11 @@ jobs:
             exit 0
           fi
           echo "skip=false" >> "$GITHUB_OUTPUT"
+          # A recorded unit check (config/releases.json's unit_checks; one
+          # line, tools/release.py checks it): the notes quote it.
+          unit=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get("unit_checks", {}).get(sys.argv[2], {}).get("checked", ""))' \
+            config/releases.json "$TAG")
+          printf 'unit=%s\n' "$unit" >> "$GITHUB_OUTPUT"
           git fetch --no-tags origin "+refs/tags/$TAG:refs/tags/$TAG"
 
       - name: The records branch
@@ -106,9 +112,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.build.outputs.tag }}
+          UNIT: ${{ needs.build.outputs.unit }}
         run: |
           set -eu
           version=$(python3 -c 'import json; print(json.load(open("release/release.json"))["version"])')
+          targets=$(python3 -c 'import json; print(" ".join(json.load(open("release/release.json"))["targets"]))')
           # Only a release that records the build's identity
           # (tools/release.py verify --publish checks the same): never a
           # local dry run.
@@ -124,6 +132,11 @@ jobs:
               echo "Built by the release workflow from the signed tag's commit and checked against its test record;"
               echo "\`release.json\` names the commit, the record's tree hash and the fwtest it passed on;"
               echo "the app opens \`small-beeps-$version.fm1img\` (docs/M9-PLAN.md, \"The release format\")."
+              echo
+              case " $targets " in
+                *" fm1-unit "*) echo "Checked on an FM-1 unit (target \`fm1-unit\`): $UNIT" ;;
+                *) echo "Not checked on an FM-1 unit: for the F-Emulator app and the emulated load paths only (its \`.fwsc\` is the full image, never for a unit)." ;;
+              esac
               echo
               echo '```'
               cat release/SHA256SUMS

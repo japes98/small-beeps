@@ -80,8 +80,8 @@ least significant. Register names are the JieLi SDK's.
 | MAN | M-VAVE's user manuals: the FM-1's, the English part (pages 1-12) of `https://m.media-amazon.com/images/I/A1WOydif9HL.pdf`, SHA-256 `69bfea10…8b715da`, accessed 2026-10-24 (PROVENANCE P-41); the SMK-37 Pro's, as `https://www.manualslib.com/manual/4132288/M-Vave-Smk-37-Pro.html` shows it, accessed 2026-10-24 (PROVENANCE P-42). Neither copied into this repository. Only what they say about the connections is used. |
 | MPLUS | Manuals+'s "M-VAVE SMK-37 PRO MIDI Controller User Manual", `https://manuals.plus/asin/B0GQZP7C8G.pdf`, 13 pages, SHA-256 `77d9d537…3e3745`, accessed 2026-10-24, supplied by the owner and checked by the planning conversation, not fetched by a session here (PROVENANCE P-49). A third party's write-up, not M-VAVE's manual: secondary, it never confirms an entry on its own. Not copied into this repository. |
 | PKG | JieLi's packaging tools from the SDK (as SDK, same commit), `cpu/wl82/tools/loader_tools/`: `isd_download.exe` (4.2.52), `fw_add.exe` and `ufw_maker.exe`, run under wine 8.0 in a throwaway container with no network, on our own input (PROVENANCE P-65). They show what JieLi's packaging writes, not what the chip checks. |
-| MF | m-flasher, the FM-1 installer on the owner's unit, `https://github.com/jvitkauskas/m-flasher` at `8fbece7348d758ac284325eed455781675ac95ff` (2026-11-15), MIT: `src/formats.rs`, `src/ops.rs`, `docs/usage.md`, `docs/safety.md` only, read under the owner's ruling for BR-17 (PROVENANCE P-66). Only the package format and what it checks are taken. |
-| MB | m-bootloader, the bootloader on the owner's unit, `https://github.com/jvitkauskas/m-bootloader` at `3ac7651a019fa44daba061b05654278496477b64` (2026-11-13), MIT: `docs/SPEC.md` only, its flash formats and checked start (PROVENANCE P-66). No stock firmware's details are taken from it. |
+| MF | m-flasher, the FM-1 installer on the owner's unit, `https://github.com/jvitkauskas/m-flasher` at `8fbece7348d758ac284325eed455781675ac95ff` (2026-11-15), MIT: `src/formats.rs`, `src/ops.rs`, `docs/usage.md`, `docs/safety.md` only, read under the owner's ruling for BR-17 (PROVENANCE P-67). Only the package format and what it checks are taken. |
+| MB | m-bootloader, the bootloader on the owner's unit, `https://github.com/jvitkauskas/m-bootloader` at `3ac7651a019fa44daba061b05654278496477b64` (2026-11-13), MIT: `docs/SPEC.md` only, its flash formats and checked start (PROVENANCE P-67). No stock firmware's details are taken from it. |
 | TC | The pinned JieLi toolchain (PROVENANCE P-1, P-36): its assembler and disassembler (clang's integrated assembler and `objdump`), and the code its compiler emits for C whose meaning is known. It is the vendor's compiler for this CPU, so how its code uses an instruction says what the instruction does; it carries no documents. |
 | HARNESS | docs/HARNESS.md, fwtest's manual. It is the spec side's own description of fwtest, so it never confirms an entry on its own. |
 | E-n | A spec-side black-box experiment: a small image run in fwtest (the pinned image, `config/fwtest-image`). Its result is stated in the entry. C-SPEC-EXPERIMENTS re-runs every one in CI, so a cited result that stops holding fails CI. |
@@ -2453,10 +2453,7 @@ start of the structure named. All multi-byte fields are little-endian.
     CRC-16; then the regions `VM`, `PRCT` and `BTIF` (flash offsets,
     attribute `0x12` or `0x92`, data CRC `0xFFFF`), the last with "last"
     set. With these five heads `app.bin` is still at `0x120`, as in the
-    stock directory of eight. The unused head slots up to `0x120` hold
-    `0xFF` before scrambling, so their CRC fails and a reader's walk
-    ends there (HW-112). An all-zero head would pass its own CRC (the
-    CRC-16 of zeros is 0) and be read as a record.
+    stock directory of eight.
   - **After the area**, the flash image has 64 more bytes, the same on
     every run with the same app. What they hold is not known. The
     configuration follows the loader directly (`0x3628`), and every byte
@@ -2531,7 +2528,7 @@ start of the structure named. All multi-byte fields are little-endian.
 What the installer and bootloader on the owner's unit check before they
 write or start a package's firmware, from their own MIT sources: the
 installer **m-flasher** (MF) and the bootloader **m-bootloader** (MB),
-read under the owner's ruling for BR-17 (2026-11-18, PROVENANCE P-66).
+read under the owner's ruling for BR-17 (2026-11-18, PROVENANCE P-67).
 Only the package format and the checks are taken. Nothing here comes
 from a stock package or from what any stock firmware holds. Phase B
 round 1 (the owner, 2026-11-18) agrees with HW-109: both candidates were
@@ -2657,6 +2654,28 @@ refused before anything was written, with "unexpected flash image size".
 - Sources: MB `docs/SPEC.md` §5.6; PKG (P-65, HW-104).
 - Standing: confirmed (MB, PKG)
 - Needed by: BR-17
+
+### HW-114: The flash image's length, and the unused directory slots
+- Fact: In the update files JieLi's tools write (HW-103, HW-104), the
+  `flash.bin` entry's data, the flash image, runs from flash 0 to the
+  first 4 KiB boundary at or after the end of the app area's 64 trailing
+  bytes (HW-105). Everything past them is `0xFF`. With the 4 096-byte
+  apps that is `0x6000` (the area and its 64 bytes end at `0x52DF`).
+  With the 8 192-byte app it is `0x7000` (they end at `0x62DF`). That
+  agrees with the 4 KiB alignment in the flash header's byte 13
+  (HW-105). It is not the header's flash size field. This length passes the installer's size rule
+  (HW-109 step 8: longer than `0x4000`, a multiple of `0x1000`). The
+  installer then writes the image from `0x4000` to its end, never below
+  (HW-110).
+  In the app area's directory, the unused head slots up to `0x120` hold
+  `0xFF` before scrambling, so their CRC fails and a reader's walk ends
+  there (HW-112). An all-zero slot would pass its own CRC (the CRC-16 of
+  zeros is 0) and be read as a record.
+- Sources: PKG (P-65): the four apps' flash images and their area
+  directories; MF `src/formats.rs` (`Package::parse`, `app_table`) and
+  `src/ops.rs` (`plan_firmware`).
+- Standing: confirmed (PKG, MF)
+- Needed by: BR-17 (SR-13)
 
 ## Open questions
 

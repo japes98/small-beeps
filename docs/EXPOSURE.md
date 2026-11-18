@@ -2521,7 +2521,7 @@ SR-3 wrote only its barrier-log row.*
   update the clean prompt so a candidate passes every check at once;
   Phase B round 1 refused both candidates before anything was written,
   with "unexpected flash image size", and the unit is unchanged.
-- Read (PROVENANCE P-66), each at the ruling's commit, its `LICENSE`
+- Read (PROVENANCE P-67), each at the ruling's commit, its `LICENSE`
   first:
   - m-flasher `8fbece7348d758ac284325eed455781675ac95ff`: `src/formats.rs`
     whole; `src/ops.rs` lines 1-130 and 355-409, and a search of its
@@ -2537,6 +2537,80 @@ SR-3 wrote only its barrier-log row.*
   (version names, configuration values, region tables, the reference
   CRCs and sizes of official packages) and of other firmwares.
 - Disk: about 4.9 GB free.
+### Session clean-br17 (BR-17's packager parts: section 24's fields, an app-area-only package, the `fm1-unit` target)
+- Date: 2026-11-17 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.325 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br16's own session, resumed (banner `source: resume` at
+  2026-11-15T13:29:44Z, `status: OK`). The owner's prompt is the file
+  `~/<top>/drop/prompts/clean-br17.md`, read as the owner asked and saved
+  unedited as docs/prompts/clean-br17.md; their two answers to the spec
+  side's open questions came in the same message
+  (docs/prompts/clean-br17-answers.md).
+- Where it ran: the owner's Mac, in `~/<top>/clean`; the role file says
+  `clean`.
+- Start: `tools/clean-update.sh`, run from main, found main at `d63e9461`
+  (#180's merge, the spec side's section 24) and ended "no spec-side files
+  on disk or in .git"; lazy fetching off. Nothing to archive: the only
+  clean transcript not in `sessions/clean/` is this session's own
+  (`1b5c2df5`, still being written), which the next clean session
+  archives with both parts. `tools/check-transcripts.py` is unchanged
+  since clean-br16 (26 transcripts, PASS). The Mac had 5.5 GB free.
+- Between BR-16 and BR-17, on the owner's request ("check to see if any
+  space can be recovered"), this session measured disk use: `df`, then
+  `du -sh` on home folders, caches and `~/<top>/*`, which walked the
+  `spec/` and `porter/` folders to total them. It printed one size per
+  folder and nothing inside them: no file names, no contents. No file in
+  either was opened. It also listed `/private/tmp/claude-501/` one level
+  deep (folder sizes), and measured `~/Library/Caches/*` and Docker's disk
+  image. Nothing was deleted. The owner is asked to rule on the walk (the
+  final report's Questions).
+- A spec session may work at the same time; this session opens none of its
+  branches.
+- Reads: the prompt file named above; HARDWARE-SPEC section 21 (HW-87 to
+  HW-94), section 24 (HW-103 to HW-108), Q-25 and Q-26; this file,
+  PROVENANCE.md, SPEC-REQUESTS.md (SR-11's form), REQUIREMENTS.md,
+  DESIGN-NOTES.md, M9-PLAN.md, A1-PLAN.md, RELEASING.md and
+  BUILDING-ON-SMALL-BEEPS.md (the parts these changes touch); this
+  repository's tools, tests, configuration and release workflow. Nothing
+  fetched from outside the repository but the build image's and fwtest's
+  own downloads.
+- GitHub: pull requests listed (#173 to #180, all merged; none open).
+- **#181 (BR-17):** C-UNIT (423 tests) in this folder. From a copy of the
+  tree: build A (its `app.bin` the same bytes as main's, `5bc12a34…`),
+  C-PACKAGE PASS on the new full image (eight cases as from the raw
+  image; every broken package refused at its check with fwtest's words),
+  release selftest PASS. Two app-area candidates packed from build A's
+  package link, each read back and packed again to the same bytes; they
+  are files in `out/` for the owner, not in the repository.
+- Pushing: `git push` hung in its HTTPS helper (the keychain credential
+  helper, waiting on nothing the session could see); the branch was
+  pushed through `gh`'s credential helper for that one command.
+- C-SEP-TERMS failed on #181's first run (run 44226394632): one hit in
+  tests/test_fwsc.py, a made-up key in a refusal test, which is also a
+  number in the emulator's source. The run's log gave only the check's
+  summary, so its report artifact was fetched by API and only
+  `logs/C-SEP-TERMS.log` extracted from it, twice (`unzip -p`; the
+  second time filtered to the hit), the zip deleted at once each time.
+  The hit was found by hashing the line's words and numbers; the test
+  now computes its key.
+- After #181 merged (`bdc6ec6f`), the owner's answer to the report's
+  question 2 (flash.bin alone is right) was saved as
+  docs/prompts/clean-br17-answers-2.md and noted in DESIGN-NOTES and
+  SR-12. `tools/clean-update.sh` needs `/usr/bin` first on PATH here
+  (`/usr/local/bin/git` is x86 and won't run).
+- The owner's answers to the report's four questions
+  (docs/prompts/clean-br17-answers-3.md): among them, the disk
+  measurement that walked `spec/` and `porter/` was acceptable (sizes
+  only, no file opened), and a clean session measures only its own
+  folders from now on. Header bytes 10-15 now carry the tools' values;
+  the two candidates were packed again (new hashes in the report).
+- Force-pushes: none.
+- Disk: 5.5 GB free at the start; about 5.4 GB at the lowest.
 
 ## Corrections
 

@@ -89,7 +89,7 @@ fields:
 | `version` | string | yes | The release's version, Semantic Versioning 2.0.0 without build metadata (`MAJOR.MINOR.PATCH`, optionally `-prerelease`), from 0.9.0 (answer 6). |
 | `tag` | string | yes | The signed git tag the release was built from (`v0.9.0`, `m9`). |
 | `git_commit` | string | yes | The tag's commit, 40 lowercase hex digits. |
-| `targets` | array of strings | yes | Where it runs: `["f-emulator-app"]`. A reader that is not one of the targets refuses the release. |
+| `targets` | array of strings | yes | Where it runs: `["f-emulator-app"]`, or since BR-17 `["f-emulator-app", "fm1-unit"]` for a release whose build was checked on an FM-1 unit (`fm1-unit`, the hardware target; named only from a recorded unit check, docs/RELEASING.md, "A hardware target"). A writer writes one of these two, in this order. A reader that is not one of the targets refuses the release. |
 | `image` | object | yes | The raw image, below. |
 | `image.file` | string | yes | Its file name in the release, `small-beeps-<version>.bin`: ASCII letters, digits, `.`, `-` and `_` only, no path. |
 | `image.size` | integer | yes | Its size in bytes, 1 to 1 032 192 (docs/HARNESS.md, "The raw image"). |

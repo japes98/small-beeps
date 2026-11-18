@@ -422,7 +422,31 @@ base's own tests of these seams are a working example:
   ```
 
   The identity is at most 19 characters and must not begin with another
-  board's name (`fwsc.py` says which).
+  board's name (`fwsc.py` says which). This package is the **full
+  image**: it holds the flash from offset 0, the boot area included, so
+  it is for fwtest, the emulators and the F-Emulator app only, never for
+  a unit (a unit keeps its loader there).
+
+**For a unit (not yet).** A firmware's pack step for a real FM-1 asks
+for the app area alone and the hardware mode:
+
+```sh
+python3 base/tools/fwsc.py pack out/app-pkg.bin --version 0.1.0 \
+    --identity my-firmware-0.1.0 --app-area --key 0xFFFF --hardware \
+    --out out/my-firmware-unit.fwsc
+```
+
+Today it refuses (exit 2) and writes nothing: it lists each field a unit
+needs that the spec leaves open (Q-25, Q-26 and SR-12: where an
+installer puts the area, which key the unit runs, which entries and CRCs
+an installer checks). Without `--hardware` the same command writes the
+package, nothing in it below flash `0x4000`, and prints the same list;
+`python3 base/tools/fwsc.py FILE --app-area --key 0xFFFF` reads it back.
+Such a package is a candidate for the owner's unit check, not a release
+for a unit: a release names the hardware target `fm1-unit` only after a
+recorded check on a unit (docs/RELEASING.md). Every pack, full or app
+area, prints what the spec leaves open; a build pipeline can keep that
+output.
 
 ## 7. MIDI out
 

@@ -506,3 +506,38 @@ an issue or a pull request against docs/HARNESS.md.
   recommend it for data that must survive one; it now says this is
   open. Read: HW-80, HW-84, HW-87 to HW-94; Q-24, Q-26.
 - Status: open
+
+### SR-12: Where an update package puts its data at flash 0x4000
+- Asked: 2026-11-17, session clean-br17 (firmware side), for BR-17 (a
+  package a unit's installer accepts) and the owner's answer that the
+  candidate is a `.fwsc` holding the app area only
+- Question: two fields, for a package that must write nothing below flash
+  `0x4000`:
+  1. **The field that places an entry's data.** HW-89 says the type-0
+     entry (`flash.bin`) is written from flash offset 0, and HW-104's
+     entry fields give only file offsets. Is there an entry type, an
+     entry field, or a field of the flash image's or the update file's
+     header by which an update file or a `.fwsc` says its data goes at
+     flash `0x4000` (or any offset but 0)? If JieLi's tools can write
+     such a package, which option makes them do it (HW-107: `-output-ufw`
+     in `download_linux.c` and other options were not tried), and what do
+     the entry's fields hold then?
+  2. **`isd_config.ini`'s entry** (HW-104, type `0x34`): its data for the
+     FM-1 (the configuration's text the tools write), and in a `.fwsc`
+     the offset its `0xFFFF` chunk scrambling counts from (HW-104 gives
+     it for the update file, the file offset `o`; in a `.fwsc` the
+     logical and file offsets differ by 20). The owner's answer leaves
+     five entries out of the first app-area package; this one is not
+     among them, but its data is not given and lives below `0x4000`
+     (HW-105, `0x3628`), so the candidate leaves it out too (the
+     owner confirmed this on merging #181: an app-area-only package
+     leaves that region alone). Asked for a later full package.
+- Why: `tools/fwsc.py pack --app-area` writes the app area alone (the
+  flash image's bytes from `0x4000`, in one `flash.bin` entry) and
+  takes it to go at `0x4000`, which is our reading, not a fact: by HW-89
+  an installer would write it from 0, over the unit's loader. Its
+  `--hardware` mode refuses while this is open, and the owner is told so
+  before trying a candidate (docs/DESIGN-NOTES.md, clean-br17). Read:
+  HW-87 to HW-94, section 24 (HW-103 to HW-108), Q-25, Q-26.
+- Status: open
+
