@@ -28,7 +28,9 @@ JieLi chip's open driver sets it up (SDK63), for Q-12 and Q-20, which stay
 open. Session day-1024 (spec side, 2026-10-24) added section 19, flash
 storage, for SR-9 (open: Q-21 to Q-24). Session spec-a1-fwsc (spec side, 2026-10-27)
 added section 21, the update package and the loader chain, for Phase A1
-(open: Q-25, Q-26); its HW-91 supersedes HW-81.
+(open: Q-25, Q-26); its HW-91 supersedes HW-81. Session spec-br17-package (spec
+side, 2026-11-17) added section 24, the package as JieLi's packaging
+tools write it, for BR-17 (Q-25 answered in part; Q-26 narrowed).
 
 ## How to read it
 
@@ -41,7 +43,8 @@ Every fact is an entry:
   an entry says neither, it holds for both as far as the sources go.
 - **Sources**: as precisely as possible (the keys are under "Sources" below).
 - **Standing**:
-  - **confirmed**: an independent source agrees: the JieLi SDK, FM-1-RE's
+  - **confirmed**: an independent source agrees: the JieLi SDK (its
+    packaging tools' output included, PKG), FM-1-RE's
     documents, a datasheet, the panel sources, or a spec-side black-box
     experiment in fwtest (E-n). An experiment confirms how fwtest behaves,
     not how the chip behaves; the sources say which kind of confirmation it
@@ -73,6 +76,7 @@ least significant. Register names are the JieLi SDK's.
 | PANEL | The FM-1's printed panel labels, from two sources that agree: the owner's screenshot of the F-Emulator app's panel with its default labels, `docs/sources/panel-app-default-labels.png` (secondary: the app's drawing of the panel); and M-VAVE's product photo of the FM-1, `https://www.m-vave.com/images/products/fm-1.webp` on `https://www.m-vave.com/product.html?id=fm-1`, accessed 2026-10-22, SHA-256 `e610a746…df14b95`, not copied into this repository (PROVENANCE P-12). Only the printed labels are taken from them. The owner chose these two sources. |
 | MAN | M-VAVE's user manuals: the FM-1's, the English part (pages 1-12) of `https://m.media-amazon.com/images/I/A1WOydif9HL.pdf`, SHA-256 `69bfea10…8b715da`, accessed 2026-10-24 (PROVENANCE P-41); the SMK-37 Pro's, as `https://www.manualslib.com/manual/4132288/M-Vave-Smk-37-Pro.html` shows it, accessed 2026-10-24 (PROVENANCE P-42). Neither copied into this repository. Only what they say about the connections is used. |
 | MPLUS | Manuals+'s "M-VAVE SMK-37 PRO MIDI Controller User Manual", `https://manuals.plus/asin/B0GQZP7C8G.pdf`, 13 pages, SHA-256 `77d9d537…3e3745`, accessed 2026-10-24, supplied by the owner and checked by the planning conversation, not fetched by a session here (PROVENANCE P-49). A third party's write-up, not M-VAVE's manual: secondary, it never confirms an entry on its own. Not copied into this repository. |
+| PKG | JieLi's packaging tools from the SDK (as SDK, same commit), `cpu/wl82/tools/loader_tools/`: `isd_download.exe` (4.2.52), `fw_add.exe` and `ufw_maker.exe`, run under wine 8.0 in a throwaway container with no network, on our own input (PROVENANCE P-65). They show what JieLi's packaging writes, not what the chip checks. |
 | TC | The pinned JieLi toolchain (PROVENANCE P-1, P-36): its assembler and disassembler (clang's integrated assembler and `objdump`), and the code its compiler emits for C whose meaning is known. It is the vendor's compiler for this CPU, so how its code uses an instruction says what the instruction does; it carries no documents. |
 | HARNESS | docs/HARNESS.md, fwtest's manual. It is the spec side's own description of fwtest, so it never confirms an entry on its own. |
 | E-n | A spec-side black-box experiment: a small image run in fwtest (the pinned image, `config/fwtest-image`). Its result is stated in the entry. C-SPEC-EXPERIMENTS re-runs every one in CI, so a cited result that stops holding fails CI. |
@@ -1901,6 +1905,8 @@ named; all multi-byte fields are little-endian.
   block's CRC, the walk to the last head).
 - Standing: confirmed (SDK, RE) for the layouts; the names the readers
   match and the masking of each head emulator-only
+  (corrected in part by HW-105: names end with one zero byte and are
+  padded with `0xFF`; the masking of each head is confirmed there)
 - Needed by: A1
 
 ### HW-90: The app area: the chip key and its scrambling
@@ -1941,6 +1947,8 @@ named; all multi-byte fields are little-endian.
   requires it, offsets from `A`).
 - Standing: emulator-only (the derivation and the scrambling); confirmed
   (RE) for the area's place, its directory and the stock key
+  (the scrambling confirmed by HW-105, PKG; the key's derivation agrees
+  for the one key block the tools wrote)
 - Needed by: A1
 
 ### HW-91: The code window and the app's entry, corrected
@@ -2293,6 +2301,223 @@ instruction documentation; what it leaves open is Q-28 to Q-35. HARNESS.md
   to Q-33)
 - Needed by: firmwares built on small-beeps (session spec-isa-audit)
 
+## 24. The update package as JieLi's packaging tools write it (Q-25)
+
+What JieLi's own packaging tools write when they are run on our own
+input (session spec-br17-package, for BR-17: a package a unit's
+installer accepts). The tools are the SDK's `cpu/wl82/tools/loader_tools/`
+set, run as the SDK's `download.bat` runs them, under wine in a container
+with no network (PROVENANCE P-65). Their inputs were our own: four
+synthetic apps (4 096 and 8 192 bytes of zeros, one with a byte changed,
+one of a counting pattern), the SDK's configuration rule preprocessed for
+the FM-1 (1 MiB of flash, code from flash, no SDRAM, a single bank), and
+the SDK's own loader files. No stock package was opened. The SDK's other
+copy of the packager, in `cpu/wl82/tools/`, exits at once under wine
+without output, so nothing here comes from it. These entries say what the
+tools *write*. What the chip's loaders and an installer *check* stays
+Q-26, except where an entry says otherwise. Offsets are in bytes from the
+start of the structure named. All multi-byte fields are little-endian.
+
+### HW-103: JieLi's packaging chain
+- Fact: The SDK makes its update file in four steps:
+  1. `isd_download` takes the loader's configuration (`isd_config.ini`),
+     the second-stage loader (`uboot.boot`), the app (`app.bin`) and
+     `cfg_tool.bin`. It writes the **flash image** (`jl_isd.bin`, from
+     flash offset 0), a package of it (`jl_isd.fw`), and an **OTA
+     update file** (`db_update_files_data.bin`, HW-106). With no device
+     attached it prints its report and "Device Offline", and still writes
+     them.
+  2. `fw_add` adds the update loader `ota.bin` as type 100.
+  3. `fw_add` adds `script.ver`.
+  4. `ufw_maker -fw_to_ufw` turns `jl_isd.fw` into the **update file**
+     (`jl_isd.ufw`, HW-104), which the SDK copies to `update.ufw`.
+  Runs on the same inputs give the same flash image and the same OTA
+  update file, byte for byte. Only one entry of the update file,
+  `blimit.bin` (HW-104), and the CRCs over it change from run to run.
+- Sources: PKG (P-65): every run; SDK `cpu/wl82/tools/download.c` lines
+  223-264 and `cpu/wl82/tools/loader_tools/download.bat` (the steps and
+  their options).
+- Standing: confirmed (PKG)
+- Needed by: BR-17, M10
+
+### HW-104: The update file: header and entry list (Q-25)
+- Fact: The update file is HW-88's **logical image** byte for byte, from
+  its first byte. The tools do not write HW-88's 48-byte blocks or their
+  markers (see HW-107).
+  - **Header**: 64 bytes, masked whole with the header key (HW-87).
+    Unmasked:
+
+    | Bytes | Field |
+    |---|---|
+    | 0-1 | The header's CRC-16 over bytes 2-63 |
+    | 2-3 | The **list CRC**: the CRC-16 of the entry list as stored (masked), `80 × count` bytes from offset 64 |
+    | 4-7 | The **image size**: the update file's whole length in bytes |
+    | 8-9 | The entry count |
+    | 10-11 | 4 in every run (meaning not known) |
+    | 12-15 | `0x200` in every run (meaning not known) |
+    | 16-31 | The chip's name, `AC791N` (the configuration's `CHIP_NAME`), padded with zero bytes |
+    | 32-63 | Zero |
+
+  - **Entries**: entry `k` is the 80 bytes at offset `64 + 80·k`, each
+    masked on its own with the header key. Unmasked:
+
+    | Bytes | Field |
+    |---|---|
+    | 0-1 | The type |
+    | 2-3 | Its index `k` |
+    | 4-5 | The CRC-16 of its data before the entry's own scrambling (below); for `flash.bin`, of the flash image as written to flash (6-7 are zero) |
+    | 8-11 | Its data's offset in the update file |
+    | 12-15 | Its data's length |
+    | 16-19 | That length rounded up to a multiple of 32 |
+    | 20-23 | Zero |
+    | 24-27 | The rounded length again on a scrambled entry, otherwise zero |
+    | 28-63 | Zero |
+    | 64-79 | Its name, ASCII, padded with zero bytes |
+
+  - **The entries the chain writes**, in this order: `flash.bin` (type
+    0, the flash image, at offset `0x400`), `info.log` (type 2, length
+    0), `isd_config.ini` (type `0x34`, the configuration's text),
+    `ota.bin` (type 100), `script.ver` (type `0xFB`), `blimit.bin` (type
+    `0xA1`, 144 bytes), `tail.bin` (type `0xFF`, 64 bytes, last). Each
+    entry's data starts on a multiple of 32 bytes. The file ends with
+    `tail.bin`'s data.
+  - **Scrambled entries**: the data of `isd_config.ini`, `script.ver` and
+    `blimit.bin` is stored scrambled by HW-90's 32-byte chunk rule with
+    key `0xFFFF`: the chunk at file offset `o` is masked with the seed
+    `0xFFFF XOR (o / 4)`. The other entries' data is stored as it is.
+  - **`tail.bin`**: the flash image's key block (HW-89, 32 bytes) and its
+    CRC-16, then six bytes not identified, eight zero bytes, and `JLUFW`
+    at bytes 48-52.
+  - **`blimit.bin`**: its 144 bytes differ on every run with the same
+    inputs, even unscrambled. What it holds is not known.
+  For a `.fwsc`, it follows from HW-88 and this entry that the list CRC
+  and the image size cover the logical image. The tools write no
+  `.fwsc` (HW-107), so this is a deduction, not something they show:
+  - the list CRC is the CRC-16 of the `80 × count` entry bytes as stored
+    (masked) from logical offset 64, with the block markers taken out.
+    In the file those bytes start at offset 65 and cross the markers at
+    file offsets 95, 143 and so on;
+  - the image size is the logical image's length, the file's length
+    less 20.
+- Sources: PKG (P-65): the four apps and a repeat of one; the header's and
+  every entry's CRC computed and matched; the list CRC matched on every
+  run, and changing with the app; the image size following the app's
+  length.
+- Standing: confirmed (PKG)
+- Needed by: BR-17 (`tools/fwsc.py`'s header and entries), M10
+
+### HW-105: The flash image as the tools write it
+- Fact: What HW-89 and HW-90 describe, with these details:
+  - **The flash header** (32 bytes at offset 0): its CRC-16 (bytes 0-1)
+    is over bytes 2-31 of the head unmasked whole with the header key.
+    On flash, the VID (bytes 4-7, `0.01`) and the PID (bytes 16-31,
+    `AC791N_STORY` padded with `0xFF`) read as plain ASCII. Only the other
+    bytes are masked. So the unmasked head holds those two fields masked.
+    With the FM-1's configuration, unmasked: bytes 2-3 (`size4burner`)
+    `0x8020`; 8-11 (the flash size) `0xFF000`, the space the image needs,
+    1 MiB less the last 4 KiB; 12 `0x10`; 13 (the alignment) `0x10`, in
+    units of 256 bytes, 4 KiB; 14 `0xA4`; 15 `0xFF`. Changing the
+    configuration's PID and VID changes only those fields and the CRC.
+  - **Names** in every directory head (the flash's and the app area's)
+    end with one zero byte, and the rest of the 16 bytes is `0xFF`, not
+    zero as HW-89 says. A reader matches a name up to its first zero
+    byte.
+  - **The flash directory**, in this order, each head's CRC-16 matching:
+    `uboot.boot` (data at `0xA0`, the loader's length, attribute 0; its
+    data CRC is the CRC-16 of the `uboot.boot` file given to the tool,
+    but the bytes at `0xA0` differ from that file); `isd_config.ini`
+    (attribute 2, reserved byte `0x80`; 765 bytes at `0x3628`, a binary
+    configuration that starts with the key block and its CRC; its data
+    CRC over those 765 bytes); `app_dir_head` (offset `0x4000`, length
+    `0xFFFFFFFF`, data CRC `0xFFFF`, attribute `0x81`, reserved `0xFF`);
+    `key_mac` (offset `0xFF000`, the flash's last 4 KiB, length `0x1000`,
+    data CRC `0xFFFF`, attribute `0x12`, reserved 1, last `0xFFFF`).
+  - **The chip key.** With no key file (the SDK's `-key` option, HW-108),
+    the key block gives the key `0xFFFF` by HW-90's rule, and the app area
+    is scrambled with `0xFFFF` by HW-90's chunk rule. The whole area
+    unscrambles and every CRC in it matches. This confirms HW-90's
+    scrambling, until now known only from the emulator. The key's
+    derivation agrees for this one key block, the only one the tools
+    wrote.
+  - **The area head**, unscrambled: offset field `0x02000120` (the
+    configuration's `ENTRY`), length the area's (head, directory and
+    files), data CRC the CRC-16 of the area from byte 32 to that length,
+    attribute `0x83`, reserved `0xFF`, name `app_area_head`.
+  - **The area's directory**: `app.bin` (attribute `0x82`, offset
+    `0x120`) and `cfg_tool.bin` (attribute `0x82`), each with its data's
+    CRC-16; then the regions `VM`, `PRCT` and `BTIF` (flash offsets,
+    attribute `0x12` or `0x92`, data CRC `0xFFFF`), the last with "last"
+    set. With these five heads `app.bin` is still at `0x120`, as in the
+    stock directory of eight.
+  - **After the area**, the flash image has 64 more bytes, the same on
+    every run with the same app. What they hold is not known. The
+    configuration follows the loader directly (`0x3628`), and every byte
+    the image doesn't use, up to `0x4000` and after the area's 64 bytes,
+    is `0xFF`.
+  Our own reader (`tools/fwsc.py`, HW-93's checks), run on these
+  packages wrapped in HW-88's blocks, passes every check and gives back
+  each app byte for byte, once it matches names up to their first zero
+  byte.
+- Sources: PKG (P-65): four apps and a PID and VID change; every head's
+  CRC and data CRC computed; the reader run on each.
+- Standing: confirmed (PKG); corrects HW-89 on the names' padding
+- Needed by: BR-17, M10
+
+### HW-106: The OTA update file: the app area alone
+- Fact: `isd_download` also writes `db_update_files_data.bin`. The SDK's
+  `upgrade.bat` copies it to `update-ota.ufw`, "for network OTA
+  updates". It holds the flash image from `0x4000` only, with nothing
+  below `0x4000`:
+  - **Head 1** (32 bytes at offset 0, HW-89's layout, not masked):
+    `update_data`, offset 32, length the whole file's, data CRC over the
+    file from byte 32 to its end, attribute 3, reserved `0xFF`, "last" 1.
+  - **Head 2** (at offset 32): `app_core`, offset 64, length the area's
+    length plus 64, data CRC over those bytes, attribute 2, reserved
+    `0xFF`.
+  - **The data** (from offset 64): the flash image's bytes from `0x4000`
+    for the area's length plus 64, the 64 bytes of HW-105 after the area
+    included. These bytes are still scrambled with the chip key.
+  Which updater, if any, takes this file on the FM-1, and whether it
+  keeps everything below `0x4000`, is Q-26. The FM-1's stock updater
+  takes `.fwsc` files.
+- Sources: PKG (P-65): three apps; SDK `cpu/wl82/tools/loader_tools/upgrade.bat`
+  (the copy to `update-ota.ufw`, in its "OTA" mode).
+- Standing: confirmed (PKG) for the layout; its use on the chip is Q-26
+- Needed by: BR-17 (an app-area-only package)
+
+### HW-107: What the tools do not write
+- Fact: For the `loader_tools` copy that ran, with the options the
+  SDK's `download.bat` passes:
+  - The tools write no `.fwsc` blocks. HW-88's 48-byte blocks, with an
+    identity in their markers, wrap the update file. Which program adds
+    them to stock packages is not known.
+  - With this configuration they write no `USR` entry, which the stock
+    package has (HW-88).
+  - `isd_download` prints no usage text. No option it was given wrote a
+    `.ufw` without the flash image from offset 0. Options the SDK uses
+    elsewhere and this session didn't try, such as `-output-ufw` in
+    `download_linux.c`, are not covered.
+  The SDK's other copy, in `cpu/wl82/tools/`, never ran (HW-103's
+  introduction), so none of this covers it.
+- Sources: PKG (P-65); SDK `cpu/wl82/tools/loader_tools/download.bat` and
+  `upgrade.bat` (the chain ends with `update.ufw` and `update-ota.ufw`,
+  and no step adds blocks).
+- Standing: confirmed (PKG)
+- Needed by: BR-17
+
+### HW-108: The chip key's source in the SDK's packaging
+- Fact: The SDK's packaging takes the chip key from a key file passed to
+  `isd_download` (`-key JL_791N-XXXX.key`, or `-key1` with `-mkey`).
+  Its scripts leave that option commented out. Without a key file the key
+  block gives the key `0xFFFF` (HW-105). The stock package's key,
+  `0x980F` (HW-90), is not that default. Whether a unit runs an app
+  scrambled with `0xFFFF`, or any key but its stock one, is Q-26.
+- Sources: SDK `cpu/wl82/tools/loader_tools/download.bat` (the commented
+  `KEY_FILE` lines) and `cpu/wl82/tools/download.c` lines 193-194; PKG
+  (P-65).
+- Standing: confirmed (SDK, PKG)
+- Needed by: BR-17, M10
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -2486,12 +2711,25 @@ spec request can turn one into a fact.
   (M10, the owner's answer 4 in M9-PLAN.md). A packager fills them by the
   head rule of HW-87 and HW-89 where that rule applies, and records the
   rest as unknown.
+  *Answered in part by session spec-br17-package (HW-103 to HW-107):*
+  the list CRC, the image size, the entries' fields and the flash
+  header's fields as JieLi's tools write them. Still open: header bytes
+  10-15 (4 and `0x200`), `blimit.bin`'s content, six bytes of
+  `tail.bin`, the 64 bytes after the app area, and the `.fwsc` blocks'
+  origin (HW-107).
 - **Q-26. What the chip's loaders and updater check.** What the mask ROM
   and `uboot.boot` check before running the next step (CRCs, the key
   block, the directory), whether the chip key is the same on every unit,
   and what the stock updater and the update loader `ota.bin` accept
   (HW-92; FM-1-RE has not found all of the updater's check). Settled only
   on a unit (Phase B; M9-PLAN.md section 5) or by JieLi's documentation.
+  *Narrowed by session spec-br17-package:* the tools write a CRC on the
+  header, the list, each entry, each head and each head's data, and a
+  key block from which the key `0xFFFF` follows without a key file
+  (HW-104, HW-105, HW-108). Which of these a loader or an installer
+  checks, whether a unit runs an app scrambled with `0xFFFF`, and whether
+  any FM-1 updater takes an app-area-only file (HW-106) stays open: only
+  a unit settles them.
 - **Q-27. A store of its own base on the chip.** Whether the chip stores
   the base as it was for `[++rN=k] = rN`, `[rN++=k] = rN` and their byte
   and halfword forms, as the toolchain's compiler relies on and fwtest

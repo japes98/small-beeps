@@ -2463,6 +2463,51 @@ SR-3 wrote only its barrier-log row.*
 - Force-pushes: none.
 - Disk: 4.3 GB free at the start; about 3.1 GB at the lowest.
 
+### Session spec-br17-package (BR-17: JieLi's packaging tools on our own input)
+- Date: 2026-11-17 (UTC 2026-11-18)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.312 (banner).
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `3554477d-915e-4869-a94a-6a2ff3efe04a`, the
+  same session as spec-isa-audit, continued after a compaction (banner
+  `source: compact`, `status: OK`). The owner's instructions came as
+  pasted messages: BR-17's text as porter filed it, then the request to
+  take Q-25 and Q-26 here (saved as docs/prompts/spec-br17-package.md).
+- Where it ran: the owner's Mac, in `~/<top>/spec`; the role file says
+  `spec`. Branch `spec/br17-package` from main at `ab16ee2b`.
+- Before the BR-17 work: on the owner's request, disk usage was measured
+  (`du` on home folders, including `~/<top>/porter` and `~/<top>/drop`,
+  sizes only), and `BASE-REQUESTS.md` was found by file name under
+  `~/<top>/porter/docs/`, not opened. No porter file was read.
+- A draft prompt for the clean side (BR-17's packager parts, the target
+  name `fm1-unit`) was written outside the repository, in
+  `~/<top>/drop/prompts/clean-br17.md`, and passed C-SEP-TERMS as a
+  tracked file before it was removed from the tree.
+- Reads: HARDWARE-SPEC sections 21 and Open questions, M9-PLAN.md
+  section 2, SPEC-REQUESTS.md's opening, a clean prompt for its form,
+  `tools/fwsc.py` (its reader), this file and PROVENANCE.md. No emulator
+  file was opened.
+- Fetched (PROVENANCE P-65): from the SDK at P-2's commit, through Gitee's
+  tree and blob APIs into a scratch folder, each checked against its git
+  blob hash: the packaging scripts and notes, the packer source of
+  `packufw/`, the configuration rule, and the executables and loader files
+  of `cpu/wl82/tools/` and `cpu/wl82/tools/loader_tools/`. A blob-less
+  clone failed (Gitee reset the connection).
+- Ran: the SDK's configuration rule through the pinned toolchain's
+  preprocessor in the build image; JieLi's `isd_download`, `fw_add` and
+  `ufw_maker` under wine 8.0 in a throwaway amd64 Debian container
+  (`sb-jl-wine:1`, built here, kept for later runs) with `--network none`
+  and the tools mounted read-only, on our own synthetic apps. Nothing the
+  tools wrote entered the repository. Their packages carry JieLi's
+  loader at flash 0, so none of them is for a unit.
+- Not done: the executables were not disassembled or unpacked. The SDK's
+  `cpu/wl82/tools/isd_download.exe` exits at once under wine; it was not
+  worked around.
+- Force-pushes: none.
+- Disk: 9.9 GB free when the BR-17 work started; about 3.8 GB at the
+  lowest (the wine image is 538 MB).
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
