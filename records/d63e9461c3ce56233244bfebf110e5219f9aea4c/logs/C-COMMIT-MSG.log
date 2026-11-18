@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range ab16ee2b9984c109e213cd44726a5c2d720704f3..d63e9461c3ce56233244bfebf110e5219f9aea4c
+OK     6a4ab6a9d7c2 spec: the package as JieLi's packaging tools write it (BR-17, Q-25)
+EXEMPT d63e9461c3ce (merge) Merge pull request #180 from japes98/spec/br17-package
+2 commit(s) checked: PASS
+
+exit status 0
