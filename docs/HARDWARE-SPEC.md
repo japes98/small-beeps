@@ -2828,7 +2828,7 @@ datasheets, the P25Q80H's (PUYA, as before) and the UC25HQ80's (UCUN),
 and m-bootloader's flash code (MB: `src/platform.c`, `src/boot.c`,
 `src/loader.c` and `docs/SPEC.md` §3.4 and §3.5, at `3ac7651a019f`).
 HW-120 gives the two parts, HW-121 the commands small-beeps uses on both,
-HW-122 every difference between the datasheets and whether it matters,
+HW-122 the differences between the datasheets and whether they matter,
 HW-123 what m-bootloader does with either part, and HW-124 what a
 firmware does so one image works on both. HW-76 to HW-78 stand as they
 are: everything they say of the P25Q80H holds, and HW-121 adds the
@@ -2884,10 +2884,12 @@ UC25HQ80's side. Page numbers are as printed.
     only the last 256 are kept, and fewer change only the bytes sent.
   - Reads (`0x03`, `0x0B` and the dual and quad reads) and the ID reads
     are ignored while WIP is 1.
-  - An erase or program of an area the block-protect bits cover is not
-    carried out. WIP doesn't stay 1 for it, so only a read-back shows it.
-  - The chip select must stay high at least 30 ns after an erase or
-    program before the next read (15 ns between two reads).
+  - An erase or program of an area the block-protect bits cover is
+    ignored: it is not carried out. (How a firmware tells is HW-124's
+    item 4, a read-back.)
+  - The chip select must stay high at least 30 ns between a write, erase
+    or program and the next status register read, and at least 15 ns
+    between two reads.
 - Sources: PUYA p. 10 (fR, fC, tSHSL), p. 11 (tPP, tSE), p. 18 (the
   byte boundary; reads ignored while busy), p. 21 (the commands),
   p. 25-26 (the status reads and bits), p. 40 and p. 43 (erase and
@@ -2900,8 +2902,11 @@ UC25HQ80's side. Page numbers are as printed.
 - Standing: confirmed (PUYA, UCUN)
 - Needed by: M7, BR-17 (Phase B)
 
-### HW-122: Every difference between the two parts, and which matter
-- Fact: Comparing the two datasheets in full:
+### HW-122: The differences between the two parts, and which matter
+- Fact: Compared, the two datasheets' command sets, status registers,
+  protected-area tables, AC timing tables, power-up timing and delivery
+  state. Not compared: the DC currents, the SFDP tables' contents, the
+  security registers' and unique ID's details, and the packages.
   - **Identical:**
     - the status register's sixteen bits: S0 WIP, S1 WEL, S2-S6 BP0-BP4,
       S7 SRP0, S8 SRP1, S9 QE, S10 SUS2, S11-S13 LB1-LB3, S14 CMP,

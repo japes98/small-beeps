@@ -638,8 +638,22 @@ an issue or a pull request against docs/HARNESS.md.
   HW-124). For the commands small-beeps sends only the ID differs, and
   that matters: the store writes only to `0x856014` (`STORE_PART`,
   `firmware/src/store.h`), so on a `0xB36014` unit every save is refused
-  (`STORE_ERR_PART`). Nothing else in the store's flash code needs to
-  change: it sends only HW-121's commands, waits on WIP with a 3 s limit,
-  and reads every program back (HW-124 items 2 to 4). An erase is checked
-  only through the sector header programmed after it.
+  (`STORE_ERR_PART`). Against HW-124's other items:
+  - Item 2 is met: the store sends only `0x9F`, `0x03`, `0x05`, `0x06`,
+    `0x20` and `0x02`.
+  - Item 3 is met: the store waits on the busy bit, never a fixed delay,
+    after every erase and every page program. `erase()` ends with
+    `wait_ready()`, and `program()` calls `wait_ready()` after each page's
+    `0x02` and stops at the first failure (`firmware/src/store.c`).
+    `wait_ready()` reads status 1 (`0x05`) until bit 0 is 0, giving up
+    after 3 s (`BUSY_LIMIT_TICKS`), far past either part's longest
+    maximum (12 ms). Only the busy test build (`SB_TEST_STORE_BUSY`) adds
+    a fixed delay, and it does so before that wait, not instead of it.
+  - Item 4 is met in part: every program is read back, but an erase is
+    checked only through the sector header programmed after it.
+  - Item 5 is not met: the store reads no status register, so it would
+    write into a protected region and see each write fail its read-back.
+  The clean prompt for SR-15 asks for the two IDs, an erase read-back,
+  and a refusal when any protection bit is set. It also requires the busy
+  wait to stay after every erase and page program.
 - Answered: 2026-11-18, session spec-sr15 (spec side)
