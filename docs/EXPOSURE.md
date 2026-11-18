@@ -2921,6 +2921,9 @@ SR-3 wrote only its barrier-log row.*
   This repository's own firmware: the hardware build at `58c87df3`
   (start1) and on main at `1f69f236` (start2), built and run in fwtest
   0.10.0 and 0.11.0 to show the chip select's case.
+- C-SEP-TERMS (the owner's answer, option A): four words of patch 0018's
+  own text and crate test, and two test names in #192's description, were
+  reworded or taken out; nothing was listed as reviewed.
 - Disk: about 5.0 GB free.
 
 ## Corrections
