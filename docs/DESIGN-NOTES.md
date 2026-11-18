@@ -3910,4 +3910,28 @@ flash image size") is HW-109's step 8.
   the owner is asked to confirm `m-flasher info` shows `0x980F` before
   trying it; for another key, the same command with that key makes the
   right one.
+- **Round 2 on the unit** (the owner's report, 2026-11-18, relayed; a
+  unit isn't among the firmware side's sources, so it goes to the spec
+  side as SR-14's evidence): the installer accepted the hardware package
+  (`847f3c5a…`), wrote `0x4000`-`0x11FFF`, verified it and kept the boot
+  area; it reports "firmware check OK" and chip key `0x980F`;
+  m-bootloader's menu shows "app OK". Then nothing shows: a black
+  screen, no LEDs, no key lights, from power-on and from Boot app. **The
+  hardware package is done**; what is left is start-up on real hardware.
+  Our firmware sets up no port pin (fwtest needs none), and the pins the
+  panel, its backlight and the LEDs need on the board are Q-6 and Q-7, so
+  no candidate can light anything until SR-14 is answered. Guessing a pin
+  is the mistake round 1 avoided by not guessing a length. No
+  `unit_checks` entry: the firmware doesn't run.
+- **The entry-return probe** (R-PROBE-1, `SB_PROBE_RETURN`) is the one
+  probe possible now: its first instruction is `rts`, the return our own
+  code uses (crt0.S), before any register or RAM is written. HW-112:
+  m-bootloader calls the entry, and opens its recovery menu when the app
+  returns. The menu appearing would say the entry is reached and the
+  call is a call; nothing appearing, that the bootloader doesn't enter
+  our code as we think. It can't go deeper yet: a later stage writes RAM
+  that may be m-bootloader's own (`uboot.boot` loads at `0x01C02000`,
+  inside our RAM), so a return after it means nothing until SR-14's item
+  3 says what RAM the bootloader keeps. In fwtest, where every register
+  but r0 starts at zero, the return jumps to 0 and faults at once.
 

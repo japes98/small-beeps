@@ -2661,9 +2661,18 @@ SR-3 wrote only its barrier-log row.*
   from build A's package link with key `0x980F` (the owner to confirm
   the unit's key), twice to the same bytes, `fwsc.py check` passing; a
   file in `out/` for the owner, not in the repository.
+- 2026-11-18, the owner's report of Phase B round 2, pasted: the paste
+  mixed the owner's unit lines with text from another conversation. Only
+  the unit lines were taken, as the owner's relayed observation (in
+  SR-14 and DESIGN-NOTES); the rest was used as neither instruction nor
+  source, and the paste is not saved in the repository.
+- The entry-return probe (R-PROBE-1): built from a copy of the tree with
+  `SB_PROBE_RETURN`; build A from the same copy still `5bc12a34…`; the
+  seams suite's probe case PASS; its hardware package (key `0x980F`)
+  packed twice to the same bytes, `fwsc.py check` passing. SR-14 filed.
 - Force-pushes: none.
-- Disk: 2.7 GB free at the start; about 2.7 GB at the lowest (no copy of
-  the tree made).
+- Disk: 2.7 GB free at the start; about 2.5 GB at the lowest (one copy
+  of the tree, deleted after).
 
 ## Corrections
 
