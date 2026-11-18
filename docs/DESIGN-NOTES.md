@@ -3997,3 +3997,60 @@ same return.
 - `SB_PROBE_RETURN` and `SB_PROBE_LIGHT` together are refused by an
   `#error`. Without either, build A is `5bc12a34…`, byte for byte as on
   main.
+
+### 2026-11-18 clean-br17-panel: the panel from the entry (BR-17, R-PROBE-3)
+The owner's prompt: docs/prompts/clean-br17-panel.md.
+- **Light1's result on the unit** (`74e19144…`, the owner's report): the
+  backlight came on and PLAY's LED lit for about 5 s, both went out,
+  and the menu said "APP EXITED". So the entry is reached, HW-116 to
+  HW-118's pins work as written, and the return keeps what HW-119 says
+  it must. The round-3 entry-return probe is no longer needed. The owner
+  has confirmed the key `0x980F` on the unit with `m-flasher info`.
+- **The panel probe** (R-PROBE-3, `SB_PROBE_PANEL`) brings the panel up
+  as HW-115 gives it and draws red, green, blue and white bars 60 pixels
+  wide, left to right, with a yellow 40 × 40 square at (0, 0). The bars
+  show whether the colours come out right with inversion on, and the
+  square shows which corner is (0, 0), so the picture answers Q-6's
+  orientation question too. Then the backlight is on for about 5 s; the
+  backlight goes out, SPI1 is switched off (`CON` 0, as HW-119 says the
+  bootloader leaves it after its menu), and the probe returns as light1
+  does. PC7 to PC10 stay outputs and `JL_IOMAP->CON1` bit 4 stays set,
+  which HW-119 also gives as the state after the bootloader's own menu.
+- **In C, on a stack of its own.** The bring-up is too long to write
+  well in assembly, so `_start` switches to a stack at `__stack_top`
+  (`0x01C7FC00`) and calls `sb_probe_panel` (probe.c). That address is
+  above m-bootloader's RAM (below `0x01C0A800`) and below the retained
+  area (from `0x01C7FD80`), so nothing HW-119 asks a return to keep is
+  written. The deepest the probe goes is a few dozen bytes. The loader's
+  `sp` is kept in r4, with r4's own value and `rets` saved on the new
+  stack. The compiler saves r4 and up in each function (P-70), so r4
+  comes back unchanged. `ssp` is never written, and interrupts stay off.
+  Every function is in `.boot.text`, because `sb_start` hasn't copied the
+  rest of the code to RAM. There are no tables, so nothing is read from
+  `.rodata` either. The disassembly shows every call and load staying in
+  the window and the registers.
+- **Every byte through `BUF`**, pixels included, as HW-115 says for the
+  command and data bytes. A frame by DMA would need `ADR` and `CNT` set
+  up as well, and buys nothing for a probe: 230 400 bytes at about
+  12 MHz take a fraction of a second either way.
+- **The waits** (150 ms after the reset, 120 ms after sleep out, the 5 s
+  hold) are passes of a two-instruction loop counted for HW-119's 360 MHz
+  at one instruction a cycle. A slower loop only makes them longer,
+  which the panel's minimum waits (HW-32) allow.
+- **In fwtest** the screen at 3 s and at the end is the picture, every
+  pixel, from the raw image and the emulator package. The return comes
+  at 7.9 s: the waits at fwtest's 240 MHz, plus the bytes. fwtest needs
+  no pin set-up or waits and has no backlight (HW-29, HW-32), so those
+  parts are checked in the disassembly only.
+- **On the unit**, the outcomes:
+  - the bars and the square on a lit screen for about 5 s, then the
+    backlight out and "APP EXITED": the panel works as HW-115 says.
+    Which corner the square is in, and whether the colours are right,
+    settle Q-6's orientation and colour questions;
+  - a lit screen that stays black or blank, then "APP EXITED": the
+    bring-up didn't take. Something in HW-115 is missing or different,
+    for example `CON`'s other mode bits (Q-6);
+  - a picture in the wrong colours, or noise: the panel is reached, and
+    the mode or byte order is the question;
+  - no "APP EXITED" (a hang or a reset): the return or the stack is
+    wrong. Light1 returned, so the new part is the stack.

@@ -231,3 +231,138 @@ void sb_test_ownbase(void)
     __asm__ volatile("[++r1=4] = r1" : : : "r1", "memory");
 }
 #endif
+
+#if defined(SB_PROBE_PANEL)
+/* Phase B's panel probe (BR-17; docs/DESIGN-NOTES.md, clean-br17-panel;
+ * R-PROBE-3). crt0.S's _start switches to a stack of our own and calls
+ * this before anything else; it brings the panel up as HW-115 gives it,
+ * draws four bars and a square, lights the backlight (HW-116), holds for
+ * about 5 s, puts the backlight out, switches SPI1 off and returns. It
+ * runs before sb_start, so it and everything it calls stay in the window
+ * (.boot.text), and it uses no data, no constants in memory and no RAM
+ * but its stack. Registers by address, from HARDWARE-SPEC: SPI1 HW-28,
+ * the ports and JL_IOMAP HW-56. Every byte goes through BUF (HW-29,
+ * HW-115). */
+#define PP_BOOT __attribute__((section(".boot.text"), noinline))
+#define PP_REG(a) (*(volatile u32 *)(a))
+#define PP_PA_OUT PP_REG(0x00050000)
+#define PP_PA_DIR PP_REG(0x00050008)
+#define PP_PC_OUT PP_REG(0x00050080)
+#define PP_PC_DIR PP_REG(0x00050088)
+#define PP_IOMAP_CON1 PP_REG(0x00051020)
+#define PP_SPI1_CON PP_REG(0x00011D00)
+#define PP_SPI1_BAUD PP_REG(0x00011D04)
+#define PP_SPI1_BUF PP_REG(0x00011D08)
+#define PP_CS (1u << 7)                 /* PC7, the chip select, active low */
+#define PP_DC (1u << 8)                 /* PC8: 0 command, 1 data */
+#define PP_SPI_PINS ((1u << 8) | (1u << 9) | (1u << 10))
+#define PP_BACKLIGHT (1u << 2)          /* PA2, active low (HW-116) */
+/* Two-instruction passes of pp_wait in a millisecond at HW-119's 360 MHz,
+ * one instruction a cycle; longer if a taken branch costs more. */
+#define PP_PASSES_MS 180000u
+
+void sb_probe_panel(void) PP_BOOT;
+
+static void PP_BOOT pp_wait_ms(u32 ms)
+{
+    u32 n = ms * PP_PASSES_MS;
+    __asm__ volatile("1:\n\t%0 += -1\n\tif (%0 != 0) goto 1b" : "+r"(n));
+}
+
+/* One byte through BUF: wait for CON bit 15, clear it with bit 14. */
+static void PP_BOOT pp_byte(u32 b)
+{
+    PP_SPI1_BUF = b;
+    while (!(PP_SPI1_CON & 0x8000u))
+        ;
+    PP_SPI1_CON |= 0x4000u;
+}
+
+/* A command byte: PC7 low, PC8 low for it, then PC8 high for its data. */
+static void PP_BOOT pp_cmd(u32 c)
+{
+    PP_PC_OUT &= ~PP_CS;
+    PP_PC_OUT &= ~PP_DC;
+    pp_byte(c);
+    PP_PC_OUT |= PP_DC;
+}
+
+static void PP_BOOT pp_end(void)
+{
+    PP_PC_OUT |= PP_CS;
+}
+
+static void PP_BOOT pp_pair(u32 a, u32 b)
+{
+    pp_byte(a >> 8);
+    pp_byte(a & 0xFF);
+    pp_byte(b >> 8);
+    pp_byte(b & 0xFF);
+}
+
+/* A w x h rectangle at (x, y) in one RGB565 colour, high byte first
+ * (HW-115 step 4). */
+static void PP_BOOT pp_fill(u32 x, u32 y, u32 w, u32 h, u32 colour)
+{
+    u32 n;
+    pp_cmd(0x2A);
+    pp_pair(x, x + w - 1);
+    pp_end();
+    pp_cmd(0x2B);
+    pp_pair(y, y + h - 1);
+    pp_end();
+    pp_cmd(0x2C);
+    for (n = w * h; n; n--) {
+        pp_byte(colour >> 8);
+        pp_byte(colour & 0xFF);
+    }
+    pp_end();
+}
+
+void sb_probe_panel(void)
+{
+    /* HW-115 step 1: PC7 an output driven high; PC8 to PC10 outputs
+     * driven low; SPI1 on pin group B. No pull or drive is set. */
+    PP_PC_OUT |= PP_CS;
+    PP_PC_DIR &= ~PP_CS;
+    PP_PC_OUT &= ~PP_SPI_PINS;
+    PP_PC_DIR &= ~PP_SPI_PINS;
+    PP_IOMAP_CON1 |= 1u << 4;
+    /* Step 2: BAUD 4, then CON 0x4021 (on, the pending flag cleared). */
+    PP_SPI1_BAUD = 4;
+    PP_SPI1_CON = 0x4021;
+    /* Step 3. */
+    pp_cmd(0x01);                       /* software reset */
+    pp_end();
+    pp_wait_ms(150);
+    pp_cmd(0x11);                       /* sleep out */
+    pp_end();
+    pp_wait_ms(120);
+    pp_cmd(0x3A);                       /* 16-bit pixels */
+    pp_byte(0x55);
+    pp_end();
+    pp_cmd(0x36);
+    pp_byte(0x00);
+    pp_end();
+    pp_cmd(0x21);                       /* inversion on */
+    pp_end();
+    pp_cmd(0x13);                       /* normal display */
+    pp_end();
+    pp_fill(0, 0, 240, 240, 0x0000);
+    pp_cmd(0x29);                       /* display on */
+    pp_end();
+    PP_PA_OUT &= ~PP_BACKLIGHT;         /* the backlight on (HW-116) */
+    PP_PA_DIR &= ~PP_BACKLIGHT;
+    /* The picture: bars red, green, blue and white from the left, and a
+     * yellow square in the top-left corner (0, 0). */
+    pp_fill(0, 0, 60, 240, 0xF800);
+    pp_fill(60, 0, 60, 240, 0x07E0);
+    pp_fill(120, 0, 60, 240, 0x001F);
+    pp_fill(180, 0, 60, 240, 0xFFFF);
+    pp_fill(0, 0, 40, 40, 0xFFE0);
+    pp_wait_ms(5000);
+    /* Out again: the backlight an input (dark), SPI1 off (HW-119). */
+    PP_PA_DIR |= PP_BACKLIGHT;
+    PP_SPI1_CON = 0;
+}
+#endif
