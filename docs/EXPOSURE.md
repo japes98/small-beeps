@@ -2561,6 +2561,14 @@ SR-3 wrote only its barrier-log row.*
 - Pushing: `git push` hung in its HTTPS helper (the keychain credential
   helper, waiting on nothing the session could see); the branch was
   pushed through `gh`'s credential helper for that one command.
+- C-SEP-TERMS failed on #181's first run (run 44226394632): one hit in
+  tests/test_fwsc.py, a made-up key in a refusal test, which is also a
+  number in the emulator's source. The run's log gave only the check's
+  summary, so its report artifact was fetched by API and only
+  `logs/C-SEP-TERMS.log` extracted from it, twice (`unzip -p`; the
+  second time filtered to the hit), the zip deleted at once each time.
+  The hit was found by hashing the line's words and numbers; the test
+  now computes its key.
 - Force-pushes: none.
 - Disk: 5.5 GB free at the start; about 5.4 GB at the lowest.
 

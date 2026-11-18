@@ -228,7 +228,7 @@ class AppAreaTest(unittest.TestCase):
         self.assertTrue(any(start < 0x4000 for _, start, _ in self.entry_regions(low, key)))
         self.assertTrue(fw.below_area(good, 0x980F))                       # the wrong key reads no area head
         with self.assertRaises(ValueError):
-            fw.pack_app_area(APP, "small-beeps-0.9.0", 0x1234)          # a key the spec doesn't give
+            fw.pack_app_area(APP, "small-beeps-0.9.0", 0xFFFF ^ 1)      # a key the spec doesn't give
 
     def run_pack(self, *args):
         with tempfile.TemporaryDirectory() as d:
