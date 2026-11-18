@@ -2773,6 +2773,37 @@ SR-3 wrote only its barrier-log row.*
 - Force-pushes: none.
 - Disk: 3.1 GB free at the start; about 3.0 GB at the lowest.
 
+### Session spec-sr15 (SR-15: the FM-1's two flash parts)
+- Date: 2026-11-18 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.327; model `claude-opus-5-5`. The same Claude Code
+  session as spec-sr14 (`3554477d-915e-4869-a94a-6a2ff3efe04a`), after a
+  context compaction. Branch `spec/sr15` from main at `9050b8e4` (#187's
+  merge), then fast-forwarded to the clean side's open #188
+  (`probe/panel`, head `ab27c1c6`) by the standing rule.
+- The owner's request, saved as docs/prompts/spec-sr15.md as received
+  (some lines arrived garbled; they were read as asking for the commands
+  small-beeps uses with their typical and maximum times, every
+  difference between the two parts that matters to small-beeps, and what
+  small-beeps must do so one image works on both).
+- Read (PROVENANCE P-72): UCUN's UC25HQ80 datasheet, whole; Puya's
+  P25Q80H datasheet (P-53), again; m-bootloader at
+  `3ac7651a019fa44daba061b05654278496477b64`: `src/loader.c`, whole (new;
+  its licence line first, MIT), and the flash code in `src/platform.c`
+  and `src/boot.c` (read whole under P-68), `docs/SPEC.md` §3.4 and §3.5.
+  Two raw-URL fetches of `src/loader.h` and `src/platform.h` failed and
+  returned nothing. Not opened: `src/usb_midi.c`, any other source, any
+  GPL firmware or stock package. `src/board.c` holds no flash code and
+  was not read again.
+- Seen in web search results, not opened and not used: one search's
+  summary quoted GitHub issues and pull requests of FM-1 firmware
+  projects (CoralFlower, fm1-sid, AQUORA, lunar-modulator) about units
+  with the UC25HQ80, and the IMSProg programmer's README. Nothing in
+  HARDWARE-SPEC comes from them: every UC25HQ80 fact cites its datasheet.
+- Our own firmware's flash code (`firmware/src/store.c`, `store.h`) was
+  read to answer SR-15: it is firmware-side code on main, not exposure.
+- Disk: about 2.8 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

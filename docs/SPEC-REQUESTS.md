@@ -616,3 +616,30 @@ an issue or a pull request against docs/HARNESS.md.
 - Answered: 2026-11-18, session spec-sr14 (spec side), by the owner's
   ruling for SR-14
 
+### SR-15: The FM-1's two flash parts
+- Asked: 2026-11-18, by the owner (docs/prompts/spec-sr15.md), for M7's
+  store on real hardware and for firmwares built on the base (RevoiceDX
+  saves at `0x80000`)
+- Question: units sold since autumn 2026 carry a second flash part, which
+  reports `0xB36014`.
+  For the commands and status bits small-beeps uses (read, page program,
+  sector erase, the busy bit), give each one's times (typical and
+  maximum) on both parts, and every difference between the two parts
+  that matters to small-beeps, or say that there is none. Say what
+  small-beeps must do so one image works on both.
+- Why: the owner's report (relayed, not taken as a fact by this side):
+  the owner's unit reports `0x856014` in m-flasher's information and in
+  m-bootloader's recovery menu ("flash 856014 1024K"); other units report
+  `0xB36014`. Sources allowed: the two parts' public datasheets and
+  m-bootloader's flash code, under section 25's and 26's guardrails.
+- Status: answered (HARDWARE-SPEC.md, "27. The FM-1's two flash parts":
+  the parts in HW-120, the commands and times in HW-121, the differences
+  in HW-122, m-bootloader's handling in HW-123, what one image needs in
+  HW-124). For the commands small-beeps sends only the ID differs, and
+  that matters: the store writes only to `0x856014` (`STORE_PART`,
+  `firmware/src/store.h`), so on a `0xB36014` unit every save is refused
+  (`STORE_ERR_PART`). Nothing else in the store's flash code needs to
+  change: it sends only HW-121's commands, waits on WIP with a 3 s limit,
+  and reads every program back (HW-124 items 2 to 4). An erase is checked
+  only through the sector header programmed after it.
+- Answered: 2026-11-18, session spec-sr15 (spec side)
