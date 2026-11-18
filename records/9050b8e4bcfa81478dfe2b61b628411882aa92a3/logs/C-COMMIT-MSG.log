@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range e13af89e496266b600640332be9f75366f1841bf..9050b8e4bcfa81478dfe2b61b628411882aa92a3
+OK     291c470ee5bf sessions: clean-br17-light starts (nothing to archive)
+OK     51019a19963a firmware: a light probe for Phase B: the backlight and PLAY's LED (BR-17)
+OK     0ca83f22ae7f docs: what fwtest can't show of the light probe (R-PROBE-2)
+EXEMPT 9050b8e4bcfa (merge) Merge pull request #187 from japes98/probe/light
+4 commit(s) checked: PASS
+
+exit status 0
