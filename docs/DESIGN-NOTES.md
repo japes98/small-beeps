@@ -3977,8 +3977,13 @@ same return.
 - **In fwtest** the port registers are modelled, so none of the probe's
   accesses is in `unmodelled_accesses`. The LED at row 2, column 10
   (fwtest's LED 12, HW-35, HW-42) is lit the whole of every sample until
-  the return, and no other LED ever is. fwtest has no backlight, so
-  PA2 shows nothing there. The return jumps to 0, where every register
+  the return, and no other LED ever is. fwtest has no backlight, and
+  `--ram` saves only RAM, not the port registers, so neither PA2 nor the
+  switching off (PA10 low, `0xFFFF` latched, PA2 an input) can be seen
+  there. They were checked in the probe's disassembly, instruction by
+  instruction against the four steps, and nowhere else. Build A without
+  the define was rebuilt from this change's tree and compared by hand
+  (`5bc12a34…`): no CI check records its hash. The return jumps to 0, where every register
   but r0 starts in fwtest (HW-1), and faults as R-PROBE-1's does, after
   the hold.
 - **On the unit**, three outcomes:
