@@ -2994,9 +2994,9 @@ UC25HQ80's side. Page numbers are as printed.
      A firmware that refuses an unknown part (as HW-76 suggested) lists
      both.
   2. **Sends only HW-121's commands** (`0x9F`, `0x03`, `0x05`, `0x06`,
-     `0x20`, `0x02`), each as both datasheets give it. Never `0x31` or
-     `0x15` (the P25Q80H's configure register), never the one-byte form
-     of `0x01`, and no quad or dual command of its own.
+     `0x20`, `0x02`), and `0x35` for item 5, each as both datasheets give
+     it. Never `0x31` or `0x15` (the P25Q80H's configure register), never
+     the one-byte form of `0x01`, and no quad or dual command of its own.
   3. **Waits on WIP**, never for a fixed time, and allows at least the
      larger maximum: 12 ms for an erase, 3 ms for a page program, 12 ms
      for a status register write.
@@ -3004,13 +3004,14 @@ UC25HQ80's side. Page numbers are as printed.
      failure. That includes an erase, which should read back all `0xFF`.
      A protected erase or program does nothing, and WIP doesn't show it.
   5. **Leaves the status register alone** unless it must. If block
-     protection covers its region (BP0-BP4 or CMP, by the table both
-     parts share), either refuse to write or clear it with a two-byte
-     `0x01` that keeps every other bit, QE above all. QE cleared while
-     the window reads at quad width stops the window as soon as the
-     firmware gives the flash back. After a unit has been written through
-     m-bootloader nothing is protected (HW-123), but a firmware can't
-     count on that.
+     protection covers its region (BP0-BP4 in status 1, read by `0x05`;
+     CMP in status 2, read by `0x35`, the same on both parts; by the
+     table both parts share), either refuse to write or clear it with a
+     two-byte `0x01` that keeps every other bit, QE above all. QE
+     cleared while the window reads at quad width stops the window as
+     soon as the firmware gives the flash back. After a unit has been
+     written through m-bootloader nothing is protected (HW-123), but a
+     firmware can't count on that.
   6. **Runs `0x03` at 50 MHz at most** (SPI0's clock).
   These hold for any region, a store at `0xFC000` or one at `0x80000`
   alike: the "upper 1/2" row (BP2 alone) would protect both. Handing the
