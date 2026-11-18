@@ -8,6 +8,7 @@
 
 #include "sb.h"
 #include "WL82.h"
+#include "hw_fm1.h"
 
 /* HW-18: the handler of source n is the word at __vectors + 4n (app.ld). */
 _Static_assert(sizeof(unsigned short) == 2, "a stub is 2 bytes");
@@ -97,7 +98,13 @@ void sb_halt(u32 reason, u32 source, u32 reti)
     line[11] = hex[source >> 8 & 0xF];
     line[12] = hex[source >> 4 & 0xF];
     line[13] = hex[source & 0xF];
+#if defined(SB_HW_FM1)
+    /* On a unit there is no console to read (Q-5): the screen goes red. */
+    (void)line;
+    hw_halt_screen();
+#else
     sb_console_write(line, sizeof line / 4);
+#endif
     for (;;)
         ;
 }

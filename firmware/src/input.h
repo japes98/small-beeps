@@ -136,6 +136,6 @@ extern volatile struct sb_input_record sb_input;
 
 /* Starts scanning; main calls it once, before interrupts are on. */
 void input_start(void);
-void input_scan(void) __attribute__((interrupt("")));
+void input_scan(void) SB_SLOT_HANDLER;
 
 #endif

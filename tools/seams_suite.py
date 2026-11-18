@@ -199,6 +199,20 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   no port or SPI1 access is unmodelled; its hardware package passes
   fwsc.py's unit checks; and a build with SB_PROBE_LIGHT as well is
   refused.
+- hw (BR-17, Phase B): the FM-1 hardware build, SB_HW_FM1 (R-HW-1). In
+  fwtest, where its one timer, TIMER0, counts 24 MHz rather than the
+  chip's 60 MHz (HW-119), so its beats are 2.5 times slow: the screen goes
+  black, then bands 1, 2 and 3 appear in that order on black, then the
+  address pattern with band 4 over it; at the end the test screen, no halt, the beats as
+  2.5 times slow predicts; PLAY (fwtest's key 12) pressed and released is
+  named on the screen, and its LED is lit for its column's twelfth while
+  it is held and dark after; nothing unmodelled. Built with
+  SB_TEST_FAULT as well (main's stack overrun) it halts on the stack's
+  guard with the screen solid red. Built with SB_TEST_SPI_NO_IRQ (SPI1's
+  interrupt left off) the first frame's chain stalls and lcd_wait's
+  timeout draws band 5 under bands 1 to 3. Its hardware
+  package passes fwsc.py's unit checks; with SB_ENGINE_EXTERNAL or a
+  probe it is refused.
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -1300,6 +1314,112 @@ def case_panel(a, work, log):
     return problems
 
 
+HW_RATIO = 60 / 24.0                # the chip's TIMER0 clock over fwtest's (HW-119, HW-48)
+HW_LED = 12                         # fwtest's LED of PLAY (HW-35, HW-42)
+HW_BANDS = ((0, 0, 255), (0, 255, 0), (255, 255, 255))
+
+
+def hw_state(rows):
+    """How many of the start-up's bands are on an otherwise black screen,
+    or None if the screen is something else."""
+    n = 0
+    for k, colour in enumerate(HW_BANDS, 1):
+        p = rows[40 + 24 * k + 8][120]
+        if p == colour and n == k - 1:
+            n = k
+        elif p != (0, 0, 0):
+            return None
+    if any(rows[y][x] != (0, 0, 0) for x, y in ((0, 0), (120, 20), (239, 239), (5, 200))):
+        return None
+    return n
+
+
+def case_hw(a, work, log):
+    problems = []
+    fws = fw_suite()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1")
+    script = os.path.join(b, "press.script")
+    with open(script, "w") as f:
+        f.write("3000 key %d down\n3800 key %d up\n" % (HW_LED, HW_LED))
+    out = os.path.join(work, "run")
+    early = []
+    for t in range(400, 431):
+        early += ["--lcd", str(t)]
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "5000", "--script", script, "--leds-every", "500",
+               "--lcd", "1000", "--lcd", "3500", "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN), *early)
+    if r["run"]["outcome"] != "completed":
+        problems.append("hw: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    if r["run"]["unmodelled_accesses"]:
+        problems.append("hw: unmodelled accesses: %s" % [u["address"] for u in r["run"]["unmodelled_accesses"]][:8])
+    seen = []
+    for t in range(400, 431):
+        _, _, rows = fws.read_png(os.path.join(out, "lcd-%dms.png" % t))
+        st = hw_state(rows)
+        if not seen or seen[-1] != st:
+            seen.append(st)
+    want = [0, 1, 2, 3, None]
+    if seen != want:
+        problems.append("hw: the start-up's screens in order were %s, not black, bands 1, 2, 3, then the pattern" % seen)
+    _, _, pat = fws.read_png(os.path.join(out, "lcd-1000ms.png"))
+    if pat[40 + 24 * 4 + 8][120] != (255, 255, 0) or pat[8][8] != fws.rgb8(1, 2, 0):
+        problems.append("hw: at 1 s not the address pattern with band 4 (yellow) over it")
+    bc = fws.beacon(ram(out, BEACON_ADDR, fws.BEACON_LEN))
+    lo, hi = (5000 - 430) / HW_RATIO - 2, (5000 - 400) / HW_RATIO + 2
+    if bc["screen"] != 2 or bc["halt_reason"] or not lo <= bc["beats"] <= hi:
+        problems.append("hw: at the end screen %d, halt %d, beats %d (not the test screen, no halt, %.0f to %.0f beats)"
+                        % (bc["screen"], bc["halt_reason"], bc["beats"], lo, hi))
+    _, _, held = fws.read_png(os.path.join(out, "lcd-3500ms.png"))
+    _, _, end = fws.read_png(os.path.join(out, "lcd-end.png"))
+    if held[8][8] != (255, 0, 0) or end[8][8] != (255, 0, 0):
+        problems.append("hw: no test screen (its red corner) at 3.5 s and at the end")
+    box = [(x, y) for y in range(104, 120) for x in range(26, 214)]
+    if not any(held[y][x] == (255, 255, 255) for x, y in box) or all(held[y][x] == end[y][x] for x, y in box):
+        problems.append("hw: PLAY's press and release are not both named on the screen")
+    with open(os.path.join(out, "leds.csv")) as f:
+        leds = {int(float(row[0])): [int(v) for v in row[1:]] for row in list(csv.reader(f))[1:]}
+    press, after = leds.get(3500), leds.get(4500)
+    if not press or not after or not 70 <= press[HW_LED] <= 95 or any(v for i, v in enumerate(press) if i != HW_LED) \
+            or any(after):
+        problems.append("hw: LEDs while PLAY is held %s, after %s (LED %d at about 1000 / 12 alone, then none)"
+                        % (press, after, HW_LED))
+    fb = os.path.join(work, "fault")
+    build(fb, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_FAULT")
+    fout = os.path.join(work, "run-fault")
+    r = fwtest(os.path.join(fb, "app.bin"), fout, log, "--ms", "3000", "--halt-ok", "--lcd", "end",
+               "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN))
+    _, _, rows = fws.read_png(os.path.join(fout, "lcd-end.png"))
+    bc = fws.beacon(ram(fout, BEACON_ADDR, fws.BEACON_LEN))
+    # SB_TEST_FAULT overruns main's stack: the tick's guard check halts (SB_HALT_STACK).
+    if r["run"]["outcome"] != "halt" or bc["halt_reason"] != 3 or any(p != (255, 0, 0) for row in rows for p in row):
+        problems.append("hw with SB_TEST_FAULT: %s, halt reason %d, the screen not all red" % (r["run"]["outcome"], bc["halt_reason"]))
+    nb = os.path.join(work, "no-irq")
+    build(nb, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_SPI_NO_IRQ")
+    nout = os.path.join(work, "run-no-irq")
+    r = fwtest(os.path.join(nb, "app.bin"), nout, log, "--ms", "3000", "--lcd", "end")
+    _, _, rows = fws.read_png(os.path.join(nout, "lcd-end.png"))
+    got = [rows[40 + 24 * k + 8][120] for k in (1, 2, 3, 4, 5)]
+    if r["run"]["outcome"] != "completed" or got != list(HW_BANDS) + [(0, 0, 0), (255, 0, 255)]:
+        problems.append("hw with SB_TEST_SPI_NO_IRQ: %s, bands %s (not 1 to 3, then 5 for a chain whose interrupt"
+                        " never came)" % (r["run"]["outcome"], got))
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import fwsc
+    try:
+        fwsc.unit_check(fwsc.pack_hardware(read_bytes(os.path.join(b, "app-pkg.bin")), "0.0.0", 0x980F, 0xFC000), 0x980F)
+    except ValueError as e:
+        problems.append("its hardware package: %s" % e)
+    for other, words in (("SB_ENGINE_EXTERNAL", "is the base's own start-up on a unit"),
+                         ("SB_PROBE_PANEL", "is not a probe")):
+        code, text = build(os.path.join(work, "with-" + other.lower()), log, "--define", "SB_HW_FM1", "--define", other,
+                           check=False)
+        if not code or words not in text:
+            problems.append("SB_HW_FM1 with %s not refused (exit %d)" % (other, code))
+    print("hw: bands 1 to 3 in order, the pattern, then the test screen with beats %.1f times slow; PLAY named and its"
+          " LED lit while held; a fault halts on red; its hardware package passes the unit's checks; with an external"
+          " engine or a probe refused" % HW_RATIO)
+    return problems
+
+
 def read_bytes(path):
     with open(path, "rb") as f:
         return f.read()
@@ -1320,6 +1440,7 @@ CASES = [
     ("probe", case_probe),
     ("light", case_light),
     ("panel", case_panel),
+    ("hw", case_hw),
 ]
 
 

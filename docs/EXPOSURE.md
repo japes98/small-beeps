@@ -2788,6 +2788,62 @@ SR-3 wrote only its barrier-log row.*
   `config/emulator-terms-reviewed.json`; the third was a bound of the
   test's own, rewritten from HARDWARE-SPEC's addresses.
 
+### Session clean-br17-start (BR-17: the FM-1 hardware build)
+- Date: 2026-11-18 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.327, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-panel's, continued. The owner's prompt was a pasted message
+  (panel1's result and the next step), saved unedited as
+  docs/prompts/clean-br17-start.md; the owner's correction and answers
+  that followed are saved unedited as clean-br17-start-answers.md.
+- Where it ran: the owner's Mac, in `~/<top>/clean`; the role file says
+  `clean`.
+- Start: on `probe/panel` (#188, open), branched to `hw/start`, since
+  the build reuses its bring-up. Nothing to archive. The spec side's
+  open #189 was listed with its changed file names only (`gh pr view
+  --json files`), before P-72 and SR-16 were numbered; its branch was
+  not opened.
+- Reads: HARDWARE-SPEC HW-3, HW-9, HW-11 to HW-21, HW-24, HW-33 to
+  HW-35, HW-38, HW-40, HW-42 to HW-45, HW-48, HW-55, HW-56, HW-65,
+  HW-73, HW-91 and HW-115 to HW-119, and the list of every entry's
+  standing; HARNESS.md (the script, `--lcd`, `leds.csv`); this
+  repository's firmware, tests and docs that the change touches.
+- **The pull request (R-HW-1):** build A from this folder still
+  `5bc12a34…`; the hardware build built with `SB_HW_FM1`; the seams
+  suite's hw case PASS, and the whole seams suite run. Its hardware
+  package (key `0x980F`) packed twice to the same bytes, `fwsc.py check`
+  passing; a file in `out/` for the owner, not in the repository.
+- Force-pushes: none.
+- Disk: 3.7 GB free on resuming; about 5.3 GB at the end.
+
+### Session clean-br17-start2 (BR-17: start1's result and the chip select)
+- Date: 2026-11-18 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.327, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-start's, continued. The owner's prompt was a pasted message
+  (start1's result and the next step), saved unedited as
+  docs/prompts/clean-br17-start2.md. The owner's reading of the result is
+  taken as a relayed observation, and DESIGN-NOTES says where this side
+  reads it differently.
+- Where it ran: the owner's Mac, in `~/<top>/clean`, on `hw/start`
+  (#190, open).
+- Reads: HW-29, HW-30, HW-55, HW-59 and HW-115 again; this repository's
+  lcd.c, main.c and the hw case.
+- **The change (R-HW-1):** build A still `5bc12a34…`; the seams suite's
+  hw case PASS. Start2's hardware package (key `0x980F`) packed twice to
+  the same bytes, `fwsc.py check` passing; a file in `out/` for the
+  owner, not in the repository.
+- Force-pushes: none.
+- Disk: about 5.3 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

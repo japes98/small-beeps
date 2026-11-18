@@ -18,6 +18,24 @@
 #include "audio.h"
 #include "WL82.h"
 
+#if defined(SB_HW_FM1)
+/* The FM-1 hardware build (R-HW-1): the pins set up as HW-117 and HW-118
+ * give them, each shift register edge its own read-modify-write of OUT
+ * with csync after it, the LED lines low while a column changes, and the
+ * slot run from TIMER0's interrupt (main.c's hw_slot), not TIMER1, whose
+ * clock on the chip HARDWARE-SPEC doesn't give. Rows 0 and 5 (the
+ * encoders' PA0 and PB7) are left out, and so is the pot: their set-up
+ * on the chip isn't known (Q-7, SR-16). */
+#define PA_ROWS   (0xFu << 5)           /* PA5 to PA8 (HW-117) */
+#define HW_ROWS   0x1Eu                 /* rows 1 to 4 */
+#define HW_EDGE() __asm__ volatile("csync" ::: "memory")
+#if !defined(SB_COST_NO_POT)
+#define SB_COST_NO_POT
+#endif
+/* Port A's and H's DIE, PU and PD (HW-56: +12, +16, +20). */
+#define HW_PORT_REG(port, off) (*(volatile u32 *)((u32)(port) + (off)))
+#endif
+
 /* HW-33: the column shift registers on port A. A rising edge of PA3
  * shifts in PA4; one of PA1 copies the 16 bits to the outputs; a column
  * is selected while its bit is 0. Each shift moves every bit one place
@@ -241,13 +259,36 @@ static void pot(void)
     JL_ADC->CON = ADC_START;
 }
 
+#if defined(SB_HW_FM1)
+/* One bit into the shift registers and latched (HW-117): data, a clock
+ * pulse, a latch pulse, each edge its own read-modify-write of OUT. */
+static void hw_shift(u32 data)
+{
+    if (data)
+        JL_PORTA->OUT |= PA_DATA;
+    else
+        JL_PORTA->OUT &= ~PA_DATA;
+    HW_EDGE();
+    JL_PORTA->OUT |= PA_CLOCK;
+    HW_EDGE();
+    JL_PORTA->OUT &= ~PA_CLOCK;
+    HW_EDGE();
+    JL_PORTA->OUT |= PA_LATCH;
+    HW_EDGE();
+    JL_PORTA->OUT &= ~PA_LATCH;
+    HW_EDGE();
+}
+#endif
+
 /* TIMER1: one slot of the scan. The ports' other bits are kept in
  * locals: the compiler would read them again after every port write. */
 void input_scan(void)
 {
     u32 s = slot, base = pa_base, hbase = ph_base, pa, pb, rows, data, lit;
 
+#if !defined(SB_HW_FM1)
     JL_TIMER1->CON = SCAN_CON | SCAN_ACK;
+#endif
     pa = JL_PORTA->IN;
     pb = JL_PORTB->IN;
     if (!s) {
@@ -259,7 +300,14 @@ void input_scan(void)
 
     /* LEDs off; shift in a 0 for column 0, else a 1; latch; LEDs on. */
     data = s ? PA_DATA : 0;
-#if !defined(SB_COST_NO_LEDS)
+#if defined(SB_HW_FM1)
+    (void)base;
+    JL_PORTA->OUT &= ~(PA_LED1 | PA_LED2);
+    JL_PORTH->OUT = hbase;
+    hw_shift(data);
+    JL_PORTA->OUT |= lit & (PA_LED1 | PA_LED2);
+    JL_PORTH->OUT = hbase | lit >> 16;
+#elif !defined(SB_COST_NO_LEDS)
     JL_PORTA->OUT = base | data;
     JL_PORTH->OUT = hbase;
     JL_PORTA->OUT = base | data | PA_CLOCK;
@@ -295,7 +343,12 @@ void input_scan(void)
     }
     /* HW-34: rows 0 to 5 on PA0, PA5-PA8 and PB7, 0 while closed. */
     s--;
+#if defined(SB_HW_FM1)
+    (void)pb;
+    rows = ~(pa >> 4) & HW_ROWS;
+#else
     rows = ~((pa & 1) | (pa >> 4 & 0x1Eu) | (pb >> 2 & 0x20u)) & 0x3Fu;
+#endif
 #if !defined(SB_COST_NO_KEYS)
     keys(s, rows);
 #else
@@ -383,6 +436,25 @@ void input_start(void)
     /* The pins' other bits are left as they are (Q-7: no pin set-up). The
      * registers' state at power-up is unknown, so 16 ones go in first:
      * no column selected. */
+#if defined(SB_HW_FM1)
+    /* HW-117, HW-118: latch, clock, data and the LED lines outputs driven
+     * low; the rows inputs with their digital input and pull-up on and the
+     * pull-down off. PA2 is already an output driven low (hw_early). */
+    JL_PORTA->OUT &= ~PA_OURS;
+    JL_PORTA->DIR &= ~PA_OURS;
+    JL_PORTH->OUT &= ~PH_OURS;
+    JL_PORTH->DIR &= ~PH_OURS;
+    JL_PORTA->DIR |= PA_ROWS;
+    HW_PORT_REG(JL_PORTA, 12) |= PA_ROWS;
+    HW_PORT_REG(JL_PORTA, 20) &= ~PA_ROWS;
+    HW_PORT_REG(JL_PORTA, 16) |= PA_ROWS;
+    pa_base = JL_PORTA->OUT & ~PA_OURS;
+    ph_base = JL_PORTH->OUT & ~PH_OURS;
+    for (i = 0; i < 16; i++)
+        hw_shift(1);
+    (void)v;
+    return;
+#endif
     pa_base = JL_PORTA->OUT & ~PA_OURS;
     ph_base = JL_PORTH->OUT & ~PH_OURS;
     JL_PORTH->OUT = ph_base;

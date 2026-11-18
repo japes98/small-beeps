@@ -4062,3 +4062,121 @@ The owner's prompt: docs/prompts/clean-br17-panel.md.
   said top right and was corrected at once; no record here takes that.
   The owner treats the orientation as right, and the start-up build's
   screen will confirm it.
+
+### 2026-11-18 clean-br17-start: small-beeps' own start-up on a unit (BR-17, R-HW-1)
+The owner's prompt: docs/prompts/clean-br17-start.md, with the
+answers in clean-br17-start-answers.md. Panel1 worked on the unit, with
+the square in the top-left corner; the owner takes the orientation as
+right.
+- **The reading taken.** "Its screen, keys, LEDs and timer from section
+  26, as one hardware build": `SB_HW_FM1`, small-beeps' own start-up
+  (the address pattern, then the test screen with its heartbeat) on a
+  unit, staying in the firmware. Only what HARDWARE-SPEC gives on the
+  chip is set up. Left out, for want of a chip fact (SR-16 items 4 to
+  6): the FM engine and core 1, the audio output, MIDI, the store, the
+  pot and the encoders. Without the store, the build writes no flash at
+  all. The instrument's own screens need the engine and the store, so
+  the build keeps the test screen. On it, each button or key pressed
+  or released is named (its control number and label), and its LED
+  follows it, so a unit shows which contact is which (Q-7). No release
+  gets the build, and no `fm1-unit` entry.
+- **A black screen must say where it stopped.** Each step that rests on
+  an assumption about the chip is bracketed by a band, drawn polled
+  through SPI1's `BUF` as panel1 drew, with code in the window
+  (`hw_fm1.c`):
+  1. band 1 (blue), from `sb_start` before the copy: the panel brought
+     up as HW-115 gives it, then the backlight on;
+  2. band 2 (green), at `main`'s start: the code copied to RAM, over RAM
+     m-bootloader used, runs (SR-16 item 3);
+  3. band 3 (white), after interrupts are on and TIMER0's tick has
+     counted two beats in a spin: the vector table, interrupt entry, its
+     stack and TIMER0 (items 1 and 2);
+  4. then the address pattern and the test screen, by DMA chained on
+     SPI1's interrupt, as in build A. Between the two, `sb_wait_ms` uses
+     `idle`, whose chip behaviour is item 2's;
+  5. the heartbeat counting seconds, in the main loop's `idle`.
+  A halt (a fault, a stray interrupt, a stack guard) draws the whole
+  screen red, polled, in place of the console line no unit shows (Q-5).
+- **One timer.** HW-119 gives TIMER0's clock at the app's entry (the
+  60 MHz low-speed bus); nothing gives TIMER1's (the scan's) or TIMER4's
+  (the time base and the clock measure). So TIMER0 interrupts every
+  5000 counts at prescaler setting 0 (HW-48's ÷1): 83.3 µs, one scan
+  slot. Every twelfth slot runs the tick, `sb_tick` and `input_scan`
+  become ordinary functions of that one handler (`hw_slot`), and
+  `sb_now()` returns the slots and the count in the same 24 MHz units as
+  before, so every caller is unchanged. `CON` `0x1` to run it is
+  fwtest's reading of bits 0 and 1, taken for the chip (SR-16 item 1).
+  If it's wrong, the screen stops at band 2.
+- **The scan's pins and edges** are HW-117's and HW-118's: latch, clock,
+  data and the four LED lines outputs driven low; the rows PA5 to PA8
+  inputs with `DIE` and the pull-up on and the pull-down off. Each bit
+  goes in with each edge its own read-modify-write of `OUT`, `csync`
+  after it, and the LED lines low. PA2 stays low from `hw_early` on, so
+  the backlight is lit and the matrix enabled. Rows 0 and 5 (the
+  encoders') are ignored. The column walk is build A's, one 0 bit from
+  bit 0 to bit 10. That reaches PLAY's and REC's columns (`0xFBFF` and
+  `0xFF7F` select bits 10 and 7), but OCT−'s and OCT+'s words clear two
+  bits each, one of them past 10. Whether they read is an outcome to
+  report, and SR-16 item 4.
+- **The LEDs are multiplexed** as in build A: a key's LED is lit only
+  while its column is selected, one slot in twelve. At "full" it is
+  about as bright as m-bootloader's, which lights its three menu LEDs at
+  a third each.
+- **`SPI_CON`** is `0x21` in this build: lcd.c's writes set every bit,
+  and build A's `0` would switch SPI1 off on the chip (HW-55).
+- **The vector table at `0x01C7FE00`** (HW-18) is inside HW-119's
+  retained area. A return would need that area kept, but this build
+  never returns, and the table has to be there. Whether the area
+  matters at the next power-on is SR-16 item 2.
+- **In fwtest** TIMER0 counts 24 MHz (HW-48), not 60, so this build's
+  slots, beats and seconds all run 2.5 times slow there, and the test
+  allows for that. The bands, the pattern, the test screen, PLAY's name
+  and LED, and the red halt screen are all checked (seams case hw).
+  The waits, the pins' set-up and the backlight are not visible in
+  fwtest; the disassembly shows `hw_early` and everything it calls
+  running from the window.
+- Build A without the define is still `5bc12a34…`, byte for byte.
+
+### 2026-11-18 clean-br17-start2: start1 on the unit, and the chip select (BR-17, R-HW-1)
+The owner's prompt: docs/prompts/clean-br17-start2.md.
+- **Start1's result** (`c02427d9…`, the owner's report): the backlight
+  and bands 1, 2 and 3 in order, then nothing more drawn, and no red
+  screen. Every button tried (PLAY, OCT− and OCT+ included) lit its own
+  LED while held and put it out on release.
+- **What that says.** The owner read it as the drawing stopping at the
+  first DMA transfer. The LEDs say otherwise. In this build only
+  `hw_serve`, in the main loop, lights an LED (main.c; `views.c`'s
+  caller isn't built in, and `probe.c`'s is a test build's). The main
+  loop only begins after the pattern and the test screen have been sent
+  and `lcd_wait` has seen their transfers end. So on the chip SPI1's DMA
+  ran, its interrupt came for every chunk, `idle` woke, and the keys
+  were scanned, debounced and queued. It also suggests that OCT− and
+  OCT+ each give an event the walk reads, since each lit its own LED and
+  only an event lights one. The test screen will show whether each is
+  named as itself. The panel just didn't take what lcd.c sent.
+- **The cause: the chip select.** HW-115 sends every command with PC7,
+  the panel's chip select, low, and raises it after. `hw_early`'s
+  polled path does so (`hw_cmd`, `hw_end`), but lcd.c was written for
+  fwtest, which doesn't model PC7 (HW-30), and never drives it. After
+  band 3, PC7 was high, so the panel ignored every byte. Nothing in
+  fwtest could show this.
+- **The fix**: in the hardware build, `lcd_command` raises PC7 and lowers
+  it again as each command starts, once the transfer before has ended,
+  with `csync` after each edge. So PC7 is low through each command, its
+  data and a frame's DMA, and high for a moment between commands. After
+  the last command it stays low until the next. HW-115 raises it after
+  each command; whether staying low between frames matters to the panel
+  isn't stated, and nothing else is on SPI1.
+- **The bands asked for**, so the next result reads either way:
+  - band 4 (yellow), drawn over the pattern once its DMA chain has ended
+    by SPI1's interrupts;
+  - band 5 (magenta), if a chain is still going 500 beats after it began
+    and `CON` bit 15 says its transfer is done: the interrupt never came;
+  - every LED lit, if the transfer never finished: then SPI1 can't draw a
+    band either.
+  In fwtest a transfer finishes at once, so only band 4's path and band
+  5's (with SPI1's interrupt left off, `SB_TEST_SPI_NO_IRQ`) are tested.
+  The all-LEDs path isn't.
+- No spec request: HW-115 already gives the chip select, and start1
+  showed the DMA and SPI1's interrupt working as HW-29 and HW-55 give
+  them. SR-16 stands as filed.
