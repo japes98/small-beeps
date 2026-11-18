@@ -267,3 +267,67 @@ class AppAreaTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OtaTest(unittest.TestCase):
+    """Requirements: R-PKG-4. BR-17, round 2: HW-106's OTA update file,
+    the app area alone, recomputed from the file's bytes."""
+
+    def test_the_two_heads_by_hw_106(self):
+        for key in (0xFFFF, 0x980F):
+            b = fw.pack_ota(APP, key)
+            self.assertEqual(b, fw.pack_ota(APP, key))                     # R-REPRO
+            h1 = struct.unpack("<HHIIBBH16s", b[:32])
+            h2 = struct.unpack("<HHIIBBH16s", b[32:64])
+            self.assertEqual(h1[0], crc(b[2:32]))
+            self.assertEqual(h1[1:], (crc(b[32:]), 32, len(b), 3, 0xFF, 1, b"update_data\0" + b"\xff" * 4))
+            self.assertEqual(h2[0], crc(b[34:64]))
+            self.assertEqual(h2[2:6], (64, 0x120 + len(APP) + 64, 2, 0xFF))
+            self.assertEqual(h2[7].split(b"\0")[0], b"app_core")
+            self.assertEqual(h2[1], crc(b[64:64 + h2[3]]))
+            self.assertEqual(len(b), 64 + h2[3])
+            # The data: the area from 0x4000 under key, then 64 bytes (Q-25).
+            area = fw.scramble(b[64:-64], key)
+            self.assertEqual(area[16:32], b"app_area_head\0\xff\xff")
+            self.assertEqual(area[0x120:], APP)
+            self.assertEqual(b[-64:], b"\xff" * 64)
+            self.assertEqual(fw.check_ota(b, key)["app"], APP)
+
+    def test_nothing_below_0x4000(self):
+        key = 0xFFFF
+        b = fw.pack_ota(APP, key)
+        self.assertEqual(fw.ota_problems(b, key), [])
+        self.assertNotIn(fw.KEY_BLOCK, b)
+        with self.assertRaises(ValueError):
+            fw.check(b)                                                    # no .fwsc blocks, no flash header
+        area = bytearray(fw.scramble(b[64:-64], key))
+        struct.pack_into("<H", area, 32 + 14, 0)
+        area[64:96] = fw.head(b"VM", 0x3000, 0x1000, attr=0x12, last=1, data_crc=0xFFFF)
+        data = fw.scramble(bytes(area), key) + b"\xff" * 64
+        core = fw.head(b"app_core", 64, len(data), data, 2, reserved=0xFF)
+        low = fw.head(b"update_data", 32, 64 + len(data), core + data, 3, last=1, reserved=0xFF) + core + data
+        self.assertTrue(any("0x3000" in q for q in fw.ota_problems(low, key)))
+        self.assertTrue(fw.ota_problems(b, 0x980F))                          # the wrong key
+
+    def run_pack(self, *args):
+        with tempfile.TemporaryDirectory() as d:
+            app, out = os.path.join(d, "app.bin"), os.path.join(d, "o.ufw")
+            with open(app, "wb") as f:
+                f.write(APP)
+            r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "fwsc.py"), "pack", app, "--version",
+                                "0.9.0", "--out", out] + list(args), capture_output=True, text=True)
+            return r, os.path.exists(out)
+
+    def test_the_command_line(self):
+        r, written = self.run_pack("--ota", "--key", "0xFFFF")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(written)
+        self.assertIn("HW-106's OTA file", r.stdout)
+        for q in ("Q-25", "Q-26"):
+            self.assertIn("open (%s)" % q, r.stdout)
+        self.assertNotIn("SR-12", r.stdout)                                  # HW-106 places the data
+        r, written = self.run_pack("--ota", "--key", "0xFFFF", "--hardware")
+        self.assertEqual((r.returncode, written), (2, False))
+        self.assertIn("64 bytes after the area", r.stderr)
+        r, written = self.run_pack("--ota", "--app-area", "--key", "0xFFFF")
+        self.assertEqual((r.returncode, written), (2, False))

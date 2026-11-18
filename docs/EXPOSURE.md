@@ -2580,6 +2580,12 @@ SR-3 wrote only its barrier-log row.*
   only, no file opened), and a clean session measures only its own
   folders from now on. Header bytes 10-15 now carry the tools' values;
   the two candidates were packed again (new hashes in the report).
+- 2026-11-18: the owner's report from the unit (round 1: both refused,
+  "unexpected flash image size 55608"), pasted, saved as
+  docs/prompts/clean-br17-unit-1.md. Taken as the owner's observation,
+  relayed to the spec side in SR-12 and SR-13, not as a source of fact
+  (a unit isn't among the firmware side's sources). Round 2's
+  candidates are HW-106's OTA file (`--ota`, R-PKG-4), files in `out/`.
 - Force-pushes: none.
 - Disk: 5.5 GB free at the start; about 5.4 GB at the lowest.
 
