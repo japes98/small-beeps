@@ -2508,6 +2508,50 @@ SR-3 wrote only its barrier-log row.*
 - Disk: 9.9 GB free when the BR-17 work started; about 3.8 GB at the
   lowest (the wine image is 538 MB).
 
+### Session clean-br17 (BR-17's packager parts: section 24's fields, an app-area-only package, the `fm1-unit` target)
+- Date: 2026-11-17 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.325 (banner), a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br16's own session, resumed (banner `source: resume` at
+  2026-11-15T13:29:44Z, `status: OK`). The owner's prompt is the file
+  `~/<top>/drop/prompts/clean-br17.md`, read as the owner asked and saved
+  unedited as docs/prompts/clean-br17.md; their two answers to the spec
+  side's open questions came in the same message
+  (docs/prompts/clean-br17-answers.md).
+- Where it ran: the owner's Mac, in `~/<top>/clean`; the role file says
+  `clean`.
+- Start: `tools/clean-update.sh`, run from main, found main at `d63e9461`
+  (#180's merge, the spec side's section 24) and ended "no spec-side files
+  on disk or in .git"; lazy fetching off. Nothing to archive: the only
+  clean transcript not in `sessions/clean/` is this session's own
+  (`1b5c2df5`, still being written), which the next clean session
+  archives with both parts. `tools/check-transcripts.py` is unchanged
+  since clean-br16 (26 transcripts, PASS). The Mac had 5.5 GB free.
+- Between BR-16 and BR-17, on the owner's request ("check to see if any
+  space can be recovered"), this session measured disk use: `df`, then
+  `du -sh` on home folders, caches and `~/<top>/*`, which walked the
+  `spec/` and `porter/` folders to total them. It printed one size per
+  folder and nothing inside them: no file names, no contents. No file in
+  either was opened. It also listed `/private/tmp/claude-501/` one level
+  deep (folder sizes), and measured `~/Library/Caches/*` and Docker's disk
+  image. Nothing was deleted. The owner is asked to rule on the walk (the
+  final report's Questions).
+- A spec session may work at the same time; this session opens none of its
+  branches.
+- Reads: the prompt file named above; HARDWARE-SPEC section 21 (HW-87 to
+  HW-94), section 24 (HW-103 to HW-108), Q-25 and Q-26; this file,
+  PROVENANCE.md, SPEC-REQUESTS.md (SR-11's form), REQUIREMENTS.md,
+  DESIGN-NOTES.md, M9-PLAN.md, A1-PLAN.md, RELEASING.md and
+  BUILDING-ON-SMALL-BEEPS.md (the parts these changes touch); this
+  repository's tools, tests, configuration and release workflow. Nothing
+  fetched from outside the repository but the build image's and fwtest's
+  own downloads.
+- GitHub: pull requests listed (#173 to #180, all merged; none open).
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
