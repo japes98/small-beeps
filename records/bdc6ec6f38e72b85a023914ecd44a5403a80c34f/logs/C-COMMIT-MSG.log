@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range d63e9461c3ce56233244bfebf110e5219f9aea4c..bdc6ec6f38e72b85a023914ecd44a5403a80c34f
+OK     10fb9128ecbe sessions: clean-br17 starts (nothing to archive)
+OK     6354a26e04f5 tools: fwsc.py writes section 24's fields; an app-area-only package (BR-17)
+OK     fc79f5fb5623 tools: the hardware target fm1-unit, from a recorded unit check only (BR-17)
+OK     1486b0c45a34 docs: clean-br17's results and push in its EXPOSURE entry
+OK     67cb18f0d77e tests: a computed key in the app-area refusal test (C-SEP-TERMS)
+EXEMPT bdc6ec6f38e7 (merge) Merge pull request #181 from japes98/pack/app-area
+6 commit(s) checked: PASS
+
+exit status 0
