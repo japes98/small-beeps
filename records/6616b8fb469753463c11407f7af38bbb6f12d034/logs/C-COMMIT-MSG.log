@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 9050b8e4bcfa81478dfe2b61b628411882aa92a3..6616b8fb469753463c11407f7af38bbb6f12d034
+OK     0bfb40c45974 sessions: clean-br17-panel starts (nothing to archive)
+OK     ab27c1c6add4 firmware: a panel probe for Phase B: bars and a square (BR-17)
+OK     acc44e02c019 tools: settle the C-SEP-TERMS hits on #188; panel1's result
+EXEMPT 6616b8fb4697 (merge) Merge pull request #188 from japes98/probe/panel
+4 commit(s) checked: PASS
+
+exit status 0
