@@ -3935,3 +3935,65 @@ flash image size") is HW-109's step 8.
   3 says what RAM the bootloader keeps. In fwtest, where every register
   but r0 starts at zero, the return jumps to 0 and faults at once.
 
+
+### 2026-11-18 clean-br17-light: the backlight and PLAY's LED from the entry (BR-17, R-PROBE-2)
+The owner's prompt: docs/prompts/clean-br17-light.md. The facts are
+HARDWARE-SPEC section 26 (HW-115 to HW-119, the spec side's answer to
+SR-14, merged in #186), with HW-56, HW-91 and HW-112 (PROVENANCE P-70).
+The round-3 entry-return probe (`1b61609e…`) is still waiting on the
+unit; this probe doesn't depend on its result, because it ends with the
+same return.
+- **The light probe** (R-PROBE-2, `SB_PROBE_LIGHT`, `firmware/src/crt0.S`)
+  does the prompt's four steps at `_start`, before anything else:
+  1. PA2 an output driven low (HW-116);
+  2. PA1, PA3, PA4, PA9, PA10, PH6 and PH9 outputs driven low, `0xFBFF`
+     shifted in and latched, PA10 high (HW-117, HW-118);
+  3. a hold;
+  4. PA10 low, `0xFFFF` shifted in and latched, PA2 an input, and `rts`.
+  Each pin's `OUT` bit is cleared before its `DIR` bit, so no pin is
+  ever briefly an output driven high. Each data, clock and latch edge is
+  its own read-modify-write of `OUT` (the core's one-instruction
+  `[rN+0] |= bit` / `&= ~bit`), with `csync` after it, as HW-117 asks.
+  The assembler takes one bit per such instruction, so each pin has its
+  own.
+- **Why assembly at `_start`, not C.** Nothing outside `.text.entry`
+  and `.boot.text` is in place before `sb_start` has copied the code and
+  constants to RAM. A C function could also spill to the stack or call
+  a helper. The probe uses r0 to r3 alone, no stack, no RAM. It never
+  calls, so `rets` still holds m-bootloader's return address at the
+  `rts`, and `sp` and `ssp` are never written. r0 to r3 are registers a
+  called function may change. That is a toolchain fact, not a hardware
+  one: the pinned compiler (P-1), compiling a leaf function of our own,
+  saves r4 and up and never r0 to r3 (P-70). Nothing is written in the
+  bootloader's RAM or the retained area: the probe writes only port A's
+  and port H's `OUT` and `DIR`. This is what HW-119 says a return needs.
+- **The hold** is 900 000 000 passes of a two-instruction loop. That is
+  5 s at HW-119's 360 MHz if the core runs one instruction a cycle from
+  the cached window, and longer if a taken branch costs more. A busy-wait,
+  not a timer: HW-119 leaves TIMER0 stopped, and its prescaler on the
+  chip is Q-3. In fwtest, at 240 MHz, the hold is 7.5 s of emulated time
+  and about 17 s of wall time, so the seams suite runs the very image
+  the candidate holds, with no shorter test hold.
+- **In fwtest** the port registers are modelled, so none of the probe's
+  accesses is in `unmodelled_accesses`. The LED at row 2, column 10
+  (fwtest's LED 12, HW-35, HW-42) is lit the whole of every sample until
+  the return, and no other LED ever is. fwtest has no backlight, and
+  `--ram` saves only RAM, not the port registers, so neither PA2 nor the
+  switching off (PA10 low, `0xFFFF` latched, PA2 an input) can be seen
+  there. They were checked in the probe's disassembly, instruction by
+  instruction against the four steps, and nowhere else. Build A without
+  the define was rebuilt from this change's tree and compared by hand
+  (`5bc12a34…`): no CI check records its hash. The return jumps to 0, where every register
+  but r0 starts in fwtest (HW-1), and faults as R-PROBE-1's does, after
+  the hold.
+- **On the unit**, three outcomes:
+  - the backlight on (the panel isn't set up, HW-115 is the next round,
+    so a lit black or blank screen) and PLAY's LED lit, for about 5 s,
+    then both out and m-bootloader's menu with "APP EXITED": the entry
+    runs, the pins are right, and the return keeps what HW-119 needs;
+  - nothing lit, but "APP EXITED": the entry ran, and the pins or their
+    set-up are the question;
+  - neither: the entry wasn't reached (round 3's result should agree).
+- `SB_PROBE_RETURN` and `SB_PROBE_LIGHT` together are refused by an
+  `#error`. Without either, build A is `5bc12a34…`, byte for byte as on
+  main.

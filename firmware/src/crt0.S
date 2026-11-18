@@ -10,6 +10,42 @@
  * were called from).
  */
 
+#if defined(SB_PROBE_RETURN) && defined(SB_PROBE_LIGHT)
+#error "SB_PROBE_RETURN and SB_PROBE_LIGHT are two probes: define one"
+#endif
+
+#if defined(SB_PROBE_LIGHT)
+	.set	SB_PROBE_HOLD, 900000000	/* passes of the hold loop */
+
+/* Shifts the 16-bit column word WORD into the key matrix's two shift
+ * registers, most significant bit first, and latches it (HW-117): data
+ * PA4, clock PA3, latch PA1, r0 holding JL_PORTA. Changes r1 to r3. */
+	.macro	sb_probe_shift word
+	r2 = \word
+	r3 = 16
+.Lbit\@:
+	r1 = r2 & 0x8000
+	if (r1 == 0) goto .Lzero\@
+	[r0+0] |= 0x10
+	goto .Lclock\@
+.Lzero\@:
+	[r0+0] &= 0xFFFFFFEF
+.Lclock\@:
+	csync
+	[r0+0] |= 0x8
+	csync
+	[r0+0] &= 0xFFFFFFF7
+	csync
+	r2 = r2 << 1
+	r3 += -1
+	if (r3 != 0) goto .Lbit\@
+	[r0+0] |= 0x2
+	csync
+	[r0+0] &= 0xFFFFFFFD
+	csync
+	.endm
+#endif
+
 	.section .text.entry,"ax",@progbits
 	.globl	_start
 	.type	_start,@function
@@ -19,6 +55,56 @@ _start:
 	 * clean-br17-round2): return to the loader at once, before writing a
 	 * register or a byte of RAM. On a unit, m-bootloader opens its
 	 * recovery menu when the app it called returns (HW-112). */
+	rts
+#elif defined(SB_PROBE_LIGHT)
+	/* Phase B's light probe (BR-17; docs/DESIGN-NOTES.md, clean-br17-light;
+	 * R-PROBE-2): the backlight and PLAY's LED on for about 5 s, both off
+	 * again, then a return to the loader, which opens its recovery menu
+	 * with "APP EXITED" (HW-119). Ports A and H are HW-56's, the pins
+	 * HW-116 to HW-118's. It uses r0 to r3 alone, which a called function
+	 * may change (the pinned compiler saves r4 and up, never r0 to r3),
+	 * no stack and no RAM, and it never calls, so rets still holds the
+	 * loader's return address at the rts. Each pin is driven low before it
+	 * becomes an output, and each edge is its own read-modify-write of OUT
+	 * with csync after it (HW-117). */
+	r0 = 0x00050000			/* JL_PORTA: OUT +0, DIR +8 */
+	r1 = 0x000501C0			/* JL_PORTH */
+	/* 1. The backlight: PA2 an output driven low (HW-116). */
+	[r0+0] &= 0xFFFFFFFB
+	[r0+8] &= 0xFFFFFFFB
+	/* 2. The shift registers' latch, clock and data (PA1, PA3, PA4) and
+	 * the LED lines PA9 and PA10, then PH6 and PH9, outputs driven low
+	 * (HW-117, HW-118), one pin at a time. */
+	[r0+0] &= 0xFFFFFFFD
+	[r0+0] &= 0xFFFFFFF7
+	[r0+0] &= 0xFFFFFFEF
+	[r0+0] &= 0xFFFFFDFF
+	[r0+0] &= 0xFFFFFBFF
+	[r0+8] &= 0xFFFFFFFD
+	[r0+8] &= 0xFFFFFFF7
+	[r0+8] &= 0xFFFFFFEF
+	[r0+8] &= 0xFFFFFDFF
+	[r0+8] &= 0xFFFFFBFF
+	[r1+0] &= 0xFFFFFFBF
+	[r1+0] &= 0xFFFFFDFF
+	[r1+8] &= 0xFFFFFFBF
+	[r1+8] &= 0xFFFFFDFF
+	csync
+	sb_probe_shift 0xFBFF		/* PLAY's column (HW-117) */
+	[r0+0] |= 0x400			/* PA10 high: PLAY's LED (HW-118) */
+	csync
+	/* 3. Hold: two instructions a pass, so 5 s at 360 MHz (HW-119) at one
+	 * instruction a cycle, longer if a taken branch costs more. */
+	r2 = SB_PROBE_HOLD
+.Lhold:
+	r2 += -1
+	if (r2 != 0) goto .Lhold
+	/* 4. Both out: PA10 low, no column selected, PA2 an input. */
+	[r0+0] &= 0xFFFFFBFF
+	csync
+	sb_probe_shift 0xFFFF
+	[r0+8] |= 0x4
+	csync
 	rts
 #endif
 	/* r0 holds the loader's block pointer (HW-4); M1 doesn't use it. */

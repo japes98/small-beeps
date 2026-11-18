@@ -180,11 +180,22 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   faults at once with the pc outside every memory that holds code, from
   the raw image and from its emulator package, where build A runs on;
   and its hardware package passes fwsc.py's unit checks.
+- light (BR-17, Phase B): the light probe, build A with SB_PROBE_LIGHT
+  (firmware/src/crt0.S): the backlight and PLAY's LED on, a hold, both
+  off, then a return. Its raw image and package link start with the
+  same probe, then build A's code; in fwtest, from the raw image and
+  from its emulator package, the LED at row 2, column 10 (LED 12) is lit
+  the whole of every sample until the return and no other LED ever is,
+  the run faults with the pc outside the code (the return) after the
+  hold, and no port access is unmodelled; its hardware package passes
+  fwsc.py's unit checks; and a build with SB_PROBE_RETURN as well is
+  refused.
 
 Prints what each case saw, and exits 1 if any failed.
 """
 
 import argparse
+import csv
 import hashlib
 import importlib.util
 import json
@@ -1165,6 +1176,60 @@ def case_probe(a, work, log):
     return problems
 
 
+LIGHT_LED = 12                  # fwtest's LED at row 2 (PA10), column 10 (0xFBFF; HW-35, HW-42)
+LIGHT_HOLD_MS = 900000000 * 2 / 240000.0   # SB_PROBE_HOLD's two-instruction passes at fwtest's clock
+
+
+def case_light(a, work, log):
+    problems = []
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_PROBE_LIGHT")
+    raw, pkg = read_bytes(os.path.join(b, "app.bin")), read_bytes(os.path.join(b, "app-pkg.bin"))
+    base = read_bytes(os.path.join(a.build, "app.bin"))
+    n = raw.find(base[:64])
+    if not 0 < n < 0x200 or pkg[:n] != raw[:n]:
+        problems.append("the probe is not before build A's code in both links (build A's start at %d)" % n)
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import fwsc
+    emu = os.path.join(work, "light.fwsc")
+    with open(emu, "wb") as f:
+        f.write(fwsc.pack(pkg, "small-beeps-0.0.0"))
+    for name, image, opts in (("raw", os.path.join(b, "app.bin"), ()), ("package", emu, ("--package",))):
+        out = os.path.join(work, "run-" + name)
+        r = fwtest(image, out, log, "--ms", "8000", "--halt-ok", "--leds-every", "500", *opts)
+        outcome, detail, ms = r["run"]["outcome"], r["run"].get("detail") or "", float(r["run"]["emulated_ms"])
+        if outcome != "fault" or "left every memory that can hold code" not in detail \
+                or abs(ms - LIGHT_HOLD_MS) > 1:
+            problems.append("%s: %s at %s ms (%s), not the return after the %.0f ms hold" % (
+                name, outcome, ms, detail, LIGHT_HOLD_MS))
+        ports = [u["address"] for u in r["run"]["unmodelled_accesses"] if 0x50000 <= int(u["address"], 16) < 0x50200]
+        if ports:
+            problems.append("%s: port accesses unmodelled: %s" % (name, ", ".join(ports)))
+        with open(os.path.join(out, "leds.csv")) as f:
+            rows = list(csv.reader(f))[1:]
+        held = [row for row in rows if float(row[0]) <= LIGHT_HOLD_MS - 1]
+        if len(held) < 14:
+            problems.append("%s: %d LED samples in the hold" % (name, len(held)))
+        for row in rows:
+            lit = {i: int(v) for i, v in enumerate(row[1:]) if int(v)}
+            want = {LIGHT_LED: 1000} if row in held else {}
+            if (lit if row in held else {k: v for k, v in lit.items() if k != LIGHT_LED}) != want:
+                problems.append("%s: at %s ms the LEDs lit are %s, not %s" % (name, row[0], lit, want or "LED %d alone" % LIGHT_LED))
+                break
+    try:
+        fwsc.unit_check(fwsc.pack_hardware(pkg, "0.0.0", 0x980F, 0xFC000), 0x980F)
+    except ValueError as e:
+        problems.append("its hardware package: %s" % e)
+    code, out = build(os.path.join(work, "both"), log, "--define", "SB_PROBE_LIGHT", "--define", "SB_PROBE_RETURN",
+                      check=False)
+    if not code or "SB_PROBE_RETURN and SB_PROBE_LIGHT are two probes" not in out:
+        problems.append("SB_PROBE_LIGHT with SB_PROBE_RETURN not refused (exit %d)" % code)
+    print("light: LED %d lit for the %.0f ms hold and no other, then the return, from the raw image and the package; "
+          "no port access unmodelled; its hardware package passes the unit's checks; both probes at once refused"
+          % (LIGHT_LED, LIGHT_HOLD_MS))
+    return problems
+
+
 def read_bytes(path):
     with open(path, "rb") as f:
         return f.read()
@@ -1183,6 +1248,7 @@ CASES = [
     ("region", case_region),
     ("nostart", case_nostart),
     ("probe", case_probe),
+    ("light", case_light),
 ]
 
 
