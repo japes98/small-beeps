@@ -1,0 +1,93 @@
+101.502 start
+101.822 clock
+121.794 clock
+142.103 clock
+163.863 clock
+184.173 clock
+204.482 clock
+226.242 clock
+246.551 clock
+266.861 clock
+288.621 clock
+304.582 start
+304.902 clock
+305.862 note-on ch 1 key 53 vel 100
+324.887 clock
+345.197 clock
+367.598 note-on ch 1 key 53 vel 0
+367.918 clock
+387.266 clock
+407.575 clock
+429.977 note-on ch 1 key 60 vel 100
+430.297 clock
+449.645 clock
+469.954 clock
+492.355 note-on ch 1 key 60 vel 0
+492.675 clock
+512.023 clock
+532.333 clock
+554.734 note-on ch 1 key 53 vel 100
+555.054 clock
+574.402 clock
+596.162 clock
+617.112 note-on ch 1 key 53 vel 0
+617.432 clock
+636.781 clock
+658.541 clock
+679.492 note-on ch 1 key 60 vel 100
+679.812 clock
+699.159 clock
+720.919 clock
+741.870 note-on ch 1 key 60 vel 0
+742.190 clock
+761.538 clock
+783.298 clock
+804.249 note-on ch 1 key 53 vel 100
+804.569 clock
+825.367 clock
+845.677 clock
+866.627 note-on ch 1 key 53 vel 0
+866.947 clock
+887.746 clock
+908.055 clock
+929.006 note-on ch 1 key 60 vel 100
+929.326 clock
+950.125 clock
+970.434 clock
+991.384 note-on ch 1 key 60 vel 0
+991.704 clock
+1012.503 clock
+1032.813 clock
+1055.214 note-on ch 1 key 53 vel 100
+1055.534 clock
+1074.882 clock
+1095.191 clock
+1117.592 note-on ch 1 key 53 vel 0
+1117.912 clock
+1137.261 clock
+1157.570 clock
+1179.972 note-on ch 1 key 60 vel 100
+1180.292 clock
+1199.639 clock
+1219.949 clock
+1242.350 note-on ch 1 key 60 vel 0
+1242.670 clock
+1262.018 clock
+1282.327 clock
+1304.729 note-on ch 1 key 53 vel 100
+1305.049 clock
+1324.398 clock
+1346.157 clock
+1367.107 note-on ch 1 key 53 vel 0
+1367.427 clock
+1386.775 clock
+1408.536 clock
+1428.845 clock
+1449.154 clock
+1470.914 clock
+1491.223 clock
+1511.533 clock
+1533.293 clock
+1553.602 clock
+1575.362 clock
+1595.671 clock
