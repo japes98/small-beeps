@@ -2771,7 +2771,22 @@ SR-3 wrote only its barrier-log row.*
   the same bytes, `fwsc.py check` passing; a file in `out/` for the
   owner, not in the repository.
 - Force-pushes: none.
-- Disk: 3.1 GB free at the start; about 3.0 GB at the lowest.
+- 2026-11-18, the owner's report of the panel probe, pasted, then
+  corrected in the owner's next message ("top left corner", not the top
+  right first written); taken as corrected.
+- Disk: 3.1 GB free at the start. Then 1.2 GB, from use outside this
+  session (clean's own folders measured by name: 372 MB in all), so the
+  session stopped. At the owner's word it removed seven fwtest container
+  images that `config/fwtest-image` no longer pins (the pinned one and
+  the build image kept), and the owner freed the rest. 3.7 GB on
+  resuming.
+- C-SEP-TERMS on #188 (`ab27c1c6`): the owner relayed three flagged
+  lines. The run's report artifact was fetched by the API into the
+  scratch folder, only `logs/C-SEP-TERMS.log` read from it (its `HIT`
+  lines: places and hashes), and the zip deleted at once. Two hits are
+  SPI1 register addresses from HW-28, now reviewed entries in
+  `config/emulator-terms-reviewed.json`; the third was a bound of the
+  test's own, rewritten from HARDWARE-SPEC's addresses.
 
 ### Session spec-sr15 (SR-15: the FM-1's two flash parts)
 - Date: 2026-11-18 (UTC)

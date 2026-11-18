@@ -4054,3 +4054,11 @@ The owner's prompt: docs/prompts/clean-br17-panel.md.
     the mode or byte order is the question;
   - no "APP EXITED" (a hang or a reset): the return or the stack is
     wrong. Light1 returned, so the new part is the stack.
+- **Panel1's result on the unit** (`5ffe64fc…`, the owner's report and
+  correction): colour bars with the yellow square in the top-left
+  corner, the backlight on, then "APP EXITED". So HW-115's bring-up
+  works, and the picture's (0, 0) is the top-left corner as the FM-1 is
+  held, as fwtest shows it, with `MADCTL` `00`. The owner's first report
+  said top right and was corrected at once; no record here takes that.
+  The owner treats the orientation as right, and the start-up build's
+  screen will confirm it.
