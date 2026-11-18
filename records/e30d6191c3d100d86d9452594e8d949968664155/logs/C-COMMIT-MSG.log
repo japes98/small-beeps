@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range bdc6ec6f38e72b85a023914ecd44a5403a80c34f..e30d6191c3d100d86d9452594e8d949968664155
+OK     5faa6b5f8031 docs: the owner's answer on isd_config.ini (BR-17)
+OK     034b80ad7275 tools: header bytes 10-15 carry the tools' 4 and 0x200 (BR-17)
+EXEMPT e30d6191c3d1 (merge) Merge pull request #182 from japes98/docs/br17-answer
+3 commit(s) checked: PASS
+
+exit status 0

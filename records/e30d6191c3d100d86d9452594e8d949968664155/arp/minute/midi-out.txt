@@ -1,0 +1,3879 @@
+101.502 start
+101.822 clock
+121.794 clock
+142.103 clock
+163.863 clock
+184.173 clock
+204.482 clock
+226.242 clock
+246.551 clock
+266.861 clock
+288.621 clock
+301.685 start
+302.005 clock
+302.965 note-on ch 1 key 60 vel 100
+321.987 clock
+342.296 clock
+364.056 clock
+384.366 clock
+404.675 clock
+427.080 note-on ch 1 key 60 vel 0
+427.720 note-on ch 1 key 60 vel 100 (running status)
+428.040 clock
+446.744 clock
+467.054 clock
+488.814 clock
+509.123 clock
+529.432 clock
+551.838 note-on ch 1 key 60 vel 0
+552.478 note-on ch 1 key 60 vel 100 (running status)
+552.798 clock
+571.502 clock
+593.262 clock
+613.571 clock
+633.880 clock
+655.640 clock
+676.595 note-on ch 1 key 60 vel 0
+677.235 note-on ch 1 key 60 vel 100 (running status)
+677.555 clock
+696.259 clock
+718.019 clock
+738.328 clock
+758.638 clock
+780.398 clock
+801.352 note-on ch 1 key 60 vel 0
+801.992 note-on ch 1 key 60 vel 100 (running status)
+802.312 clock
+822.467 clock
+842.776 clock
+863.086 clock
+884.846 clock
+905.155 clock
+926.109 note-on ch 1 key 60 vel 0
+926.749 note-on ch 1 key 60 vel 100 (running status)
+927.069 clock
+947.224 clock
+967.534 clock
+987.843 clock
+1009.603 clock
+1029.912 clock
+1052.317 note-on ch 1 key 60 vel 0
+1052.957 note-on ch 1 key 60 vel 100 (running status)
+1053.277 clock
+1071.982 clock
+1092.291 clock
+1114.051 clock
+1134.360 clock
+1154.670 clock
+1177.075 note-on ch 1 key 60 vel 0
+1177.715 note-on ch 1 key 60 vel 100 (running status)
+1178.035 clock
+1196.739 clock
+1217.048 clock
+1238.808 clock
+1259.118 clock
+1279.427 clock
+1301.832 note-on ch 1 key 60 vel 0
+1302.472 note-on ch 1 key 60 vel 100 (running status)
+1302.792 clock
+1321.496 clock
+1343.256 clock
+1363.566 clock
+1383.875 clock
+1405.635 clock
+1426.589 note-on ch 1 key 60 vel 0
+1427.229 note-on ch 1 key 60 vel 100 (running status)
+1427.549 clock
+1446.254 clock
+1468.014 clock
+1488.323 clock
+1508.632 clock
+1530.392 clock
+1551.347 note-on ch 1 key 60 vel 0
+1551.987 note-on ch 1 key 60 vel 100 (running status)
+1552.307 clock
+1572.462 clock
+1592.771 clock
+1613.080 clock
+1634.840 clock
+1655.150 clock
+1676.104 note-on ch 1 key 60 vel 0
+1676.744 note-on ch 1 key 60 vel 100 (running status)
+1677.064 clock
+1697.219 clock
+1717.528 clock
+1737.838 clock
+1759.598 clock
+1779.907 clock
+1802.312 note-on ch 1 key 60 vel 0
+1802.952 note-on ch 1 key 60 vel 100 (running status)
+1803.272 clock
+1821.976 clock
+1842.286 clock
+1864.046 clock
+1884.355 clock
+1904.664 clock
+1927.069 note-on ch 1 key 60 vel 0
+1927.709 note-on ch 1 key 60 vel 100 (running status)
+1928.029 clock
+1946.734 clock
+1967.043 clock
+1988.803 clock
+2009.113 clock
+2029.422 clock
+2051.827 note-on ch 1 key 60 vel 0
+2052.467 note-on ch 1 key 60 vel 100 (running status)
+2052.787 clock
+2071.491 clock
+2093.251 clock
+2113.560 clock
+2133.870 clock
+2155.630 clock
+2176.584 note-on ch 1 key 60 vel 0
+2177.224 note-on ch 1 key 60 vel 100 (running status)
+2177.544 clock
+2196.248 clock
+2218.008 clock
+2238.318 clock
+2258.627 clock
+2280.387 clock
+2301.341 note-on ch 1 key 60 vel 0
+2301.981 note-on ch 1 key 60 vel 100 (running status)
+2302.301 clock
+2322.456 clock
+2342.766 clock
+2363.075 clock
+2384.835 clock
+2405.144 clock
+2426.099 note-on ch 1 key 60 vel 0
+2426.739 note-on ch 1 key 60 vel 100 (running status)
+2427.059 clock
+2447.214 clock
+2467.523 clock
+2487.832 clock
+2509.592 clock
+2529.902 clock
+2552.307 note-on ch 1 key 60 vel 0
+2552.947 note-on ch 1 key 60 vel 100 (running status)
+2553.267 clock
+2571.971 clock
+2592.280 clock
+2614.040 clock
+2634.350 clock
+2654.659 clock
+2677.064 note-on ch 1 key 60 vel 0
+2677.704 note-on ch 1 key 60 vel 100 (running status)
+2678.024 clock
+2696.728 clock
+2717.038 clock
+2738.798 clock
+2759.107 clock
+2779.416 clock
+2801.822 note-on ch 1 key 60 vel 0
+2802.462 note-on ch 1 key 60 vel 100 (running status)
+2802.782 clock
+2821.486 clock
+2843.246 clock
+2863.555 clock
+2883.864 clock
+2905.624 clock
+2926.579 note-on ch 1 key 60 vel 0
+2927.219 note-on ch 1 key 60 vel 100 (running status)
+2927.539 clock
+2946.243 clock
+2968.003 clock
+2988.312 clock
+3008.622 clock
+3030.382 clock
+3051.336 note-on ch 1 key 60 vel 0
+3051.976 note-on ch 1 key 60 vel 100 (running status)
+3052.296 clock
+3072.451 clock
+3092.760 clock
+3113.070 clock
+3134.830 clock
+3155.139 clock
+3176.093 note-on ch 1 key 60 vel 0
+3176.733 note-on ch 1 key 60 vel 100 (running status)
+3177.053 clock
+3197.208 clock
+3217.518 clock
+3237.827 clock
+3259.587 clock
+3279.896 clock
+3302.301 note-on ch 1 key 60 vel 0
+3302.941 note-on ch 1 key 60 vel 100 (running status)
+3303.261 clock
+3321.966 clock
+3342.275 clock
+3364.035 clock
+3384.344 clock
+3404.654 clock
+3427.059 note-on ch 1 key 60 vel 0
+3427.699 note-on ch 1 key 60 vel 100 (running status)
+3428.019 clock
+3446.723 clock
+3467.032 clock
+3488.792 clock
+3509.102 clock
+3529.411 clock
+3551.816 note-on ch 1 key 60 vel 0
+3552.456 note-on ch 1 key 60 vel 100 (running status)
+3552.776 clock
+3571.480 clock
+3593.240 clock
+3613.550 clock
+3633.859 clock
+3655.619 clock
+3676.573 note-on ch 1 key 60 vel 0
+3677.213 note-on ch 1 key 60 vel 100 (running status)
+3677.533 clock
+3696.238 clock
+3717.998 clock
+3738.307 clock
+3758.616 clock
+3780.376 clock
+3801.331 note-on ch 1 key 60 vel 0
+3801.971 note-on ch 1 key 60 vel 100 (running status)
+3802.291 clock
+3822.446 clock
+3842.755 clock
+3863.064 clock
+3884.824 clock
+3905.134 clock
+3926.088 note-on ch 1 key 60 vel 0
+3926.728 note-on ch 1 key 60 vel 100 (running status)
+3927.048 clock
+3947.203 clock
+3967.512 clock
+3987.822 clock
+4009.582 clock
+4029.891 clock
+4052.296 note-on ch 1 key 60 vel 0
+4052.936 note-on ch 1 key 60 vel 100 (running status)
+4053.256 clock
+4071.960 clock
+4092.270 clock
+4114.030 clock
+4134.339 clock
+4154.648 clock
+4177.053 note-on ch 1 key 60 vel 0
+4177.693 note-on ch 1 key 60 vel 100 (running status)
+4178.013 clock
+4196.718 clock
+4217.027 clock
+4238.787 clock
+4259.097 clock
+4279.406 clock
+4301.811 note-on ch 1 key 60 vel 0
+4302.451 note-on ch 1 key 60 vel 100 (running status)
+4302.771 clock
+4321.475 clock
+4343.235 clock
+4363.544 clock
+4383.854 clock
+4405.614 clock
+4426.568 note-on ch 1 key 60 vel 0
+4427.208 note-on ch 1 key 60 vel 100 (running status)
+4427.528 clock
+4446.232 clock
+4467.992 clock
+4488.302 clock
+4508.611 clock
+4530.371 clock
+4551.325 note-on ch 1 key 60 vel 0
+4551.965 note-on ch 1 key 60 vel 100 (running status)
+4552.285 clock
+4572.440 clock
+4592.750 clock
+4613.059 clock
+4634.819 clock
+4655.128 clock
+4676.083 note-on ch 1 key 60 vel 0
+4676.723 note-on ch 1 key 60 vel 100 (running status)
+4677.043 clock
+4697.198 clock
+4717.507 clock
+4737.816 clock
+4759.576 clock
+4779.886 clock
+4802.291 note-on ch 1 key 60 vel 0
+4802.931 note-on ch 1 key 60 vel 100 (running status)
+4803.251 clock
+4821.955 clock
+4842.264 clock
+4864.024 clock
+4884.334 clock
+4904.643 clock
+4927.048 note-on ch 1 key 60 vel 0
+4927.688 note-on ch 1 key 60 vel 100 (running status)
+4928.008 clock
+4946.712 clock
+4967.022 clock
+4988.782 clock
+5009.091 clock
+5029.400 clock
+5051.806 note-on ch 1 key 60 vel 0
+5052.446 note-on ch 1 key 60 vel 100 (running status)
+5052.766 clock
+5071.470 clock
+5093.230 clock
+5113.539 clock
+5133.848 clock
+5155.608 clock
+5176.563 note-on ch 1 key 60 vel 0
+5177.203 note-on ch 1 key 60 vel 100 (running status)
+5177.523 clock
+5196.227 clock
+5217.987 clock
+5238.296 clock
+5258.606 clock
+5280.366 clock
+5301.320 note-on ch 1 key 60 vel 0
+5301.960 note-on ch 1 key 60 vel 100 (running status)
+5302.280 clock
+5322.435 clock
+5342.744 clock
+5363.054 clock
+5384.814 clock
+5405.123 clock
+5426.077 note-on ch 1 key 60 vel 0
+5426.717 note-on ch 1 key 60 vel 100 (running status)
+5427.037 clock
+5447.192 clock
+5467.502 clock
+5487.811 clock
+5509.571 clock
+5529.880 clock
+5552.285 note-on ch 1 key 60 vel 0
+5552.925 note-on ch 1 key 60 vel 100 (running status)
+5553.245 clock
+5571.950 clock
+5592.259 clock
+5614.019 clock
+5634.328 clock
+5654.638 clock
+5677.043 note-on ch 1 key 60 vel 0
+5677.683 note-on ch 1 key 60 vel 100 (running status)
+5678.003 clock
+5696.707 clock
+5717.016 clock
+5738.776 clock
+5759.086 clock
+5779.395 clock
+5801.800 note-on ch 1 key 60 vel 0
+5802.440 note-on ch 1 key 60 vel 100 (running status)
+5802.760 clock
+5821.464 clock
+5843.224 clock
+5863.534 clock
+5883.843 clock
+5905.603 clock
+5926.557 note-on ch 1 key 60 vel 0
+5927.197 note-on ch 1 key 60 vel 100 (running status)
+5927.517 clock
+5946.222 clock
+5967.982 clock
+5988.291 clock
+6008.600 clock
+6030.360 clock
+6051.315 note-on ch 1 key 60 vel 0
+6051.955 note-on ch 1 key 60 vel 100 (running status)
+6052.275 clock
+6072.430 clock
+6092.739 clock
+6113.048 clock
+6134.808 clock
+6155.118 clock
+6176.072 note-on ch 1 key 60 vel 0
+6176.712 note-on ch 1 key 60 vel 100 (running status)
+6177.032 clock
+6197.187 clock
+6217.496 clock
+6237.806 clock
+6259.566 clock
+6279.875 clock
+6302.280 note-on ch 1 key 60 vel 0
+6302.920 note-on ch 1 key 60 vel 100 (running status)
+6303.240 clock
+6321.944 clock
+6342.254 clock
+6364.014 clock
+6384.323 clock
+6404.632 clock
+6427.037 note-on ch 1 key 60 vel 0
+6427.677 note-on ch 1 key 60 vel 100 (running status)
+6427.997 clock
+6446.702 clock
+6467.011 clock
+6488.771 clock
+6509.080 clock
+6530.841 clock
+6551.795 note-on ch 1 key 60 vel 0
+6552.435 note-on ch 1 key 60 vel 100 (running status)
+6552.755 clock
+6571.459 clock
+6593.219 clock
+6613.528 clock
+6633.838 clock
+6655.598 clock
+6676.552 note-on ch 1 key 60 vel 0
+6677.192 note-on ch 1 key 60 vel 100 (running status)
+6677.512 clock
+6696.216 clock
+6717.976 clock
+6738.286 clock
+6758.595 clock
+6780.355 clock
+6801.309 note-on ch 1 key 60 vel 0
+6801.949 note-on ch 1 key 60 vel 100 (running status)
+6802.269 clock
+6822.424 clock
+6842.734 clock
+6863.043 clock
+6884.803 clock
+6905.112 clock
+6926.067 note-on ch 1 key 60 vel 0
+6926.707 note-on ch 1 key 60 vel 100 (running status)
+6927.027 clock
+6947.182 clock
+6967.491 clock
+6987.800 clock
+7009.560 clock
+7029.870 clock
+7052.275 note-on ch 1 key 60 vel 0
+7052.915 note-on ch 1 key 60 vel 100 (running status)
+7053.235 clock
+7071.939 clock
+7092.248 clock
+7114.008 clock
+7134.318 clock
+7154.627 clock
+7177.032 note-on ch 1 key 60 vel 0
+7177.672 note-on ch 1 key 60 vel 100 (running status)
+7177.992 clock
+7196.696 clock
+7217.006 clock
+7238.766 clock
+7259.075 clock
+7280.835 clock
+7301.790 note-on ch 1 key 60 vel 0
+7302.430 note-on ch 1 key 60 vel 100 (running status)
+7302.750 clock
+7321.454 clock
+7343.214 clock
+7363.523 clock
+7383.832 clock
+7405.592 clock
+7426.547 note-on ch 1 key 60 vel 0
+7427.187 note-on ch 1 key 60 vel 100 (running status)
+7427.507 clock
+7446.211 clock
+7467.971 clock
+7488.280 clock
+7508.590 clock
+7530.350 clock
+7551.304 note-on ch 1 key 60 vel 0
+7551.944 note-on ch 1 key 60 vel 100 (running status)
+7552.264 clock
+7572.419 clock
+7592.728 clock
+7613.038 clock
+7634.798 clock
+7655.107 clock
+7676.061 note-on ch 1 key 60 vel 0
+7676.701 note-on ch 1 key 60 vel 100 (running status)
+7677.021 clock
+7697.176 clock
+7717.486 clock
+7737.795 clock
+7759.555 clock
+7779.864 clock
+7802.269 note-on ch 1 key 60 vel 0
+7802.909 note-on ch 1 key 60 vel 100 (running status)
+7803.229 clock
+7821.934 clock
+7842.243 clock
+7864.003 clock
+7884.312 clock
+7904.622 clock
+7927.027 note-on ch 1 key 60 vel 0
+7927.667 note-on ch 1 key 60 vel 100 (running status)
+7927.987 clock
+7946.691 clock
+7967.001 clock
+7988.760 clock
+8009.070 clock
+8030.830 clock
+8051.784 note-on ch 1 key 60 vel 0
+8052.424 note-on ch 1 key 60 vel 100 (running status)
+8052.744 clock
+8071.448 clock
+8093.208 clock
+8113.518 clock
+8133.827 clock
+8155.587 clock
+8176.541 note-on ch 1 key 60 vel 0
+8177.181 note-on ch 1 key 60 vel 100 (running status)
+8177.501 clock
+8196.206 clock
+8217.966 clock
+8238.275 clock
+8258.584 clock
+8280.344 clock
+8301.299 note-on ch 1 key 60 vel 0
+8301.939 note-on ch 1 key 60 vel 100 (running status)
+8302.259 clock
+8322.414 clock
+8342.723 clock
+8363.032 clock
+8384.792 clock
+8405.102 clock
+8426.056 note-on ch 1 key 60 vel 0
+8426.696 note-on ch 1 key 60 vel 100 (running status)
+8427.016 clock
+8447.171 clock
+8467.480 clock
+8487.790 clock
+8509.550 clock
+8529.859 clock
+8552.264 note-on ch 1 key 60 vel 0
+8552.904 note-on ch 1 key 60 vel 100 (running status)
+8553.224 clock
+8571.928 clock
+8592.238 clock
+8613.998 clock
+8634.307 clock
+8654.616 clock
+8677.021 note-on ch 1 key 60 vel 0
+8677.661 note-on ch 1 key 60 vel 100 (running status)
+8677.981 clock
+8696.686 clock
+8716.995 clock
+8738.755 clock
+8759.064 clock
+8780.824 clock
+8801.779 note-on ch 1 key 60 vel 0
+8802.419 note-on ch 1 key 60 vel 100 (running status)
+8802.739 clock
+8821.443 clock
+8843.203 clock
+8863.512 clock
+8883.822 clock
+8905.582 clock
+8926.536 note-on ch 1 key 60 vel 0
+8927.176 note-on ch 1 key 60 vel 100 (running status)
+8927.496 clock
+8946.200 clock
+8967.960 clock
+8988.270 clock
+9008.579 clock
+9030.339 clock
+9051.293 note-on ch 1 key 60 vel 0
+9051.933 note-on ch 1 key 60 vel 100 (running status)
+9052.253 clock
+9072.408 clock
+9092.718 clock
+9113.027 clock
+9134.787 clock
+9155.096 clock
+9176.051 note-on ch 1 key 60 vel 0
+9176.691 note-on ch 1 key 60 vel 100 (running status)
+9177.011 clock
+9197.166 clock
+9217.475 clock
+9237.784 clock
+9259.544 clock
+9279.854 clock
+9302.259 note-on ch 1 key 60 vel 0
+9302.899 note-on ch 1 key 60 vel 100 (running status)
+9303.219 clock
+9321.923 clock
+9342.232 clock
+9363.992 clock
+9384.302 clock
+9404.611 clock
+9427.016 note-on ch 1 key 60 vel 0
+9427.656 note-on ch 1 key 60 vel 100 (running status)
+9427.976 clock
+9446.680 clock
+9466.990 clock
+9488.750 clock
+9509.059 clock
+9530.819 clock
+9551.774 note-on ch 1 key 60 vel 0
+9552.414 note-on ch 1 key 60 vel 100 (running status)
+9552.734 clock
+9571.438 clock
+9593.198 clock
+9613.507 clock
+9633.816 clock
+9655.576 clock
+9676.531 note-on ch 1 key 60 vel 0
+9677.171 note-on ch 1 key 60 vel 100 (running status)
+9677.491 clock
+9696.195 clock
+9717.955 clock
+9738.265 clock
+9758.574 clock
+9780.334 clock
+9801.288 note-on ch 1 key 60 vel 0
+9801.928 note-on ch 1 key 60 vel 100 (running status)
+9802.248 clock
+9822.403 clock
+9842.712 clock
+9863.022 clock
+9884.782 clock
+9905.091 clock
+9926.045 note-on ch 1 key 60 vel 0
+9926.685 note-on ch 1 key 60 vel 100 (running status)
+9927.005 clock
+9947.160 clock
+9967.470 clock
+9987.779 clock
+10009.539 clock
+10029.848 clock
+10052.253 note-on ch 1 key 60 vel 0
+10052.893 note-on ch 1 key 60 vel 100 (running status)
+10053.213 clock
+10071.918 clock
+10092.227 clock
+10113.987 clock
+10134.296 clock
+10154.606 clock
+10177.011 note-on ch 1 key 60 vel 0
+10177.651 note-on ch 1 key 60 vel 100 (running status)
+10177.971 clock
+10196.675 clock
+10216.985 clock
+10238.745 clock
+10259.054 clock
+10280.814 clock
+10301.768 note-on ch 1 key 60 vel 0
+10302.408 note-on ch 1 key 60 vel 100 (running status)
+10302.728 clock
+10321.432 clock
+10343.192 clock
+10363.502 clock
+10383.811 clock
+10405.571 clock
+10426.525 note-on ch 1 key 60 vel 0
+10427.165 note-on ch 1 key 60 vel 100 (running status)
+10427.485 clock
+10446.190 clock
+10467.950 clock
+10488.259 clock
+10508.568 clock
+10530.328 clock
+10551.283 note-on ch 1 key 60 vel 0
+10551.923 note-on ch 1 key 60 vel 100 (running status)
+10552.243 clock
+10572.398 clock
+10592.707 clock
+10613.016 clock
+10634.776 clock
+10655.086 clock
+10676.040 note-on ch 1 key 60 vel 0
+10676.680 note-on ch 1 key 60 vel 100 (running status)
+10677.000 clock
+10697.155 clock
+10717.464 clock
+10737.774 clock
+10759.534 clock
+10779.843 clock
+10802.248 note-on ch 1 key 60 vel 0
+10802.888 note-on ch 1 key 60 vel 100 (running status)
+10803.208 clock
+10821.912 clock
+10842.222 clock
+10863.982 clock
+10884.291 clock
+10904.600 clock
+10927.005 note-on ch 1 key 60 vel 0
+10927.645 note-on ch 1 key 60 vel 100 (running status)
+10927.965 clock
+10946.670 clock
+10966.979 clock
+10988.739 clock
+11009.048 clock
+11030.808 clock
+11051.763 note-on ch 1 key 60 vel 0
+11052.403 note-on ch 1 key 60 vel 100 (running status)
+11052.723 clock
+11071.427 clock
+11093.187 clock
+11113.496 clock
+11133.806 clock
+11155.566 clock
+11176.520 note-on ch 1 key 60 vel 0
+11177.160 note-on ch 1 key 60 vel 100 (running status)
+11177.480 clock
+11196.184 clock
+11217.944 clock
+11238.254 clock
+11258.563 clock
+11280.323 clock
+11301.277 note-on ch 1 key 60 vel 0
+11301.917 note-on ch 1 key 60 vel 100 (running status)
+11302.237 clock
+11322.392 clock
+11342.702 clock
+11363.011 clock
+11384.771 clock
+11405.080 clock
+11426.035 note-on ch 1 key 60 vel 0
+11426.675 note-on ch 1 key 60 vel 100 (running status)
+11426.995 clock
+11447.150 clock
+11467.459 clock
+11487.768 clock
+11509.528 clock
+11529.838 clock
+11552.243 note-on ch 1 key 60 vel 0
+11552.883 note-on ch 1 key 60 vel 100 (running status)
+11553.203 clock
+11571.907 clock
+11592.216 clock
+11613.976 clock
+11634.286 clock
+11654.595 clock
+11677.000 note-on ch 1 key 60 vel 0
+11677.640 note-on ch 1 key 60 vel 100 (running status)
+11677.960 clock
+11696.664 clock
+11716.974 clock
+11738.734 clock
+11759.043 clock
+11780.803 clock
+11801.757 note-on ch 1 key 60 vel 0
+11802.397 note-on ch 1 key 60 vel 100 (running status)
+11802.717 clock
+11821.422 clock
+11843.182 clock
+11863.491 clock
+11883.800 clock
+11905.560 clock
+11926.515 note-on ch 1 key 60 vel 0
+11927.155 note-on ch 1 key 60 vel 100 (running status)
+11927.475 clock
+11946.179 clock
+11967.939 clock
+11988.248 clock
+12010.008 clock
+12030.318 clock
+12051.272 note-on ch 1 key 60 vel 0
+12051.912 note-on ch 1 key 60 vel 100 (running status)
+12052.232 clock
+12072.387 clock
+12092.696 clock
+12113.006 clock
+12134.766 clock
+12155.075 clock
+12176.029 note-on ch 1 key 60 vel 0
+12176.669 note-on ch 1 key 60 vel 100 (running status)
+12176.989 clock
+12197.144 clock
+12217.454 clock
+12237.763 clock
+12259.523 clock
+12279.832 clock
+12302.237 note-on ch 1 key 60 vel 0
+12302.877 note-on ch 1 key 60 vel 100 (running status)
+12303.197 clock
+12321.902 clock
+12342.211 clock
+12363.971 clock
+12384.280 clock
+12404.590 clock
+12426.995 note-on ch 1 key 60 vel 0
+12427.635 note-on ch 1 key 60 vel 100 (running status)
+12427.955 clock
+12446.659 clock
+12466.968 clock
+12488.729 clock
+12509.038 clock
+12530.798 clock
+12551.752 note-on ch 1 key 60 vel 0
+12552.392 note-on ch 1 key 60 vel 100 (running status)
+12552.712 clock
+12571.416 clock
+12593.176 clock
+12613.486 clock
+12633.795 clock
+12655.555 clock
+12676.509 note-on ch 1 key 60 vel 0
+12677.149 note-on ch 1 key 60 vel 100 (running status)
+12677.469 clock
+12696.174 clock
+12717.934 clock
+12738.243 clock
+12760.003 clock
+12780.312 clock
+12801.267 note-on ch 1 key 60 vel 0
+12801.907 note-on ch 1 key 60 vel 100 (running status)
+12802.227 clock
+12822.382 clock
+12842.691 clock
+12863.000 clock
+12884.760 clock
+12905.070 clock
+12926.024 note-on ch 1 key 60 vel 0
+12926.664 note-on ch 1 key 60 vel 100 (running status)
+12926.984 clock
+12947.139 clock
+12967.448 clock
+12987.758 clock
+13009.518 clock
+13029.827 clock
+13052.232 note-on ch 1 key 60 vel 0
+13052.872 note-on ch 1 key 60 vel 100 (running status)
+13053.192 clock
+13071.896 clock
+13092.206 clock
+13113.966 clock
+13134.275 clock
+13154.584 clock
+13176.989 note-on ch 1 key 60 vel 0
+13177.629 note-on ch 1 key 60 vel 100 (running status)
+13177.949 clock
+13196.654 clock
+13216.963 clock
+13238.723 clock
+13259.032 clock
+13280.792 clock
+13301.747 note-on ch 1 key 60 vel 0
+13302.387 note-on ch 1 key 60 vel 100 (running status)
+13302.707 clock
+13321.411 clock
+13343.171 clock
+13363.480 clock
+13383.790 clock
+13405.550 clock
+13426.504 note-on ch 1 key 60 vel 0
+13427.144 note-on ch 1 key 60 vel 100 (running status)
+13427.464 clock
+13446.168 clock
+13467.928 clock
+13488.238 clock
+13509.998 clock
+13530.307 clock
+13551.261 note-on ch 1 key 60 vel 0
+13551.901 note-on ch 1 key 60 vel 100 (running status)
+13552.221 clock
+13572.376 clock
+13592.686 clock
+13612.995 clock
+13634.755 clock
+13655.064 clock
+13676.019 note-on ch 1 key 60 vel 0
+13676.659 note-on ch 1 key 60 vel 100 (running status)
+13676.979 clock
+13697.134 clock
+13717.443 clock
+13737.752 clock
+13759.512 clock
+13779.822 clock
+13802.227 note-on ch 1 key 60 vel 0
+13802.867 note-on ch 1 key 60 vel 100 (running status)
+13803.187 clock
+13821.891 clock
+13842.200 clock
+13863.960 clock
+13884.270 clock
+13904.579 clock
+13926.984 note-on ch 1 key 60 vel 0
+13927.624 note-on ch 1 key 60 vel 100 (running status)
+13927.944 clock
+13946.648 clock
+13966.958 clock
+13988.718 clock
+14009.027 clock
+14030.787 clock
+14051.741 note-on ch 1 key 60 vel 0
+14052.381 note-on ch 1 key 60 vel 100 (running status)
+14052.701 clock
+14071.406 clock
+14093.166 clock
+14113.475 clock
+14133.784 clock
+14155.544 clock
+14176.499 note-on ch 1 key 60 vel 0
+14177.139 note-on ch 1 key 60 vel 100 (running status)
+14177.459 clock
+14196.163 clock
+14217.923 clock
+14238.232 clock
+14259.992 clock
+14280.302 clock
+14301.256 note-on ch 1 key 60 vel 0
+14301.896 note-on ch 1 key 60 vel 100 (running status)
+14302.216 clock
+14322.371 clock
+14342.680 clock
+14362.990 clock
+14384.750 clock
+14405.059 clock
+14426.013 note-on ch 1 key 60 vel 0
+14426.653 note-on ch 1 key 60 vel 100 (running status)
+14426.973 clock
+14447.128 clock
+14467.438 clock
+14487.747 clock
+14509.507 clock
+14529.816 clock
+14552.221 note-on ch 1 key 60 vel 0
+14552.861 note-on ch 1 key 60 vel 100 (running status)
+14553.181 clock
+14571.886 clock
+14592.195 clock
+14613.955 clock
+14634.264 clock
+14654.574 clock
+14676.979 note-on ch 1 key 60 vel 0
+14677.619 note-on ch 1 key 60 vel 100 (running status)
+14677.939 clock
+14696.643 clock
+14716.952 clock
+14738.712 clock
+14759.022 clock
+14780.782 clock
+14801.736 note-on ch 1 key 60 vel 0
+14802.376 note-on ch 1 key 60 vel 100 (running status)
+14802.696 clock
+14821.400 clock
+14843.160 clock
+14863.470 clock
+14883.779 clock
+14905.539 clock
+14926.493 note-on ch 1 key 60 vel 0
+14927.133 note-on ch 1 key 60 vel 100 (running status)
+14927.453 clock
+14946.158 clock
+14967.918 clock
+14988.227 clock
+15009.987 clock
+15030.296 clock
+15051.251 note-on ch 1 key 60 vel 0
+15051.891 note-on ch 1 key 60 vel 100 (running status)
+15052.211 clock
+15072.366 clock
+15092.675 clock
+15112.984 clock
+15134.744 clock
+15155.054 clock
+15176.008 note-on ch 1 key 60 vel 0
+15176.648 note-on ch 1 key 60 vel 100 (running status)
+15176.968 clock
+15197.123 clock
+15217.432 clock
+15237.742 clock
+15259.502 clock
+15279.811 clock
+15302.216 note-on ch 1 key 60 vel 0
+15302.856 note-on ch 1 key 60 vel 100 (running status)
+15303.176 clock
+15321.880 clock
+15342.190 clock
+15363.950 clock
+15384.259 clock
+15404.568 clock
+15426.973 note-on ch 1 key 60 vel 0
+15427.613 note-on ch 1 key 60 vel 100 (running status)
+15427.933 clock
+15446.638 clock
+15466.947 clock
+15488.707 clock
+15509.016 clock
+15530.776 clock
+15551.731 note-on ch 1 key 60 vel 0
+15552.371 note-on ch 1 key 60 vel 100 (running status)
+15552.691 clock
+15571.395 clock
+15593.155 clock
+15613.464 clock
+15633.774 clock
+15655.534 clock
+15676.488 note-on ch 1 key 60 vel 0
+15677.128 note-on ch 1 key 60 vel 100 (running status)
+15677.448 clock
+15696.152 clock
+15717.912 clock
+15738.222 clock
+15759.982 clock
+15780.291 clock
+15801.245 note-on ch 1 key 60 vel 0
+15801.885 note-on ch 1 key 60 vel 100 (running status)
+15802.205 clock
+15822.360 clock
+15842.670 clock
+15862.979 clock
+15884.739 clock
+15905.048 clock
+15926.003 note-on ch 1 key 60 vel 0
+15926.643 note-on ch 1 key 60 vel 100 (running status)
+15926.963 clock
+15947.118 clock
+15967.427 clock
+15987.736 clock
+16009.496 clock
+16029.806 clock
+16052.211 note-on ch 1 key 60 vel 0
+16052.851 note-on ch 1 key 60 vel 100 (running status)
+16053.171 clock
+16071.875 clock
+16092.184 clock
+16113.944 clock
+16134.254 clock
+16154.563 clock
+16176.968 note-on ch 1 key 60 vel 0
+16177.608 note-on ch 1 key 60 vel 100 (running status)
+16177.928 clock
+16196.633 clock
+16216.942 clock
+16238.702 clock
+16259.011 clock
+16280.771 clock
+16301.725 note-on ch 1 key 60 vel 0
+16302.365 note-on ch 1 key 60 vel 100 (running status)
+16302.685 clock
+16321.390 clock
+16343.150 clock
+16363.459 clock
+16383.768 clock
+16405.528 clock
+16426.483 note-on ch 1 key 60 vel 0
+16427.123 note-on ch 1 key 60 vel 100 (running status)
+16427.443 clock
+16446.147 clock
+16467.907 clock
+16488.216 clock
+16509.976 clock
+16530.286 clock
+16551.240 note-on ch 1 key 60 vel 0
+16551.880 note-on ch 1 key 60 vel 100 (running status)
+16552.200 clock
+16572.355 clock
+16592.664 clock
+16612.974 clock
+16634.734 clock
+16655.043 clock
+16675.997 note-on ch 1 key 60 vel 0
+16676.637 note-on ch 1 key 60 vel 100 (running status)
+16676.957 clock
+16697.112 clock
+16717.422 clock
+16737.731 clock
+16759.491 clock
+16779.800 clock
+16802.205 note-on ch 1 key 60 vel 0
+16802.845 note-on ch 1 key 60 vel 100 (running status)
+16803.165 clock
+16821.870 clock
+16842.179 clock
+16863.939 clock
+16884.248 clock
+16904.558 clock
+16926.963 note-on ch 1 key 60 vel 0
+16927.603 note-on ch 1 key 60 vel 100 (running status)
+16927.923 clock
+16946.627 clock
+16966.936 clock
+16988.696 clock
+17009.006 clock
+17030.766 clock
+17051.720 note-on ch 1 key 60 vel 0
+17052.360 note-on ch 1 key 60 vel 100 (running status)
+17052.680 clock
+17071.384 clock
+17093.144 clock
+17113.454 clock
+17133.763 clock
+17155.523 clock
+17176.477 note-on ch 1 key 60 vel 0
+17177.117 note-on ch 1 key 60 vel 100 (running status)
+17177.437 clock
+17196.142 clock
+17217.902 clock
+17238.211 clock
+17259.971 clock
+17280.280 clock
+17301.235 note-on ch 1 key 60 vel 0
+17301.875 note-on ch 1 key 60 vel 100 (running status)
+17302.195 clock
+17322.350 clock
+17342.659 clock
+17362.968 clock
+17384.728 clock
+17405.038 clock
+17425.992 note-on ch 1 key 60 vel 0
+17426.632 note-on ch 1 key 60 vel 100 (running status)
+17426.952 clock
+17447.107 clock
+17467.416 clock
+17489.176 clock
+17509.486 clock
+17529.795 clock
+17552.200 note-on ch 1 key 60 vel 0
+17552.840 note-on ch 1 key 60 vel 100 (running status)
+17553.160 clock
+17571.864 clock
+17592.174 clock
+17613.934 clock
+17634.243 clock
+17654.552 clock
+17676.957 note-on ch 1 key 60 vel 0
+17677.597 note-on ch 1 key 60 vel 100 (running status)
+17677.917 clock
+17696.622 clock
+17716.931 clock
+17738.691 clock
+17759.000 clock
+17780.760 clock
+17801.715 note-on ch 1 key 60 vel 0
+17802.355 note-on ch 1 key 60 vel 100 (running status)
+17802.675 clock
+17821.379 clock
+17843.139 clock
+17863.448 clock
+17883.758 clock
+17905.518 clock
+17926.472 note-on ch 1 key 60 vel 0
+17927.112 note-on ch 1 key 60 vel 100 (running status)
+17927.432 clock
+17946.136 clock
+17967.896 clock
+17988.206 clock
+18009.966 clock
+18030.275 clock
+18051.229 note-on ch 1 key 60 vel 0
+18051.869 note-on ch 1 key 60 vel 100 (running status)
+18052.189 clock
+18072.344 clock
+18092.654 clock
+18112.963 clock
+18134.723 clock
+18155.032 clock
+18175.987 note-on ch 1 key 60 vel 0
+18176.627 note-on ch 1 key 60 vel 100 (running status)
+18176.947 clock
+18197.102 clock
+18217.411 clock
+18239.171 clock
+18259.480 clock
+18279.790 clock
+18302.195 note-on ch 1 key 60 vel 0
+18302.835 note-on ch 1 key 60 vel 100 (running status)
+18303.155 clock
+18321.859 clock
+18342.168 clock
+18363.928 clock
+18384.238 clock
+18404.547 clock
+18426.952 note-on ch 1 key 60 vel 0
+18427.592 note-on ch 1 key 60 vel 100 (running status)
+18427.912 clock
+18446.617 clock
+18466.926 clock
+18488.686 clock
+18508.995 clock
+18530.755 clock
+18551.709 note-on ch 1 key 60 vel 0
+18552.349 note-on ch 1 key 60 vel 100 (running status)
+18552.669 clock
+18571.374 clock
+18593.134 clock
+18613.443 clock
+18633.752 clock
+18655.512 clock
+18676.467 note-on ch 1 key 60 vel 0
+18677.107 note-on ch 1 key 60 vel 100 (running status)
+18677.427 clock
+18696.131 clock
+18717.891 clock
+18738.200 clock
+18759.960 clock
+18780.270 clock
+18801.224 note-on ch 1 key 60 vel 0
+18801.864 note-on ch 1 key 60 vel 100 (running status)
+18802.184 clock
+18822.339 clock
+18842.648 clock
+18862.958 clock
+18884.718 clock
+18905.027 clock
+18925.981 note-on ch 1 key 60 vel 0
+18926.621 note-on ch 1 key 60 vel 100 (running status)
+18926.941 clock
+18947.096 clock
+18967.406 clock
+18989.166 clock
+19009.475 clock
+19029.784 clock
+19052.189 note-on ch 1 key 60 vel 0
+19052.829 note-on ch 1 key 60 vel 100 (running status)
+19053.149 clock
+19071.854 clock
+19092.163 clock
+19113.923 clock
+19134.232 clock
+19154.542 clock
+19176.947 note-on ch 1 key 60 vel 0
+19177.587 note-on ch 1 key 60 vel 100 (running status)
+19177.907 clock
+19196.611 clock
+19216.920 clock
+19238.680 clock
+19258.990 clock
+19280.750 clock
+19301.704 note-on ch 1 key 60 vel 0
+19302.344 note-on ch 1 key 60 vel 100 (running status)
+19302.664 clock
+19321.368 clock
+19343.128 clock
+19363.438 clock
+19383.747 clock
+19405.507 clock
+19426.461 note-on ch 1 key 60 vel 0
+19427.101 note-on ch 1 key 60 vel 100 (running status)
+19427.421 clock
+19446.126 clock
+19467.886 clock
+19488.195 clock
+19509.955 clock
+19530.264 clock
+19551.219 note-on ch 1 key 60 vel 0
+19551.859 note-on ch 1 key 60 vel 100 (running status)
+19552.179 clock
+19572.334 clock
+19592.643 clock
+19612.952 clock
+19634.712 clock
+19655.022 clock
+19675.976 note-on ch 1 key 60 vel 0
+19676.616 note-on ch 1 key 60 vel 100 (running status)
+19676.936 clock
+19697.091 clock
+19717.400 clock
+19739.160 clock
+19759.470 clock
+19779.779 clock
+19802.184 note-on ch 1 key 60 vel 0
+19802.824 note-on ch 1 key 60 vel 100 (running status)
+19803.144 clock
+19821.848 clock
+19842.158 clock
+19863.918 clock
+19884.227 clock
+19904.536 clock
+19926.941 note-on ch 1 key 60 vel 0
+19927.581 note-on ch 1 key 60 vel 100 (running status)
+19927.901 clock
+19946.606 clock
+19966.915 clock
+19988.675 clock
+20008.984 clock
+20030.744 clock
+20051.699 note-on ch 1 key 60 vel 0
+20052.339 note-on ch 1 key 60 vel 100 (running status)
+20052.659 clock
+20071.363 clock
+20093.123 clock
+20113.432 clock
+20133.742 clock
+20155.502 clock
+20176.456 note-on ch 1 key 60 vel 0
+20177.096 note-on ch 1 key 60 vel 100 (running status)
+20177.416 clock
+20196.120 clock
+20217.880 clock
+20238.190 clock
+20259.950 clock
+20280.259 clock
+20301.213 note-on ch 1 key 60 vel 0
+20301.853 note-on ch 1 key 60 vel 100 (running status)
+20302.173 clock
+20322.328 clock
+20342.638 clock
+20362.947 clock
+20384.707 clock
+20405.016 clock
+20425.971 note-on ch 1 key 60 vel 0
+20426.611 note-on ch 1 key 60 vel 100 (running status)
+20426.931 clock
+20447.086 clock
+20467.395 clock
+20489.155 clock
+20509.464 clock
+20529.774 clock
+20552.179 note-on ch 1 key 60 vel 0
+20552.819 note-on ch 1 key 60 vel 100 (running status)
+20553.139 clock
+20571.843 clock
+20592.152 clock
+20613.912 clock
+20634.222 clock
+20654.531 clock
+20676.936 note-on ch 1 key 60 vel 0
+20677.576 note-on ch 1 key 60 vel 100 (running status)
+20677.896 clock
+20696.600 clock
+20716.910 clock
+20738.670 clock
+20758.979 clock
+20780.739 clock
+20801.693 note-on ch 1 key 60 vel 0
+20802.333 note-on ch 1 key 60 vel 100 (running status)
+20802.653 clock
+20821.358 clock
+20843.118 clock
+20863.427 clock
+20883.736 clock
+20905.496 clock
+20926.451 note-on ch 1 key 60 vel 0
+20927.091 note-on ch 1 key 60 vel 100 (running status)
+20927.411 clock
+20946.115 clock
+20967.875 clock
+20988.184 clock
+21009.944 clock
+21030.254 clock
+21051.208 note-on ch 1 key 60 vel 0
+21051.848 note-on ch 1 key 60 vel 100 (running status)
+21052.168 clock
+21072.323 clock
+21092.632 clock
+21112.942 clock
+21134.702 clock
+21155.011 clock
+21175.965 note-on ch 1 key 60 vel 0
+21176.605 note-on ch 1 key 60 vel 100 (running status)
+21176.925 clock
+21197.080 clock
+21217.390 clock
+21239.150 clock
+21259.459 clock
+21279.768 clock
+21302.173 note-on ch 1 key 60 vel 0
+21302.813 note-on ch 1 key 60 vel 100 (running status)
+21303.133 clock
+21321.838 clock
+21342.147 clock
+21363.907 clock
+21384.216 clock
+21404.526 clock
+21426.931 note-on ch 1 key 60 vel 0
+21427.571 note-on ch 1 key 60 vel 100 (running status)
+21427.891 clock
+21446.595 clock
+21466.904 clock
+21488.664 clock
+21508.974 clock
+21530.734 clock
+21551.688 note-on ch 1 key 60 vel 0
+21552.328 note-on ch 1 key 60 vel 100 (running status)
+21552.648 clock
+21571.352 clock
+21593.112 clock
+21613.422 clock
+21633.731 clock
+21655.491 clock
+21676.445 note-on ch 1 key 60 vel 0
+21677.085 note-on ch 1 key 60 vel 100 (running status)
+21677.405 clock
+21696.110 clock
+21717.870 clock
+21738.179 clock
+21759.939 clock
+21780.248 clock
+21801.203 note-on ch 1 key 60 vel 0
+21801.843 note-on ch 1 key 60 vel 100 (running status)
+21802.163 clock
+21822.318 clock
+21842.627 clock
+21862.936 clock
+21884.696 clock
+21905.006 clock
+21925.960 note-on ch 1 key 60 vel 0
+21926.600 note-on ch 1 key 60 vel 100 (running status)
+21926.920 clock
+21947.075 clock
+21967.384 clock
+21989.144 clock
+22009.454 clock
+22029.763 clock
+22052.168 note-on ch 1 key 60 vel 0
+22052.808 note-on ch 1 key 60 vel 100 (running status)
+22053.128 clock
+22071.832 clock
+22092.142 clock
+22113.902 clock
+22134.211 clock
+22154.521 clock
+22176.925 note-on ch 1 key 60 vel 0
+22177.565 note-on ch 1 key 60 vel 100 (running status)
+22177.885 clock
+22196.590 clock
+22216.899 clock
+22238.659 clock
+22258.968 clock
+22280.728 clock
+22301.683 note-on ch 1 key 60 vel 0
+22302.323 note-on ch 1 key 60 vel 100 (running status)
+22302.643 clock
+22321.347 clock
+22343.107 clock
+22363.416 clock
+22383.726 clock
+22405.486 clock
+22426.440 note-on ch 1 key 60 vel 0
+22427.080 note-on ch 1 key 60 vel 100 (running status)
+22427.400 clock
+22446.104 clock
+22467.864 clock
+22488.174 clock
+22509.934 clock
+22530.243 clock
+22551.197 note-on ch 1 key 60 vel 0
+22551.837 note-on ch 1 key 60 vel 100 (running status)
+22552.157 clock
+22572.312 clock
+22592.622 clock
+22612.931 clock
+22634.691 clock
+22655.000 clock
+22675.955 note-on ch 1 key 60 vel 0
+22676.595 note-on ch 1 key 60 vel 100 (running status)
+22676.915 clock
+22697.070 clock
+22717.379 clock
+22739.139 clock
+22759.448 clock
+22779.758 clock
+22802.163 note-on ch 1 key 60 vel 0
+22802.803 note-on ch 1 key 60 vel 100 (running status)
+22803.123 clock
+22821.827 clock
+22842.136 clock
+22863.896 clock
+22884.206 clock
+22904.515 clock
+22926.920 note-on ch 1 key 60 vel 0
+22927.560 note-on ch 1 key 60 vel 100 (running status)
+22927.880 clock
+22946.584 clock
+22966.894 clock
+22988.654 clock
+23008.963 clock
+23030.723 clock
+23051.677 note-on ch 1 key 60 vel 0
+23052.317 note-on ch 1 key 60 vel 100 (running status)
+23052.637 clock
+23071.342 clock
+23093.102 clock
+23113.411 clock
+23133.720 clock
+23155.480 clock
+23176.435 note-on ch 1 key 60 vel 0
+23177.075 note-on ch 1 key 60 vel 100 (running status)
+23177.395 clock
+23196.099 clock
+23217.859 clock
+23238.168 clock
+23259.928 clock
+23280.238 clock
+23301.192 note-on ch 1 key 60 vel 0
+23301.832 note-on ch 1 key 60 vel 100 (running status)
+23302.152 clock
+23322.307 clock
+23342.616 clock
+23362.926 clock
+23384.686 clock
+23404.995 clock
+23425.949 note-on ch 1 key 60 vel 0
+23426.589 note-on ch 1 key 60 vel 100 (running status)
+23426.909 clock
+23447.064 clock
+23467.374 clock
+23489.134 clock
+23509.443 clock
+23529.752 clock
+23552.157 note-on ch 1 key 60 vel 0
+23552.797 note-on ch 1 key 60 vel 100 (running status)
+23553.117 clock
+23571.822 clock
+23592.131 clock
+23613.891 clock
+23634.200 clock
+23654.510 clock
+23676.915 note-on ch 1 key 60 vel 0
+23677.555 note-on ch 1 key 60 vel 100 (running status)
+23677.875 clock
+23696.579 clock
+23718.339 clock
+23738.648 clock
+23758.958 clock
+23780.718 clock
+23801.672 note-on ch 1 key 60 vel 0
+23802.312 note-on ch 1 key 60 vel 100 (running status)
+23802.632 clock
+23821.336 clock
+23843.096 clock
+23863.406 clock
+23883.715 clock
+23905.475 clock
+23926.429 note-on ch 1 key 60 vel 0
+23927.069 note-on ch 1 key 60 vel 100 (running status)
+23927.389 clock
+23946.094 clock
+23967.854 clock
+23988.163 clock
+24009.923 clock
+24030.232 clock
+24051.187 note-on ch 1 key 60 vel 0
+24051.827 note-on ch 1 key 60 vel 100 (running status)
+24052.147 clock
+24072.302 clock
+24092.611 clock
+24112.920 clock
+24134.680 clock
+24154.990 clock
+24175.944 note-on ch 1 key 60 vel 0
+24176.584 note-on ch 1 key 60 vel 100 (running status)
+24176.904 clock
+24197.059 clock
+24217.368 clock
+24239.128 clock
+24259.438 clock
+24279.747 clock
+24302.152 note-on ch 1 key 60 vel 0
+24302.792 note-on ch 1 key 60 vel 100 (running status)
+24303.112 clock
+24321.816 clock
+24342.126 clock
+24363.886 clock
+24384.195 clock
+24404.505 clock
+24426.910 note-on ch 1 key 60 vel 0
+24427.550 note-on ch 1 key 60 vel 100 (running status)
+24427.870 clock
+24446.574 clock
+24468.334 clock
+24488.643 clock
+24508.952 clock
+24530.712 clock
+24551.667 note-on ch 1 key 60 vel 0
+24552.307 note-on ch 1 key 60 vel 100 (running status)
+24552.627 clock
+24571.331 clock
+24593.091 clock
+24613.400 clock
+24633.710 clock
+24655.470 clock
+24676.424 note-on ch 1 key 60 vel 0
+24677.064 note-on ch 1 key 60 vel 100 (running status)
+24677.384 clock
+24696.088 clock
+24717.848 clock
+24738.158 clock
+24759.918 clock
+24780.227 clock
+24801.181 note-on ch 1 key 60 vel 0
+24801.821 note-on ch 1 key 60 vel 100 (running status)
+24802.141 clock
+24822.296 clock
+24842.606 clock
+24862.915 clock
+24884.675 clock
+24904.984 clock
+24925.939 note-on ch 1 key 60 vel 0
+24926.579 note-on ch 1 key 60 vel 100 (running status)
+24926.899 clock
+24947.054 clock
+24967.363 clock
+24989.123 clock
+25009.432 clock
+25029.742 clock
+25052.147 note-on ch 1 key 60 vel 0
+25052.787 note-on ch 1 key 60 vel 100 (running status)
+25053.107 clock
+25071.811 clock
+25092.120 clock
+25113.880 clock
+25134.190 clock
+25154.499 clock
+25176.904 note-on ch 1 key 60 vel 0
+25177.544 note-on ch 1 key 60 vel 100 (running status)
+25177.864 clock
+25196.568 clock
+25218.328 clock
+25238.638 clock
+25258.947 clock
+25280.707 clock
+25301.661 note-on ch 1 key 60 vel 0
+25302.301 note-on ch 1 key 60 vel 100 (running status)
+25302.621 clock
+25321.326 clock
+25343.086 clock
+25363.395 clock
+25383.704 clock
+25405.464 clock
+25426.419 note-on ch 1 key 60 vel 0
+25427.059 note-on ch 1 key 60 vel 100 (running status)
+25427.379 clock
+25446.083 clock
+25467.843 clock
+25488.152 clock
+25509.912 clock
+25530.222 clock
+25551.176 note-on ch 1 key 60 vel 0
+25551.816 note-on ch 1 key 60 vel 100 (running status)
+25552.136 clock
+25572.291 clock
+25592.600 clock
+25612.910 clock
+25634.670 clock
+25654.979 clock
+25675.933 note-on ch 1 key 60 vel 0
+25676.573 note-on ch 1 key 60 vel 100 (running status)
+25676.893 clock
+25697.048 clock
+25717.358 clock
+25739.118 clock
+25759.427 clock
+25779.736 clock
+25802.141 note-on ch 1 key 60 vel 0
+25802.781 note-on ch 1 key 60 vel 100 (running status)
+25803.101 clock
+25821.806 clock
+25842.115 clock
+25863.875 clock
+25884.184 clock
+25904.494 clock
+25926.899 note-on ch 1 key 60 vel 0
+25927.539 note-on ch 1 key 60 vel 100 (running status)
+25927.859 clock
+25946.563 clock
+25968.323 clock
+25988.632 clock
+26008.942 clock
+26030.702 clock
+26051.656 note-on ch 1 key 60 vel 0
+26052.296 note-on ch 1 key 60 vel 100 (running status)
+26052.616 clock
+26071.320 clock
+26093.080 clock
+26113.390 clock
+26133.699 clock
+26155.459 clock
+26176.413 note-on ch 1 key 60 vel 0
+26177.053 note-on ch 1 key 60 vel 100 (running status)
+26177.373 clock
+26196.078 clock
+26217.838 clock
+26238.147 clock
+26259.907 clock
+26280.216 clock
+26301.171 note-on ch 1 key 60 vel 0
+26301.811 note-on ch 1 key 60 vel 100 (running status)
+26302.131 clock
+26322.286 clock
+26342.595 clock
+26362.904 clock
+26384.664 clock
+26404.974 clock
+26425.928 note-on ch 1 key 60 vel 0
+26426.568 note-on ch 1 key 60 vel 100 (running status)
+26426.888 clock
+26447.043 clock
+26467.352 clock
+26489.112 clock
+26509.422 clock
+26529.731 clock
+26552.136 note-on ch 1 key 60 vel 0
+26552.776 note-on ch 1 key 60 vel 100 (running status)
+26553.096 clock
+26571.800 clock
+26592.110 clock
+26613.870 clock
+26634.179 clock
+26654.488 clock
+26676.894 note-on ch 1 key 60 vel 0
+26677.534 note-on ch 1 key 60 vel 100 (running status)
+26677.854 clock
+26696.558 clock
+26718.318 clock
+26738.627 clock
+26758.936 clock
+26780.696 clock
+26801.651 note-on ch 1 key 60 vel 0
+26802.291 note-on ch 1 key 60 vel 100 (running status)
+26802.611 clock
+26821.315 clock
+26843.075 clock
+26863.384 clock
+26883.694 clock
+26905.454 clock
+26926.408 note-on ch 1 key 60 vel 0
+26927.048 note-on ch 1 key 60 vel 100 (running status)
+26927.368 clock
+26946.072 clock
+26967.832 clock
+26988.142 clock
+27009.902 clock
+27030.211 clock
+27051.165 note-on ch 1 key 60 vel 0
+27051.805 note-on ch 1 key 60 vel 100 (running status)
+27052.125 clock
+27072.280 clock
+27092.590 clock
+27112.899 clock
+27134.659 clock
+27154.968 clock
+27175.923 note-on ch 1 key 60 vel 0
+27176.563 note-on ch 1 key 60 vel 100 (running status)
+27176.883 clock
+27197.038 clock
+27217.347 clock
+27239.107 clock
+27259.416 clock
+27279.726 clock
+27302.131 note-on ch 1 key 60 vel 0
+27302.771 note-on ch 1 key 60 vel 100 (running status)
+27303.091 clock
+27321.795 clock
+27342.104 clock
+27363.864 clock
+27384.174 clock
+27404.483 clock
+27426.888 note-on ch 1 key 60 vel 0
+27427.528 note-on ch 1 key 60 vel 100 (running status)
+27427.848 clock
+27446.552 clock
+27468.312 clock
+27488.622 clock
+27508.931 clock
+27530.691 clock
+27551.646 note-on ch 1 key 60 vel 0
+27552.286 note-on ch 1 key 60 vel 100 (running status)
+27552.606 clock
+27571.310 clock
+27593.070 clock
+27613.379 clock
+27633.688 clock
+27655.448 clock
+27676.403 note-on ch 1 key 60 vel 0
+27677.043 note-on ch 1 key 60 vel 100 (running status)
+27677.363 clock
+27696.067 clock
+27717.827 clock
+27738.136 clock
+27759.896 clock
+27780.206 clock
+27801.160 note-on ch 1 key 60 vel 0
+27801.800 note-on ch 1 key 60 vel 100 (running status)
+27802.120 clock
+27822.275 clock
+27842.584 clock
+27862.894 clock
+27884.654 clock
+27904.963 clock
+27925.917 note-on ch 1 key 60 vel 0
+27926.557 note-on ch 1 key 60 vel 100 (running status)
+27926.877 clock
+27947.032 clock
+27967.342 clock
+27989.102 clock
+28009.411 clock
+28029.720 clock
+28052.125 note-on ch 1 key 60 vel 0
+28052.765 note-on ch 1 key 60 vel 100 (running status)
+28053.085 clock
+28071.790 clock
+28092.099 clock
+28113.859 clock
+28134.169 clock
+28154.478 clock
+28176.883 note-on ch 1 key 60 vel 0
+28177.523 note-on ch 1 key 60 vel 100 (running status)
+28177.843 clock
+28196.547 clock
+28218.307 clock
+28238.616 clock
+28258.926 clock
+28280.686 clock
+28301.640 note-on ch 1 key 60 vel 0
+28302.280 note-on ch 1 key 60 vel 100 (running status)
+28302.600 clock
+28321.304 clock
+28343.064 clock
+28363.374 clock
+28383.683 clock
+28405.443 clock
+28426.397 note-on ch 1 key 60 vel 0
+28427.037 note-on ch 1 key 60 vel 100 (running status)
+28427.357 clock
+28446.062 clock
+28467.822 clock
+28488.131 clock
+28509.891 clock
+28530.200 clock
+28551.155 note-on ch 1 key 60 vel 0
+28551.795 note-on ch 1 key 60 vel 100 (running status)
+28552.115 clock
+28572.270 clock
+28592.579 clock
+28612.888 clock
+28634.648 clock
+28654.958 clock
+28675.912 note-on ch 1 key 60 vel 0
+28676.552 note-on ch 1 key 60 vel 100 (running status)
+28676.872 clock
+28697.027 clock
+28717.336 clock
+28739.096 clock
+28759.406 clock
+28779.715 clock
+28802.120 note-on ch 1 key 60 vel 0
+28802.760 note-on ch 1 key 60 vel 100 (running status)
+28803.080 clock
+28821.784 clock
+28842.094 clock
+28863.854 clock
+28884.163 clock
+28904.472 clock
+28926.878 note-on ch 1 key 60 vel 0
+28927.518 note-on ch 1 key 60 vel 100 (running status)
+28927.838 clock
+28946.542 clock
+28968.302 clock
+28988.611 clock
+29008.920 clock
+29030.680 clock
+29051.635 note-on ch 1 key 60 vel 0
+29052.275 note-on ch 1 key 60 vel 100 (running status)
+29052.595 clock
+29071.299 clock
+29093.059 clock
+29113.368 clock
+29133.678 clock
+29155.438 clock
+29176.392 note-on ch 1 key 60 vel 0
+29177.032 note-on ch 1 key 60 vel 100 (running status)
+29177.352 clock
+29197.507 clock
+29217.816 clock
+29238.126 clock
+29259.886 clock
+29280.195 clock
+29301.149 note-on ch 1 key 60 vel 0
+29301.789 note-on ch 1 key 60 vel 100 (running status)
+29302.109 clock
+29322.264 clock
+29342.574 clock
+29362.883 clock
+29384.643 clock
+29404.952 clock
+29425.907 note-on ch 1 key 60 vel 0
+29426.547 note-on ch 1 key 60 vel 100 (running status)
+29426.867 clock
+29447.022 clock
+29467.331 clock
+29489.091 clock
+29509.400 clock
+29529.710 clock
+29552.115 note-on ch 1 key 60 vel 0
+29552.755 note-on ch 1 key 60 vel 100 (running status)
+29553.075 clock
+29571.779 clock
+29592.088 clock
+29613.848 clock
+29634.158 clock
+29654.467 clock
+29676.872 note-on ch 1 key 60 vel 0
+29677.512 note-on ch 1 key 60 vel 100 (running status)
+29677.832 clock
+29696.536 clock
+29718.296 clock
+29738.606 clock
+29758.915 clock
+29780.675 clock
+29801.629 note-on ch 1 key 60 vel 0
+29802.269 note-on ch 1 key 60 vel 100 (running status)
+29802.589 clock
+29821.294 clock
+29843.054 clock
+29863.363 clock
+29883.672 clock
+29905.432 clock
+29926.387 note-on ch 1 key 60 vel 0
+29927.027 note-on ch 1 key 60 vel 100 (running status)
+29927.347 clock
+29947.502 clock
+29967.811 clock
+29988.120 clock
+30009.880 clock
+30030.190 clock
+30051.144 note-on ch 1 key 60 vel 0
+30051.784 note-on ch 1 key 60 vel 100 (running status)
+30052.104 clock
+30072.259 clock
+30092.568 clock
+30112.878 clock
+30134.638 clock
+30154.947 clock
+30175.901 note-on ch 1 key 60 vel 0
+30176.541 note-on ch 1 key 60 vel 100 (running status)
+30176.861 clock
+30197.016 clock
+30217.326 clock
+30239.086 clock
+30259.395 clock
+30279.704 clock
+30302.109 note-on ch 1 key 60 vel 0
+30302.749 note-on ch 1 key 60 vel 100 (running status)
+30303.069 clock
+30321.774 clock
+30342.083 clock
+30363.843 clock
+30384.153 clock
+30404.462 clock
+30426.867 note-on ch 1 key 60 vel 0
+30427.507 note-on ch 1 key 60 vel 100 (running status)
+30427.827 clock
+30446.531 clock
+30468.291 clock
+30488.600 clock
+30508.910 clock
+30530.670 clock
+30551.624 note-on ch 1 key 60 vel 0
+30552.264 note-on ch 1 key 60 vel 100 (running status)
+30552.584 clock
+30571.288 clock
+30593.048 clock
+30613.358 clock
+30633.667 clock
+30655.427 clock
+30676.381 note-on ch 1 key 60 vel 0
+30677.021 note-on ch 1 key 60 vel 100 (running status)
+30677.341 clock
+30697.496 clock
+30717.806 clock
+30738.115 clock
+30759.875 clock
+30780.184 clock
+30801.139 note-on ch 1 key 60 vel 0
+30801.779 note-on ch 1 key 60 vel 100 (running status)
+30802.099 clock
+30822.254 clock
+30842.563 clock
+30862.872 clock
+30884.632 clock
+30904.942 clock
+30925.896 note-on ch 1 key 60 vel 0
+30926.536 note-on ch 1 key 60 vel 100 (running status)
+30926.856 clock
+30947.011 clock
+30967.320 clock
+30989.080 clock
+31009.390 clock
+31029.699 clock
+31052.104 note-on ch 1 key 60 vel 0
+31052.744 note-on ch 1 key 60 vel 100 (running status)
+31053.064 clock
+31071.768 clock
+31092.078 clock
+31113.838 clock
+31134.147 clock
+31154.456 clock
+31176.862 note-on ch 1 key 60 vel 0
+31177.502 note-on ch 1 key 60 vel 100 (running status)
+31177.822 clock
+31196.526 clock
+31218.286 clock
+31238.595 clock
+31258.904 clock
+31280.664 clock
+31301.619 note-on ch 1 key 60 vel 0
+31302.259 note-on ch 1 key 60 vel 100 (running status)
+31302.579 clock
+31321.283 clock
+31343.043 clock
+31363.352 clock
+31383.662 clock
+31405.422 clock
+31426.376 note-on ch 1 key 60 vel 0
+31427.016 note-on ch 1 key 60 vel 100 (running status)
+31427.336 clock
+31447.491 clock
+31467.800 clock
+31488.110 clock
+31509.870 clock
+31530.179 clock
+31551.133 note-on ch 1 key 60 vel 0
+31551.773 note-on ch 1 key 60 vel 100 (running status)
+31552.093 clock
+31572.248 clock
+31592.558 clock
+31612.867 clock
+31634.627 clock
+31654.936 clock
+31675.891 note-on ch 1 key 60 vel 0
+31676.531 note-on ch 1 key 60 vel 100 (running status)
+31676.851 clock
+31697.006 clock
+31717.315 clock
+31739.075 clock
+31759.384 clock
+31779.694 clock
+31802.099 note-on ch 1 key 60 vel 0
+31802.739 note-on ch 1 key 60 vel 100 (running status)
+31803.059 clock
+31821.763 clock
+31842.072 clock
+31863.832 clock
+31884.142 clock
+31904.451 clock
+31926.856 note-on ch 1 key 60 vel 0
+31927.496 note-on ch 1 key 60 vel 100 (running status)
+31927.816 clock
+31946.520 clock
+31968.280 clock
+31988.590 clock
+32008.899 clock
+32030.659 clock
+32051.613 note-on ch 1 key 60 vel 0
+32052.253 note-on ch 1 key 60 vel 100 (running status)
+32052.573 clock
+32071.278 clock
+32093.038 clock
+32113.347 clock
+32133.656 clock
+32155.416 clock
+32176.371 note-on ch 1 key 60 vel 0
+32177.011 note-on ch 1 key 60 vel 100 (running status)
+32177.331 clock
+32197.486 clock
+32217.795 clock
+32238.104 clock
+32259.864 clock
+32280.174 clock
+32301.128 note-on ch 1 key 60 vel 0
+32301.768 note-on ch 1 key 60 vel 100 (running status)
+32302.088 clock
+32322.243 clock
+32342.552 clock
+32362.862 clock
+32384.622 clock
+32404.931 clock
+32425.885 note-on ch 1 key 60 vel 0
+32426.525 note-on ch 1 key 60 vel 100 (running status)
+32426.845 clock
+32447.000 clock
+32467.310 clock
+32489.070 clock
+32509.379 clock
+32529.688 clock
+32552.093 note-on ch 1 key 60 vel 0
+32552.733 note-on ch 1 key 60 vel 100 (running status)
+32553.053 clock
+32571.758 clock
+32592.067 clock
+32613.827 clock
+32634.136 clock
+32654.446 clock
+32676.851 note-on ch 1 key 60 vel 0
+32677.491 note-on ch 1 key 60 vel 100 (running status)
+32677.811 clock
+32696.515 clock
+32718.275 clock
+32738.584 clock
+32758.894 clock
+32780.654 clock
+32801.608 note-on ch 1 key 60 vel 0
+32802.248 note-on ch 1 key 60 vel 100 (running status)
+32802.568 clock
+32821.272 clock
+32843.032 clock
+32863.342 clock
+32883.651 clock
+32905.411 clock
+32926.365 note-on ch 1 key 60 vel 0
+32927.005 note-on ch 1 key 60 vel 100 (running status)
+32927.325 clock
+32947.480 clock
+32967.790 clock
+32988.099 clock
+33009.859 clock
+33030.168 clock
+33051.123 note-on ch 1 key 60 vel 0
+33051.763 note-on ch 1 key 60 vel 100 (running status)
+33052.083 clock
+33072.238 clock
+33092.547 clock
+33112.856 clock
+33134.616 clock
+33154.926 clock
+33175.880 note-on ch 1 key 60 vel 0
+33176.520 note-on ch 1 key 60 vel 100 (running status)
+33176.840 clock
+33196.995 clock
+33217.304 clock
+33239.064 clock
+33259.374 clock
+33279.683 clock
+33302.088 note-on ch 1 key 60 vel 0
+33302.728 note-on ch 1 key 60 vel 100 (running status)
+33303.048 clock
+33321.752 clock
+33342.062 clock
+33363.822 clock
+33384.131 clock
+33404.440 clock
+33426.846 note-on ch 1 key 60 vel 0
+33427.486 note-on ch 1 key 60 vel 100 (running status)
+33427.806 clock
+33446.510 clock
+33468.270 clock
+33488.579 clock
+33508.888 clock
+33530.648 clock
+33551.603 note-on ch 1 key 60 vel 0
+33552.243 note-on ch 1 key 60 vel 100 (running status)
+33552.563 clock
+33571.267 clock
+33593.027 clock
+33613.336 clock
+33633.646 clock
+33655.406 clock
+33676.360 note-on ch 1 key 60 vel 0
+33677.000 note-on ch 1 key 60 vel 100 (running status)
+33677.320 clock
+33697.475 clock
+33717.784 clock
+33738.094 clock
+33759.854 clock
+33780.163 clock
+33801.117 note-on ch 1 key 60 vel 0
+33801.757 note-on ch 1 key 60 vel 100 (running status)
+33802.077 clock
+33822.232 clock
+33842.542 clock
+33862.851 clock
+33884.611 clock
+33904.920 clock
+33925.875 note-on ch 1 key 60 vel 0
+33926.515 note-on ch 1 key 60 vel 100 (running status)
+33926.835 clock
+33946.990 clock
+33967.299 clock
+33989.059 clock
+34009.368 clock
+34029.678 clock
+34052.083 note-on ch 1 key 60 vel 0
+34052.723 note-on ch 1 key 60 vel 100 (running status)
+34053.043 clock
+34071.747 clock
+34092.057 clock
+34113.816 clock
+34134.126 clock
+34154.435 clock
+34176.840 note-on ch 1 key 60 vel 0
+34177.480 note-on ch 1 key 60 vel 100 (running status)
+34177.800 clock
+34196.504 clock
+34218.264 clock
+34238.574 clock
+34258.883 clock
+34280.643 clock
+34301.597 note-on ch 1 key 60 vel 0
+34302.237 note-on ch 1 key 60 vel 100 (running status)
+34302.557 clock
+34321.262 clock
+34343.022 clock
+34363.331 clock
+34383.640 clock
+34405.400 clock
+34426.355 note-on ch 1 key 60 vel 0
+34426.995 note-on ch 1 key 60 vel 100 (running status)
+34427.315 clock
+34447.470 clock
+34467.779 clock
+34488.088 clock
+34509.848 clock
+34530.158 clock
+34551.112 note-on ch 1 key 60 vel 0
+34551.752 note-on ch 1 key 60 vel 100 (running status)
+34552.072 clock
+34572.227 clock
+34592.536 clock
+34612.846 clock
+34634.606 clock
+34654.915 clock
+34677.320 note-on ch 1 key 60 vel 0
+34677.960 note-on ch 1 key 60 vel 100 (running status)
+34678.280 clock
+34696.984 clock
+34717.294 clock
+34739.054 clock
+34759.363 clock
+34779.672 clock
+34802.077 note-on ch 1 key 60 vel 0
+34802.717 note-on ch 1 key 60 vel 100 (running status)
+34803.037 clock
+34821.742 clock
+34842.051 clock
+34863.811 clock
+34884.120 clock
+34904.430 clock
+34926.835 note-on ch 1 key 60 vel 0
+34927.475 note-on ch 1 key 60 vel 100 (running status)
+34927.795 clock
+34946.499 clock
+34968.259 clock
+34988.568 clock
+35008.878 clock
+35030.638 clock
+35051.592 note-on ch 1 key 60 vel 0
+35052.232 note-on ch 1 key 60 vel 100 (running status)
+35052.552 clock
+35071.256 clock
+35093.016 clock
+35113.326 clock
+35133.635 clock
+35155.395 clock
+35176.349 note-on ch 1 key 60 vel 0
+35176.989 note-on ch 1 key 60 vel 100 (running status)
+35177.309 clock
+35197.464 clock
+35217.774 clock
+35238.083 clock
+35259.843 clock
+35280.152 clock
+35301.107 note-on ch 1 key 60 vel 0
+35301.747 note-on ch 1 key 60 vel 100 (running status)
+35302.067 clock
+35322.222 clock
+35342.531 clock
+35362.840 clock
+35384.600 clock
+35404.910 clock
+35427.315 note-on ch 1 key 60 vel 0
+35427.955 note-on ch 1 key 60 vel 100 (running status)
+35428.275 clock
+35446.979 clock
+35467.288 clock
+35489.048 clock
+35509.358 clock
+35529.667 clock
+35552.072 note-on ch 1 key 60 vel 0
+35552.712 note-on ch 1 key 60 vel 100 (running status)
+35553.032 clock
+35571.736 clock
+35592.046 clock
+35613.806 clock
+35634.115 clock
+35654.424 clock
+35676.829 note-on ch 1 key 60 vel 0
+35677.469 note-on ch 1 key 60 vel 100 (running status)
+35677.789 clock
+35696.494 clock
+35718.254 clock
+35738.563 clock
+35758.872 clock
+35780.632 clock
+35801.587 note-on ch 1 key 60 vel 0
+35802.227 note-on ch 1 key 60 vel 100 (running status)
+35802.547 clock
+35821.251 clock
+35843.011 clock
+35863.320 clock
+35883.630 clock
+35905.390 clock
+35926.344 note-on ch 1 key 60 vel 0
+35926.984 note-on ch 1 key 60 vel 100 (running status)
+35927.304 clock
+35947.459 clock
+35967.768 clock
+35988.078 clock
+36009.838 clock
+36030.147 clock
+36051.101 note-on ch 1 key 60 vel 0
+36051.741 note-on ch 1 key 60 vel 100 (running status)
+36052.061 clock
+36072.216 clock
+36092.526 clock
+36112.835 clock
+36134.595 clock
+36154.904 clock
+36177.309 note-on ch 1 key 60 vel 0
+36177.949 note-on ch 1 key 60 vel 100 (running status)
+36178.269 clock
+36196.974 clock
+36217.283 clock
+36239.043 clock
+36259.352 clock
+36279.662 clock
+36302.067 note-on ch 1 key 60 vel 0
+36302.707 note-on ch 1 key 60 vel 100 (running status)
+36303.027 clock
+36321.731 clock
+36342.041 clock
+36363.801 clock
+36384.110 clock
+36404.419 clock
+36426.824 note-on ch 1 key 60 vel 0
+36427.464 note-on ch 1 key 60 vel 100 (running status)
+36427.784 clock
+36446.488 clock
+36468.248 clock
+36488.558 clock
+36508.867 clock
+36530.627 clock
+36551.581 note-on ch 1 key 60 vel 0
+36552.221 note-on ch 1 key 60 vel 100 (running status)
+36552.541 clock
+36571.246 clock
+36593.006 clock
+36613.315 clock
+36633.624 clock
+36655.384 clock
+36676.339 note-on ch 1 key 60 vel 0
+36676.979 note-on ch 1 key 60 vel 100 (running status)
+36677.299 clock
+36697.454 clock
+36717.763 clock
+36738.072 clock
+36759.832 clock
+36780.142 clock
+36801.096 note-on ch 1 key 60 vel 0
+36801.736 note-on ch 1 key 60 vel 100 (running status)
+36802.056 clock
+36822.211 clock
+36842.520 clock
+36862.830 clock
+36884.590 clock
+36904.899 clock
+36927.304 note-on ch 1 key 60 vel 0
+36927.944 note-on ch 1 key 60 vel 100 (running status)
+36928.264 clock
+36946.968 clock
+36967.278 clock
+36989.038 clock
+37009.347 clock
+37029.656 clock
+37052.061 note-on ch 1 key 60 vel 0
+37052.701 note-on ch 1 key 60 vel 100 (running status)
+37053.021 clock
+37071.726 clock
+37092.035 clock
+37113.795 clock
+37134.104 clock
+37154.414 clock
+37176.819 note-on ch 1 key 60 vel 0
+37177.459 note-on ch 1 key 60 vel 100 (running status)
+37177.779 clock
+37196.483 clock
+37218.243 clock
+37238.552 clock
+37258.862 clock
+37280.622 clock
+37301.576 note-on ch 1 key 60 vel 0
+37302.216 note-on ch 1 key 60 vel 100 (running status)
+37302.536 clock
+37321.240 clock
+37343.000 clock
+37363.310 clock
+37383.619 clock
+37405.379 clock
+37426.333 note-on ch 1 key 60 vel 0
+37426.973 note-on ch 1 key 60 vel 100 (running status)
+37427.293 clock
+37447.448 clock
+37467.758 clock
+37488.067 clock
+37509.827 clock
+37530.136 clock
+37551.091 note-on ch 1 key 60 vel 0
+37551.731 note-on ch 1 key 60 vel 100 (running status)
+37552.051 clock
+37572.206 clock
+37592.515 clock
+37612.824 clock
+37634.584 clock
+37654.894 clock
+37677.299 note-on ch 1 key 60 vel 0
+37677.939 note-on ch 1 key 60 vel 100 (running status)
+37678.259 clock
+37696.963 clock
+37717.272 clock
+37739.032 clock
+37759.342 clock
+37779.651 clock
+37802.056 note-on ch 1 key 60 vel 0
+37802.696 note-on ch 1 key 60 vel 100 (running status)
+37803.016 clock
+37821.720 clock
+37842.030 clock
+37863.790 clock
+37884.099 clock
+37904.408 clock
+37926.813 note-on ch 1 key 60 vel 0
+37927.453 note-on ch 1 key 60 vel 100 (running status)
+37927.773 clock
+37946.478 clock
+37968.238 clock
+37988.547 clock
+38008.856 clock
+38030.616 clock
+38051.571 note-on ch 1 key 60 vel 0
+38052.211 note-on ch 1 key 60 vel 100 (running status)
+38052.531 clock
+38071.235 clock
+38092.995 clock
+38113.304 clock
+38133.614 clock
+38155.374 clock
+38176.328 note-on ch 1 key 60 vel 0
+38176.968 note-on ch 1 key 60 vel 100 (running status)
+38177.288 clock
+38197.443 clock
+38217.752 clock
+38238.062 clock
+38259.822 clock
+38280.131 clock
+38301.085 note-on ch 1 key 60 vel 0
+38301.725 note-on ch 1 key 60 vel 100 (running status)
+38302.045 clock
+38322.200 clock
+38342.510 clock
+38362.819 clock
+38384.579 clock
+38404.888 clock
+38427.293 note-on ch 1 key 60 vel 0
+38427.933 note-on ch 1 key 60 vel 100 (running status)
+38428.253 clock
+38446.958 clock
+38467.267 clock
+38489.027 clock
+38509.336 clock
+38529.646 clock
+38552.051 note-on ch 1 key 60 vel 0
+38552.691 note-on ch 1 key 60 vel 100 (running status)
+38553.011 clock
+38571.715 clock
+38592.024 clock
+38613.785 clock
+38634.094 clock
+38654.403 clock
+38676.808 note-on ch 1 key 60 vel 0
+38677.448 note-on ch 1 key 60 vel 100 (running status)
+38677.768 clock
+38696.472 clock
+38718.232 clock
+38738.542 clock
+38758.851 clock
+38780.611 clock
+38801.565 note-on ch 1 key 60 vel 0
+38802.205 note-on ch 1 key 60 vel 100 (running status)
+38802.525 clock
+38821.230 clock
+38842.990 clock
+38863.299 clock
+38883.608 clock
+38905.368 clock
+38926.323 note-on ch 1 key 60 vel 0
+38926.963 note-on ch 1 key 60 vel 100 (running status)
+38927.283 clock
+38947.438 clock
+38967.747 clock
+38988.056 clock
+39009.816 clock
+39030.126 clock
+39051.080 note-on ch 1 key 60 vel 0
+39051.720 note-on ch 1 key 60 vel 100 (running status)
+39052.040 clock
+39072.195 clock
+39092.504 clock
+39112.814 clock
+39134.574 clock
+39154.883 clock
+39177.288 note-on ch 1 key 60 vel 0
+39177.928 note-on ch 1 key 60 vel 100 (running status)
+39178.248 clock
+39196.952 clock
+39217.262 clock
+39239.022 clock
+39259.331 clock
+39279.640 clock
+39302.045 note-on ch 1 key 60 vel 0
+39302.685 note-on ch 1 key 60 vel 100 (running status)
+39303.005 clock
+39321.710 clock
+39342.019 clock
+39363.779 clock
+39384.088 clock
+39404.398 clock
+39426.803 note-on ch 1 key 60 vel 0
+39427.443 note-on ch 1 key 60 vel 100 (running status)
+39427.763 clock
+39446.467 clock
+39468.227 clock
+39488.536 clock
+39508.846 clock
+39530.606 clock
+39551.560 note-on ch 1 key 60 vel 0
+39552.200 note-on ch 1 key 60 vel 100 (running status)
+39552.520 clock
+39571.224 clock
+39592.984 clock
+39613.294 clock
+39633.603 clock
+39655.363 clock
+39676.317 note-on ch 1 key 60 vel 0
+39676.957 note-on ch 1 key 60 vel 100 (running status)
+39677.277 clock
+39697.432 clock
+39717.742 clock
+39738.051 clock
+39759.811 clock
+39780.120 clock
+39801.075 note-on ch 1 key 60 vel 0
+39801.715 note-on ch 1 key 60 vel 100 (running status)
+39802.035 clock
+39822.190 clock
+39842.499 clock
+39862.808 clock
+39884.568 clock
+39904.878 clock
+39927.283 note-on ch 1 key 60 vel 0
+39927.923 note-on ch 1 key 60 vel 100 (running status)
+39928.243 clock
+39946.947 clock
+39967.256 clock
+39989.016 clock
+40009.326 clock
+40029.635 clock
+40052.040 note-on ch 1 key 60 vel 0
+40052.680 note-on ch 1 key 60 vel 100 (running status)
+40053.000 clock
+40071.705 clock
+40092.014 clock
+40113.774 clock
+40134.083 clock
+40155.843 clock
+40176.797 note-on ch 1 key 60 vel 0
+40177.437 note-on ch 1 key 60 vel 100 (running status)
+40177.757 clock
+40196.462 clock
+40218.222 clock
+40238.531 clock
+40258.840 clock
+40280.600 clock
+40301.555 note-on ch 1 key 60 vel 0
+40302.195 note-on ch 1 key 60 vel 100 (running status)
+40302.515 clock
+40321.219 clock
+40342.979 clock
+40363.288 clock
+40383.598 clock
+40405.358 clock
+40426.312 note-on ch 1 key 60 vel 0
+40426.952 note-on ch 1 key 60 vel 100 (running status)
+40427.272 clock
+40447.427 clock
+40467.736 clock
+40488.046 clock
+40509.806 clock
+40530.115 clock
+40551.069 note-on ch 1 key 60 vel 0
+40551.709 note-on ch 1 key 60 vel 100 (running status)
+40552.029 clock
+40572.184 clock
+40592.494 clock
+40612.803 clock
+40634.563 clock
+40654.872 clock
+40677.277 note-on ch 1 key 60 vel 0
+40677.917 note-on ch 1 key 60 vel 100 (running status)
+40678.237 clock
+40696.942 clock
+40717.251 clock
+40739.011 clock
+40759.320 clock
+40779.630 clock
+40802.035 note-on ch 1 key 60 vel 0
+40802.675 note-on ch 1 key 60 vel 100 (running status)
+40802.995 clock
+40821.699 clock
+40842.008 clock
+40863.768 clock
+40884.078 clock
+40905.838 clock
+40926.792 note-on ch 1 key 60 vel 0
+40927.432 note-on ch 1 key 60 vel 100 (running status)
+40927.752 clock
+40946.456 clock
+40968.216 clock
+40988.526 clock
+41008.835 clock
+41030.595 clock
+41051.549 note-on ch 1 key 60 vel 0
+41052.189 note-on ch 1 key 60 vel 100 (running status)
+41052.509 clock
+41071.214 clock
+41092.974 clock
+41113.283 clock
+41133.592 clock
+41155.352 clock
+41176.307 note-on ch 1 key 60 vel 0
+41176.947 note-on ch 1 key 60 vel 100 (running status)
+41177.267 clock
+41197.422 clock
+41217.731 clock
+41238.040 clock
+41259.800 clock
+41280.110 clock
+41301.064 note-on ch 1 key 60 vel 0
+41301.704 note-on ch 1 key 60 vel 100 (running status)
+41302.024 clock
+41322.179 clock
+41342.488 clock
+41362.798 clock
+41384.558 clock
+41404.867 clock
+41427.272 note-on ch 1 key 60 vel 0
+41427.912 note-on ch 1 key 60 vel 100 (running status)
+41428.232 clock
+41446.936 clock
+41467.246 clock
+41489.006 clock
+41509.315 clock
+41529.624 clock
+41552.029 note-on ch 1 key 60 vel 0
+41552.669 note-on ch 1 key 60 vel 100 (running status)
+41552.989 clock
+41571.694 clock
+41592.003 clock
+41613.763 clock
+41634.072 clock
+41655.832 clock
+41676.787 note-on ch 1 key 60 vel 0
+41677.427 note-on ch 1 key 60 vel 100 (running status)
+41677.747 clock
+41696.451 clock
+41718.211 clock
+41738.520 clock
+41758.830 clock
+41780.590 clock
+41801.544 note-on ch 1 key 60 vel 0
+41802.184 note-on ch 1 key 60 vel 100 (running status)
+41802.504 clock
+41821.208 clock
+41842.968 clock
+41863.278 clock
+41883.587 clock
+41905.347 clock
+41926.301 note-on ch 1 key 60 vel 0
+41926.941 note-on ch 1 key 60 vel 100 (running status)
+41927.261 clock
+41947.416 clock
+41967.726 clock
+41988.035 clock
+42009.795 clock
+42030.104 clock
+42051.059 note-on ch 1 key 60 vel 0
+42051.699 note-on ch 1 key 60 vel 100 (running status)
+42052.019 clock
+42072.174 clock
+42092.483 clock
+42112.792 clock
+42134.552 clock
+42154.862 clock
+42177.267 note-on ch 1 key 60 vel 0
+42177.907 note-on ch 1 key 60 vel 100 (running status)
+42178.227 clock
+42196.931 clock
+42217.240 clock
+42239.000 clock
+42259.310 clock
+42279.619 clock
+42302.024 note-on ch 1 key 60 vel 0
+42302.664 note-on ch 1 key 60 vel 100 (running status)
+42302.984 clock
+42321.689 clock
+42341.998 clock
+42363.758 clock
+42384.067 clock
+42405.827 clock
+42426.781 note-on ch 1 key 60 vel 0
+42427.421 note-on ch 1 key 60 vel 100 (running status)
+42427.741 clock
+42446.446 clock
+42468.206 clock
+42488.515 clock
+42508.824 clock
+42530.584 clock
+42551.539 note-on ch 1 key 60 vel 0
+42552.179 note-on ch 1 key 60 vel 100 (running status)
+42552.499 clock
+42571.203 clock
+42592.963 clock
+42613.272 clock
+42633.582 clock
+42655.342 clock
+42676.296 note-on ch 1 key 60 vel 0
+42676.936 note-on ch 1 key 60 vel 100 (running status)
+42677.256 clock
+42697.411 clock
+42717.720 clock
+42738.030 clock
+42759.790 clock
+42780.099 clock
+42801.053 note-on ch 1 key 60 vel 0
+42801.693 note-on ch 1 key 60 vel 100 (running status)
+42802.013 clock
+42822.168 clock
+42842.478 clock
+42862.787 clock
+42884.547 clock
+42904.856 clock
+42927.261 note-on ch 1 key 60 vel 0
+42927.901 note-on ch 1 key 60 vel 100 (running status)
+42928.221 clock
+42946.926 clock
+42967.235 clock
+42988.995 clock
+43009.304 clock
+43029.614 clock
+43052.019 note-on ch 1 key 60 vel 0
+43052.659 note-on ch 1 key 60 vel 100 (running status)
+43052.979 clock
+43071.683 clock
+43091.992 clock
+43113.752 clock
+43134.062 clock
+43155.822 clock
+43176.776 note-on ch 1 key 60 vel 0
+43177.416 note-on ch 1 key 60 vel 100 (running status)
+43177.736 clock
+43196.440 clock
+43218.200 clock
+43238.510 clock
+43258.819 clock
+43280.579 clock
+43301.533 note-on ch 1 key 60 vel 0
+43302.173 note-on ch 1 key 60 vel 100 (running status)
+43302.493 clock
+43321.198 clock
+43342.958 clock
+43363.267 clock
+43383.576 clock
+43405.336 clock
+43426.291 note-on ch 1 key 60 vel 0
+43426.931 note-on ch 1 key 60 vel 100 (running status)
+43427.251 clock
+43447.406 clock
+43467.715 clock
+43488.024 clock
+43509.784 clock
+43530.094 clock
+43551.048 note-on ch 1 key 60 vel 0
+43551.688 note-on ch 1 key 60 vel 100 (running status)
+43552.008 clock
+43572.163 clock
+43592.472 clock
+43612.782 clock
+43634.542 clock
+43654.851 clock
+43677.256 note-on ch 1 key 60 vel 0
+43677.896 note-on ch 1 key 60 vel 100 (running status)
+43678.216 clock
+43696.920 clock
+43717.230 clock
+43738.990 clock
+43759.299 clock
+43779.608 clock
+43802.013 note-on ch 1 key 60 vel 0
+43802.653 note-on ch 1 key 60 vel 100 (running status)
+43802.973 clock
+43821.678 clock
+43841.987 clock
+43863.747 clock
+43884.056 clock
+43905.816 clock
+43926.771 note-on ch 1 key 60 vel 0
+43927.411 note-on ch 1 key 60 vel 100 (running status)
+43927.731 clock
+43946.435 clock
+43968.195 clock
+43988.504 clock
+44008.814 clock
+44030.574 clock
+44051.528 note-on ch 1 key 60 vel 0
+44052.168 note-on ch 1 key 60 vel 100 (running status)
+44052.488 clock
+44071.192 clock
+44092.952 clock
+44113.262 clock
+44133.571 clock
+44155.331 clock
+44176.285 note-on ch 1 key 60 vel 0
+44176.925 note-on ch 1 key 60 vel 100 (running status)
+44177.245 clock
+44197.400 clock
+44217.710 clock
+44238.019 clock
+44259.779 clock
+44280.088 clock
+44301.043 note-on ch 1 key 60 vel 0
+44301.683 note-on ch 1 key 60 vel 100 (running status)
+44302.003 clock
+44322.158 clock
+44342.467 clock
+44362.776 clock
+44384.536 clock
+44404.846 clock
+44427.251 note-on ch 1 key 60 vel 0
+44427.891 note-on ch 1 key 60 vel 100 (running status)
+44428.211 clock
+44446.915 clock
+44467.224 clock
+44488.984 clock
+44509.294 clock
+44529.603 clock
+44552.008 note-on ch 1 key 60 vel 0
+44552.648 note-on ch 1 key 60 vel 100 (running status)
+44552.968 clock
+44571.672 clock
+44591.982 clock
+44613.742 clock
+44634.051 clock
+44655.811 clock
+44676.765 note-on ch 1 key 60 vel 0
+44677.405 note-on ch 1 key 60 vel 100 (running status)
+44677.725 clock
+44696.430 clock
+44718.190 clock
+44738.499 clock
+44758.808 clock
+44780.568 clock
+44801.523 note-on ch 1 key 60 vel 0
+44802.163 note-on ch 1 key 60 vel 100 (running status)
+44802.483 clock
+44821.187 clock
+44842.947 clock
+44863.256 clock
+44883.566 clock
+44905.326 clock
+44926.280 note-on ch 1 key 60 vel 0
+44926.920 note-on ch 1 key 60 vel 100 (running status)
+44927.240 clock
+44947.395 clock
+44967.704 clock
+44988.014 clock
+45009.774 clock
+45030.083 clock
+45051.037 note-on ch 1 key 60 vel 0
+45051.677 note-on ch 1 key 60 vel 100 (running status)
+45051.997 clock
+45072.152 clock
+45092.462 clock
+45112.771 clock
+45134.531 clock
+45154.840 clock
+45177.245 note-on ch 1 key 60 vel 0
+45177.885 note-on ch 1 key 60 vel 100 (running status)
+45178.205 clock
+45196.910 clock
+45217.219 clock
+45238.979 clock
+45259.288 clock
+45279.598 clock
+45302.003 note-on ch 1 key 60 vel 0
+45302.643 note-on ch 1 key 60 vel 100 (running status)
+45302.963 clock
+45321.667 clock
+45341.976 clock
+45363.736 clock
+45384.046 clock
+45405.806 clock
+45426.760 note-on ch 1 key 60 vel 0
+45427.400 note-on ch 1 key 60 vel 100 (running status)
+45427.720 clock
+45446.424 clock
+45468.184 clock
+45488.494 clock
+45508.803 clock
+45530.563 clock
+45551.517 note-on ch 1 key 60 vel 0
+45552.157 note-on ch 1 key 60 vel 100 (running status)
+45552.477 clock
+45571.182 clock
+45592.942 clock
+45613.251 clock
+45633.560 clock
+45655.320 clock
+45676.275 note-on ch 1 key 60 vel 0
+45676.915 note-on ch 1 key 60 vel 100 (running status)
+45677.235 clock
+45697.390 clock
+45717.699 clock
+45738.008 clock
+45759.768 clock
+45780.078 clock
+45801.032 note-on ch 1 key 60 vel 0
+45801.672 note-on ch 1 key 60 vel 100 (running status)
+45801.992 clock
+45822.147 clock
+45842.456 clock
+45862.766 clock
+45884.526 clock
+45904.835 clock
+45927.240 note-on ch 1 key 60 vel 0
+45927.880 note-on ch 1 key 60 vel 100 (running status)
+45928.200 clock
+45946.904 clock
+45967.214 clock
+45988.974 clock
+46009.283 clock
+46029.593 clock
+46051.997 note-on ch 1 key 60 vel 0
+46052.637 note-on ch 1 key 60 vel 100 (running status)
+46052.957 clock
+46071.662 clock
+46091.971 clock
+46113.731 clock
+46134.040 clock
+46155.800 clock
+46176.755 note-on ch 1 key 60 vel 0
+46177.395 note-on ch 1 key 60 vel 100 (running status)
+46177.715 clock
+46196.419 clock
+46218.179 clock
+46238.488 clock
+46258.798 clock
+46280.558 clock
+46301.512 note-on ch 1 key 60 vel 0
+46302.152 note-on ch 1 key 60 vel 100 (running status)
+46302.472 clock
+46321.176 clock
+46342.936 clock
+46363.246 clock
+46385.006 clock
+46405.315 clock
+46426.269 note-on ch 1 key 60 vel 0
+46426.909 note-on ch 1 key 60 vel 100 (running status)
+46427.229 clock
+46447.384 clock
+46467.694 clock
+46488.003 clock
+46509.763 clock
+46530.072 clock
+46551.027 note-on ch 1 key 60 vel 0
+46551.667 note-on ch 1 key 60 vel 100 (running status)
+46551.987 clock
+46572.142 clock
+46592.451 clock
+46612.760 clock
+46634.520 clock
+46654.830 clock
+46677.235 note-on ch 1 key 60 vel 0
+46677.875 note-on ch 1 key 60 vel 100 (running status)
+46678.195 clock
+46696.899 clock
+46717.208 clock
+46738.968 clock
+46759.278 clock
+46779.587 clock
+46801.992 note-on ch 1 key 60 vel 0
+46802.632 note-on ch 1 key 60 vel 100 (running status)
+46802.952 clock
+46821.656 clock
+46841.966 clock
+46863.726 clock
+46884.035 clock
+46905.795 clock
+46926.749 note-on ch 1 key 60 vel 0
+46927.389 note-on ch 1 key 60 vel 100 (running status)
+46927.709 clock
+46946.414 clock
+46968.174 clock
+46988.483 clock
+47008.792 clock
+47030.552 clock
+47051.507 note-on ch 1 key 60 vel 0
+47052.147 note-on ch 1 key 60 vel 100 (running status)
+47052.467 clock
+47071.171 clock
+47092.931 clock
+47113.240 clock
+47135.000 clock
+47155.310 clock
+47176.264 note-on ch 1 key 60 vel 0
+47176.904 note-on ch 1 key 60 vel 100 (running status)
+47177.224 clock
+47197.379 clock
+47217.688 clock
+47237.998 clock
+47259.758 clock
+47280.067 clock
+47301.021 note-on ch 1 key 60 vel 0
+47301.661 note-on ch 1 key 60 vel 100 (running status)
+47301.981 clock
+47322.136 clock
+47342.446 clock
+47362.755 clock
+47384.515 clock
+47404.824 clock
+47427.229 note-on ch 1 key 60 vel 0
+47427.869 note-on ch 1 key 60 vel 100 (running status)
+47428.189 clock
+47446.894 clock
+47467.203 clock
+47488.963 clock
+47509.272 clock
+47529.582 clock
+47551.987 note-on ch 1 key 60 vel 0
+47552.627 note-on ch 1 key 60 vel 100 (running status)
+47552.947 clock
+47571.651 clock
+47591.960 clock
+47613.720 clock
+47634.030 clock
+47655.790 clock
+47676.744 note-on ch 1 key 60 vel 0
+47677.384 note-on ch 1 key 60 vel 100 (running status)
+47677.704 clock
+47696.408 clock
+47718.168 clock
+47738.478 clock
+47758.787 clock
+47780.547 clock
+47801.501 note-on ch 1 key 60 vel 0
+47802.141 note-on ch 1 key 60 vel 100 (running status)
+47802.461 clock
+47821.166 clock
+47842.926 clock
+47863.235 clock
+47884.995 clock
+47905.304 clock
+47926.259 note-on ch 1 key 60 vel 0
+47926.899 note-on ch 1 key 60 vel 100 (running status)
+47927.219 clock
+47947.374 clock
+47967.683 clock
+47987.992 clock
+48009.752 clock
+48030.062 clock
+48051.016 note-on ch 1 key 60 vel 0
+48051.656 note-on ch 1 key 60 vel 100 (running status)
+48051.976 clock
+48072.131 clock
+48092.440 clock
+48112.750 clock
+48134.510 clock
+48154.819 clock
+48177.224 note-on ch 1 key 60 vel 0
+48177.864 note-on ch 1 key 60 vel 100 (running status)
+48178.184 clock
+48196.888 clock
+48217.198 clock
+48238.958 clock
+48259.267 clock
+48279.577 clock
+48301.982 note-on ch 1 key 60 vel 0
+48302.622 note-on ch 1 key 60 vel 100 (running status)
+48302.942 clock
+48321.646 clock
+48341.955 clock
+48363.715 clock
+48384.024 clock
+48405.784 clock
+48426.739 note-on ch 1 key 60 vel 0
+48427.379 note-on ch 1 key 60 vel 100 (running status)
+48427.699 clock
+48446.403 clock
+48468.163 clock
+48488.472 clock
+48508.782 clock
+48530.542 clock
+48551.496 note-on ch 1 key 60 vel 0
+48552.136 note-on ch 1 key 60 vel 100 (running status)
+48552.456 clock
+48571.160 clock
+48592.920 clock
+48613.230 clock
+48634.990 clock
+48655.299 clock
+48676.253 note-on ch 1 key 60 vel 0
+48676.893 note-on ch 1 key 60 vel 100 (running status)
+48677.213 clock
+48697.368 clock
+48717.678 clock
+48737.987 clock
+48759.747 clock
+48780.056 clock
+48801.011 note-on ch 1 key 60 vel 0
+48801.651 note-on ch 1 key 60 vel 100 (running status)
+48801.971 clock
+48822.126 clock
+48842.435 clock
+48862.744 clock
+48884.504 clock
+48904.814 clock
+48927.219 note-on ch 1 key 60 vel 0
+48927.859 note-on ch 1 key 60 vel 100 (running status)
+48928.179 clock
+48946.883 clock
+48967.192 clock
+48988.952 clock
+49009.262 clock
+49029.571 clock
+49051.976 note-on ch 1 key 60 vel 0
+49052.616 note-on ch 1 key 60 vel 100 (running status)
+49052.936 clock
+49071.640 clock
+49091.950 clock
+49113.710 clock
+49134.019 clock
+49155.779 clock
+49176.733 note-on ch 1 key 60 vel 0
+49177.373 note-on ch 1 key 60 vel 100 (running status)
+49177.693 clock
+49196.398 clock
+49218.158 clock
+49238.467 clock
+49258.776 clock
+49280.536 clock
+49301.491 note-on ch 1 key 60 vel 0
+49302.131 note-on ch 1 key 60 vel 100 (running status)
+49302.451 clock
+49321.155 clock
+49342.915 clock
+49363.224 clock
+49384.984 clock
+49405.294 clock
+49426.248 note-on ch 1 key 60 vel 0
+49426.888 note-on ch 1 key 60 vel 100 (running status)
+49427.208 clock
+49447.363 clock
+49467.672 clock
+49487.982 clock
+49509.742 clock
+49530.051 clock
+49551.005 note-on ch 1 key 60 vel 0
+49551.645 note-on ch 1 key 60 vel 100 (running status)
+49551.965 clock
+49572.120 clock
+49592.430 clock
+49612.739 clock
+49634.499 clock
+49654.808 clock
+49677.213 note-on ch 1 key 60 vel 0
+49677.853 note-on ch 1 key 60 vel 100 (running status)
+49678.173 clock
+49696.878 clock
+49717.187 clock
+49738.947 clock
+49759.256 clock
+49779.566 clock
+49801.971 note-on ch 1 key 60 vel 0
+49802.611 note-on ch 1 key 60 vel 100 (running status)
+49802.931 clock
+49821.635 clock
+49841.944 clock
+49863.704 clock
+49884.014 clock
+49905.774 clock
+49926.728 note-on ch 1 key 60 vel 0
+49927.368 note-on ch 1 key 60 vel 100 (running status)
+49927.688 clock
+49946.392 clock
+49968.152 clock
+49988.462 clock
+50008.771 clock
+50030.531 clock
+50051.485 note-on ch 1 key 60 vel 0
+50052.125 note-on ch 1 key 60 vel 100 (running status)
+50052.445 clock
+50071.150 clock
+50092.910 clock
+50113.219 clock
+50134.979 clock
+50155.288 clock
+50176.243 note-on ch 1 key 60 vel 0
+50176.883 note-on ch 1 key 60 vel 100 (running status)
+50177.203 clock
+50197.358 clock
+50217.667 clock
+50237.976 clock
+50259.736 clock
+50280.046 clock
+50301.000 note-on ch 1 key 60 vel 0
+50301.640 note-on ch 1 key 60 vel 100 (running status)
+50301.960 clock
+50322.115 clock
+50342.424 clock
+50362.734 clock
+50384.494 clock
+50404.803 clock
+50427.208 note-on ch 1 key 60 vel 0
+50427.848 note-on ch 1 key 60 vel 100 (running status)
+50428.168 clock
+50446.872 clock
+50467.182 clock
+50488.942 clock
+50509.251 clock
+50529.560 clock
+50551.966 note-on ch 1 key 60 vel 0
+50552.606 note-on ch 1 key 60 vel 100 (running status)
+50552.926 clock
+50571.630 clock
+50591.939 clock
+50613.699 clock
+50634.008 clock
+50655.768 clock
+50676.723 note-on ch 1 key 60 vel 0
+50677.363 note-on ch 1 key 60 vel 100 (running status)
+50677.683 clock
+50696.387 clock
+50718.147 clock
+50738.456 clock
+50758.766 clock
+50780.526 clock
+50801.480 note-on ch 1 key 60 vel 0
+50802.120 note-on ch 1 key 60 vel 100 (running status)
+50802.440 clock
+50821.144 clock
+50842.904 clock
+50863.214 clock
+50884.974 clock
+50905.283 clock
+50926.237 note-on ch 1 key 60 vel 0
+50926.877 note-on ch 1 key 60 vel 100 (running status)
+50927.197 clock
+50947.352 clock
+50967.662 clock
+50987.971 clock
+51009.731 clock
+51030.040 clock
+51050.995 note-on ch 1 key 60 vel 0
+51051.635 note-on ch 1 key 60 vel 100 (running status)
+51051.955 clock
+51072.110 clock
+51092.419 clock
+51112.728 clock
+51134.488 clock
+51154.798 clock
+51177.203 note-on ch 1 key 60 vel 0
+51177.843 note-on ch 1 key 60 vel 100 (running status)
+51178.163 clock
+51196.867 clock
+51217.176 clock
+51238.936 clock
+51259.246 clock
+51279.555 clock
+51301.960 note-on ch 1 key 60 vel 0
+51302.600 note-on ch 1 key 60 vel 100 (running status)
+51302.920 clock
+51321.624 clock
+51341.934 clock
+51363.694 clock
+51384.003 clock
+51405.763 clock
+51426.717 note-on ch 1 key 60 vel 0
+51427.357 note-on ch 1 key 60 vel 100 (running status)
+51427.677 clock
+51446.382 clock
+51468.142 clock
+51488.451 clock
+51508.760 clock
+51530.520 clock
+51551.475 note-on ch 1 key 60 vel 0
+51552.115 note-on ch 1 key 60 vel 100 (running status)
+51552.435 clock
+51571.139 clock
+51592.899 clock
+51613.208 clock
+51634.968 clock
+51655.278 clock
+51676.232 note-on ch 1 key 60 vel 0
+51676.872 note-on ch 1 key 60 vel 100 (running status)
+51677.192 clock
+51697.347 clock
+51717.656 clock
+51737.966 clock
+51759.726 clock
+51780.035 clock
+51800.989 note-on ch 1 key 60 vel 0
+51801.629 note-on ch 1 key 60 vel 100 (running status)
+51801.949 clock
+51822.104 clock
+51842.414 clock
+51864.174 clock
+51884.483 clock
+51904.792 clock
+51927.197 note-on ch 1 key 60 vel 0
+51927.837 note-on ch 1 key 60 vel 100 (running status)
+51928.157 clock
+51946.862 clock
+51967.171 clock
+51988.931 clock
+52009.240 clock
+52029.550 clock
+52051.955 note-on ch 1 key 60 vel 0
+52052.595 note-on ch 1 key 60 vel 100 (running status)
+52052.915 clock
+52071.619 clock
+52091.928 clock
+52113.688 clock
+52133.998 clock
+52155.758 clock
+52176.712 note-on ch 1 key 60 vel 0
+52177.352 note-on ch 1 key 60 vel 100 (running status)
+52177.672 clock
+52196.376 clock
+52218.136 clock
+52238.446 clock
+52258.755 clock
+52280.515 clock
+52301.469 note-on ch 1 key 60 vel 0
+52302.109 note-on ch 1 key 60 vel 100 (running status)
+52302.429 clock
+52321.134 clock
+52342.894 clock
+52363.203 clock
+52384.963 clock
+52405.272 clock
+52426.227 note-on ch 1 key 60 vel 0
+52426.867 note-on ch 1 key 60 vel 100 (running status)
+52427.187 clock
+52447.342 clock
+52467.651 clock
+52487.960 clock
+52509.720 clock
+52530.030 clock
+52550.984 note-on ch 1 key 60 vel 0
+52551.624 note-on ch 1 key 60 vel 100 (running status)
+52551.944 clock
+52572.099 clock
+52592.408 clock
+52614.168 clock
+52634.478 clock
+52654.787 clock
+52677.192 note-on ch 1 key 60 vel 0
+52677.832 note-on ch 1 key 60 vel 100 (running status)
+52678.152 clock
+52696.856 clock
+52717.166 clock
+52738.926 clock
+52759.235 clock
+52779.544 clock
+52801.950 note-on ch 1 key 60 vel 0
+52802.590 note-on ch 1 key 60 vel 100 (running status)
+52802.910 clock
+52821.614 clock
+52841.923 clock
+52863.683 clock
+52883.992 clock
+52905.752 clock
+52926.707 note-on ch 1 key 60 vel 0
+52927.347 note-on ch 1 key 60 vel 100 (running status)
+52927.667 clock
+52946.371 clock
+52968.131 clock
+52988.440 clock
+53008.750 clock
+53030.510 clock
+53051.464 note-on ch 1 key 60 vel 0
+53052.104 note-on ch 1 key 60 vel 100 (running status)
+53052.424 clock
+53071.128 clock
+53092.888 clock
+53113.198 clock
+53134.958 clock
+53155.267 clock
+53176.221 note-on ch 1 key 60 vel 0
+53176.861 note-on ch 1 key 60 vel 100 (running status)
+53177.181 clock
+53197.336 clock
+53217.646 clock
+53237.955 clock
+53259.715 clock
+53280.024 clock
+53300.979 note-on ch 1 key 60 vel 0
+53301.619 note-on ch 1 key 60 vel 100 (running status)
+53301.939 clock
+53322.094 clock
+53342.403 clock
+53364.163 clock
+53384.472 clock
+53404.782 clock
+53427.187 note-on ch 1 key 60 vel 0
+53427.827 note-on ch 1 key 60 vel 100 (running status)
+53428.147 clock
+53446.851 clock
+53467.160 clock
+53488.920 clock
+53509.230 clock
+53529.539 clock
+53551.944 note-on ch 1 key 60 vel 0
+53552.584 note-on ch 1 key 60 vel 100 (running status)
+53552.904 clock
+53571.608 clock
+53591.918 clock
+53613.678 clock
+53633.987 clock
+53655.747 clock
+53676.701 note-on ch 1 key 60 vel 0
+53677.341 note-on ch 1 key 60 vel 100 (running status)
+53677.661 clock
+53696.366 clock
+53718.126 clock
+53738.435 clock
+53758.744 clock
+53780.504 clock
+53801.459 note-on ch 1 key 60 vel 0
+53802.099 note-on ch 1 key 60 vel 100 (running status)
+53802.419 clock
+53821.123 clock
+53842.883 clock
+53863.192 clock
+53884.952 clock
+53905.262 clock
+53926.216 note-on ch 1 key 60 vel 0
+53926.856 note-on ch 1 key 60 vel 100 (running status)
+53927.176 clock
+53947.331 clock
+53967.640 clock
+53987.950 clock
+54009.710 clock
+54030.019 clock
+54050.973 note-on ch 1 key 60 vel 0
+54051.613 note-on ch 1 key 60 vel 100 (running status)
+54051.933 clock
+54072.088 clock
+54092.398 clock
+54114.158 clock
+54134.467 clock
+54154.776 clock
+54177.181 note-on ch 1 key 60 vel 0
+54177.821 note-on ch 1 key 60 vel 100 (running status)
+54178.141 clock
+54196.846 clock
+54217.155 clock
+54238.915 clock
+54259.225 clock
+54279.534 clock
+54301.939 note-on ch 1 key 60 vel 0
+54302.579 note-on ch 1 key 60 vel 100 (running status)
+54302.899 clock
+54321.603 clock
+54341.912 clock
+54363.672 clock
+54383.982 clock
+54405.742 clock
+54426.696 note-on ch 1 key 60 vel 0
+54427.336 note-on ch 1 key 60 vel 100 (running status)
+54427.656 clock
+54446.360 clock
+54468.120 clock
+54488.430 clock
+54508.739 clock
+54530.499 clock
+54551.453 note-on ch 1 key 60 vel 0
+54552.093 note-on ch 1 key 60 vel 100 (running status)
+54552.413 clock
+54571.118 clock
+54592.878 clock
+54613.187 clock
+54634.947 clock
+54655.256 clock
+54676.211 note-on ch 1 key 60 vel 0
+54676.851 note-on ch 1 key 60 vel 100 (running status)
+54677.171 clock
+54697.326 clock
+54717.635 clock
+54737.944 clock
+54759.704 clock
+54780.014 clock
+54800.968 note-on ch 1 key 60 vel 0
+54801.608 note-on ch 1 key 60 vel 100 (running status)
+54801.928 clock
+54822.083 clock
+54842.392 clock
+54864.152 clock
+54884.462 clock
+54904.771 clock
+54927.176 note-on ch 1 key 60 vel 0
+54927.816 note-on ch 1 key 60 vel 100 (running status)
+54928.136 clock
+54946.840 clock
+54967.150 clock
+54988.910 clock
+55009.219 clock
+55029.528 clock
+55051.934 note-on ch 1 key 60 vel 0
+55052.574 note-on ch 1 key 60 vel 100 (running status)
+55052.894 clock
+55071.598 clock
+55091.907 clock
+55113.667 clock
+55133.976 clock
+55155.736 clock
+55176.691 note-on ch 1 key 60 vel 0
+55177.331 note-on ch 1 key 60 vel 100 (running status)
+55177.651 clock
+55196.355 clock
+55218.115 clock
+55238.424 clock
+55258.734 clock
+55280.494 clock
+55301.448 note-on ch 1 key 60 vel 0
+55302.088 note-on ch 1 key 60 vel 100 (running status)
+55302.408 clock
+55321.112 clock
+55342.872 clock
+55363.182 clock
+55384.942 clock
+55405.251 clock
+55426.205 note-on ch 1 key 60 vel 0
+55426.845 note-on ch 1 key 60 vel 100 (running status)
+55427.165 clock
+55447.320 clock
+55467.630 clock
+55487.939 clock
+55509.699 clock
+55530.008 clock
+55550.963 note-on ch 1 key 60 vel 0
+55551.603 note-on ch 1 key 60 vel 100 (running status)
+55551.923 clock
+55572.078 clock
+55592.387 clock
+55614.147 clock
+55634.456 clock
+55654.766 clock
+55677.171 note-on ch 1 key 60 vel 0
+55677.811 note-on ch 1 key 60 vel 100 (running status)
+55678.131 clock
+55696.835 clock
+55717.144 clock
+55738.904 clock
+55759.214 clock
+55779.523 clock
+55801.928 note-on ch 1 key 60 vel 0
+55802.568 note-on ch 1 key 60 vel 100 (running status)
+55802.888 clock
+55821.592 clock
+55841.902 clock
+55863.662 clock
+55883.971 clock
+55905.731 clock
+55926.685 note-on ch 1 key 60 vel 0
+55927.325 note-on ch 1 key 60 vel 100 (running status)
+55927.645 clock
+55946.350 clock
+55968.110 clock
+55988.419 clock
+56008.728 clock
+56030.488 clock
+56051.443 note-on ch 1 key 60 vel 0
+56052.083 note-on ch 1 key 60 vel 100 (running status)
+56052.403 clock
+56071.107 clock
+56092.867 clock
+56113.176 clock
+56134.936 clock
+56155.246 clock
+56176.200 note-on ch 1 key 60 vel 0
+56176.840 note-on ch 1 key 60 vel 100 (running status)
+56177.160 clock
+56197.315 clock
+56217.624 clock
+56237.934 clock
+56259.694 clock
+56280.003 clock
+56300.957 note-on ch 1 key 60 vel 0
+56301.597 note-on ch 1 key 60 vel 100 (running status)
+56301.917 clock
+56322.072 clock
+56342.382 clock
+56364.142 clock
+56384.451 clock
+56404.760 clock
+56427.165 note-on ch 1 key 60 vel 0
+56427.805 note-on ch 1 key 60 vel 100 (running status)
+56428.125 clock
+56446.830 clock
+56467.139 clock
+56488.899 clock
+56509.209 clock
+56529.518 clock
+56551.923 note-on ch 1 key 60 vel 0
+56552.563 note-on ch 1 key 60 vel 100 (running status)
+56552.883 clock
+56571.587 clock
+56591.896 clock
+56613.656 clock
+56633.966 clock
+56655.726 clock
+56676.680 note-on ch 1 key 60 vel 0
+56677.320 note-on ch 1 key 60 vel 100 (running status)
+56677.640 clock
+56696.344 clock
+56718.104 clock
+56738.414 clock
+56758.723 clock
+56780.483 clock
+56801.437 note-on ch 1 key 60 vel 0
+56802.077 note-on ch 1 key 60 vel 100 (running status)
+56802.397 clock
+56821.102 clock
+56842.862 clock
+56863.171 clock
+56884.931 clock
+56905.240 clock
+56926.195 note-on ch 1 key 60 vel 0
+56926.835 note-on ch 1 key 60 vel 100 (running status)
+56927.155 clock
+56947.310 clock
+56967.619 clock
+56987.928 clock
+57009.688 clock
+57029.998 clock
+57050.952 note-on ch 1 key 60 vel 0
+57051.592 note-on ch 1 key 60 vel 100 (running status)
+57051.912 clock
+57072.067 clock
+57092.376 clock
+57114.136 clock
+57134.446 clock
+57154.755 clock
+57177.160 note-on ch 1 key 60 vel 0
+57177.800 note-on ch 1 key 60 vel 100 (running status)
+57178.120 clock
+57196.824 clock
+57217.134 clock
+57238.894 clock
+57259.203 clock
+57279.512 clock
+57301.918 note-on ch 1 key 60 vel 0
+57302.558 note-on ch 1 key 60 vel 100 (running status)
+57302.878 clock
+57321.582 clock
+57343.342 clock
+57363.651 clock
+57383.960 clock
+57405.720 clock
+57426.675 note-on ch 1 key 60 vel 0
+57427.315 note-on ch 1 key 60 vel 100 (running status)
+57427.635 clock
+57446.339 clock
+57468.099 clock
+57488.408 clock
+57508.718 clock
+57530.478 clock
+57551.432 note-on ch 1 key 60 vel 0
+57552.072 note-on ch 1 key 60 vel 100 (running status)
+57552.392 clock
+57571.096 clock
+57592.856 clock
+57613.166 clock
+57634.926 clock
+57655.235 clock
+57676.189 note-on ch 1 key 60 vel 0
+57676.829 note-on ch 1 key 60 vel 100 (running status)
+57677.149 clock
+57697.304 clock
+57717.614 clock
+57737.923 clock
+57759.683 clock
+57779.992 clock
+57800.947 note-on ch 1 key 60 vel 0
+57801.587 note-on ch 1 key 60 vel 100 (running status)
+57801.907 clock
+57822.062 clock
+57842.371 clock
+57864.131 clock
+57884.440 clock
+57904.750 clock
+57927.155 note-on ch 1 key 60 vel 0
+57927.795 note-on ch 1 key 60 vel 100 (running status)
+57928.115 clock
+57946.819 clock
+57967.128 clock
+57988.888 clock
+58009.198 clock
+58029.507 clock
+58051.912 note-on ch 1 key 60 vel 0
+58052.552 note-on ch 1 key 60 vel 100 (running status)
+58052.872 clock
+58071.576 clock
+58093.336 clock
+58113.646 clock
+58133.955 clock
+58155.715 clock
+58176.669 note-on ch 1 key 60 vel 0
+58177.309 note-on ch 1 key 60 vel 100 (running status)
+58177.629 clock
+58196.334 clock
+58218.094 clock
+58238.403 clock
+58258.712 clock
+58280.472 clock
+58301.427 note-on ch 1 key 60 vel 0
+58302.067 note-on ch 1 key 60 vel 100 (running status)
+58302.387 clock
+58321.091 clock
+58342.851 clock
+58363.160 clock
+58384.920 clock
+58405.230 clock
+58426.184 note-on ch 1 key 60 vel 0
+58426.824 note-on ch 1 key 60 vel 100 (running status)
+58427.144 clock
+58447.299 clock
+58467.608 clock
+58487.918 clock
+58509.678 clock
+58529.987 clock
+58550.942 note-on ch 1 key 60 vel 0
+58551.582 note-on ch 1 key 60 vel 100 (running status)
+58551.902 clock
+58572.056 clock
+58592.366 clock
+58614.126 clock
+58634.435 clock
+58654.744 clock
+58677.149 note-on ch 1 key 60 vel 0
+58677.789 note-on ch 1 key 60 vel 100 (running status)
+58678.109 clock
+58696.814 clock
+58717.123 clock
+58738.883 clock
+58759.192 clock
+58779.502 clock
+58801.907 note-on ch 1 key 60 vel 0
+58802.547 note-on ch 1 key 60 vel 100 (running status)
+58802.867 clock
+58821.571 clock
+58843.331 clock
+58863.640 clock
+58883.950 clock
+58905.710 clock
+58926.664 note-on ch 1 key 60 vel 0
+58927.304 note-on ch 1 key 60 vel 100 (running status)
+58927.624 clock
+58946.328 clock
+58968.088 clock
+58988.398 clock
+59008.707 clock
+59030.467 clock
+59051.421 note-on ch 1 key 60 vel 0
+59052.061 note-on ch 1 key 60 vel 100 (running status)
+59052.381 clock
+59071.086 clock
+59092.846 clock
+59113.155 clock
+59134.915 clock
+59155.224 clock
+59176.179 note-on ch 1 key 60 vel 0
+59176.819 note-on ch 1 key 60 vel 100 (running status)
+59177.139 clock
+59197.294 clock
+59217.603 clock
+59237.912 clock
+59259.672 clock
+59279.982 clock
+59300.936 note-on ch 1 key 60 vel 0
+59301.576 note-on ch 1 key 60 vel 100 (running status)
+59301.896 clock
+59322.051 clock
+59342.360 clock
+59364.120 clock
+59384.430 clock
+59404.739 clock
+59427.144 note-on ch 1 key 60 vel 0
+59427.784 note-on ch 1 key 60 vel 100 (running status)
+59428.104 clock
+59446.808 clock
+59467.118 clock
+59488.878 clock
+59509.187 clock
+59529.496 clock
+59551.902 note-on ch 1 key 60 vel 0
+59552.542 note-on ch 1 key 60 vel 100 (running status)
+59552.862 clock
+59571.566 clock
+59593.326 clock
+59613.635 clock
+59633.944 clock
+59655.704 clock
+59676.659 note-on ch 1 key 60 vel 0
+59677.299 note-on ch 1 key 60 vel 100 (running status)
+59677.619 clock
+59696.323 clock
+59718.083 clock
+59738.392 clock
+59758.702 clock
+59780.462 clock
+59801.416 note-on ch 1 key 60 vel 0
+59802.056 note-on ch 1 key 60 vel 100 (running status)
+59802.376 clock
+59821.080 clock
+59842.840 clock
+59863.150 clock
+59884.910 clock
+59905.219 clock
+59926.173 note-on ch 1 key 60 vel 0
+59926.813 note-on ch 1 key 60 vel 100 (running status)
+59927.133 clock
+59947.288 clock
+59967.598 clock
+59987.907 clock
+60009.667 clock
+60029.976 clock
+60050.931 note-on ch 1 key 60 vel 0
+60051.571 note-on ch 1 key 60 vel 100 (running status)
+60051.891 clock
+60072.046 clock
+60092.355 clock
+60114.115 clock
+60134.424 clock
+60154.734 clock
+60177.139 note-on ch 1 key 60 vel 0
+60177.779 note-on ch 1 key 60 vel 100 (running status)
+60178.099 clock
+60196.803 clock
+60217.113 clock
+60238.872 clock
+60259.182 clock
+60279.491 clock
+60301.896 note-on ch 1 key 60 vel 0
+60302.536 note-on ch 1 key 60 vel 100 (running status)
+60302.856 clock
+60321.560 clock
+60343.320 clock
+60363.630 clock
+60383.939 clock
+60405.699 clock
+60426.650 note-on ch 1 key 60 vel 0
+60426.970 clock
+60446.317 clock
+60468.077 clock
+60488.386 clock
+60508.695 clock
+60530.455 clock
+60550.765 clock
+60571.074 clock
+60592.834 clock
+60613.143 clock
+60634.903 clock
+60655.213 clock
+60675.522 clock
+60697.282 clock
+60717.591 clock
+60737.901 clock
+60759.661 clock
+60779.970 clock
+60800.280 clock
