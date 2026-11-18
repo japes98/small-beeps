@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="0">
+  <testsuite name="boot.midilocal" tests="2" failures="0">
+    <testcase classname="boot.midilocal" name="run"/>
+    <testcase classname="boot.midilocal" name="golden lcd-700ms.png"/>
+  </testsuite>
+</testsuites>

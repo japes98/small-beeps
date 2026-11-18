@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 6616b8fb469753463c11407f7af38bbb6f12d034..1f69f23694d4d60333f2b9c4f88fba4c3d904705
+OK     918df05fc798 sessions: clean-br17-start starts (nothing to archive)
+OK     58c87df33d45 firmware: the FM-1 hardware build, small-beeps' start-up on a unit (BR-17)
+OK     87d4c477613f firmware: the hardware build drives the panel's chip select (BR-17)
+EXEMPT 1f69f23694d4 (merge) Merge pull request #190 from japes98/hw/start
+4 commit(s) checked: PASS
+
+exit status 0
