@@ -143,7 +143,7 @@ CHECKS = [
               "R-MIDIOUT-1", "R-MIDIOUT-2", "R-MIDIOUT-3", "R-MIDIOUT-4", "R-MIDIOUT-5", "R-MIDIOUT-6",
               "R-MIDIOUT-7", "R-MIDIOUT-8",
               "R-STORE-1", "R-STORE-2", "R-STORE-3", "R-STORE-4", "R-STORE-5", "R-STORE-6",
-              "R-STORE-7", "R-STORE-8", "R-STORE-9",
+              "R-STORE-7", "R-STORE-8", "R-STORE-9", "R-STORE-13",
               "R-UI-1", "R-UI-2", "R-UI-3", "R-UI-4", "R-UI-5", "R-UI-6", "R-UI-7", "R-UI-8",
               "R-UI-9", "R-UI-10", "R-UI-11", "R-UI-12", "R-UI-13", "R-UI-14", "R-ARP-7",
               "R-GOLD-1", "R-GOLD-2"],
@@ -167,7 +167,7 @@ CHECKS = [
     # The seams for firmwares built on small-beeps (clean-1027).
     {"id": "C-SEAMS", "title": "Seams for firmwares built on small-beeps: the build's write-back store check, outside sources, per-folder flags, the engine seam, the platform alone, core 1's start, the runtime, the SysEx tap, raw MIDI out, the store's firmware kinds, saves cut by a power cut, starting without the bring-up screens (tools/seams_suite.py)",
      "reqs": ["R-BUILD-3", "R-BUILD-4", "R-BUILD-5", "R-ENG-1", "R-ENG-2", "R-PROBE-1", "R-PROBE-2", "R-PROBE-3", "R-HW-1", "R-PLAT-1", "R-CORE-1", "R-RT-1", "R-MIDI-8",
-              "R-MIDIOUT-9", "R-STORE-10", "R-STORE-11"],
+              "R-MIDIOUT-9", "R-STORE-10", "R-STORE-11", "R-STORE-13"],
      "cmd": lambda: [PY, "-I", "tools/seams_suite.py", "--build", os.path.join(OUT, "build-a"),
                      "--out", os.path.join(OUT, "seams")]},
     # M9's app release: made twice from build A, the same bytes, verified.

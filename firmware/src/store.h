@@ -133,8 +133,23 @@ struct store_selection {
 #define STORE_ERR_ARG    -1   /* a kind, id or length out of range */
 #define STORE_ERR_FULL   -2   /* no sector could be freed without losing a live record */
 #define STORE_ERR_VERIFY -3   /* what was read back differed, twice */
-#define STORE_ERR_PART   -4   /* the chip is not the part the store knows (HW-76): never written */
-#define STORE_PART       0x856014u   /* the JEDEC ID of the P25Q80H (HW-76, HW-77) */
+#define STORE_ERR_PART   -4   /* the chip is neither part the store knows (STORE_PARTS): never written */
+#define STORE_ERR_PROTECT -5  /* the chip's block protection is set (HW-124 item 5): never written */
+
+/* The parts the store writes to: one entry each, its JEDEC ID (read by
+ * 0x9F) and its name (HW-120, HW-124 item 1). For the commands the store
+ * sends they differ only in the ID (HW-121, HW-122). Any other ID is
+ * read, never written (STORE_ERR_PART). */
+#define STORE_PARTS(X) \
+    X(0x856014u, "P25Q80H")   /* Puya (HW-76, HW-120) */ \
+    X(0xB36014u, "UC25HQ80")  /* UCUN, on units sold since autumn 2026 (HW-120) */
+
+/* Block protection (HW-122, HW-124 item 5): BP0 to BP4 in status 1
+ * (0x05), CMP in status 2 (0x35), the same on both parts. If any is set
+ * the store writes nothing (STORE_ERR_PROTECT); it never writes the
+ * status register. */
+#define STORE_STATUS1_PROTECT 0x7Cu
+#define STORE_STATUS2_PROTECT 0x40u
 
 /* The firmware kinds' counts (BR-9), for the tests, by its symbol (the
  * store's record below ends where the next begins). */
@@ -171,10 +186,11 @@ extern u32 store_message_slot;
 /* The store's record, after MIDI out's (firmware/app.ld), for the tests
  * (tools/fw-suite.py reads this layout). Times in time base ticks. */
 #define STORE_MARKER 0x374F5453u   /* "STO7" in memory order */
-#define STORE_TRACE  32u
+#define STORE_TRACE  31u     /* 32 until SR-15, whose status word took one: the record stays 0xF0 bytes */
 struct sb_store_record {
     u32 marker;
-    u32 part;           /* the JEDEC ID read at start-up (STORE_PART: the store writes) */
+    u32 part;           /* the JEDEC ID read at start-up (one of STORE_PARTS: the store writes) */
+    u32 status;         /* status 1 | status 2 << 8, read at start-up (since SR-15) */
     u32 valid_sectors;  /* sectors with a valid header at start-up */
     u32 head;           /* the head sector, or 0xFFFFFFFF: none yet */
     u32 head_seq;

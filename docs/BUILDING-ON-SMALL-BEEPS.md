@@ -158,7 +158,14 @@ With nothing else in it, it holds and rewrites one payload of up to
 3 920 bytes; beside the base's own full store (its 16 user slots, the
 selection and the settings) about 2.4 KB. `store_put` returns
 `STORE_ERR_FULL` past what fits, before writing anything, and what was
-there stays. For more, choose a larger region (below). `store_reset()`
+there stays. Since SR-15 the store writes to both flash parts FM-1 units
+carry, the P25Q80H (`0x856014`) and the UC25HQ80 (`0xB36014`, on units
+sold since autumn 2026): one image works on both, whatever region you
+choose. On any other part `store_put` returns `STORE_ERR_PART`, and
+if the chip's block protection is set, `STORE_ERR_PROTECT`; either way
+nothing is written, and what is there is still read. The store's record
+(`sb_store`) shows the part's ID in `part` and its two status bytes in
+`status`. For more, choose a larger region (below). `store_reset()`
 voids everything (a factory reset). docs/STORE-FORMAT.md has the bytes.
 
 **Where the store goes.** The store's region is yours to choose (R-STORE-12).
