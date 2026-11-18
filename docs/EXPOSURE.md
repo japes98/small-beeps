@@ -2698,6 +2698,46 @@ SR-3 wrote only its barrier-log row.*
   firmwares' shortcuts, and the SMK-37's wiring.
 - Disk: about 4.9 GB free.
 
+### Session clean-br17-light (BR-17: the light probe from section 26)
+- Date: 2026-11-18 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.327, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-round2's, continued. The owner's prompt is the file
+  `~/<top>/drop/prompts/clean-br17-light.md`, read as the owner asked
+  and saved unedited as docs/prompts/clean-br17-light.md.
+- Where it ran: the owner's Mac, in `~/<top>/clean`; the role file says
+  `clean`.
+- Start: #186 (HARDWARE-SPEC section 26; #185 merged into it) found
+  merged. `tools/clean-update.sh`, run from main, found main at
+  `e13af89e` and ended "no spec-side files on disk or in .git"; lazy
+  fetching off. Nothing to archive: the only clean transcript not in
+  `sessions/clean/` is this session's own, still being written.
+  `tools/check-transcripts.py`: 26 archived transcripts, PASS.
+- A spec session may work at the same time; this session opens none of
+  its branches. #186 was read only as merged on main. Open pull requests
+  listed (none) before P-69 and P-70 were numbered.
+- PROVENANCE: clean-br17-round2's row was never committed in #185, and
+  the spec side has since taken P-68, so it is added here as P-69.
+- Reads: HARDWARE-SPEC section 26 (HW-115 to HW-119), HW-33 to HW-35,
+  HW-42, HW-56, HW-91, HW-112, Q-6 and Q-7; HARNESS.md ("Time", the
+  outputs); this repository's code, tests and docs that the change
+  touches.
+- The toolchain (P-1, P-70): a leaf function of our own compiled and
+  disassembled in the pinned build container, with no network, for the
+  calling convention and the assembler's syntax.
+- **The pull request (R-PROBE-2):** build A from this folder still
+  `5bc12a34…`; the light probe built with `SB_PROBE_LIGHT`; the seams
+  suite's probe and light cases PASS. Its hardware package (key
+  `0x980F`, relayed by the owner from round 2) packed twice to the same
+  bytes, `fwsc.py check` passing; a file in `out/` for the owner, not in
+  the repository.
+- Force-pushes: none.
+- Disk: 6.0 GB free at the start; about 5.7 GB at the lowest.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
