@@ -4,6 +4,16 @@
 # Runs every check on a pull request's head commit (the commit the owner
 # will merge) and uploads the report as an artifact. Never writes to the
 # records branch: records are written only by records.yml, for main.
+#
+# Since spec-ci-speed (the owner's request, 2026-11-18) the checks run as
+# jobs: the quick static checks first, stopping at the first that fails;
+# then, only if they all pass, the rest in parallel jobs; then one job
+# assembles the record exactly as tools/record.py run writes it, every
+# check in its usual place and any check no job ran marked SKIP, never
+# PASS (tools/record.py part and assemble). On a pull request C-HARNESS-ISA
+# runs only when the harness, its emulator, the fwtest image pin, the
+# build container or the firmware's CPU flags change (tools/record.py,
+# ISA_PATHS); records.yml, for main and every release, runs it always.
 name: ci
 
 on:
@@ -13,10 +23,71 @@ on:
 permissions:
   contents: read
 
+env:
+  COMMIT_RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+  PERF_BASE_REF: origin/main
+
 jobs:
-  ci:
+  quick:
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install check tools
+        run: python -m pip install --disable-pip-version-check -r tools/requirements-ci.txt
+
+      - name: Quick static checks (stop at the first failure)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # The owner's private terms, for C-PRIVATE (tools/check-private.py
+          # prints only file and line, never a term).
+          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
+        run: >-
+          python tools/record.py part --out out/part --stop-on-fail --only
+          C-REUSE,C-COMMIT-MSG,C-LOW-PROFILE,C-SECRETS,C-PRIVATE,C-NO-TOOLCHAIN,C-DENY-LISTS,C-TRANSCRIPTS,C-SEP-TERMS,C-SPEC-LINT,C-FWTEST-PIN,C-SDK-PIN,C-PLAITS-PIN,C-EMU-PIN,C-HARNESS-SCOPE
+
+      - name: Upload part
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: part-quick
+          path: out/part
+          if-no-files-found: ignore
+          retention-days: 3
+
+  checks:
+    needs: quick
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # build A here is the recorded one: its outputs and its size
+          - part: firmware
+            prebuild: false
+            only: C-IMAGE,C-BUILD-A,C-BUILD-B,C-DETERMINISM,C-FW-SIZE,C-FW-SUITE,C-PACKAGE,C-RELEASE,C-PERF,C-PERF-PROBES,C-PLAITS-BENCH
+          - part: seams
+            prebuild: true
+            only: C-SEAMS
+          - part: suites
+            prebuild: true
+            only: C-UNIT,C-PRESETS,C-ARP
+          - part: harness
+            prebuild: false
+            only: C-CLEAN-FOLDER,C-HARNESS-IMAGES,C-HARNESS-IMAGE,C-HARNESS-IMAGE-REPRO,C-HARNESS-TEST,C-HARNESS-SUITE-A,C-HARNESS-SUITE-B,C-HARNESS-DET,C-SPEC-EXPERIMENTS
+          - part: isa
+            prebuild: false
+            only: C-HARNESS-ISA
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,15 +106,58 @@ jobs:
       - name: Fetch the records branch
         run: git fetch --no-tags origin +refs/heads/records:refs/remotes/origin/records
 
-      - name: Run all checks
+      # The job's own build A for its suites (assemble checks that it is
+      # byte for byte the recorded one).
+      - name: Build A for this job's suites
+        if: matrix.prebuild
+        run: sh tools/build.sh image && sh tools/build.sh build --out out/part/build-a
+
+      - name: Checks (${{ matrix.part }})
         env:
-          COMMIT_RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
-          PERF_BASE_REF: origin/main
           GITHUB_TOKEN: ${{ github.token }}
-          # The owner's private terms, for C-PRIVATE (tools/check-private.py
-          # prints only file and line, never a term).
           PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
-        run: python tools/record.py run --out out/record
+        run: python tools/record.py part --out out/part --only ${{ matrix.only }}
+
+      - name: Upload part
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: part-${{ matrix.part }}
+          path: out/part
+          if-no-files-found: ignore
+          retention-days: 3
+
+  record:
+    needs: [quick, checks]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install check tools
+        run: python -m pip install --disable-pip-version-check -r tools/requirements-ci.txt
+
+      - name: Download the parts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: part-*
+          path: out/parts
+
+      # A part a job never uploaded is simply absent: its checks are
+      # marked SKIP ("not run"), and the record fails if any check failed.
+      - name: Assemble the record
+        env:
+          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
+        run: python tools/record.py assemble --out out/record out/parts/part-quick out/parts/part-firmware out/parts/part-seams out/parts/part-suites out/parts/part-harness out/parts/part-isa
 
       # The performance verdict, improvements included, on the pull
       # request's checks page (R-PERF-2).

@@ -87,6 +87,79 @@ class RecordTest(unittest.TestCase):
             rec.CHECKS[:] = saved
             shutil.rmtree(out)
 
+    def _with_checks(self, checks, fn):
+        saved = list(rec.CHECKS)
+        try:
+            rec.CHECKS[:] = checks
+            with contextlib.redirect_stdout(io.StringIO()):
+                return fn()
+        finally:
+            rec.CHECKS[:] = saved
+
+    def test_parts_assemble_into_one_record_in_check_order(self):
+        top = tempfile.mkdtemp()
+        checks = [{"id": "C-A", "title": "a", "reqs": ["R-PROC-1"], "cmd": ["true"]},
+                  {"id": "C-B", "title": "b", "reqs": ["R-PROC-1"], "cmd": ["false"]},
+                  {"id": "C-C", "title": "c", "reqs": ["R-PROC-1"], "cmd": ["true"]},
+                  {"id": "C-D", "title": "d", "reqs": ["R-PUB-1"], "cmd": ["true"]}]
+        class A:
+            pass
+        try:
+            def go():
+                p1, p2 = A(), A()
+                p1.out, p1.only, p1.stop_on_fail = os.path.join(top, "p1"), "C-C", False
+                p2.out, p2.only, p2.stop_on_fail = os.path.join(top, "p2"), "C-A,C-B,C-D", True
+                self.assertEqual(rec.cmd_part(p1), 0)
+                self.assertEqual(rec.cmd_part(p2), 1)
+                s = A()
+                s.out, s.with_merge, s.parts = os.path.join(top, "rec"), False, [p1.out, p2.out]
+                return rec.cmd_assemble(s)
+            self.assertEqual(self._with_checks(checks, go), 1)
+            with open(os.path.join(top, "rec", "report.json")) as f:
+                report = json.load(f)
+            got = [(c["id"], c["result"]) for c in report["checks"]]
+            # C-D never ran (C-B stopped its part): skipped, never passed
+            self.assertEqual(got, [("C-A", "PASS"), ("C-B", "FAIL"), ("C-C", "PASS"), ("C-D", "SKIP")])
+            with open(os.path.join(top, "rec", "logs", "C-D.log")) as f:
+                self.assertIn("not run", f.read())
+            self.assertEqual(report["overall"], "FAIL")
+            self.assertTrue(os.path.exists(os.path.join(top, "rec", "SHA256SUMS")))
+        finally:
+            shutil.rmtree(top)
+
+    def test_isa_runs_on_a_pull_request_only_when_its_inputs_change(self):
+        saved = dict(os.environ)
+        try:
+            os.environ.pop("GITHUB_EVENT_NAME", None)
+            self.assertIsNone(rec.pr_gate("isa"), "outside a pull request it always runs")
+            os.environ["GITHUB_EVENT_NAME"] = "pull_request"
+            calls = {}
+            def fake_git(*args):
+                if args[0] == "rev-parse":
+                    return "b"
+                if args[0] == "diff":
+                    return calls["changed"]
+                return "x\n    CPU=\"%s\"\n" % calls["cpu"][args[1].split(":")[0]]
+            real = rec.git
+            rec.git = fake_git
+            try:
+                os.environ["COMMIT_RANGE"] = "b..h"
+                calls.update(changed="docs/HARDWARE-SPEC.md\ntools/record.py\n", cpu={"b": "-mcpu=r3", "h": "-mcpu=r3"})
+                self.assertIn("SKIP", rec.pr_gate("isa"))
+                for path in ("harness/src/run.rs", "vendor/emulator/SHA256SUMS", "config/fwtest-image",
+                             "config/build-image", "tools/Dockerfile"):
+                    calls["changed"] = path + "\n"
+                    self.assertIsNone(rec.pr_gate("isa"), path)
+                calls.update(changed="tools/build.sh\n", cpu={"b": "-mcpu=r3", "h": "-mcpu=r3 -mfprev1"})
+                self.assertIsNone(rec.pr_gate("isa"), "the CPU flags changed")
+                calls["cpu"] = {"b": "-mcpu=r3", "h": "-mcpu=r3"}
+                self.assertIn("SKIP", rec.pr_gate("isa"), "build.sh changed, its CPU flags not")
+            finally:
+                rec.git = real
+        finally:
+            os.environ.clear()
+            os.environ.update(saved)
+
     def test_run_writes_a_complete_record(self):
         out = tempfile.mkdtemp()
         try:

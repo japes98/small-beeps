@@ -16,6 +16,15 @@
       and DIR/SHA256SUMS (of all of those). Exit status 1 if any check failed.
       Before hashing, C-RECORD-PRIVATE withholds any file holding a private
       term, listing it in DIR/WITHHELD.json with the original's SHA-256.
+  record.py part --out DIR --only C-A,C-B [--stop-on-fail]
+      One CI job's share (.github/workflows/ci.yml): runs those checks in
+      CHECKS order and writes DIR/part.json, their logs and outputs, but no
+      report; with --stop-on-fail it stops at the first that fails.
+  record.py assemble --out DIR [--with-merge] PART...
+      Joins the parts into one record exactly as run writes it: the checks
+      in CHECKS order, any check no part ran marked SKIP (never PASS), then
+      C-RECORD-PRIVATE, the report and the hashes. A job's own build A must
+      match the recorded one (else C-DETERMINISM fails).
   record.py compare --record REPORT.json --outputs DIR
       Compares DIR/SHA256SUMS with the outputs listed in a record
       (used by tools/reproduce). Exit status 1 on any difference.
@@ -23,7 +32,8 @@
 Environment: COMMIT_RANGE (for C-COMMIT-MSG, default: every commit reachable
 from HEAD), PERF_BASE_REF (for C-PERF: the history whose latest record is the
 baseline, default origin/main), GITHUB_* (recorded, and used by
-C-LOW-PROFILE, C-PERF and C-MERGE).
+C-LOW-PROFILE, C-PERF and C-MERGE; GITHUB_EVENT_NAME pull_request with
+COMMIT_RANGE gates C-HARNESS-ISA, ISA_PATHS).
 """
 import argparse
 import datetime
@@ -199,7 +209,7 @@ CHECKS = [
      "reqs": ["R-HARN-1", "R-HARN-2", "R-HARN-3", "R-HARN-4", "R-HARN-5", "R-HARN-6", "R-HARN-7"],
      "needs": "harness", "cmd": ["sh", "harness/ci.sh", "test"]},
     {"id": "C-HARNESS-ISA", "title": "fwtest runs every instruction form the pinned toolchain knows for the firmware's CPU flags, or the form is a documented gap (harness/isa/known-gaps.txt)",
-     "reqs": ["R-HARN-14"], "needs": "harness",
+     "reqs": ["R-HARN-14"], "needs": "harness", "pr_gate": "isa",
      "cmd": lambda: [PY, "-I", "harness/isa/isa_check.py", "--out", os.path.join(OUT, "isa")]},
     {"id": "C-HARNESS-SUITE-A", "title": "Harness suite, run A (fresh container, tests at /mnt/harness-a)",
      "reqs": ["R-HARN-1", "R-HARN-2", "R-HARN-3", "R-HARN-4", "R-HARN-5", "R-HARN-7"], "needs": "harness",
@@ -250,6 +260,39 @@ def read_sums(path):
                 digest, name = line.split(None, 1)
                 sums[name.strip().lstrip("*")] = digest
     return sums
+
+
+# C-HARNESS-ISA takes four minutes and checks fwtest against the toolchain,
+# so a pull request runs it only when one of those can have changed: the
+# harness or its emulator, the fwtest image pin, the build container (the
+# toolchain pin) or the firmware's CPU flags (tools/build.sh's CPU= lines).
+# On main (records.yml) and for a release it always runs.
+ISA_PATHS = ("harness/", "vendor/emulator/", "config/fwtest-image", "config/build-image", "tools/Dockerfile")
+
+
+def _cpu_lines(rev):
+    text = git("show", "%s:tools/build.sh" % rev)
+    return [l.strip() for l in text.splitlines() if re.match(r"\s*CPU=", l)]
+
+
+def pr_gate(name):
+    """None when the check runs; otherwise why a pull request skips it."""
+    if os.environ.get("GITHUB_EVENT_NAME") != "pull_request" or name != "isa":
+        return None
+    rng = os.environ.get("COMMIT_RANGE") or ""
+    if ".." not in rng:
+        return None
+    base, head = rng.split("..", 1)
+    # git() gives "" on any error: then the range can't be read, and it runs
+    if not git("rev-parse", "--verify", "--quiet", base + "^{commit}"):
+        return None
+    changed = git("diff", "--name-only", base, head or "HEAD").splitlines()
+    hit = [f for f in changed if any(f == p or f.startswith(p) for p in ISA_PATHS)]
+    if hit or _cpu_lines(base) != _cpu_lines(head or "HEAD"):
+        return None
+    return ("SKIP: this pull request changes none of %s and not the CPU flags in tools/build.sh, "
+            "so C-HARNESS-ISA is not run here; it runs on main and before a release\n"
+            % ", ".join(ISA_PATHS))
 
 
 def run_cmd(argv):
@@ -564,26 +607,31 @@ def write_markdown(report, path):
         f.write("\n".join(L))
 
 
-def cmd_run(a):
-    global OUT
-    OUT = os.path.abspath(a.out)
-    os.makedirs(os.path.join(OUT, "logs"), exist_ok=True)
-    only = set(a.only.split(",")) if a.only else None
-    skip = set(a.skip.split(",")) if a.skip else set()
+def _skip_result(c, why):
+    with open(os.path.join(OUT, "logs", c["id"] + ".log"), "w", encoding="utf-8") as f:
+        f.write(why)
+    print("%-14s %-4s %6.1fs  %s" % (c["id"], "SKIP", 0.0, c["title"]), flush=True)
+    return {"id": c["id"], "title": c["title"], "reqs": c["reqs"], "command": "",
+            "result": "SKIP", "exit_status": 0, "seconds": 0.0,
+            "log": "logs/%s.log" % c["id"]}
+
+
+def run_checks(only, skip, with_merge, stop_on_fail=False):
+    """Runs the checks in CHECKS order (but the last one); returns their
+    results. With stop_on_fail, stops after the first that fails."""
     results = []
     for c in CHECKS:
         if only is not None and c["id"] not in only:
             continue
-        if c["id"] in skip or (c.get("records_only") and not a.with_merge) or c.get("last"):
+        if c["id"] in skip or (c.get("records_only") and not with_merge) or c.get("last"):
             continue
         start = time.time()
         if c.get("needs") and not os.path.isdir(os.path.join(ROOT, c["needs"])):
-            with open(os.path.join(OUT, "logs", c["id"] + ".log"), "w", encoding="utf-8") as f:
-                f.write("SKIP: %s/ is not on disk (a clean folder leaves it out)\n" % c["needs"])
-            print("%-14s %-4s %6.1fs  %s" % (c["id"], "SKIP", 0.0, c["title"]), flush=True)
-            results.append({"id": c["id"], "title": c["title"], "reqs": c["reqs"], "command": "",
-                            "result": "SKIP", "exit_status": 0, "seconds": 0.0,
-                            "log": "logs/%s.log" % c["id"]})
+            results.append(_skip_result(c, "SKIP: %s/ is not on disk (a clean folder leaves it out)\n" % c["needs"]))
+            continue
+        why = pr_gate(c["pr_gate"]) if c.get("pr_gate") else None
+        if why:
+            results.append(_skip_result(c, why))
             continue
         if "internal" in c:
             code, log = globals()[c["internal"]]()
@@ -599,7 +647,96 @@ def cmd_run(a):
         results.append({"id": c["id"], "title": c["title"], "reqs": c["reqs"],
                         "command": " ".join(argv), "result": result, "exit_status": code,
                         "seconds": round(secs, 1), "log": "logs/%s.log" % c["id"]})
+        if stop_on_fail and result == "FAIL":
+            print("stopping: %s failed" % c["id"], flush=True)
+            break
+    return results
 
+
+def cmd_run(a):
+    global OUT
+    OUT = os.path.abspath(a.out)
+    os.makedirs(os.path.join(OUT, "logs"), exist_ok=True)
+    only = set(a.only.split(",")) if a.only else None
+    skip = set(a.skip.split(",")) if a.skip else set()
+    results = run_checks(only, skip, a.with_merge)
+    return finish(results, only, skip)
+
+
+def cmd_part(a):
+    """One CI job's share of the checks: their results in DIR/part.json,
+    their logs and outputs beside it, for assemble."""
+    global OUT
+    OUT = os.path.abspath(a.out)
+    os.makedirs(os.path.join(OUT, "logs"), exist_ok=True)
+    only = set(a.only.split(","))
+    unknown = only - {c["id"] for c in CHECKS}
+    if unknown:
+        print("unknown checks: %s" % ", ".join(sorted(unknown)))
+        return 2
+    results = run_checks(only, set(), False, a.stop_on_fail)
+    with open(os.path.join(OUT, "part.json"), "w", encoding="utf-8") as f:
+        json.dump({"results": results, "firmware_size": dict(FIRMWARE_SIZE)}, f, indent=2, sort_keys=True)
+        f.write("\n")
+    return 0 if all(r["result"] != "FAIL" for r in results) else 1
+
+
+def cmd_assemble(a):
+    """Joins the parts' results, logs and outputs into one record, as
+    record.py run writes it: the checks in CHECKS order, any check no part
+    ran marked SKIP (never PASS), then the last check and the hashes."""
+    global OUT
+    OUT = os.path.abspath(a.out)
+    os.makedirs(os.path.join(OUT, "logs"), exist_ok=True)
+    got, builds = {}, {}
+    for part in a.parts:
+        pj = os.path.join(part, "part.json")
+        if not os.path.exists(pj):
+            continue
+        with open(pj) as f:
+            data = json.load(f)
+        for name in os.listdir(part):
+            if name == "part.json":
+                continue
+            src, dst = os.path.join(part, name), os.path.join(OUT, name)
+            if name == "build-a" and os.path.exists(dst) and not any(
+                    r["id"] == "C-BUILD-A" for r in data["results"]):
+                # a job's own build A, for its suites: kept only to compare
+                builds[part] = read_sums(os.path.join(src, "SHA256SUMS")) if os.path.exists(
+                    os.path.join(src, "SHA256SUMS")) else {}
+                continue
+            if os.path.isdir(src):
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+            else:
+                shutil.copyfile(src, dst)
+        for r in data["results"]:
+            got[r["id"]] = r
+        FIRMWARE_SIZE.update(data.get("firmware_size") or {})
+    # Every job that built its own build A must have built build A's bytes.
+    recorded = read_sums(os.path.join(OUT, "build-a", "SHA256SUMS")) if os.path.exists(
+        os.path.join(OUT, "build-a", "SHA256SUMS")) else None
+    for part, sums in sorted(builds.items()):
+        if recorded is not None and sums != recorded and "C-DETERMINISM" in got:
+            r = got["C-DETERMINISM"]
+            r["result"], r["exit_status"] = "FAIL", 1
+            with open(os.path.join(OUT, r["log"]), "a", encoding="utf-8") as f:
+                f.write("FAIL: %s built a build A that differs from the recorded one\n" % os.path.basename(part))
+    results, not_run = [], []
+    for c in CHECKS:
+        if (c.get("records_only") and not a.with_merge) or c.get("last"):
+            continue
+        if c["id"] in got:
+            results.append(got[c["id"]])
+        else:
+            not_run.append(c["id"])
+            results.append(_skip_result(c, "SKIP: not run: no CI job ran it (an earlier job failed, "
+                                           "stopped or was cancelled), so the record fails\n"))
+    if not_run:
+        print("not run, so the record fails: %s" % ", ".join(not_run))
+    return finish(results, None, set(), not_run)
+
+
+def finish(results, only, skip, not_run=()):
     outputs = {}
     build_a = os.path.join(OUT, "build-a")
     if os.path.exists(os.path.join(build_a, "SHA256SUMS")):
@@ -664,7 +801,8 @@ def cmd_run(a):
         "plaits_md": plaits_md,
         "withheld": withheld,
         "traceability": traceability(results),
-        "overall": "PASS" if results and all(r["result"] in ("PASS", "SKIP") for r in results) else "FAIL",
+        "overall": "PASS" if results and not not_run and all(r["result"] in ("PASS", "SKIP") for r in results)
+        else "FAIL",
     }
     with open(os.path.join(OUT, "report.json"), "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, sort_keys=True)
@@ -713,12 +851,24 @@ def main():
     r.add_argument("--only")
     r.add_argument("--skip")
     r.add_argument("--with-merge", action="store_true")
+    p = sub.add_parser("part")
+    p.add_argument("--out", required=True)
+    p.add_argument("--only", required=True)
+    p.add_argument("--stop-on-fail", action="store_true")
+    s = sub.add_parser("assemble")
+    s.add_argument("--out", required=True)
+    s.add_argument("--with-merge", action="store_true")
+    s.add_argument("parts", nargs="+")
     c = sub.add_parser("compare")
     c.add_argument("--record", required=True)
     c.add_argument("--outputs", required=True)
     a = ap.parse_args()
     if a.cmd == "run":
         return cmd_run(a)
+    if a.cmd == "part":
+        return cmd_part(a)
+    if a.cmd == "assemble":
+        return cmd_assemble(a)
     if a.cmd == "compare":
         return cmd_compare(a)
     ap.print_help()

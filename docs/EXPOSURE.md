@@ -2875,6 +2875,23 @@ SR-3 wrote only its barrier-log row.*
   read to answer SR-15: it is firmware-side code on main, not exposure.
 - Disk: about 2.8 GB free.
 
+### Session spec-ci-speed (CI in jobs; the numbering rule)
+- Date: 2026-11-18 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.327; model `claude-opus-5-5`. The same Claude Code
+  session as spec-sr15 (`3554477d-915e-4869-a94a-6a2ff3efe04a`). Branch
+  `spec/ci-speed` from `spec/sr15` (#189) at `bdeba2d9`, in a second
+  worktree.
+- The owner's request, saved as docs/prompts/spec-ci-speed.md: its three
+  items and the closing paragraph as received. The paste also carried a
+  few lines of the owner's chat with another session (a status line and a
+  repeat of the request's last lines), left out.
+- Read: nothing new from outside. This repository's own CI workflow,
+  `tools/record.py` and its tests, CONTRIBUTING.md and PROVENANCE.md;
+  #189's last CI run (its job times and its report artifact) through
+  `gh`.
+- Disk: about 5.9 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
