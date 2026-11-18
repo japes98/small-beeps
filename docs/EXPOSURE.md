@@ -2875,6 +2875,35 @@ SR-3 wrote only its barrier-log row.*
   read to answer SR-15: it is firmware-side code on main, not exposure.
 - Disk: about 2.8 GB free.
 
+### Session clean-sr15-flash (SR-15: the store on both flash parts)
+- Date: 2026-11-18 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.327, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-start2's, continued. The owner's prompt is the file
+  `~/<top>/drop/prompts/clean-sr15-flash.md`, read as the owner asked
+  and saved unedited as docs/prompts/clean-sr15-flash.md. Start2's
+  result, which the owner pasted before it, is recorded in DESIGN-NOTES
+  (clean-sr15-flash) as a relayed observation.
+- Where it ran: the owner's Mac, in `~/<top>/clean`; the role file says
+  `clean`.
+- Start: #189 and #190 found merged. `tools/clean-update.sh`, run from
+  main, found main at `848293e5` and ended "no spec-side files on disk or
+  in .git"; lazy fetching off. Nothing to archive: the only clean
+  transcript not in `sessions/clean/` is this session's own. Open pull
+  requests listed (none) before P-74 was numbered.
+- Reads: HARDWARE-SPEC section 27, HW-76 to HW-79 and HW-83;
+  SPEC-REQUESTS.md's SR-15; HARNESS.md "The flash chip"; this
+  repository's store, its suites and docs.
+- **The pull request (R-STORE-13):** the seams suite's parts case and
+  the store suite's part case; the fw-suite and the seams suite run
+  whole from a copy of the tree.
+- Force-pushes: none.
+- Disk: 5.9 GB free at the start.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
