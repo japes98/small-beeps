@@ -2655,6 +2655,15 @@ SR-3 wrote only its barrier-log row.*
   row, to number P-68); this repository's tools, tests and docs that the
   change touches.
 - GitHub: pull requests listed (#181 to #184, all merged).
+- **The pull request (BR-17 round 2):** C-UNIT (427 tests) in this
+  folder; the emulator package and its broken packages compared with
+  main's packager, byte for byte the same. One hardware candidate packed
+  from build A's package link with key `0x980F` (the owner to confirm
+  the unit's key), twice to the same bytes, `fwsc.py check` passing; a
+  file in `out/` for the owner, not in the repository.
+- Force-pushes: none.
+- Disk: 2.7 GB free at the start; about 2.7 GB at the lowest (no copy of
+  the tree made).
 
 ## Corrections
 
