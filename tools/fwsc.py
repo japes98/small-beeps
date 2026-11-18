@@ -46,7 +46,8 @@ writes for each.
 Section 24's fields (HW-104, HW-105), written as JieLi's tools write
 them: in the header, the list CRC (over the entry list as stored, masked,
 from logical offset 64, the block markers taken out), the image size (the
-logical image's length: the file's less 20), the entry count and the
+logical image's length: the file's less 20), the entry count, bytes 10-15
+(4 and 0x200, taken from the tools, their meaning open, Q-25) and the
 chip's name; in the entry, its type, index, data CRC (of the flash image
 as written to flash), offset (a multiple of 32: flash.bin's at 0x400, as
 the tools put it), length, rounded length and name (flash.bin); the flash
@@ -96,6 +97,11 @@ DATA_LOGICAL = 0x400
 DATA_FILE = DATA_LOGICAL + 20               # SHIFT, below
 DATA_ALIGN = 32                             # every entry's data on a multiple of 32
 CHIP_NAME = b"AC791N"                       # header bytes 16-31, the configuration's CHIP_NAME
+# Header bytes 10-11 and 12-15: 4 and 0x200, as the tools write them in
+# every run; their meaning is open (Q-25). Taken from the tools on the
+# owner's answer (docs/prompts/clean-br17-answers-3.md); fixed, so the
+# same inputs still give the same bytes.
+HEADER_TOOL_FIELDS = (4, 0x200)
 ENTRY_NAME = b"flash.bin"
 
 # HW-87: the header key, the mask's seed.
@@ -136,8 +142,8 @@ KEY_BLOCK = hashlib.sha256(b"small-beeps key block 1").digest()
 # what we write), and for which mode. A hardware pack refuses while any of
 # its own is open.
 OPEN = [
-    ("Q-25", "the package header's bytes 10-15 (the tools write 4 and 0x200, meaning not known)", "0",
-     ("full", "app-area")),
+    ("Q-25", "the meaning of the package header's bytes 10-15",
+     "4 and 0x200, taken from the tools (the owner's answer, clean-br17)", ("full", "app-area")),
     ("Q-25", "the 64 bytes the tools write after the app area", "not written", ("full", "app-area")),
     ("Q-25", "which program adds a .fwsc's 48-byte header blocks and their markers (HW-107)",
      "the blocks, by HW-88", ("full", "app-area")),
@@ -278,7 +284,7 @@ def package(data, identity):
     entry[64:64 + len(ENTRY_NAME)] = ENTRY_NAME
     entries = mask(bytes(entry), HEADER_KEY)
     hdr = bytearray(HEADER_SIZE)
-    struct.pack_into("<HIH", hdr, 2, jieli_crc(entries), DATA_LOGICAL + len(data), 1)
+    struct.pack_into("<HIHHI", hdr, 2, jieli_crc(entries), DATA_LOGICAL + len(data), 1, *HEADER_TOOL_FIELDS)
     hdr[16:16 + len(CHIP_NAME)] = CHIP_NAME
     logical = (mask(with_crc(bytes(hdr)), HEADER_KEY) + entries).ljust(LOGICAL, b"\0")
     blocks = bytearray()
@@ -439,6 +445,9 @@ def entries(blob):
         p.append("the list CRC is 0x%04X, the entry list's 0x%04X" % (list_crc, jieli_crc(stored)))
     if size != len(lg):
         p.append("the image size is %d, the logical image's %d" % (size, len(lg)))
+    if struct.unpack_from("<HI", hdr, 10) != HEADER_TOOL_FIELDS:
+        p.append("header bytes 10-15 are %r, not the tools' %r" % (struct.unpack_from("<HI", hdr, 10),
+                                                                   HEADER_TOOL_FIELDS))
     if hdr[16:32] != CHIP_NAME.ljust(16, b"\0"):
         p.append("the chip's name is %r" % hdr[16:32])
     es = []

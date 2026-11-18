@@ -3737,7 +3737,8 @@ the form the owner's installer takes, not HW-106's OTA form.
   nine checks (`check()`) are unchanged, since they mirror fwtest's own
   in its order.
 - **Left as they were (Q-25), and said so.** The header's bytes 10-15
-  stay 0 (the tools write 4 and `0x200`, meaning not known); the 64 bytes
+  stayed 0 at first; since the owner's answer below they carry the tools'
+  4 and `0x200`, their meaning still open; the 64 bytes
   the tools write after the area are not written; the key block's head's
   data stays our key block and its CRC (the tools write a 765-byte
   configuration that starts with them); the 48-byte blocks stay HW-88's,
@@ -3759,7 +3760,9 @@ the form the owner's installer takes, not HW-106's OTA form.
   HW-90); which a unit runs is Q-26. `isd_config.ini`'s entry is left out
   too: its data is not given and it lives below `0x4000` (HW-105,
   `0x3628`). So the package holds `flash.bin` alone, which is the owner's
-  answer 1 with that one more (said in Questions).
+  answer 1 with that one more; the owner confirmed it on merging #181
+  (docs/prompts/clean-br17-answers-2.md): `isd_config.ini` lives below
+  `0x4000`, and an app-area-only package leaves that region alone.
 - **Where an installer writes it: open (SR-12).** No fact places a
   `.fwsc` entry's data anywhere but flash 0: HW-89 says the type-0 entry
   is written from offset 0, and HW-104's entry fields are file offsets.
@@ -3792,4 +3795,15 @@ the form the owner's installer takes, not HW-106's OTA form.
   `config/releases.json`'s `unit_checks`, which names the unit check and
   how much was checked; the release notes say it, and say "not checked on
   a unit" otherwise. No tag is listed (R-REL-4; docs/RELEASING.md).
-
+- **The owner's answers to the report** (docs/prompts/clean-br17-answers-3.md,
+  after #181 merged): (1) the owner tries both candidates on the unit and
+  sends the installer's exact words; nothing to do on them until then.
+  (2) The header's bytes 10-15 carry the values JieLi's tools write, 4 and
+  `0x200`: fixed, so the same inputs still give the same bytes; taken
+  from the tools, their meaning open (Q-25), and every pack says so. The
+  candidates were packed again with them. (3) The key: `0xFFFF` first,
+  then `0x980F`. (4) The disk measurement that walked other roles'
+  folders was acceptable (sizes only, no file opened); a clean session
+  measures only its own folders from now on. And `flash.bin` alone is
+  right: `isd_config.ini` lives below `0x4000`, and an app-area-only
+  package leaves that region alone.

@@ -529,7 +529,9 @@ an issue or a pull request against docs/HARNESS.md.
      logical and file offsets differ by 20). The owner's answer leaves
      five entries out of the first app-area package; this one is not
      among them, but its data is not given and lives below `0x4000`
-     (HW-105, `0x3628`), so the candidate leaves it out too.
+     (HW-105, `0x3628`), so the candidate leaves it out too (the
+     owner confirmed this on merging #181: an app-area-only package
+     leaves that region alone). Asked for a later full package.
 - Why: `tools/fwsc.py pack --app-area` writes the app area alone (the
   flash image's bytes from `0x4000`, in one `flash.bin` entry) and
   takes it to go at `0x4000`, which is our reading, not a fact: by HW-89
