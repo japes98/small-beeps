@@ -35,7 +35,9 @@ spec-br17-tools (spec side, 2026-11-18) added section 25, what the unit's
 installer and bootloader check (Q-25 and Q-26 answered in large part).
 Session spec-sr14 (spec side, 2026-11-18) added section 26, the FM-1's
 panel, backlight, keys and LEDs and the state at the app's entry, for
-SR-14 (Q-2, Q-6 and Q-7 answered in part).
+SR-14 (Q-2, Q-6 and Q-7 answered in part). Session spec-sr15 (spec side,
+2026-11-18) added section 27, the FM-1's two flash parts, for SR-15
+(Q-21 and Q-23 answered in part).
 
 ## How to read it
 
@@ -79,6 +81,7 @@ least significant. Register names are the JieLi SDK's.
 | JL7911B | Zhuhai Jieli Technology's "AC7911B Datasheet", V1.1, 2021-09-03, 16 pages, as LCSC serves it from `https://atta.szlcsc.com/upload/public/pdf/source/20241209/7B2C0C261932781E1CA5530337098F4C.pdf`, accessed 2026-10-25, SHA-256 `c7f35c89…2bf1022` (PROVENANCE P-56). The AC7911B is one of the AC791N's packages (the SDK builds its AC791N apps for it, `board_7911B_cfg.h`); which package the FM-1 carries is not known, so its pin numbers are not the FM-1's, only its pin functions are used. Page numbers as printed. |
 | DS | Sitronix ST7789V datasheet, version 1.3 (2014-03), 316 pages, from `https://www.newhavendisplay.com/appnotes/datasheets/LCDs/ST7789V.pdf`, SHA-256 `8ecf0e43…5d04ca1` (PROVENANCE P-11). Page numbers as printed. |
 | PUYA | Puya Semiconductor's P25Q80H datasheet ("Ultra Low Power, 8M-bit Serial Multi I/O Flash Memory"), Ver1.3, 2017-05-30, 71 pages, as LCSC serves it from `https://datasheet.lcsc.com/lcsc/PUYA-P25Q80H-SSH-IT_C194872.pdf`, accessed 2026-10-24, SHA-256 `d54401e9…bb12ea6c` (PROVENANCE P-53). Page numbers as printed. Not copied into this repository. It describes the part fwtest's chip identifies as (HW-76). |
+| UCUN | UCUN Technology's UC25HQ80 datasheet ("Ultra Low Power, 8M-BIT Serial Flash Memory with Dual, Quad SPI"), Version 1.2, 2022-01-04, 61 pages, from UCUN's own site, `http://www.ucuntech.com/uploads/20220324/d8602ea203b2303c2162d067ce715c4c.pdf`, accessed 2026-11-18, SHA-256 `0c4f3dc7…a9e2ccc7eb` (PROVENANCE P-73). Page numbers as printed. Not copied into this repository. It describes the part newer FM-1s carry (HW-120). |
 | PANEL | The FM-1's printed panel labels, from two sources that agree: the owner's screenshot of the F-Emulator app's panel with its default labels, `docs/sources/panel-app-default-labels.png` (secondary: the app's drawing of the panel); and M-VAVE's product photo of the FM-1, `https://www.m-vave.com/images/products/fm-1.webp` on `https://www.m-vave.com/product.html?id=fm-1`, accessed 2026-10-22, SHA-256 `e610a746…df14b95`, not copied into this repository (PROVENANCE P-12). Only the printed labels are taken from them. The owner chose these two sources. |
 | MAN | M-VAVE's user manuals: the FM-1's, the English part (pages 1-12) of `https://m.media-amazon.com/images/I/A1WOydif9HL.pdf`, SHA-256 `69bfea10…8b715da`, accessed 2026-10-24 (PROVENANCE P-41); the SMK-37 Pro's, as `https://www.manualslib.com/manual/4132288/M-Vave-Smk-37-Pro.html` shows it, accessed 2026-10-24 (PROVENANCE P-42). Neither copied into this repository. Only what they say about the connections is used. |
 | MPLUS | Manuals+'s "M-VAVE SMK-37 PRO MIDI Controller User Manual", `https://manuals.plus/asin/B0GQZP7C8G.pdf`, 13 pages, SHA-256 `77d9d537…3e3745`, accessed 2026-10-24, supplied by the owner and checked by the planning conversation, not fetched by a session here (PROVENANCE P-49). A third party's write-up, not M-VAVE's manual: secondary, it never confirms an entry on its own. Not copied into this repository. |
@@ -2817,6 +2820,213 @@ H = 7). "Output" means `DIR` clear, "input" `DIR` set.
 - Standing: confirmed (MB)
 - Needed by: BR-17 (Phase B)
 
+## 27. The FM-1's two flash parts (SR-15)
+
+Units sold since autumn 2026 carry a second flash part. Read under the
+owner's request for SR-15 (2026-11-18, PROVENANCE P-73): the two parts'
+datasheets, the P25Q80H's (PUYA, as before) and the UC25HQ80's (UCUN),
+and m-bootloader's flash code (MB: `src/platform.c`, `src/boot.c`,
+`src/loader.c` and `docs/SPEC.md` §3.4 and §3.5, at `3ac7651a019f`).
+HW-120 gives the two parts, HW-121 the commands small-beeps uses on both,
+HW-122 the differences between the datasheets and whether they matter,
+HW-123 what m-bootloader does with either part, and HW-124 what a
+firmware does so one image works on both. HW-76 to HW-78 stand as they
+are: everything they say of the P25Q80H holds, and HW-121 adds the
+UC25HQ80's side. Page numbers are as printed.
+
+### HW-120: The two parts and their IDs (Q-21)
+- Fact: Two 1 MiB SPI NOR parts answer the JEDEC ID read (`0x9F`) with
+  the same memory type and capacity bytes, `0x60 0x14`, and different
+  manufacturer bytes:
+  - `0x85 0x60 0x14`: Puya's P25Q80H (HW-76).
+  - `0xB3 0x60 0x14`: UCUN's UC25HQ80. The ID reads `0x90`, `0x92` and
+    `0x94` give `B3 13`, and `0xAB` gives `13`.
+  Both are organised alike: 256-byte pages, 4 KiB sectors, 32 KiB and
+  64 KiB blocks, 1 MiB in all, from `0x000000` to `0x0FFFFF`. Both work
+  from 2.3 to 3.6 V, in SPI modes 0 and 3. Both datasheets give 100 000
+  program/erase cycles and 20 years' retention. The owner relays (not
+  taken as a fact here) that the owner's unit reports `0x856014` in
+  m-flasher's information and in m-bootloader's recovery menu ("flash
+  856014 1024K"), and that units sold since autumn 2026 report
+  `0xB36014`.
+- Sources: PUYA p. 1, p. 22 (the ID read) and p. 54 (the ID table);
+  UCUN p. 4 (features), p. 6 (Table-2.0 and Table-3.0, the
+  organisation), p. 14 (Table-8.0, the IDs) and p. 39 (the ID read: the
+  manufacturer byte, then the memory type, then the capacity).
+- Standing: confirmed (PUYA, UCUN; which units carry which part only as
+  the owner relays it)
+- Needed by: M7, BR-17 (Phase B)
+
+### HW-121: The commands small-beeps uses, on both parts
+- Fact: The store's commands work the same on both parts. Times are
+  typical / maximum.
+
+  | Command | Code | P25Q80H | UC25HQ80 |
+  |---------|------|---------|----------|
+  | Read the ID | `0x9F` | `85 60 14` | `B3 60 14` |
+  | Read | `0x03`, 3 address bytes | up to 55 MHz | up to 50 MHz |
+  | Status register 1 | `0x05` | bit 0 WIP, bit 1 WEL | the same |
+  | Write enable | `0x06` | sets WEL | the same |
+  | Sector erase, 4 KiB | `0x20`, 3 address bytes | 8 / 12 ms | 7 / 10 ms |
+  | Page program, 1 to 256 bytes | `0x02`, 3 address bytes, data | 2 / 3 ms | 1.5 / 3 ms |
+
+  Every other command in the table runs at up to 104 MHz on both. On both
+  parts:
+  - WIP (bit 0 of status register 1) is 1 from the moment chip select
+    goes high after an erase or program until it ends. The status read
+    works throughout and may be repeated within one selection.
+  - WEL (bit 1) must be set by `0x06` before every erase, program and
+    status register write. It clears when that operation ends, and at
+    power-up.
+  - An erase or program starts only if chip select goes high at a byte
+    boundary.
+  - A page program wraps within its 256-byte page. Of more than 256 bytes
+    only the last 256 are kept, and fewer change only the bytes sent.
+  - Reads (`0x03`, `0x0B` and the dual and quad reads) and the ID reads
+    are ignored while WIP is 1.
+  - An erase or program of an area the block-protect bits cover is
+    ignored: it is not carried out. (How a firmware tells is HW-124's
+    item 4, a read-back.)
+  - The chip select must stay high at least 30 ns between a write, erase
+    or program and the next status register read, and at least 15 ns
+    between two reads.
+- Sources: PUYA p. 10 (fR, fC, tSHSL), p. 11 (tPP, tSE), p. 18 (the
+  byte boundary; reads ignored while busy), p. 21 (the commands),
+  p. 25-26 (the status reads and bits), p. 40 and p. 43 (erase and
+  program), p. 54; UCUN p. 8 (Table-4, WIP and WEL), p. 11 (note 2: a
+  protected erase or program is ignored), p. 12-13 (Table-7; chip select
+  at a byte boundary), p. 14-15 (WREN, and WEL cleared), p. 16 (RDSR),
+  p. 18 (READ, rejected while busy), p. 26 (SE), p. 28 (PP: the wrap and
+  the last 256 bytes), p. 39 (RDID not decoded while busy), p. 52-53
+  (Table-17.1 and Table-18: fR, fC, tSHSL, tPP, tSE).
+- Standing: confirmed (PUYA, UCUN)
+- Needed by: M7, BR-17 (Phase B)
+
+### HW-122: The differences between the two parts, and which matter
+- Fact: Compared, the two datasheets' command sets, status registers,
+  protected-area tables, AC timing tables, power-up timing and delivery
+  state. Not compared: the DC currents, the SFDP tables' contents, the
+  security registers' and unique ID's details, and the packages.
+  - **Identical:**
+    - the status register's sixteen bits: S0 WIP, S1 WEL, S2-S6 BP0-BP4,
+      S7 SRP0, S8 SRP1, S9 QE, S10 SUS2, S11-S13 LB1-LB3, S14 CMP,
+      S15 SUS1;
+    - the protected-area tables, row for row, for CMP 0 and CMP 1;
+    - the state at delivery: the array erased (`0xFF`) and the status
+      register `0x00`, so QE is 0 and nothing is protected;
+    - the command codes besides those below: the reads `0x03`, `0x0B`,
+      `0x3B`, `0xBB`, `0x6B` and `0xEB`; the erases `0x81`, `0x20`,
+      `0x52`, `0xD8`, `0x60` and `0xC7`; the programs `0x02`, `0xA2` and
+      `0x32`; `0x06`, `0x04`, `0x50`, `0x05`, `0x35`, `0x25` and `0x01`;
+      the security registers `0x44`, `0x42` and `0x48`; deep power-down
+      `0xB9` and its release `0xAB`; the ID reads `0x90`, `0x92`, `0x94`
+      and `0x9F`; suspend and resume `0x75`/`0xB0` and `0x7A`/`0x30`;
+      reset `0x66` and `0x99`; `0x77`, `0x4B`, `0x5A`, and `0xFF`, which
+      ends a continuous read;
+    - the maximum page program time (3 ms) and the status register write
+      time (8 / 12 ms).
+  - **Different:**
+
+    | What | P25Q80H | UC25HQ80 | Matters to small-beeps |
+    |------|---------|----------|------------------------|
+    | The ID's first byte | `0x85` | `0xB3` | Yes: a firmware that checks the whole ID refuses one of them. |
+    | Erase times (page, 4 KiB, 32 KiB, 64 KiB, chip), typical / maximum | 8 / 12 ms | 7 / 10 ms | No, if it waits on WIP. The longest is the P25Q80H's 12 ms. |
+    | Typical page program | 2 ms | 1.5 ms | No: the maximum is 3 ms on both. |
+    | `0x03`'s clock limit | 55 MHz | 50 MHz | Only if SPI0 runs faster than 50 MHz. |
+    | Clock limits for `0x3B`, `0xBB`, `0x6B` and `0xEB` | 104 MHz each | 104, 66, 66 and 50 MHz | Not to the store. The window's reads are set by the bootloader (HW-123). |
+    | Quad page program `0x32` | up to 104 MHz | up to 83 MHz | No: not used. |
+    | A configure register: read `0x15`, write `0x31` | Yes. Its bit 7, DP, makes the page 512 bytes and `0x81` erase 512 bytes. 0 by default. | No such register, and no `0x15` or `0x31` command | Only a firmware that sends `0x31` or `0x15`. small-beeps sends neither. |
+    | `0x01` with one data byte | Clears CMP, QE and SRP1 (S14, S9 and S8) | Not stated: the text says both "after the eighth bit" and "at the 8 or 16 bit boundary" | Only a firmware that writes the status register. Use the two-byte form (HW-124). |
+    | Suspend latency | 30 µs | 45 µs | No: not used. |
+    | Recovery after a reset (`0x66`, `0x99`) | 30 µs | 40 µs | No: not used. |
+    | Power-up to first command (tVSL) | 70 µs | 300 µs | No: the bootloader runs first. |
+    | Write-inhibit voltage | 1.45 to 1.55 V | 1 to 1.55 V | No. |
+
+  So for the commands small-beeps sends (HW-121), only the ID differs.
+- Sources: PUYA p. 10-11 (Table 5-3 and 5-4), p. 14 (power-up; the
+  delivery state), p. 15-16 (Table 6-1), p. 21-22 (the command set),
+  p. 26-27 (the status register), p. 28 (the configure register),
+  p. 29-31 (WRSR and WRCR); UCUN p. 8-11 (Table-4 to Table-6.1),
+  p. 12-13 (Table-7), p. 17 (WRSR), p. 40-41 (suspend), p. 43 (reset),
+  p. 49 (`0xFF`), p. 50 (Table-13; the delivery state), p. 52-54
+  (Table-17.1 and Table-18).
+- Standing: confirmed (PUYA, UCUN)
+- Needed by: M7, BR-17 (Phase B)
+
+### HW-123: What m-bootloader does with either part (Q-23)
+- Fact: m-bootloader works either part with the same code:
+  - **Identifying:** it reads the ID and uses only the capacity byte
+    (`2^n` bytes for n from 16 to 24). It boots an app only when the
+    capacity is 1 MiB, so both parts pass, and it shows the whole ID in
+    its recovery menu.
+  - **Before its first command:** it sends `0xFF` twice under one chip
+    select, to end any continuous read it might have inherited.
+  - **Before each of its own erases and programs:** it reads both status
+    bytes. If any of BP0-BP4 (status 1 mask `0x7C`) or CMP (status 2 mask
+    `0x40`) is set, it clears them with a two-byte `0x01`, keeping the
+    other bits. If that doesn't take, it writes status 1 with `0x01` and
+    status 2 with `0x31` separately. It doesn't set them again
+    afterwards, so after a unit has been written through m-bootloader,
+    nothing is protected.
+  - **For quad reads:** when its reads and the window are to run at quad
+    width, it sets QE (status 2 bit 1) the same way, with up to three
+    tries, and leaves it set. QE is non-volatile, so it stays set across
+    power cycles. Its `docs/SPEC.md` notes that the separate `0x31` write
+    is a fallback that has been seen to work. On the P25Q80H `0x31`
+    writes the configure register instead (HW-122).
+  - **Erases** are 4 KiB (`0x20`) or 64 KiB (`0xD8`), aligned. **Programs**
+    send one page per `0x02`, each after a `0x06`.
+  - **Waiting:** it reads status 1 every 100 µs until WIP is 0, and gives
+    up after 30 000 reads (about 3 s).
+  - **Before it calls an app:** it switches SPI0 off and gives the flash
+    back to the code window at the width it chose (HW-119).
+  The code window's own clock and width come from the bootloader's
+  configuration, not from the app. At quad width the window needs QE set.
+- Sources: MB `src/platform.c` (the ID and capacity, `0xFF` twice, the
+  protection clear, the QE set, the erase and program commands, the
+  status polling, the release before the call), `src/boot.c` (the 1 MiB
+  check; the ID in the menu), `docs/SPEC.md` §3.4 and §3.5 (the
+  quad-enable fallback; the protection masks). `src/loader.c` adds
+  nothing here: it erases and programs through the same calls.
+- Standing: confirmed (MB)
+- Needed by: M7, BR-17 (Phase B)
+
+### HW-124: What a firmware does so one image works on both parts
+- Fact: From HW-120 to HW-123, one image works on both parts when its
+  flash code:
+  1. **Takes either ID:** `0x856014` and `0xB36014`, or any ID whose
+     capacity byte is `0x14` with one of those two manufacturer bytes.
+     A firmware that refuses an unknown part (as HW-76 suggested) lists
+     both.
+  2. **Sends only HW-121's commands** (`0x9F`, `0x03`, `0x05`, `0x06`,
+     `0x20`, `0x02`), and `0x35` for item 5, each as both datasheets give
+     it. Never `0x31` or `0x15` (the P25Q80H's configure register), never
+     the one-byte form of `0x01`, and no quad or dual command of its own.
+  3. **Waits on WIP**, never for a fixed time, and allows at least the
+     larger maximum: 12 ms for an erase, 3 ms for a page program, 12 ms
+     for a status register write.
+  4. **Reads every write back** with `0x03` and treats a difference as a
+     failure. That includes an erase, which should read back all `0xFF`.
+     A protected erase or program does nothing, and WIP doesn't show it.
+  5. **Leaves the status register alone** unless it must. If block
+     protection covers its region (BP0-BP4 in status 1, read by `0x05`;
+     CMP in status 2, read by `0x35`, the same on both parts; by the
+     table both parts share), either refuse to write or clear it with a
+     two-byte `0x01` that keeps every other bit, QE above all. QE
+     cleared while the window reads at quad width stops the window as
+     soon as the firmware gives the flash back. After a unit has been
+     written through m-bootloader nothing is protected (HW-123), but a
+     firmware can't count on that.
+  6. **Runs `0x03` at 50 MHz at most** (SPI0's clock).
+  These hold for any region, a store at `0xFC000` or one at `0x80000`
+  alike: the "upper 1/2" row (BP2 alone) would protect both. Handing the
+  flash from the code window to SPI0 and back (Q-22) is the same on both
+  parts.
+- Sources: HW-120 to HW-123; PUYA p. 10, p. 15-16 and p. 29-30; UCUN
+  p. 10-11, p. 17 and p. 52-53.
+- Standing: confirmed (PUYA, UCUN, MB)
+- Needed by: M7, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -2986,6 +3196,11 @@ spec request can turn one into a fact.
   `apps/demo/demo_uvc/board/wl82/board_7911B_cfg.h` lines 11-15), so the
   FM-1's flash may have no package of its own to photograph. Settled by a
   probe on real hardware or a photo of the board.
+  *Answered in part by session spec-sr15 (HW-120 to HW-122):* there are
+  two parts, the P25Q80H (`85 60 14`) and, on units sold since autumn
+  2026, UCUN's UC25HQ80 (`B3 60 14`), which part a unit carries only as
+  the owner relays it; for the commands a store sends only the ID
+  differs. Open: the ID read by our own firmware on a unit of each kind.
 - **Q-22. Working the flash directly on the chip.** How the code window's
   controller hands the flash to SPI0 and takes it back (the SDK does it in
   its prebuilt library's enter and leave calls); whether, once it has,
@@ -3005,6 +3220,11 @@ spec request can turn one into a fact.
   silently do nothing. Read status register 1 on a unit; the SDK's own
   write-protect switch is off by default. Settled by a probe on real
   hardware.
+  *Answered in part by session spec-sr15 (HW-123):* both parts are
+  delivered unprotected, and m-bootloader clears BP0-BP4 and CMP before
+  its own writes and leaves them clear, so a unit written through it has
+  nothing protected. Open: a unit's status registers read by our own
+  firmware.
 - **Q-24. What an update rewrites.** Which regions a stock-style update
   erases or writes beyond its flash image (`0x00000`-`0x93FFF`, HW-80):
   where in the VM region it stages its loader, whether its `USR` entry
