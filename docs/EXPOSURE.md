@@ -2738,6 +2738,56 @@ SR-3 wrote only its barrier-log row.*
 - Force-pushes: none.
 - Disk: 6.0 GB free at the start; about 5.7 GB at the lowest.
 
+### Session clean-br17-panel (BR-17: the panel probe from HW-115)
+- Date: 2026-11-18 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.327, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-light's, continued. The owner's prompt was a message
+  pasted into the session (light1's result and the next step), saved
+  unedited as docs/prompts/clean-br17-panel.md.
+- Where it ran: the owner's Mac, in `~/<top>/clean`; the role file says
+  `clean`.
+- Start: #187 found merged. `tools/clean-update.sh`, run from main,
+  found main at `9050b8e4` and ended "no spec-side files on disk or in
+  .git"; lazy fetching off. Nothing to archive: the only clean
+  transcript not in `sessions/clean/` is this session's own, still
+  being written. Open pull requests listed (none) before P-71.
+- A spec session may work at the same time; this session opens none of
+  its branches.
+- Reads: HARDWARE-SPEC HW-28 to HW-32, HW-55 to HW-59, HW-115 and
+  HW-119; HARNESS.md (`--lcd`); this repository's code and tests that
+  the change touches. A read of the vendored SDK's `WL82.h` for SPI1's
+  and the ports' names was refused by the session's permission check
+  before anything was read; the probe takes every register's address
+  from HARDWARE-SPEC instead.
+- **The pull request (R-PROBE-3):** build A from this folder still
+  `5bc12a34…`; the panel probe built with `SB_PROBE_PANEL`; the seams
+  suite's probe, light and panel cases PASS. Its hardware package (key
+  `0x980F`, which the owner has confirmed on the unit) packed twice to
+  the same bytes, `fwsc.py check` passing; a file in `out/` for the
+  owner, not in the repository.
+- Force-pushes: none.
+- 2026-11-18, the owner's report of the panel probe, pasted, then
+  corrected in the owner's next message ("top left corner", not the top
+  right first written); taken as corrected.
+- Disk: 3.1 GB free at the start. Then 1.2 GB, from use outside this
+  session (clean's own folders measured by name: 372 MB in all), so the
+  session stopped. At the owner's word it removed seven fwtest container
+  images that `config/fwtest-image` no longer pins (the pinned one and
+  the build image kept), and the owner freed the rest. 3.7 GB on
+  resuming.
+- C-SEP-TERMS on #188 (`ab27c1c6`): the owner relayed three flagged
+  lines. The run's report artifact was fetched by the API into the
+  scratch folder, only `logs/C-SEP-TERMS.log` read from it (its `HIT`
+  lines: places and hashes), and the zip deleted at once. Two hits are
+  SPI1 register addresses from HW-28, now reviewed entries in
+  `config/emulator-terms-reviewed.json`; the third was a bound of the
+  test's own, rewritten from HARDWARE-SPEC's addresses.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

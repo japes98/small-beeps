@@ -190,6 +190,15 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   hold, and no port access is unmodelled; its hardware package passes
   fwsc.py's unit checks; and a build with SB_PROBE_RETURN as well is
   refused.
+- panel (BR-17, Phase B): the panel probe, build A with SB_PROBE_PANEL
+  (firmware/src/crt0.S, probe.c): the panel brought up as HW-115 gives
+  it, four bars and a square drawn, the backlight on, a hold, then a
+  return. In fwtest, from the raw image and from its emulator package,
+  the screen at 3 s and at the end is that picture, every pixel; the run
+  faults with the pc outside the code (the return) after the waits;
+  no port or SPI1 access is unmodelled; its hardware package passes
+  fwsc.py's unit checks; and a build with SB_PROBE_LIGHT as well is
+  refused.
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -1222,11 +1231,72 @@ def case_light(a, work, log):
         problems.append("its hardware package: %s" % e)
     code, out = build(os.path.join(work, "both"), log, "--define", "SB_PROBE_LIGHT", "--define", "SB_PROBE_RETURN",
                       check=False)
-    if not code or "SB_PROBE_RETURN and SB_PROBE_LIGHT are two probes" not in out:
+    if not code or "are three probes: define one" not in out:
         problems.append("SB_PROBE_LIGHT with SB_PROBE_RETURN not refused (exit %d)" % code)
     print("light: LED %d lit for the %.0f ms hold and no other, then the return, from the raw image and the package; "
           "no port access unmodelled; its hardware package passes the unit's checks; both probes at once refused"
           % (LIGHT_LED, LIGHT_HOLD_MS))
+    return problems
+
+
+PANEL_WAIT_MS = (150 + 120 + 5000) * 360 / 240.0   # pp_wait_ms's waits, counted for 360 MHz, at fwtest's 240
+PANEL_SEND_MS = 100                                 # at most, for the bytes sent besides
+
+
+def panel_picture(fws):
+    """The panel probe's picture: bars red, green, blue and white from the
+    left, 60 pixels each, and a yellow 40 x 40 square at (0, 0)."""
+    bars = [fws.rgb8(31, 0, 0), fws.rgb8(0, 63, 0), fws.rgb8(0, 0, 31), fws.rgb8(31, 63, 31)]
+    yellow = fws.rgb8(31, 63, 0)
+    return [[yellow if x < 40 and y < 40 else bars[x // 60] for x in range(240)] for y in range(240)]
+
+
+def case_panel(a, work, log):
+    problems = []
+    fws = fw_suite()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_PROBE_PANEL")
+    pkg = read_bytes(os.path.join(b, "app-pkg.bin"))
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import fwsc
+    emu = os.path.join(work, "panel.fwsc")
+    with open(emu, "wb") as f:
+        f.write(fwsc.pack(pkg, "small-beeps-0.0.0"))
+    want = panel_picture(fws)
+    for name, image, opts in (("raw", os.path.join(b, "app.bin"), ()), ("package", emu, ("--package",))):
+        out = os.path.join(work, "run-" + name)
+        r = fwtest(image, out, log, "--ms", "9000", "--halt-ok", "--lcd", "3000", "--lcd", "end", *opts)
+        outcome, detail, ms = r["run"]["outcome"], r["run"].get("detail") or "", float(r["run"]["emulated_ms"])
+        if outcome != "fault" or "left every memory that can hold code" not in detail \
+                or not PANEL_WAIT_MS <= ms <= PANEL_WAIT_MS + PANEL_SEND_MS:
+            problems.append("%s: %s at %s ms (%s), not the return after the %.0f ms of waits" % (
+                name, outcome, ms, detail, PANEL_WAIT_MS))
+        # Ports A to H up to JL_IOMAP->CON1 (HW-56), and SPI1's block (HW-28).
+        regs = [u["address"] for u in r["run"]["unmodelled_accesses"]
+                if 0x50000 <= int(u["address"], 16) <= 0x51020 or 0x11D00 <= int(u["address"], 16) < 0x11D00 + 0x100]
+        if regs:
+            problems.append("%s: port or SPI1 accesses unmodelled: %s" % (name, ", ".join(regs)))
+        for when in ("3000ms", "end"):
+            png = os.path.join(out, "lcd-%s.png" % when)
+            if not os.path.exists(png):
+                problems.append("%s: no screen at %s" % (name, when))
+                continue
+            _, _, rows = fws.read_png(png)
+            wrong = [(x, y) for y in range(240) for x in range(240) if rows[y][x] != want[y][x]]
+            if wrong:
+                problems.append("%s: at %s %d pixels are not the probe's picture, the first at %s"
+                                % (name, when, len(wrong), wrong[0]))
+    try:
+        fwsc.unit_check(fwsc.pack_hardware(pkg, "0.0.0", 0x980F, 0xFC000), 0x980F)
+    except ValueError as e:
+        problems.append("its hardware package: %s" % e)
+    code, out = build(os.path.join(work, "both"), log, "--define", "SB_PROBE_PANEL", "--define", "SB_PROBE_LIGHT",
+                      check=False)
+    if not code or "are three probes: define one" not in out:
+        problems.append("SB_PROBE_PANEL with SB_PROBE_LIGHT not refused (exit %d)" % code)
+    print("panel: the bars and the square on the screen at 3 s and at the end, then the return after the %.0f ms of"
+          " waits, from the raw image and the package; no port or SPI1 access unmodelled; its hardware package passes"
+          " the unit's checks; two probes at once refused" % PANEL_WAIT_MS)
     return problems
 
 
@@ -1249,6 +1319,7 @@ CASES = [
     ("nostart", case_nostart),
     ("probe", case_probe),
     ("light", case_light),
+    ("panel", case_panel),
 ]
 
 

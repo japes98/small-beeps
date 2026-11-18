@@ -10,8 +10,8 @@
  * were called from).
  */
 
-#if defined(SB_PROBE_RETURN) && defined(SB_PROBE_LIGHT)
-#error "SB_PROBE_RETURN and SB_PROBE_LIGHT are two probes: define one"
+#if defined(SB_PROBE_RETURN) + defined(SB_PROBE_LIGHT) + defined(SB_PROBE_PANEL) > 1
+#error "SB_PROBE_RETURN, SB_PROBE_LIGHT and SB_PROBE_PANEL are three probes: define one"
 #endif
 
 #if defined(SB_PROBE_LIGHT)
@@ -105,6 +105,24 @@ _start:
 	sb_probe_shift 0xFFFF
 	[r0+8] |= 0x4
 	csync
+	rts
+#elif defined(SB_PROBE_PANEL)
+	/* Phase B's panel probe (BR-17; docs/DESIGN-NOTES.md,
+	 * clean-br17-panel; R-PROBE-3): sb_probe_panel (probe.c) in C, on a
+	 * stack of our own at __stack_top, 0x01C7FC00: above m-bootloader's
+	 * RAM (below 0x01C0A800) and below the retained area (from
+	 * 0x01C7FD80), so the return keeps both (HW-119). The loader's sp is
+	 * kept in r4, whose own value and rets are saved on our stack; ssp is
+	 * never written, and interrupts stay off. */
+	r1 = sp
+	r2 = __stack_top
+	sp = r2
+	[--sp] = {rets, r4}
+	r4 = r1
+	call	sb_probe_panel
+	r1 = r4
+	{rets, r4} = [sp++]
+	sp = r1
 	rts
 #endif
 	/* r0 holds the loader's block pointer (HW-4); M1 doesn't use it. */
