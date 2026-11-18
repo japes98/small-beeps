@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range e30d6191c3d100d86d9452594e8d949968664155..a73fbeff5333931814e20165198b01015ec6ea41
+OK     cdf9bdc07c24 tools: HW-106's OTA file as BR-17's second candidates; SR-13
+OK     76950fd48066 docs: the owner holds BR-17's OTA candidates
+OK     db6c6ac5da2e spec: what the unit's installer and bootloader check (BR-17, Q-26)
+EXEMPT 6d146a2a6bda (merge) sessions: main merged into spec/br17-package (#181, #182); P-67, HW-114
+EXEMPT 44efb8aeb322 (merge) sessions: clean's pack/ota-form (#183) merged in; SR-13 answered
+EXEMPT a73fbeff5333 (merge) Merge pull request #184 from japes98/spec/br17-package
+6 commit(s) checked: PASS
+
+exit status 0
