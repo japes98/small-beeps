@@ -19,8 +19,14 @@
 
 /* SPI1's own set-up (clock, mode, pins) on the chip is open (Q-6, SR-3);
  * fwtest needs none (HW-29). These are the CON bits that set-up will
- * keep in every write; none yet. */
+ * keep in every write; none yet. The FM-1 hardware build (SB_HW_FM1)
+ * keeps HW-115's on and mode bits, 0x21, set by hw_early: a write with
+ * bit 0 clear would switch SPI1 off on the chip (HW-55). */
+#if defined(SB_HW_FM1)
+#define SPI_CON   0x21u
+#else
 #define SPI_CON   0u
+#endif
 
 /* HW-30: PC8 low for a command byte, high for its parameters and for
  * pixels. Only that bit of the port is ever changed. */

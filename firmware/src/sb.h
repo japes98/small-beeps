@@ -88,7 +88,15 @@ int main(void) __attribute__((noreturn));
 
 /* main.c */
 void sb_console_write(const char *text, u32 words);
-void sb_tick(void) __attribute__((interrupt("")));
+/* An interrupt handler of its own, but in the FM-1 hardware build
+ * (SB_HW_FM1) an ordinary function that TIMER0's handler, hw_slot, calls
+ * (main.c): sb_tick and input_scan. */
+#if defined(SB_HW_FM1)
+#define SB_SLOT_HANDLER
+#else
+#define SB_SLOT_HANDLER __attribute__((interrupt("")))
+#endif
+void sb_tick(void) SB_SLOT_HANDLER;
 
 void sb_wait_ms(u32 ms);
 
