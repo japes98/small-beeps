@@ -492,7 +492,7 @@ impl Soc {
     /// The SMK-37's chip select isn't modelled.
     fn lcd_selected(&mut self) -> bool {
         match self.board {
-            Board::Fm1 => !(self.sfr_get(0x50088) & 0x80 == 0 && self.sfr_get(0x50080) & 0x80 != 0),
+            Board::Fm1 => !(self.sfr_get(0x50080 + 8) & 0x80 == 0 && self.sfr_get(0x50080) & 0x80 != 0),
             Board::Smk37 => true,
         }
     }
@@ -1051,7 +1051,7 @@ mod tests {
             soc.write32(0x11d10, 2);
         };
         // PC7 an output, driven high: nothing reaches the panel
-        bits(&mut soc, 0x50088, 0x80, false);
+        bits(&mut soc, 0x50080 + 8, 0x80, false);
         bits(&mut soc, 0x50080, 0x80, true);
         let before = soc.lcd.revision;
         fill(&mut soc);
@@ -1060,14 +1060,14 @@ mod tests {
         // PC7 low: the same bytes draw two pixels
         bits(&mut soc, 0x50080, 0x80, false);
         fill(&mut soc);
-        assert_eq!(&soc.lcd.fb[..2], &[0xf800, 0x07e0], "selected: both pixels");
+        assert_eq!(&soc.lcd.fb[..2], &[0xf8 << 8, 0x07 << 8 | 0xe0], "selected: both pixels");
         // PC7 an input: selected, as before the check
         bits(&mut soc, 0x50080, 0x80, true);
-        bits(&mut soc, 0x50088, 0x80, true);
+        bits(&mut soc, 0x50080 + 8, 0x80, true);
         soc.lcd.fb[0] = 0;
         soc.lcd.fb[1] = 0;
         fill(&mut soc);
-        assert_eq!(&soc.lcd.fb[..2], &[0xf800, 0x07e0], "PC7 an input: the panel takes the bytes");
+        assert_eq!(&soc.lcd.fb[..2], &[0xf8 << 8, 0x07 << 8 | 0xe0], "PC7 an input: the panel takes the bytes");
     }
     #[test]
     fn usb_port_answers() {

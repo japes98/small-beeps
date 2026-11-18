@@ -2,7 +2,7 @@ On the FM-1 the panel's chip select is PC7, active low (HARDWARE-SPEC
 HW-115). Upstream fed every SPI1 byte, single (BUF) and by DMA (CNT), to
 the panel model whatever PC7 was, so a firmware that left PC7 high drew
 in the emulator and nothing on a unit (the owner's report of the first
-hardware build, start1, 2026-11-18). With the patch the FM-1's panel
+hardware build, 2026-11-18). With the patch the FM-1's panel
 ignores SPI1's bytes while PC7 is an output (`JL_PORTC->DIR` bit 7
 clear) driven high (`OUT` bit 7 set). A PC7 never driven high (`OUT`
 bit 7 clear, as at reset in the model) still selects it, so a firmware
@@ -15,7 +15,7 @@ select. The crate test lcd_ignores_bytes_while_its_chip_select_is_high
 fails without it.
 
 diff --git a/crates/fm1-soc/src/lib.rs b/crates/fm1-soc/src/lib.rs
-index d2222c04d..d66c431ad 100644
+index d2222c04d..667ce7b2b 100644
 --- a/crates/fm1-soc/src/lib.rs
 +++ b/crates/fm1-soc/src/lib.rs
 @@ -446,7 +446,9 @@ impl Soc {
@@ -52,7 +52,7 @@ index d2222c04d..d66c431ad 100644
 +    /// The SMK-37's chip select isn't modelled.
 +    fn lcd_selected(&mut self) -> bool {
 +        match self.board {
-+            Board::Fm1 => !(self.sfr_get(0x50088) & 0x80 == 0 && self.sfr_get(0x50080) & 0x80 != 0),
++            Board::Fm1 => !(self.sfr_get(0x50080 + 8) & 0x80 == 0 && self.sfr_get(0x50080) & 0x80 != 0),
 +            Board::Smk37 => true,
 +        }
 +    }
@@ -86,7 +86,7 @@ index d2222c04d..d66c431ad 100644
 +            soc.write32(0x11d10, 2);
 +        };
 +        // PC7 an output, driven high: nothing reaches the panel
-+        bits(&mut soc, 0x50088, 0x80, false);
++        bits(&mut soc, 0x50080 + 8, 0x80, false);
 +        bits(&mut soc, 0x50080, 0x80, true);
 +        let before = soc.lcd.revision;
 +        fill(&mut soc);
@@ -95,14 +95,14 @@ index d2222c04d..d66c431ad 100644
 +        // PC7 low: the same bytes draw two pixels
 +        bits(&mut soc, 0x50080, 0x80, false);
 +        fill(&mut soc);
-+        assert_eq!(&soc.lcd.fb[..2], &[0xf800, 0x07e0], "selected: both pixels");
++        assert_eq!(&soc.lcd.fb[..2], &[0xf8 << 8, 0x07 << 8 | 0xe0], "selected: both pixels");
 +        // PC7 an input: selected, as before the check
 +        bits(&mut soc, 0x50080, 0x80, true);
-+        bits(&mut soc, 0x50088, 0x80, true);
++        bits(&mut soc, 0x50080 + 8, 0x80, true);
 +        soc.lcd.fb[0] = 0;
 +        soc.lcd.fb[1] = 0;
 +        fill(&mut soc);
-+        assert_eq!(&soc.lcd.fb[..2], &[0xf800, 0x07e0], "PC7 an input: the panel takes the bytes");
++        assert_eq!(&soc.lcd.fb[..2], &[0xf8 << 8, 0x07 << 8 | 0xe0], "PC7 an input: the panel takes the bytes");
 +    }
      #[test]
      fn usb_port_answers() {
