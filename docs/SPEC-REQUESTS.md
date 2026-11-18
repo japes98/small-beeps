@@ -572,3 +572,47 @@ an issue or a pull request against docs/HARNESS.md.
   bootloader check": HW-114, with HW-109 and HW-110)
 - Answered: 2026-11-18, session spec-br17-tools (spec side)
 
+### SR-14: What a unit needs from an app after m-bootloader starts it
+- Asked: 2026-11-18, session clean-br17-round2 (firmware side), for BR-17
+  Phase B round 3
+- Question: for an app that m-bootloader starts on the FM-1 (HW-112):
+  1. **The panel's port set-up**: the SPI1 pin group and the
+     `JL_IOMAP->CON1` bit (HW-56), the pins and active levels of the
+     panel's chip select, reset and backlight, and the `DIR`, `PU`, `PD`,
+     `HD0`, `HD` and `DIE` bits each needs (Q-6).
+  2. **The key matrix and the LEDs on the board**: the column and row
+     pins, the levels that select a column and light an LED, and their
+     port set-up (Q-7; HW-33, HW-34 and HW-42 give fwtest's).
+  3. **The state m-bootloader leaves when it calls the entry**: which
+     ports and pins it has set up (the panel's, the backlight's, PLAY's
+     and REC's), the system clock and the clocks of the flash, SPI1 and
+     the timers (Q-2), whether interrupts and any watchdog are on, the
+     stack pointers, and which RAM it still needs if the app returns to
+     it (so a probe may write RAM and still return).
+  4. **How the call is made**: that the entry is called so that the
+     app's `rts` returns into m-bootloader (HW-112: "an app that returns
+     opens its recovery menu"), and what it expects in the registers on
+     return.
+- Why: Phase B round 2 (the owner's report, 2026-11-18; relayed here, not
+  taken as a fact by this side): the unit's installer accepted the
+  hardware package (`847f3c5a…`), wrote `0x4000`-`0x11FFF`, verified it
+  and kept the boot area, and reports "firmware check OK", chip key
+  `0x980F`; m-bootloader's recovery menu shows "app OK" and its Boot app
+  starts it; then the unit shows nothing: a black screen, no LEDs, no key
+  lights, from a normal power-on and from Boot app alike. Our firmware
+  sets up no port pin at all (fwtest needs none, HW-29, HW-56), so
+  nothing it draws or lights can show until item 1 and 2 are known, and
+  it may also stop earlier (item 3). The only probe this side can make
+  without these facts is the entry-return probe (R-PROBE-1), which shows
+  only whether our entry is reached. m-bootloader draws its menu on the
+  same panel and reads PLAY and REC, so its sources may hold items 1 to
+  4; taking them from there would be outside the owner's ruling for
+  section 25 ("only the package format and the checks"), so that is the
+  owner's to rule. Read: HW-1 to HW-4, HW-29 to HW-35, HW-42, HW-56,
+  HW-57, HW-91, HW-110 to HW-112; Q-2, Q-6, Q-7.
+- Status: answered (HARDWARE-SPEC.md, "26. The FM-1's panel, backlight,
+  keys and LEDs, and the state at the app's entry": items 1 and 2 in
+  HW-115 to HW-118, items 3 and 4 in HW-119)
+- Answered: 2026-11-18, session spec-sr14 (spec side), by the owner's
+  ruling for SR-14
+

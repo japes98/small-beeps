@@ -171,6 +171,15 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   panel), and the beacon shows the engine's screen, no test screen
   drawn (render time 0) and no heartbeat shown. The option without
   SB_ENGINE_EXTERNAL (the base's instrument) is refused.
+- probe (BR-17, Phase B): the entry-return probe, build A with
+  SB_PROBE_RETURN (firmware/src/crt0.S): the image's first instruction
+  returns to whoever called the entry, before any register or RAM is
+  written. Its raw image and package link start with the same 2 bytes,
+  and those bytes and the rest are build A's shifted by 2; in fwtest,
+  where core 0 starts with every register but r0 at zero (HW-1), it
+  faults at once with the pc outside every memory that holds code, from
+  the raw image and from its emulator package, where build A runs on;
+  and its hardware package passes fwsc.py's unit checks.
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -1121,6 +1130,46 @@ def case_nostart(a, work, log):
     return problems
 
 
+# --- probe ----------------------------------------------------------------
+
+def case_probe(a, work, log):
+    problems = []
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_PROBE_RETURN")
+    raw, pkg = read_bytes(os.path.join(b, "app.bin")), read_bytes(os.path.join(b, "app-pkg.bin"))
+    base = read_bytes(os.path.join(a.build, "app.bin"))
+    if raw[:2] != pkg[:2] or raw[2:2 + 64] != base[:64]:
+        problems.append("the probe's first instruction is not 2 bytes before build A's code")
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import fwsc
+    emu = os.path.join(work, "probe.fwsc")
+    with open(emu, "wb") as f:
+        f.write(fwsc.pack(pkg, "small-beeps-0.0.0"))
+    for name, image, opts in (("raw", os.path.join(b, "app.bin"), ()), ("package", emu, ("--package",)),
+                              ("build A", os.path.join(a.build, "app.bin"), ())):
+        r = fwtest(image, os.path.join(work, "run-" + name.replace(" ", "")), log, "--ms", "5", "--halt-ok", *opts)
+        outcome, detail = r["run"]["outcome"], r["run"].get("detail") or ""
+        if name == "build A":
+            if outcome != "completed":
+                problems.append("build A: %s (%s)" % (outcome, detail))
+        elif outcome != "fault" or "left every memory that can hold code" not in detail \
+                or float(r["run"]["emulated_ms"]) > 0.1:
+            problems.append("%s: %s at %s ms (%s), not a fault at once outside the code" % (
+                name, outcome, r["run"]["emulated_ms"], detail))
+    try:
+        fwsc.unit_check(fwsc.pack_hardware(pkg, "0.0.0", 0x980F, 0xFC000), 0x980F)
+    except ValueError as e:
+        problems.append("its hardware package: %s" % e)
+    print("probe: the first instruction returns: from the raw image and the package fwtest faults at once outside "
+          "the code (build A runs on); its hardware package passes the unit's checks")
+    return problems
+
+
+def read_bytes(path):
+    with open(path, "rb") as f:
+        return f.read()
+
+
 CASES = [
     ("ownbase", case_ownbase),
     ("outside", case_outside),
@@ -1133,6 +1182,7 @@ CASES = [
     ("powercut", case_powercut),
     ("region", case_region),
     ("nostart", case_nostart),
+    ("probe", case_probe),
 ]
 
 

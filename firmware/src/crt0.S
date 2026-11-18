@@ -14,6 +14,13 @@
 	.globl	_start
 	.type	_start,@function
 _start:
+#if defined(SB_PROBE_RETURN)
+	/* Phase B's entry-return probe (BR-17; docs/DESIGN-NOTES.md,
+	 * clean-br17-round2): return to the loader at once, before writing a
+	 * register or a byte of RAM. On a unit, m-bootloader opens its
+	 * recovery menu when the app it called returns (HW-112). */
+	rts
+#endif
 	/* r0 holds the loader's block pointer (HW-4); M1 doesn't use it. */
 	r1 = __stack_top
 	sp = r1

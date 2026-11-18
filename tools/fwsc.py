@@ -4,7 +4,8 @@
 """Phase A1's packager and reference reader of the update package, the
 `.fwsc` (docs/A1-PLAN.md, Note A1-1), from docs/HARDWARE-SPEC.md only:
 HW-87 to HW-93 and, since BR-17 (clean-br17), section 24 (HW-103 to
-HW-108).
+HW-108) and section 25 (HW-109 to HW-114: what the unit's installer and
+bootloader check).
 
   fwsc.py pack APP.bin --version X.Y.Z --out FILE.fwsc [--identity ID]
       The full image, for the emulated load paths (fwtest's --package,
@@ -16,24 +17,29 @@ HW-108).
       with app.bin at 0x120 in it, scrambled with the key the key block
       gives (HW-88 to HW-90, HW-104, HW-105). Never for a unit: it writes
       the boot area (0x0-0x3FFF), where a unit keeps its loader.
-  fwsc.py pack APP.bin --app-area --key 0xFFFF|0x980F --version X.Y.Z
-               --out FILE.fwsc [--identity ID] [--hardware]
-      The app area alone (BR-17): one entry holding the flash image's
-      bytes from 0x4000 only (the area head, the area's directory and
-      app.bin, scrambled with KEY), nothing below 0x4000: no flash
-      header, no directory, no key block. The key is given, as no key
-      block travels with the area: 0xFFFF, the tools' key without a key
-      file (HW-105, HW-108), or 0x980F, the stock package's (HW-90). With
-      --hardware it refuses (exit 2) while any field a unit needs is open,
-      naming each; today it always refuses.
+  fwsc.py pack APP.bin --hardware --key K --store-base ADDR --version X.Y.Z
+               --out FILE.fwsc
+      The hardware package (BR-17, round 2), for a unit's installer: the
+      flash image from flash 0, as the emulator package but with the app
+      area scrambled with K, the unit's own key (HW-111: `m-flasher info`
+      shows it; no default), the area's unused head slots 0xFF before
+      scrambling (HW-114), and the image padded with 0xFF to the first
+      4 KiB boundary at or after the area's end and its 64 trailing bytes
+      (HW-114). Its identity is FM-1_<version> (HW-109 step 9). The
+      installer writes it from 0x4000 to its end, never the boot area
+      (HW-110), so the image must not reach the stock VM region
+      (0x94000, HW-80) or the firmware's store region (ADDR, its first
+      flash offset: the ELF's sb_store_base; 0xFC000 for the base). It is
+      checked with unit_check() before it is written.
   fwsc.py pack APP.bin --ota --key 0xFFFF|0x980F --version X.Y.Z
                --out FILE.ufw [--hardware]
       HW-106's OTA update file (BR-17, round 2): the flash image's bytes
       from 0x4000 only, behind two heads, update_data and app_core, as
       JieLi's tools write db_update_files_data.bin (the SDK's
       update-ota.ufw). No .fwsc blocks, no entry list, no type-0 entry:
-      by HW-106 it holds nothing below 0x4000. --hardware refuses as for
-      --app-area.
+      by HW-106 it holds nothing below 0x4000. The unit's installer
+      refuses it (no type-0 flash.bin, HW-109 step 7): no more OTA
+      candidates for that installer.
   fwsc.py FILE.ufw --ota --key KEY
       Reads an OTA file (check_ota()): both heads' CRCs, the area under
       KEY, nothing below 0x4000.
@@ -43,16 +49,18 @@ HW-108).
       (fields()), and prints what it found or the first check that failed
       (exit 1); --unpack writes the app (app.bin) and the flash image
       (flash.bin).
-  fwsc.py FILE.fwsc --app-area --key KEY
-      Reads an app-area package (check_app_area()): section 24's fields,
-      and nothing in it placed below 0x4000.
+  fwsc.py check FILE.fwsc --key K
+      The unit's checks (unit_check()): HW-109's installer checks 1 to 11,
+      then HW-112's bootloader checks 1 to 3, in that order, stopping at
+      the first that fails, with the installer's own words where HW-109
+      gives them; then the flash range the installer writes.
   fwsc.py broken APP.bin --out DIR
       Writes one broken package per check, DIR/<check>-<what>.fwsc, each
       failing that check and passing those before it (the tests').
 
 The same inputs give the same bytes (R-REPRO). Every pack prints the
-fields the spec leaves open (OPEN: Q-25, Q-26 and SR-12), and what it
-writes for each.
+fields the spec leaves open (OPEN: Q-25 and Q-26), and what it writes for
+each.
 
 Section 24's fields (HW-104, HW-105), written as JieLi's tools write
 them: in the header, the list CRC (over the entry list as stored, masked,
@@ -75,8 +83,9 @@ its CRC (34 bytes), where the tools write a 765-byte binary configuration
 that starts with them (its rest is not given); the directory has no
 uboot.boot (no loader is in the package, HW-92, HW-93; docs/A1-PLAN.md,
 "Loaders"), and the area's directory only app.bin (the tools add
-cfg_tool.bin and the VM, PRCT and BTIF regions), padded with zero bytes to
-0x120. The flash image covers the boot area and the app area only, so a
+cfg_tool.bin and the VM, PRCT and BTIF regions), padded to 0x120 with
+zero bytes in the emulator package (as it always was) and with 0xFF in
+the hardware package (HW-114). The flash image covers the boot area and the app area only, so a
 package writes nothing past the app area's end: not the stock user patch
 region (0xEA000, HW-80), not the store (by default at 0xFC000; a
 firmware's own region lies after its image, past the area's end too,
@@ -137,6 +146,19 @@ OTA_FILE_HEAD = (b"update_data", 3)          # name, attribute
 OTA_CORE_HEAD = (b"app_core", 2)
 OTA_TAIL = 64                                # the bytes after the area in app_core's data (Q-25)
 
+# Section 25: the hardware package.
+AREA_TRAIL = 64                              # the area's 64 trailing bytes (HW-105, HW-114)
+SECTOR = 0x1000                              # the image ends on a 4 KiB boundary (HW-114, HW-109 step 8)
+FLASH_BYTES = 0x100000                       # no image longer than the flash (HW-109 step 10)
+STOCK_VM = 0x94000                           # the stock VM region's start, past the app area (HW-80)
+MODEL = "FM-1"                               # the identity up to its last _ (HW-109 step 9)
+AREA_RECORDS = 8                             # at most eight records after the area head (HW-112)
+# The installer's own words (HW-109), by step.
+INSTALLER = {3: "not a firmware package, or a damaged one (header CRC)",
+             5: "damaged firmware package (file list CRC)",
+             8: "unexpected flash image size %d",
+             11: "does not decrypt with this unit's chip key"}
+
 # HW-90, HW-91: the app area, its directory, the app.
 AREA = 0x4000
 DIR_SIZE = 0x120                            # the area head and eight heads: the SDK's directory
@@ -155,33 +177,28 @@ CHUNK = 32
 KEY_BLOCK = hashlib.sha256(b"small-beeps key block 1").digest()
 
 # What a pack leaves to the spec (printed by every pack): (question, what,
-# what we write), and for which mode. A hardware pack refuses while any of
-# its own is open.
+# what we write), and for which mode.
 OPEN = [
     ("Q-25", "the meaning of the package header's bytes 10-15",
-     "4 and 0x200, taken from the tools (the owner's answer, clean-br17)", ("full", "app-area")),
-    ("Q-25", "the 64 bytes the tools write after the app area", "not written", ("full", "app-area")),
+     "4 and 0x200, taken from the tools (the owner's answer, clean-br17); the installer doesn't read them (HW-109)",
+     ("full", "hardware")),
+    ("Q-25", "the 64 bytes the tools write after the app area", "not written", ("full",)),
+    ("Q-25", "the 64 bytes the tools write after the app area",
+     "0xFF, the image's filler (HW-114); neither the installer nor the bootloader checks them", ("hardware",)),
     ("Q-25", "which program adds a .fwsc's 48-byte header blocks and their markers (HW-107)",
-     "the blocks, by HW-88", ("full", "app-area")),
+     "the blocks, by HW-88 and HW-109 step 2", ("full", "hardware")),
     ("Q-25", "isd_config.ini's binary configuration past the key block and its CRC (765 bytes, HW-105)",
-     "the key block and its CRC only", ("full",)),
+     "the key block and its CRC only, in the boot area, which the installer never writes (HW-110)",
+     ("full", "hardware")),
     ("Q-26", "which of blimit.bin, info.log, ota.bin, script.ver, tail.bin and isd_config.ini an installer needs",
-     "flash.bin alone (the owner's answer 1, clean-br17)", ("full", "app-area")),
-    ("Q-26", "the chip key a unit runs (HW-108): 0xFFFF, its stock 0x980F, or its own",
-     "our key block's in the full image; the given key in the app area", ("full", "app-area")),
-    ("Q-26", "which CRCs a loader or an installer checks", "every CRC section 24 defines", ("full", "app-area")),
-    ("SR-12", "where an installer writes a .fwsc entry's data: by HW-89 a flash.bin entry goes from flash 0, "
-     "and no field places it at 0x4000", "flash.bin, taken to go at 0x4000 (our reading)", ("app-area",)),
-    ("SR-13", "the length an installer expects of a flash image: the unit's installer refused the app-area "
-     ".fwsc with \"unexpected flash image size\" (BR-17, round 1)", "the area's own length", ("app-area",)),
+     "flash.bin alone (the owner's answer 1, clean-br17; HW-109 needs no other)", ("full",)),
+    ("Q-26", "the chip key a unit runs (HW-108)", "our key block's", ("full",)),
     ("Q-25", "the 64 bytes after the area, part of app_core's data and CRC (HW-105, HW-106)",
      "0xFF (our choice)", ("ota",)),
     ("Q-25", "the OTA heads' name padding (HW-106 doesn't say)", "one zero byte, then 0xFF, as HW-105's heads (our choice)",
      ("ota",)),
-    ("Q-26", "whether the unit's installer or updater takes the OTA file at all (HW-106: the stock updater takes "
-     ".fwsc files)", "the file as HW-106 gives it", ("ota",)),
-    ("Q-26", "the chip key a unit runs (HW-108): 0xFFFF, its stock 0x980F, or its own", "the given key", ("ota",)),
-    ("Q-26", "which CRCs an updater checks", "both heads' CRCs and data CRCs, and the area's", ("ota",)),
+    ("Q-26", "whether an updater takes the OTA file at all", "the file as HW-106 gives it; the unit's installer "
+     "refuses it (HW-109 step 7)", ("ota",)),
 ]
 
 
@@ -279,27 +296,29 @@ def flash_header():
     return mask(with_crc(bytes(u)), HEADER_KEY)
 
 
-def app_area(app, key):
+def app_area(app, key, fill=b"\0"):
     """The app area as stored (HW-90, HW-105): the area head, its
-    directory (app.bin alone) and the app, scrambled with key."""
+    directory (app.bin alone, the unused slots fill) and the app,
+    scrambled with key."""
     app_head = head(APP_NAME, DIR_SIZE, len(app), app, APP_ATTR, last=1)
-    rest = app_head.ljust(DIR_SIZE - CHUNK, b"\0") + app
+    rest = app_head.ljust(DIR_SIZE - CHUNK, fill) + app
     area_len = CHUNK + len(rest)
     area_head = head(AREA_HEAD_NAME, ENTRY, area_len, rest, AREA_HEAD_ATTR, reserved=0xFF)
     return scramble(area_head + rest, key)
 
 
-def flash_image(app, key_block=KEY_BLOCK, area=AREA):
+def flash_image(app, key_block=KEY_BLOCK, area=AREA, key=None, fill=b"\0", length=None):
     """The flash image (HW-89, HW-90, HW-105): boot area, then the app
-    area."""
-    stored = app_area(app, key_from_block(key_block))
+    area, scrambled with key (the key block's if None), padded with 0xFF
+    to length if given."""
+    stored = app_area(app, key_from_block(key_block) if key is None else key, fill)
     kb = key_block + struct.pack("<H", jieli_crc(key_block))
     d1 = head(KEY_NAME, KEY_BLOCK_AT, len(kb), kb, KEY_ATTR, reserved=KEY_RESERVED)
     d2 = head(AREA_NAME, area, 0xFFFFFFFF, attr=AREA_ATTR, reserved=0xFF, data_crc=NO_CRC)
-    name, off, length, attr, reserved = KEY_MAC
-    d3 = head(name, off, length, attr=attr, reserved=reserved, last=0xFFFF, data_crc=NO_CRC)
+    name, off, size, attr, reserved = KEY_MAC
+    d3 = head(name, off, size, attr=attr, reserved=reserved, last=0xFFFF, data_crc=NO_CRC)
     boot = flash_header() + b"".join(mask(h, HEADER_KEY) for h in (d1, d2, d3)) + kb
-    return boot.ljust(area, b"\xff") + stored
+    return (boot.ljust(area, b"\xff") + stored).ljust(length or 0, b"\xff")
 
 
 def package(data, identity):
@@ -338,19 +357,43 @@ def pack(app, identity, area=AREA):
     return package(flash_image(app, area=area), identity)
 
 
-def pack_app_area(app, identity, key):
-    """The app area alone (BR-17): a package whose one entry holds the
-    flash image's bytes from 0x4000, scrambled with key; nothing below
-    0x4000."""
+def hardware_identity(version):
+    """FM-1_ and the version (HW-109 step 9)."""
+    return MODEL + "_" + version
+
+
+def hardware_length(app):
+    """The flash image's length (HW-114): from 0 to the first 4 KiB
+    boundary at or after the area's end and its 64 trailing bytes."""
+    return round_up(AREA + DIR_SIZE + len(app) + AREA_TRAIL, SECTOR)
+
+
+def hardware_image(app, key, length=None, fill=b"\xff"):
+    return flash_image(app, key=key, fill=fill, length=hardware_length(app) if length is None else length)
+
+
+def pack_hardware(app, version, key, store_base):
+    """The hardware package (BR-17, round 2): one flash.bin from flash 0
+    that passes every check of HW-109 and HW-112 under key, the unit's
+    own (HW-111)."""
+    identity = hardware_identity(version)
     p = pack_problems(app, identity)
-    if key not in KEYS:
-        p.append("key 0x%04X: not one the spec gives (%s)" % (key, ", ".join("0x%04X" % k for k in KEYS)))
+    if "_" in version:
+        p.append("version %r: no _ in it, or the installer reads the model as %r (HW-109 step 9)"
+                 % (version, identity.rsplit("_", 1)[0]))
+    if not 0 <= key <= 0xFFFF:
+        p.append("key 0x%X: not 16 bits" % key)
+    n = hardware_length(app)
+    if n > STOCK_VM:
+        p.append("the image would end at 0x%X, into the stock VM region at 0x%X, which the installer would "
+                 "overwrite (HW-80, HW-110)" % (n, STOCK_VM))
+    if n > store_base:
+        p.append("the image would end at 0x%X, past the store region's start 0x%X, which the installer would "
+                 "overwrite (HW-110)" % (n, store_base))
     if p:
         raise ValueError("; ".join(p))
-    blob = package(app_area(app, key), identity)
-    p = below_area(blob, key)
-    if p:
-        raise ValueError("; ".join(p))
+    blob = package(hardware_image(app, key), identity)
+    unit_check(blob, key)
     return blob
 
 
@@ -412,7 +455,7 @@ def ota_problems(blob, key):
 
 
 def check_ota(blob, key):
-    """An OTA file's reading: a dict like check_app_area()'s, or
+    """An OTA file's reading: a dict of what it found, or
     ValueError naming what failed."""
     p = ota_problems(blob, key)
     if p:
@@ -621,66 +664,134 @@ def fields(blob):
     return p + area_problems(scramble(fi[r["area"]:], r["key"]))
 
 
-def check_app_area(blob, key):
-    """An app-area package's reading (BR-17): section 24's header and
-    entry fields, its one entry flash.bin taken to go at flash 0x4000
-    (SR-12: no field places it), the area under key: its heads, CRCs and
-    app. A dict like check()'s, or ValueError naming what failed, below
-    0x4000 first (below_area())."""
-    p = below_area(blob, key)
-    if p:
-        raise ValueError("; ".join(p))
-    hdr, es, p = entries(blob)
-    area = scramble(es[0][2], key)
-    p += area_problems(area)
-    if p:
-        raise ValueError("; ".join(p))
-    app = HEAD.unpack(area[CHUNK:2 * CHUNK])
-    return {"area": AREA, "entry": WINDOW + app[2], "key": key, "app": area[app[2]:app[2] + app[3]]}
+def area_records(fi, at, key):
+    """(the area unscrambled, its records): from flash offset at, under
+    key, the area head then at most eight records, ending at the first
+    whose own CRC fails (HW-112)."""
+    area = scramble(fi[at:], key)
+    recs = []
+    for r in range(1, AREA_RECORDS + 1):
+        raw = area[CHUNK * r:CHUNK * (r + 1)]
+        if len(raw) < CHUNK or struct.unpack_from("<H", raw)[0] != jieli_crc(raw[2:]):
+            break
+        recs.append((raw, HEAD.unpack(raw)))
+    return area, recs
 
 
-def below_area(blob, key):
-    """Problems if anything in an app-area package reaches below flash
-    0x4000 (BR-17, R-PKG-3), read as this reader reads it: a package
-    whose entries are flash.bin alone, its data taken to go at 0x4000
-    (our reading, SR-12); no flash header in it (a flash image from 0
-    would bring the boot area); an area head first, under key; and no
-    head in the area's directory naming a region below 0x4000."""
-    try:
-        hdr, es, p = entries(blob)
-    except struct.error:
-        return ["not a package"]
-    if hdr[:2] != struct.pack("<H", jieli_crc(hdr[2:])):
-        return ["not a package (the header's CRC)"]
-    if [(t, n) for t, n, _ in es] != [(ENTRY_FLASH, ENTRY_NAME)]:
-        p.append("entries %s: only flash.bin, which goes at 0x%X" % ([(t, n.decode("ascii", "replace")) for t, n, _ in es],
-                                                                    AREA))
-        return p
-    data = es[0][2]
-    try:
-        check(blob)
-        p.append("its flash.bin is a flash image from 0 (a flash header and directory): it writes 0x0-0x3FFF")
-    except ValueError:
-        pass
-    if len(data) < 2 * CHUNK:
-        return p + ["its flash.bin is too short for an area head"]
-    area = scramble(data, key)
-    ah = HEAD.unpack(area[:32])
-    if name_of(ah[7]) != AREA_HEAD_NAME or ah[3] != len(data):
-        p.append("its flash.bin does not start with the app area's head under key 0x%04X" % key)
-        return p
-    at = CHUNK
-    while at + 32 <= min(len(area), DIR_SIZE):
-        h = HEAD.unpack(area[at:at + 32])
-        # app.bin's offset is from the area's start; a region's is a flash
-        # offset (HW-90).
-        start = AREA + h[2] if h[4] == APP_ATTR else h[2]
-        if start < AREA:
-            p.append("%r reaches 0x%X, below 0x%X" % (name_of(h[7]), start, AREA))
+def unit_check(blob, key):
+    """The unit's checks on a package under key, the unit's own: HW-109's
+    installer checks 1 to 11 in order, then HW-112's bootloader checks 1
+    to 3. ValueError("HW-109 N: ...") at the first that fails, with the
+    installer's own words where HW-109 gives them; else what the
+    installer would write."""
+    def fail(n, why, src="HW-109"):
+        raise ValueError("%s %d: %s" % (src, n, why))
+    # 1. At least 4 096 bytes.
+    if len(blob) < 4096:
+        fail(1, "the file is %d bytes, under 4 096" % len(blob))
+    # 2. The prefix blocks: 20, and more while the next block's byte 47
+    # is 0x7D; the identity from the markers up to the first 0x7D.
+    if blob[BLOCK * BLOCKS + BLOCK_DATA] == END_MARK:
+        fail(2, "file byte %d is 0x7D, so the installer takes a 21st header block" % (BLOCK * BLOCKS + BLOCK_DATA))
+    identity = ""
+    for i in range(BLOCKS):
+        m = blob[BLOCK * i + BLOCK_DATA]
+        if m == END_MARK:
+            break
+        identity += chr((m - i - 1) % 256)
+    lg = logical_image(blob)
+    hdr = mask(lg[:HEADER_SIZE], HEADER_KEY)
+    # 3. The header's CRC.
+    if struct.unpack_from("<H", hdr)[0] != jieli_crc(hdr[2:]):
+        fail(3, INSTALLER[3])
+    list_crc, count = struct.unpack_from("<H", hdr, 2)[0], struct.unpack_from("<H", hdr, 8)[0]
+    # 4. The list fits in the image.
+    end = HEADER_SIZE + ENTRY_SIZE * count
+    if end > len(lg):
+        fail(4, "the list of %d entries runs past the image" % count)
+    # 5. The list CRC.
+    if list_crc != jieli_crc(lg[HEADER_SIZE:end]):
+        fail(5, INSTALLER[5])
+    es = []
+    for k in range(count):
+        e = mask(lg[HEADER_SIZE + ENTRY_SIZE * k:HEADER_SIZE + ENTRY_SIZE * (k + 1)], HEADER_KEY)
+        etype, _, dcrc = struct.unpack_from("<HHH", e)
+        off, length = struct.unpack_from("<II", e, 8)
+        es.append((etype, name_of(e[64:80]), dcrc, off, length))
+    # 6. Every entry's data inside the image.
+    for etype, name, dcrc, off, length in es:
+        if off + length > len(lg):
+            fail(6, "%r's data runs past the image" % name.decode("ascii", "replace"))
+    # 7. flash.bin, type 0, its data CRC over the bytes as stored.
+    fl = [e for e in es if e[0] == ENTRY_FLASH and e[1] == ENTRY_NAME]
+    if not fl:
+        fail(7, "no flash.bin of type 0")
+    _, _, dcrc, off, length = fl[0]
+    fi = lg[off:off + length]
+    if dcrc != jieli_crc(fi):
+        fail(7, "flash.bin's data CRC is 0x%04X, its data's 0x%04X" % (dcrc, jieli_crc(fi)))
+    # 8. The flash image's size.
+    if not (len(fi) > AREA and len(fi) % SECTOR == 0):
+        fail(8, INSTALLER[8] % len(fi))
+    # 9. The model.
+    model = identity.rsplit("_", 1)[0] if "_" in identity else identity
+    if model != MODEL:
+        fail(9, "the identity %r gives the model %r, not %r" % (identity, model, MODEL))
+    # 10. No longer than the flash.
+    if len(fi) > FLASH_BYTES:
+        fail(10, "the flash image is %d bytes, longer than the flash" % len(fi))
+    # 11. The chip key: a valid file table under key, at least one
+    # attribute-0x82 file, every one's CRC over its unscrambled data.
+    area, recs = area_records(fi, AREA, key)
+    if struct.unpack_from("<H", area)[0] != jieli_crc(area[2:CHUNK]):
+        fail(11, INSTALLER[11] + " (no file table)")
+    files = [h for _, h in recs if h[4] == APP_ATTR]
+    if not files:
+        fail(11, INSTALLER[11] + " (no file of attribute 0x82)")
+    for h in files:
+        if h[1] != jieli_crc(area[h[2]:h[2] + h[3]]):
+            fail(11, INSTALLER[11] + " (%s's CRC)" % name_of(h[7]).decode("ascii", "replace"))
+    # HW-112 1. app_dir_head in the flash directory, by name.
+    at, d = 32, None
+    while at + 32 <= min(len(fi), AREA):
+        h = HEAD.unpack(mask(fi[at:at + 32], HEADER_KEY))
+        if name_of(h[7]) == AREA_NAME:
+            d = h
+            break
         if h[6]:
             break
         at += 32
-    return p
+    if d is None:
+        fail(1, "no app_dir_head in the flash directory", "HW-112")
+    if d[3] not in (0, 0xFFFFFFFF):
+        fail(1, "app_dir_head's length is 0x%X, not 0 or 0xFFFFFFFF (one bank)" % d[3], "HW-112")
+    # HW-112 2. The area head first, then its records; no all-zero slot
+    # read as a record (HW-114).
+    area, recs = area_records(fi, d[2], key)
+    ah = HEAD.unpack(area[:CHUNK])
+    if (ah[4], name_of(ah[7])) != (AREA_HEAD_ATTR, AREA_HEAD_NAME) or \
+            struct.unpack_from("<H", area)[0] != jieli_crc(area[2:CHUNK]):
+        fail(2, "the area's first record is not the area head (attribute 0x83, app_area_head)", "HW-112")
+    if any(raw == bytes(CHUNK) for raw, _ in recs):
+        fail(2, "an all-zero head slot reads as a record: unused slots must be 0xFF (HW-114)", "HW-112")
+    # HW-112 3. Every attribute-0x82 file: its CRC and its bounds; app.bin
+    # non-empty; the entry inside the mapped area.
+    app = None
+    for _, h in recs:
+        if h[4] != APP_ATTR:
+            continue
+        if h[1] != jieli_crc(area[h[2]:h[2] + h[3]]):
+            fail(3, "%r's CRC" % name_of(h[7]), "HW-112")
+        if d[2] + h[2] + h[3] > FLASH_BYTES:
+            fail(3, "%r runs past the flash" % name_of(h[7]), "HW-112")
+        if name_of(h[7]) == APP_NAME:
+            app = h
+    if app is None or not app[3]:
+        fail(3, "no app.bin, or an empty one", "HW-112")
+    if not WINDOW <= ah[2] < WINDOW + ah[3]:
+        fail(3, "the entry 0x%08X is outside the mapped area" % ah[2], "HW-112")
+    return {"identity": identity, "key": key, "length": len(fi), "writes": (AREA, len(fi)), "entry": ah[2],
+            "app": area[app[2]:app[2] + app[3]]}
 
 
 # Broken packages for the tests (tests/test_fwsc.py, tools/package_suite.py):
@@ -753,6 +864,92 @@ def broken(app, identity="small-beeps-0.0.0"):
     ]
 
 
+def broken_hardware(app, key, version="0.0.0"):
+    """(check, label, package) for each of unit_check()'s checks, each
+    failing that check and passing those before it, under key."""
+    ident = hardware_identity(version)
+    fi = hardware_image(app, key)
+    good = package(fi, ident)
+
+    def area_edit(edit, image=fi):
+        b = bytearray(image)
+        area = bytearray(scramble(b[AREA:], key))
+        edit(area)
+        b[AREA:] = scramble(bytes(area), key)
+        return package(bytes(b), ident)
+
+    def recrc(a, at):
+        a[at:at + 2] = struct.pack("<H", jieli_crc(bytes(a[at + 2:at + 32])))
+
+    def header_edit(edit):
+        b = bytearray(good)
+        lg = bytearray(logical_image(b))
+        hdr, ent = bytearray(mask(lg[:64], HEADER_KEY)), bytearray(mask(lg[64:144], HEADER_KEY))
+        edit(hdr, ent)
+        lg[64:144] = mask(bytes(ent), HEADER_KEY)
+        if not edit.__name__.startswith("keep_list"):
+            struct.pack_into("<H", hdr, 2, jieli_crc(bytes(lg[64:144])))
+        hdr[:2] = struct.pack("<H", jieli_crc(bytes(hdr[2:])))
+        lg[:64] = mask(bytes(hdr), HEADER_KEY)
+        for i in range(BLOCKS):
+            b[BLOCK * i:BLOCK * i + BLOCK_DATA] = lg[BLOCK_DATA * i:BLOCK_DATA * (i + 1)]
+        return bytes(b)
+
+    def keep_list_bad_crc(h, e):
+        h[2] ^= 1
+
+    def count_past(h, e):
+        struct.pack_into("<H", h, 8, len(logical_image(good)) // ENTRY_SIZE + 1)
+
+    def keep_list_count(h, e):
+        count_past(h, e)
+
+    def entry_past(h, e):
+        struct.pack_into("<I", e, 12, len(logical_image(good)))
+
+    b1007 = bytearray(good)
+    b1007[BLOCK * BLOCKS + BLOCK_DATA] = END_MARK
+    hcrc = bytearray(good)
+    hcrc[0] ^= 1
+    fcrc = bytearray(fi)
+    fcrc[0x3000] ^= 1                          # the boot area's filler: only flash.bin's CRC changes
+    no_dir = bytearray(fi)
+    h = bytearray(mask(no_dir[64:96], HEADER_KEY))
+    h[16:32] = head_name(b"app_dir_heaX")
+    recrc(h, 0)
+    no_dir[64:96] = mask(bytes(h), HEADER_KEY)
+
+    def flip_app(a):
+        a[DIR_SIZE] ^= 1
+
+    def area_attr(a):
+        a[12] = 0x84
+        recrc(a, 0)
+
+    def entry_out(a):
+        struct.pack_into("<I", a, 4, WINDOW + struct.unpack_from("<I", a, 8)[0])
+        recrc(a, 0)
+
+    return [
+        ("HW-109 1", "short", good[:4000]),
+        ("HW-109 2", "byte-1007", bytes(b1007)),
+        ("HW-109 3", "header-crc", bytes(hcrc)),
+        ("HW-109 4", "list-past-image", header_edit(keep_list_count)),
+        ("HW-109 5", "list-crc", header_edit(keep_list_bad_crc)),
+        ("HW-109 6", "entry-past-image", header_edit(entry_past)),
+        ("HW-109 7", "flash-bin-crc", package(fi, ident)[:DATA_FILE] + bytes(fcrc)),
+        ("HW-109 8", "size", package(fi[:-CHUNK], ident)),
+        ("HW-109 9", "model", package(fi, "FM-2_" + version)),
+        ("HW-109 9", "underscore-in-version", package(fi, "FM-1_A_1")),
+        ("HW-109 10", "longer-than-flash", package(fi.ljust(FLASH_BYTES + SECTOR, b"\xff"), ident)),
+        ("HW-109 11", "file-crc", area_edit(flip_app)),
+        ("HW-112 1", "no-app-dir-head", package(bytes(no_dir), ident)),
+        ("HW-112 2", "zero-head-slots", package(hardware_image(app, key, fill=b"\0"), ident)),
+        ("HW-112 2", "area-head-attribute", area_edit(area_attr)),
+        ("HW-112 3", "entry-outside-area", area_edit(entry_out)),
+    ]
+
+
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "broken":
         ap = argparse.ArgumentParser(prog="fwsc.py broken")
@@ -772,33 +969,31 @@ def main():
         ap.add_argument("--version", required=True)
         ap.add_argument("--identity")
         ap.add_argument("--out", required=True)
-        ap.add_argument("--app-area", action="store_true", help="the app area alone, nothing below 0x4000")
+        ap.add_argument("--hardware", action="store_true", help="the hardware package, for a unit's installer")
         ap.add_argument("--ota", action="store_true", help="HW-106's OTA file: the app area alone, no .fwsc")
-        ap.add_argument("--key", type=lambda v: int(v, 0), help="the app area's key (--app-area): 0xFFFF or 0x980F")
-        ap.add_argument("--hardware", action="store_true", help="refuse while a field a unit needs is open")
+        ap.add_argument("--key", type=lambda v: int(v, 0),
+                        help="the unit's chip key (--hardware: `m-flasher info` shows it), or the OTA file's")
+        ap.add_argument("--store-base", type=lambda v: int(v, 0),
+                        help="--hardware: the store region's first flash offset (the ELF's sb_store_base)")
         a = ap.parse_args(sys.argv[2:])
-        if a.app_area and a.ota:
-            ap.error("--app-area or --ota, not both")
-        mode = "ota" if a.ota else "app-area" if a.app_area else "full"
+        if a.hardware and a.ota:
+            ap.error("--hardware or --ota, not both")
+        mode = "ota" if a.ota else "hardware" if a.hardware else "full"
         if a.key is not None and mode == "full":
-            ap.error("--key goes with --app-area or --ota (the full image's key is its key block's)")
-        if mode != "full" and a.key is None:
-            ap.error("--%s needs --key: %s" % (mode, "; ".join("0x%04X, %s" % kv for kv in KEYS.items())))
-        if a.hardware:
-            why = ["the full image writes the boot area (0x0-0x3FFF), where a unit keeps its loader: "
-                   "use --app-area"] if mode == "full" else []
-            why += ["%s: %s" % (q, what) for q, what, _ in open_fields(mode)]
-            for w in why:
-                print("fwsc: hardware: open: %s" % w, file=sys.stderr)
-            print("fwsc: hardware: refused, %d open (%s); nothing written" % (
-                len(why), ", ".join(sorted(set(w.split(":")[0] for w in why if w[:1] in "QS")))), file=sys.stderr)
-            return 2
+            ap.error("--key goes with --hardware or --ota (the emulator package's key is its key block's)")
+        if mode == "hardware" and (a.key is None or a.store_base is None):
+            ap.error("--hardware needs --key (the unit's chip key: `m-flasher info`; no default, HW-111) "
+                     "and --store-base (the store region's first flash offset)")
+        if mode == "hardware" and a.identity:
+            ap.error("--hardware sets the identity: FM-1_<version> (HW-109 step 9)")
+        if mode == "ota" and a.key is None:
+            ap.error("--ota needs --key: %s" % "; ".join("0x%04X, %s" % kv for kv in KEYS.items()))
         with open(a.app, "rb") as f:
             app = f.read()
         identity = a.identity or "small-beeps-" + a.version
         try:
-            blob = (pack_ota(app, a.key) if mode == "ota" else pack_app_area(app, identity, a.key) if mode == "app-area"
-                    else pack(app, identity))
+            blob = (pack_ota(app, a.key) if mode == "ota" else pack_hardware(app, a.version, a.key, a.store_base)
+                    if mode == "hardware" else pack(app, identity))
         except ValueError as e:
             print("fwsc: %s" % e, file=sys.stderr)
             return 2
@@ -806,16 +1001,36 @@ def main():
             f.write(blob)
         print("fwsc: wrote %s (%s%s), %d bytes, SHA-256 %s" % (
             a.out, {"ota": "HW-106's OTA file, the app area alone, key 0x%04X" % (a.key or 0),
-                    "app-area": "the app area alone, key 0x%04X" % (a.key or 0),
-                    "full": "the full image, for the emulated load paths"}[mode],
+                    "hardware": "the hardware package, key 0x%04X" % (a.key or 0),
+                    "full": "the emulator package, for the emulated load paths"}[mode],
             ", never for a unit" if mode == "full" else "", len(blob), hashlib.sha256(blob).hexdigest()))
+        if mode == "hardware":
+            r = unit_check(blob, a.key)
+            print("fwsc: the unit's checks pass (HW-109 1-11, HW-112 1-3); the installer writes flash 0x%05X to "
+                  "0x%05X (HW-110)" % (r["writes"][0], r["writes"][1] - 1))
         for q, what, ours in open_fields(mode):
             print("fwsc: open (%s): %s: %s" % (q, what, ours))
+        return 0
+    if len(sys.argv) > 1 and sys.argv[1] == "check":
+        ap = argparse.ArgumentParser(prog="fwsc.py check")
+        ap.add_argument("file")
+        ap.add_argument("--key", type=lambda v: int(v, 0), required=True, help="the unit's chip key")
+        a = ap.parse_args(sys.argv[2:])
+        with open(a.file, "rb") as f:
+            blob = f.read()
+        try:
+            r = unit_check(blob, a.key)
+        except ValueError as e:
+            print("fwsc: FAIL at %s" % e)
+            return 1
+        print("fwsc: OK: the unit's checks pass (HW-109 1-11, HW-112 1-3) under key 0x%04X: identity %s, image "
+              "%d bytes; the installer writes flash 0x%05X to 0x%05X (HW-110); entry 0x%08X, app %d bytes, "
+              "SHA-256 %s" % (r["key"], r["identity"], r["length"], r["writes"][0], r["writes"][1] - 1,
+                              r["entry"], len(r["app"]), hashlib.sha256(r["app"]).hexdigest()))
         return 0
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("file")
     ap.add_argument("--unpack")
-    ap.add_argument("--app-area", action="store_true")
     ap.add_argument("--ota", action="store_true")
     ap.add_argument("--key", type=lambda v: int(v, 0))
     a = ap.parse_args()
@@ -830,17 +1045,6 @@ def main():
             print("fwsc: FAIL: %s" % e)
             return 1
         print("fwsc: OK: HW-106's OTA file, nothing below 0x%X; entry 0x%08X, key 0x%04X, app %d bytes, SHA-256 %s"
-              % (AREA, r["entry"], r["key"], len(r["app"]), hashlib.sha256(r["app"]).hexdigest()))
-        return 0
-    if a.app_area:
-        if a.key is None:
-            ap.error("--app-area needs --key")
-        try:
-            r = check_app_area(blob, a.key)
-        except ValueError as e:
-            print("fwsc: FAIL: %s" % e)
-            return 1
-        print("fwsc: OK: the app area alone, nothing below 0x%X; entry 0x%08X, key 0x%04X, app %d bytes, SHA-256 %s"
               % (AREA, r["entry"], r["key"], len(r["app"]), hashlib.sha256(r["app"]).hexdigest()))
         return 0
     try:

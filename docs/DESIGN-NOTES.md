@@ -3842,3 +3842,96 @@ the form the owner's installer takes, not HW-106's OTA form.
   candidate is made from that update, and this pull request stays open
   until then.
 
+### 2026-11-18 clean-br17-round2: a hardware package from what the unit checks (BR-17, R-PKG-3)
+
+HARDWARE-SPEC section 25 (#184; PROVENANCE P-68) says what the unit's
+installer (m-flasher) checks, in order, what it writes and where, how it
+gets the chip key, and what the bootloader (m-bootloader) checks before
+it starts an app; HW-114 answers SR-13. Round 1's refusal ("unexpected
+flash image size") is HW-109's step 8.
+
+- **The installer writes from `0x4000` up and keeps the boot area**
+  (HW-110), and takes `flash.bin` from flash 0, its offsets as flash
+  offsets. So BR-17's app-area-only package is a `flash.bin` from flash
+  0, sized as HW-114 says: SR-12's and SR-13's concern (an image written
+  from 0 over the loader) doesn't arise with this installer. The area-only
+  `.fwsc` of clean-br17 (`--app-area`, its reader and its tests) is
+  removed: its shape is the one the installer refused.
+- **`fwsc.py pack --hardware --key K --store-base ADDR`** writes it: the
+  emulator package's boot area as it is (flash header, directory, key
+  block, every field and CRC by HW-104 and HW-105; never written to a
+  unit), the app area scrambled with K, the unused head slots up to
+  `0x120` `0xFF` before scrambling (HW-114: so their CRC fails and the
+  bootloader's walk ends there; zero slots would read as records), and
+  the image padded with `0xFF` to the first 4 KiB boundary at or after
+  the area's end and its 64 trailing bytes (HW-114), never further. K
+  has no default (HW-111): the owner reads the unit's key with
+  `m-flasher info`. The identity is `FM-1_<version>`, the version without
+  `_` (HW-109 step 9). One entry, `flash.bin`.
+- **What it must not reach.** Everything from `0x4000` to the image's
+  end replaces the unit's flash, `0xFF` filler included (HW-110), so
+  `pack` refuses an image that would end past the stock VM region's
+  start (`0x94000`, HW-80) or past the store region's start, given as
+  `--store-base` (required: a firmware's own region may lie in the app
+  area after its image, R-STORE-12; the base's is `0xFC000`).
+- **`fwsc.py check FILE --key K`** (`unit_check()`) runs HW-109's checks
+  1 to 11 and then HW-112's 1 to 3, stopping at the first that fails,
+  with the installer's own words for checks 3, 5, 8 and 11; on success
+  it prints the range the installer writes. Readings taken where the
+  facts leave the checker a choice: check 2 fails on a `0x7D` at file byte
+  1007 (the prompt's rule: the installer would take a 21st block); check
+  11's "valid file table" is the area head's own CRC passing, then the
+  records HW-112 reads (at most eight, to the first whose CRC fails);
+  HW-112 step 2 fails on an all-zero slot read as a record (HW-114); step
+  3's bounds are inside the 1 MiB flash, and the entry inside the area
+  (the area head's length from `0x02000000`). `pack --hardware` runs it
+  before it writes.
+- **Tests**: a hardware package passes, each field recomputed from the
+  file's bytes (the header and list CRCs, the entry's CRC over the
+  stored bytes, the length rule, the `0xFF` filler and slots, the area
+  head, `app.bin`'s CRC, the boot area's heads), for both keys;
+  `broken_hardware()` makes one package per check (16, covering HW-109 1
+  to 11 and HW-112 1 to 3: short, byte 1007, header CRC, list past the
+  image, list CRC, an entry past the image, `flash.bin`'s CRC, the size,
+  the model, a `_` in the version, longer than the flash, a file's CRC,
+  no `app_dir_head`, zero-filled slots, the area head's attribute, the
+  entry outside the area), each failing exactly that check; a `0xFFFF`
+  package fails check 11 under `0x980F`; the emulator package fails
+  check 8. The emulator package is byte for byte main's, and so are its
+  broken packages (compared with main's packager), so C-PACKAGE is
+  unchanged.
+- **No more OTA candidates for this installer**: HW-106's OTA file has
+  no type-0 `flash.bin`, so the installer refuses it at HW-109's step 7.
+  `--ota` (R-PKG-4) stays for other updaters.
+- **The key for the first candidate.** The prompt gives K as the unit's
+  key, read with `m-flasher info`, which this side cannot read. HW-111:
+  every unit known to the bootloader's author uses `0x980F`, but neither
+  tool assumes it. The candidate is made with `0x980F`, named for it, and
+  the owner is asked to confirm `m-flasher info` shows `0x980F` before
+  trying it; for another key, the same command with that key makes the
+  right one.
+- **Round 2 on the unit** (the owner's report, 2026-11-18, relayed; a
+  unit isn't among the firmware side's sources, so it goes to the spec
+  side as SR-14's evidence): the installer accepted the hardware package
+  (`847f3c5a…`), wrote `0x4000`-`0x11FFF`, verified it and kept the boot
+  area; it reports "firmware check OK" and chip key `0x980F`;
+  m-bootloader's menu shows "app OK". Then nothing shows: a black
+  screen, no LEDs, no key lights, from power-on and from Boot app. **The
+  hardware package is done**; what is left is start-up on real hardware.
+  Our firmware sets up no port pin (fwtest needs none), and the pins the
+  panel, its backlight and the LEDs need on the board are Q-6 and Q-7, so
+  no candidate can light anything until SR-14 is answered. Guessing a pin
+  is the mistake round 1 avoided by not guessing a length. No
+  `unit_checks` entry: the firmware doesn't run.
+- **The entry-return probe** (R-PROBE-1, `SB_PROBE_RETURN`) is the one
+  probe possible now: its first instruction is `rts`, the return our own
+  code uses (crt0.S), before any register or RAM is written. HW-112:
+  m-bootloader calls the entry, and opens its recovery menu when the app
+  returns. The menu appearing would say the entry is reached and the
+  call is a call; nothing appearing, that the bootloader doesn't enter
+  our code as we think. It can't go deeper yet: a later stage writes RAM
+  that may be m-bootloader's own (`uboot.boot` loads at `0x01C02000`,
+  inside our RAM), so a return after it means nothing until SR-14's item
+  3 says what RAM the bootloader keeps. In fwtest, where every register
+  but r0 starts at zero, the return jumps to 0 and faults at once.
+

@@ -427,27 +427,43 @@ base's own tests of these seams are a working example:
   it is for fwtest, the emulators and the F-Emulator app only, never for
   a unit (a unit keeps its loader there).
 
-**For a unit (not yet).** A firmware's pack step for a real FM-1 asks
-for the app area alone and the hardware mode:
+**For a unit.** A firmware's pack step for a real FM-1 makes the
+hardware package, then runs the unit's checks on it:
 
 ```sh
 python3 base/tools/fwsc.py pack out/app-pkg.bin --version 0.1.0 \
-    --identity my-firmware-0.1.0 --app-area --key 0xFFFF --hardware \
-    --out out/my-firmware-unit.fwsc
+    --hardware --key 0x980F --store-base 0xFC000 \
+    --out out/FM-1_0.1.0.fwsc
+python3 base/tools/fwsc.py check out/FM-1_0.1.0.fwsc --key 0x980F
 ```
 
-Today it refuses (exit 2) and writes nothing: it lists each field a unit
-needs that the spec leaves open (Q-25, Q-26 and SR-12: where an
-installer puts the area, which key the unit runs, which entries and CRCs
-an installer checks). Without `--hardware` the same command writes the
-package, nothing in it below flash `0x4000`, and prints the same list;
-`python3 base/tools/fwsc.py FILE --app-area --key 0xFFFF` reads it back.
-`--ota` in place of `--app-area` writes HW-106's OTA file (`.ufw`), the
-other app-area-only form, with no `.fwsc` blocks. Such a package is a
-candidate for the owner's unit check, not a release for a unit: a release names the hardware target `fm1-unit` only after a
-recorded check on a unit (docs/RELEASING.md). Every pack, full or app
-area, prints what the spec leaves open; a build pipeline can keep that
-output.
+- `--key` is the unit's own chip key: `m-flasher info` shows it under
+  "chip key" (HW-111). There is no default; a package scrambled with
+  another key is refused by the installer (`check` says so, at HW-109
+  check 11).
+- `--store-base` is your store region's first flash offset (your ELF's
+  `sb_store_base`; `0xFC000` for the base's default region). The
+  installer replaces the unit's flash from `0x4000` to the image's end,
+  so `pack` refuses an image that would reach your store or the stock
+  VM region at `0x94000` (HW-80, HW-110).
+- The identity is `FM-1_` and your version, which must have no `_` in it
+  (HW-109 check 9): the installer takes the identity up to its last `_`
+  as the board's model.
+- The image runs from flash 0 to the 4 KiB boundary after your app
+  (HW-114). Its first `0x4000` bytes are never written to a unit (the
+  installer keeps the unit's boot area, HW-110); `check` prints the
+  range it does write.
+- `check` runs the installer's checks (HW-109, 1 to 11) and the
+  bootloader's (HW-112, 1 to 3) in their order and stops at the first
+  that fails, with the installer's own words where the spec gives them.
+
+`pack` also prints what the spec leaves open (header bytes 10-15'
+meaning, the 64 bytes after the app, which neither tool checks). A
+package for a unit is a candidate for the owner's unit check, not a
+release for a unit: a release names the hardware target `fm1-unit` only
+after a recorded check on a unit (docs/RELEASING.md). `--ota` writes
+HW-106's OTA file, which the unit's installer refuses (it needs a type-0
+`flash.bin`, HW-109 check 7).
 
 ## 7. MIDI out
 

@@ -2628,6 +2628,76 @@ SR-3 wrote only its barrier-log row.*
 - Force-pushes: none.
 - Disk: 5.5 GB free at the start; about 5.4 GB at the lowest.
 
+### Session clean-br17-round2 (BR-17 round 2: a hardware package from section 25)
+- Date: 2026-11-18 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.325, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br16's and clean-br17's, continued. The owner's prompt is the
+  file `~/<top>/drop/prompts/clean-br17-round2.md`, read as the owner
+  asked and saved unedited as docs/prompts/clean-br17-round2.md.
+- Where it ran: the owner's Mac, in `~/<top>/clean`; the role file says
+  `clean`.
+- Start: `tools/clean-update.sh`, run from main, found main at `a73fbeff`
+  (#184's merge: HARDWARE-SPEC section 25; #183 merged into it) and ended
+  "no spec-side files on disk or in .git"; lazy fetching off. Nothing to
+  archive: the only clean transcript not in `sessions/clean/` is this
+  session's own, still being written. The Mac had 2.7 GB free, so no
+  copy of the tree was made: main's firmware is unchanged since build A
+  was last built here, and its package link (`3577c147…`) is reused.
+- A spec session may work at the same time; this session opens none of its
+  branches. #184 was read only as merged on main.
+- Reads: HARDWARE-SPEC sections 21, 24 and 25 (HW-109 to HW-114), HW-80,
+  Q-25 and Q-26; SPEC-REQUESTS.md (SR-12, SR-13); PROVENANCE.md (P-67's
+  row, to number P-68); this repository's tools, tests and docs that the
+  change touches.
+- GitHub: pull requests listed (#181 to #184, all merged).
+- **The pull request (BR-17 round 2):** C-UNIT (427 tests) in this
+  folder; the emulator package and its broken packages compared with
+  main's packager, byte for byte the same. One hardware candidate packed
+  from build A's package link with key `0x980F` (the owner to confirm
+  the unit's key), twice to the same bytes, `fwsc.py check` passing; a
+  file in `out/` for the owner, not in the repository.
+- 2026-11-18, the owner's report of Phase B round 2, pasted: the paste
+  mixed the owner's unit lines with text from another conversation. Only
+  the unit lines were taken, as the owner's relayed observation (in
+  SR-14 and DESIGN-NOTES); the rest was used as neither instruction nor
+  source, and the paste is not saved in the repository.
+- The entry-return probe (R-PROBE-1): built from a copy of the tree with
+  `SB_PROBE_RETURN`; build A from the same copy still `5bc12a34…`; the
+  seams suite's probe case PASS; its hardware package (key `0x980F`)
+  packed twice to the same bytes, `fwsc.py check` passing. SR-14 filed.
+- Force-pushes: none.
+- Disk: 2.7 GB free at the start; about 2.5 GB at the lowest (one copy
+  of the tree, deleted after).
+
+### Session spec-sr14 (SR-14: the board as m-bootloader drives it)
+- Date: 2026-11-18 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.312; model `claude-opus-5-5`. The same Claude Code
+  session as spec-br17-tools (`3554477d-915e-4869-a94a-6a2ff3efe04a`).
+  Branch `spec/sr14` from main at `a73fbeff` (#184's merge), then
+  fast-forwarded to the clean side's open #185 (`pack/hardware`, head
+  `e4593f3c`), where SR-14 is. The owner's message said #185 was merged;
+  it was still open, and was taken in by the standing rule.
+- The owner's ruling, saved as docs/prompts/spec-sr14.md.
+- Read (PROVENANCE P-68), m-bootloader at
+  `3ac7651a019fa44daba061b05654278496477b64`, each file's licence line
+  first (MIT): `src/board.c`, `src/display.c`, `src/platform.c`,
+  `src/boot.c` and `src/startup.S`, whole; `docs/SPEC.md` §2.1 to §3.4
+  and §8.1 to §8.4 (lines 32-181 and 626-735), besides the parts P-67
+  read. Not opened: `src/usb_midi.c` (by the ruling), any header
+  (`platform.h` included: its port and register mapping was taken from
+  `SPEC.md` §2.2 and the vendored `WL82.h` instead), any other source.
+  No GPL firmware or stock package was opened.
+- Not recorded, by the ruling: what those pages say of stock firmware's
+  configuration (its clock and voltage keys and values), of other
+  firmwares' shortcuts, and the SMK-37's wiring.
+- Disk: about 4.9 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
