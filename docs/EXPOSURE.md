@@ -2551,6 +2551,18 @@ SR-3 wrote only its barrier-log row.*
   fetched from outside the repository but the build image's and fwtest's
   own downloads.
 - GitHub: pull requests listed (#173 to #180, all merged; none open).
+- **#181 (BR-17):** C-UNIT (423 tests) in this folder. From a copy of the
+  tree: build A (its `app.bin` the same bytes as main's, `5bc12a34…`),
+  C-PACKAGE PASS on the new full image (eight cases as from the raw
+  image; every broken package refused at its check with fwtest's words),
+  release selftest PASS. Two app-area candidates packed from build A's
+  package link, each read back and packed again to the same bytes; they
+  are files in `out/` for the owner, not in the repository.
+- Pushing: `git push` hung in its HTTPS helper (the keychain credential
+  helper, waiting on nothing the session could see); the branch was
+  pushed through `gh`'s credential helper for that one command.
+- Force-pushes: none.
+- Disk: 5.5 GB free at the start; about 5.4 GB at the lowest.
 
 ## Corrections
 
