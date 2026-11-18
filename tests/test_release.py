@@ -37,7 +37,7 @@ class ReleaseTest(unittest.TestCase):
     PINNED = ("build-identity:dockerfile-sha256=" + "5" * 64 + ",toolchain-sha256=" + "7" * 64
               + ",base=debian:bookworm-slim@sha256:" + "8" * 64)
 
-    def make(self, d, name, report=None, version="0.9.0", container=PINNED):
+    def make(self, d, name, report=None, version="0.9.0", container=PINNED, releases=None):
         build = os.path.join(d, "build")
         if not os.path.exists(build):
             fake_build(build)
@@ -46,7 +46,8 @@ class ReleaseTest(unittest.TestCase):
             json.dump(report or report_of(build, self.COMMIT), f)
         a = argparse.Namespace(tag="m9", version=version, commit=self.COMMIT, src=ROOT, build=build, report=rp,
                                record_sums_sha256="3" * 64, fwtest_version="fwtest 0.6.0 (emulator 43ed55800648)",
-                               created="2026-10-26T00:00:00Z", build_container=container, out=os.path.join(d, name))
+                               created="2026-10-26T00:00:00Z", build_container=container, out=os.path.join(d, name),
+                               releases=releases)
         return rel.build(a), a.out
 
     def test_reproducible_byte_for_byte_and_verified(self):
@@ -174,6 +175,69 @@ class ReleaseTest(unittest.TestCase):
         v = json.load(open(os.path.join(ROOT, "config", "releases.json")))["versions"]
         self.assertEqual(v.get("m9"), "0.9.0")
         self.assertTrue(all(tuple(map(int, x.split("."))) >= (0, 9, 0) for x in v.values()))
+
+
+class UnitTargetTest(unittest.TestCase):
+    """BR-17 (c): the hardware target fm1-unit, only from a recorded unit
+    check in config/releases.json. Requirements: R-REL-4"""
+
+    def releases(self, d, unit_checks):
+        path = os.path.join(d, "releases.json")
+        with open(path, "w") as f:
+            json.dump({"versions": {"m9": "0.9.0"}, "unit_checks": unit_checks}, f)
+        return path
+
+    def targets(self, out):
+        return json.load(open(os.path.join(out, "release.json")))["targets"]
+
+    def test_never_by_default(self):
+        with tempfile.TemporaryDirectory() as d:
+            t = ReleaseTest()
+            p, out = t.make(d, "none")
+            self.assertEqual((p, self.targets(out)), ([], ["f-emulator-app"]))
+            p, out = t.make(d, "other", releases=self.releases(d, {"m10": {"checked": "x", "record": "y"}}))
+            self.assertEqual((p, self.targets(out)), ([], ["f-emulator-app"]))
+
+    def test_a_recorded_unit_check_adds_it(self):
+        with tempfile.TemporaryDirectory() as d:
+            check = {"checked": "installed and booted to the test screen; panel, audio, MIDI and store checked",
+                     "record": "docs/unit-checks/m9.md"}
+            p, out = ReleaseTest().make(d, "unit", releases=self.releases(d, {"m9": check}))
+            self.assertEqual(p, [])
+            self.assertEqual(self.targets(out), ["f-emulator-app", "fm1-unit"])
+            self.assertEqual(rel.verify(out), [])
+            meta, _, _ = fm.check(open(os.path.join(out, "small-beeps-0.9.0.fm1img"), "rb").read())
+            self.assertIn("f-emulator-app", meta["targets"])           # the app still opens it
+
+    def test_a_malformed_entry_is_refused(self):
+        bad = ({"checked": "two\nlines", "record": "r"}, {"checked": "c"}, {"checked": " ", "record": "r"},
+               {"checked": "c", "record": "r", "targets": ["fm1-unit"]}, "yes")
+        with tempfile.TemporaryDirectory() as d:
+            for i, e in enumerate(bad):
+                p, _ = ReleaseTest().make(d, "bad%d" % i, releases=self.releases(d, {"m9": e}))
+                self.assertTrue(p and all("unit_checks.m9" in q for q in p), (e, p))
+
+    def test_a_writer_names_the_targets_in_their_order(self):
+        for targets, ok in ((["f-emulator-app"], True), (["f-emulator-app", "fm1-unit"], True),
+                            (["fm1-unit"], False), (["fm1-unit", "f-emulator-app"], False),
+                            (["f-emulator-app", "elsewhere"], False), (["f-emulator-app", "fm1-unit", "fm1-unit"], False)):
+            meta = fm.check(ReaderTest().release()[0])[0]
+            meta["targets"] = targets
+            p = [q for q in fm.field_problems(meta, writer=True) if "targets" in q]
+            self.assertEqual(not p, ok, (targets, p))
+
+    def test_no_release_has_it_yet(self):
+        doc = json.load(open(os.path.join(ROOT, "config", "releases.json")))
+        self.assertEqual(doc["unit_checks"], {})
+
+    def test_the_release_tooling_passes_the_list_and_the_notes_say_how_much(self):
+        wf = open(os.path.join(ROOT, ".github", "workflows", "release.yml")).read()
+        sh = open(os.path.join(ROOT, "tools", "release.sh")).read()
+        self.assertIn('--releases "$ROOT/config/releases.json"', sh)
+        pub = wf[wf.index("\n  publish:"):]
+        self.assertIn("Checked on an FM-1 unit (target \\`fm1-unit\\`): $UNIT", pub)
+        self.assertIn("Not checked on an FM-1 unit", pub)
+        self.assertIn('unit_checks', wf[wf.index("\n  build:"):wf.index("\n  publish:")])
 
 
 class ReaderTest(unittest.TestCase):

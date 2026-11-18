@@ -8,7 +8,7 @@ a signed milestone tag carries, for the F-Emulator app.
   release.py build --tag TAG --version X.Y.Z --commit SHA --src DIR
                    --build DIR --report REPORT.json --record-sums-sha256 HEX
                    --fwtest-version "fwtest 0.6.0 (...)" --created TIME
-                   --build-container REF --out DIR
+                   --build-container REF --out DIR [--releases FILE]
       DIR gets the release's files (files() below): the raw image (the
       build's app.bin, byte for byte), its ELF, release.json, the
       .fm1img holding both (tools/fm1img.py), an SPDX 2.3 SBOM, the
@@ -24,7 +24,10 @@ a signed milestone tag carries, for the F-Emulator app.
       base=<image>@sha256:<hex>`, config/build-image; the owner's answer,
       2026-10-27), in a local dry run `local-dry-run:` and the local
       image's ID (the owner's answer, 2026-10-26). Stops if the record is not PASS, is another commit's,
-      or names other outputs than the build's.
+      or names other outputs than the build's. Since BR-17, FILE is
+      config/releases.json: a tag its unit_checks lists (a recorded check
+      of that build on a unit) gets the hardware target fm1-unit beside
+      f-emulator-app; any other tag, or none given, never does.
   release.py verify [--publish] DIR
       Checks a release folder: release.json (format 1.0's fields, as a
       writer must write them, and its exact bytes), the .fm1img by the
@@ -128,6 +131,28 @@ def toolchain_sha256(src):
     return m.group(1) if m else None
 
 
+def unit_check(releases, tag):
+    """(the unit check config/releases.json records for tag, or None;
+    problems): an entry of its unit_checks names how much was checked
+    ("checked", one line, which the release notes quote) and where the
+    check is recorded ("record"). Never by default: no file, no entry, no
+    hardware target (BR-17; docs/RELEASING.md, "A hardware target")."""
+    if not releases:
+        return None, []
+    with open(releases) as f:
+        e = json.load(f).get("unit_checks", {}).get(tag)
+    if e is None:
+        return None, []
+    if not isinstance(e, dict):
+        p = ["not an object"]
+    else:
+        p = ["%s is not one line of text" % k for k in ("checked", "record")
+             if not isinstance(e.get(k), str) or not e[k].strip() or "\n" in e[k]]
+        p += ["%s is not a field" % k for k in sorted(e) if k not in ("checked", "record")]
+    p = ["config/releases.json: unit_checks.%s: %s" % (tag, q) for q in p]
+    return (None if p else e), p
+
+
 def check_record(report, commit, outputs):
     """Problems of a test record against the build it is to vouch for."""
     p = []
@@ -142,8 +167,9 @@ def check_record(report, commit, outputs):
     return p
 
 
-def metadata(a, image, report, src, size):
-    """release.json, format 1.0."""
+def metadata(a, image, report, src, size, unit=None):
+    """release.json, format 1.0; with unit (a recorded unit check), the
+    hardware target too."""
     env = report.get("environment", {})
     gh = env.get("github", {})
     fw = re.match(r"fwtest (\S+)", a.fwtest_version)
@@ -154,7 +180,7 @@ def metadata(a, image, report, src, size):
         "version": a.version,
         "tag": a.tag,
         "git_commit": a.commit,
-        "targets": [fm1img.TARGET],
+        "targets": [fm1img.TARGET] + ([fm1img.UNIT_TARGET] if unit else []),
         "image": {"file": files(a.version)["bin"], "size": len(image), "sha256": sha256(image),
                   "load_address": fm1img.LOAD_ADDRESS, "entry": fm1img.ENTRY},
         "fwtest": {"version": fw.group(1) if fw else a.fwtest_version, "image": fwtest_image(src)},
@@ -241,9 +267,11 @@ def build(a):
         problems.append("--build-container %s: neither a build identity (%sdockerfile-sha256=...,"
                         "toolchain-sha256=...,base=...@sha256:...) nor %ssha256:<64 hex>"
                         % (a.build_container, IDENTITY, DRY_RUN))
+    unit, up = unit_check(getattr(a, "releases", None), a.tag)
+    problems += up
     if problems:
         return problems
-    meta = metadata(a, image, report, a.src, sizes(a.build))
+    meta = metadata(a, image, report, a.src, sizes(a.build), unit)
     problems = fm1img.field_problems(meta, writer=True)
     if problems:
         return problems
@@ -367,6 +395,7 @@ def main():
     for k in ("tag", "version", "commit", "src", "build", "report", "record-sums-sha256", "fwtest-version",
               "created", "build-container", "out"):
         b.add_argument("--" + k, required=True)
+    b.add_argument("--releases")
     v = sub.add_parser("verify")
     v.add_argument("--publish", action="store_true")
     v.add_argument("dir")
