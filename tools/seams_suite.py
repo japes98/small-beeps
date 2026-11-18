@@ -1271,8 +1271,9 @@ def case_panel(a, work, log):
                 or not PANEL_WAIT_MS <= ms <= PANEL_WAIT_MS + PANEL_SEND_MS:
             problems.append("%s: %s at %s ms (%s), not the return after the %.0f ms of waits" % (
                 name, outcome, ms, detail, PANEL_WAIT_MS))
+        # Ports A to H up to JL_IOMAP->CON1 (HW-56), and SPI1's block (HW-28).
         regs = [u["address"] for u in r["run"]["unmodelled_accesses"]
-                if 0x50000 <= int(u["address"], 16) < 0x52000 or 0x11D00 <= int(u["address"], 16) < 0x11E00]
+                if 0x50000 <= int(u["address"], 16) <= 0x51020 or 0x11D00 <= int(u["address"], 16) < 0x11D00 + 0x100]
         if regs:
             problems.append("%s: port or SPI1 accesses unmodelled: %s" % (name, ", ".join(regs)))
         for when in ("3000ms", "end"):
