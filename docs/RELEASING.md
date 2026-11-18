@@ -21,7 +21,7 @@ The plan and the owner's answers: the same document. A hardware package
 | `small-beeps-X.Y.Z.bin` | the raw image, byte for byte the build's `app.bin`, linked at `0x02000000` |
 | `release.json` | the metadata, byte for byte the copy in the `.fm1img` |
 | `small-beeps-X.Y.Z.elf` | the same build's ELF, for symbols |
-| `small-beeps-X.Y.Z.fwsc` | since A1: the same code as an update package (`.fwsc`), for tools that take packages, the upstream web build among them (tools/fwsc.py; docs/A1-PLAN.md). Packed from the build's package link, linked at `0x02000120` (HW-91); a tag built before A1 has none. Not for real hardware (M10) |
+| `small-beeps-X.Y.Z.fwsc` | since A1: the same code as an update package (`.fwsc`), for tools that take packages, the upstream web build among them (tools/fwsc.py; docs/A1-PLAN.md). Packed from the build's package link, linked at `0x02000120` (HW-91); a tag built before A1 has none. The full image, which writes the boot area: never for a unit, whatever the release's targets (since BR-17, docs/DESIGN-NOTES.md, clean-br17) |
 | `small-beeps-X.Y.Z.spdx.json` | an SPDX 2.3 SBOM: the firmware, the SDK headers, the toolchain (a build tool), each source file of the image with its SHA-256 |
 | `LICENSE`, `NOTICE` | as at the tag |
 | `SHA256SUMS` | every file above, in `sha256sum`'s format |
@@ -84,6 +84,33 @@ Tags m2 to m8 get no app release (the owner's answer, 2026-10-26): they
 stay out of `config/releases.json`, and a push of one of them runs the
 workflow to a notice and a success. The m0 and m1 releases were made by
 hand and are left as they are.
+
+## A hardware target
+
+Since BR-17 (clean-br17) `release.json`'s `targets` may name the hardware
+target `fm1-unit` beside `f-emulator-app` (docs/M9-PLAN.md, the format
+table). A release names it only when its build has been checked on an
+FM-1 unit, and only from an explicit, recorded input: an entry for its
+tag in `config/releases.json`'s `unit_checks`,
+
+```json
+"unit_checks": {
+  "m10": {"checked": "one line: what was checked on which unit", "record": "where the check is recorded"}
+}
+```
+
+added by pull request, like a version. `tools/release.py build` reads it
+(`--releases`, which `tools/release.sh` passes) and adds the target; a tag
+without an entry, or a build without the option, never gets it, and an
+entry that isn't two one-line fields stops the release. The workflow's
+notes quote `checked` for a release with the target, and say "Not
+checked on an FM-1 unit" for every other. The app still opens either:
+`f-emulator-app` is always first.
+
+No release has it yet: `unit_checks` is empty. The owner checks a first
+candidate on the unit (Phase B) with `tools/fwsc.py pack --app-area`'s
+package, which is not part of any release; a release's own `.fwsc` stays
+the full image for the emulated load paths.
 
 ## The build image
 

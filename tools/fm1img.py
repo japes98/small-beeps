@@ -29,6 +29,11 @@ JSON_MAX = 65536
 IMAGE_MAX = 1032192                          # docs/HARNESS.md, "The raw image"
 LOAD_ADDRESS = ENTRY = 33554432              # 0x02000000, HW-1, HW-2
 TARGET = "f-emulator-app"
+# Since BR-17 (clean-br17): the hardware target, named only by a release
+# whose build was checked on a unit (docs/RELEASING.md, "A hardware
+# target"; tools/release.py, unit checks).
+UNIT_TARGET = "fm1-unit"
+TARGETS = (TARGET, UNIT_TARGET)
 
 # release.json's fields in format 1.0: (path, type, required).
 FIELDS = [
@@ -101,6 +106,9 @@ def field_problems(meta, writer=False):
                 p.append("release.json: %s %r is not of its form" % (path, get(meta, path)))
         if not all(isinstance(t, str) for t in meta["targets"]):
             p.append("release.json: targets holds a non-string")
+        elif meta["targets"] not in ([TARGET], list(TARGETS)):
+            p.append("release.json: targets %r: an app release names %s, then %s or nothing (format 1.0)"
+                     % (meta["targets"], TARGET, UNIT_TARGET))
     return p
 
 

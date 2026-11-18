@@ -3702,3 +3702,94 @@ first serve can draw its own.
   alone refused. Without the change in main.c the case fails on every
   check (the first serve at 500 ms both ways, the test screen on the
   panel).
+
+### 2026-11-17 clean-br17: a package for a unit's installer (BR-17, R-PKG-1, R-PKG-3, R-REL-4)
+
+The FM-1 unit arrived, and its third-party USB installer refused our
+`.fwsc` (made at `ab16ee2b`) before writing anything: "damaged firmware
+package (file list CRC)". Our packager wrote 0 where the spec had not yet
+placed a field. The spec side has since answered what JieLi's own
+packaging tools write (HARDWARE-SPEC section 24, HW-103 to HW-108, #180;
+PROVENANCE P-66 for this side's use). The owner's two answers
+(docs/prompts/clean-br17-answers.md): the first app-area-only package
+leaves out `blimit.bin`, `info.log`, `ota.bin`, `script.ver` and
+`tail.bin`, the unit settling which an installer needs (Q-26), with
+R-REPRO held; and the candidate is a `.fwsc` holding only the app area,
+the form the owner's installer takes, not HW-106's OTA form.
+
+- **Section 24's fields, written (part a).** `tools/fwsc.py` writes the
+  header's list CRC (the CRC-16 of the entry list as stored, masked, from
+  logical offset 64, the block markers taken out), its image size (the
+  logical image's length, the file's less 20) and the chip's name
+  `AC791N`; the entry's index, data CRC (of the flash image as written to
+  flash), rounded length and name `flash.bin`, its data moved to logical
+  `0x400` (a multiple of 32, as the tools put it; the file offset 1007
+  stays 0); the flash header's FM-1 values (HW-105), its VID `0.01` and
+  PID `AC791N_STORY` plain on flash, its CRC over the head unmasked whole;
+  every head's name ended by one zero byte and padded with `0xFF`; the
+  key block's head attribute 2 and reserved `0x80`; `app_dir_head`'s
+  length `0xFFFFFFFF`, data CRC `0xFFFF`, reserved `0xFF`; a `key_mac`
+  head (`0xFF000`, 4 KiB, attribute `0x12`, reserved 1, last), a region
+  the package writes nothing to; the area head named `app_area_head` at
+  `0x02000120`, attribute `0x83`, reserved `0xFF`. The reader matches
+  names up to their first zero byte (HW-105), which is what made it
+  refuse JieLi's own packages. `fields()` checks all of these; fwtest's
+  nine checks (`check()`) are unchanged, since they mirror fwtest's own
+  in its order.
+- **Left as they were (Q-25), and said so.** The header's bytes 10-15
+  stay 0 (the tools write 4 and `0x200`, meaning not known); the 64 bytes
+  the tools write after the area are not written; the key block's head's
+  data stays our key block and its CRC (the tools write a 765-byte
+  configuration that starts with them); the 48-byte blocks stay HW-88's,
+  though which program adds them is not known (HW-107). Every pack prints
+  these, with the Q-26 items, as `fwsc: open (Q-..): what: what we
+  write`.
+- **"Today's full-image mode, unchanged"** is read as its layout and its
+  use: the flash image from 0, for fwtest, the emulators and the app. Its
+  bytes change with the fields above. C-PACKAGE passes on it as before
+  (the same outcomes, instructions and outputs as the raw image in eight
+  cases; each broken package refused at its check with fwtest's words),
+  and C-RELEASE (built twice, the same bytes).
+- **The app area alone (part b).** `fwsc.py pack --app-area --key KEY`
+  writes one `flash.bin` entry holding the flash image's bytes from
+  `0x4000`: the area head, the area's directory (app.bin alone) and the
+  app, scrambled with KEY. No flash header, directory or key block, so
+  the key travels with nothing and must be given: `0xFFFF` (the tools'
+  without a key file, HW-105, HW-108) or `0x980F` (the stock package's,
+  HW-90); which a unit runs is Q-26. `isd_config.ini`'s entry is left out
+  too: its data is not given and it lives below `0x4000` (HW-105,
+  `0x3628`). So the package holds `flash.bin` alone, which is the owner's
+  answer 1 with that one more (said in Questions).
+- **Where an installer writes it: open (SR-12).** No fact places a
+  `.fwsc` entry's data anywhere but flash 0: HW-89 says the type-0 entry
+  is written from offset 0, and HW-104's entry fields are file offsets.
+  HW-106's OTA file states no flash offset either; its target is
+  implied. So `--app-area` takes the entry to go at `0x4000`, our
+  reading, and an installer that follows HW-89 would write the area's
+  bytes from 0, over the unit's loader and its recovery. The candidate
+  is made because the owner asked for this form for their installer;
+  the risk is put to the owner before they try it, and SR-12 asks for
+  the field.
+- **Nothing below `0x4000`, tested** as the reader reads the package
+  (`below_area()`): its entries only `flash.bin`; that entry not a flash
+  image from 0 (one that passes fwtest's checks is refused); an area
+  head first under the key; no head in the area's directory naming a
+  region below `0x4000` (app.bin's offset counted from `0x4000`, a
+  region's as a flash offset, HW-90). The test also lists every entry
+  and region from the file's bytes itself and checks each start, and
+  shows the check failing on the full image and on an area with a region
+  head at `0x3000`. Under our reading of SR-12 the entry's own placement
+  is our assumption; what the test proves is that the package carries no
+  boot-area structure and names nothing below `0x4000`.
+- **The hardware mode.** `--hardware` refuses (exit 2, nothing written)
+  while any field a unit needs is open, naming each with its Q-number or
+  SR (today seven: three Q-25, three Q-26, SR-12), and refuses the full
+  image outright (it writes the boot area). It always refuses today; it
+  is the mode a release for a unit will use once the unit and the spec
+  have settled these.
+- **A hardware target (part c).** `release.json`'s `targets` may name
+  `fm1-unit` beside `f-emulator-app`, only for a tag listed in
+  `config/releases.json`'s `unit_checks`, which names the unit check and
+  how much was checked; the release notes say it, and say "not checked on
+  a unit" otherwise. No tag is listed (R-REL-4; docs/RELEASING.md).
+
