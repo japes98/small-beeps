@@ -33,6 +33,9 @@ side, 2026-11-17) added section 24, the package as JieLi's packaging
 tools write it, for BR-17 (Q-25 answered in part; Q-26 narrowed). Session
 spec-br17-tools (spec side, 2026-11-18) added section 25, what the unit's
 installer and bootloader check (Q-25 and Q-26 answered in large part).
+Session spec-sr14 (spec side, 2026-11-18) added section 26, the FM-1's
+panel, backlight, keys and LEDs and the state at the app's entry, for
+SR-14 (Q-2, Q-6 and Q-7 answered in part).
 
 ## How to read it
 
@@ -81,7 +84,7 @@ least significant. Register names are the JieLi SDK's.
 | MPLUS | Manuals+'s "M-VAVE SMK-37 PRO MIDI Controller User Manual", `https://manuals.plus/asin/B0GQZP7C8G.pdf`, 13 pages, SHA-256 `77d9d537…3e3745`, accessed 2026-10-24, supplied by the owner and checked by the planning conversation, not fetched by a session here (PROVENANCE P-49). A third party's write-up, not M-VAVE's manual: secondary, it never confirms an entry on its own. Not copied into this repository. |
 | PKG | JieLi's packaging tools from the SDK (as SDK, same commit), `cpu/wl82/tools/loader_tools/`: `isd_download.exe` (4.2.52), `fw_add.exe` and `ufw_maker.exe`, run under wine 8.0 in a throwaway container with no network, on our own input (PROVENANCE P-65). They show what JieLi's packaging writes, not what the chip checks. |
 | MF | m-flasher, the FM-1 installer on the owner's unit, `https://github.com/jvitkauskas/m-flasher` at `8fbece7348d758ac284325eed455781675ac95ff` (2026-11-15), MIT: `src/formats.rs`, `src/ops.rs`, `docs/usage.md`, `docs/safety.md` only, read under the owner's ruling for BR-17 (PROVENANCE P-67). Only the package format and what it checks are taken. |
-| MB | m-bootloader, the bootloader on the owner's unit, `https://github.com/jvitkauskas/m-bootloader` at `3ac7651a019fa44daba061b05654278496477b64` (2026-11-13), MIT: `docs/SPEC.md` only, its flash formats and checked start (PROVENANCE P-67). No stock firmware's details are taken from it. |
+| MB | m-bootloader, the bootloader on the owner's unit, `https://github.com/jvitkauskas/m-bootloader` at `3ac7651a019fa44daba061b05654278496477b64` (2026-11-13), MIT: `docs/SPEC.md`, its flash formats and checked start (PROVENANCE P-67); since SR-14 also `src/board.c`, `src/display.c`, `src/platform.c`, `src/boot.c` and `src/startup.S`, for board facts (PROVENANCE P-68). No stock firmware's details are taken from it. |
 | TC | The pinned JieLi toolchain (PROVENANCE P-1, P-36): its assembler and disassembler (clang's integrated assembler and `objdump`), and the code its compiler emits for C whose meaning is known. It is the vendor's compiler for this CPU, so how its code uses an instruction says what the instruction does; it carries no documents. |
 | HARNESS | docs/HARNESS.md, fwtest's manual. It is the spec side's own description of fwtest, so it never confirms an entry on its own. |
 | E-n | A spec-side black-box experiment: a small image run in fwtest (the pinned image, `config/fwtest-image`). Its result is stated in the entry. C-SPEC-EXPERIMENTS re-runs every one in CI, so a cited result that stops holding fails CI. |
@@ -2677,6 +2680,143 @@ refused before anything was written, with "unexpected flash image size".
 - Standing: confirmed (PKG, MF)
 - Needed by: BR-17 (SR-13)
 
+## 26. The FM-1's panel, backlight, keys and LEDs, and the state at the app's entry (SR-14)
+
+The board's wiring as the bootloader on the owner's unit, m-bootloader
+(MB), drives it, and the state it leaves when it calls an app. Read
+under the owner's ruling for SR-14 (2026-11-18, PROVENANCE P-68): its
+`src/board.c`, `src/display.c`, `src/platform.c`, `src/boot.c`,
+`src/startup.S` and the matching sections of `docs/SPEC.md`, at
+`3ac7651a019f`. Only hardware facts are taken. The panel's set-up and the
+key and LED facts below are what it runs on FM-1 hardware: its recovery
+menu draws on the panel and lights the PLAY and octave LEDs. Port
+registers are HW-56's (`JL_PORTx` at `0x00050000 + 0x40 × x`, A = 0 to
+H = 7). "Output" means `DIR` clear, "input" `DIR` set.
+
+### HW-115: The panel's pins and bring-up on the FM-1 (Q-6)
+- Fact: On the FM-1 the panel is on SPI1's pin group B
+  (`JL_IOMAP->CON1` bit 4 set; HW-56): clock PC9, data out PC10. Its chip
+  select is PC7, active low, and its data/command line PC8 (0 for a
+  command byte, 1 for data). No reset pin is driven: the panel is reset
+  by its software reset command. The backlight is PA2 (HW-116). The
+  bootloader brings the panel up like this:
+  1. PC7 an output driven high; PC8, PC9 and PC10 outputs driven low.
+     No pull-up, pull-down or strong drive (`HD0`, `HD`) is set on them.
+  2. SPI1 `CON` `0x4021` and `BAUD` 4. With the low-speed bus at 60 MHz
+     (HW-119) that is about 12 MHz, under the panel's limit (HW-57). The
+     frequency is inferred from SPI1's clock being the bus clock divided
+     by `BAUD + 1`.
+  3. Each command is sent with PC7 low, PC8 low for the command byte,
+     then PC8 high for its data bytes, then PC7 high. The steps: `01`
+     (software reset), wait 150 ms; `11` (sleep out), wait 120 ms; `3A`
+     with `55` (16-bit pixels); `36` with `00`; `21` (inversion on);
+     `13` (normal display); the whole 240 × 240 area filled black; `29`
+     (display on); then the backlight on.
+  4. A window is `2A` and `2B`, each with a big-endian 16-bit start and
+     end (inclusive), then `2C` and the pixels. Pixels are RGB565, high
+     byte first. With `36` = `00`, the visible 240 × 240 starts at (0, 0),
+     no row offset.
+  Pixel data goes by SPI1's DMA, a byte buffer write for each command
+  and data byte, waiting for `CON` bit 15 and clearing it with bit 14.
+- Sources: MB `src/display.c` (the FM-1 board's pins, `CON`, `BAUD`, the
+  steps), `docs/SPEC.md` §8.4 and §2.2 (the SPI1 registers and `CON`'s
+  bits).
+- Standing: confirmed (MB, SDK for the registers)
+- Needed by: BR-17 (Phase B), real hardware (Level 2)
+
+### HW-116: The backlight
+- Fact: On the FM-1 the backlight is PA2, active low: an output driven
+  low lights it, and driven high or left an input it is dark. PA2 also
+  enables the key matrix (HW-117). The ROM leaves PA2 undriven, an input.
+  The bootloader drives it low only while it scans keys or shows its
+  menu, and puts it back before it calls the app (HW-119).
+- Sources: MB `src/display.c` (PA2 high during the panel's set-up, low
+  after it), `src/board.c`, `docs/SPEC.md` §8.2 and §8.4.
+- Standing: confirmed (MB)
+- Needed by: BR-17 (Phase B)
+
+### HW-117: The keys: the matrix, PLAY, REC and the octave keys (Q-7)
+- Fact: On the FM-1 the key columns are selected through two cascaded
+  shift registers:
+  - **Pins.** Data PA4, clock PA3, latch PA1, all outputs. Sixteen bits
+    go most significant first, each with a clock pulse high then low,
+    then a latch pulse high then low. A column is selected by a 0 bit,
+    and `0xFFFF` selects none. Each edge should be its own
+    read-modify-write of the port's `OUT`, taking real bus time. Edges
+    that were too short have been seen to select the neighbouring column.
+  - **Rows.** They are read on PA5 to PA8, inputs with `DIE` and the
+    pull-up on and the pull-down off. A closed key reads low, sampled
+    10 µs after the column changes.
+  - **PA2 must be an output driven low** while the matrix is scanned. With
+    PA2 high or an input, no key reads closed. This also lights the
+    backlight (HW-116).
+  - **Four keys measured on FM-1 hardware:** OCT− reads on PA8 with the
+    word `0xF7FE`, OCT+ on PA8 with `0xEFFD`, PLAY on PA6 with `0xFBFF`,
+    and REC on PA6 with `0xFF7F`.
+  The bootloader opens its recovery menu when PLAY is held for about a
+  second at power-on, and goes to download mode when REC is.
+- Sources: MB `src/board.c` (the pins, the words, the rows),
+  `src/platform.c` (the port registers), `docs/SPEC.md` §8.2 (the FM-1
+  scan facts, PA2, measured on FM-1 hardware).
+- Standing: confirmed (MB)
+- Needed by: BR-17 (Phase B), M3 on real hardware
+
+### HW-118: The LEDs (Q-7)
+- Fact: On the FM-1 an LED is lit by selecting its column (HW-117) and
+  driving its line high. The lines are PA9, PA10, PH6 and PH9, outputs,
+  one for each row PA5 to PA8 in that order. PLAY's LED is the column
+  `0xFBFF` with PA10 high. The octave keys' LEDs are the columns `0xF7FE`
+  (OCT−) and `0xEFFD` (OCT+) with PH9 high. The bootloader keeps all four
+  lines low while it changes or reads a column. It lights its three menu
+  LEDs one per millisecond in turn, at about a third of the time each.
+  Whether PA2 must be low for the LEDs as for the keys isn't stated; the
+  bootloader always has it low when it lights them.
+- Sources: MB `src/board.c` (the lines, the columns, the multiplexing),
+  `docs/SPEC.md` §8.2 (the LED lines; the three LEDs light on FM-1
+  hardware).
+- Standing: confirmed (MB)
+- Needed by: BR-17 (Phase B), M3 on real hardware
+
+### HW-119: The state when m-bootloader calls the app (Q-2)
+- Fact: When m-bootloader starts an app (HW-112):
+  - **Clocks:** system 360 MHz, high-speed bus 180 MHz, low-speed bus
+    60 MHz. SPI0, SPI1 and TIMER0 run from the low-speed bus. The code
+    runs from the flash through the window (HW-91) with the cache on.
+  - **Voltages:** core 1.26 V, the 1.4 V domain 1.40 V, and the I/O
+    supply 3.2 V on the FM-1.
+  - **Watchdog** off, cleared at the bootloader's start. **Interrupts**
+    off: it disables them just before the call.
+  - **Ports A and H:** every register as the ROM left them. The
+    bootloader saves them before its key check and restores them before
+    the call, so PA2 (the backlight), the scan pins and the LED lines are
+    not set up.
+  - **Port C and the panel:** on a normal start the bootloader doesn't
+    touch them. After its menu or an update has drawn on the panel, PC7
+    to PC10 stay outputs and `JL_IOMAP->CON1` bit 4 stays set. SPI1 is
+    switched off (`CON` 0), the panel is not set up again, and the
+    backlight is dark (PA2 back to the ROM's state).
+  - **The flash's pins** (port D, SPI0) were set up for the bootloader's
+    own reads. SPI0 is switched off and the flash is read through the
+    window only.
+  - **TIMER0** is stopped (`CON` bit 14 written).
+  - **Stacks:** `sp` and `ssp` are in the bootloader's own RAM, below
+    `0x01C0A800`.
+  - **The call:** an ordinary call of the entry, with r0 pointing at the
+    boot block at `0x01C7FE08` (HW-112). If the app returns, the
+    bootloader opens its recovery menu with the reason "APP EXITED". It
+    reads no return value. A return works if the app keeps the calling
+    convention's saved registers and the stack pointer, and leaves the
+    bootloader's RAM (`0x01C02000` to below `0x01C0A800`) and the
+    retained area from `0x01C7FD80` (the boot block included) as it found
+    them.
+- Sources: MB `src/boot.c` (the start and the call), `src/board.c` (the
+  save and restore of ports A and H), `src/display.c` (what the panel's
+  release leaves), `src/platform.c` (the watchdog, TIMER0, the window's
+  set-up, SPI0's release), `src/startup.S` (the stacks), `docs/SPEC.md`
+  §2.1, §3.1, §3.2, §3.3, §6.5 and §7.
+- Standing: confirmed (MB)
+- Needed by: BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -2697,6 +2837,10 @@ spec request can turn one into a fact.
   clock when an installed app starts: FM-1-RE says only that the loader
   brings up "clocking sufficient for XIP". Settled by a datasheet or a
   probe on real hardware.
+  *Answered in part by session spec-sr14 (HW-119):* the clock m-bootloader
+  starts an app with (system 360 MHz, buses 180 and 60 MHz). The PLL
+  fields and the steps of a safe change are left to the bootloader's own
+  specification; this spec doesn't take them.
 - **Q-3. TIMER0-3 prescaler settings in fwtest.** The SDK gives the chip's
   table (HW-48); fwtest's settings other than 0 and 2 were not measured.
   Measure with a black-box test, or ask.
@@ -2718,11 +2862,20 @@ spec request can turn one into a fact.
   picture upright as the FM-1 is held, and whether it needs inversion on
   (`0x21`) to show colours right (none of the sources says; fwtest ignores
   `MADCTL` and inversion, HW-31). Settled by a probe on real hardware.
+  *Answered in part by session spec-sr14 (HW-115, HW-116):* the chip
+  select (PC7, active low), no reset pin driven, the backlight (PA2,
+  active low), the pins' set-up, a `BAUD` near 12 MHz, `MADCTL` `00`
+  with no row offset and inversion on. Still open: `CON`'s other mode
+  bits, and which orientation shows the picture upright.
 - **Q-7. The panel's wiring on the chip.** Whether the board's key matrix,
   encoders and LEDs are wired as fwtest presents them (HW-33, HW-34,
   HW-38, HW-42: the pins, the shift registers, an LED for every key, which
   physical turn is "clockwise"); pull-ups, directions and drive for the
   pins, LED polarity and current. fwtest needs no pin set-up.
+  *Answered in part by session spec-sr14 (HW-117, HW-118):* the shift
+  registers' pins, the rows' pins and pull-ups, PA2's role, four keys'
+  columns and rows, the LED lines and their polarity. Still open: the
+  other keys' columns and rows, the encoders, and LED current.
 - **Q-8. The other ADC channels.** What channel 3 and the other channels
   carry on the board (fwtest gives them fixed values).
 - **Q-9. Audio on the chip.** How `JL_ALNK0`'s output reaches the DAC or

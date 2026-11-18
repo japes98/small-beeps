@@ -610,5 +610,9 @@ an issue or a pull request against docs/HARNESS.md.
   section 25 ("only the package format and the checks"), so that is the
   owner's to rule. Read: HW-1 to HW-4, HW-29 to HW-35, HW-42, HW-56,
   HW-57, HW-91, HW-110 to HW-112; Q-2, Q-6, Q-7.
-- Status: open
+- Status: answered (HARDWARE-SPEC.md, "26. The FM-1's panel, backlight,
+  keys and LEDs, and the state at the app's entry": items 1 and 2 in
+  HW-115 to HW-118, items 3 and 4 in HW-119)
+- Answered: 2026-11-18, session spec-sr14 (spec side), by the owner's
+  ruling for SR-14
 

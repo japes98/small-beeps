@@ -2674,6 +2674,30 @@ SR-3 wrote only its barrier-log row.*
 - Disk: 2.7 GB free at the start; about 2.5 GB at the lowest (one copy
   of the tree, deleted after).
 
+### Session spec-sr14 (SR-14: the board as m-bootloader drives it)
+- Date: 2026-11-18 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.312; model `claude-opus-5-5`. The same Claude Code
+  session as spec-br17-tools (`3554477d-915e-4869-a94a-6a2ff3efe04a`).
+  Branch `spec/sr14` from main at `a73fbeff` (#184's merge), then
+  fast-forwarded to the clean side's open #185 (`pack/hardware`, head
+  `e4593f3c`), where SR-14 is. The owner's message said #185 was merged;
+  it was still open, and was taken in by the standing rule.
+- The owner's ruling, saved as docs/prompts/spec-sr14.md.
+- Read (PROVENANCE P-68), m-bootloader at
+  `3ac7651a019fa44daba061b05654278496477b64`, each file's licence line
+  first (MIT): `src/board.c`, `src/display.c`, `src/platform.c`,
+  `src/boot.c` and `src/startup.S`, whole; `docs/SPEC.md` §2.1 to §3.4
+  and §8.1 to §8.4 (lines 32-181 and 626-735), besides the parts P-67
+  read. Not opened: `src/usb_midi.c` (by the ruling), any header
+  (`platform.h` included: its port and register mapping was taken from
+  `SPEC.md` §2.2 and the vendored `WL82.h` instead), any other source.
+  No GPL firmware or stock package was opened.
+- Not recorded, by the ruling: what those pages say of stock firmware's
+  configuration (its clock and voltage keys and values), of other
+  firmwares' shortcuts, and the SMK-37's wiring.
+- Disk: about 4.9 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
