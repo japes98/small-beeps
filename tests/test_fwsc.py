@@ -118,7 +118,7 @@ class Section24Test(unittest.TestCase):
             # 64, the markers taken out; the image size: the file less 20.
             self.assertEqual(struct.unpack_from("<H", h, 2)[0], crc(lg[64:64 + 80 * count]))
             self.assertEqual(struct.unpack_from("<I", h, 4)[0], len(p) - 20)
-            self.assertEqual(h[10:16], bytes(6))                       # Q-25: left 0
+            self.assertEqual(struct.unpack_from("<HI", h, 10), (4, 0x200))   # the tools' values; meaning Q-25
             self.assertEqual(h[16:32], b"AC791N".ljust(16, b"\0"))
             self.assertEqual(h[32:64], bytes(32))
             e = fw.mask(lg[64:144], 0xFFFF)

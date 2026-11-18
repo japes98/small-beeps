@@ -2574,6 +2574,12 @@ SR-3 wrote only its barrier-log row.*
   docs/prompts/clean-br17-answers-2.md and noted in DESIGN-NOTES and
   SR-12. `tools/clean-update.sh` needs `/usr/bin` first on PATH here
   (`/usr/local/bin/git` is x86 and won't run).
+- The owner's answers to the report's four questions
+  (docs/prompts/clean-br17-answers-3.md): among them, the disk
+  measurement that walked `spec/` and `porter/` was acceptable (sizes
+  only, no file opened), and a clean session measures only its own
+  folders from now on. Header bytes 10-15 now carry the tools' values;
+  the two candidates were packed again (new hashes in the report).
 - Force-pushes: none.
 - Disk: 5.5 GB free at the start; about 5.4 GB at the lowest.
 
