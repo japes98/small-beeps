@@ -2820,6 +2820,30 @@ SR-3 wrote only its barrier-log row.*
 - Force-pushes: none.
 - Disk: 3.7 GB free on resuming; about 5.3 GB at the end.
 
+### Session clean-br17-start2 (BR-17: start1's result and the chip select)
+- Date: 2026-11-18 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.327, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-start's, continued. The owner's prompt was a pasted message
+  (start1's result and the next step), saved unedited as
+  docs/prompts/clean-br17-start2.md. The owner's reading of the result is
+  taken as a relayed observation, and DESIGN-NOTES says where this side
+  reads it differently.
+- Where it ran: the owner's Mac, in `~/<top>/clean`, on `hw/start`
+  (#190, open).
+- Reads: HW-29, HW-30, HW-55, HW-59 and HW-115 again; this repository's
+  lcd.c, main.c and the hw case.
+- **The change (R-HW-1):** build A still `5bc12a34…`; the seams suite's
+  hw case PASS. Start2's hardware package (key `0x980F`) packed twice to
+  the same bytes, `fwsc.py check` passing; a file in `out/` for the
+  owner, not in the repository.
+- Force-pushes: none.
+- Disk: about 5.3 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

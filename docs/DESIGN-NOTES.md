@@ -4136,3 +4136,47 @@ right.
   fwtest; the disassembly shows `hw_early` and everything it calls
   running from the window.
 - Build A without the define is still `5bc12a34…`, byte for byte.
+
+### 2026-11-18 clean-br17-start2: start1 on the unit, and the chip select (BR-17, R-HW-1)
+The owner's prompt: docs/prompts/clean-br17-start2.md.
+- **Start1's result** (`c02427d9…`, the owner's report): the backlight
+  and bands 1, 2 and 3 in order, then nothing more drawn, and no red
+  screen. Every button tried (PLAY, OCT− and OCT+ included) lit its own
+  LED while held and put it out on release.
+- **What that says.** The owner read it as the drawing stopping at the
+  first DMA transfer. The LEDs say otherwise. In this build only
+  `hw_serve`, in the main loop, lights an LED (main.c; `views.c`'s
+  caller isn't built in, and `probe.c`'s is a test build's). The main
+  loop only begins after the pattern and the test screen have been sent
+  and `lcd_wait` has seen their transfers end. So on the chip SPI1's DMA
+  ran, its interrupt came for every chunk, `idle` woke, and the keys
+  were scanned, debounced and queued. It also suggests that OCT− and
+  OCT+ each give an event the walk reads, since each lit its own LED and
+  only an event lights one. The test screen will show whether each is
+  named as itself. The panel just didn't take what lcd.c sent.
+- **The cause: the chip select.** HW-115 sends every command with PC7,
+  the panel's chip select, low, and raises it after. `hw_early`'s
+  polled path does so (`hw_cmd`, `hw_end`), but lcd.c was written for
+  fwtest, which doesn't model PC7 (HW-30), and never drives it. After
+  band 3, PC7 was high, so the panel ignored every byte. Nothing in
+  fwtest could show this.
+- **The fix**: in the hardware build, `lcd_command` raises PC7 and lowers
+  it again as each command starts, once the transfer before has ended,
+  with `csync` after each edge. So PC7 is low through each command, its
+  data and a frame's DMA, and high for a moment between commands. After
+  the last command it stays low until the next. HW-115 raises it after
+  each command; whether staying low between frames matters to the panel
+  isn't stated, and nothing else is on SPI1.
+- **The bands asked for**, so the next result reads either way:
+  - band 4 (yellow), drawn over the pattern once its DMA chain has ended
+    by SPI1's interrupts;
+  - band 5 (magenta), if a chain is still going 500 beats after it began
+    and `CON` bit 15 says its transfer is done: the interrupt never came;
+  - every LED lit, if the transfer never finished: then SPI1 can't draw a
+    band either.
+  In fwtest a transfer finishes at once, so only band 4's path and band
+  5's (with SPI1's interrupt left off, `SB_TEST_SPI_NO_IRQ`) are tested.
+  The all-LEDs path isn't.
+- No spec request: HW-115 already gives the chip select, and start1
+  showed the DMA and SPI1's interrupt working as HW-29 and HW-55 give
+  them. SR-16 stands as filed.

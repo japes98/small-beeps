@@ -203,12 +203,14 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   fwtest, where its one timer, TIMER0, counts 24 MHz rather than the
   chip's 60 MHz (HW-119), so its beats are 2.5 times slow: the screen goes
   black, then bands 1, 2 and 3 appear in that order on black, then the
-  address pattern; at the end the test screen, no halt, the beats as
+  address pattern with band 4 over it; at the end the test screen, no halt, the beats as
   2.5 times slow predicts; PLAY (fwtest's key 12) pressed and released is
   named on the screen, and its LED is lit for its column's twelfth while
   it is held and dark after; nothing unmodelled. Built with
   SB_TEST_FAULT as well (main's stack overrun) it halts on the stack's
-  guard with the screen solid red. Its hardware
+  guard with the screen solid red. Built with SB_TEST_SPI_NO_IRQ (SPI1's
+  interrupt left off) the first frame's chain stalls and lcd_wait's
+  timeout draws band 5 under bands 1 to 3. Its hardware
   package passes fwsc.py's unit checks; with SB_ENGINE_EXTERNAL or a
   probe it is refused.
 
@@ -1345,7 +1347,7 @@ def case_hw(a, work, log):
     for t in range(400, 431):
         early += ["--lcd", str(t)]
     r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "5000", "--script", script, "--leds-every", "500",
-               "--lcd", "3500", "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN), *early)
+               "--lcd", "1000", "--lcd", "3500", "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN), *early)
     if r["run"]["outcome"] != "completed":
         problems.append("hw: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
     if r["run"]["unmodelled_accesses"]:
@@ -1359,6 +1361,9 @@ def case_hw(a, work, log):
     want = [0, 1, 2, 3, None]
     if seen != want:
         problems.append("hw: the start-up's screens in order were %s, not black, bands 1, 2, 3, then the pattern" % seen)
+    _, _, pat = fws.read_png(os.path.join(out, "lcd-1000ms.png"))
+    if pat[40 + 24 * 4 + 8][120] != (255, 255, 0) or pat[8][8] != fws.rgb8(1, 2, 0):
+        problems.append("hw: at 1 s not the address pattern with band 4 (yellow) over it")
     bc = fws.beacon(ram(out, BEACON_ADDR, fws.BEACON_LEN))
     lo, hi = (5000 - 430) / HW_RATIO - 2, (5000 - 400) / HW_RATIO + 2
     if bc["screen"] != 2 or bc["halt_reason"] or not lo <= bc["beats"] <= hi:
@@ -1388,6 +1393,15 @@ def case_hw(a, work, log):
     # SB_TEST_FAULT overruns main's stack: the tick's guard check halts (SB_HALT_STACK).
     if r["run"]["outcome"] != "halt" or bc["halt_reason"] != 3 or any(p != (255, 0, 0) for row in rows for p in row):
         problems.append("hw with SB_TEST_FAULT: %s, halt reason %d, the screen not all red" % (r["run"]["outcome"], bc["halt_reason"]))
+    nb = os.path.join(work, "no-irq")
+    build(nb, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_SPI_NO_IRQ")
+    nout = os.path.join(work, "run-no-irq")
+    r = fwtest(os.path.join(nb, "app.bin"), nout, log, "--ms", "3000", "--lcd", "end")
+    _, _, rows = fws.read_png(os.path.join(nout, "lcd-end.png"))
+    got = [rows[40 + 24 * k + 8][120] for k in (1, 2, 3, 4, 5)]
+    if r["run"]["outcome"] != "completed" or got != list(HW_BANDS) + [(0, 0, 0), (255, 0, 255)]:
+        problems.append("hw with SB_TEST_SPI_NO_IRQ: %s, bands %s (not 1 to 3, then 5 for a chain whose interrupt"
+                        " never came)" % (r["run"]["outcome"], got))
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     import fwsc
     try:

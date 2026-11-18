@@ -101,12 +101,16 @@ void HW_BOOT hw_fill(u32 x, u32 y, u32 w, u32 h, u32 colour)
     hw_end();
 }
 
-/* Band n of the start-up (1 to 3), polled: rows 40 + 24 n to 40 + 24 n +
- * 15, blue, green, then white, each added to the ones before. No table:
- * nothing may be read from .rodata before the copy. */
+/* Band n of the start-up (1 to 5), polled: rows 40 + 24 n to 40 + 24 n +
+ * 15, blue, green, white, yellow, then magenta, each added to what is on
+ * the screen. Bands 1 to 3 mark the start-up's steps, band 4 the first
+ * frame's DMA chain ended by its interrupts, band 5 a chain stuck with
+ * its transfer done (lcd.c). No table: nothing may be read from .rodata
+ * before the copy. */
 void HW_BOOT hw_band(u32 n)
 {
-    hw_fill(0, 40 + 24 * n, 240, 16, n == 1 ? 0x001Fu : n == 2 ? 0x07E0u : 0xFFFFu);
+    hw_fill(0, 40 + 24 * n, 240, 16,
+            n == 1 ? 0x001Fu : n == 2 ? 0x07E0u : n == 3 ? 0xFFFFu : n == 4 ? 0xFFE0u : 0xF81Fu);
 }
 
 /* The panel as HW-115 gives it, then the backlight on, then band 1. */

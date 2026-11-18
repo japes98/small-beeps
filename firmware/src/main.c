@@ -352,7 +352,11 @@ int main(void)
     sb_irq_init();
 #if defined(SB_HW_FM1)
     sb_irq_enable(SRC_TIMER0, hw_slot, PRIO_TICK);
+#if !defined(SB_TEST_SPI_NO_IRQ)
+    /* The test build leaves SPI1's interrupt off, so lcd_wait's timeout
+     * is seen to report it (seams case hw). */
     sb_irq_enable(SRC_SPI1, lcd_spi_done, PRIO_SPI1);
+#endif
     input_start();
     JL_TIMER0->CNT = 0;
     JL_TIMER0->PRD = HW_SLOT_PRD;
@@ -434,6 +438,12 @@ int main(void)
 #else
     screen_pattern();
     lcd_send_rows(0, SCREEN_H);
+#if defined(SB_HW_FM1)
+    /* Band 4 (yellow), over the pattern: its DMA chain ended by SPI1's
+     * interrupts (R-HW-1). */
+    lcd_wait();
+    hw_band(4);
+#endif
     lcd_command(LCD_DISPON, 0, 0);
     sb_beacon.screen = SB_SCREEN_PATTERN;
 
