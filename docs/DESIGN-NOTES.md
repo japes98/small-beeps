@@ -3836,4 +3836,9 @@ the form the owner's installer takes, not HW-106's OTA form.
   (Q-26). Its files are named `.ufw`, as the SDK's `update-ota.ufw`. If
   an installer wrote this file's data from flash 0 it would still
   overwrite the loader; trying it is the owner's call.
+- **Held** (docs/prompts/clean-br17-hold.md, 2026-11-18): the owner holds
+  the OTA candidates this round. The spec side is settling SR-12, SR-13,
+  Q-25 and Q-26 from new sources under an owner ruling; the next
+  candidate is made from that update, and this pull request stays open
+  until then.
 

@@ -2586,6 +2586,9 @@ SR-3 wrote only its barrier-log row.*
   relayed to the spec side in SR-12 and SR-13, not as a source of fact
   (a unit isn't among the firmware side's sources). Round 2's
   candidates are HW-106's OTA file (`--ota`, R-PKG-4), files in `out/`.
+- Then the owner held them (docs/prompts/clean-br17-hold.md): the next
+  candidate waits for the spec side's update on SR-12, SR-13, Q-25 and
+  Q-26.
 - Force-pushes: none.
 - Disk: 5.5 GB free at the start; about 5.4 GB at the lowest.
 
