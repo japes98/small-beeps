@@ -3759,7 +3759,9 @@ the form the owner's installer takes, not HW-106's OTA form.
   HW-90); which a unit runs is Q-26. `isd_config.ini`'s entry is left out
   too: its data is not given and it lives below `0x4000` (HW-105,
   `0x3628`). So the package holds `flash.bin` alone, which is the owner's
-  answer 1 with that one more (said in Questions).
+  answer 1 with that one more; the owner confirmed it on merging #181
+  (docs/prompts/clean-br17-answers-2.md): `isd_config.ini` lives below
+  `0x4000`, and an app-area-only package leaves that region alone.
 - **Where an installer writes it: open (SR-12).** No fact places a
   `.fwsc` entry's data anywhere but flash 0: HW-89 says the type-0 entry
   is written from offset 0, and HW-104's entry fields are file offsets.
