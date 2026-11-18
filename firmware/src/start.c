@@ -10,6 +10,7 @@
  */
 
 #include "sb.h"
+#include "hw_fm1.h"
 
 extern u32 __data_load[], __data_start[], __data_end[];
 extern u32 __bss_start[], __bss_end[];
@@ -21,6 +22,11 @@ void sb_start(void)
     const u32 *src = __data_load;
     u32 *dst;
 
+#if defined(SB_HW_FM1)
+    /* On a unit: the panel up and band 1 drawn, from the window, before
+     * anything else can go wrong (hw_fm1.c). */
+    hw_early();
+#endif
     /* Code, constants and initialised data: their bytes sit in the
      * image, after the boot code. */
     for (dst = __data_start; dst < __data_end; dst++)

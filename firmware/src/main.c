@@ -23,6 +23,7 @@
 #include "store.h"
 #include "ui.h"
 #include "WL82.h"
+#include "hw_fm1.h"
 
 /* HW-25: in fwtest each word written here is appended to the console. The
  * SDK declares DBG_MSG read-only (Q-5), so it is written through our own
@@ -85,6 +86,32 @@ static void sb_silent_block(s32 *out, u32 frames)
 }
 #endif
 
+#if defined(SB_HW_FM1)
+/* The FM-1 hardware build's time base (R-HW-1): TIMER4's clock on the
+ * chip isn't in HARDWARE-SPEC (SR-16), so time is TIMER0's slots
+ * (hw_fm1.h) and its count, in the same 24 MHz units: 2000 a slot, 2 / 5
+ * a count. A slot whose interrupt is pending but not yet taken (the count
+ * has wrapped) is added. */
+static volatile u32 hw_slots;
+
+u32 sb_now(void)
+{
+    u32 s, c;
+
+    do {
+        s = hw_slots;
+        c = JL_TIMER0->CNT;
+    } while (s != hw_slots);
+    if ((JL_TIMER0->CON & 0x8000u) && c < HW_SLOT_PRD / 2)
+        s++;
+    return s * HW_SLOT_UNITS + c * 2 / 5;
+}
+
+u32 sb_ticks(void)
+{
+    return sb_now() - tb_start;
+}
+#else
 u32 sb_now(void)
 {
     return JL_TIMER4->CNT;
@@ -94,6 +121,7 @@ u32 sb_ticks(void)
 {
     return JL_TIMER4->CNT - tb_start;
 }
+#endif
 
 /* Waits at least ms milliseconds on the heartbeat, idling between ticks:
  * one beat more, since the first may be nearly over. */
@@ -120,10 +148,16 @@ void sb_console_write(const char *text, u32 words)
  * M1); the ticks and their intervals are counted on the side. */
 void sb_tick(void)
 {
+#if defined(SB_HW_FM1)
+    u32 now = sb_now() - tb_start;
+#else
     u32 now = JL_TIMER4->CNT - tb_start;
+#endif
     u32 n = sb_beacon.tick_count, beats;
 
+#if !defined(SB_HW_FM1)
     JL_TIMER0->CON = TICK_CON | TICK_ACK;
+#endif
     sb_beacon.seq++;
     if (n) {
         u32 d = now - tb_last;
@@ -169,6 +203,76 @@ void sb_tick(void)
         sb_halt(SB_HALT_STACK, 2, 0);
 }
 
+#if defined(SB_HW_FM1)
+/* TIMER0's interrupt in the hardware build: one scan slot, and every
+ * twelfth the tick. Acknowledged first, as the tick and the scan are in
+ * the other builds. */
+void hw_slot(void)
+{
+    static u32 n;
+
+    JL_TIMER0->CON = HW_SLOT_CON | TICK_ACK;
+    hw_slots++;
+    input_scan();
+    if (++n == HW_SLOTS_TICK) {
+        n = 0;
+        sb_tick();
+    }
+}
+
+/* The hardware build's panel work in place of the instrument's screens:
+ * each button or key pressed or released is named on the test screen
+ * (inside its box, rows HW_EVENT_Y to + 15), and its LED follows it, so a
+ * unit shows which control each contact is (Q-7). */
+#define HW_EVENT_X 26u
+#define HW_EVENT_Y 104u
+#define HW_EVENT_W 188u
+static void hw_show(const struct input_event *e)
+{
+    static const char names[14][5] = {
+        "OCT-", "OCT+", "FX", "SEL", "ENV", "LFO", "EDIT",
+        "GLO", "HOME", "SAVE", "ARP", "SEQ", "PLAY", "REC",
+    };
+    char text[24];
+    u32 i = 0, c = e->control, k;
+    const char *name, *what = e->kind == INPUT_PRESS ? " down" : " up";
+
+    text[i++] = (char)('0' + c / 10);
+    text[i++] = (char)('0' + c % 10);
+    text[i++] = ' ';
+    if (c < 14) {
+        for (name = names[c], k = 0; k < 5 && name[k]; k++)
+            text[i++] = name[k];
+    } else {
+        k = c - INPUT_KEY1 + 1;
+        for (name = "key "; *name; name++)
+            text[i++] = *name;
+        if (k >= 10)
+            text[i++] = (char)('0' + k / 10);
+        text[i++] = (char)('0' + k % 10);
+    }
+    for (; *what; what++)
+        text[i++] = *what;
+    text[i] = 0;
+    gfx_fill(HW_EVENT_X, HW_EVENT_Y, HW_EVENT_W, 16, RGB565(0, 0, 0));
+    gfx_text(HW_EVENT_X, HW_EVENT_Y, text, RGB565(31, 63, 31), RGB565(0, 0, 0), 2);
+    lcd_send_rect(HW_EVENT_X, HW_EVENT_Y, HW_EVENT_W, 16);
+}
+
+static void hw_serve(void)
+{
+    struct input_event e;
+
+    while (input_read(&e)) {
+        if (e.control >= INPUT_LEDS || (e.kind != INPUT_PRESS && e.kind != INPUT_RELEASE))
+            continue;
+        input_led(e.control, e.kind == INPUT_PRESS ? INPUT_LED_FULL : 0);
+        if (sb_beacon.screen == SB_SCREEN_TEST)
+            hw_show(&e);
+    }
+}
+#endif
+
 /* The store's work (M7), from main's loop: what the panel saved or
  * reset, and the selection and settings once they settle. */
 #if defined(SB_ENGINE_EXTERNAL)
@@ -184,7 +288,7 @@ static void run_constructors(void)
 }
 #endif
 
-#if !defined(SB_ENGINE_EXTERNAL)
+#if !defined(SB_ENGINE_EXTERNAL) && !defined(SB_HW_FM1)
 static void serve_store(void)
 {
     const char *said = store_serve();
@@ -199,19 +303,33 @@ int main(void)
     static const char hello[16] = "small-beeps M5 \n";
 
     sb_beacon.period = TICKS_PER_MS;
+#if defined(SB_HW_FM1)
+    /* Running from RAM, after the copy (R-HW-1). */
+    hw_band(2);
+#endif
     if (data_probe == 0x5EED0001u && bss_probe == 0) {
         sb_beacon.marker = SB_MARKER;
+#if defined(SB_HW_FM1)
+        (void)hello;
+#else
         sb_console_write(hello, sizeof hello / 4);
+#endif
     } else {
         sb_beacon.marker = SB_MARKER_BAD;
     }
 
     /* Only differences of CNT are used: its value when started, and its
      * response to writes, don't matter. */
+#if defined(SB_HW_FM1)
+    /* No TIMER4 (its clock on the chip is SR-16's), and no measure of the
+     * core clock against it: HW-119 gives 360 MHz. */
+    tb_start = 0;
+#else
     JL_TIMER4->CON = TIMER4_RUN;
     tb_start = JL_TIMER4->CNT;
     /* No clock register is written (HW-11, SR-2): the clock is measured. */
     sb_beacon.clock = sb_clock_measure((volatile u32 *)&JL_TIMER4->CNT);
+#endif
 #if defined(SB_PROBE_BIG)
     sb_probe_big();
 #endif
@@ -232,13 +350,35 @@ int main(void)
 #endif
 
     sb_irq_init();
+#if defined(SB_HW_FM1)
+    sb_irq_enable(SRC_TIMER0, hw_slot, PRIO_TICK);
+#if !defined(SB_TEST_SPI_NO_IRQ)
+    /* The test build leaves SPI1's interrupt off, so lcd_wait's timeout
+     * is seen to report it (seams case hw). */
+    sb_irq_enable(SRC_SPI1, lcd_spi_done, PRIO_SPI1);
+#endif
+    input_start();
+    JL_TIMER0->CNT = 0;
+    JL_TIMER0->PRD = HW_SLOT_PRD;
+    JL_TIMER0->CON = HW_SLOT_CON;
+    /* No engine, core 1, store, audio or MIDI on a unit yet: HARDWARE-SPEC
+     * gives none of their set-up on the chip (SR-16). */
+    sb_irq_on();
+    /* Interrupts and TIMER0 work: the tick has counted two beats. A spin,
+     * not idle, so idle is tested apart (the pattern's wait, below). */
+    while (sb_beacon.beats < 2)
+        ;
+    hw_band(3);
+#else
     sb_irq_enable(SRC_TIMER0, sb_tick, PRIO_TICK);
     sb_irq_enable(SRC_SPI1, lcd_spi_done, PRIO_SPI1);
     JL_TIMER0->CNT = 0;
     JL_TIMER0->PRD = TICK_PRD;
     JL_TIMER0->CON = TICK_CON;
     input_start();
-#if defined(SB_ENGINE_EXTERNAL)
+#endif
+#if defined(SB_HW_FM1)
+#elif defined(SB_ENGINE_EXTERNAL)
     /* An engine of a firmware built on the base (engine.h; the Plaits
      * demo is one): its static objects' constructors, then its own
      * start-up, in place of the instrument's. */
@@ -251,7 +391,8 @@ int main(void)
      * audio starts. */
     store_boot();
 #endif
-#if defined(SB_ENGINE_EXTERNAL)
+#if defined(SB_HW_FM1)
+#elif defined(SB_ENGINE_EXTERNAL)
     audio_start(sb_engine_block);
 #elif defined(SB_COST_NO_AUDIO)
     (void)fm_block;
@@ -265,7 +406,9 @@ int main(void)
 #if defined(SB_TEST_LEDS)
     sb_test_leds();
 #endif
+#if !defined(SB_HW_FM1)
     sb_irq_on();
+#endif
 
 #if defined(SB_TEST_FAULT)
     sb_test_fault();
@@ -278,8 +421,11 @@ int main(void)
 #endif
 
     /* The screen: the controller's start, the address pattern sent while
-     * the display is still off, then display on (DESIGN-NOTES.md, M2). */
+     * the display is still off, then display on (DESIGN-NOTES.md, M2). The
+     * hardware build brought the panel up already (hw_early). */
+#if !defined(SB_HW_FM1)
     lcd_init();
+#endif
 #if defined(SB_NO_START_SCREENS)
     /* Since BR-16 an engine may start without the bring-up screens: a
      * black frame in place of the pattern (the engine's init may have
@@ -292,6 +438,12 @@ int main(void)
 #else
     screen_pattern();
     lcd_send_rows(0, SCREEN_H);
+#if defined(SB_HW_FM1)
+    /* Band 4 (yellow), over the pattern: its DMA chain ended by SPI1's
+     * interrupts (R-HW-1). */
+    lcd_wait();
+    hw_band(4);
+#endif
     lcd_command(LCD_DISPON, 0, 0);
     sb_beacon.screen = SB_SCREEN_PATTERN;
 
@@ -331,7 +483,9 @@ int main(void)
         second = sb_seconds;
         /* What the engine asked of the store before the loop began, and
          * (since M8a) the panel's events from before it: the screens. */
-#if defined(SB_ENGINE_EXTERNAL)
+#if defined(SB_HW_FM1)
+        hw_serve();
+#elif defined(SB_ENGINE_EXTERNAL)
         sb_engine_serve();
 #else
         serve_store();
@@ -344,7 +498,9 @@ int main(void)
                 seen = sb_work;
                 sb_beacon.wakes = wakes;
                 sb_beacon.wakes_ticks = sb_beacon.tick_count;
-#if defined(SB_ENGINE_EXTERNAL)
+#if defined(SB_HW_FM1)
+                hw_serve();
+#elif defined(SB_ENGINE_EXTERNAL)
                 sb_engine_serve();
 #else
                 view_serve();

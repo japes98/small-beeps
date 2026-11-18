@@ -616,6 +616,7 @@ an issue or a pull request against docs/HARNESS.md.
 - Answered: 2026-11-18, session spec-sr14 (spec side), by the owner's
   ruling for SR-14
 
+
 ### SR-15: The FM-1's two flash parts
 - Asked: 2026-11-18, by the owner (docs/prompts/spec-sr15.md), for M7's
   store on real hardware and for firmwares built on the base (RevoiceDX
@@ -657,3 +658,50 @@ an issue or a pull request against docs/HARNESS.md.
   and a refusal when any protection bit is set. It also requires the busy
   wait to stay after every erase and page program.
 - Answered: 2026-11-18, session spec-sr15 (spec side)
+
+### SR-16: What the FM-1 hardware build still assumes on the chip
+- Asked: 2026-11-18, session clean-br17-start (firmware side), for BR-17
+  Phase B, the first hardware build (R-HW-1)
+- Question: on the FM-1, after m-bootloader has called the app (HW-119)
+  and the app does not return:
+  1. **The timers' set-up and clocks**: the meaning of `JL_TIMERn->CON`
+     bits 0 to 3 on the chip (fwtest's reading, HW-48: bits 0-1 non-zero
+     run it), so which value runs TIMER0 from the 60 MHz low-speed bus
+     with prescaler setting 0 (the build writes `CON` `0x1`); whether the
+     acknowledge restarts the count (Q-13); and the input clocks of
+     TIMER1 and of TIMER4, the free-running time base (HW-13 gives only
+     fwtest's 24 MHz). The build uses TIMER0 alone until then.
+  2. **Interrupts after the call**: core 0's mode (HW-3 is
+     emulator-only), so which stack (`sp` or `ssp`) an interrupt runs
+     on; whether the vector table at `0x01C7FE00` (HW-18), inside the
+     retained area HW-119 names, may be written by an app that never
+     returns, and whether anything in that area matters to m-bootloader
+     at the next power-on; and what `idle` does on the chip (HW-24 is
+     fwtest's).
+  3. **Code run from RAM**: whether instructions copied into main RAM
+     with ordinary stores, over RAM m-bootloader used, may be run at
+     once, or need a cache operation first (HW-91 says the stock firmware
+     synchronises the instruction cache after a program, Q-22).
+  4. **The rest of the key matrix**: every key's and button's column
+     word and row on the FM-1 (HW-117 gives four), and in particular
+     what bits 11 to 15 of the column word select: OCT−'s `0xF7FE` and
+     OCT+'s `0xEFFD` clear two bits each, where fwtest's matrix (HW-33)
+     has one column per key and no columns past 10.
+  5. **The encoders' rows and the pot**: the set-up of the encoder rows
+     (fwtest's PA0 and PB7, HW-34, HW-38: their pull-ups) and of the
+     SARADC's pin for the pot (HW-40) on the chip.
+  6. **Audio, core 1 and MIDI**: what the audio link and DAC need on the
+     chip besides HW-43 to HW-45's registers (clocks, analogue set-up,
+     pins), whether releasing core 1 as HW-9 says works after
+     m-bootloader's call, and UART1's pins on the board (HW-73).
+- Why: the first hardware build (R-HW-1, `SB_HW_FM1`) runs small-beeps'
+  own start-up on a unit with the screen, keys, LEDs and a timer, as the
+  owner asked after the panel probe worked (docs/prompts/clean-br17-start.md).
+  Each item above is something it either assumes (items 1 to 3) or
+  leaves out for want of a fact (items 4 to 6). The build draws a band
+  on the screen after each assumed step, so the owner's report will show
+  where it stops, but the report is a relayed observation, not a fact
+  this side may take. Read: HW-3, HW-9, HW-13, HW-18, HW-24, HW-33 to
+  HW-35, HW-38, HW-40, HW-43 to HW-45, HW-48, HW-73, HW-91, HW-117 to
+  HW-119; Q-3, Q-7, Q-13, Q-22.
+- Status: open

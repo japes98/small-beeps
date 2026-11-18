@@ -10,6 +10,10 @@
 
 #include "sb.h"
 #include "WL82.h"
+#include "hw_fm1.h"
+#if defined(SB_HW_FM1)
+#include "input.h"
+#endif
 
 /* HW-29: CON bit 15 reads 1 when a transfer is done, writing bit 14
  * clears that, bit 13 makes a finished transfer raise source 16. */
@@ -19,12 +23,33 @@
 
 /* SPI1's own set-up (clock, mode, pins) on the chip is open (Q-6, SR-3);
  * fwtest needs none (HW-29). These are the CON bits that set-up will
- * keep in every write; none yet. */
+ * keep in every write; none yet. The FM-1 hardware build (SB_HW_FM1)
+ * keeps HW-115's on and mode bits, 0x21, set by hw_early: a write with
+ * bit 0 clear would switch SPI1 off on the chip (HW-55). */
+#if defined(SB_HW_FM1)
+#define SPI_CON   0x21u
+#else
 #define SPI_CON   0u
+#endif
 
 /* HW-30: PC8 low for a command byte, high for its parameters and for
  * pixels. Only that bit of the port is ever changed. */
 #define LCD_DC    (1u << 8)
+#if defined(SB_HW_FM1)
+/* HW-115: the panel's chip select, PC7, active low: each command and its
+ * data (pixels too) are sent with it low, and it goes high after them.
+ * fwtest doesn't model it (HW-30), so only a unit shows it. Here it goes
+ * high, then low, as each command starts, once the transfer before has
+ * ended (lcd_wait): so it stays low through a frame's DMA, and between
+ * commands it is high for a moment. hw_early leaves it high. */
+#define LCD_CS    (1u << 7)
+/* How long lcd_wait waits for a frame's DMA chain, in beats, before it
+ * says what it sees and stops (R-HW-1): band 5 if CON bit 15 says the
+ * transfer is done but its interrupt never came, every LED lit if the
+ * transfer never finished (then SPI1 can't draw a band either). */
+#define DMA_WAIT_BEATS 500u
+static u32 chain_beat;
+#endif
 
 /* DS (HW-31, HW-32): the commands used. */
 #define SWRESET   0x01u
@@ -66,10 +91,32 @@ static void send_byte(u32 b)
  * chunk's interrupt could come between the test and an idle, which would
  * then sleep until the next tick (it did, once a frame, in the flood
  * test). Only a command that follows a frame still going out waits. */
+#if defined(SB_HW_FM1)
+static void dma_stuck(void)
+{
+    u32 c;
+
+    if (JL_SPI1->CON & SPI_DONE) {
+        hw_band(5);
+    } else {
+        for (c = 0; c < INPUT_LEDS; c++)
+            input_led(c, INPUT_LED_FULL);
+    }
+    for (;;)
+        __asm__ volatile("idle");
+}
+#endif
+
 void lcd_wait(void)
 {
+#if defined(SB_HW_FM1)
+    while (dma_left)
+        if (sb_beacon.beats - chain_beat > DMA_WAIT_BEATS)
+            dma_stuck();
+#else
     while (dma_left)
         ;
+#endif
     if (dma_polled) {
         while (dma_polled && !(JL_SPI1->CON & SPI_DONE))
             ;
@@ -88,6 +135,12 @@ u32 lcd_busy(void)
 void lcd_command(u8 command, const u8 *params, u32 count)
 {
     lcd_wait();
+#if defined(SB_HW_FM1)
+    JL_PORTC->OUT |= LCD_CS;
+    __asm__ volatile("csync" ::: "memory");
+    JL_PORTC->OUT &= ~LCD_CS;
+    __asm__ volatile("csync" ::: "memory");
+#endif
     dc_low();
     send_byte(command);
     dc_high();
@@ -150,6 +203,9 @@ void lcd_send_rows(u32 first, u32 rows)
         return;
     }
     dma_left = bytes;
+#if defined(SB_HW_FM1)
+    chain_beat = sb_beacon.beats;
+#endif
     JL_SPI1->CON = SPI_CON | SPI_CLEAR | SPI_IRQ;
     start_chunk();
 }
