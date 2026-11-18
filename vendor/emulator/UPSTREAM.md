@@ -12,8 +12,8 @@ SPDX-FileCopyrightText: 2026 japes98
 - Licence: MIT, copyright 2026 Joakim Eriksson (`LICENSE` here, copied
   unmodified).
 - What: `crates/fm1-isa`, `crates/fm1-core` and `crates/fm1-soc`, at the
-  same paths, unmodified but for the patches below (0002 to 0017: bug
-  fixes, two speed-only changes and MIDI out) and the workspace manifest
+  same paths, unmodified but for the patches below (0002 to 0018: bug
+  fixes, two speed-only changes, MIDI out and the panel's chip select) and the workspace manifest
   `Cargo.toml` (patched, 0001). docs/EMULATOR-PARITY.md compares them with
   the F-Emulator app's.
   Nothing else from that repository: no other crates, no `fm1-sid/`, no
@@ -22,7 +22,7 @@ SPDX-FileCopyrightText: 2026 japes98
   sparse checkout of exactly those paths) and checked by
   `tools/fetch-emulator.sh --verify` (C-EMU-PIN): every file against
   `SHA256SUMS`, whose own SHA-256 (the tree hash) is
-  `9d38bfda8e56e9794ce222c992da0ed485202927092bca777867a008e2df0e6c`.
+  `f28f9ae3e513cc511d489b4c39a647215a151cab4d47c35103327f47c4fb6cdc`.
 - Provenance: PROVENANCE.md P-7. Exposure: docs/EXPOSURE.md (session M0b).
 
 ## Patches
@@ -179,6 +179,14 @@ Applied in file-name order by the fetch script, after checkout:
   fwtest reports it as the outcome `trap`. The crate test
   `bkpt_is_a_trap` and the harness test `bkpt_ends_the_run_as_a_trap`
   (image `tests/images/trap.c`) fail without it (fwtest 0.10.0).
+- `patches/0018-lcd-chip-select.patch` (session spec-sr16, the owner's
+  request, 2026-11-18): `crates/fm1-soc/src/lib.rs`, the FM-1's panel
+  ignores SPI1's bytes (single and by DMA) while PC7, its chip select
+  (HW-115), is an output driven high; a PC7 never driven high selects it,
+  as before. The transfer still completes and raises its interrupt. The
+  crate test `lcd_ignores_bytes_while_its_chip_select_is_high` and the
+  harness test `lcd_ignores_bytes_while_pc7_is_high` (image
+  `tests/images/lcdcs.c`) fail without it (fwtest 0.11.0).
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
 and the harness suite gave byte-identical outputs (284 files) from fwtest
