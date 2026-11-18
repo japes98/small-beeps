@@ -30,7 +30,9 @@ storage, for SR-9 (open: Q-21 to Q-24). Session spec-a1-fwsc (spec side, 2026-10
 added section 21, the update package and the loader chain, for Phase A1
 (open: Q-25, Q-26); its HW-91 supersedes HW-81. Session spec-br17-package (spec
 side, 2026-11-17) added section 24, the package as JieLi's packaging
-tools write it, for BR-17 (Q-25 answered in part; Q-26 narrowed).
+tools write it, for BR-17 (Q-25 answered in part; Q-26 narrowed). Session
+spec-br17-tools (spec side, 2026-11-18) added section 25, what the unit's
+installer and bootloader check (Q-25 and Q-26 answered in large part).
 
 ## How to read it
 
@@ -44,7 +46,8 @@ Every fact is an entry:
 - **Sources**: as precisely as possible (the keys are under "Sources" below).
 - **Standing**:
   - **confirmed**: an independent source agrees: the JieLi SDK (its
-    packaging tools' output included, PKG), FM-1-RE's
+    packaging tools' output included, PKG), the unit's installer and
+    bootloader's own sources (MF, MB), FM-1-RE's
     documents, a datasheet, the panel sources, or a spec-side black-box
     experiment in fwtest (E-n). An experiment confirms how fwtest behaves,
     not how the chip behaves; the sources say which kind of confirmation it
@@ -77,6 +80,8 @@ least significant. Register names are the JieLi SDK's.
 | MAN | M-VAVE's user manuals: the FM-1's, the English part (pages 1-12) of `https://m.media-amazon.com/images/I/A1WOydif9HL.pdf`, SHA-256 `69bfea10…8b715da`, accessed 2026-10-24 (PROVENANCE P-41); the SMK-37 Pro's, as `https://www.manualslib.com/manual/4132288/M-Vave-Smk-37-Pro.html` shows it, accessed 2026-10-24 (PROVENANCE P-42). Neither copied into this repository. Only what they say about the connections is used. |
 | MPLUS | Manuals+'s "M-VAVE SMK-37 PRO MIDI Controller User Manual", `https://manuals.plus/asin/B0GQZP7C8G.pdf`, 13 pages, SHA-256 `77d9d537…3e3745`, accessed 2026-10-24, supplied by the owner and checked by the planning conversation, not fetched by a session here (PROVENANCE P-49). A third party's write-up, not M-VAVE's manual: secondary, it never confirms an entry on its own. Not copied into this repository. |
 | PKG | JieLi's packaging tools from the SDK (as SDK, same commit), `cpu/wl82/tools/loader_tools/`: `isd_download.exe` (4.2.52), `fw_add.exe` and `ufw_maker.exe`, run under wine 8.0 in a throwaway container with no network, on our own input (PROVENANCE P-65). They show what JieLi's packaging writes, not what the chip checks. |
+| MF | m-flasher, the FM-1 installer on the owner's unit, `https://github.com/jvitkauskas/m-flasher` at `8fbece7348d758ac284325eed455781675ac95ff` (2026-11-15), MIT: `src/formats.rs`, `src/ops.rs`, `docs/usage.md`, `docs/safety.md` only, read under the owner's ruling for BR-17 (PROVENANCE P-67). Only the package format and what it checks are taken. |
+| MB | m-bootloader, the bootloader on the owner's unit, `https://github.com/jvitkauskas/m-bootloader` at `3ac7651a019fa44daba061b05654278496477b64` (2026-11-13), MIT: `docs/SPEC.md` only, its flash formats and checked start (PROVENANCE P-67). No stock firmware's details are taken from it. |
 | TC | The pinned JieLi toolchain (PROVENANCE P-1, P-36): its assembler and disassembler (clang's integrated assembler and `objdump`), and the code its compiler emits for C whose meaning is known. It is the vendor's compiler for this CPU, so how its code uses an instruction says what the instruction does; it carries no documents. |
 | HARNESS | docs/HARNESS.md, fwtest's manual. It is the spec side's own description of fwtest, so it never confirms an entry on its own. |
 | E-n | A spec-side black-box experiment: a small image run in fwtest (the pinned image, `config/fwtest-image`). Its result is stated in the entry. C-SPEC-EXPERIMENTS re-runs every one in CI, so a cited result that stops holding fails CI. |
@@ -2518,6 +2523,160 @@ start of the structure named. All multi-byte fields are little-endian.
 - Standing: confirmed (SDK, PKG)
 - Needed by: BR-17, M10
 
+## 25. What an FM-1 installer and the bootloader check (Q-25, Q-26)
+
+What the installer and bootloader on the owner's unit check before they
+write or start a package's firmware, from their own MIT sources: the
+installer **m-flasher** (MF) and the bootloader **m-bootloader** (MB),
+read under the owner's ruling for BR-17 (2026-11-18, PROVENANCE P-67).
+Only the package format and the checks are taken. Nothing here comes
+from a stock package or from what any stock firmware holds. Phase B
+round 1 (the owner, 2026-11-18) agrees with HW-109: both candidates were
+refused before anything was written, with "unexpected flash image size".
+
+### HW-109: What the installer checks in a package, in order
+- Fact: m-flasher's firmware install refuses a `.fwsc` at the first of
+  these that fails, before it writes anything:
+  1. The file is at least 4 096 bytes.
+  2. **Prefix blocks.** It takes at least the first 20 48-byte blocks,
+     and goes on taking blocks while the next block's byte 47 is `0x7D`.
+     So file byte `48·20 + 47` (1007) must not be `0x7D`, nor byte 47 of
+     any later block it would reach. The identity is read from the
+     markers up to the first `0x7D` (HW-88's rule).
+  3. The header's CRC-16 (HW-104): "not a firmware package, or a damaged
+     one (header CRC)".
+  4. The list `64 + 80 × count` bytes fits in the image.
+  5. **The list CRC**: the CRC-16 of the stored (masked) list bytes must
+     equal header bytes 2-3: "damaged firmware package (file list CRC)".
+  6. Every entry's data lies inside the image.
+  7. An entry named `flash.bin` with type 0, and its data's CRC-16 (over
+     the bytes as stored) equal to the entry's bytes 4-5.
+  8. **The flash image's size**: longer than `0x4000` bytes and a
+     multiple of `0x1000`: "unexpected flash image size N".
+  Then, against the unit:
+  9. **The model**: the identity up to its last `_` must be one of the
+     connected board's models. An FM-1 takes `FM-1`, so the identity is
+     `FM-1_` followed by a version with no `_` in it: in
+     `FM-1_A_1` the model is `FM-1_A`, which is refused.
+  10. The flash image is no longer than the flash (1 MiB).
+  11. **The chip key** (HW-111): the app area, read with the unit's own
+      key, must hold a valid file table with at least one file of
+      attribute `0x82`, and every such file's CRC-16 over its unscrambled
+      data must match its head ("does not decrypt with this unit's chip
+      key").
+  No other entry, field or CRC is checked, and no entry other than
+  `flash.bin` is used. Header bytes 10-15 and the other entries (HW-104)
+  are not read.
+- Sources: MF `src/formats.rs` (`Package::parse`, `app_table`,
+  `app_files_status`), `src/ops.rs` (`plan_firmware`), `docs/safety.md`;
+  `docs/usage.md` (the FM-1's packages named `FM-1_…`); MB `docs/SPEC.md`
+  §5.6. Phase B round 1 (step 8).
+- Standing: confirmed (MF, MB)
+- Needed by: BR-17 (a package the unit's installer accepts)
+
+### HW-110: What the installer writes, and where the image goes
+- Fact: m-flasher writes `flash.bin` from flash `0x4000` to its end, only
+  the 4 KiB sectors that differ, and never the boot area
+  (`0x0000`-`0x3FFF`), which stays the unit's own. It erases nothing
+  outside the image, verifies every sector it writes, and saves a full
+  backup first. So:
+  - `flash.bin` must start at flash 0, because the installer takes
+    offsets in it as flash offsets, but its first `0x4000` bytes are
+    never written. Their content is not checked by the firmware install.
+  - Everything from `0x4000` to the end of `flash.bin` replaces the
+    unit's flash, `0xFF` filler included. An image longer than its app
+    erases whatever the unit keeps there. It should end at the 4 KiB
+    boundary after the app area.
+  Its separate "put back the stock bootloader" action writes a package's
+  boot area, and only if that boot area can start the unit. A firmware
+  install never does.
+- Sources: MF `src/ops.rs` (`plan_firmware`, `Plan`), `docs/safety.md`,
+  `docs/usage.md` ("The actions").
+- Standing: confirmed (MF)
+- Needed by: BR-17
+
+### HW-111: The unit's chip key, and how it is checked
+- Fact: On the chip the key comes from efuse: bank 1, row 3, bits 23-8.
+  When that reads `0xFFFF`, the bootloader instead takes the last 256
+  bytes of the flash: when the CRC-16 of their bytes 0-7 equals the
+  halfword at +8, the key is bytes +5 and +6. The installer asks the
+  unit for its key over the download-mode connection, and shows it under
+  "chip key" (`m-flasher info`). Every unit and package known to the
+  bootloader's author uses `0x980F`, but neither tool assumes it: both
+  read the unit's key. A package's app area must be scrambled (HW-90)
+  with that key, or the installer refuses it (HW-109 step 11). The key
+  the installer is given is the efuse key itself, without the
+  bootloader's fallback. On a unit whose efuse reads `0xFFFF`, the key
+  the installer checks against and the key the bootloader starts with
+  can differ.
+
+  The key block in the boot area (HW-89 and HW-90, 34 bytes with its CRC)
+  is not what the bootloader starts with. Other firmwares' install
+  loaders find the unit's key through that record and refuse a unit
+  whose record is damaged. Both tools decode it by HW-90's rule.
+- Sources: MB `docs/SPEC.md` §3.5 and §5.3; MF `src/ops.rs` (the key
+  read from the unit, the note when it isn't the expected one),
+  `src/formats.rs`.
+- Standing: confirmed (MB, MF)
+- Needed by: BR-17, Phase B
+
+### HW-112: The bootloader's checked start
+- Fact: Before it starts the app, m-bootloader:
+  1. finds `app_dir_head` in the flash directory by name, and takes the
+     app area at its offset (length 0 or `0xFFFFFFFF` for one bank);
+  2. reads the area with the unit's key. Its first record must be the
+     area head, attribute `0x83`, name `app_area_head`, its offset field
+     the entry address (normally `0x02000120`). After it come at most
+     eight records, ending at the first whose own CRC fails;
+  3. checks every attribute-`0x82` file (`app.bin`, `cfg_tool.bin`):
+     its CRC-16 over its unscrambled data, and its bounds inside the
+     flash. `app.bin` must be non-empty, with the entry inside the
+     mapped area. The area head's own data CRC is not this check;
+  4. sets up the window with the key, and calls the entry with r0
+     pointing at the boot block at `0x01C7FE08`: the decoded flash
+     header's address (`0x01C7FE20`), the area's flash offset (`0x4000`),
+     the window's address (`0x02000000`), the key (16 bits; HW-91's "chip
+     ID"), a trim value (16 bits) and the 8 bytes at flash `0xFFF40`.
+  A failed check, no app, or an app that returns opens its recovery
+  menu. A normal start writes nothing to the flash. Region records
+  (attributes `0x12`, `0x92`) give flash offsets and carry no data CRC.
+- Sources: MB `docs/SPEC.md` §5.4, §6.5, §7.
+- Standing: confirmed (MB)
+- Needed by: BR-17, Phase B
+
+### HW-113: What else a package's header holds
+- Fact: Header bytes 10-11 and 12-15 (HW-104) hold 4 and `0x200` in
+  M-VAVE's packages, as in JieLi's tools' output. M-VAVE's updater
+  (M-UPGRADE, over USB MIDI) accepts a package holding only `ota.bin`
+  with those values, `AC791N` at 16, the entry's data at `0x400` and its
+  rounded size at entry bytes 16-19. What the values mean is not given.
+  m-flasher doesn't read them (HW-109).
+- Sources: MB `docs/SPEC.md` §5.6; PKG (P-65, HW-104).
+- Standing: confirmed (MB, PKG)
+- Needed by: BR-17
+
+### HW-114: The flash image's length, and the unused directory slots
+- Fact: In the update files JieLi's tools write (HW-103, HW-104), the
+  `flash.bin` entry's data, the flash image, runs from flash 0 to the
+  first 4 KiB boundary at or after the end of the app area's 64 trailing
+  bytes (HW-105). Everything past them is `0xFF`. With the 4 096-byte
+  apps that is `0x6000` (the area and its 64 bytes end at `0x52DF`).
+  With the 8 192-byte app it is `0x7000` (they end at `0x62DF`). That
+  agrees with the 4 KiB alignment in the flash header's byte 13
+  (HW-105). It is not the header's flash size field. This length passes the installer's size rule
+  (HW-109 step 8: longer than `0x4000`, a multiple of `0x1000`). The
+  installer then writes the image from `0x4000` to its end, never below
+  (HW-110).
+  In the app area's directory, the unused head slots up to `0x120` hold
+  `0xFF` before scrambling, so their CRC fails and a reader's walk ends
+  there (HW-112). An all-zero slot would pass its own CRC (the CRC-16 of
+  zeros is 0) and be read as a record.
+- Sources: PKG (P-65): the four apps' flash images and their area
+  directories; MF `src/formats.rs` (`Package::parse`, `app_table`) and
+  `src/ops.rs` (`plan_firmware`).
+- Standing: confirmed (PKG, MF)
+- Needed by: BR-17 (SR-13)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -2717,6 +2876,11 @@ spec request can turn one into a fact.
   10-15 (4 and `0x200`), `blimit.bin`'s content, six bytes of
   `tail.bin`, the 64 bytes after the app area, and the `.fwsc` blocks'
   origin (HW-107).
+  *Then by session spec-br17-tools (HW-109 to HW-113):* what the FM-1's
+  installer reads and checks. Bytes 10-15 hold 4 and `0x200` in M-VAVE's
+  packages, and no checker reads them. `blimit.bin`, `tail.bin` and the
+  bytes after the area are read by no checker found. The `.fwsc` blocks
+  are M-VAVE's (HW-109).
 - **Q-26. What the chip's loaders and updater check.** What the mask ROM
   and `uboot.boot` check before running the next step (CRCs, the key
   block, the directory), whether the chip key is the same on every unit,
@@ -2730,6 +2894,12 @@ spec request can turn one into a fact.
   checks, whether a unit runs an app scrambled with `0xFFFF`, and whether
   any FM-1 updater takes an app-area-only file (HW-106) stays open: only
   a unit settles them.
+  *Answered in large part by session spec-br17-tools:* m-flasher's
+  checks (HW-109) and writes (HW-110), the key's source on the chip and
+  how installers check it (HW-111), m-bootloader's checked start
+  (HW-112). Still open: what the mask ROM and JieLi's own `uboot.boot`
+  check beyond HW-112's description, M-VAVE's updater's checks beyond
+  HW-113, and whether a unit's key is ever other than `0x980F`.
 - **Q-27. A store of its own base on the chip.** Whether the chip stores
   the base as it was for `[++rN=k] = rN`, `[rN++=k] = rN` and their byte
   and halfword forms, as the toolchain's compiler relies on and fwtest

@@ -3807,3 +3807,38 @@ the form the owner's installer takes, not HW-106's OTA form.
   measures only its own folders from now on. And `flash.bin` alone is
   right: `isd_config.ini` lives below `0x4000`, and an app-area-only
   package leaves that region alone.
+- **Round 1 on the unit, and round 2** (docs/prompts/clean-br17-unit-1.md,
+  2026-11-18). The owner tried both app-area `.fwsc` candidates, `0xFFFF`
+  first. The installer refused both before writing anything: "unexpected
+  flash image size 55608", which is our `flash.bin` entry's length; the
+  unit is unchanged. A unit's behaviour is not among the firmware side's
+  sources (CONTRIBUTING.md: our experiments run in the emulator), so the
+  observation goes to the spec side in SR-12's evidence and SR-13's
+  question, and no fact is drawn from it here. What follows for the
+  candidates: the installer reads the type-0 entry as a flash image with
+  an expected size, so a `flash.bin` sized to pass (a guess this side
+  won't make: a multiple of 32 or 4 KiB, or HW-105's `0xFF000`) is the one
+  most likely written from flash 0 (HW-89), over the loader. The refusal
+  protected the boot area. No more app-area `.fwsc` candidates until
+  SR-13 is answered; the mode stays as it is.
+- **The OTA form** (`--ota`, R-PKG-4) is round 2, as the owner's answer 2
+  foresaw ("if the unit refuses the .fwsc candidate, we'll ask for it
+  then"), read as asked by "make the next candidates from this". It is
+  JieLi's own app-area-only form (HW-106): two heads, `update_data` over
+  the file and `app_core` over the data, then the flash image's bytes
+  from `0x4000`; no `.fwsc` blocks, no entry list, no type-0 entry. Here,
+  unlike the `.fwsc`, the placement is HW-106's ("the flash image from
+  `0x4000` only"), not our reading. Open and printed: the 64 bytes after
+  the area, part of `app_core`'s data and CRC (Q-25; `0xFF`, our choice),
+  the heads' name padding (HW-106 doesn't say; HW-105's rule, our
+  choice), whether the installer takes the file at all (Q-26; HW-106
+  notes the stock updater takes `.fwsc` files), the key and the checks
+  (Q-26). Its files are named `.ufw`, as the SDK's `update-ota.ufw`. If
+  an installer wrote this file's data from flash 0 it would still
+  overwrite the loader; trying it is the owner's call.
+- **Held** (docs/prompts/clean-br17-hold.md, 2026-11-18): the owner holds
+  the OTA candidates this round. The spec side is settling SR-12, SR-13,
+  Q-25 and Q-26 from new sources under an owner ruling; the next
+  candidate is made from that update, and this pull request stays open
+  until then.
+

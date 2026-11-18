@@ -2508,6 +2508,42 @@ SR-3 wrote only its barrier-log row.*
 - Disk: 9.9 GB free when the BR-17 work started; about 3.8 GB at the
   lowest (the wine image is 538 MB).
 
+### Session spec-br17-tools (BR-17: the unit's installer and bootloader)
+- Date: 2026-11-18 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.312; model `claude-opus-5-5`. The same Claude Code
+  session as spec-br17-package (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on branch `spec/br17-package` (#180), cumulative.
+- The owner's ruling came as a pasted message, saved as received, with
+  its damaged lines, in docs/prompts/spec-br17-tools.md. Its damaged
+  lines were read as: settle Q-25 and Q-26 (where the image goes, what
+  size and identity an installer takes, how the chip key is checked);
+  update the clean prompt so a candidate passes every check at once;
+  Phase B round 1 refused both candidates before anything was written,
+  with "unexpected flash image size", and the unit is unchanged.
+- Read (PROVENANCE P-67), each at the ruling's commit, its `LICENSE`
+  first:
+  - m-flasher `8fbece7348d758ac284325eed455781675ac95ff`: `src/formats.rs`
+    whole; `src/ops.rs` lines 1-130 and 355-409, and a search of its
+    function names and messages; `docs/usage.md` and `docs/safety.md`
+    whole.
+  - m-bootloader `3ac7651a019fa44daba061b05654278496477b64`: `docs/SPEC.md`,
+    its headings, then §3.5 to §6.1 and §6.5 to §7 (lines 182-481 and
+    588-627).
+  No other file of either repository was opened: not m-flasher's
+  `boards.rs`, `jl.rs` or its bundled data, nor m-bootloader's sources.
+  No GPL firmware or stock package was opened.
+- Not recorded, by the ruling: what those pages say of stock firmware
+  (version names, configuration values, region tables, the reference
+  CRCs and sizes of official packages) and of other firmwares.
+- #180 was merged at its first commit before this work was pushed. The
+  push went to the branch alone, and #180's title and body were edited
+  by mistake to describe this work. They were restored the same hour.
+- Merged into the branch: main (#181, #182) and the clean side's open
+  #183 (`pack/ota-form`), whose SR-13 this branch answers (HW-114). Both
+  sides' EXPOSURE entries kept. This side's provenance row became P-67,
+  as clean-br17 had taken P-66.
+- Disk: about 4.9 GB free.
 ### Session clean-br17 (BR-17's packager parts: section 24's fields, an app-area-only package, the `fm1-unit` target)
 - Date: 2026-11-17 (UTC)
 - Role: firmware side (clean).
@@ -2580,6 +2616,15 @@ SR-3 wrote only its barrier-log row.*
   only, no file opened), and a clean session measures only its own
   folders from now on. Header bytes 10-15 now carry the tools' values;
   the two candidates were packed again (new hashes in the report).
+- 2026-11-18: the owner's report from the unit (round 1: both refused,
+  "unexpected flash image size 55608"), pasted, saved as
+  docs/prompts/clean-br17-unit-1.md. Taken as the owner's observation,
+  relayed to the spec side in SR-12 and SR-13, not as a source of fact
+  (a unit isn't among the firmware side's sources). Round 2's
+  candidates are HW-106's OTA file (`--ota`, R-PKG-4), files in `out/`.
+- Then the owner held them (docs/prompts/clean-br17-hold.md): the next
+  candidate waits for the spec side's update on SR-12, SR-13, Q-25 and
+  Q-26.
 - Force-pushes: none.
 - Disk: 5.5 GB free at the start; about 5.4 GB at the lowest.
 

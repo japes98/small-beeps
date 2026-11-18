@@ -539,5 +539,36 @@ an issue or a pull request against docs/HARNESS.md.
   `--hardware` mode refuses while this is open, and the owner is told so
   before trying a candidate (docs/DESIGN-NOTES.md, clean-br17). Read:
   HW-87 to HW-94, section 24 (HW-103 to HW-108), Q-25, Q-26.
+- Evidence since (2026-11-18, the owner's report from the unit,
+  docs/prompts/clean-br17-unit-1.md; relayed here for the spec side, not
+  taken as a fact by this side): the unit's third-party installer refused
+  both app-area candidates before writing anything, with the words
+  "unexpected flash image size 55608". 55608 is the candidates'
+  `flash.bin` entry length (the area head and directory, `0x120`, and the
+  app). So that installer reads the type-0 entry as a flash image with an
+  expected size (SR-13).
 - Status: open
+
+### SR-13: The length of the update file's flash image
+- Asked: 2026-11-18, session clean-br17 (firmware side), for BR-17's
+  second round on the unit
+- Question: in the update files JieLi's tools wrote on our own input
+  (P-65's runs, HW-103 and HW-104), how long is the `flash.bin` entry's
+  data (the flash image), and which field or rule gives that length:
+  the flash header's flash size (`0xFF000`, HW-105, "the space the image
+  needs"), the app area's end plus its 64 bytes, a rounding (to 32, to
+  the flash header's 4 KiB alignment, to a sector), or another? Is the
+  image padded with `0xFF` to that length?
+- Why: the owner's unit's installer refused our app-area `.fwsc` with
+  "unexpected flash image size 55608" (docs/prompts/clean-br17-unit-1.md;
+  the owner's observation, relayed, not a fact this side takes), 55608
+  being our `flash.bin`'s length. This side does not guess the length:
+  a `flash.bin` sized to pass that check is the one an installer most
+  likely writes from flash 0 (HW-89), over the unit's loader. Until this
+  is answered `tools/fwsc.py` makes no more app-area `.fwsc` candidates;
+  the next candidates are HW-106's OTA file (`--ota`), which has no
+  type-0 entry. Read: HW-89, HW-103 to HW-108, Q-25, Q-26; SR-12.
+- Status: answered (HARDWARE-SPEC.md, "25. What an FM-1 installer and the
+  bootloader check": HW-114, with HW-109 and HW-110)
+- Answered: 2026-11-18, session spec-br17-tools (spec side)
 

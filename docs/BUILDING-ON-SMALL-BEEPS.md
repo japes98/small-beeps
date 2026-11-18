@@ -442,8 +442,9 @@ installer puts the area, which key the unit runs, which entries and CRCs
 an installer checks). Without `--hardware` the same command writes the
 package, nothing in it below flash `0x4000`, and prints the same list;
 `python3 base/tools/fwsc.py FILE --app-area --key 0xFFFF` reads it back.
-Such a package is a candidate for the owner's unit check, not a release
-for a unit: a release names the hardware target `fm1-unit` only after a
+`--ota` in place of `--app-area` writes HW-106's OTA file (`.ufw`), the
+other app-area-only form, with no `.fwsc` blocks. Such a package is a
+candidate for the owner's unit check, not a release for a unit: a release names the hardware target `fm1-unit` only after a
 recorded check on a unit (docs/RELEASING.md). Every pack, full or app
 area, prints what the spec leaves open; a build pipeline can keep that
 output.

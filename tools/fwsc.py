@@ -26,6 +26,17 @@ HW-108).
       file (HW-105, HW-108), or 0x980F, the stock package's (HW-90). With
       --hardware it refuses (exit 2) while any field a unit needs is open,
       naming each; today it always refuses.
+  fwsc.py pack APP.bin --ota --key 0xFFFF|0x980F --version X.Y.Z
+               --out FILE.ufw [--hardware]
+      HW-106's OTA update file (BR-17, round 2): the flash image's bytes
+      from 0x4000 only, behind two heads, update_data and app_core, as
+      JieLi's tools write db_update_files_data.bin (the SDK's
+      update-ota.ufw). No .fwsc blocks, no entry list, no type-0 entry:
+      by HW-106 it holds nothing below 0x4000. --hardware refuses as for
+      --app-area.
+  fwsc.py FILE.ufw --ota --key KEY
+      Reads an OTA file (check_ota()): both heads' CRCs, the area under
+      KEY, nothing below 0x4000.
   fwsc.py FILE.fwsc [--unpack DIR]
       Runs fwtest's checks on a full-image package, in fwtest's order
       (docs/HARNESS.md, "Packages"; HW-93), then section 24's fields
@@ -121,6 +132,11 @@ KEY_MAC = (b"key_mac", 0xFF000, 0x1000, 0x12, 1)   # name, offset, length, attri
 NO_CRC = 0xFFFF                             # the data CRC of a head that names a region, not data
 KEY_BLOCK_AT = 0x80                         # right after the directory's four heads
 
+# HW-106: the OTA update file's two heads (HW-89's layout, not masked).
+OTA_FILE_HEAD = (b"update_data", 3)          # name, attribute
+OTA_CORE_HEAD = (b"app_core", 2)
+OTA_TAIL = 64                                # the bytes after the area in app_core's data (Q-25)
+
 # HW-90, HW-91: the app area, its directory, the app.
 AREA = 0x4000
 DIR_SIZE = 0x120                            # the area head and eight heads: the SDK's directory
@@ -156,6 +172,16 @@ OPEN = [
     ("Q-26", "which CRCs a loader or an installer checks", "every CRC section 24 defines", ("full", "app-area")),
     ("SR-12", "where an installer writes a .fwsc entry's data: by HW-89 a flash.bin entry goes from flash 0, "
      "and no field places it at 0x4000", "flash.bin, taken to go at 0x4000 (our reading)", ("app-area",)),
+    ("SR-13", "the length an installer expects of a flash image: the unit's installer refused the app-area "
+     ".fwsc with \"unexpected flash image size\" (BR-17, round 1)", "the area's own length", ("app-area",)),
+    ("Q-25", "the 64 bytes after the area, part of app_core's data and CRC (HW-105, HW-106)",
+     "0xFF (our choice)", ("ota",)),
+    ("Q-25", "the OTA heads' name padding (HW-106 doesn't say)", "one zero byte, then 0xFF, as HW-105's heads (our choice)",
+     ("ota",)),
+    ("Q-26", "whether the unit's installer or updater takes the OTA file at all (HW-106: the stock updater takes "
+     ".fwsc files)", "the file as HW-106 gives it", ("ota",)),
+    ("Q-26", "the chip key a unit runs (HW-108): 0xFFFF, its stock 0x980F, or its own", "the given key", ("ota",)),
+    ("Q-26", "which CRCs an updater checks", "both heads' CRCs and data CRCs, and the area's", ("ota",)),
 ]
 
 
@@ -326,6 +352,74 @@ def pack_app_area(app, identity, key):
     if p:
         raise ValueError("; ".join(p))
     return blob
+
+
+def pack_ota(app, key):
+    """HW-106's OTA update file: head 1 update_data (offset 32, the
+    file's length, data CRC from byte 32, attribute 3, reserved 0xFF,
+    last 1), head 2 app_core (offset 64, the area's length plus 64, data
+    CRC over those bytes, attribute 2, reserved 0xFF), then the flash
+    image's bytes from 0x4000: the area, scrambled with key, and the 64
+    bytes after it (0xFF here, Q-25)."""
+    p = pack_problems(app, "small-beeps")
+    if key not in KEYS:
+        p.append("key 0x%04X: not one the spec gives (%s)" % (key, ", ".join("0x%04X" % k for k in KEYS)))
+    if p:
+        raise ValueError("; ".join(p))
+    data = app_area(app, key) + b"\xff" * OTA_TAIL
+    core = head(OTA_CORE_HEAD[0], 64, len(data), data, OTA_CORE_HEAD[1], reserved=0xFF)
+    rest = core + data
+    first = head(OTA_FILE_HEAD[0], 32, 32 + len(rest), rest, OTA_FILE_HEAD[1], last=1, reserved=0xFF)
+    blob = first + rest
+    p = ota_problems(blob, key)
+    if p:
+        raise ValueError("; ".join(p))
+    return blob
+
+
+def ota_problems(blob, key):
+    """Problems with an OTA file (HW-106), read as this reader reads it:
+    its two heads and their CRCs; app_core's data the flash image from
+    0x4000 (HW-106), so placed nowhere below it; an area head first
+    under key, its CRCs, and no head in the area naming a region below
+    0x4000."""
+    if len(blob) < 64 + 2 * CHUNK:
+        return ["too short for an OTA file"]
+    h1, h2 = HEAD.unpack(blob[:32]), HEAD.unpack(blob[32:64])
+    p = head_problems("update_data", h1, blob[:32], blob[32:])
+    p += head_problems("app_core", h2, blob[32:64], blob[64:64 + h2[3]])
+    if (name_of(h1[7]), h1[2], h1[3], h1[4], h1[6]) != (OTA_FILE_HEAD[0], 32, len(blob), OTA_FILE_HEAD[1], 1):
+        p.append("head 1 is not update_data over the whole file (HW-106)")
+    if (name_of(h2[7]), h2[2], h2[4]) != (OTA_CORE_HEAD[0], 64, OTA_CORE_HEAD[1]) or 64 + h2[3] != len(blob):
+        p.append("head 2 is not app_core over the rest of the file (HW-106)")
+    if p:
+        return p
+    area = scramble(blob[64:len(blob) - OTA_TAIL], key)
+    ah = HEAD.unpack(area[:32])
+    if name_of(ah[7]) != AREA_HEAD_NAME or ah[3] != len(area):
+        return ["app_core's data does not start with the app area's head under key 0x%04X" % key]
+    p += area_problems(area)
+    at = CHUNK
+    while at + 32 <= min(len(area), DIR_SIZE):
+        h = HEAD.unpack(area[at:at + 32])
+        start = AREA + h[2] if h[4] == APP_ATTR else h[2]
+        if start < AREA:
+            p.append("%r reaches 0x%X, below 0x%X" % (name_of(h[7]), start, AREA))
+        if h[6]:
+            break
+        at += 32
+    return p
+
+
+def check_ota(blob, key):
+    """An OTA file's reading: a dict like check_app_area()'s, or
+    ValueError naming what failed."""
+    p = ota_problems(blob, key)
+    if p:
+        raise ValueError("; ".join(p))
+    area = scramble(blob[64:len(blob) - OTA_TAIL], key)
+    app = HEAD.unpack(area[CHUNK:2 * CHUNK])
+    return {"area": AREA, "entry": WINDOW + app[2], "key": key, "app": area[app[2]:app[2] + app[3]]}
 
 
 def open_fields(mode):
@@ -679,14 +773,17 @@ def main():
         ap.add_argument("--identity")
         ap.add_argument("--out", required=True)
         ap.add_argument("--app-area", action="store_true", help="the app area alone, nothing below 0x4000")
+        ap.add_argument("--ota", action="store_true", help="HW-106's OTA file: the app area alone, no .fwsc")
         ap.add_argument("--key", type=lambda v: int(v, 0), help="the app area's key (--app-area): 0xFFFF or 0x980F")
         ap.add_argument("--hardware", action="store_true", help="refuse while a field a unit needs is open")
         a = ap.parse_args(sys.argv[2:])
-        mode = "app-area" if a.app_area else "full"
-        if a.key is not None and not a.app_area:
-            ap.error("--key goes with --app-area (the full image's key is its key block's)")
-        if a.app_area and a.key is None:
-            ap.error("--app-area needs --key: %s" % "; ".join("0x%04X, %s" % kv for kv in KEYS.items()))
+        if a.app_area and a.ota:
+            ap.error("--app-area or --ota, not both")
+        mode = "ota" if a.ota else "app-area" if a.app_area else "full"
+        if a.key is not None and mode == "full":
+            ap.error("--key goes with --app-area or --ota (the full image's key is its key block's)")
+        if mode != "full" and a.key is None:
+            ap.error("--%s needs --key: %s" % (mode, "; ".join("0x%04X, %s" % kv for kv in KEYS.items())))
         if a.hardware:
             why = ["the full image writes the boot area (0x0-0x3FFF), where a unit keeps its loader: "
                    "use --app-area"] if mode == "full" else []
@@ -700,15 +797,18 @@ def main():
             app = f.read()
         identity = a.identity or "small-beeps-" + a.version
         try:
-            blob = pack_app_area(app, identity, a.key) if a.app_area else pack(app, identity)
+            blob = (pack_ota(app, a.key) if mode == "ota" else pack_app_area(app, identity, a.key) if mode == "app-area"
+                    else pack(app, identity))
         except ValueError as e:
             print("fwsc: %s" % e, file=sys.stderr)
             return 2
         with open(a.out, "wb") as f:
             f.write(blob)
         print("fwsc: wrote %s (%s%s), %d bytes, SHA-256 %s" % (
-            a.out, "the app area alone, key 0x%04X" % a.key if a.app_area else "the full image, for the emulated load paths",
-            "" if a.app_area else ", never for a unit", len(blob), hashlib.sha256(blob).hexdigest()))
+            a.out, {"ota": "HW-106's OTA file, the app area alone, key 0x%04X" % (a.key or 0),
+                    "app-area": "the app area alone, key 0x%04X" % (a.key or 0),
+                    "full": "the full image, for the emulated load paths"}[mode],
+            ", never for a unit" if mode == "full" else "", len(blob), hashlib.sha256(blob).hexdigest()))
         for q, what, ours in open_fields(mode):
             print("fwsc: open (%s): %s: %s" % (q, what, ours))
         return 0
@@ -716,10 +816,22 @@ def main():
     ap.add_argument("file")
     ap.add_argument("--unpack")
     ap.add_argument("--app-area", action="store_true")
+    ap.add_argument("--ota", action="store_true")
     ap.add_argument("--key", type=lambda v: int(v, 0))
     a = ap.parse_args()
     with open(a.file, "rb") as f:
         blob = f.read()
+    if a.ota:
+        if a.key is None:
+            ap.error("--ota needs --key")
+        try:
+            r = check_ota(blob, a.key)
+        except ValueError as e:
+            print("fwsc: FAIL: %s" % e)
+            return 1
+        print("fwsc: OK: HW-106's OTA file, nothing below 0x%X; entry 0x%08X, key 0x%04X, app %d bytes, SHA-256 %s"
+              % (AREA, r["entry"], r["key"], len(r["app"]), hashlib.sha256(r["app"]).hexdigest()))
+        return 0
     if a.app_area:
         if a.key is None:
             ap.error("--app-area needs --key")
