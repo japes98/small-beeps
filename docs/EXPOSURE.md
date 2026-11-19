@@ -3309,6 +3309,26 @@ SR-3 wrote only its barrier-log row.*
 - Reads: this side's own code; HARDWARE-SPEC HW-33, HW-117.
 - Disk: about 10 GB free.
 
+### Session clean-br17-audio1 (BR-17: a first audio probe for the unit)
+- Date: 2026-11-19 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.328, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-presets', continued. The spec side's prompt saved unedited
+  as docs/prompts/clean-br17-audio1.md.
+- Start: #206 (which carried #207) found merged; the clean folder updated
+  to main (`96616a2e`) by `tools/clean-update.sh`, no spec-side file on
+  disk or in `.git`. Nothing to archive (the last clean session is this
+  one, live); tools/check-transcripts.py passed (26 archived).
+- Reads: this side's own code (`audio.c`, the hardware build);
+  HARDWARE-SPEC HW-19, HW-43 to HW-46, HW-56, HW-119, HW-129, HW-130,
+  HW-133, HW-139 to HW-142 and Q-9's notes; the vendored SDK `WL82.h`
+  for the register structs HW-140 names.
+- Disk: about 9 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
