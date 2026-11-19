@@ -45,9 +45,17 @@ static void underrun(void)
     u32 n = sb_audio.underruns + 1, i;
 
     sb_audio.underruns = n;
+#if defined(SB_HW_FM1)
+    /* No debug channel on a unit (DBG_MSG is fwtest's, HW-25): the count
+     * is shown on the screen instead (hw_audio.c). */
+    (void)i;
+    (void)line;
+    (void)hex;
+#else
     for (i = 0; i < 4; i++)
         line[18 - i] = hex[n >> 4 * i & 0xF];
     sb_console_write(line, sizeof line / 4);
+#endif
 }
 
 /* Source 11: a half has finished. Refill it while the other plays. A

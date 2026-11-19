@@ -308,6 +308,18 @@ static void hw_show_turn(u32 control, int d)
     lcd_send_rect(HW_EVENT_X, HW_EVENT_Y, HW_EVENT_W, 16);
 }
 
+#if defined(SB_HW_AUDIO1)
+/* The test screen and start3's rows, drawn again after the audio page. */
+static void hw_test_screen(void)
+{
+    lcd_wait();
+    screen_test();
+    lcd_send_rows(0, SCREEN_H);
+    lcd_wait();
+    hw_rows_all();
+}
+#endif
+
 static void hw_serve(void)
 {
     struct input_event e;
@@ -327,6 +339,17 @@ static void hw_serve(void)
         /* HOME opens the knob finder, for good (hw_start3.c). */
         if (e.control == INPUT_HOME && e.kind == INPUT_PRESS)
             hw_finder();
+#endif
+#if defined(SB_HW_AUDIO1)
+        /* audio1 (hw_audio.c): PLAY stops and starts the tone; HOME shows
+         * the audio page again, then the test screen. */
+        if (e.control == INPUT_PLAY && e.kind == INPUT_PRESS)
+            hw_audio_toggle();
+        if (e.control == INPUT_HOME && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_audio_page();
+            hw_test_screen();
+            continue;
+        }
 #endif
         if (e.control >= INPUT_LEDS || (e.kind != INPUT_PRESS && e.kind != INPUT_RELEASE))
             continue;
@@ -380,6 +403,11 @@ int main(void)
     static const char hello[16] = "small-beeps M5 \n";
 
     sb_beacon.period = TICKS_PER_MS;
+#if defined(SB_HW_AUDIO1)
+    /* audio1: the audio registers as m-bootloader's call left them, before
+     * anything of main's (hw_audio.c). */
+    hw_audio_boot();
+#endif
 #if defined(SB_HW_FM1)
     /* Running from RAM, after the copy (R-HW-1). */
     hw_band(2);
@@ -582,6 +610,15 @@ int main(void)
     /* start3's rows on the test screen (hw_start3.c). */
     lcd_wait();
     hw_rows_all();
+#if defined(SB_HW_AUDIO1)
+    /* audio1: the tone, once the test screen is up; its page, then the
+     * test screen again (hw_audio.c). */
+    hw_step("audio: starting ALNK0");
+    hw_audio_start();
+    hw_step("audio: page");
+    hw_audio_page();
+    hw_test_screen();
+#endif
 #endif
 #endif
 #if defined(SB_TEST_STORE_WIPE)

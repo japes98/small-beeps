@@ -227,6 +227,15 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   PA6), one detent of fwtest's encoder 2 as two cells (columns 8 and 9,
   PA5), each closed and opened once, and the pot as channel 4 from 900 to
   300; nothing is marked noisy or lost.
+- audio1 (BR-17, clean-br17-audio1): the audio probe, SB_HW_AUDIO1 with
+  SB_TEST_HW_WINDOW and the short hold: ALNK0 plays the 440 Hz tone
+  into audio.wav, both channels alike, below -20 dBFS, with no click,
+  stopped and started again by PLAY; the halves, timed against TIMER0,
+  give fwtest's 44 117.6 frames a second within 0.02 % once fwtest's
+  24 MHz TIMER0 is allowed for (HW_RATIO; fwtest's acknowledge restarts
+  the count, HW-48, which reads about 80 ppm high); ALNK0's CON0 bit 11
+  reads clear at main's start and set with the tone on; HOME shows the
+  page again; nothing unmodelled but the window's, corex2's and DAC_CON.
 - hw (BR-17, Phase B): the FM-1 hardware build, SB_HW_FM1 (R-HW-1). In
   fwtest, where its one timer, TIMER0, counts 24 MHz rather than the
   chip's 60 MHz (HW-119), so its beats are 2.5 times slow: the screen goes
@@ -1736,6 +1745,99 @@ def case_core1(a, work, log):
     return problems
 
 
+# audio1 (hw_fm1.h, struct hw_audio): the registers at main's start and
+# with the tone on, then the probe's counts and measures.
+AUD_REGS = 22
+AUD_FIELDS = ("regs_read", "started", "seq", "n0_set", "n0", "t0", "n1", "t1", "halves", "units", "fps10",
+              "master", "gain", "tone_on", "storm", "flips", "pend")
+AUD_LEN = 4 * (2 * AUD_REGS + len(AUD_FIELDS))
+AUD_AL0 = 11          # ALNK0's CON0 in the registers' order (hw_audio.c)
+AUD_Y = 160           # hw_fm1.h, HW_AUD_Y
+AUD_FPS = 24000000 / 544.0   # fwtest's frames a second (HW-45)
+
+
+def case_audio1(a, work, log):
+    """audio1 (SB_HW_AUDIO1, clean-br17-audio1): ALNK0 plays the 440 Hz
+    tone into audio.wav, both channels alike, below -20 dBFS, ramped (no
+    click), stopped and started again by PLAY; its halves, timed against
+    TIMER0, give fwtest's 44 117.6 frames a second (once TIMER0's 24 MHz in
+    fwtest is allowed for); CON0's run bit reads set with the tone on and
+    clear before; HOME shows the page again; the only unmodelled accesses
+    are the window's, corex2's and JL_AUDIO's DAC_CON."""
+    problems = []
+    fws = fw_suite()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_AUDIO1")
+    h = fws.elf_symbols(os.path.join(b, "app.elf"))["hw_aud"]
+    script = os.path.join(b, "audio1.script")
+    with open(script, "w") as f:
+        # The page ends about 6.5 s in (beats 2.5 times slow): PLAY stops
+        # the tone at 8 s and starts it at 10 s; HOME shows the page at 11 s.
+        f.write("8000 key %d down\n8100 key %d up\n10000 key %d down\n10100 key %d up\n11000 key 8 down\n"
+                "11100 key 8 up\n" % (HW_LED, HW_LED, HW_LED, HW_LED))
+    out = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "15000", "--wav", "--script", os.path.relpath(script, ROOT),
+               "--lcd", "5000", "--lcd", "12000", "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN),
+               "--ram", "0x%08x:%d@end" % (h, AUD_LEN))
+    if r["run"]["outcome"] != "completed":
+        problems.append("audio1: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"})
+    if odd:
+        problems.append("audio1: unmodelled accesses besides the window's, corex2's and DAC_CON: %s" % odd[:8])
+    bc = fws.beacon(ram(out, BEACON_ADDR, fws.BEACON_LEN))
+    if bc["screen"] != 2 or bc["halt_reason"]:
+        problems.append("audio1: screen %d, halt %d (the test screen, no halt)" % (bc["screen"], bc["halt_reason"]))
+    data = ram(out, h, AUD_LEN)
+    regs = [list(struct.unpack_from("<%dI" % AUD_REGS, data, 4 * AUD_REGS * i)) for i in range(2)]
+    e = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), data, 8 * AUD_REGS)))
+    fps = e["fps10"] / 10.0 / HW_RATIO
+    if not e["fps10"] or abs(fps / AUD_FPS - 1) > 200e-6:
+        problems.append("audio1: %.1f frames a second on screen, %.1f in fwtest's time (%.1f, within 0.02 %%)"
+                        % (e["fps10"] / 10.0, fps, AUD_FPS))
+    if (e["regs_read"], e["storm"], e["tone_on"], e["master"]) != (1, 0, 1, 900) or not e["flips"] or not e["halves"]:
+        problems.append("audio1: record %s (registers read, no storm, the tone on, MASTER 900, bit 15 flipping)" % e)
+    if regs[0][AUD_AL0] & 0x800 or not regs[1][AUD_AL0] & 0x800:
+        problems.append("audio1: ALNK0 CON0 %04x at the start, %04x with the tone on (bit 11 clear, then set)"
+                        % (regs[0][AUD_AL0], regs[1][AUD_AL0]))
+    rate, left, right = aa.read_wav(os.path.join(out, "audio.wav"))
+    if left != right:
+        problems.append("audio1: the channels differ")
+    # Loud or not by 10 ms windows; runs of over 0.1 s, in samples.
+    loud = [max(abs(v) for v in left[w:w + 441]) > 64 for w in range(0, len(left), 441)]
+    runs, k = [], 0
+    while k < len(loud):
+        j = k
+        while j < len(loud) and loud[j] == loud[k]:
+            j += 1
+        if j - k > 10:
+            runs.append((loud[k], 441 * k, 441 * j))
+        k = j
+    shape = [on for on, _, _ in runs]
+    if shape[-3:] != [True, False, True]:
+        problems.append("audio1: tone, silence, tone not found (runs over 0.1 s: %s)" % [(o, i, j) for o, i, j in runs])
+    else:
+        _, i, j = runs[-3]
+        fit = aa.sine_fit(left[i + 4410:j - 4410])
+        if abs(fit["frequency"] - 440) > 0.5 or not 2000 < fit["amplitude"] < 3277 or aa.thd_n_db(fit) > -50:
+            problems.append("audio1: the tone %.2f Hz, %.0f peak, THD+N %.1f dB (440 Hz, below -20 dBFS, under -50 dB)"
+                            % (fit["frequency"], fit["amplitude"], aa.thd_n_db(fit)))
+    step = max(abs(p - q) for p, q in zip(left, left[1:]))
+    if step > 250:
+        problems.append("audio1: a step of %d between samples (a click: the ramps keep it under 250)" % step)
+    _, _, page = fws.read_png(os.path.join(out, "lcd-12000ms.png"))
+    _, _, end = fws.read_png(os.path.join(out, "lcd-end.png"))
+    green = (0, 255, 0)
+    if not any(page[y][x] == green for y in range(0, 16) for x in range(6, 200)):
+        problems.append("audio1: HOME didn't show the page (its IRQ line in green)")
+    if not any(end[y][x] == green for y in range(AUD_Y, AUD_Y + 16) for x in range(6, 230)):
+        problems.append("audio1: no green audio line on the test screen")
+    print("audio1: ALNK0 played 440 Hz in both channels, stopped and started by PLAY, no click; %d halves timed at"
+          " %.1f frames a second on screen, %.1f in fwtest's time; CON0 %04x, then %04x; bit 15 flipped %d times"
+          % (e["halves"], e["fps10"] / 10.0, fps, regs[0][AUD_AL0], regs[1][AUD_AL0], e["flips"]))
+    return problems
+
+
 def read_bytes(path):
     with open(path, "rb") as f:
         return f.read()
@@ -1761,6 +1863,7 @@ CASES = [
     ("hw3", case_hw3),
     ("finder", case_finder),
     ("core1", case_core1),
+    ("audio1", case_audio1),
 ]
 
 

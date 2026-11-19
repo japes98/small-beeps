@@ -4629,3 +4629,51 @@ at columns 11 and 12 (a brisk turn: 22 counts each).
   turn the unit's. hw3 checks a detent of encoder 4 (KNOB3, PA0) on the
   event line instead. The unit's run gives PRESETS' phase order.
 
+
+### 2026-11-19 clean-br17-audio1: a first audio probe for the unit (BR-17, R-HW-1)
+The spec side's prompt: docs/prompts/clean-br17-audio1.md. On the unit
+presets1 showed PRESETS +1 at c12 clockwise and -1 at c11 anticlockwise,
+so all seven encoders decode (relayed by the owner). audio1 is a probe,
+`SB_HW_AUDIO1` in hw_audio.c. It asks three things: does ALNK0 run on the
+chip, at what rate, and does any sound come out.
+
+- **What it writes.** Only what `audio.c` writes in fwtest: ALNK0's `ADR3`,
+  `LEN`, `CON2`'s clear and `CON0`'s run bit, and source 11's `ICFG`
+  bits. It writes nothing to the analogue block, PLL2, the clock registers
+  or `JL_AUDIO`, since no source gives their values.
+- **The pins.** HW-141 names group A's pins (PC0, PC1, PC2, PC6) but not
+  the register that selects the group, nor the port set-up the link
+  needs. The `JL_IOMAP` bits the spec gives are SPI1's (HW-56) and
+  SPI0's (HW-85). So no pin-map
+  register is written and the four pins are left as the call left them
+  (SR-20). Setting their `DIR` alone would drive them from `OUT` as
+  plain pins, not through the link. Sound on path 2 comes only if the
+  chip's reset routing happens to be group A and the part outside needs
+  nothing more. The probe mainly settles whether ALNK0 runs. PC0 and PC1
+  are ADC channels 6 and 7 (HW-129), so the sweep skips them.
+- **The rate.** The halves are timed against TIMER0 (`sb_now`, HW-119's
+  60 MHz) from the first half to the latest, over at least a second: a
+  count per second moves in steps of 64 frames and couldn't tell 44 100
+  from 44 118. The time base is TIMER0's slots plus its count. In fwtest
+  the acknowledge restarts the count (HW-48), so each slot runs a little
+  over its 5000 counts and the measure reads about 80 ppm high (44 121.2
+  for 44 117.6, after the 2.5 for fwtest's 24 MHz TIMER0). Whether the
+  chip does the same is Q-13. Either way the error is well under the
+  400 ppm between 44 100 and 44 118.
+- **A storm guard.** That `CON2` bit 3 clears the half's flag is
+  FM-1-RE's, at medium to high confidence. If it doesn't clear on the
+  chip, source 11 would fire again at once and main, below it, would never
+  run: a frozen screen, which the owner couldn't tell from "doesn't run".
+  More than 40 interrupts in one beat (a half is 1.45 ms) stops the
+  output, disables the source and shows STORM.
+- **Without the interrupt.** On the page, main polls `CON0` bit 15 (its
+  flips) and `CON2` bit 7 (seen set) itself. So "runs but never
+  interrupts" shows as flips with no interrupts counted.
+- **The level.** The tone's peak is at most -20 dB of 24-bit full scale
+  even with MASTER at the top, in HW-44's word format. No other format is
+  tried: if the chip took the low 24 bits as the top of a word, a shifted
+  variant could reach full scale in headphones.
+- **Images.** `sb_irq_disable` (irq.c) exists only with `SB_HW_AUDIO1`, so
+  build A stays byte for byte. In the hardware build `audio.c`'s
+  underrun line, written to fwtest's `DBG_MSG` (HW-25), is left out; the
+  page shows the count instead.

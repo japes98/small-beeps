@@ -61,6 +61,18 @@ void sb_irq_enable(u32 source, void (*handler)(void), u32 priority)
     icfg[source / 8] = (icfg[source / 8] & ~(0xFu << 4 * (source % 8))) | ICFG_BITS(source, priority);
 }
 
+#if defined(SB_HW_AUDIO1)
+/* HW-20: source's enable bit (and priority) cleared, its handler kept.
+ * Only audio1's guard uses it (hw_audio.c), so only its build has it and
+ * every other image stays as it was. */
+void sb_irq_disable(u32 source)
+{
+    volatile u32 *icfg = &q32DSP(0)->ICFG00;
+
+    icfg[source / 8] &= ~(0xFu << 4 * (source % 8));
+}
+#endif
+
 /* HW-21: both gates, icfg's bit 8 and sti. */
 void sb_irq_on(void)
 {

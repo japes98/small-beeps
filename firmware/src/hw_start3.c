@@ -375,6 +375,14 @@ static void adc_all(void)
     u32 ch, n;
 
     for (ch = 0; ch < HW3_ADC_CHANNELS; ch++) {
+#if defined(SB_HW_AUDIO1)
+        /* PC0 and PC1 are ALNK0's master and bit clocks in group A
+         * (HW-141): not sampled while audio1 may drive them. */
+        if (ch == 6 || ch == 7) {
+            hw3.adc[ch] = 0xFFFFu;
+            continue;
+        }
+#endif
         JL_ADC->CON = ch << 8 | 1u << 4 | 1u << 6;
         for (n = 0; n < 1000 && !(JL_ADC->CON & (1u << 7)); n++)
             ;
@@ -808,8 +816,13 @@ void hw_refresh(u32 second)
     JL_ADC->CON = 4u << 8 | 1u << 4 | 1u << 6;
     hw_scan_paused = 0;
     draw_adc();
-    if (second)
+    if (second) {
         draw_core1();
+#if defined(SB_HW_AUDIO1)
+        if (hw_aud.started)
+            hw_audio_line();
+#endif
+    }
 }
 
 #if defined(SB_HW_FINDER)
