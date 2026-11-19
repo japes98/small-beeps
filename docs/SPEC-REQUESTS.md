@@ -736,3 +736,29 @@ an issue or a pull request against docs/HARNESS.md.
   m-bootloader's take and give-back of the flash; the round trip within
   one run of an app is not shown, and a probe settles it.
 - Answered: 2026-11-18, session spec-sr16 (spec side)
+
+### SR-17: The code window's BAUD register, and whether its CON reads back
+- Asked: 2026-11-19, session clean-br17-start3 (firmware side), for BR-17
+  start3's flash round trip (R-HW-1)
+- Question: for the code window's controller after m-bootloader's call
+  (HW-128):
+  1. **Its `BAUD` register:** the address, and the value m-bootloader
+     writes there in step 3 of its give-back ("sets its BAUD").
+  2. **Whether its `CON` (`0x40200`) reads back** the mode word last
+     written, so an app can read it before taking the flash and write it
+     back when it gives the flash back.
+  3. **Whether writing `CON` (0 in the take; `0x00F00000`, then 0, in the
+     give-back) changes `BAUD`.**
+  4. **Which width m-bootloader chooses for the window on FM-1 units**,
+     and so which mode word: HW-128 gives the quad one, `0x00280381` with
+     bits 23-20 at 9.
+- Why: start3's round trip (`firmware/src/hw_start3.c`) takes the flash
+  and gives it back as HW-128 lists. It doesn't write the window's `BAUD`,
+  since no address is given and the take never writes it, and it writes
+  back the `CON` it read before the take rather than a mode word of its
+  own. If `CON` doesn't read back, the build shows "window CON reads 0"
+  and tries nothing. Either way the build doesn't depend on the answer,
+  but the owner's result can't tell these cases apart. Read: HW-84,
+  HW-85, HW-91, HW-123, HW-126 to HW-128.
+- Status: open
+
