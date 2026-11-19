@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 4965847a98f0f233b87d3a850a6076dc3d17a5db..96616a2e55fa3d8b223bf7f9596064e0db4f18cc
+OK     97322459a381 spec: encoders1's unit facts, phases and PRESETS on PB7 (HW-139)
+OK     5841c24063cb sessions: clean-br17-presets starts (nothing to archive)
+OK     5138a305a65f firmware: PRESETS decoded at PB7, columns 11 and 12 (BR-17)
+OK     5de289d49502 spec: audio on the chip, blocks, paths, clocks and the first probe (HW-140 to HW-142)
+EXEMPT 28388a5ceebb (merge) merge: clean's #207 (PRESETS decoded) into the audio change
+EXEMPT 96616a2e55fa (merge) Merge pull request #206 from japes98/spec/audio
+6 commit(s) checked: PASS
+
+exit status 0
