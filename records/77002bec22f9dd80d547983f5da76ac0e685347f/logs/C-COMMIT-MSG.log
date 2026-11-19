@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 319350f186db5ab9f1c6b7b6acdaa516f6003cbd..77002bec22f9dd80d547983f5da76ac0e685347f
+OK     a5c1d92d2b60 sessions: clean-br17-audio1 starts (nothing to archive)
+OK     5af40512a45f firmware: audio1, a first audio probe for the unit (BR-17)
+OK     6416550d619e sessions: clean-br17-audio1's push, two clean-side blobs fetched
+EXEMPT 77002bec22f9 (merge) Merge pull request #209 from japes98/hw/audio1
+4 commit(s) checked: PASS
+
+exit status 0
