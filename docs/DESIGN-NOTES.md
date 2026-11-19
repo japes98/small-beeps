@@ -4604,3 +4604,28 @@ on PA5. PRESETS showed nothing.
   says edges that are too short select the neighbouring column, which
   fits.
 
+### 2026-11-19 clean-br17-presets: PRESETS at PB7, columns 11 and 12 (BR-17, R-HW-1)
+The owner's message: docs/prompts/clean-br17-presets.md. On the unit, each
+of the six encoders gave +1 for a slow clockwise detent and -1 for an
+anticlockwise one, the higher column leading clockwise, as the scan's
+table orders them. The finder, with PB7 pulled up, showed PRESETS on PB7
+at columns 11 and 12 (a brisk turn: 22 counts each).
+
+- **Why the test screen couldn't see it.** The scan walks one 0 through the
+  shift registers, one slot a column, and reads the rows at the start of
+  the next slot. With 12 slots it read columns 0 to 10. Column 11 was
+  selected only during slot 0, which reads nothing. The 0 then moved on to
+  column 12 while slot 0's new 0 entered column 0, so column 12 shared
+  column 0's read (and 13 to 15 shared 1 to 3). PRESETS' B contact was
+  read as if in column 0, and its A contact never.
+- **The hardware build now reads 13 columns** in 14 slots. Slot 0 first
+  shifts three 1s, so the last cycle's 0 leaves the 16 bits before column
+  0's goes in, and no read sees two columns. PRESETS is decoded at
+  columns 11 (A) and 12 (B) on row 5, like the others: +1 when column 12
+  closes first. A scan cycle is now 14 slots, 1.17 ms, and each LED is
+  lit one slot in 14. Debouncing counts cycles, so it takes a sixth longer.
+  Build A keeps 11 columns in 12 slots.
+- **fwtest** has PRESETS (its encoder 6) at columns 0 and 1, so it can't
+  turn the unit's. hw3 checks a detent of encoder 4 (KNOB3, PA0) on the
+  event line instead. The unit's run gives PRESETS' phase order.
+

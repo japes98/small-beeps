@@ -852,6 +852,10 @@ an issue or a pull request against docs/HARNESS.md.
      closes first for a clockwise turn (Q-7, "which physical turn is
      clockwise"). The next build shows each detent's leading column; the
      owner's slow turns will give it.
+  *Since asked (clean-br17-presets, relayed from encoders1 on the unit):*
+  PRESETS is on PB7 at columns 11 and 12, so item 2's ports E to G are no
+  longer needed for it. For all six other encoders a clockwise detent
+  closes the higher column first.
 - Why: the hardware build (`firmware/src/input.c`) now decodes the six
   encoders at those cells, with the scan's table (HW-38's layout, which
   is emulator-only). The unit agreeing with it is a relayed observation,

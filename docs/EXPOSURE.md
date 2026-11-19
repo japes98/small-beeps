@@ -3259,6 +3259,56 @@ SR-3 wrote only its barrier-log row.*
   `firmware/src/hw_start3.c` for the two builds' release steps.
 - Disk: about 10 GB free.
 
+### Session spec-encoders1 (encoders1's unit facts: phases, PRESETS, core 1)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-core1-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  a new branch `spec/audio` from main.
+- The owner's message, saved as docs/prompts/spec-encoders1-audio.md.
+- Recorded, source UNIT: HW-139 (the encoders' phase order; PRESETS on
+  row PB7, columns 11 and 12; core 1 in the normal build). Note on Q-7.
+- Read: nothing outside this repository.
+- Disk: about 8.5 GB free.
+
+### Session spec-audio (audio on the chip: HW-140 to HW-142)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-encoders1 (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  `spec/audio`.
+- The owner's request, saved with spec-encoders1's as
+  docs/prompts/spec-encoders1-audio.md.
+- Read (PROVENANCE P-504): FM-1-RE's `docs/io/03-audio-dac.md`,
+  `docs/reversing/01-hardware-map.md` and `docs/architecture.md`; the
+  SDK's file tree, `dac.h`, `iis.h`, `audio.h`, `hwi.h` and the vendored
+  `WL82.h`; the AC7911B datasheet; the FM-1's manual.
+- Not recorded, by the guardrails: from FM-1-RE's audio document, the
+  stock firmware's function names and addresses, its task, struct and
+  buffer layouts, its render chain, its codec and trim tables and their
+  order, its volume table and its sample-rate table; only register
+  addresses, bit meanings, the rate and the pins' numbers, at its
+  confidence. Not opened: any GPL firmware, stock package or SDK prebuilt
+  library.
+- Disk: about 8.5 GB free.
+
+### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
+- Date: 2026-11-19 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.328, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-encoders', continued. The owner's message (encoders1's result
+  and the next step) saved unedited as docs/prompts/clean-br17-presets.md.
+- Start: #205 found merged; the clean folder updated to main
+  (`4965847a`) by `tools/clean-update.sh`, no spec-side file on disk or
+  in `.git`. Nothing to archive. Before it, #205's conflict with main
+  (#204) was resolved keeping both EXPOSURE entries (`98d74ba1`).
+- Reads: this side's own code; HARDWARE-SPEC HW-33, HW-117.
+- Disk: about 10 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
