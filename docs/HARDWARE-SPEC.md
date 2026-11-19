@@ -3833,6 +3833,159 @@ presets1 (image `ffa5bb1e…`, clean's #207) and relayed on 2026-11-19
 - Standing: confirmed (UNIT; one unit)
 - Needed by: BR-17 (Phase B), M3 on real hardware
 
+## 38. ALNK0 on the unit, its clock and its routing (audio1, SR-20)
+
+Observed by the owner on the owner's unit with this repository's build
+audio1 (image `fb827761…`, clean's #209) and relayed on 2026-11-19
+(source UNIT); then read under the owner's request of the same day
+(docs/prompts/spec-audio1-unit.md, PROVENANCE P-505) from m-bootloader's
+specification and clock code (MB), the SDK (`clock_hw.h`, `clock.h`,
+`gpio.h`, `iis.h` and the audio demo's `board.c`), FM-1-RE's audio and
+hardware-map documents (register facts only, at its confidence) and the
+AC7911B datasheet. HW-144 to HW-146 add to HW-140 to HW-142, which stand.
+
+### HW-144: audio1 on the unit: ALNK0 does not run, and what the clock registers hold (Q-9, Q-2)
+- Fact: On the owner's unit, started by m-bootloader, with ALNK0 set up
+  as in fwtest (HW-44, HW-45) and nothing written to the clock, PLL2,
+  analogue or `JL_AUDIO` registers:
+  1. **ALNK0 does not run.** Writing `CON0` bit 11 reads back
+     (`CON0` `0x00000000` before, `0x00000800` after), but source 11 is
+     never raised, `CON0` bit 15 never changes, and no frames are
+     counted. Nothing is heard on the speaker or on headphones.
+  2. **Values as read**, after m-bootloader's call and unchanged once
+     the tone was started: `PLL2_CON0` `0x0940022B`; `CLK_CON2`
+     `0x00000006`; `DAA_CON0` to `DAA_CON3` 0; `DAA_CON7` `0x0000C901`;
+     `ADA_CON0` to `ADA_CON2` 0; `DAC_CON` 0; ALNK0's `CON1` to `CON3` 0;
+     `JL_IOMAP->CON0` `0x0000000F` and `CON1` `0x00000010`.
+  3. **What PLL2 and `CLK_CON2` hold.** m-bootloader programs the second
+     PLL (`PLL2_CON0`/`PLL2_CON1`, `0x000119A8`/`0x000119AC`) as the
+     source of the system clock it hands over (360 MHz, HW-119): reference
+     2 MHz, a nominal 540 MHz target, used by system source 6. Its
+     specification gives `0x0940022B` as the final `PLL2_CON0` with no
+     other bits set: the unit's value is exactly that, so PLL2 runs and
+     is set as m-bootloader leaves it, with bit 25 clear and bit 24 set
+     (its field at bits 24 and 25 is 1). `CLK_CON2`'s low byte `0x06` is
+     m-bootloader's system source select (source 6, both divider fields
+     0); m-bootloader writes only that byte of `CLK_CON2`, so bits 8 to
+     11 are as the ROM left them, all 0. The main PLL (`PLL_CON0`/
+     `PLL_CON1`, `0x000119A0`/`0x000119A4`) is m-bootloader's 480 MHz
+     set-up from the 24 MHz oscillator (`0x45400203`, `0x3F503026`).
+  So after m-bootloader's call PLL2 clocks the processor. A firmware
+  that keeps m-bootloader's clocks writes neither PLL's registers and
+  changes `CLK_CON2` only by read-modify-write, never its low byte.
+- Sources: UNIT: audio1 on the owner's unit, relayed by the owner on
+  2026-11-19 (docs/prompts/spec-audio1-unit.md); MB `docs/SPEC.md` §3.2
+  steps 2 to 4 (the PLL words, the 360 MHz case's source 6 and its final
+  `PLL2_CON0`), `src/platform.c` (`hal_clock_a`: only `CLK_CON2`'s low
+  byte written); HW-44, HW-45, HW-119, HW-140, HW-142.
+- Standing: confirmed (UNIT, MB; one unit)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-145: What ALNK0's clock needs: known and open (Q-9, Q-2)
+- Fact: For ALNK0 to run after m-bootloader's call:
+  - **The audio links' clock bits in `CLK_CON2`.** The SDK gives them
+    only in definitions it has switched off (the same block HW-53 sets
+    aside as perhaps another chip's): bit 8 picks ALNK0's clock, bit 9
+    enables it; bits 10 and 11 are the same for ALNK1. Bit 8 = 0 is
+    "192 MHz / 17" in both of the SDK's lists; for 1 one list gives
+    "160 MHz / 13" and the other "480 MHz / 39" (both 12.31 MHz).
+    192 MHz / 17 is 11.294 MHz, and that divided by 256 is 44 117.6 Hz,
+    fwtest's rate (HW-45); that the link's frame is 256 of these clocks
+    is not given. FM-1-RE (high confidence) agrees on bits 8 and 10:
+    the FM-1's firmware clears them for the 44.1 kHz family and sets
+    them for others. On bits 9 and 11 it does not agree: it sees them
+    cleared, and does not report them set anywhere. On the unit all
+    four read 0 and ALNK0 does not run (HW-144), which fits bit 9 as an
+    enable but does not show it.
+  - **The 192 MHz source.** Which PLL output feeds the audio links'
+    clock, and whether it runs after m-bootloader's call, no live
+    definition gives. The SDK's switched-off definitions put a
+    192 MHz output enable at bit 26 of a PLL's second control word and
+    a 12-bit multiplier at bits 0 to 11; m-bootloader's main-PLL second
+    word (`0x3F503026`) has multiplier field 38, as its specification
+    says, and bits 24 to 29 set. That the switched-off layout applies
+    to `JL_ANA->PLL_CON1`, and so that the 192 MHz output is on, is an
+    inference from those two sources, not a fact.
+  - **PLL2.** FM-1-RE (high confidence) sees the FM-1's firmware set or
+    clear `PLL2_CON0` bit 25 by rate family. Under m-bootloader bit 25
+    is part of the system clock's PLL set-up (HW-144). Whether the audio
+    links' clock depends on PLL2 at all is not given; no allowed source
+    gives a PLL2 value for audio that keeps the system clock.
+  - **Other gates.** FM-1-RE's hardware map calls `0x00051000` and
+    `0x00051030` an audio clock gate or analogue clock set-up; its audio
+    document calls `0x00051030` (`JL_IOMAP->CON5`) the pin map's group
+    select (HW-146). The two readings conflict; no bit or value is
+    given. `CLK_CON1` bits 2 and 3 (the DAC's clock, HW-53) are the
+    DAC's, not the links'. No other allowed source names a gate for the
+    audio links.
+  - **PC0's other clock.** `CLK_CON0` bits 10 to 12 send a chosen clock
+    out on PC0 (1 the crystal oscillator, 2 the RTC's, 3 a counter's
+    input, 4 the low-speed bus, 5 the high-speed bus, 6 SPI0's, 7
+    another; 0 none). PC0 is also ALNK0's master clock pin (HW-141).
+  So the only clock write with any source is `CLK_CON2` bit 9 set, by
+  read-modify-write, with bit 8 left 0 (it reads 0); its source is the
+  SDK's switched-off definitions alone, and FM-1-RE's account of bits 9
+  and 11 runs against it.
+- Sources: SDK `include_lib/driver/cpu/wl82/clock_hw.h` (blob
+  `4058e263`) lines 164-169 (one list), 277 (`PC0_CLOCK_OUT`, live),
+  344 (`#if 0`), 376-390 (bits 8 to 11, the other list), 435 and 446
+  (the PLL fields); `asm/clock.h` (blob `c5d4890b`) lines 24-32 (PC0's
+  clock choices); MB `docs/SPEC.md` §3.2 step 3; RE
+  `docs/io/03-audio-dac.md` §3.4 (bits 8 to 11, bit 25, `[high]`), §1
+  (`0x51030`), `docs/reversing/01-hardware-map.md` ("Audio DAC / codec
+  registers": `0x51000`, `0x51030`); HW-45, HW-53, HW-141, HW-144.
+- Standing: confirmed (SDK, MB, RE; bit 9's meaning only from the SDK's
+  switched-off definitions and against FM-1-RE; the 192 MHz source and
+  PLL2's part open)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-146: Routing ALNK0 to port C, the pins and the link's mode (SR-20, Q-9)
+- Fact: For ALNK0 on PC0, PC1, PC2 and PC6 (HW-141):
+  1. **The group select.** The SDK's I2S driver takes a pin group as one
+     of three: port A, port C or port G (driver values 0, 1 and 2), and
+     the SDK's audio demo board uses port C; the AC7911B's group "A"
+     pins for both links are on port C (HW-141). The register and bits
+     that pick the group are in the SDK's prebuilt driver only, not a
+     source here. FM-1-RE (medium confidence) puts the FM-1's audio pin
+     map in `JL_IOMAP` (`0x0005101C`, `0x00051020`, `0x00051030`) with
+     the group select at +0x14, which is `JL_IOMAP->CON5`
+     (`0x00051030`), and a per-pin output enable of the form
+     `0x100000` shifted by the pin number; it gives no value for port C,
+     and its hardware map reads `0x00051030` as a clock gate (HW-145).
+     The SDK's driver value 1 for port C is an argument to its driver,
+     not a register value. The reset value is not given; audio1 read
+     `CON0` and `CON1` only, so `CON2` to `CON8` are unread. **No value
+     to write has a source.**
+  2. **The pins.** The port registers' meanings are HW-56's (`DIR` 0 an
+     output, `DIE` the digital input, `PU`/`PD`, `HD0`/`HD` the drive);
+     the AC7911B gives PC0 to PC6 drive steps of 24, 16, 8 and 2.4 mA.
+     Whether the link drives a pin whose `DIR` is 1, or needs `DIR` 0,
+     no source says. PC0, PC1 and PC2 are also in SPI0's port C group
+     (chosen by `JL_IOMAP->CON0` bit 5, HW-85; it reads clear) and PC0
+     has the clock output above (HW-145). Whether the master clock needs
+     a bit of its own: the SDK's driver has a master-clock-out switch
+     (its demo leaves it off), with no register given.
+  3. **The link's mode.** The SDK's driver gives the settings (master or
+     slave, 16 or 24 bits per data channel, 32 or 64 bit clocks a frame,
+     which edge updates the data, data channels in and out) but no bit
+     positions. FM-1-RE (medium confidence) reads `CON3` as the data
+     channels' enables; which bit enables data 3 is not given, and the
+     bits FM-1-RE sees the FM-1's firmware set there would, if they are
+     one bit per channel, be data 0 and 1, which the AC7911B does not
+     bond out, so that reading is open. Beyond HW-45 (`CON0` bits 11 and
+     15, `CON2`'s flags) no allowed source gives `CON0` to `CON3`'s
+     bits.
+- Sources: SDK `include_lib/driver/cpu/wl82/asm/iis.h` (blob
+  `25ee23cc`) lines 10-12 and 22-37, `apps/demo/demo_audio/board/wl82/board.c`
+  (blob `9e42219a`) lines 163-171, `asm/gpio.h` (blob `2cb55bbf`)
+  (`gpio_reg`, `GPIO_OUT` 0); RE `docs/io/03-audio-dac.md` §1 (the
+  IOMC row, the `0x12E00` row), §5.2 (`[med]`);
+  `docs/reversing/01-hardware-map.md`; JL7911B pp. 7-9 (Table 1-1);
+  HW-45, HW-56, HW-85, HW-141, HW-144, HW-145.
+- Standing: confirmed (SDK, RE, JL7911B; the group register's value,
+  the pins' needs and the mode bits open)
+- Needed by: M4, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -3857,6 +4010,9 @@ spec request can turn one into a fact.
   starts an app with (system 360 MHz, buses 180 and 60 MHz). The PLL
   fields and the steps of a safe change are left to the bootloader's own
   specification; this spec doesn't take them.
+  *Session spec-audio1-unit (HW-144):* after m-bootloader's call, PLL2
+  (`PLL2_CON0` `0x0940022B`) is the system clock's PLL and `CLK_CON2`'s
+  low byte its source select; the main PLL runs at 480 MHz.
 - **Q-3. TIMER0-3 prescaler settings in fwtest.** The SDK gives the chip's
   table (HW-48); fwtest's settings other than 0 and 2 were not measured.
   Measure with a black-box test, or ask.
@@ -3947,6 +4103,11 @@ spec request can turn one into a fact.
   rules; if silent on both, weigh a part outside the chip fed by ALNK0
   (its set-up and bus) against the chip's own DAC, saying what an
   allowed source gives for each. Nothing until audio1's results come in.
+  *Session spec-audio1-unit (HW-144 to HW-146):* ALNK0 does not run
+  after m-bootloader's call (audio1); PLL2 is the system clock's PLL
+  there. Still open: ALNK0's clock enable (only the SDK's switched-off
+  `CLK_CON2` bit 9), the 192 MHz source, PLL2's part in audio, the
+  group select's value, the pins' needs and the mode bits.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores
