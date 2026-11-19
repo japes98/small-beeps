@@ -1,0 +1,20 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 56b8b8074d02b6c92e882fcfbbd542626d9b919d..6aa273a9083dc4f662f47a810e587b4fff40e25a
+OK     181c37865d6f config: fwtest 0.11.0, whose panel takes the chip select
+EXEMPT 3fbd79be888d (merge) merge: main (#193 merged) into the fwtest 0.11.0 pin
+OK     53511c6c765d spec: fwtest 0.12.0, the flash chip's block protection (HW-131)
+OK     b0ab7d36b07f sessions: clean-br17-start3 starts (nothing to archive)
+OK     3a8abc1ee6ca firmware: start3, the matrix, the ADC, the flash and core 1 (BR-17)
+EXEMPT 04a2bdbe9d42 (merge) merge: clean's #194 (fwtest 0.11.0's pin) into the block protection change
+OK     1e3115214257 firmware: start3's flash helpers renamed (C-SEP-TERMS)
+EXEMPT b32b40e601cd (merge) merge: clean's #195 (start3) into the block protection change
+OK     6e5cd3f28b10 spec: an ignored erase or program resets WEL, as PUYA says
+OK     eec54c3ba040 spec: SR-17, the code window's BAUD, CON and width (HW-132)
+OK     4672a81505c3 spec: HW-132's CON from start3's unit run, FM-1-RE's bit-31 fact out
+OK     35bd389d2ff3 sessions: clean-br17-start3b starts (nothing to archive)
+OK     7c7276a260bd firmware: start3b, each start-up step named on the screen (BR-17)
+EXEMPT bd2ea1d35c89 (merge) merge: clean's #195 (start3b) into the block protection change
+OK     110cbfe4e382 spec: start3b's unit result, CON as read and restored (HW-132)
+EXEMPT 6aa273a9083d (merge) Merge pull request #196 from japes98/spec/flash-protect
+16 commit(s) checked: PASS
+
+exit status 0

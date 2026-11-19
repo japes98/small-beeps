@@ -1,0 +1,224 @@
+{
+  "fwtest": {
+    "version": "0.11.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 60192,
+    "sha256": "5c57e365167ec6933fdfc093e535a1fc2ec98570434ac2ee4d9c1b786573d002"
+  },
+  "script_sha256": "388badffec49c5172b9958f685ec8bbc2d4ade5a78735aa5e9323d9659782c64",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "5001.008",
+    "instructions": {
+      "core0": 402843578,
+      "core1": 1100358205
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "name": "lcd-1000ms.png",
+        "bytes": 173118,
+        "sha256": "ebe4479aaadf9523c3745daa4108ff9d8d4037e580d37c84a3139b21de5a7e18"
+      },
+      {
+        "name": "lcd-3500ms.png",
+        "bytes": 173118,
+        "sha256": "20447a6cd2c372094ca48110fc993130750911d9c0f49e6cfe3ae3d7920bf8d1"
+      },
+      {
+        "name": "lcd-400ms.png",
+        "bytes": 173118,
+        "sha256": "45a1f6ca46f8191dc0d47c202917f88b906665e137c9d3ad1477c83d5450efe6"
+      },
+      {
+        "name": "lcd-401ms.png",
+        "bytes": 173118,
+        "sha256": "45a1f6ca46f8191dc0d47c202917f88b906665e137c9d3ad1477c83d5450efe6"
+      },
+      {
+        "name": "lcd-402ms.png",
+        "bytes": 173118,
+        "sha256": "45a1f6ca46f8191dc0d47c202917f88b906665e137c9d3ad1477c83d5450efe6"
+      },
+      {
+        "name": "lcd-403ms.png",
+        "bytes": 173118,
+        "sha256": "45a1f6ca46f8191dc0d47c202917f88b906665e137c9d3ad1477c83d5450efe6"
+      },
+      {
+        "name": "lcd-404ms.png",
+        "bytes": 173118,
+        "sha256": "45a1f6ca46f8191dc0d47c202917f88b906665e137c9d3ad1477c83d5450efe6"
+      },
+      {
+        "name": "lcd-405ms.png",
+        "bytes": 173118,
+        "sha256": "45a1f6ca46f8191dc0d47c202917f88b906665e137c9d3ad1477c83d5450efe6"
+      },
+      {
+        "name": "lcd-406ms.png",
+        "bytes": 173118,
+        "sha256": "45a1f6ca46f8191dc0d47c202917f88b906665e137c9d3ad1477c83d5450efe6"
+      },
+      {
+        "name": "lcd-407ms.png",
+        "bytes": 173118,
+        "sha256": "45a1f6ca46f8191dc0d47c202917f88b906665e137c9d3ad1477c83d5450efe6"
+      },
+      {
+        "name": "lcd-408ms.png",
+        "bytes": 173118,
+        "sha256": "45a1f6ca46f8191dc0d47c202917f88b906665e137c9d3ad1477c83d5450efe6"
+      },
+      {
+        "name": "lcd-409ms.png",
+        "bytes": 173118,
+        "sha256": "45a1f6ca46f8191dc0d47c202917f88b906665e137c9d3ad1477c83d5450efe6"
+      },
+      {
+        "name": "lcd-410ms.png",
+        "bytes": 173118,
+        "sha256": "d9ac0f8843148fdfc2c215a2fedaabf523b42a1f79f6bcebaa564c6bcefcdc09"
+      },
+      {
+        "name": "lcd-411ms.png",
+        "bytes": 173118,
+        "sha256": "895f4efe9caab47d922477e6a2575f4fc412680bf439064380a6141bed6fe2a0"
+      },
+      {
+        "name": "lcd-412ms.png",
+        "bytes": 173118,
+        "sha256": "895f4efe9caab47d922477e6a2575f4fc412680bf439064380a6141bed6fe2a0"
+      },
+      {
+        "name": "lcd-413ms.png",
+        "bytes": 173118,
+        "sha256": "895f4efe9caab47d922477e6a2575f4fc412680bf439064380a6141bed6fe2a0"
+      },
+      {
+        "name": "lcd-414ms.png",
+        "bytes": 173118,
+        "sha256": "895f4efe9caab47d922477e6a2575f4fc412680bf439064380a6141bed6fe2a0"
+      },
+      {
+        "name": "lcd-415ms.png",
+        "bytes": 173118,
+        "sha256": "895f4efe9caab47d922477e6a2575f4fc412680bf439064380a6141bed6fe2a0"
+      },
+      {
+        "name": "lcd-416ms.png",
+        "bytes": 173118,
+        "sha256": "0fdc5a21364edd11916c52d3bdc033896b4c15aaf9c0bc259657064008058bc1"
+      },
+      {
+        "name": "lcd-417ms.png",
+        "bytes": 173118,
+        "sha256": "60c8b624728c56bc1c61e5d675a980a5a5eb1db9bc6793b6898a1dd0a55a3117"
+      },
+      {
+        "name": "lcd-418ms.png",
+        "bytes": 173118,
+        "sha256": "60c8b624728c56bc1c61e5d675a980a5a5eb1db9bc6793b6898a1dd0a55a3117"
+      },
+      {
+        "name": "lcd-419ms.png",
+        "bytes": 173118,
+        "sha256": "60c8b624728c56bc1c61e5d675a980a5a5eb1db9bc6793b6898a1dd0a55a3117"
+      },
+      {
+        "name": "lcd-420ms.png",
+        "bytes": 173118,
+        "sha256": "897abfbbd8c4a923e02bf9ea8d0ac35d3b3f7f6ecb0a80bf1cb49904779d6278"
+      },
+      {
+        "name": "lcd-421ms.png",
+        "bytes": 173118,
+        "sha256": "897abfbbd8c4a923e02bf9ea8d0ac35d3b3f7f6ecb0a80bf1cb49904779d6278"
+      },
+      {
+        "name": "lcd-422ms.png",
+        "bytes": 173118,
+        "sha256": "897abfbbd8c4a923e02bf9ea8d0ac35d3b3f7f6ecb0a80bf1cb49904779d6278"
+      },
+      {
+        "name": "lcd-423ms.png",
+        "bytes": 173118,
+        "sha256": "897abfbbd8c4a923e02bf9ea8d0ac35d3b3f7f6ecb0a80bf1cb49904779d6278"
+      },
+      {
+        "name": "lcd-424ms.png",
+        "bytes": 173118,
+        "sha256": "897abfbbd8c4a923e02bf9ea8d0ac35d3b3f7f6ecb0a80bf1cb49904779d6278"
+      },
+      {
+        "name": "lcd-425ms.png",
+        "bytes": 173118,
+        "sha256": "897abfbbd8c4a923e02bf9ea8d0ac35d3b3f7f6ecb0a80bf1cb49904779d6278"
+      },
+      {
+        "name": "lcd-426ms.png",
+        "bytes": 173118,
+        "sha256": "897abfbbd8c4a923e02bf9ea8d0ac35d3b3f7f6ecb0a80bf1cb49904779d6278"
+      },
+      {
+        "name": "lcd-427ms.png",
+        "bytes": 173118,
+        "sha256": "897abfbbd8c4a923e02bf9ea8d0ac35d3b3f7f6ecb0a80bf1cb49904779d6278"
+      },
+      {
+        "name": "lcd-428ms.png",
+        "bytes": 173118,
+        "sha256": "897abfbbd8c4a923e02bf9ea8d0ac35d3b3f7f6ecb0a80bf1cb49904779d6278"
+      },
+      {
+        "name": "lcd-429ms.png",
+        "bytes": 173118,
+        "sha256": "897abfbbd8c4a923e02bf9ea8d0ac35d3b3f7f6ecb0a80bf1cb49904779d6278"
+      },
+      {
+        "name": "lcd-430ms.png",
+        "bytes": 173118,
+        "sha256": "897abfbbd8c4a923e02bf9ea8d0ac35d3b3f7f6ecb0a80bf1cb49904779d6278"
+      },
+      {
+        "name": "lcd-end.png",
+        "bytes": 173118,
+        "sha256": "c9582d67b2d583bf8fa347f023b5a60ae0ab80cb2bc45baeb0d717637fbe03d9"
+      },
+      {
+        "name": "leds.csv",
+        "bytes": 1110,
+        "sha256": "abba441755eb52dd0ee72564914d563cb83c479999f59dad234516b3d3330cfd"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "8cbd9e35be1324c934ef73b7dc4f4261cb7083b2582d50050db21b7f4e843bcf"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
