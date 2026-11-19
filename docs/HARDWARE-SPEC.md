@@ -4010,6 +4010,9 @@ spec request can turn one into a fact.
   starts an app with (system 360 MHz, buses 180 and 60 MHz). The PLL
   fields and the steps of a safe change are left to the bootloader's own
   specification; this spec doesn't take them.
+  *Session spec-audio1-unit (HW-144):* after m-bootloader's call, PLL2
+  (`PLL2_CON0` `0x0940022B`) is the system clock's PLL and `CLK_CON2`'s
+  low byte its source select; the main PLL runs at 480 MHz.
 - **Q-3. TIMER0-3 prescaler settings in fwtest.** The SDK gives the chip's
   table (HW-48); fwtest's settings other than 0 and 2 were not measured.
   Measure with a black-box test, or ask.

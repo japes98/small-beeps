@@ -3319,8 +3319,11 @@ SR-3 wrote only its barrier-log row.*
   `clock_hw.h`, `clock.h`, `gpio.h` and the audio demo's `board.c`; P-504's
   scratch copies again.
 - Not recorded, by the guardrails: from FM-1-RE, the stock firmware's
-  function names, addresses and the values it writes; only register
-  addresses and bit meanings at its confidence. Not opened: any GPL
+  function names and addresses, its sequences, structures and tables;
+  only register addresses and bit meanings at its confidence, including
+  which bits it sets or clears where that is a bit's evidence (`CLK_CON2`
+  bits 8 to 11, `PLL2_CON0` bit 25, `CON3`'s low bits, as HW-142 did).
+  Not opened: any GPL
   firmware, stock package, SDK prebuilt library, or m-bootloader's
   `src/usb_midi.c`.
 - Clean prompt written outside the repository:
