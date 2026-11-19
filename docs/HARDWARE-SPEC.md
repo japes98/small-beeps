@@ -3356,10 +3356,78 @@ Read under the owner's request for SR-17 (2026-11-19, PROVENANCE P-502),
 from m-bootloader at the commit HW-123 and HW-128 used (`src/platform.c`,
 `src/boot.c`, `docs/SPEC.md` §3.4, §3.6, §5.3 and §7) and the SDK's
 `WL82.h` (as HW-84), with the owner's start3 and start3b results from a
-unit (item 4, HW-133). HW-132 adds to HW-128; HW-128 stands.
+unit (HW-133). HW-132 adds to HW-128, and HW-134 supersedes HW-132 with
+the unit's `CON` reading and the owner's give-back; HW-128 stands.
 
 ### HW-132: The window's BAUD and mode word as m-bootloader sets them, and what CON reads
 - Fact: For the code window's controller (`JL_SFC`, `0x00040200`, HW-84):
+  1. **`BAUD`** is at `0x00040204` (`JL_SFC` +4). The SDK marks it write
+     only. In its give-back (HW-128 step 3) m-bootloader writes there the
+     same divider it gives SPI0's `BAUD`: its built-in SPI divider, **1**.
+     The order is `CON` = `0x00F00000`, `CON` = 0, `BAUD` = 1, then the
+     mode word. Its built-in values (`docs/SPEC.md` §5.3) equal every known
+     FM-1 configuration's `SPI` record, `4_1_0_0`: width 4, divider 1,
+     output reads. m-bootloader reads no configuration for them.
+  2. **The mode word written** is the width's output-read word with bits
+     23-20 replaced by 9. m-bootloader writes the 9 as a constant. Its
+     `docs/SPEC.md` gives it as the HSB clock in MHz times 45 / 1000,
+     plus one, which is 9 at 180 MHz. So the word written is:
+     - `0x00980381` at quad width (HW-128's `0x00280381` with 9 in bits
+       23-20);
+     - `0x00980281` at dual width;
+     - `0x00900089` at single width.
+     m-bootloader writes only output-read words. The other columns of
+     `docs/SPEC.md`'s table are not verified on hardware.
+  3. **The width it chooses:** quad (4) unless it falls back. Before the
+     window is set up, at each start, it:
+     - reads 32 bytes at single width;
+     - sets QE (status 2 bit 1), up to three more tries if it doesn't
+       stick, as HW-123 gives. Without QE it takes dual width;
+     - reads the same 32 bytes at that width, halving the width (quad,
+       dual, single) until they match.
+     The width it ends with is the window's. A fallback shows as "SPI
+     WIDTH FALLBACK" in its recovery menu, and an app at a narrower width
+     runs markedly slower (its `docs/SPEC.md`). Nothing tells the app which
+     width it got, except the mode word, if `CON` reads it back (item 4).
+  4. **Whether `CON` reads back:** the SDK marks `CON` read and write;
+     `BAUD`, `CODE` and `BASE_ADR` are write only. m-bootloader never
+     reads `CON`, and no allowed written source says that a read returns
+     the mode word last written. The owner relays (not taken as a fact
+     here beyond what was read) that on the owner's unit, after
+     m-bootloader's call, `CON` reads **`0x009803B5`**: start3b's "win"
+     row, from a clear photo. start3's earlier photo (image `99e769ea…`,
+     identity `FM-1_0.10.0-hw3`) gave `0x0098038?`, a digit uncertain.
+     So `CON` reads back, but not as the quad word m-bootloader writes
+     (`0x00980381`, item 2): bits 2, 4 and 5 read set. What those bits
+     are, and whether the read differs from what the controller holds,
+     no allowed source says.
+  5. **Whether writing `CON` changes `BAUD`:** no allowed source says.
+     m-bootloader writes `BAUD` after its two `CON` writes and before the
+     mode word, every time, so a give-back in that order doesn't depend
+     on it.
+  6. Beyond HW-128's step 6, after setting the window cipher's control to
+     1, m-bootloader sets bits 8 and 9 of `0x01EEE008` again, then does
+     the `csync`. They are already set from step 5.
+  So, by the owner's ruling, a give-back reads `CON` before the take and
+  restores the value read, after `0x00F00000`, 0 and `BAUD` = 1, rather
+  than writing m-bootloader's word. Writing `0x00980381` itself, as
+  before, would leave bits 2, 4 and 5 clear where the unit had them set;
+  that it works on the unit is not shown.
+- Sources: MB `src/platform.c` (`hal_xip`: the writes, their order, the
+  constant 9, the output-read words; `flash_init` and `flash_quad`: the
+  width checks), `src/boot.c` (the built-in values, the width carried to
+  `hal_xip`, the fallback line), `docs/SPEC.md` §3.4 (a fallback is
+  visible; single width is markedly slower), §3.6 (the mode word table,
+  bits 23-20), §5.3 (the built-in values, `SPI` `4_1_0_0`), §7 (the
+  start's flash steps); SDK `WL82.h` lines 39-44 (`JL_SFC`, which
+  registers are read-write and which write-only); the owner's start3 and
+  start3b results (item 4, relayed).
+- Standing: superseded by HW-134
+- Needed by: M7, BR-17 (Phase B)
+
+### HW-134: The window's BAUD and mode word, what CON reads, and the give-back (supersedes HW-132)
+- Fact: As HW-132, corrected by the owner's start3b result and rulings
+  (item 4 and the give-back). For the code window's controller (`JL_SFC`, `0x00040200`, HW-84):
   1. **`BAUD`** is at `0x00040204` (`JL_SFC` +4). The SDK marks it write
      only. In its give-back (HW-128 step 3) m-bootloader writes there the
      same divider it gives SPI0's `BAUD`: its built-in SPI divider, **1**.
@@ -3437,7 +3505,7 @@ by m-bootloader (MB).
   1. **The window's `CON`** (`0x00040200`, HW-84) reads `0x009803B5`
      after m-bootloader's call (start3b's "win" row, a clear photo;
      start3's photo gave `0x0098038?`, a digit unreadable). It is not
-     the quad word m-bootloader writes, `0x00980381` (HW-132).
+     the quad word m-bootloader writes, `0x00980381` (HW-134).
   2. **The flash round trip** works within one run: the flash taken from
      the code window, ID `856014`, status 1 `00`, status 2 `02`, and the
      window given back, with the app running on from it (start3 and
@@ -3455,7 +3523,7 @@ by m-bootloader (MB).
   owner on 2026-11-19 (docs/prompts/spec-start3-unit.md,
   docs/prompts/spec-start3b.md); recorded as facts by the owner's ruling
   of 2026-11-19 (docs/prompts/spec-unit-facts.md). MB for what
-  m-bootloader writes (HW-132).
+  m-bootloader writes (HW-134).
 - Standing: confirmed (UNIT; one unit, flash part `856014`)
 - Needed by: M7, BR-17 (Phase B)
 
@@ -3676,7 +3744,7 @@ spec request can turn one into a fact.
   the round trip within one run of an app is not shown.
   *Answered in part by session spec-unit-facts (HW-133):* on the unit
   the round trip within one run works, and the store's counter survives
-  power-off; what `CON` reads and how to give it back, HW-132 and
+  power-off; what `CON` reads and how to give it back, HW-134 and
   HW-133.
 - **Q-23. Write protection on the FM-1's flash.** Whether the status
   register's block-protect bits (HW-78) are set on a shipped unit or by

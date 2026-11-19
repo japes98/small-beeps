@@ -769,7 +769,8 @@ an issue or a pull request against docs/HARNESS.md.
      m-bootloader never reads it. On the owner's unit it reads
      `0x009803B5` (HW-133), not the quad word `0x00980381` m-bootloader
      writes. By the owner's rulings the give-back writes `0x00F00000`, 0,
-     `BAUD` = 1 and then `CON` as read before the take (HW-132).
+     `BAUD` = 1 and then `CON` as read before the take (HW-134, which
+     supersedes HW-132).
   3. **Whether a `CON` write changes `BAUD`:** not shown. Writing `BAUD`
      after the two `CON` writes, as m-bootloader does, doesn't depend on
      it.

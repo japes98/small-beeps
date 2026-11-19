@@ -3110,7 +3110,7 @@ SR-3 wrote only its barrier-log row.*
   observes on the unit is a fact source.
 - Changed: source key UNIT in HARDWARE-SPEC and in
   `tools/check-hardware-spec.py` (and its test); HW-133 (section 31);
-  HW-132's give-back and standing; SR-17 item 2; the notes on Q-7, Q-8,
+  HW-134, superseding HW-132 (the unit's `CON` and the give-back); SR-17 item 2; the notes on Q-7, Q-8,
   Q-17 and Q-22. PRESETS stays a note.
 - Read: nothing outside this repository.
 - The clean prompt `drop/prompts/clean-br17-protect.md` updated to match.
