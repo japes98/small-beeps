@@ -3327,6 +3327,12 @@ SR-3 wrote only its barrier-log row.*
   HARDWARE-SPEC HW-19, HW-43 to HW-46, HW-56, HW-119, HW-129, HW-130,
   HW-133, HW-139 to HW-142 and Q-9's notes; the vendored SDK `WL82.h`
   for the register structs HW-140 names.
+- Push: `git push` stopped on two objects the clean folder lacked (lazy
+  fetching off): the blobs of `PROVENANCE.md` and `docs/EXPOSURE.md` at
+  the spec side's `5de289d4`. Each was checked to be outside the
+  spec-side folders (config/spec-side-folders) by its path in that
+  commit's tree, then fetched alone (`git cat-file` with lazy fetching
+  allowed for that one call). Nothing else was fetched.
 - Disk: about 9 GB free.
 
 ## Corrections
