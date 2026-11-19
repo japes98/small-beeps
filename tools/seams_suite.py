@@ -1438,7 +1438,9 @@ def case_hw(a, work, log):
     if seen != want:
         problems.append("hw: the start-up's screens in order were %s, not black, bands 1, 2, 3, then the pattern" % seen)
     _, _, pat = fws.read_png(os.path.join(out, "lcd-1000ms.png"))
-    if pat[40 + 24 * 4 + 8][120] != (255, 255, 0) or pat[8][8] != fws.rgb8(1, 2, 0):
+    # Band 4 is rows 136 to 151; since start3b the store's row (142 to 149)
+    # is drawn again over the pattern, so its last rows are looked at.
+    if pat[40 + 24 * 4 + 14][120] != (255, 255, 0) or pat[8][8] != fws.rgb8(1, 2, 0):
         problems.append("hw: at 1 s not the address pattern with band 4 (yellow) over it")
     bc = fws.beacon(ram(out, BEACON_ADDR, fws.BEACON_LEN))
     lo, hi = (5000 - 430) / HW_RATIO - 2, (5000 - 400) / HW_RATIO + 2
@@ -1499,6 +1501,7 @@ def case_hw(a, work, log):
 HW3_FIELDS = ("win_con", "win_base", "win_key", "tried", "back", "idle_timeouts", "id", "status1", "status2",
               "stored", "count", "get_result", "put_result")    # hw_fm1.h, struct hw_start3
 HW3_LEN = 4 * len(HW3_FIELDS) + 16 + 4 * 12
+HW3_STEP_Y = 216    # hw_fm1.h
 
 
 def hw3_record(data):
@@ -1564,9 +1567,31 @@ def case_hw3(a, work, log):
     if e["tried"] or e["stored"] or r["run"]["outcome"] != "completed":
         problems.append("shipping: tried %d, stored %d, %s (the window's CON reads 0: neither)"
                         % (e["tried"], e["stored"], r["run"]["outcome"]))
+    # start3b's unit build (SB_HW_HOLD), its hold cut short: the round
+    # trip's last LED mark (OCT- and OCT+ alone) held until the scan, the
+    # tick watched after the store and core 1, the test screen reached and
+    # the step row drawn there.
+    hb = os.path.join(work, "hold")
+    build(hb, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD")
+    hout = os.path.join(work, "run-hold")
+    r = fwtest(os.path.join(hb, "app.bin"), hout, log, "--ms", "6000", "--flash-out", "--leds-every", "100",
+               "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN))
+    bc = fws.beacon(ram(hout, BEACON_ADDR, fws.BEACON_LEN))
+    if r["run"]["outcome"] != "completed" or bc["screen"] != 2 or bc["halt_reason"]:
+        problems.append("hold: %s, screen %d, halt %d (the test screen, no halt)"
+                        % (r["run"]["outcome"], bc["screen"], bc["halt_reason"]))
+    with open(os.path.join(hout, "leds.csv")) as f:
+        leds = [[int(v) for v in row[1:]] for row in list(csv.reader(f))[1:]]
+    if not any(v[0] and v[1] and not any(v[2:]) for v in leds):
+        problems.append("hold: no sample with OCT- and OCT+ alone lit (the round trip's last mark)")
+    _, _, end = fws.read_png(os.path.join(hout, "lcd-end.png"))
+    if not any(end[y][x] != (0, 0, 0) for y in range(HW3_STEP_Y, HW3_STEP_Y + 8) for x in range(6, 120)):
+        problems.append("hold: no step row on the test screen")
     print("hw3: the round trip read 856014 and came back; the store's counter 1, then 2 at the next start; the grid"
           " column 10, PA6, while PLAY was held; ADC channel 4 900, then 300; core 1 counting; the shipping build,"
-          " whose window CON reads 0 in fwtest, tries neither")
+          " whose window CON reads 0 in fwtest, tries neither; the held build reaches the test screen, its round"
+          " trip's last LED mark (OCT- and OCT+) held, its step row drawn")
     return problems
 
 

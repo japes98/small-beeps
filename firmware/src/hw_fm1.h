@@ -52,6 +52,20 @@ void hw_slot(void) __attribute__((interrupt("")));
 #define HW3_CORE1_Y   152u
 #define HW3_WIN_Y     180u
 #define HW3_FLASH_Y   190u
+/* start3b: the tick's row (before the test screen only: its beat is drawn
+ * there after) and the last step reached, on every screen from band 2 on
+ * (hw_step). */
+#define HW3_TICK_Y    200u
+#define HW3_STEP_Y    216u
+/* SB_HW_HOLD (the unit's build): the start-up rows and the round trip's
+ * LEDs held this long before interrupts go on, and the tick watched for
+ * HW_WATCH_MS after the store's step and after core 1's release. */
+#if defined(SB_TEST_SHORT_HOLD)
+#define HW_HOLD_MS    200u
+#else
+#define HW_HOLD_MS    5000u
+#endif
+#define HW_WATCH_MS   300u
 #define HW3_ADC_CHANNELS 12u
 struct hw_start3 {
     u32 win_con, win_base, win_key;   /* the window's registers before the take */
@@ -70,6 +84,11 @@ void hw_adc_start(void);
 void hw_core1_start(void);
 void hw_rows_all(void);
 void hw_refresh(u32 second);
+extern volatile u32 hw_slots;
+void hw_step(const char *text);
+void hw_hold(void);
+void hw_watch(u32 ms);
+void hw_rows_start(void);
 #endif
 
 #endif

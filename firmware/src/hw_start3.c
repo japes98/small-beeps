@@ -48,6 +48,7 @@
 #define PA 0x00050000u
 #define PB (0x00050000u + 0x40u)
 #define PD 0x000500C0u
+#define PH 0x000501C0u
 #define OUT 0u
 #define IN 4u
 #define DIR 8u
@@ -86,6 +87,9 @@ struct hw_start3 hw3;
 volatile u32 hw_core1_count;
 volatile u32 hw_scan_paused;
 void hw_core1_loop(void);
+static void draw_store(void);
+static void draw_win(void);
+static void draw_flash(void);
 
 /* --- Text -------------------------------------------------------------- */
 
@@ -160,6 +164,23 @@ static void shift_word(u32 word)
 }
 
 /* --- (c) The flash, taken and given back (HW-128) ------------------------ */
+
+/* start3b's LED marks in the round trip, one LED at a time (HW-118): the
+ * column word, then PA10 or PH9 high. They stay lit through the hold, until
+ * the scan starts. */
+static void led_mark(u32 word, u32 pa, u32 ph)
+{
+    PORT(PA, OUT) &= ~PA_LEDS;
+    PORT(PH, OUT) &= ~PH_LEDS;
+    SYNC();
+    shift_word(word);
+    PORT(PA, OUT) |= pa;
+    PORT(PH, OUT) |= ph;
+    SYNC();
+}
+#define MARK_TAKING()  led_mark(0xFBFFu, PA_LED2, 0)          /* PLAY */
+#define MARK_TAKEN()   led_mark(0xF7FEu, 0, 1u << 9)          /* OCT- */
+#define MARK_GIVING()  led_mark(0xEFFDu, 0, 1u << 9)          /* OCT+ */
 
 static void rt_cs_down(void)  { PORT(PD, OUT) &= ~1u; }
 static void rt_cs_up(void) { PORT(PD, OUT) |= 1u; }
@@ -257,8 +278,6 @@ static void flash_give(u32 irq_on)
  * CON reads back, the read-only round trip with its two LEDs. */
 void hw_round_trip(void)
 {
-    char t[48], *p;
-
     hw3.win_con = WIN_CON;
     hw3.win_base = WIN_BASE;
     hw3.win_key = WIN_KEY;
@@ -270,16 +289,7 @@ void hw_round_trip(void)
     if (!hw3.win_con)
         hw3.win_con = (0x00280381u & ~0x00F00000u) | 9u << 20;
 #endif
-    p = put_s(t, "win ");
-    p = put_hex(p, hw3.win_con, 8);
-    p = put_s(p, " ");
-    p = put_hex(p, hw3.win_base, 5);
-    p = put_s(p, " key ");
-    p = put_hex(p, hw3.win_key & 0xFFFFu, 4);
-    p = put_s(p, "/");
-    p = put_hex(p, hw_boot_key, 4);
-    *p = 0;
-    row(HW3_WIN_Y, t, RGB565(31, 63, 31));
+    draw_win();
     if (!hw3.win_con) {
         row(HW3_FLASH_Y, "window CON reads 0: round trip not tried", RGB565(31, 0, 0));
         return;
@@ -287,26 +297,22 @@ void hw_round_trip(void)
     /* The LEDs' pins as HW-117 and HW-118 give them, outputs driven low. */
     PORT(PA, OUT) &= ~(PA_LATCH | PA_CLOCK | PA_DATA | PA_LEDS);
     PORT(PA, DIR) &= ~(PA_LATCH | PA_CLOCK | PA_DATA | PA_LEDS);
+    PORT(PH, OUT) &= ~PH_LEDS;
+    PORT(PH, DIR) &= ~PH_LEDS;
     hw3.tried = 1;
+    hw_step("round trip: taking the flash");
+    MARK_TAKING();                         /* PLAY: about to take */
     flash_take();
+    MARK_TAKEN();                          /* OCT-: taken */
     hw3.id = spi_read(0x9Fu, 3);
     hw3.status1 = spi_read(0x05u, 1);
     hw3.status2 = spi_read(0x35u, 1);
-    shift_word(0xFBFFu);                   /* LED 1: PLAY's, from RAM */
-    PORT(PA, OUT) |= PA_LED2;
-    SYNC();
+    MARK_GIVING();                         /* OCT+: read, giving back */
     flash_give(0);
-    hw_rt_led_window();                    /* LED 2: PLAY and REC, from the window */
+    hw_rt_led_window();                    /* OCT- and OCT+: back in the window */
+    hw_step("round trip: back");
     hw3.back = 1;
-    p = put_s(t, "flash ");
-    p = put_hex(p, hw3.id, 6);
-    p = put_s(p, " s1 ");
-    p = put_hex(p, hw3.status1, 2);
-    p = put_s(p, " s2 ");
-    p = put_hex(p, hw3.status2, 2);
-    p = put_s(p, hw3.idle_timeouts ? " back, idle timeout" : " back");
-    *p = 0;
-    row(HW3_FLASH_Y, t, RGB565(31, 63, 31));
+    draw_flash();
 }
 
 /* (c) step 2, with interrupts on, only if step 1 came back: the store's
@@ -317,10 +323,15 @@ void hw_store_counter(void)
     u32 version, n = 0;
     int len;
 
-    if (!hw3.back)
+    if (!hw3.back) {
+        hw_step("store: no round trip, not tried");
         return;
+    }
+    hw_step("store: taking the flash");
     flash_take();
+    hw_step("store: store_init");
     store_init();
+    hw_step("store: reading the counter");
     len = store_get(COUNTER_KIND, 0, b, sizeof b, &version);
     if (len == 4)
         n = b[0] | (u32)b[1] << 8 | (u32)b[2] << 16 | (u32)b[3] << 24;
@@ -330,10 +341,14 @@ void hw_store_counter(void)
     b[1] = (u8)(n >> 8);
     b[2] = (u8)(n >> 16);
     b[3] = (u8)(n >> 24);
+    hw_step("store: writing the counter (0xFC000 on)");
     hw3.put_result = store_put(COUNTER_KIND, 0, 1, b, 4);
     hw3.count = hw3.put_result == STORE_OK ? n : n - 1;
     hw3.stored = 1;
+    hw_step("store: giving the flash back");
     flash_give(1);
+    draw_store();
+    hw_step("store: back");
 }
 
 /* --- (b) The ADC (HW-40, HW-129) ----------------------------------------- */
@@ -391,10 +406,12 @@ static void sweep(void)
  * nothing writes that slot afterwards. */
 void hw_core1_start(void)
 {
+    hw_step("core 1: releasing");
     C1_START = (u32)hw_core1_loop;
     SYNC();
     C1_CON |= 1u << 3;
     SYNC();
+    hw_step("core 1: released");
 }
 
 /* --- The rows ------------------------------------------------------------- */
@@ -484,23 +501,121 @@ static void draw_core1(void)
     row(HW3_CORE1_Y, t, RGB565(31, 63, 31));
 }
 
-/* Once the test screen is up: every row. */
-void hw_rows_all(void)
+/* --- start3b: where the start-up got to --------------------------------- */
+
+static u32 step_n;
+static const char *step_text = "";
+
+static void draw_step(void)
 {
     char t[48], *p;
 
-    if (hw3.win_con || hw3.win_base) {
-        p = put_s(t, "win ");
-        p = put_hex(p, hw3.win_con, 8);
-        p = put_s(p, " ");
-        p = put_hex(p, hw3.win_base, 5);
-        p = put_s(p, " key ");
-        p = put_hex(p, hw3.win_key & 0xFFFFu, 4);
-        p = put_s(p, "/");
-        p = put_hex(p, hw_boot_key, 4);
-        *p = 0;
-        row(HW3_WIN_Y, t, RGB565(31, 63, 31));
+    p = put_s(t, "step ");
+    p = put_dec(p, step_n);
+    p = put_s(p, ": ");
+    p = put_s(p, step_text);
+    *p = 0;
+    row(HW3_STEP_Y, t, RGB565(0, 63, 31));
+}
+
+/* Each step of the start-up, numbered, in the step row as it begins: the
+ * row left showing is the step that didn't finish. One row is one
+ * transfer whose end is polled (lcd.c), so it is drawn with interrupts off
+ * or stopped too. */
+void hw_step(const char *text)
+{
+    step_n++;
+    step_text = text;
+    draw_step();
+}
+
+/* The tick's row: the beats, TIMER0's slots (its interrupt) and count,
+ * and core 1's counter; red if the beats have stopped. */
+static void draw_tick(u32 stopped)
+{
+    char t[48], *p;
+
+    p = put_s(t, stopped ? "STOPPED b" : "tick b");
+    p = put_dec(p, sb_beacon.beats);
+    p = put_s(p, " s");
+    p = put_dec(p, hw_slots);
+    p = put_s(p, " t");
+    p = put_hex(p, JL_TIMER0->CNT, 4);
+    p = put_s(p, " c1 ");
+    p = put_dec(p, hw_core1_count);
+    *p = 0;
+    row(HW3_TICK_Y, t, stopped ? RGB565(31, 0, 0) : RGB565(31, 63, 31));
+}
+
+/* SB_HW_HOLD: HW_HOLD_MS with the start-up rows and the round trip's LEDs
+ * as they are, interrupts still off: TIMER0's slots counted by polling,
+ * then TIMER0 stopped and its flag cleared for main to start it. */
+void hw_hold(void)
+{
+#if defined(SB_HW_HOLD)
+    u32 slots = 0, last, c;
+
+    hw_step("holding the rows");
+    JL_TIMER0->CON = 0;
+    JL_TIMER0->CNT = 0;
+    JL_TIMER0->PRD = HW_SLOT_PRD;
+    JL_TIMER0->CON = HW_SLOT_CON;
+    last = JL_TIMER0->CNT;
+    while (slots < HW_HOLD_MS * HW_SLOTS_TICK) {
+        c = JL_TIMER0->CNT;
+        if (c < last)
+            slots++;
+        last = c;
     }
+    JL_TIMER0->CON = 1u << 14;
+#endif
+}
+
+/* A spin, not idle, for ms beats, the tick's row drawn every 100 beats; if
+ * the beats stand still for about HW_STALL_SPINS turns, the row turns red
+ * and is drawn again each time, for ever unless they move. */
+#define HW_STALL_SPINS 20000000u
+void hw_watch(u32 ms)
+{
+    u32 until = sb_beacon.beats + ms, last = sb_beacon.beats, next = last, spins = 0, b;
+
+    while ((int)((b = sb_beacon.beats) - until) < 0) {
+        if (b != last) {
+            last = b;
+            spins = 0;
+        } else if (++spins >= HW_STALL_SPINS) {
+            spins = 0;
+            draw_tick(1);
+            continue;
+        }
+        if ((int)(b - next) >= 0) {
+            draw_tick(0);
+            next = b + 100;
+        }
+    }
+    draw_tick(0);
+}
+
+static void draw_win(void)
+{
+    char t[48], *p;
+
+    p = put_s(t, "win ");
+    p = put_hex(p, hw3.win_con, 8);
+    p = put_s(p, " ");
+    p = put_hex(p, hw3.win_base, 5);
+    p = put_s(p, " key ");
+    p = put_hex(p, hw3.win_key & 0xFFFFu, 4);
+    p = put_s(p, "/");
+    p = put_hex(p, hw_boot_key, 4);
+    *p = 0;
+    row(HW3_WIN_Y, t, RGB565(31, 63, 31));
+}
+
+static void draw_flash(void)
+{
+    char t[48], *p;
+
     if (hw3.back) {
         p = put_s(t, "flash ");
         p = put_hex(p, hw3.id, 6);
@@ -512,10 +627,30 @@ void hw_rows_all(void)
         *p = 0;
         row(HW3_FLASH_Y, t, RGB565(31, 63, 31));
     } else {
-        row(HW3_FLASH_Y, "window CON reads 0: round trip not tried", RGB565(31, 0, 0));
+        row(HW3_FLASH_Y, hw3.tried ? "flash: tried, not back" : "window CON reads 0: round trip not tried",
+            RGB565(31, 0, 0));
     }
+}
+
+/* Over the address pattern once it is sent: the start-up's rows again. */
+void hw_rows_start(void)
+{
     draw_store();
+    draw_win();
+    draw_flash();
+    draw_step();
+}
+
+/* Once the test screen is up: every row. */
+void hw_rows_all(void)
+{
+    draw_win();
+    draw_flash();
+    draw_store();
+    draw_step();
+    hw_step("test screen: first sweep");
     hw_refresh(1);
+    hw_step("test screen up, main loop next");
 }
 
 /* About ten times a second (main.c): the matrix, the ports and the ADC;
