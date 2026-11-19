@@ -446,7 +446,9 @@ impl Soc {
             0x11d08 => {
                 // BUF: single byte, D/C = PC8 state (SMK-37: PB5; its group B is the pad LEDs)
                 if let Some(dc) = self.lcd_dc() {
-                    self.lcd.feed(value as u8, dc);
+                    if self.lcd_selected() {
+                        self.lcd.feed(value as u8, dc);
+                    }
                 }
                 self.sfr_set(addr, value);
                 self.spi1_done(1);
@@ -460,8 +462,10 @@ impl Soc {
                 let bytes: Vec<u8> = (0..n).map(|i| self.read8(adr.wrapping_add(i))).collect();
                 match self.lcd_dc() {
                     Some(dc) => {
-                        for b in bytes {
-                            self.lcd.feed(b, dc);
+                        if self.lcd_selected() {
+                            for b in bytes {
+                                self.lcd.feed(b, dc);
+                            }
                         }
                     }
                     None => self.periph.smk.pad_frame(&bytes),
@@ -479,6 +483,17 @@ impl Soc {
         match self.board {
             Board::Fm1 => Some(self.sfr_get(0x50080) & 0x100 != 0),
             Board::Smk37 => (self.sfr_get(0x51020) & 0x10 == 0).then(|| self.sfr_get(0x50040) & 0x20 != 0),
+        }
+    }
+
+    /// Whether the panel takes SPI1's bytes: on the FM-1 its chip select is PC7, active low, so
+    /// it ignores them while PC7 is an output (DIR bit 7 clear) driven high (OUT bit 7 set). A
+    /// PC7 never driven high (OUT bit 7 clear, as at reset) selects it, as before this check.
+    /// The SMK-37's chip select isn't modelled.
+    fn lcd_selected(&mut self) -> bool {
+        match self.board {
+            Board::Fm1 => !(self.sfr_get(0x50080 + 8) & 0x80 == 0 && self.sfr_get(0x50080) & 0x80 != 0),
+            Board::Smk37 => true,
         }
     }
 
@@ -1014,6 +1029,46 @@ mod tests {
     use super::*;
     /// The USB core's access port answers: bit 15 set once an access is written, a read's byte
     /// in bits 0-7 (the last written to that index), the interrupt flags (2-6) read as 0.
+    /// The FM-1's panel ignores SPI1's bytes, single and by DMA, while PC7 (its chip select) is
+    /// an output driven high, and takes them while PC7 is low or an input.
+    #[test]
+    fn lcd_ignores_bytes_while_its_chip_select_is_high() {
+        let mut soc = Soc::new(0x8000, vec![]);
+        fn bits(soc: &mut Soc, addr: u32, mask: u32, on: bool) {
+            let v = soc.read32(addr);
+            soc.write32(addr, if on { v | mask } else { v & !mask });
+        }
+        let fill = |soc: &mut Soc| {
+            // PC8 low: a command; then high: data (RAMWR, then one pixel by BUF and one by DMA)
+            bits(soc, 0x50080, 0x100, false);
+            soc.write32(0x11d08, 0x2c);
+            bits(soc, 0x50080, 0x100, true);
+            soc.write32(0x11d08, 0xf8);
+            soc.write32(0x11d08, 0x00);
+            soc.write8(RAM_BASE, 0x07);
+            soc.write8(RAM_BASE + 1, 0xe0);
+            soc.write32(0x11d0c, RAM_BASE);
+            soc.write32(0x11d10, 2);
+        };
+        // PC7 an output, driven high: nothing reaches the panel
+        bits(&mut soc, 0x50080 + 8, 0x80, false);
+        bits(&mut soc, 0x50080, 0x80, true);
+        let before = soc.lcd.revision;
+        fill(&mut soc);
+        assert_eq!(soc.lcd.revision, before, "deselected: no pixel written");
+        assert!(soc.lcd.fb[..2].iter().all(|&p| p == 0), "deselected: the frame unchanged");
+        // PC7 low: the same bytes draw two pixels
+        bits(&mut soc, 0x50080, 0x80, false);
+        fill(&mut soc);
+        assert_eq!(&soc.lcd.fb[..2], &[0xf8 << 8, 0x07 << 8 | 0xe0], "selected: both pixels");
+        // PC7 an input: selected, as before the check
+        bits(&mut soc, 0x50080, 0x80, true);
+        bits(&mut soc, 0x50080 + 8, 0x80, true);
+        soc.lcd.fb[0] = 0;
+        soc.lcd.fb[1] = 0;
+        fill(&mut soc);
+        assert_eq!(&soc.lcd.fb[..2], &[0xf8 << 8, 0x07 << 8 | 0xe0], "PC7 an input: the panel takes the bytes");
+    }
     #[test]
     fn usb_port_answers() {
         let mut soc = Soc::new(0x8000, vec![]);

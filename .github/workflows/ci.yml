@@ -14,6 +14,8 @@
 # runs only when the harness, its emulator, the fwtest image pin, the
 # build container or the firmware's CPU flags change (tools/record.py,
 # ISA_PATHS); records.yml, for main and every release, runs it always.
+# The record job is the ruleset's one required check ("record"): it fails
+# whenever any job failed, was cancelled or was skipped.
 name: ci
 
 on:
@@ -173,3 +175,19 @@ jobs:
           path: out/record
           if-no-files-found: error
           retention-days: 14
+
+      # "record" is main's one required status check, so it must fail
+      # whenever any job did not succeed: a failed check, a job that failed
+      # or was cancelled before it uploaded its part, and the run stopped by
+      # the quick checks (then "checks" is skipped, not success). The
+      # assembled record fails in all of those cases too (a check no job ran
+      # fails it); this step says so in the job's own result, whatever the
+      # record says.
+      - name: Every job succeeded
+        if: always()
+        env:
+          QUICK: ${{ needs.quick.result }}
+          CHECKS: ${{ needs.checks.result }}
+        run: |
+          echo "quick: $QUICK, checks: $CHECKS"
+          test "$QUICK" = success && test "$CHECKS" = success

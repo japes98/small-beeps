@@ -257,6 +257,19 @@ From fwtest 0.2.0. Before it, a write to `CON` could set bits but never
 clear them: once any write had set bit 13, every later transfer raised
 source 16, whatever `CON` was written to afterwards (SR-3).
 
+**The chip select.** Since 0.11.0 the panel ignores SPI1's bytes, single
+and by DMA, while PC7, its chip select (`HARDWARE-SPEC.md`, HW-115), is an
+output (`JL_PORTC->DIR` bit 7 clear) driven high (`OUT` bit 7 set). The
+transfer still finishes and raises its interrupt as above; only the panel
+takes nothing. A PC7 never driven high selects the panel, as before, so a
+firmware that never touches PC7 draws as it did. That is fwtest's choice:
+on a unit a chip select left undriven is not known to select the panel,
+and HW-115's firmware drives it. Not modelled: the chip select going high
+in the middle of a command (on the panel that ends the command), and the
+SMK-37's chip select. Before 0.11.0 the panel took every byte whatever
+PC7 was, so the first hardware build, which left PC7 high, drew in fwtest
+and nothing on a unit (the owner's report, 2026-11-18).
+
 ## The command line
 
 ```
@@ -767,6 +780,9 @@ pushing Docker compresses the layers; the image ID does not.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.11.0: the panel ignores SPI1's bytes while its chip select, PC7, is
+  an output driven high ("The LCD"). Its pin is the clean side's pull
+  request, opened once the image is published.
 - 0.10.0: the toolchain audit ("Instructions", "The toolchain audit"):
   the float rounding and `__fp16` forms, `fcmp` and the flag branches,
   the memory shifts by a register and `&= ~R`, the 64-bit index scaled by

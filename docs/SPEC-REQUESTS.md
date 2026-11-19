@@ -704,4 +704,35 @@ an issue or a pull request against docs/HARNESS.md.
   this side may take. Read: HW-3, HW-9, HW-13, HW-18, HW-24, HW-33 to
   HW-35, HW-38, HW-40, HW-43 to HW-45, HW-48, HW-73, HW-91, HW-117 to
   HW-119; Q-3, Q-7, Q-13, Q-22.
-- Status: open
+- Status: answered (HARDWARE-SPEC.md, "28. What the hardware build still
+  needs on the chip"), item by item; where no allowed source gives a fact
+  the entry says so and names the probe on a unit that settles it (the
+  owner's request: no new SR):
+  1. **Timers:** HW-125. `CON` `0x1` runs a timer from the 60 MHz LSB at
+     one count per clock, as m-bootloader's TIMER0 does on FM-1 units;
+     bit 3 picks the 24 MHz oscillator, so a 24 MHz TIMER4 needs `CON`
+     bit 3 on the chip. Open: whether the acknowledge restarts the count
+     (Q-13), bit 2.
+  2. **Interrupts:** HW-126. The vector table may be written by an app
+     that never returns, once it has read the boot block; it covers the
+     boot block and the header copy, not what m-bootloader reads at the
+     next start (`0x01C7FD80` to `0x01C7FDD7`, which it must leave alone).
+     Set `ssp` and `sp` both. Open: which stack an interrupt uses; what
+     `idle` does.
+  3. **Code run from RAM:** HW-127. Written with ordinary stores, then a
+     `csync`, as m-bootloader runs its own second stage and RAM apps.
+     Open: whether main RAM is behind a data cache DMA must see flushed.
+  4. **The rest of the key matrix:** HW-129: no allowed source; a probe of
+     each column word against rows PA5 to PA8.
+  5. **The encoders and the pot:** HW-129. SARADC channel 3 is PB1 and 4
+     is PB6 (SDK); FM-1-RE says the FM-1's firmware reads both. Open:
+     which is the pot, its pin set-up, the encoders' pins (probes).
+  6. **Audio, core 1 and MIDI:** HW-130. Audio's further blocks as
+     FM-1-RE names them; open: the clocks for 44 118 Hz, the analogue
+     set-up and pins, and whether the audio link plays as in fwtest.
+     Core 1: no source shows HW-9's release after m-bootloader's call.
+     UART1's pins: open (Q-20).
+  The store (the owner's request, beyond the six items): HW-128,
+  m-bootloader's take and give-back of the flash; the round trip within
+  one run of an app is not shown, and a probe settles it.
+- Answered: 2026-11-18, session spec-sr16 (spec side)

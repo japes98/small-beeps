@@ -37,7 +37,9 @@ Session spec-sr14 (spec side, 2026-11-18) added section 26, the FM-1's
 panel, backlight, keys and LEDs and the state at the app's entry, for
 SR-14 (Q-2, Q-6 and Q-7 answered in part). Session spec-sr15 (spec side,
 2026-11-18) added section 27, the FM-1's two flash parts, for SR-15
-(Q-21 and Q-23 answered in part).
+(Q-21 and Q-23 answered in part). Session spec-sr16 (spec side,
+2026-11-18) added section 28, what the hardware build still needs on
+the chip, for SR-16 (Q-3, Q-10, Q-13 and Q-22 answered in part).
 
 ## How to read it
 
@@ -3027,6 +3029,270 @@ UC25HQ80's side. Page numbers are as printed.
 - Standing: confirmed (PUYA, UCUN, MB)
 - Needed by: M7, BR-17 (Phase B)
 
+## 28. What the hardware build still needs on the chip (SR-16)
+
+Session spec-sr16 answered SR-16 (2026-11-18, PROVENANCE P-500), as the owner's request gives it
+(docs/prompts/spec-sr16.md; docs/prompts/spec-ci-speed.md, item 3), from the
+sources the owner's rulings allow, under section 25's and 26's guardrails:
+- the SDK: its timer example again, and `adc_api.h` and `cache.h`, new;
+- m-bootloader (MB) at `3ac7651a019f`: the files P-68 and P-73 name, and
+  `docs/SPEC.md` §2.1, §3.3, §3.6, §4.4, §6.1, §6.5, §8.2 and §11.8;
+- FM-1-RE (RE), its allowed documents.
+
+The entries:
+- HW-125: the timers' `CON` bits and clocks (item 1).
+- HW-126: interrupts and the vector table after the call (item 2).
+- HW-127: code run from RAM (item 3).
+- HW-128: taking the flash from the code window and giving it back, for
+  the store (Q-22).
+- HW-129: the pot's channels and the encoders (items 4 and 5).
+- HW-130: audio, core 1 and MIDI (item 6).
+
+Much of SR-16 no allowed source gives. Each entry says what is still open
+and what would settle it; mostly that is a probe on a unit.
+
+### HW-125: The timers' `CON` bits and clocks on the chip (Q-3, Q-13)
+- Fact: On the chip, for TIMER0 to TIMER5:
+  - **Bits 1-0** pick the mode. 1 counts up from `CNT` to `PRD`. 2
+    captures on a rising edge, and 3 on a falling edge.
+  - **Bit 3** picks the input clock. With it set the timer counts the
+    oscillator; with it clear, the low-speed bus (LSB). The FM-1's
+    oscillator is 24 MHz, and its LSB is 60 MHz after m-bootloader
+    (HW-119).
+  - **Bits 7-4** pick the prescaler, with the settings HW-48 gives
+    (setting 0 divides by 1).
+  - **Bit 15** reads 1 while the period's interrupt is pending. Writing
+    bit 14 clears it. The SDK's handler acknowledges by setting bit 14 in
+    `CON` and does nothing else to the timer.
+  - **Stopping:** the SDK stops a timer by writing `CON` with bit 14
+    alone.
+  So `CON` = `0x1` runs a timer from the 60 MHz LSB, one count per clock.
+  The hardware build's TIMER0 does this, and so does m-bootloader's
+  TIMER0 on FM-1 units. m-bootloader uses only TIMER0. It writes `CON`
+  only as `0x4000` (stop, clear pending) and `0x1` (start). It sets
+  `CNT` to 0 and `PRD` to the count wanted, then waits for bit 15. A
+  free-running time base at 24 MHz, as fwtest's TIMER4 is (HW-13), needs
+  `CON` bit 3 set on the chip, with bits 1-0 at 1 and prescaler 0. With
+  bit 3 clear it counts the 60 MHz LSB.
+  Still open:
+  - whether the acknowledge restarts the count (Q-13). m-bootloader
+    never acknowledges a running timer; it stops it first.
+  - what bit 2 does.
+- Sources: SDK `apps/common/example/peripheral/timer/test2.c` lines
+  100-120 (the set-up: `CON` 0, `CNT` 0, bit 14, `PRD`, the prescaler
+  "of lsb_clk" in bits 7-4, then bit 0), 131-136 (the handler: bit 15,
+  then bit 14), 176-188 (TIMER4 from the oscillator: `CON` = prescaler
+  << 4 | bit 0 | bit 3, its period computed from the "osc" clock), 194
+  and 209 (stop: `CON` = bit 14), 259-265 (capture: bits 1-0 at 3 and
+  2); MB `docs/SPEC.md` §1 (the 24 MHz oscillator) and §3.3 (TIMER0's
+  `CON` written only as `0x4000` and `1`, one count per LSB clock, used
+  on hardware).
+- Standing: confirmed (SDK, MB)
+- Needed by: BR-17 (Phase B), M1
+
+### HW-126: Interrupts and the vector table after m-bootloader's call (Q-10)
+- Fact: The vector table's place, `0x01C7FE00` to `0x01C7FFFF` (HW-18),
+  is inside m-bootloader's retained area, which starts at `0x01C7FD80`.
+  Its slots overlap what m-bootloader puts there:
+  - the app's boot block at `0x01C7FE08` (24 bytes: slots 2 to 7);
+  - the copy of the flash header at `0x01C7FE20` (32 bytes: slots 8
+    to 15);
+  - two words, `0x01C7FE58` and `0x01C7FE60`, that must be zero
+    (slots 22 and 24).
+  m-bootloader writes all of these before each call. What it reads at
+  its next start lies below the table: the boot status at `0x01C7FD80`
+  and the update request at `0x01C7FD88` (80 bytes, up to `0x01C7FDD7`).
+  So an app that never returns may write the whole table, once it has
+  taken what it needs from the boot block that r0 points at (the chip
+  key, HW-112, at +12). It must leave `0x01C7FD80` to `0x01C7FDD7` alone
+  unless it means to ask for an update. m-bootloader's own documents say
+  that an app using interrupts there resets rather than returns.
+  m-bootloader runs with interrupts off throughout and calls the app
+  with them off (HW-119). It sets both stack pointers, `ssp` and `sp`,
+  to its own stacks at its start. Its documents say that the CPU has a
+  main stack and a system (exception) stack, and that the CPU's full
+  control state and the interrupt vector arrangement are not
+  established. So:
+  - an app sets both `ssp` and `sp` itself before it enables interrupts;
+  - which of the two an interrupt runs on is still open (HW-3 is
+    fwtest's);
+  - what `idle` does on the chip is not shown by any allowed source.
+    m-bootloader executes it only in a loop after asking for a reset
+    (Q-10).
+- Sources: MB `docs/SPEC.md` §2.1 (the two stacks; the control state and
+  vector arrangement not established), §6.1 (the retained area's map),
+  §6.5 (the boot block written before the call), §11.8 (the vector
+  table's usual place is in the retained area: an app with interrupts
+  resets); MB `src/startup.S` (both stack pointers set),
+  `src/platform.c` (`idle` only after the reset request); HW-18, HW-112,
+  HW-119.
+- Standing: confirmed (MB)
+- Needed by: BR-17 (Phase B)
+
+### HW-127: Code written to RAM and then run
+- Fact: m-bootloader runs code it has just written to main RAM after a
+  core synchronisation (`csync`) and nothing more, in three places:
+  - its own second stage, which its first stage unpacks to RAM and jumps
+    to on every start of every unit;
+  - a staged updater;
+  - a RAM app, after a `csync`.
+  It invalidates the cache only for the flash window, before it sets up
+  XIP. The SDK declares data cache calls with 32-byte lines: flush, flush
+  and invalidate, a way choice, and a write-through range. It doesn't say
+  which addresses are cached.
+  So on the chip, code copied into main RAM with ordinary stores runs
+  after a `csync` as m-bootloader's does. An app that then changes the
+  flash under the window needs the window's cache invalidated as HW-128
+  says.
+  Still open: whether main RAM is behind a data cache that DMA (SPI1,
+  the audio DMA, UART1's) must see flushed.
+- Sources: MB `src/boot.c` (the RAM app called after `sync_cpu`, and the
+  same after an updater), `src/platform.c` (the cache invalidation in
+  the XIP set-up only), `docs/SPEC.md` §4.4 (the second stage unpacked
+  to RAM and run), §2.2 and §3.6 (the cache control and its ranges); SDK
+  `include_lib/driver/cpu/wl82/asm/cache.h` (`CACHE_LINE_COUNT` 32,
+  `flush_dcache`, `flushinv_dcache`, `dcache_way_use_select`,
+  `dcache_cwt_set`).
+- Standing: confirmed (MB, SDK)
+- Needed by: BR-17 (Phase B), M7
+
+### HW-128: Taking the flash from the code window, and giving it back (Q-22)
+- Fact: m-bootloader works the flash over SPI0 only while nothing runs
+  from the window.
+  - **To take it:** it writes 0 to the window controller's `CON`
+    (`0x40200`) and to the peripheral cipher's control (`0x13000`). It
+    clears bit 1 of `JL_IOMAP->CON1` and bit 5 of `CON0`, so SPI0 uses
+    port D (HW-85). It sets up the flash's pins:
+    - PD0, the chip select: an output, high;
+    - PD4, the clock, and PD5, data out: outputs, low, with PD4's
+      drive-strength bit (`HD` bit 4) set;
+    - PD1, data in: an input with no pulls;
+    - PD2 and PD3: outputs, high.
+    It then writes SPI0's `CON` as `0x28`, sets `BAUD`, and sets bits 14
+    and 0. Before its first command it sends `0xFF` twice (HW-123).
+  - **To give it back before an app runs:**
+    1. It writes 0 to SPI0's `CON`, to `0x13000` and to the window
+       cipher's control (`0x40300`).
+    2. It clears bit 16 of `JL_IOMAP->CON0`, the window's pin route.
+    3. It writes `0x00F00000` then 0 to the window controller's `CON`,
+       sets its `BAUD`, and writes its mode word. At quad width with
+       output reads that is `0x00280381`, with bits 23-20 set to 9 at
+       HSB 180 MHz for about 45 ns of chip-select high.
+    4. It writes the app area's flash base (`0x4000`) to `0x4020C` and
+       the chip key to `0x40304`.
+    5. It invalidates the cache: it clears bits 8 and 9 of `0x01EEE008`,
+       clears four internal ranges with word writes (`0x01F00000` to
+       below `0x01F04000`, `0x01F08000` to below `0x01F0A200`, and
+       `0x01F0B000` to below `0x01F0B200`), and sets the two bits again.
+    6. With interrupts off, it waits for bit 14 of `0x01EEE008` (idle),
+       sets the window cipher's control to 1, and does a `csync`.
+  - **SPI0's clock** is the LSB (60 MHz) divided by `BAUD` + 1. That is
+    inferred in m-bootloader's documents. At its default divider of 1 it
+    is about 30 MHz, within both flash parts' 50 and 55 MHz for `0x03`
+    (HW-124 item 6).
+  This goes past HW-85: the flash's port D pins are set up for SPI0, but
+  only while the window is not in use. HW-85 stands for an app that
+  runs from the window and doesn't take the flash.
+  Not shown by any allowed source: taking the flash and then giving the
+  window back within one run of an app, without a reset. That is the
+  round trip the store needs. m-bootloader never does it: after a failed
+  XIP start it resets before setting XIP up again, because a direct
+  retry failed on an SMK-37 Pro. Settled by a probe on a unit: code in
+  RAM takes SPI0, reads the ID, gives the window back as above, and then
+  runs code from the window again.
+- Sources: MB `src/platform.c` (`flash_init`: the take and the pins;
+  `flash_release` and the XIP set-up: the give-back and the cache
+  invalidation), `docs/SPEC.md` §3.4 (SPI0's set-up and pins), §3.6 (the
+  window's set-up, the mode words, the cache ranges, the failed direct
+  retry), §2.2 (the clock relation, inferred); HW-85, HW-123, HW-124.
+- Standing: confirmed (MB; the round trip within one run not shown)
+- Needed by: M7, BR-17 (Phase B)
+
+### HW-129: The pot's ADC channels and the encoders (Q-7, Q-8)
+- Fact: The SDK's SARADC channel numbers name their pins:
+
+  | Channel | Pin |
+  |---------|-----|
+  | 0 | PA7 |
+  | 1 | PA8 |
+  | 2 | PA10 |
+  | 3 | PB1 |
+  | 4 | PB6 |
+  | 5 | PB7 |
+  | 6 | PC0 |
+  | 7 | PC1 |
+  | 8 | PC9 |
+  | 9 | PC10 |
+  | 10 | PH0 |
+  | 11 | PH3 |
+  | 12 | USB D− |
+  | 13 | USB D+ |
+  | 14 | the RTC |
+  | 15 | internal sources: the PMU, audio, PLL and others, chosen further |
+
+  FM-1-RE says the FM-1's firmware reads SARADC channels 3 and 4, so PB1
+  and PB6. fwtest's pot is channel 4 (HW-40). FM-1-RE also says the FM-1
+  has two rotary encoders, read as GPIO. No allowed source gives their
+  pins, or the rest of the key matrix beyond HW-117's four keys. That
+  includes what bits 11 to 15 of the column word select (OCT−'s `0xF7FE`
+  and OCT+'s `0xEFFD` clear two bits each).
+  Open, and settled by probes on a unit:
+  - which channel the pot is on;
+  - the pin set-up a channel needs (digital input off is the SDK's
+    usual choice; not taken from its driver here);
+  - the encoders' pins and pulls;
+  - each column word against rows PA5 to PA8.
+- Sources: SDK `include_lib/driver/cpu/wl82/asm/adc_api.h` lines 8-27
+  (`AD_CH_PA07` 0 to `AD_CH_PMU` 15); RE `docs/architecture.md` (two
+  rotary encoders; SARADC channels 3 and 4 at `0x13100`) and
+  `docs/reversing/01-hardware-map.md` (encoders on GPIO, polled);
+  HW-40, HW-117.
+- Standing: confirmed (SDK, RE; the board's use of the channels and the
+  encoders' pins open)
+- Needed by: M3, BR-17 (Phase B)
+
+### HW-130: Audio, core 1 and MIDI after m-bootloader's call (Q-20)
+- Fact:
+  - **Audio.** Beyond HW-43 to HW-45's registers, FM-1-RE names other
+    audio blocks the FM-1's firmware uses. It gives each at its own
+    confidence and marks some names as borrowed from a sibling chip:
+    - an analogue DAC block at `0x11904`, `0x11908`, `0x1190C` and
+      `0x1191C` (analogue control, DC-offset trim, trim codes);
+    - a DAC clock gate, bit 14 of `0x119CC`;
+    - a codec serial port at `0x3101C`;
+    - the audio clock's source and divider in `0x10014` (bits 8 and 10)
+      and `0x119A8` (bit 25).
+    It also says that the FM-1's firmware feeds its synthesis through
+    the audio link at `0x12E00` (HW-43) by DMA, a half at a time, on
+    interrupt source 11; that it sets up four pins there, which it
+    numbers 32, 33, 34 and 38; and that it reaches the codec's analogue
+    side through the serial port with long tables of register writes.
+    It reports the firmware's rate as 44 118 Hz.
+    Not taken here: a bring-up order, the tables, or which physical pins
+    those numbers are. So these stay open per part of the output:
+    - **clocks:** which of the audio clock's settings give 44 118 Hz
+      from the 360 MHz system;
+    - **output:** the analogue set-up and the pins;
+    - **DMA:** whether the audio link plays its halves on the chip as in
+      fwtest (HW-44, HW-45: the sample format is Q-9).
+  - **Core 1.** m-bootloader never starts core 1, and no allowed source
+    shows whether HW-9's release works after its call. HW-9's method
+    stays the only one known.
+  - **MIDI.** UART1's pins on the board stay open (Q-20; HW-73 lists the
+    candidates). m-bootloader uses USB, not a UART.
+  Settled by probes on a unit:
+  - a tone after HW-43 to HW-45's set-up alone, to show what more the
+    output needs;
+  - core 1 released as HW-9 says, with a counter it increments;
+  - bytes received on UART1 on each candidate pin.
+- Sources: RE `docs/io/03-audio-dac.md` (the register table and its
+  confidence marks; the 44 118 Hz rate); MB `src/boot.c`,
+  `src/platform.c` and `docs/SPEC.md` (no core 1; MIDI over USB only,
+  §11.6); HW-9, HW-43 to HW-45, HW-73.
+- Standing: confirmed (RE, MB; the bring-up, core 1 after the call and
+  UART1's pins open)
+- Needed by: M4, M5, M6, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -3054,6 +3320,9 @@ spec request can turn one into a fact.
 - **Q-3. TIMER0-3 prescaler settings in fwtest.** The SDK gives the chip's
   table (HW-48); fwtest's settings other than 0 and 2 were not measured.
   Measure with a black-box test, or ask.
+  *Answered in part by session spec-sr16 (HW-125):* on the chip `CON`
+  bits 7-4 prescale the input clock, bit 3 picks the 24 MHz oscillator
+  instead of the 60 MHz LSB, bits 1-0 the mode.
 - **Q-4. The core tick timer's period on the chip.** Which clock `TTMR_PRD`
   counts on real hardware (fwtest always uses 10 ms).
 - **Q-5. A debug console on the chip.** Whether `DBG_MSG` writes go
@@ -3086,8 +3355,13 @@ spec request can turn one into a fact.
   registers' pins, the rows' pins and pull-ups, PA2's role, four keys'
   columns and rows, the LED lines and their polarity. Still open: the
   other keys' columns and rows, the encoders, and LED current.
+  *Session spec-sr16 (HW-129):* no allowed source gives the rest of the
+  matrix or the encoders' pins; probes on a unit.
 - **Q-8. The other ADC channels.** What channel 3 and the other channels
   carry on the board (fwtest gives them fixed values).
+  *Session spec-sr16 (HW-129):* the SDK maps channel 3 to PB1 and 4 to
+  PB6, and FM-1-RE says the FM-1's firmware reads both; which is the pot
+  stays open.
 - **Q-9. Audio on the chip.** How `JL_ALNK0`'s output reaches the DAC or
   codec on real hardware, which bits of each word it uses, its clock set-up
   and true rate, and the analog set-up (FM-1-RE's audio document names DAC
@@ -3097,6 +3371,9 @@ spec request can turn one into a fact.
   rules and choice among pending sources (HW-22); whether the two cores
   share one vector table; what `idle` does with interrupts masked (HW-24).
   The toolchain's interrupt attribute works in fwtest.
+  *Answered in part by session spec-sr16 (HW-126):* after m-bootloader's
+  call an app sets both `ssp` and `sp` before enabling interrupts; which
+  one an interrupt uses, and `idle`, stay open.
 - **Q-11. Booting on the chip.** The contents of the boot-parameter block
   the loader passes in r0, and whether a raw image can be started on real
   hardware without M-VAVE's loader (PLAN.md, M9 risk), and whether such an
@@ -3132,6 +3409,9 @@ spec request can turn one into a fact.
   fwtest (HW-48), or the count runs on and the period stays `PRD` counts.
   The SDK's examples acknowledge every interrupt with such a write but
   don't say. Settled by a probe on real hardware.
+  *Narrowed by session spec-sr16 (HW-125):* the SDK's handler acknowledges
+  with bit 14 and nothing else, and m-bootloader stops a timer before
+  reusing it; whether the acknowledge restarts the count stays open.
 - **Q-14. CPU exceptions on the chip.** What the sources don't establish
   about source 1 (HW-49 to HW-51): which causes are on when an installed
   app starts, and which `EMU_CON` and `DBG_EN` bits turn each on (the SDK's
@@ -3188,6 +3468,7 @@ spec request can turn one into a fact.
   `TXCNT` does while a transfer is still going; how `BUF` and the DMA mix.
   Settled by a datasheet or a probe on real hardware (an SMK-37 and an
   FM-1).
+  *Session spec-sr16 (HW-130):* still open; a probe on a unit.
 - **Q-21. The FM-1's flash part.** Which part the FM-1 carries: its
   JEDEC ID read on a unit (fwtest answers `85 60 14`, the Puya P25Q80H,
   HW-76), or the marking on the chip. If it differs, HW-77's times and
@@ -3214,6 +3495,9 @@ spec request can turn one into a fact.
   whether core 1 must be stopped (the emulator's
   model says the stock firmware pauses it around flash work). Settled by
   a probe on real hardware, or a datasheet for the chip.
+  *Answered in part by session spec-sr16 (HW-128):* m-bootloader's take
+  and give-back of the flash, SPI0's clock, and the cache invalidation;
+  the round trip within one run of an app is not shown.
 - **Q-23. Write protection on the FM-1's flash.** Whether the status
   register's block-protect bits (HW-78) are set on a shipped unit or by
   the loader, which would make erases and programs in the protected range
