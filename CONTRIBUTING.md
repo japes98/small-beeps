@@ -283,6 +283,14 @@ Exposure: the author's role and exposure (e.g. "firmware side, none")
   `tools/Dockerfile` or the CPU flags in `tools/build.sh` change (otherwise
   SKIP, saying why); on main (`records.yml`) and so before every release it
   always runs.
+- The ruleset on main requires one status check, **`record`**, the job that
+  assembles the record. It fails whenever any job did not succeed: a check
+  that failed; a job that failed or was cancelled, before or after it
+  uploaded its part; the run stopped by the quick checks (the other jobs are
+  then skipped, and every check they hold is "not run", which fails the
+  record). Its last step tests that the quick job and every checks job
+  succeeded, so it can never pass on its own while another job didn't. If
+  the whole run is cancelled, `record` is cancelled or fails, never passes.
 - The **owner merges with GitHub's merge button** ("Create a merge commit").
   GitHub commits and signs the merge commit as `web-flow` (shown as
   Verified) and records the owner as the pull request's `merged_by`. No

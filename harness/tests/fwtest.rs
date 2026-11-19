@@ -193,6 +193,26 @@ fn lcd_capture() {
     assert_eq!(px(100, 100), [0, 0, 0], "the diagonal");
 }
 
+/// HARNESS.md ("The LCD"): the panel ignores SPI1's bytes, single and by
+/// DMA, while PC7 (its chip select, HW-115) is an output driven high, as
+/// the first hardware build left it; with PC7 low it draws (patch 0018).
+#[test]
+fn lcd_ignores_bytes_while_pc7_is_high() {
+    let mut o = opts(30);
+    o.lcd = vec![When::End];
+    o.halt_ok = true;
+    let r = run(&image("lcdcs"), &o).unwrap();
+    let (w, h, rgb) = formats::png_read(output(&r, "lcd-end.png")).unwrap();
+    assert_eq!((w, h), (240, 240));
+    let px = |x: usize, y: usize| &rgb[(y * 240 + x) * 3..(y * 240 + x) * 3 + 3];
+    for (x, y) in [(10, 0), (60, 5), (110, 120), (0, 239)] {
+        assert_eq!(px(x, y), [0, 0, 0], "PC7 high: nothing drawn at ({x}, {y})");
+    }
+    for (x, y) in [(120, 0), (180, 5), (239, 120), (200, 239)] {
+        assert_eq!(px(x, y), [0, 255, 0], "PC7 low: drawn at ({x}, {y})");
+    }
+}
+
 /// HARNESS.md ("The LCD"): SPI1's CON reads back as last written (bit 15
 /// set: transfers finish at once), and a finished transfer, DMA or single
 /// byte, raises source 16 only while bit 13 is set (SR-3).

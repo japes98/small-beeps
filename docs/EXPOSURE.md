@@ -2892,6 +2892,40 @@ SR-3 wrote only its barrier-log row.*
   `gh`.
 - Disk: about 5.9 GB free.
 
+### Session spec-sr16 (SR-16 in full; fwtest 0.11.0, the panel's chip select)
+- Date: 2026-11-18 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.327; model `claude-opus-5-5`. The same Claude Code
+  session as spec-sr15 and spec-ci-speed
+  (`3554477d-915e-4869-a94a-6a2ff3efe04a`). Branch `spec/sr16` from
+  `spec/ci-speed` (#191, which carries #189).
+- The owner's requests, saved as docs/prompts/spec-sr16.md (the first)
+  and docs/prompts/spec-ci-speed.md (item 3 restates it in full).
+- Read (PROVENANCE P-500), under the owner's rulings and section 25's and
+  26's guardrails:
+  - the SDK at P-2's commit: its file tree, `timer/test2.c` lines 100-275,
+    `asm/adc_api.h`, `asm/cache.h`. `asm/dac.h` and
+    `cpu/wl82/key/adc_api.c` were asked for and never arrived;
+  - m-bootloader at `3ac7651a019f`: `src/boot.c`, `src/platform.c`,
+    `src/startup.S` again, and `docs/SPEC.md` §2.1, §2.2, §3.3, §3.6,
+    §4.4, §6.1, §6.5, §8.2 and §11.6 to §11.8;
+  - FM-1-RE at `ec832f28`: its eight allowed documents, fetched again.
+  Not recorded, by the guardrails:
+  - what `docs/SPEC.md` §11.6 and §11.7 say of stock and Felucca-family
+    firmware and their updaters;
+  - FM-1-RE's audio driver internals beyond the blocks' roles: its
+    bring-up order, tables and task layout.
+  Not opened: `src/usb_midi.c`, any header of m-bootloader's, any GPL
+  firmware or stock package.
+- The vendored emulator (spec side): patch 0018 written, fwtest 0.11.0.
+  This repository's own firmware: the hardware build at `58c87df3`
+  (start1) and on main at `1f69f236` (start2), built and run in fwtest
+  0.10.0 and 0.11.0 to show the chip select's case.
+- C-SEP-TERMS (the owner's answer, option A): four words of patch 0018's
+  own text and crate test, and two test names in #192's description, were
+  reworded or taken out; nothing was listed as reviewed.
+- Disk: about 5.0 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
