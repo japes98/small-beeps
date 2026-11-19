@@ -1532,8 +1532,8 @@ def hw3_record(data):
     if len(data) >= HW3_FULL_LEN:
         w.update(zip(HW3_C1, struct.unpack_from("<11I", data, HW3_LEN)))
         o = HW3_LEN + 4 * len(HW3_C1)
-        w["cnt0"] = list(struct.unpack_from("<16I", data, o))
-        w["cnt1"] = list(struct.unpack_from("<16I", data, o + 64))
+        w["x2_before"] = list(struct.unpack_from("<16I", data, o))
+        w["x2_after"] = list(struct.unpack_from("<16I", data, o + 64))
         (w["count1"],) = struct.unpack_from("<I", data, o + 128)
     return w
 

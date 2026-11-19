@@ -426,7 +426,7 @@ void hw_core1_start(void)
     hw_step("core 1: releasing");
     hw3.c1_fn = (u32)hw_core1_loop;
     for (i = 0; i < 16; i++)
-        hw3.cnt0[i] = COREX2_WORD(i);
+        hw3.x2_before[i] = COREX2_WORD(i);
     hw3.c1_pre = C1_CON;
     hw3.sd_before = SYS_DIV;
     C1_START = hw3.c1_fn;
@@ -482,7 +482,7 @@ void hw_core1_screen(void)
     while (sb_beacon.beats - hw3.c1_at < 1000u)
         ;
     for (i = 0; i < 16; i++)
-        hw3.cnt1[i] = COREX2_WORD(i);
+        hw3.x2_after[i] = COREX2_WORD(i);
     hw3.count1 = hw_core1_count;
     lcd_wait();
     gfx_fill(0, 0, SCREEN_W, SCREEN_H, RGB565(0, 0, 0));
@@ -524,11 +524,11 @@ void hw_core1_screen(void)
     for (i = 0; i < 16; i++) {
         p = put_hex(t, 0x80u + i, 2);
         *p++ = ' ';
-        p = put_hex(p, hw3.cnt0[i], 8);
+        p = put_hex(p, hw3.x2_before[i], 8);
         *p++ = '>';
-        p = put_hex(p, hw3.cnt1[i], 8);
+        p = put_hex(p, hw3.x2_after[i], 8);
         *p = 0;
-        gfx_text(i < 8 ? 0 : 120, y + FONT_H * (i & 7), t, hw3.cnt0[i] != hw3.cnt1[i] ? RGB565(31, 63, 0) : dim,
+        gfx_text(i < 8 ? 0 : 120, y + FONT_H * (i & 7), t, hw3.x2_before[i] != hw3.x2_after[i] ? RGB565(31, 63, 0) : dim,
                  RGB565(0, 0, 0), 1);
     }
     lcd_send_rows(0, SCREEN_H);

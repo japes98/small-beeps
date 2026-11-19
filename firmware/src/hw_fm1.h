@@ -81,7 +81,7 @@ struct hw_start3 {
     u32 c1_clr1;                      /* C1_CON after bit 1 cleared (c1_post: after bit 3 set) */
     u32 c1_seen, c1_wait_ms;          /* core 1's flag seen; the wait, ms (HW_C1_WAIT_MS: timed out) */
     u32 c1_at;                        /* the beat of the release */
-    u32 cnt0[16], cnt1[16];           /* corex2 words 0x80-0x8F before, and a second after */
+    u32 x2_before[16], x2_after[16];           /* corex2 words 0x80-0x8F before, and a second after */
     u32 count1;                       /* hw_core1_count a second after */
 };
 extern struct hw_start3 hw3;
