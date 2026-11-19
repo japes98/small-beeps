@@ -3194,6 +3194,12 @@ SR-3 wrote only its barrier-log row.*
   `tools/check-transcripts.py`: 26 archived transcripts, PASS.
 - Reads: HARDWARE-SPEC HW-9, HW-10, HW-53, HW-56, HW-129, HW-133, HW-134,
   HW-135, Q-17, Q-18; SPEC-REQUESTS SR-18 (answered).
+- C-SEP-TERMS on #203 (`87c704c5`): one name of this side's own, in
+  hw_fm1.h, hw_start3.c and the seams suite, matched an emulator-only word.
+  The quick job's artifact was fetched by the API and only
+  `logs/C-SEP-TERMS.log` read from it (its HIT lines), the zip deleted at
+  once; the word found by hashing the hit lines' words, and the two names
+  renamed. The images are the same.
 - Disk: 4.2 GB free at the start.
 
 ## Corrections
