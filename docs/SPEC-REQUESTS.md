@@ -766,10 +766,10 @@ an issue or a pull request against docs/HARNESS.md.
      the same built-in divider it gives SPI0, after `CON` = `0x00F00000`
      and `CON` = 0 and before the mode word.
   2. **Whether `CON` reads back:** the SDK marks it read-write, and
-     m-bootloader never reads it. On the owner's unit (start3b, relayed)
-     it reads `0x009803B5`, not the quad word `0x00980381` m-bootloader
-     writes. By the owner's ruling the give-back restores `CON` as read
-     before the take (HW-132).
+     m-bootloader never reads it. On the owner's unit it reads
+     `0x009803B5` (HW-133), not the quad word `0x00980381` m-bootloader
+     writes. By the owner's rulings the give-back writes `0x00F00000`, 0,
+     `BAUD` = 1 and then `CON` as read before the take (HW-132).
   3. **Whether a `CON` write changes `BAUD`:** not shown. Writing `BAUD`
      after the two `CON` writes, as m-bootloader does, doesn't depend on
      it.

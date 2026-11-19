@@ -16,9 +16,10 @@ It fails on:
     chip's SDK; such an entry is never confirmed for the FM-1's chip);
   - a confirmed entry whose sources name nothing independent: it must cite
     SDK, PKG (the SDK's packaging tools run on our own input), MF or MB
-    (the unit's installer and bootloader, by the owner's ruling), RE, DS,
-    PUYA, UCUN (the second flash part's datasheet), PANEL, MAN or an
-    experiment E-n (HARNESS, the spec side's own
+    (the unit's installer and bootloader, by the owner's ruling), UNIT
+    (what the owner observes on the unit, by the owner's ruling of
+    2026-11-19), RE, DS, PUYA, UCUN (the second flash part's datasheet),
+    PANEL, MAN or an experiment E-n (HARNESS, the spec side's own
     description of fwtest, and the emulator model don't count);
   - an experiment E-n cited but not listed in
     harness/spec-experiments/README.md (checked only where harness/ is on
@@ -40,7 +41,7 @@ EXPERIMENTS = os.path.join(ROOT, "harness", "spec-experiments", "README.md")
 FIELDS = ("Fact", "Sources", "Standing", "Needed by")
 HEAD = re.compile(r"^### (HW-(\d+)): (\S.*)$")
 FIELD = re.compile(r"^- ([A-Z][a-z]+(?: by)?):\s*(.*)$")
-SOURCE_KEYS = re.compile(r"\b(SDK|PKG|MF|MB|RE|DS|PUYA|UCUN|PANEL|MAN|E-\d+)\b")
+SOURCE_KEYS = re.compile(r"\b(SDK|PKG|MF|MB|UNIT|RE|DS|PUYA|UCUN|PANEL|MAN|E-\d+)\b")
 # Another chip's SDK: a source, but never an independent one for this chip.
 OTHER_CHIP = re.compile(r"\bSDK63\b")
 EXP = re.compile(r"\bE-(\d+)\b")
@@ -115,7 +116,7 @@ def lint(text, base_text=None, known_exps=None):
                 problems.append("%s: superseded by %s, which isn't another entry" % (eid, m.group(1)))
         elif st.startswith("confirmed"):
             if not SOURCE_KEYS.search(e.get("Sources", "")):
-                problems.append("%s: confirmed, but its sources name no independent source (SDK, PKG, MF, MB, RE, DS, PUYA, UCUN, PANEL, MAN, E-n)" % eid)
+                problems.append("%s: confirmed, but its sources name no independent source (SDK, PKG, MF, MB, UNIT, RE, DS, PUYA, UCUN, PANEL, MAN, E-n)" % eid)
         elif st.startswith("other chip"):
             if st != "other chip (SDK63)" or not OTHER_CHIP.search(e.get("Sources", "")):
                 problems.append("%s: other chip, but its standing isn't 'other chip (SDK63)' or its sources don't cite SDK63" % eid)

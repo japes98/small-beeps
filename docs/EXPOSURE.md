@@ -3099,6 +3099,23 @@ SR-3 wrote only its barrier-log row.*
   outside the repository.
 - Disk: about 3.2 GB free.
 
+### Session spec-unit-facts (the owner's unit as a fact source; HW-133)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-start3b (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  `spec/flash-protect` (#196).
+- The owner's rulings, saved as docs/prompts/spec-unit-facts.md: the
+  give-back writes `BAUD` = 1 before restoring `CON`; what the owner
+  observes on the unit is a fact source.
+- Changed: source key UNIT in HARDWARE-SPEC and in
+  `tools/check-hardware-spec.py` (and its test); HW-133 (section 31);
+  HW-132's give-back and standing; SR-17 item 2; the notes on Q-7, Q-8,
+  Q-17 and Q-22. PRESETS stays a note.
+- Read: nothing outside this repository.
+- The clean prompt `drop/prompts/clean-br17-protect.md` updated to match.
+- Disk: about 2.4 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
