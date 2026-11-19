@@ -22,6 +22,13 @@
 //! The bytes change when the operation starts; `power_cut` puts back the
 //! part not yet done.
 //!
+//! Block protection: `status` holds the status registers' non-volatile bits
+//! as the chip powered up (status 1 bits 2-7, status 2), read back by 05 and
+//! 35. An erase or program whose range holds a byte BP0-BP4 and CMP protect
+//! (`protected`, the table both parts share) is ignored wholly: nothing
+//! changes, it isn't logged or counted, the chip doesn't go busy, and WEL
+//! stays as it was. The status register writes (01, 31) aren't modelled.
+//!
 //! Power cuts (FM1_FLASH_CUT=N): the Nth erase or page program is cut half way (the first
 //! half of its bytes changed, the rest as before), and nothing after it reaches the chip, as if
 //! the power went there. With fm1-live's `--flash FILE` the next run boots from what was left.
@@ -83,7 +90,35 @@ pub struct SpiFlash {
     pub log: Vec<FlashOp>,
     /// The command now selected was sent while busy: ignored to its end.
     ignored: bool,
+    /// Status registers 1 and 2 as at power-up (BP0-BP4 in 1, CMP in 2); WIP and WEL come
+    /// from the chip's state.
+    pub status: [u8; 2],
 }
+
+/// The protected area for BP4-BP0 (status 1 bits 6-2) with CMP 0, as `(BP mask, BP value,
+/// first byte, end)`, the first matching row winning: both parts' table, row for row (an
+/// empty range protects nothing; CMP 1 protects the rest of the chip).
+const PROTECT: [(u8, u8, usize, usize); 19] = [
+    (0b00111, 0b00000, 0, 0),
+    (0b00110, 0b00110, 0, FLASH_SIZE),
+    (0b10111, 0b00101, 0, FLASH_SIZE),
+    (0b11111, 0b00001, FLASH_SIZE - 0x10000, FLASH_SIZE),
+    (0b11111, 0b00010, FLASH_SIZE - 0x20000, FLASH_SIZE),
+    (0b11111, 0b00011, FLASH_SIZE - 0x40000, FLASH_SIZE),
+    (0b11111, 0b00100, FLASH_SIZE - 0x80000, FLASH_SIZE),
+    (0b11111, 0b01001, 0, 0x10000),
+    (0b11111, 0b01010, 0, 0x20000),
+    (0b11111, 0b01011, 0, 0x40000),
+    (0b11111, 0b01100, 0, 0x80000),
+    (0b11111, 0b10001, FLASH_SIZE - 0x1000, FLASH_SIZE),
+    (0b11111, 0b10010, FLASH_SIZE - 0x2000, FLASH_SIZE),
+    (0b11111, 0b10011, FLASH_SIZE - 0x4000, FLASH_SIZE),
+    (0b11110, 0b10100, FLASH_SIZE - 0x8000, FLASH_SIZE),
+    (0b11111, 0b11001, 0, 0x1000),
+    (0b11111, 0b11010, 0, 0x2000),
+    (0b11111, 0b11011, 0, 0x4000),
+    (0b11110, 0b11100, 0, 0x8000),
+];
 
 impl SpiFlash {
     pub fn new() -> Self {
@@ -109,6 +144,7 @@ impl SpiFlash {
             current_op: None,
             log: Vec::new(),
             ignored: false,
+            status: [0; 2],
         }
     }
 
@@ -119,6 +155,29 @@ impl SpiFlash {
     }
 
     pub fn busy(&self) -> bool { self.cs_low }
+
+    /// The bytes BP0-BP4 and CMP protect, as `first..end` (empty: none).
+    pub fn protected(&self) -> (usize, usize) {
+        let bp = (self.status[0] >> 2) & 0x1f;
+        let (_, _, lo, hi) = *PROTECT.iter().find(|&&(m, v, _, _)| bp & m == v).expect("every BP setting has a row");
+        if self.status[1] & 0x40 == 0 {
+            (lo, hi)
+        } else if lo == hi {
+            (0, FLASH_SIZE)
+        } else if lo == 0 && hi == FLASH_SIZE {
+            (0, 0)
+        } else if lo == 0 {
+            (hi, FLASH_SIZE)
+        } else {
+            (0, lo)
+        }
+    }
+
+    /// Does `base..base + len` hold a protected byte?
+    fn guarded(&self, base: usize, len: usize) -> bool {
+        let (lo, hi) = self.protected();
+        base < hi && lo < base + len
+    }
 
     /// Is an erase or program still in progress at cycle `now`?
     pub fn working(&self, now: u64) -> bool { now < self.busy_until }
@@ -196,8 +255,8 @@ impl SpiFlash {
                 // 4 dummy bytes then a 16-byte unique id
                 if k < 4 { 0xff } else { [0x46, 0x4d, 0x31, 0x2d][(k - 4) & 3] }
             }
-            0x05 => (self.working(self.now) as u8) | if self.wel { 0x02 } else { 0x00 },
-            0x35 => 0x00,
+            0x05 => (self.working(self.now) as u8) | if self.wel { 0x02 } else { 0x00 } | (self.status[0] & 0xfc),
+            0x35 => self.status[1],
             0x03 | 0x0b | 0x81 | 0x20 | 0x52 | 0xd8 | 0x02 => {
                 if k < 3 {
                     self.addr = (self.addr << 8) | out as u32;
@@ -241,6 +300,9 @@ impl SpiFlash {
 
     /// Page program: the bytes wrap within the page (later ones win), and only clear bits.
     fn program(&mut self) {
+        if self.guarded(self.addr as usize & !(PAGE - 1) & (FLASH_SIZE - 1), PAGE) {
+            return;
+        }
         let n = match self.op() { Some(true) => self.pending_prog.len(), Some(false) => self.pending_prog.len() / 2, None => 0 };
         let page = self.addr as usize & !(PAGE - 1) & (FLASH_SIZE - 1);
         self.start(0x02, page, PAGE, self.timing.program);
@@ -260,6 +322,9 @@ impl SpiFlash {
     }
 
     fn erase(&mut self, size: usize) {
+        if self.guarded((self.addr as usize) & !(size - 1) & (FLASH_SIZE - 1), size) {
+            return;
+        }
         let n = match self.op() { Some(true) => size, Some(false) => size / 2, None => 0 };
         let base = (self.addr as usize) & !(size - 1) & (FLASH_SIZE - 1);
         self.start(self.cmd, base, size, self.timing.erase);
@@ -371,6 +436,64 @@ mod tests {
         assert!(f.mem[0x1000..0x1400].iter().all(|&b| b == 0xff), "the first quarter erased");
         assert!(f.mem[0x1400..0x2000].iter().all(|&b| b == 0), "the rest as it was");
         assert_eq!(status(&mut f), 0x00);
+    }
+
+    #[test]
+    fn each_protection_setting_covers_its_rows_area() {
+        let mut f = SpiFlash::new();
+        let area = |f: &mut SpiFlash, bp: u8, cmp: bool| {
+            f.status = [bp << 2, if cmp { 0x40 } else { 0 }];
+            f.protected()
+        };
+        let all = (0, FLASH_SIZE);
+        for (bp, want) in [
+            (0b00000, (0, 0)), (0b11000, (0, 0)),
+            (0b00001, (FLASH_SIZE - 0x10000, FLASH_SIZE)), (0b00100, (0x80000, FLASH_SIZE)),
+            (0b01001, (0, 0x10000)), (0b01100, (0, 0x80000)),
+            (0b00101, all), (0b01101, all), (0b10110, all), (0b11111, all),
+            (0b10001, (FLASH_SIZE - 0x1000, FLASH_SIZE)), (0b10011, (FLASH_SIZE - 0x4000, FLASH_SIZE)),
+            (0b10100, (FLASH_SIZE - 0x8000, FLASH_SIZE)), (0b10101, (FLASH_SIZE - 0x8000, FLASH_SIZE)),
+            (0b11001, (0, 0x1000)), (0b11011, (0, 0x4000)), (0b11101, (0, 0x8000)),
+        ] {
+            assert_eq!(area(&mut f, bp, false), want, "BP {bp:05b}, CMP 0");
+        }
+        assert_eq!(area(&mut f, 0b00001, true), (0, FLASH_SIZE - 0x10000), "CMP 1: the rest of the chip");
+        assert_eq!(area(&mut f, 0b11001, true), (0x1000, FLASH_SIZE));
+        assert_eq!(area(&mut f, 0b00000, true), all);
+        assert_eq!(area(&mut f, 0b00111, true), (0, 0));
+        for bp in 0..32u8 {
+            let (lo, hi) = area(&mut f, bp, false);
+            let (clo, chi) = area(&mut f, bp, true);
+            assert_eq!((hi - lo) + (chi - clo), FLASH_SIZE, "BP {bp:05b}: CMP 1 protects what CMP 0 leaves");
+        }
+    }
+
+    #[test]
+    fn a_protected_erase_or_program_is_ignored() {
+        let mut f = SpiFlash::new();
+        f.timing = FlashTiming { program: 100, erase: 1000 };
+        f.status = [0x04, 0x00]; // BP0: the top 64 KiB
+        let sector = 0xfc000..0xfc000 + 0x1000;
+        f.mem[sector.clone()].fill(0x5a);
+        assert_eq!(status(&mut f), 0x04, "BP0 reads back");
+        assert_eq!(cmd(&mut f, &[0x35, 0xff])[1], 0x00);
+        cmd(&mut f, &[0x06]);
+        cmd(&mut f, &[0x20, 0x0f, 0xc0, 0x00]);
+        assert!(f.mem[sector].iter().all(|&b| b == 0x5a), "the erase ignored");
+        assert_eq!(status(&mut f), 0x06, "not busy; WEL as it was");
+        assert!(f.log.is_empty() && f.ops == 0 && f.changed.is_none());
+        cmd(&mut f, &[0x02, 0x0f, 0xc0, 0x00, 0x00]);
+        assert_eq!(f.mem[0xfc000], 0x5a, "the program ignored");
+        cmd(&mut f, &[0x60]);
+        assert_eq!(f.mem[0xfc000], 0x5a, "a chip erase ignored while anything is protected");
+        cmd(&mut f, &[0x20, 0x0e, 0xf0, 0x00]);
+        assert_eq!(f.log.len(), 1, "an erase below the protected area goes ahead");
+        f.now = 1000;
+        f.status = [0x00, 0x40]; // CMP with BP 0: the whole chip
+        assert_eq!(cmd(&mut f, &[0x35, 0xff])[1], 0x40);
+        cmd(&mut f, &[0x06]);
+        cmd(&mut f, &[0xd8, 0x00, 0x00, 0x00]);
+        assert_eq!(f.log.len(), 1, "ignored");
     }
 
     #[test]

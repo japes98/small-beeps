@@ -88,6 +88,36 @@ pub struct Board {
     halves_seen: u64,
 }
 
+/// A flash file's chip and status registers (HARNESS.md, "The flash chip"): up to the chip's
+/// size, or the whole chip and two bytes more, status registers 1 and 2 as the chip powers up.
+pub fn flash_file(flash: Option<&[u8]>) -> Result<(Option<&[u8]>, [u8; 2]), String> {
+    match flash {
+        Some(f) if f.len() == FLASH_SIZE + 2 => {
+            let status = [f[FLASH_SIZE], f[FLASH_SIZE + 1]];
+            if status[0] & 0x03 != 0 {
+                return Err(format!("the flash file's status register 1 is {:#04x}: bits 0 and 1 (busy, write enable) must be 0", status[0]));
+            }
+            Ok((Some(&f[..FLASH_SIZE]), status))
+        }
+        Some(f) if f.len() > FLASH_SIZE => Err(format!(
+            "the flash file is {} bytes; the chip holds {} (and {} with its status registers)",
+            f.len(),
+            FLASH_SIZE,
+            FLASH_SIZE + 2
+        )),
+        _ => Ok((flash, [0; 2])),
+    }
+}
+
+/// The chip as `flash.bin` saves it: the status registers follow when either isn't 0.
+pub fn flash_out(flash: &fm1_soc::SpiFlash) -> Vec<u8> {
+    let mut out = flash.mem.clone();
+    if flash.status != [0; 2] {
+        out.extend_from_slice(&flash.status);
+    }
+    out
+}
+
 impl Board {
     pub fn boot(image: &[u8], flash: Option<&[u8]>) -> Result<Board, String> {
         if image.is_empty() {
@@ -96,11 +126,7 @@ impl Board {
         if image.len() > MAX_IMAGE {
             return Err(format!("the image is {} bytes; at most {} fit", image.len(), MAX_IMAGE));
         }
-        if let Some(f) = flash {
-            if f.len() > FLASH_SIZE {
-                return Err(format!("the flash file is {} bytes; the chip holds {}", f.len(), FLASH_SIZE));
-            }
-        }
+        let (flash, status) = flash_file(flash)?;
         let mut soc = Soc::new(RAM_SIZE, image.to_vec());
         soc.periph.skip_idle = true;
         soc.xip_flash = true;
@@ -108,6 +134,7 @@ impl Board {
         if let Some(f) = flash {
             soc.flash.load(f);
         }
+        soc.flash.status = status;
         soc.flash.mem[XIP_FLASH_OFFSET..XIP_FLASH_OFFSET + image.len()].copy_from_slice(image);
         let mut cpu0 = Cpu::new(XIP_BASE);
         cpu0.user = true;
@@ -124,11 +151,7 @@ impl Board {
     /// that path's stock-firmware extras: no default patch bank in a blank USR region, no
     /// other board. Upstream's checks come first, in its order, with its messages.
     pub fn boot_package(pkg: &[u8], flash: Option<&[u8]>) -> Result<(Board, Package), String> {
-        if let Some(f) = flash {
-            if f.len() > FLASH_SIZE {
-                return Err(format!("the flash file is {} bytes; the chip holds {}", f.len(), FLASH_SIZE));
-            }
-        }
+        let (flash, status) = flash_file(flash)?;
         let u = fwsc::unpack(pkg).map_err(|e| format!("the package is refused: {e}"))?;
         let refuse = |why: String| Err(format!("the package is refused: {why}"));
         if u.raw.len() > FLASH_SIZE {
@@ -160,6 +183,7 @@ impl Board {
         soc.xip_flash = true;
         soc.flash.timing = FlashTiming { program: FLASH_PROGRAM_MS * CYCLES_PER_MS, erase: FLASH_ERASE_MS * CYCLES_PER_MS };
         soc.flash.load(&chip);
+        soc.flash.status = status;
         let mut cpu0 = Cpu::new(entry);
         cpu0.user = true;
         cpu0.jit_on = false;

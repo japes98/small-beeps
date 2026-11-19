@@ -2955,6 +2955,25 @@ SR-3 wrote only its barrier-log row.*
 - Force-pushes: none.
 - Disk: 5.9 GB free at the start.
 
+### Session spec-flash-protect (fwtest 0.12.0: the flash chip's block protection)
+- Date: 2026-11-18 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.327; model `claude-opus-5-5`. The same Claude Code
+  session as spec-sr15, spec-ci-speed and spec-sr16
+  (`3554477d-915e-4869-a94a-6a2ff3efe04a`). Branch `spec/flash-protect`
+  from main at `56b8b807` (#193's merge).
+- The owner's request (clean's #193 question), saved as
+  docs/prompts/spec-flash-protect.md.
+- Read (PROVENANCE P-501): the protected-area tables and the protection
+  notes of the two flash datasheets already read for SR-15 (P-53, P-73),
+  from the same scratch copies, nothing fetched again.
+- The vendored emulator (spec side): patch 0019 written, fwtest 0.12.0.
+  This repository's own firmware: the store's part test build
+  (`SB_TEST_STORE_PART`) on main, built and run in fwtest 0.12.0 with a
+  protected chip to show its read-back catching an ignored erase; no
+  firmware file changed.
+- Disk: about 2.3 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

@@ -3293,6 +3293,54 @@ and what would settle it; mostly that is a probe on a unit.
   UART1's pins open)
 - Needed by: M4, M5, M6, BR-17 (Phase B)
 
+## 29. Block protection on both flash parts (a harness request)
+
+Read under the owner's request of 2026-11-18 (clean's #193: fwtest's chip
+should ignore a protected erase or program, so the store's read-back can
+be tested; PROVENANCE P-501), from the same two datasheets as section 27
+(PUYA, UCUN). HW-121 says a protected erase or program is ignored, and
+HW-124 item 5 names the bits; HW-131 gives which bytes each setting
+protects.
+
+### HW-131: The protected area for each setting of BP0-BP4 and CMP
+- Fact: Both parts share one table, row for row (HW-122). BP4 to BP0 are
+  status register 1's bits 6 to 2, CMP is status register 2's bit 6.
+  Addresses are in the 1 MiB chip.
+  - **CMP = 0:**
+    - BP2-BP0 = `000`: nothing is protected, whatever BP4 and BP3.
+    - BP4 = 0 and BP2-BP0 = `001`, `010`, `011` or `100`: 64, 128, 256 or
+      512 KiB are protected, at the top of the chip (`0xF0000`,
+      `0xE0000`, `0xC0000` or `0x80000` to `0xFFFFF`) when BP3 = 0, at the
+      bottom (`0x00000` to `0x0FFFF`, `0x1FFFF`, `0x3FFFF` or `0x7FFFF`)
+      when BP3 = 1.
+    - BP4 = 0 and BP2-BP0 = `101`, or BP2 and BP1 both 1 (any BP4, BP3,
+      BP0): the whole chip is protected.
+    - BP4 = 1 and BP2-BP0 = `001`, `010`, `011`, or `10x`: 4, 8, 16 or
+      32 KiB are protected, at the top (`0xFF000`, `0xFE000`, `0xFC000` or
+      `0xF8000` to `0xFFFFF`) when BP3 = 0, at the bottom (`0x00000` to
+      `0x00FFF`, `0x01FFF`, `0x03FFF` or `0x07FFF`) when BP3 = 1.
+  - **CMP = 1:** each row protects exactly the bytes its CMP = 0 row
+    leaves unprotected: nothing becomes the whole chip, the whole chip
+    becomes nothing, and the top 64 KiB becomes `0x00000` to `0xEFFFF`.
+  - **Which commands are ignored:** an erase or program whose range holds
+    any protected byte is ignored, wholly. A chip erase (`0x60`, `0xC7`)
+    is carried out only when nothing is protected.
+  - **Not stated by either datasheet:** whether WEL clears after an
+    ignored erase or program, and whether WIP goes to 1 for any time.
+  - So a store at `0xFC000` is protected by, among others, BP0 alone
+    (the top 64 KiB), BP2 alone (the top half, which also covers
+    `0x80000`) and BP4 with BP1 and BP0 (the top 16 KiB).
+  - fwtest follows this table from 0.12.0, with the two bits not stated
+    as its own choice (HARNESS "The flash chip"); HW-83's chip, 0.6.0 to
+    0.11.0, has no block protection.
+- Sources: PUYA p. 15-16 (the two tables and note 2: an erase or program
+  touching protected data is ignored), p. 26-27 (the bits), p. 42 (chip
+  erase); UCUN p. 9-10 (the bits), p. 10-11 (Table-6.0, Table-6.1 and
+  note 2), p. 28 (chip erase ignored if any block is protected).
+- Standing: confirmed (PUYA, UCUN)
+- Needed by: M7, BR-17 (Phase B); fwtest 0.12.0 (HARNESS.md, "The flash
+  chip")
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A

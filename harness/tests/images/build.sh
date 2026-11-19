@@ -16,7 +16,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../.." && pwd)
 IMAGES="heartbeat halt wild hang console lcd lcdcs leds keys pot midi midiout audio spi1irq usbport"
 # C with code in RAM (image-ram.ld, flash.h)
-RAM_IMAGES="flashrw flashcall flashload flashirq flashkeep flashhelper"
+RAM_IMAGES="flashrw flashcall flashload flashirq flashkeep flashhelper flashprot"
 # built with the firmware's CPU flags (tools/build.sh, CPU), as the firmware is
 FW_IMAGES="blockc rotc selfc isac trap"
 # C linked where a package's app runs (image-pkg.ld), for tests/package.rs
