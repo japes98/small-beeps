@@ -3325,18 +3325,25 @@ protects.
   - **Which commands are ignored:** an erase or program whose range holds
     any protected byte is ignored, wholly. A chip erase (`0x60`, `0xC7`)
     is carried out only when nothing is protected.
-  - **Not stated by either datasheet:** whether WEL clears after an
-    ignored erase or program, and whether WIP goes to 1 for any time.
+  - **WEL and WIP after an ignored command:** PUYA says a protected
+    32 KiB block erase (`0x52`) changes nothing and still resets WEL.
+    Neither datasheet says so of the other erases and the page program,
+    nor whether WIP goes to 1 for any time; UCUN says neither for any
+    command.
   - So a store at `0xFC000` is protected by, among others, BP0 alone
     (the top 64 KiB), BP2 alone (the top half, which also covers
     `0x80000`) and BP4 with BP1 and BP0 (the top 16 KiB).
-  - fwtest follows this table from 0.12.0, with the two bits not stated
-    as its own choice (HARNESS "The flash chip"); HW-83's chip, 0.6.0 to
+  - fwtest follows this table from 0.12.0, resetting WEL after every
+    ignored erase or program and never setting WIP for one, its own
+    choice where the datasheets are silent (HARNESS "The flash chip"); HW-83's chip, 0.6.0 to
     0.11.0, has no block protection.
 - Sources: PUYA p. 15-16 (the two tables and note 2: an erase or program
-  touching protected data is ignored), p. 26-27 (the bits), p. 42 (chip
-  erase); UCUN p. 9-10 (the bits), p. 10-11 (Table-6.0, Table-6.1 and
-  note 2), p. 28 (chip erase ignored if any block is protected).
+  touching protected data is ignored), p. 24 (when WEL resets), p. 26-27
+  (the bits), p. 40-43 (each erase and the page program: a protected one
+  not carried out; the 32 KiB erase's WEL), p. 42 (chip erase); UCUN
+  p. 9-10 (the bits), p. 10-11 (Table-6.0, Table-6.1 and
+  note 2), p. 15 (when WEL resets), p. 25-29 (each erase and program),
+  p. 28 (chip erase ignored if any block is protected).
 - Standing: confirmed (PUYA, UCUN)
 - Needed by: M7, BR-17 (Phase B); fwtest 0.12.0 (HARNESS.md, "The flash
   chip")

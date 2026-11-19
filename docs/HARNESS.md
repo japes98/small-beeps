@@ -130,9 +130,11 @@ Since 0.6.0 fwtest's flash chip behaves as the P25Q80H's datasheet says
   table (HW-131): the bytes stay as they were, so only a read-back shows
   it (HW-124 item 4). A chip erase goes ahead only when nothing is
   protected.
-  - fwtest's choices, since the datasheets don't say: an ignored erase or
-    program leaves the write-enable bit as it was, never makes the chip
-    busy, and isn't listed by `--flash-log` or counted for a power cut.
+  - An ignored erase or program resets the write-enable bit, as the
+    P25Q80H's datasheet says of its 32 KiB erase (HW-131). fwtest's
+    choices, where the datasheets don't say: it does so for every erase
+    and program, never makes the chip busy for one, and doesn't list it
+    in `--flash-log` or count it for a power cut.
   - The status register writes (`0x01`, `0x31`) aren't modelled: the
     registers stay as the file gives them for the whole run.
   - The image at `0x4000` is written whatever protects it: fwtest writes

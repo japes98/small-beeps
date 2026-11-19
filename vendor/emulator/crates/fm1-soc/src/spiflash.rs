@@ -26,8 +26,9 @@
 //! as the chip powered up (status 1 bits 2-7, status 2), read back by 05 and
 //! 35. An erase or program whose range holds a byte BP0-BP4 and CMP protect
 //! (`protected`, the table both parts share) is ignored wholly: nothing
-//! changes, it isn't logged or counted, the chip doesn't go busy, and WEL
-//! stays as it was. The status register writes (01, 31) aren't modelled.
+//! changes, it isn't logged or counted, and the chip doesn't go busy; WEL
+//! is reset, as the P25Q80H's datasheet says of its 32 KiB erase. The status
+//! register writes (01, 31) aren't modelled.
 //!
 //! Power cuts (FM1_FLASH_CUT=N): the Nth erase or page program is cut half way (the first
 //! half of its bytes changed, the rest as before), and nothing after it reaches the chip, as if
@@ -301,6 +302,7 @@ impl SpiFlash {
     /// Page program: the bytes wrap within the page (later ones win), and only clear bits.
     fn program(&mut self) {
         if self.guarded(self.addr as usize & !(PAGE - 1) & (FLASH_SIZE - 1), PAGE) {
+            self.wel = false;
             return;
         }
         let n = match self.op() { Some(true) => self.pending_prog.len(), Some(false) => self.pending_prog.len() / 2, None => 0 };
@@ -323,6 +325,7 @@ impl SpiFlash {
 
     fn erase(&mut self, size: usize) {
         if self.guarded((self.addr as usize) & !(size - 1) & (FLASH_SIZE - 1), size) {
+            self.wel = false;
             return;
         }
         let n = match self.op() { Some(true) => size, Some(false) => size / 2, None => 0 };
@@ -480,12 +483,16 @@ mod tests {
         cmd(&mut f, &[0x06]);
         cmd(&mut f, &[0x20, 0x0f, 0xc0, 0x00]);
         assert!(f.mem[sector].iter().all(|&b| b == 0x5a), "the erase ignored");
-        assert_eq!(status(&mut f), 0x06, "not busy; WEL as it was");
+        assert_eq!(status(&mut f), 0x04, "not busy; WEL reset");
         assert!(f.log.is_empty() && f.ops == 0 && f.changed.is_none());
+        cmd(&mut f, &[0x06]);
         cmd(&mut f, &[0x02, 0x0f, 0xc0, 0x00, 0x00]);
         assert_eq!(f.mem[0xfc000], 0x5a, "the program ignored");
+        assert_eq!(status(&mut f), 0x04);
+        cmd(&mut f, &[0x06]);
         cmd(&mut f, &[0x60]);
         assert_eq!(f.mem[0xfc000], 0x5a, "a chip erase ignored while anything is protected");
+        cmd(&mut f, &[0x06]);
         cmd(&mut f, &[0x20, 0x0e, 0xf0, 0x00]);
         assert_eq!(f.log.len(), 1, "an erase below the protected area goes ahead");
         f.now = 1000;
