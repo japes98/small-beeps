@@ -3348,6 +3348,75 @@ protects.
 - Needed by: M7, BR-17 (Phase B); fwtest 0.12.0 (HARNESS.md, "The flash
   chip")
 
+## 30. The code window's BAUD, its CON and its width (SR-17)
+
+Read under the owner's request for SR-17 (2026-11-19, PROVENANCE P-502),
+from m-bootloader at the commit HW-123 and HW-128 used (`src/platform.c`,
+`src/boot.c`, `docs/SPEC.md` §3.4, §3.6, §5.3 and §7), the SDK's `WL82.h` (as
+HW-84) and FM-1-RE's storage document (as HW-84). HW-132 adds to HW-128;
+HW-128 stands.
+
+### HW-132: The window's BAUD and mode word as m-bootloader sets them, and what CON reads
+- Fact: For the code window's controller (`JL_SFC`, `0x00040200`, HW-84):
+  1. **`BAUD`** is at `0x00040204` (`JL_SFC` +4). The SDK marks it write
+     only. In its give-back (HW-128 step 3) m-bootloader writes there the
+     same divider it gives SPI0's `BAUD`: its built-in SPI divider, **1**.
+     The order is `CON` = `0x00F00000`, `CON` = 0, `BAUD` = 1, then the
+     mode word. Its built-in values (`docs/SPEC.md` §5.3) equal every known
+     FM-1 configuration's `SPI` record, `4_1_0_0`: width 4, divider 1,
+     output reads. m-bootloader reads no configuration for them.
+  2. **The mode word written** is the width's output-read word with bits
+     23-20 replaced by 9. m-bootloader writes the 9 as a constant. Its
+     `docs/SPEC.md` gives it as the HSB clock in MHz times 45 / 1000,
+     plus one, which is 9 at 180 MHz. So the word written is:
+     - `0x00980381` at quad width (HW-128's `0x00280381` with 9 in bits
+       23-20);
+     - `0x00980281` at dual width;
+     - `0x00900089` at single width.
+     m-bootloader writes only output-read words. The other columns of
+     `docs/SPEC.md`'s table are not verified on hardware.
+  3. **The width it chooses:** quad (4) unless it falls back. Before the
+     window is set up, at each start, it:
+     - reads 32 bytes at single width;
+     - sets QE (status 2 bit 1), up to three more tries if it doesn't
+       stick, as HW-123 gives. Without QE it takes dual width;
+     - reads the same 32 bytes at that width, halving the width (quad,
+       dual, single) until they match.
+     The width it ends with is the window's. A fallback shows as "SPI
+     WIDTH FALLBACK" in its recovery menu, and an app at a narrower width
+     runs markedly slower (its `docs/SPEC.md`). Nothing tells the app which
+     width it got, except the mode word, if `CON` reads it back (item 4).
+  4. **Whether `CON` reads back:** the SDK marks `CON` read and write;
+     `BAUD`, `CODE` and `BASE_ADR` are write only. FM-1-RE (medium
+     confidence) describes the FM-1's firmware waiting for bit 31 of
+     `0x00040200` to clear before a direct flash command, so at least bit
+     31 reads as a state, not as the mode word's bit. m-bootloader never
+     reads `CON`. No allowed source says that a read returns the mode
+     word last written. start3's "window CON" row on a unit settles it.
+  5. **Whether writing `CON` changes `BAUD`:** no allowed source says.
+     m-bootloader writes `BAUD` after its two `CON` writes and before the
+     mode word, every time, so a give-back in that order doesn't depend
+     on it.
+  6. Beyond HW-128's step 6, after setting the window cipher's control to
+     1, m-bootloader sets bits 8 and 9 of `0x01EEE008` again, then does
+     the `csync`. They are already set from step 5.
+  So a give-back that doesn't depend on `CON` reading back writes
+  `0x00F00000`, 0, `BAUD` = 1 and `0x00980381` itself. That holds only
+  while m-bootloader's width was quad, which a unit that never showed the
+  fallback had.
+- Sources: MB `src/platform.c` (`hal_xip`: the writes, their order, the
+  constant 9, the output-read words; `flash_init` and `flash_quad`: the
+  width checks), `src/boot.c` (the built-in values, the width carried to
+  `hal_xip`, the fallback line), `docs/SPEC.md` §3.4 (a fallback is
+  visible; single width is markedly slower), §3.6 (the mode word table,
+  bits 23-20), §5.3 (the built-in values, `SPI` `4_1_0_0`), §7 (the
+  start's flash steps); SDK `WL82.h` lines 39-44 (`JL_SFC`, which
+  registers are read-write and which write-only); RE
+  `docs/io/09-storage.md` §1 (the wait on bit 31).
+- Standing: confirmed (MB, SDK, RE; whether `CON` reads back the mode
+  word, and whether a `CON` write changes `BAUD`, not shown)
+- Needed by: M7, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A

@@ -3016,6 +3016,24 @@ SR-3 wrote only its barrier-log row.*
   words, and both names, with their pairs, renamed. The image is the same.
 - Disk: 2.7 GB free at the start; about 2.3 GB at the lowest.
 
+### Session spec-sr17 (SR-17: the code window's BAUD, CON and width)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.327; model `claude-opus-5-5`. The same Claude Code
+  session as spec-flash-protect (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on its branch `spec/flash-protect` (#196).
+- The owner's request, saved as docs/prompts/spec-sr17.md.
+- Read (PROVENANCE P-502), from scratch copies made earlier, nothing
+  fetched: m-bootloader's `src/platform.c`, `src/boot.c` and
+  `docs/SPEC.md` §3.4, §3.6, §5.3 and §7; the vendored SDK's `WL82.h`;
+  FM-1-RE's storage document §1. Not recorded, by the guardrails: what
+  FM-1-RE says of the FM-1 firmware's flash routines beyond the wait on
+  `CON` bit 31. Not opened: `src/usb_midi.c`, any GPL firmware or stock
+  package.
+- This repository's own firmware: start3's `hw_start3.c` read for the
+  mode word it uses; nothing changed.
+- Disk: about 3.3 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

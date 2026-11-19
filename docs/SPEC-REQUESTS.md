@@ -760,5 +760,21 @@ an issue or a pull request against docs/HARNESS.md.
   and tries nothing. Either way the build doesn't depend on the answer,
   but the owner's result can't tell these cases apart. Read: HW-84,
   HW-85, HW-91, HW-123, HW-126 to HW-128.
-- Status: open
+- Status: answered (HARDWARE-SPEC.md, "30. The code window's BAUD, its
+  CON and its width", HW-132):
+  1. **`BAUD`:** `0x00040204`, write only (SDK). m-bootloader writes 1,
+     the same built-in divider it gives SPI0, after `CON` = `0x00F00000`
+     and `CON` = 0 and before the mode word.
+  2. **Whether `CON` reads back:** the SDK marks it read-write, but no
+     allowed source shows a read giving the mode word. FM-1-RE describes
+     bit 31 read as a state (an idle wait), and m-bootloader never reads
+     it. Open: start3's "window CON" row on a unit settles it.
+  3. **Whether a `CON` write changes `BAUD`:** not shown. Writing `BAUD`
+     after the two `CON` writes, as m-bootloader does, doesn't depend on
+     it.
+  4. **The width:** quad, output reads, unless m-bootloader's start-up
+     checks fall back to dual or single (shown as "SPI WIDTH FALLBACK" in
+     its menu). The word it writes is `0x00980381`, HW-128's quad word
+     with 9 in bits 23-20 (dual `0x00980281`, single `0x00900089`).
+- Answered: 2026-11-19, session spec-sr17 (spec side)
 
