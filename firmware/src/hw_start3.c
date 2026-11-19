@@ -1001,16 +1001,16 @@ static void f_sweep(void)
 
 /* The encoder a cell belongs to, as a short tag: KNOB1 at columns 8 and 9
  * on PA5 (HW-133 item 6); the others where the unit showed them, on PA0
- * (finder1 and start3c, relayed: clean-br17-encoders); PRESETS where the
- * scan's table puts it, on PB7, not yet seen ("P?"). */
+ * (finder1 and start3c, relayed: clean-br17-encoders); PRESETS on PB7 at
+ * columns 11 and 12 (encoders1, relayed: clean-br17-presets). */
 static const char *f_tag(u32 col, u32 port, u32 bit)
 {
     if (port == 0 && bit == 5 && (col == 8 || col == 9))
         return "K1 ";
     if (port == 0 && bit == 0 && col < 10)
         return col == 0 || col == 1 ? "SEL " : col < 4 ? "ALG " : col < 6 ? "K4 " : col < 8 ? "K3 " : "K2 ";
-    if (port == 1 && bit == 7 && col < 2)
-        return "P? ";
+    if (port == 1 && bit == 7 && (col == 11 || col == 12))
+        return "PRE ";
     return "";
 }
 

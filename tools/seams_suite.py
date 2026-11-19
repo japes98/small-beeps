@@ -233,7 +233,7 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   black, then bands 1, 2 and 3 appear in that order on black, then the
   address pattern with band 4 over it; at the end the test screen, no halt, the beats as
   2.5 times slow predicts; PLAY (fwtest's key 12) pressed and released is
-  named on the screen, and its LED is lit for its column's twelfth while
+  named on the screen, and its LED is lit for its column's slot (one in 14) while
   it is held and dark after; nothing unmodelled. Built with
   SB_TEST_FAULT as well (main's stack overrun) it halts on the stack's
   guard with the screen solid red. Built with SB_TEST_SPI_NO_IRQ (SPI1's
@@ -1473,9 +1473,10 @@ def case_hw(a, work, log):
     with open(os.path.join(out, "leds.csv")) as f:
         leds = {int(float(row[0])): [int(v) for v in row[1:]] for row in list(csv.reader(f))[1:]}
     press, after = leds.get(3500), leds.get(4500)
-    if not press or not after or not 70 <= press[HW_LED] <= 95 or any(v for i, v in enumerate(press) if i != HW_LED) \
+    # One slot in 14 since clean-br17-presets (13 columns and slot 0): 71.
+    if not press or not after or not 60 <= press[HW_LED] <= 85 or any(v for i, v in enumerate(press) if i != HW_LED) \
             or any(after):
-        problems.append("hw: LEDs while PLAY is held %s, after %s (LED %d at about 1000 / 12 alone, then none)"
+        problems.append("hw: LEDs while PLAY is held %s, after %s (LED %d at about 1000 / 14 alone, then none)"
                         % (press, after, HW_LED))
     fb = os.path.join(work, "fault")
     build(fb, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_FAULT")
@@ -1567,7 +1568,7 @@ def case_hw3(a, work, log):
     h3, c1 = sy["hw3"], sy["hw_core1_count"]
     script = os.path.join(b, "press.script")
     with open(script, "w") as f:
-        f.write("3000 key %d down\n3800 key %d up\n4600 pot 300\n5400 enc 6 +1\n" % (HW_LED, HW_LED))
+        f.write("3000 key %d down\n3800 key %d up\n4600 pot 300\n5400 enc 4 +1\n" % (HW_LED, HW_LED))
 
     def run(name, ms, *opts):
         out = os.path.join(work, name)
@@ -1586,8 +1587,10 @@ def case_hw3(a, work, log):
                         "--lcd", "end")
     # MASTER (channel 4, HW-133) moved to 300 at 4.6 s: the event line,
     # which named PLAY's release before it, names it after. Then one detent
-    # of fwtest's encoder 6 (PRESETS, row 5: PB7, clean-br17-encoders) at
-    # 5.4 s, named after it in yellow.
+    # of fwtest's encoder 4 (KNOB3, row 0: PA0, clean-br17-encoders) at
+    # 5.4 s, named after it in yellow. (The unit's PRESETS, PB7 at columns
+    # 11 and 12, has no counterpart in fwtest, whose encoder 6 is at 0 and
+    # 1: clean-br17-presets.)
     _, _, before = fws.read_png(os.path.join(out, "lcd-4400ms.png"))
     _, _, mid = fws.read_png(os.path.join(out, "lcd-5200ms.png"))
     _, _, last = fws.read_png(os.path.join(out, "lcd-end.png"))
@@ -1595,7 +1598,7 @@ def case_hw3(a, work, log):
     if all(before[y][x] == mid[y][x] for x, y in box) or not any(mid[y][x] == (255, 255, 255) for x, y in box):
         problems.append("first: MASTER's move not named on the test screen's event line")
     if not any(last[y][x] == (255, 255, 0) for x, y in box):
-        problems.append("first: PRESETS' detent (PB7, row 5) not named on the test screen's event line")
+        problems.append("first: KNOB3's detent (PA0, row 0) not named on the test screen's event line")
     held = hw3_record(ram(out, h3, HW3_LEN, "3500ms"))
     for k, v in (("id", 0x856014), ("tried", 1), ("back", 1), ("idle_timeouts", 0), ("stored", 1), ("count", 1),
                  ("put_result", 0), ("get_result", -1)):
