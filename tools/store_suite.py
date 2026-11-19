@@ -57,13 +57,22 @@ command for command, and the two are compared byte for byte.
   version 2.
 - part (R-STORE-13): the part test build, whose start-up takes the ID
   and status bytes from the flash file (fwtest's chip answers only
-  85 60 14 and never shows protection): with each of the two parts'
+  85 60 14, and shows protection only from the file's status bytes, case
+  protect): with each of the two parts'
   IDs, 0x856014 and 0xB36014, slot 1 is saved and the next start finds
   it; with an unknown ID (the P25Q80H's with its manufacturer byte
   zero), and with each of BP0 to BP4 and CMP
   set, every save is refused with its own result and the chip is the
   starting chip, byte for byte, but for fwtest's image. The shipping
   image's start-up reads status 0 from fwtest's chip.
+- protect (R-STORE-13, R-STORE-1): fwtest's own block protection (since
+  0.12.0, HW-131), against the part test build told ID 0x856014 and
+  status 0, so the store's own check passes; the store's region full of
+  old bytes, so the save has to erase; the flash file's two status bytes
+  set BP0 (status 1 0x04, the top 64 KiB) or BP2 (0x10, the top half).
+  The chip ignores the erase: one erase, no program, the save fails with
+  STORE_ERR_VERIFY, the region and the rest of the chip as they were but
+  for fwtest's image. The control, CMP with BP2 (the bottom half), saves.
 - busy, wipe (R-STORE-7): saves under audioload's input (the heaviest the
   panel gives: test patch 6 on all 16 voices), SAVE held three times so
   the keys it strikes meanwhile save to their slots, on a test build whose chip takes the part's longest times, 12 ms
@@ -110,6 +119,7 @@ PRESET0 = len(PATCHES) + st.SLOTS
 PROGRAMS = PRESET0 + len(PRESETS)
 PV = fm_patch.VERSION          # a patch record's version: the patch's (2 since ARP)
 ERR_FULL = -2
+ERR_VERIFY = -3                  # store.h, STORE_ERR_VERIFY
 ERR_PART, ERR_PROTECT = -4, -5   # firmware/src/store.h, STORE_ERR_*
 STORE_TRACE = 31                 # store.h (32 until SR-15)
 # The part test build (store.c, SB_TEST_STORE_PART): the ID and the two
@@ -316,15 +326,18 @@ def predict(chip, puts):
 
 
 def region(chip):
-    return chip[st.BASE:st.BASE + st.SIZE]
+    """The store's region of a flash file or flash.bin (its first 1 MiB is
+    the chip, st.chip_of)."""
+    return st.chip_of(chip)[st.BASE:st.BASE + st.SIZE]
 
 
 def outside_writes(run):
     """Problems if the run changed the chip outside the store's region and
     fwtest's own image (R-STORE-1)."""
     before = run.flash_in if run.flash_in is not None else b"\xff" * st.CHIP
-    before = before + b"\xff" * (st.CHIP - len(before))
-    after = run.flash
+    if len(before) < st.CHIP:
+        before = before + b"\xff" * (st.CHIP - len(before))
+    before, after = st.chip_of(before), st.chip_of(run.flash)
     skip = (IMAGE_AT, IMAGE_AT + os.path.getsize(os.path.join(ROOT, IMAGES[run.image])))
     for lo, hi in ((0, skip[0]), (skip[1], st.BASE), (st.BASE + st.SIZE, st.CHIP)):
         if before[lo:hi] != after[lo:hi]:
@@ -475,6 +488,58 @@ def case_part(out, image_len):
     lines.append("  part: slot 1 saved and found at the next start with the %s (0x%06x) and the %s (0x%06x);"
                  " refused, nothing written, with an unknown ID (result %d) and with each of BP0 to BP4 and CMP"
                  " (result %d)" % (PARTS[0][1], PARTS[0][0], PARTS[1][1], PARTS[1][0], ERR_PART, ERR_PROTECT))
+    return p, lines
+
+
+# The chip's own block protection (fwtest 0.12.0, HW-131), against the part
+# test build told status 0, so the store's own check passes: its name,
+# status 1, status 2, and whether the save should go through.
+PROTECTED = [("bp0", 0x04, 0, False),          # the top 64 KiB
+             ("bp2", 0x10, 0, False),          # the top half (0x80000 up)
+             ("cmp-bp2", 0x10, 0x40, True)]    # the bottom half: the store free
+
+
+def old_region(chip):
+    """chip with the store's region full of old bytes, no valid sector, so
+    the first save has to erase."""
+    b = bytearray(chip)
+    for i in range(st.SIZE):
+        b[st.BASE + i] = (i * 7 + 0x35) & 0xFF
+    return bytes(b)
+
+
+def case_protect(out, image_len):
+    p, lines = [], []
+    start = old_region(with_part(with_stock(b""), PARTS[0][0]))
+    runs = [Run(out, "store-protect-%s" % name, "part", 3800, flash=start + bytes([s1, s2]),
+                script=save_script(300, 1)) for name, s1, s2, _ in PROTECTED]
+    run_all(runs)
+    for (name, s1, s2, ok), run in zip(PROTECTED, runs):
+        p += common(run, image_len)
+        if run.result is None:
+            continue
+        r = run.rec("store")
+        if st.status_of(run.flash) != (s1, s2):
+            p.append("protect %s: flash.bin's status bytes %s, not (0x%02x, 0x%02x)" % (name, st.status_of(run.flash),
+                                                                                       s1, s2))
+        if r["part"] != PARTS[0][0] or r["status"] != 0:
+            p.append("protect %s: the store took part 0x%06x status 0x%04x" % (name, r["part"], r["status"]))
+        if ok:
+            if r["saves"] != 1 or r["save_fail"] or st.Image(run.flash).get(st.PATCH, 0) != (PV, saved(PATCHES[0])):
+                p.append("protect %s: saves %d (failed %d); slot 1 not saved" % (name, r["saves"], r["save_fail"]))
+        else:
+            # refused counts every store_put that failed (store.h): this one.
+            if r["saves"] != 1 or r["save_fail"] != 1 or r["last_result"] != ERR_VERIFY or r["refused"] != 1 \
+                    or r["erases"] != 1 or r["programs"]:
+                p.append("protect %s: saves %d (failed %d), last result %d, refused %d, %d erases, %d programs;"
+                         " expected 1, 1, %d, 1, 1, 0" % (name, r["saves"], r["save_fail"], r["last_result"],
+                                                          r["refused"], r["erases"], r["programs"], ERR_VERIFY))
+            if region(run.flash) != region(start):
+                p.append("protect %s: the store's region changed" % name)
+        lines.append("  protect %s (status 1 0x%02x, status 2 0x%02x): saves %d, failed %d, last result %d, erases %d,"
+                     " programs %d, verify failures %d, refused %d, valid sectors %d, head 0x%x"
+                     % (name, s1, s2, r["saves"], r["save_fail"], r["last_result"], r["erases"], r["programs"],
+                        r["verify_fail"], r["refused"], r["valid_sectors"], r["head"] & 0xFFFFFFFF))
     return p, lines
 
 
@@ -879,7 +944,7 @@ def run(fw, out, image_len):
     problems, lines = [], []
     cases = [("persist", case_persist), ("sweep", case_sweep), ("reset", case_reset),
              ("corrupt", case_corrupt), ("full", case_full), ("wear", case_wear),
-             ("migrate", case_migrate), ("part", case_part),
+             ("migrate", case_migrate), ("part", case_part), ("protect", case_protect),
              ("busy", lambda o, n: case_load(fw, o, n, "busy")),
              ("wipe", lambda o, n: case_load(fw, o, n, "wipe"))]
     for name, case in cases:

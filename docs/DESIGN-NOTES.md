@@ -4232,8 +4232,9 @@ HW-83, docs/SPEC-REQUESTS.md's SR-15 and HARNESS.md's "The flash chip"
   where firmwares built on the base assert theirs (BUILDING-ON), so the
   record can't grow: the command trace gives up its oldest entry (31,
   not 32), which no test reads. store.c asserts the record's size.
-- **The tests.** fwtest's chip answers only `85 60 14` and never shows
-  protection, so a test build, `SB_TEST_STORE_PART`, takes the ID and the
+- **The tests.** fwtest's chip answers only `85 60 14` and, before
+  0.12.0, never showed protection (since 0.12.0 it does when the flash
+  file sets it: clean-br17-protect), so a test build, `SB_TEST_STORE_PART`, takes the ID and the
   two status bytes from the test's flash file (16 bytes past the cut
   build's parameters at chip offset `0xE8000`, below the store) in place of what it
   read; everything else runs as on the chip. The store suite's case
@@ -4257,7 +4258,8 @@ HW-83, docs/SPEC-REQUESTS.md's SR-15 and HARNESS.md's "The flash chip"
   Block protection modelled by fwtest's chip (an erase or program in a
   protected area ignored, with the bits set from the flash file) would
   run it. The part test build checks the refusal before any write, not a
-  write the chip ignores. The UC25HQ80's shorter times need nothing: the
+  write the chip ignores. (Since fwtest 0.12.0 the chip does model it,
+  and the store suite's case protect runs that path: clean-br17-protect.) The UC25HQ80's shorter times need nothing: the
   store waits on the busy bit either way.
 - **Not in this change**, as the prompt says: handing the flash from the
   code window to SPI0 and back on a unit (Q-22) and SPI0's clock (HW-124
@@ -4421,4 +4423,74 @@ became a spin. Core 1 still doesn't run.
 - **Core 1** (SR-18): HW-9's release left `C1_CON` at `01000002`, bit 3
   clear. The finder shows `C1_CON` before and just after the write, and
   the start word read back.
+
+### 2026-11-19 fwtest 0.12.0: block protection in fwtest (clean-br17-protect, item 1)
+`config/fwtest-image` moves to fwtest 0.12.0
+(`sha256:70f2c788…`, published from main at `6aa273a9`, #196's merge),
+whose chip takes status registers 1 and 2 from a flash file of 1 MiB and
+two bytes, and ignores an erase or program that HW-131's table protects
+(HARNESS.md, "The flash chip"). Every other flash file behaves as before,
+so no existing case changes: none gives a file of that length.
+
+### 2026-11-19 clean-br17-protect: the store against a protected chip, and the give-back's BAUD (R-STORE-13, R-HW-1)
+The owner's prompt: docs/prompts/clean-br17-protect.md. The facts:
+HARDWARE-SPEC HW-131, HW-133, HW-134 (with HW-9, HW-121, HW-124,
+HW-128), SR-17's answer, and HARNESS.md "The flash chip".
+
+- **The read-back, run at last.** The store suite's case protect gives the
+  part test build ID `0x856014` and status 0, so the store's own check
+  passes, and fills the store's region with old bytes, so the save has to
+  erase. The flash file's status bytes set the chip's protection. With
+  BP0 or BP2 the store's record shows one erase, no program, the save
+  failed with `STORE_ERR_VERIFY` (`last_result` -3, `refused` 1, which
+  counts every failed `store_put`), `verify_fail` 0 (it counts records
+  read back wrong, not erases), no valid sector, and no head. The store
+  doesn't retry the erase: `put_record` tries twice only when a record
+  reads back wrong, and gives up at once when making room fails, as an
+  erase that doesn't read back makes it fail. The control, CMP with BP2,
+  protects the bottom half: one erase, two programs (the sector's header,
+  then the record), the save done. The part test build keeps its own
+  status bytes so a case can show the store's refusal before any write
+  (case part) apart from the chip ignoring a write (case protect).
+- **flash.bin's two status bytes.** `tools/store.py` gains `chip_of` (a
+  flash.bin's first 1 MiB) and `status_of` (its two last bytes, or 0 and
+  0), and `Image` takes either length. Changed to take the chip:
+  `store_suite.py`'s `region()` and `outside_writes()`, and the three
+  seams cases that read a run's `flash.bin` as the chip (`store`,
+  `parts`, `powercut`). Nothing else needed a change. `store_suite.py`'s
+  `Run` keeps the whole file, so a protected run's `flash.bin` stays
+  protected as the next run's `--flash`. That is also why seams case
+  hw3's first run, which hands its `flash.bin` on, and arp_suite's save
+  case are left as they are. fw-suite's edit and settings cases read
+  through `Image`.
+- **The one give-back** is `flash_give` in hw_start3.c. It is used by the
+  round trip and by the store's counter (`hw_store_counter`), the only
+  path from the hardware build to the store; store.c itself never takes
+  or gives back the window. It now writes HW-134's order: `CON` =
+  `0x00F00000`, `CON` = 0, `BAUD` = 1, `CON` = the value read before the
+  take, then HW-128's base, key, cache and cipher. After the cipher it
+  sets the cache's bits 8 and 9 again, as m-bootloader does (HW-134 item
+  6).
+- **The store on the unit** (HW-133 items 2 and 3): nothing to change. The
+  counter across starts is covered: seams case hw3 counts 1, then 2 at a
+  second start from the first run's `flash.bin`, and the store suite's
+  persist case finds a save at the next start.
+- **Core 1** (HW-133 item 4): the hardware build doesn't depend on it.
+  start3 releases it and shows its counter, and nothing waits on it. The
+  firmware's engine (`fm_play.c`) already runs without it:
+  `sb_core1_start` waits a bounded time for core 1 to say it runs, and
+  if it doesn't, core 0 renders every voice it gives a note, the even
+  ones, at half the polyphony. A probe for what core 1 needs is SR-18's
+  business. The proposal: read `C1_CON` before and after setting bit 3
+  (the finder already shows both), and try the release before
+  m-bootloader's state is changed (at the entry) as well as after.
+- **The panel** (HW-133 items 5 and 6): the scan reads MASTER from
+  channel 4, from PB6 set up as an analogue input before `input_start`,
+  and the test screen names it as it moves. Main's 10-a-second sweep of
+  all twelve channels pauses the scan, then starts channel 4's conversion
+  again. The finder labels channel 4's line MASTER and the cells at
+  columns 8 and 9 KNOB1. HW-133 doesn't give KNOB1's row, so the scan
+  doesn't decode it as an encoder yet. PRESETS (Q-7, Q-8, a note) is left
+  to the finder's ADC lines: each shows its channel, its value and up to
+  three other levels it took, with no name.
 

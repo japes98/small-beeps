@@ -781,7 +781,7 @@ def case_store(a, work, log):
         if r["run"]["outcome"] not in ("completed", "power-cut"):
             raise RuntimeError("%s: %s (%s)" % (name, r["run"]["outcome"], r["run"].get("detail")))
         with open(os.path.join(out, "flash.bin"), "rb") as f:
-            chip = f.read()
+            chip = st.chip_of(f.read())
         return words(ram(out, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS), chip, out
 
     def expect(name, e, img, large, small, **fields):
@@ -857,7 +857,7 @@ def case_parts(a, work, log):
         if r["run"]["outcome"] != "completed":
             raise RuntimeError("%s: %s (%s)" % (name, r["run"]["outcome"], r["run"].get("detail")))
         with open(os.path.join(out, "flash.bin"), "rb") as f:
-            after = f.read()
+            after = st.chip_of(f.read())
         return words(ram(out, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS), bytes(c), after
 
     for ident in (0x856014, 0xB36014):
@@ -1012,7 +1012,7 @@ def case_powercut(a, work, log):
             raise RuntimeError("%s: %s (%s)" % (name, r["run"]["outcome"], r["run"].get("detail")))
         e = words(ram(out, rec, n_rec), ENGINE_FIELDS)
         with open(os.path.join(out, "flash.bin"), "rb") as f:
-            chip = f.read()
+            chip = st.chip_of(f.read())
         # The image only as its SHA-256 (as the store suite keeps them).
         os.remove(os.path.join(out, "flash.bin"))
         with open(os.path.join(out, "flash.bin.sha256"), "w") as f:
@@ -1391,7 +1391,7 @@ def case_panel(a, work, log):
 HW_WINDOW_READS = {"0x00040200", "0x0004020c", "0x00040304"}   # HW-128: CON, the base, the key
 # The round trip's registers (HW-128): those, the window's cipher and the
 # peripheral cipher. fwtest models none of them; 0x01F0xxxx is RAM there.
-HW_WINDOW_REGS = HW_WINDOW_READS | {"0x00040300", "0x00013000"}
+HW_WINDOW_REGS = HW_WINDOW_READS | {"0x00040300", "0x00013000", "0x00040204"}   # and BAUD (HW-134)
 HW_RATIO = 60 / 24.0                # the chip's TIMER0 clock over fwtest's (HW-119, HW-48)
 HW_LED = 12                         # fwtest's LED of PLAY (HW-35, HW-42)
 HW_BANDS = ((0, 0, 255), (0, 255, 0), (255, 255, 255))
@@ -1540,7 +1540,14 @@ def case_hw3(a, work, log):
         core1 = [struct.unpack("<I", ram(out, c1, 4, w))[0] for w in ("2000ms", "end")]
         return out, hw3_record(ram(out, h3, HW3_LEN, "end")), core1
 
-    out, e, core1 = run("first", 6000, "--script", os.path.relpath(script, ROOT))
+    out, e, core1 = run("first", 6000, "--script", os.path.relpath(script, ROOT), "--lcd", "4400", "--lcd", "end")
+    # MASTER (channel 4, HW-133) moved to 300 at 4.6 s: the event line,
+    # which named PLAY's release before it, names it after.
+    _, _, before = fws.read_png(os.path.join(out, "lcd-4400ms.png"))
+    _, _, last = fws.read_png(os.path.join(out, "lcd-end.png"))
+    box = [(x, y) for y in range(104, 120) for x in range(26, 214)]
+    if all(before[y][x] == last[y][x] for x, y in box) or not any(last[y][x] == (255, 255, 255) for x, y in box):
+        problems.append("first: MASTER's move not named on the test screen's event line")
     held = hw3_record(ram(out, h3, HW3_LEN, "3500ms"))
     for k, v in (("id", 0x856014), ("tried", 1), ("back", 1), ("idle_timeouts", 0), ("stored", 1), ("count", 1),
                  ("put_result", 0), ("get_result", -1)):
