@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 1488eba85244ee99ce3d069f7f53d3bd4cf1292d..4965847a98f0f233b87d3a850a6076dc3d17a5db
+OK     b224c8081ee1 sessions: clean-br17-encoders starts (nothing to archive)
+OK     6f128eab6564 firmware: the six encoders decoded, core 1 by B's release, PB7 a row (BR-17)
+EXEMPT 98d74ba1d885 (merge) merge: main (#204) into the encoders build, keeping both EXPOSURE entries
+EXEMPT 4965847a98f0 (merge) Merge pull request #205 from japes98/hw/encoders
+4 commit(s) checked: PASS
+
+exit status 0
