@@ -3,7 +3,8 @@
  * SPDX-FileCopyrightText: 2026 japes98
  *
  * The store (store.h; docs/DESIGN-NOTES.md, M7; docs/STORE-FORMAT.md):
- * SPI0's flash commands (HW-47), the ring of sectors and its records.
+ * SPI0's flash commands (HW-47; since SR-15 for both parts, HW-120 to
+ * HW-124), the ring of sectors and its records.
  */
 
 #include "store.h"
@@ -22,9 +23,10 @@
 #define CMD_PROGRAM  0x02u
 #define CMD_ERASE    0x20u
 #define CMD_ID       0x9Fu
+#define CMD_STATUS2  0x35u   /* status 2: CMP (HW-122, HW-124 item 2) */
 #define STATUS_BUSY  0x01u
 /* How long a command may keep the chip busy before it counts as failed:
- * far past the longest erase (12 ms, HW-77). */
+ * far past the longest erase on either part (12 ms, HW-121). */
 #define BUSY_LIMIT_TICKS (3000u * 24000u)
 
 /* The formats (docs/STORE-FORMAT.md). */
@@ -78,6 +80,22 @@ static u8 record_buf[RECORD_MAX], check_buf[RECORD_MAX];
 static u8 h[BLOCK];
 
 volatile struct sb_store_record sb_store __attribute__((section(".beacon.store")));
+_Static_assert(sizeof(struct sb_store_record) == 0xF0, "the store's record stays 0xF0 bytes: the engine's records follow at 0x01C00870");
+
+/* The parts the store writes to (store.h's STORE_PARTS, HW-120). */
+#define PART_ID(id, name) id,
+static const u32 parts[] = { STORE_PARTS(PART_ID) };
+#undef PART_ID
+
+#if defined(SB_TEST_STORE_PART)
+/* The part test build (tools/store_suite.py, tools/seams_suite.py): at
+ * this chip offset, below the store, which only the test's flash file
+ * writes, the ID and the two status bytes start-up takes in place of what
+ * it read (fwtest's chip answers only 85 60 14 and never shows
+ * protection, HARNESS.md "The flash chip"): a word, then status 1 and
+ * status 2. An erased word (0xFFFFFFFF) leaves what was read. */
+#define PART_PARAM (0xE8000u + 0x10u)   /* 16 bytes past the cut build's parameters */
+#endif
 
 #if defined(SB_TEST_STORE_CUT)
 /* The power cut test build (tools/fw-suite.py): two words at this chip
@@ -208,6 +226,37 @@ static int wait_ready(void)
     return status & STATUS_BUSY ? -1 : 0;
 }
 
+/* Status register 1 (0x05) or 2 (0x35), read once. */
+static u32 status_read(u32 cmd)
+{
+    u32 v;
+
+    select();
+    send(cmd);
+    JL_SPI0->CON |= SPI_RX;
+    v = xfer(0xFFu);
+    JL_SPI0->CON &= ~SPI_RX;
+    deselect();
+    return v;
+}
+
+/* 0 if the sector at addr reads all 0xFF through 0x03, as an erase must
+ * leave it (HW-124 item 4: a protected erase does nothing, and the busy
+ * bit doesn't show it). Byte by byte, with no buffer: 4 096 bytes, some
+ * 4 100 bytes on the bus with the command. */
+static int erased(u32 addr)
+{
+    u32 n, bad = 0;
+
+    command(CMD_READ, addr);
+    JL_SPI0->CON |= SPI_RX;
+    for (n = 0; n < STORE_SECTOR; n++)
+        bad |= xfer(0xFFu) ^ 0xFFu;
+    JL_SPI0->CON &= ~SPI_RX;
+    deselect();
+    return bad ? -1 : 0;
+}
+
 static void write_enable(void)
 {
     select();
@@ -247,7 +296,11 @@ static int erase(u32 addr)
 #if defined(SB_TEST_STORE_BUSY)
     busy_for(BUSY_ERASE_TICKS);
 #endif
-    return wait_ready();
+    /* The wait on the busy bit first (HW-124 item 3), then the read-back
+     * (item 4), never in place of it: the chip ignores reads while busy. */
+    if (wait_ready())
+        return -1;
+    return erased(addr);
 }
 
 /* Programs n bytes at addr, a page program for each page they touch. */
@@ -534,6 +587,15 @@ void store_init(void)
     sb_store.part |= xfer(0xFFu);
     JL_SPI0->CON &= ~SPI_RX;
     deselect();
+    /* Block protection, beside the ID (HW-124 item 5). */
+    sb_store.status = status_read(CMD_STATUS) | status_read(CMD_STATUS2) << 8;
+#if defined(SB_TEST_STORE_PART)
+    read(PART_PARAM, h, 8);
+    if (rd32(h) != NONE) {
+        sb_store.part = rd32(h);
+        sb_store.status = h[4] | (u32)h[5] << 8;
+    }
+#endif
 #if defined(SB_TEST_STORE_CUT)
     read(CUT_PARAM, h, 8);
     cut_after = rd32(h);
@@ -856,15 +918,28 @@ static int put_fw(u32 kind, u32 id, u32 version, const u8 *payload, u32 len)
     return STORE_OK;
 }
 
+static int known_part(void)
+{
+    u32 i;
+
+    for (i = 0; i < sizeof parts / sizeof parts[0]; i++)
+        if (sb_store.part == parts[i])
+            return 1;
+    return 0;
+}
+
 static int put(u32 kind, u32 id, u32 version, const u8 *payload, u32 len)
 {
     int k = key_of(kind, id);
 
     if (version > 255 || (fw_kind(kind) ? id > 255 || len > STORE_FW_MAX : k < 0 || len > STORE_MAX_PAYLOAD))
         return STORE_ERR_ARG;
-    /* Only a part whose rules and times are known is written (HW-76). */
-    if (sb_store.part != STORE_PART)
+    /* Only a part whose rules and times are known is written (HW-120,
+     * HW-124 item 1), and only while nothing is protected (item 5). */
+    if (!known_part())
         return STORE_ERR_PART;
+    if ((sb_store.status & STORE_STATUS1_PROTECT) || (sb_store.status >> 8 & STORE_STATUS2_PROTECT))
+        return STORE_ERR_PROTECT;
     if (fw_kind(kind))
         return put_fw(kind, id, version, payload, len);
     return put_record(k, kind, id, version, 0, 0, 0, payload, len);

@@ -171,6 +171,14 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   panel), and the beacon shows the engine's screen, no test screen
   drawn (render time 0) and no heartbeat shown. The option without
   SB_ENGINE_EXTERNAL (the base's instrument) is refused.
+- parts (SR-15, R-STORE-13): the test engine with its store region at
+  0x80000, 16 sectors, as RevoiceDX keeps its saves, built with
+  SB_TEST_STORE_PART, whose start-up takes the flash part's ID from the
+  flash file (store.c): with each part's ID, 0x856014 and 0xB36014, its
+  4 096-byte payload is written and read at the next start-up, as
+  tools/store.py reads it at 0x80000; with an unknown ID (the P25Q80H's
+  with its manufacturer byte zero) it is refused,
+  nothing written.
 - probe (BR-17, Phase B): the entry-return probe, build A with
   SB_PROBE_RETURN (firmware/src/crt0.S): the image's first instruction
   returns to whoever called the entry, before any register or RAM is
@@ -807,6 +815,60 @@ def case_store(a, work, log):
     return problems
 
 
+# --- parts ----------------------------------------------------------------
+
+PART_PARAM = 0xE8000 + 0x10          # store.c, SB_TEST_STORE_PART
+PARTS_BASE, PARTS_SECTORS = 0x80000, 16
+STORE_ERR_PART = -4 & 0xFFFFFFFF
+
+
+def case_parts(a, work, log):
+    import store as st
+    problems = []
+    b = os.path.join(work, "build")
+    build(b, log, "--platform", "--src", "tests/seams/engine", "--ld", "tests/seams/engine/store80000.ld",
+          "--define", "SB_TEST_STORE_PART")
+    rec = fw_suite().elf_symbols(os.path.join(b, "app.elf"))["sb_test_engine"]
+    p1 = pattern(1, 4096)
+
+    def run(name, chip, step, ident):
+        s = st.Store(chip, sectors=PARTS_SECTORS, base=PARTS_BASE)
+        s.put_fw(CONTROL_KIND, 0, 1, bytes([step]))
+        c = bytearray(s.chip())
+        c[PART_PARAM:PART_PARAM + 8] = struct.pack("<IBBBB", ident, 0, 0, 0xFF, 0xFF)
+        flash = os.path.join(work, name + "-in.bin")
+        with open(flash, "wb") as f:
+            f.write(c)
+        out = os.path.join(work, name)
+        r = fwtest(os.path.join(b, "app.bin"), out, log, "--flash", os.path.relpath(flash, ROOT), "--flash-out",
+                   "--ms", "1200", "--ram", "0x%08x:%d@end" % (rec, 4 * len(ENGINE_FIELDS)))
+        if r["run"]["outcome"] != "completed":
+            raise RuntimeError("%s: %s (%s)" % (name, r["run"]["outcome"], r["run"].get("detail")))
+        with open(os.path.join(out, "flash.bin"), "rb") as f:
+            after = f.read()
+        return words(ram(out, rec, 4 * len(ENGINE_FIELDS)), ENGINE_FIELDS), bytes(c), after
+
+    for ident in (0x856014, 0xB36014):
+        e, _, chip = run("%06x-write" % ident, None, 1, ident)
+        if e["put_result"] != 0 or e["put_len"] != 4096 or e["put_sum"] != place_sum(p1):
+            problems.append("0x%06x: the write gave %d (%d bytes)" % (ident, e["put_result"], e["put_len"]))
+        got = st.Image(chip, sectors=PARTS_SECTORS, base=PARTS_BASE).get_fw(*LARGE)
+        if not got or got[1] != p1:
+            problems.append("0x%06x: tools/store.py doesn't read the payload at 0x%X" % (ident, PARTS_BASE))
+        e, _, _ = run("%06x-read" % ident, chip, 0, ident)
+        if e["boot_large"] != 4096 or e["boot_large_sum"] != place_sum(p1):
+            problems.append("0x%06x: the next start-up read %d bytes" % (ident, e["boot_large"]))
+    unknown = 0x856014 & 0xFFFF         # the P25Q80H's ID, its manufacturer byte zero
+    e, before, after = run("unknown-write", None, 1, unknown)
+    if e["put_result"] != STORE_ERR_PART or before[PARTS_BASE:PARTS_BASE + PARTS_SECTORS * st.SECTOR] != \
+            after[PARTS_BASE:PARTS_BASE + PARTS_SECTORS * st.SECTOR]:
+        problems.append("unknown part: the write gave %d, or the region changed" % e["put_result"])
+    print("parts: 4 096 bytes written at 0x%X and read at the next start-up with 0x856014 and with 0xB36014;"
+          " refused with an unknown part, 0x%06x (result %d), nothing written"
+          % (PARTS_BASE, unknown, STORE_ERR_PART - (1 << 32)))
+    return problems
+
+
 # --- powercut -------------------------------------------------------------
 
 # Case powercut's save "several": eleven 4 096-byte payloads of the large
@@ -1437,6 +1499,7 @@ CASES = [
     ("powercut", case_powercut),
     ("region", case_region),
     ("nostart", case_nostart),
+    ("parts", case_parts),
     ("probe", case_probe),
     ("light", case_light),
     ("panel", case_panel),

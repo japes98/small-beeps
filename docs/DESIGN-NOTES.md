@@ -1986,11 +1986,35 @@ region stays one definition. The choices:
 - **Reset is a record.** The factory reset writes one record that voids
   every older one, so it is as safe against a cut as any save, and wears
   nothing. A reset is always copied forward.
-- **The part's rules** (HW-78): a write enable before every erase and
-  program, a page program never past its page, the end of each waited for
-  on the status register's WIP bit, never by a delay. Start-up reads the
-  JEDEC ID, and a part other than the P25Q80H (HW-76) is read but never
-  written (`STORE_ERR_PART`), since its rules and times are not known.
+- **The part's rules** (HW-78; since SR-15, HW-121 and HW-124 for both
+  parts): a write enable before every erase and program, a page program
+  never past its page, the end of each waited for on the status
+  register's WIP bit, never by a delay, allowing 3 s (`BUSY_LIMIT_TICKS`),
+  far past either part's longest maximum (12 ms). Start-up reads the
+  JEDEC ID, then status 1 (`0x05`) and status 2 (`0x35`) into the
+  record's `status`. The store writes to the two parts `STORE_PARTS`
+  lists (store.h: the P25Q80H, `0x856014`, and since SR-15 the UC25HQ80,
+  `0xB36014`, HW-120). For the commands it sends they differ only in the
+  ID (HW-122). Any other ID is read but never written (`STORE_ERR_PART`).
+  If any of BP0 to BP4 (status 1, `0x7C`) or CMP (status 2, `0x40`) is
+  set, nothing is written (`STORE_ERR_PROTECT`). The store never writes
+  the status register (no `0x01`, `0x31` or `0x15`). Refusing whenever
+  any protection bit is set is coarser than the protection table both
+  parts share (HW-122), and it is meant to be: it can't misread the
+  table. A region the bits leave unprotected is still refused, which
+  costs nothing on a unit m-bootloader has written (HW-123: nothing is
+  protected after it). Since SR-15 each erase is read back after its
+  wait: the sector must read all `0xFF` through `0x03`, or the erase
+  counts as failed (HW-124 item 4), as a program that reads back wrong
+  does. Until then an erase was checked only through the header
+  programmed after it, and a protected erase does nothing without the
+  busy bit showing it (HW-121). The read-back is 4 100 bytes on SPI0
+  after each erase: in fwtest, where a byte takes no time of its own
+  (HW-83), some 80 000 instructions, about 0.35 ms at 240 MHz, beside the
+  erase's 12 ms; on the chip SPI0's clock sets it (HW-124 item 6, not in
+  this change), about 1.4 ms at 24 MHz. Main runs it with the interrupts
+  on, as it waits for the erase, so the audio, the tick and the scan go
+  on (R-STORE-7: the busy and wipe cases still pass).
   SPI0's sending side never reads `BUF`, which also keeps clear of fwtest
   0.5.0's gap around an unused volatile read (HARNESS.md).
 - **Start-up** reads the ID, 18 headers and every valid sector: 20 us
@@ -4180,3 +4204,62 @@ The owner's prompt: docs/prompts/clean-br17-start2.md.
 - No spec request: HW-115 already gives the chip select, and start1
   showed the DMA and SPI1's interrupt working as HW-29 and HW-55 give
   them. SR-16 stands as filed.
+
+### 2026-11-18 clean-sr15-flash: the store on both flash parts (SR-15, R-STORE-13)
+The owner's prompt: docs/prompts/clean-sr15-flash.md. The facts:
+HARDWARE-SPEC section 27 (HW-120 to HW-124), with HW-76 to HW-79 and
+HW-83, docs/SPEC-REQUESTS.md's SR-15 and HARNESS.md's "The flash chip"
+(PROVENANCE P-74).
+- **Start2's result first** (the owner's report on #190's last
+  candidate, `128ea17b…`): bands 1 to 3, the address pattern with band 4
+  over it, then the test screen, its seconds counting at a watch's rate,
+  so TIMER0's reading in SR-16 item 1 holds. PLAY shows "12 PLAY down"
+  and "12 PLAY up" with its LED following it; OCT− shows "00 OCT-" and
+  OCT+ "01 OCT+", and every other button and key its own number and
+  name. The chip select was the whole story, and the column walk reads
+  the board's matrix as fwtest's (SR-16 item 4, relayed for the spec
+  side to take).
+- **The store, as "The part's rules" (above) now says:**
+  - it writes to both parts' IDs and refuses every other one;
+  - it reads both status bytes at start-up and refuses to write if any
+    protection bit is set;
+  - it reads each erase back after the wait on the busy bit.
+  HW-124 items 2 and 3 were already met (SR-15 says where), and still
+  are: the only new command is `0x35`, which item 2 allows, and the
+  read-back comes after the wait, never in place of it.
+- **The record** gains `status` (status 1 | status 2 << 8) beside
+  `part`. The engine's records follow the store's at `0x01C00870`,
+  where firmwares built on the base assert theirs (BUILDING-ON), so the
+  record can't grow: the command trace gives up its oldest entry (31,
+  not 32), which no test reads. store.c asserts the record's size.
+- **The tests.** fwtest's chip answers only `85 60 14` and never shows
+  protection, so a test build, `SB_TEST_STORE_PART`, takes the ID and the
+  two status bytes from the test's flash file (16 bytes past the cut
+  build's parameters at chip offset `0xE8000`, below the store) in place of what it
+  read; everything else runs as on the chip. The store suite's case
+  part saves slot 1 and finds it at the next start with either ID, and
+  refuses every save, writing nothing, with an unknown ID and with each
+  of BP0 to BP4 and CMP. The seams suite's case parts writes and reads
+  back a firmware kind's 4 096-byte payload with the test engine's region
+  at `0x80000`, as RevoiceDX keeps its saves, with either ID, and refuses
+  it with an unknown one.
+- **The images that change:** every image that links the store, since
+  its code changed: the firmware's own (build A, `5bc12a34…` before), the
+  test builds, and the test engine's. The store's format and every
+  record on a chip are as before (docs/STORE-FORMAT.md unchanged). In
+  fwtest, whose chip reads status 0, the shipping image behaves as
+  before but for the start-up's two status reads and each erase's
+  read-back.
+- **What a real second part in fwtest would test that these cases
+  can't** (for the owner to raise as a harness request, if wanted): the
+  erase read-back failing. fwtest never ignores an erase, so a protected
+  erase that does nothing, the path HW-124 item 4 guards, isn't run.
+  Block protection modelled by fwtest's chip (an erase or program in a
+  protected area ignored, with the bits set from the flash file) would
+  run it. The part test build checks the refusal before any write, not a
+  write the chip ignores. The UC25HQ80's shorter times need nothing: the
+  store waits on the busy bit either way.
+- **Not in this change**, as the prompt says: handing the flash from the
+  code window to SPI0 and back on a unit (Q-22) and SPI0's clock (HW-124
+  item 6). The store doesn't work on a unit until Q-22 is settled, on
+  either part, so the hardware build (R-HW-1) still leaves it out.

@@ -55,6 +55,15 @@ command for command, and the two are compared byte for byte.
   ARP (R-ARP-7) settings are version 4, and a version 1 patch in a slot
   plays as version 2 with the arpeggiator's defaults; SAVE writes it as
   version 2.
+- part (R-STORE-13): the part test build, whose start-up takes the ID
+  and status bytes from the flash file (fwtest's chip answers only
+  85 60 14 and never shows protection): with each of the two parts'
+  IDs, 0x856014 and 0xB36014, slot 1 is saved and the next start finds
+  it; with an unknown ID (the P25Q80H's with its manufacturer byte
+  zero), and with each of BP0 to BP4 and CMP
+  set, every save is refused with its own result and the chip is the
+  starting chip, byte for byte, but for fwtest's image. The shipping
+  image's start-up reads status 0 from fwtest's chip.
 - busy, wipe (R-STORE-7): saves under audioload's input (the heaviest the
   panel gives: test patch 6 on all 16 voices), SAVE held three times so
   the keys it strikes meanwhile save to their slots, on a test build whose chip takes the part's longest times, 12 ms
@@ -75,11 +84,11 @@ import store as st
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORK = os.path.join(ROOT, "out", "fw", "store")
-IMAGES = {"app": "out/fw/app.bin", "cut": "out/fw/test-storecut.bin",
+IMAGES = {"app": "out/fw/app.bin", "cut": "out/fw/test-storecut.bin", "part": "out/fw/test-storepart.bin",
           "busy": "out/fw/test-storebusy.bin", "wipe": "out/fw/test-storewipe.bin"}
 RECORDS = {"store": (0x01C00780, 0xF0), "fm": (0x01C00590, 0x40), "midi": (0x01C005D0, 0x164),
            "audio": (0x01C00550, 0x40), "beacon": (0x01C00000, 0x60)}
-STORE_FIELDS = ("marker part valid_sectors head head_seq append next_seq live init_ticks crc_bad skipped unknown"
+STORE_FIELDS = ("marker part status valid_sectors head head_seq append next_seq live init_ticks crc_bad skipped unknown"
                 " voided records copies erases programs verify_fail refused last_result put_max commands"
                 " saves save_fail resets auto_writes loaded trace_count").split()
 FM_FIELDS = ("marker core1 core1_blocks patch algorithm mono voices0 voices1 voices_max stolen notes"
@@ -101,6 +110,12 @@ PRESET0 = len(PATCHES) + st.SLOTS
 PROGRAMS = PRESET0 + len(PRESETS)
 PV = fm_patch.VERSION          # a patch record's version: the patch's (2 since ARP)
 ERR_FULL = -2
+ERR_PART, ERR_PROTECT = -4, -5   # firmware/src/store.h, STORE_ERR_*
+STORE_TRACE = 31                 # store.h (32 until SR-15)
+# The part test build (store.c, SB_TEST_STORE_PART): the ID and the two
+# status bytes its start-up takes, at this chip offset of the flash file.
+PART_PARAM = 0xE8000 + 0x10   # 16 bytes past the cut build's parameters
+PARTS = ((0x856014, "P25Q80H"), (0xB36014, "UC25HQ80"))   # HW-120
 
 
 def key(n):
@@ -175,7 +190,7 @@ class Run:
         v = struct.unpack_from("<%di" % len(fields) if name == "store" else "<%dI" % len(fields), b)
         d = dict(zip(fields, v))
         if name == "store":
-            d["trace"] = list(struct.unpack_from("<32I", b, 4 * len(fields)))
+            d["trace"] = list(struct.unpack_from("<%dI" % STORE_TRACE, b, 4 * len(fields)))
         return d
 
 
@@ -402,6 +417,64 @@ def case_persist(out, image_len):
     lines.append("  persist: slot 1 saved with algorithm %d (was %d), program 3, local off; the next start"
                  " loaded all three (store read in %.1f us) and played slot 1 as program 9"
                  % (want_patch[16], a0, rb["init_ticks"] / 24.0, ))
+    return p, lines
+
+
+def with_part(chip, ident, status1=0, status2=0):
+    """chip with the part test build's parameters: the ID and the status
+    bytes its start-up takes (store.c, PART_PARAM)."""
+    b = bytearray(chip + b"\xff" * (st.CHIP - len(chip)))
+    b[PART_PARAM:PART_PARAM + 8] = struct.pack("<IBBBB", ident, status1, status2, 0xFF, 0xFF)
+    return bytes(b)
+
+
+# Each refusal: its name, the ID, status 1, status 2 and the result.
+# The unknown part: the P25Q80H's ID with its manufacturer byte zero.
+PART_UNKNOWN = PARTS[0][0] & 0xFFFF
+PART_REFUSALS = [("unknown", PART_UNKNOWN, 0, 0, ERR_PART)] \
+    + [("bp%d" % i, PARTS[i % 2][0], 0x04 << i, 0, ERR_PROTECT) for i in range(5)] \
+    + [("cmp", PARTS[1][0], 0, 0x40, ERR_PROTECT)]
+
+
+def case_part(out, image_len):
+    p, lines = [], []
+    first = [Run(out, "store-part-%06x-a" % ident, "part", 3800, flash=with_part(with_stock(b""), ident),
+                 script=save_script(300, 1)) for ident, _ in PARTS]
+    refused = [Run(out, "store-part-%s" % name, "part", 3800, flash=with_part(with_stock(b""), ident, s1, s2),
+                   script=save_script(300, 1)) for name, ident, s1, s2, _ in PART_REFUSALS]
+    run_all(first + refused)
+    for (ident, name), a in zip(PARTS, first):
+        p += common(a, image_len)
+        if a.result is None:
+            continue
+        r = a.rec("store")
+        if r["part"] != ident or r["status"] != 0 or r["saves"] != 1 or r["save_fail"]:
+            p.append("part %s: part 0x%06x status 0x%04x, saves %d (failed %d); expected 0x%06x, 0, 1, 0"
+                     % (name, r["part"], r["status"], r["saves"], r["save_fail"], ident))
+        if st.Image(a.flash).get(st.PATCH, 0) != (PV, saved(PATCHES[0])):
+            p.append("part %s: slot 1 is not the patch saved" % name)
+    second = [Run(out, "store-part-%06x-b" % ident, "part", 1600, flash=a.flash) for (ident, _), a in zip(PARTS, first)
+              if a.flash is not None]
+    run_all(second)
+    for (ident, name), b in zip(PARTS, second):
+        p += common(b, image_len)
+        if b.result is not None and not b.rec("store")["loaded"] & 0x100:
+            p.append("part %s: the next start didn't find slot 1 (loaded 0x%x)" % (name, b.rec("store")["loaded"]))
+    for (name, ident, s1, s2, want), run in zip(PART_REFUSALS, refused):
+        p += common(run, image_len)
+        if run.result is None:
+            continue
+        r = run.rec("store")
+        if r["part"] != ident or r["status"] != s1 | s2 << 8:
+            p.append("part %s: the store took part 0x%06x status 0x%04x" % (name, r["part"], r["status"]))
+        if r["saves"] != 1 or r["save_fail"] != 1 or r["last_result"] != want or not r["refused"]:
+            p.append("part %s: saves %d (failed %d), last result %d, refused %d; expected 1, 1, %d, some"
+                     % (name, r["saves"], r["save_fail"], r["last_result"], r["refused"], want))
+        if region(run.flash) != region(run.flash_in) or r["erases"] or r["programs"]:
+            p.append("part %s: something was written (%d erases, %d programs)" % (name, r["erases"], r["programs"]))
+    lines.append("  part: slot 1 saved and found at the next start with the %s (0x%06x) and the %s (0x%06x);"
+                 " refused, nothing written, with an unknown ID (result %d) and with each of BP0 to BP4 and CMP"
+                 " (result %d)" % (PARTS[0][1], PARTS[0][0], PARTS[1][1], PARTS[1][0], ERR_PART, ERR_PROTECT))
     return p, lines
 
 
@@ -806,7 +879,7 @@ def run(fw, out, image_len):
     problems, lines = [], []
     cases = [("persist", case_persist), ("sweep", case_sweep), ("reset", case_reset),
              ("corrupt", case_corrupt), ("full", case_full), ("wear", case_wear),
-             ("migrate", case_migrate),
+             ("migrate", case_migrate), ("part", case_part),
              ("busy", lambda o, n: case_load(fw, o, n, "busy")),
              ("wipe", lambda o, n: case_load(fw, o, n, "wipe"))]
     for name, case in cases:

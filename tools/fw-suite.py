@@ -162,7 +162,8 @@ TEST_BUILDS = {"test-fault": "SB_TEST_FAULT", "test-stray": "SB_TEST_STRAY",
                "test-underrun": "SB_TEST_UNDERRUN", "test-velocity": "SB_TEST_VELOCITY",
                "test-midich": "SB_TEST_MIDI_CHANNEL", "test-midithru": "SB_TEST_MIDI_THRU",
                "test-midiburst": "SB_TEST_MIDI_BURST", "test-storecut": "SB_TEST_STORE_CUT",
-               "test-storebusy": "SB_TEST_STORE_BUSY", "test-storewipe": "SB_TEST_STORE_WIPE"}
+               "test-storebusy": "SB_TEST_STORE_BUSY", "test-storewipe": "SB_TEST_STORE_WIPE",
+               "test-storepart": "SB_TEST_STORE_PART"}
 # Each case's expected outcome (the suite says the same; checked twice).
 EXPECT = {"boot": "completed", "heartbeat": "completed", "heartbeat2": "completed",
           "screen": "completed", "flood": "completed", "fault": "halt", "stray": "halt",
