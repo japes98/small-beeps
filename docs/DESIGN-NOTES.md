@@ -4494,3 +4494,64 @@ HW-128), SR-17's answer, and HARNESS.md "The flash chip".
   to the finder's ADC lines: each shows its channel, its value and up to
   three other levels it took, with no name.
 
+### 2026-11-19 clean-br17-core1: a probe of core 1's release, and PA0 as a row (BR-17, R-HW-1)
+The owner's prompt: docs/prompts/clean-br17-core1.md, and finder1's
+result: docs/prompts/clean-br17-core1-finder1.md. The facts: HARDWARE-SPEC
+HW-135 (SR-18's answer), with HW-9, HW-10, HW-53, HW-133, Q-17 and Q-18.
+
+- **The release, in HW-135's order** (`hw_core1_start`, after the store's
+  step):
+  1. the loop's address in the start word, read back;
+  2. `SYS_DIV` read, then written as that value with bit 3 set, then read
+     back;
+  3. `C1_CON` bit 3 set and read back, then bit 1 cleared and read back;
+  4. a wait of at most 100 ms for core 1's own flag (`hw_core1_flag`, the
+     first store of its loop), then `SYS_DIV` written back as read, never
+     a constant, so m-bootloader's dividers are kept.
+  The step row names each stage, so a hang shows where.
+- **The variant** (`SB_HW_CORE1_NO_SYSDIV`) does steps 1 and 3 only:
+  `SYS_DIV` is read and never written. The default build, and the
+  candidate named A, is the full release. If A starts core 1 and B
+  doesn't, step 2 is what the chip needs. If both start it, clearing
+  bit 1 is enough. If neither does, something else is missing.
+- **A sign that doesn't rest on Q-18.** Before the release, and a second
+  after, the `corex2` words 0x80 to 0x8F (Q-17's per-core counters, whose
+  meaning the SDK doesn't state) are read. Core 1's screen shows both
+  readings, yellow where a word changed. A word that changes only when
+  core 1's flag is seen, or only in A, is evidence of core 1 running
+  that doesn't depend on core 0 seeing core 1's stores. Q-17 doesn't say
+  which words belong to core 1, so all sixteen are shown.
+- **Core 1's screen** (`hw_core1_screen`, `SB_HW_HOLD`): drawn a second or
+  more after the release, at scale 2 but for the sixteen words, and held
+  10 s before the test screen. It shows which build it is, the sign and
+  the wait, the counter, `SYS_DIV` at each stage, `C1_CON` at each stage,
+  and the start word against the loop's address. The finder's two small
+  rows keep the same values afterwards.
+- **In fwtest** core 1 starts at whichever comes first of `SYS_DIV` bit 3
+  and `C1_CON` bit 3 (HW-10), so both builds see the sign there: hw3's
+  held run (A) and the seams case core1 (B). fwtest doesn't model the
+  `corex2` words, which read 0 there (unmodelled reads, allowed in the
+  cases).
+- **Without core 1** (until a unit run settles it): nothing in the
+  hardware build depends on it. If the wait times out, the build goes on
+  and says so. The firmware's engine runs without core 1:
+  `sb_core1_start` waits a bounded time for core 1's word, and without it
+  core 0 renders the even voices alone, half the polyphony (`fm_play.c`).
+  **Once the probe shows core 1 running,** `core1.c`'s `sb_core1_start`
+  (HW-9's release alone today) would take the steps the unit needed, from
+  the value read for `SYS_DIV`. The engine would then play all its voices
+  on a unit, and core 1's share of the work would need timing on the chip
+  (Q-17).
+- **PA0, a fifth row** (the owner's reading of finder1: PA0's lines changed
+  at small counts all along, and ALGORITHM showed on columns 0 and 1 of
+  PA0). HW-117 gives only PA5 to PA8 as rows, so this is the build's
+  choice at the owner's request. The scan sets PA0 up as it does PA5 to
+  PA8 (input, digital input on, pull-up on, pull-down off) and reads it
+  as row 0. The finder reads port A whole, so it now sees PA0 pulled up.
+- **AD8 and AD9** are PC9 and PC10 (HW-129): on the FM-1 they are SPI1's
+  clock and data out to the panel (HW-56, group B). They aren't floating:
+  they follow each screen transfer, which is why they wandered on every
+  screen. The finder leaves both channels out. Channel 2 is PA10, an LED
+  line, driven low during the sweeps, and channels 0 and 1 are PA7 and
+  PA8, rows with pull-ups: that is why they read 0 and `3FF`.
+

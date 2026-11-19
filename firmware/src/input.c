@@ -23,12 +23,14 @@
  * give them, each shift register edge its own read-modify-write of OUT
  * with csync after it, the LED lines low while a column changes, and the
  * slot run from TIMER0's interrupt (main.c's hw_slot), not TIMER1, whose
- * clock on the chip HARDWARE-SPEC doesn't give. Rows 0 and 5 (the
- * encoders' PA0 and PB7) are left out: their set-up on the chip isn't
- * known (Q-7, SR-16). The pot is MASTER, SARADC channel 4 (HW-133 item 5,
+ * clock on the chip HARDWARE-SPEC doesn't give. Row 0 is PA0, set up as
+ * PA5 to PA8 are, with its pull-up on: the owner's choice after finder1,
+ * whose PA0 lines changed only while floating (HW-117 gives PA5 to PA8
+ * alone; clean-br17-core1). Row 5 (PB7) is left out: its set-up on the
+ * chip isn't known (Q-7, SR-16). The pot is MASTER, SARADC channel 4 (HW-133 item 5,
  * HW-40), on PB6 set up by hw_adc_start before input_start. */
-#define PA_ROWS   (0xFu << 5)           /* PA5 to PA8 (HW-117) */
-#define HW_ROWS   0x1Eu                 /* rows 1 to 4 */
+#define PA_ROWS   (0xFu << 5 | 1u)      /* PA0, then PA5 to PA8 (HW-117) */
+#define HW_ROWS   0x1Fu                 /* rows 0 to 4 */
 #define HW_EDGE() __asm__ volatile("csync" ::: "memory")
 /* Port A's and H's DIE, PU and PD (HW-56: +12, +16, +20). */
 #define HW_PORT_REG(port, off) (*(volatile u32 *)((u32)(port) + (off)))
@@ -350,7 +352,7 @@ void input_scan(void)
     s--;
 #if defined(SB_HW_FM1)
     (void)pb;
-    rows = ~(pa >> 4) & HW_ROWS;
+    rows = ~((pa & 1u) | (pa >> 4 & 0x1Eu)) & HW_ROWS;
 #else
     rows = ~((pa & 1) | (pa >> 4 & 0x1Eu) | (pb >> 2 & 0x20u)) & 0x3Fu;
 #endif

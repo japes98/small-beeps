@@ -76,9 +76,18 @@ struct hw_start3 {
     u8 grid[16];                      /* rows PA5-PA8 closed, by column word */
     u32 adc[HW3_ADC_CHANNELS];
     u32 c1_pre, c1_post, c1_word, c1_fn; /* C1_CON before and after the release, the start word read back, the loop's address */
+    /* start3c, core 1's release in HW-135's order (hw_core1_start): */
+    u32 sd_before, sd_set, sd_after;  /* SYS_DIV read first, after bit 3 set, after it is put back */
+    u32 c1_clr1;                      /* C1_CON after bit 1 cleared (c1_post: after bit 3 set) */
+    u32 c1_seen, c1_wait_ms;          /* core 1's flag seen; the wait, ms (HW_C1_WAIT_MS: timed out) */
+    u32 c1_at;                        /* the beat of the release */
+    u32 x2_before[16], x2_after[16];           /* corex2 words 0x80-0x8F before, and a second after */
+    u32 count1;                       /* hw_core1_count a second after */
 };
 extern struct hw_start3 hw3;
-extern volatile u32 hw_core1_count, hw_scan_paused;
+extern volatile u32 hw_core1_count, hw_core1_flag, hw_scan_paused;
+#define HW_C1_WAIT_MS 100u
+void hw_core1_screen(void);
 void hw_round_trip(void);
 void hw_store_counter(void);
 void hw_adc_start(void);

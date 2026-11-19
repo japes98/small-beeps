@@ -64,6 +64,8 @@
 /* HW-9: core 1's start address word and C1_CON. */
 #define C1_START     REG(0x01C7FFF8)
 #define C1_CON       REG(0x01EEE004)
+#define SYS_DIV      REG(0x00010008)            /* JL_CLOCK->SYS_DIV (HW-53, HW-135) */
+#define COREX2_WORD(i) REG(0x01EEE000u + 4u * (0x80u + (i)))   /* Q-17's counters, words 0x80-0x8F */
 /* HW-117, HW-118: the shift registers' pins and the LED lines. */
 #define PA_LATCH  (1u << 1)
 #define PA_CLOCK  (1u << 3)
@@ -85,7 +87,7 @@
 #define COUNTER_KIND 0xF0u
 
 struct hw_start3 hw3;
-volatile u32 hw_core1_count;
+volatile u32 hw_core1_count, hw_core1_flag;
 volatile u32 hw_scan_paused;
 void hw_core1_loop(void);
 static void draw_store(void);
@@ -409,18 +411,132 @@ static void sweep(void)
 
 /* After sb_irq_init has written the vector table, whose slot 126 this is;
  * nothing writes that slot afterwards. */
+/* HW-135's release, in its order: 1. the start word; 2. SYS_DIV bit 3 set,
+ * from the value read first; 3. C1_CON bit 3 set, then bit 1 cleared;
+ * 4. a wait for core 1's own flag (HW_C1_WAIT_MS at most), then SYS_DIV
+ * put back exactly as read. With SB_HW_CORE1_NO_SYSDIV (the variant),
+ * steps 1 and 3 only: SYS_DIV read, never written. Each register is read
+ * back after each write, and the corex2 words 0x80 to 0x8F (Q-17: per-core
+ * counters whose meaning the SDK doesn't state) before, for a sign of core
+ * 1 that doesn't rest on what core 0 sees of its stores (Q-18). */
 void hw_core1_start(void)
 {
+    u32 i, t;
+
     hw_step("core 1: releasing");
     hw3.c1_fn = (u32)hw_core1_loop;
+    for (i = 0; i < 16; i++)
+        hw3.x2_before[i] = COREX2_WORD(i);
     hw3.c1_pre = C1_CON;
+    hw3.sd_before = SYS_DIV;
     C1_START = hw3.c1_fn;
     SYNC();
     hw3.c1_word = C1_START;
+#if !defined(SB_HW_CORE1_NO_SYSDIV)
+    SYS_DIV = hw3.sd_before | 1u << 3;
+    SYNC();
+    hw3.sd_set = SYS_DIV;
+#endif
     C1_CON |= 1u << 3;
     SYNC();
     hw3.c1_post = C1_CON;
-    hw_step("core 1: released");
+    C1_CON &= ~(1u << 1);
+    SYNC();
+    hw3.c1_clr1 = C1_CON;
+    hw_step("core 1: waiting for its sign");
+    t = sb_beacon.beats;
+    while (!hw_core1_flag && sb_beacon.beats - t < HW_C1_WAIT_MS)
+        ;
+    hw3.c1_seen = hw_core1_flag;
+    hw3.c1_wait_ms = sb_beacon.beats - t;
+#if !defined(SB_HW_CORE1_NO_SYSDIV)
+    SYS_DIV = hw3.sd_before;
+    SYNC();
+#endif
+    hw3.sd_after = SYS_DIV;
+    hw3.c1_at = sb_beacon.beats;
+    hw_step(hw3.c1_seen ? "core 1: its sign seen" : "core 1: no sign (timed out)");
+}
+
+/* SB_HW_HOLD: core 1's screen, a second or more after the release, held
+ * HW_HOLD_MS: every value the release read, the corex2 words before and a
+ * second after (yellow where they changed), core 1's counter. */
+#if defined(SB_HW_HOLD)
+static void c1_big(u32 y, const char *label, u32 v, u32 colour)
+{
+    char t[24], *p = t;
+
+    p = put_s(p, label);
+    p = put_hex(p, v, 8);
+    *p = 0;
+    gfx_text(6, y, t, colour, RGB565(0, 0, 0), 2);
+}
+#endif
+
+void hw_core1_screen(void)
+{
+#if defined(SB_HW_HOLD)
+    char t[24], *p;
+    u32 i, white = RGB565(31, 63, 31), dim = RGB565(16, 32, 16), y = 4;
+
+    while (sb_beacon.beats - hw3.c1_at < 1000u)
+        ;
+    for (i = 0; i < 16; i++)
+        hw3.x2_after[i] = COREX2_WORD(i);
+    hw3.count1 = hw_core1_count;
+    lcd_wait();
+    gfx_fill(0, 0, SCREEN_W, SCREEN_H, RGB565(0, 0, 0));
+#if defined(SB_HW_CORE1_NO_SYSDIV)
+    gfx_text(6, y, "CORE1 B: no SYSDIV", RGB565(0, 63, 31), RGB565(0, 0, 0), 2);
+#else
+    gfx_text(6, y, "CORE1 A: HW-135", RGB565(0, 63, 31), RGB565(0, 0, 0), 2);
+#endif
+    y += 16;
+    p = put_s(t, hw3.c1_seen ? "sign YES " : "sign NO ");
+    p = put_dec(p, hw3.c1_wait_ms);
+    p = put_s(p, "ms");
+    *p = 0;
+    gfx_text(6, y, t, hw3.c1_seen ? RGB565(0, 63, 0) : RGB565(31, 0, 0), RGB565(0, 0, 0), 2);
+    y += 16;
+    p = put_s(t, "count ");
+    p = put_dec(p, hw3.count1);
+    *p = 0;
+    gfx_text(6, y, t, hw3.count1 ? RGB565(0, 63, 0) : RGB565(31, 0, 0), RGB565(0, 0, 0), 2);
+    y += 16;
+    c1_big(y, "SD    ", hw3.sd_before, white);
+    y += 16;
+#if defined(SB_HW_CORE1_NO_SYSDIV)
+    gfx_text(6, y, "SD+3  --------", dim, RGB565(0, 0, 0), 2);
+#else
+    c1_big(y, "SD+3  ", hw3.sd_set, white);
+#endif
+    y += 16;
+    c1_big(y, "SD=   ", hw3.sd_after, hw3.sd_after == hw3.sd_before ? white : RGB565(31, 0, 0));
+    y += 16;
+    c1_big(y, "C1    ", hw3.c1_pre, white);
+    y += 16;
+    c1_big(y, "C1+3  ", hw3.c1_post, white);
+    y += 16;
+    c1_big(y, "C1-1  ", hw3.c1_clr1, white);
+    y += 16;
+    c1_big(y, hw3.c1_word == hw3.c1_fn ? "W ok  " : "W BAD ", hw3.c1_word, white);
+    y += 18;
+    for (i = 0; i < 16; i++) {
+        p = put_hex(t, 0x80u + i, 2);
+        *p++ = ' ';
+        p = put_hex(p, hw3.x2_before[i], 8);
+        *p++ = '>';
+        p = put_hex(p, hw3.x2_after[i], 8);
+        *p = 0;
+        gfx_text(i < 8 ? 0 : 120, y + FONT_H * (i & 7), t, hw3.x2_before[i] != hw3.x2_after[i] ? RGB565(31, 63, 0) : dim,
+                 RGB565(0, 0, 0), 1);
+    }
+    lcd_send_rows(0, SCREEN_H);
+    lcd_wait();
+    i = sb_beacon.beats;
+    while (sb_beacon.beats - i < 2u * HW_HOLD_MS)
+        ;
+#endif
 }
 
 /* --- The rows ------------------------------------------------------------- */
@@ -846,7 +962,10 @@ static void f_sweep(void)
     adc_all();
     for (p = 0; p < HW3_ADC_CHANNELS; p++) {
         v = hw3.adc[p];
-        if (v > 0x3FFu)
+        /* Channels 8 and 9 are PC9 and PC10 (HW-129), SPI1's clock and
+         * data out to the panel (HW-56, group B): they follow the panel's
+         * transfers, so they are left out. */
+        if (v > 0x3FFu || p == 8 || p == 9)
             continue;
         if (hw_find.learning) {
             if (!hw_find.sweeps || v < f_adc_min[p])
@@ -915,18 +1034,23 @@ static void f_small(u32 n)
 
     switch (n) {
     case 0:
-        p = put_s(p, "c1con ");
+        p = put_s(p, "c1 ");
         p = put_hex(p, hw3.c1_pre, 8);
         p = put_s(p, ">");
         p = put_hex(p, hw3.c1_post, 8);
-        p = put_s(p, " now ");
+        p = put_s(p, ">");
+        p = put_hex(p, hw3.c1_clr1, 8);
+        p = put_s(p, " ");
         p = put_hex(p, C1_CON, 8);
         break;
     case 1:
-        p = put_s(p, "c1 word ");
-        p = put_hex(p, hw3.c1_word, 8);
-        p = put_s(p, " fn ");
-        p = put_hex(p, hw3.c1_fn, 8);
+        p = put_s(p, "sd ");
+        p = put_hex(p, hw3.sd_before, 8);
+        p = put_s(p, ">");
+        p = put_hex(p, hw3.sd_set, 8);
+        p = put_s(p, ">");
+        p = put_hex(p, hw3.sd_after, 8);
+        p = put_s(p, hw3.c1_seen ? " sign" : " NO sign");
         break;
     case 2:
         p = put_s(p, "sweeps/s ");
