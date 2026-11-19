@@ -22,21 +22,54 @@
 #endif
 
 void hw_early(void);
+/* The block r0 pointed at when m-bootloader called the entry, and the
+ * chip key at its +12 (HW-112, HW-126), kept by sb_start. */
+extern u32 hw_boot_block, hw_boot_key;
 void hw_fill(u32 x, u32 y, u32 w, u32 h, u32 colour);
 void hw_band(u32 n);
 void hw_halt_screen(void);
+void hw_rt_led_window(void);
 
-/* TIMER0, the build's one timer (HW-119: it runs from the 60 MHz
- * low-speed bus; HW-48: prescaler setting 0 divides by 1): an interrupt
- * every HW_SLOT_PRD counts, 83.3 us, one scan slot; twelve make the 1 ms
- * tick. CON bits 0-1 set to 1 to run it is fwtest's reading (HW-48),
- * taken for the chip too: SR-16. */
+/* TIMER0, the build's one timer: CON 0x1 counts up from CNT to PRD,
+ * from the 60 MHz low-speed bus, prescaler setting 0 (HW-125, HW-119;
+ * fwtest's TIMER0 counts 24 MHz, HW-48): an interrupt every HW_SLOT_PRD
+ * counts, 83.3 us, one scan slot; twelve make the 1 ms tick. */
 #define HW_SLOT_CON   0x1u
 #define HW_SLOT_PRD   5000u
 #define HW_SLOTS_TICK 12u
 /* sb_now()'s 24 MHz units in one slot, and per count: 2000 and 2 / 5. */
 #define HW_SLOT_UNITS 2000u
 void hw_slot(void) __attribute__((interrupt("")));
+
+/* start3 (hw_start3.c): the matrix, the ports, the ADC, the flash round
+ * trip and the store's counter, and core 1, each in rows of its own on the
+ * test screen: these, clear of start2's bands (rows 64 to 175 while the
+ * start-up draws them), its event line (104 to 119) and the beat (200). */
+#define HW3_GRID_Y    40u    /* a title row, then PA5 to PA8 */
+#define HW3_PORTS_Y   84u
+#define HW3_ADC_Y     124u   /* two rows */
+#define HW3_STORE_Y   142u
+#define HW3_CORE1_Y   152u
+#define HW3_WIN_Y     180u
+#define HW3_FLASH_Y   190u
+#define HW3_ADC_CHANNELS 12u
+struct hw_start3 {
+    u32 win_con, win_base, win_key;   /* the window's registers before the take */
+    u32 tried, back, idle_timeouts;   /* the round trip: begun, came back */
+    u32 id, status1, status2;         /* read in the round trip */
+    u32 stored, count;                /* the store's step, the start-up count */
+    int get_result, put_result;
+    u8 grid[16];                      /* rows PA5-PA8 closed, by column word */
+    u32 adc[HW3_ADC_CHANNELS];
+};
+extern struct hw_start3 hw3;
+extern volatile u32 hw_core1_count, hw_scan_paused;
+void hw_round_trip(void);
+void hw_store_counter(void);
+void hw_adc_start(void);
+void hw_core1_start(void);
+void hw_rows_all(void);
+void hw_refresh(u32 second);
 #endif
 
 #endif

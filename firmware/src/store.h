@@ -221,5 +221,10 @@ struct sb_store_record {
     u32 trace[STORE_TRACE];   /* each command: kind << 28 | chip offset (1 erase, 2 program) */
 };
 extern volatile struct sb_store_record sb_store;
+#if defined(SB_HW_FM1)
+/* The hardware build's count of erases whose read-back failed, apart
+ * from verify_fail's programs (R-HW-1). */
+extern volatile u32 sb_store_erase_fail;
+#endif
 
 #endif

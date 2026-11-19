@@ -125,7 +125,13 @@ _start:
 	sp = r1
 	rts
 #endif
-	/* r0 holds the loader's block pointer (HW-4); M1 doesn't use it. */
+	/* r0 holds the loader's block pointer (HW-4); M1 doesn't use it. The
+	 * FM-1 hardware build keeps it in r4 for sb_start, which reads the
+	 * chip key from it before anything writes the vector table (HW-126);
+	 * sb_stack_fill changes r0 to r2 only. */
+#if defined(SB_HW_FM1)
+	r4 = r0
+#endif
 	r1 = __stack_top
 	sp = r1
 	/* Core 0 runs in user mode, and an interrupt switches to ssp (HW-3,
@@ -135,6 +141,9 @@ _start:
 	ssp = r1
 	/* Before any C, so every use of either stack shows (R-PERF-3). */
 	call	sb_stack_fill
+#if defined(SB_HW_FM1)
+	r0 = r4
+#endif
 	call	sb_start
 
 	/* sb_start never returns. If it ever did, stop on purpose: interrupts

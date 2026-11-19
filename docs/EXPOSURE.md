@@ -2974,6 +2974,48 @@ SR-3 wrote only its barrier-log row.*
   firmware file changed.
 - Disk: about 2.3 GB free.
 
+### Session clean-br17-start3 (BR-17: start3, and fwtest 0.11.0)
+- Date: 2026-11-19 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.327, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-sr15-flash's, continued. The owner's prompt is the file
+  `~/<top>/drop/prompts/clean-br17-start3.md`, saved unedited as
+  docs/prompts/clean-br17-start3.md. The owner's message with it said to
+  build on #193 rather than redo the store's changes.
+- Start: #189, #191, #192 and #193 found merged. Nothing to archive.
+  `tools/check-transcripts.py`: 26 archived transcripts, PASS. Open pull
+  requests listed (only this side's #194) before P-75 and SR-17 were
+  numbered.
+- Merges of main into #193 (twice: #191, then #192) kept both sides'
+  rows in PROVENANCE and EXPOSURE; the spec-side folders the merges
+  brought stayed out of the work tree (all skip-worktree, from git's
+  index, nothing opened).
+- fwtest 0.11.0's digest was read from the `fwtest-image` workflow's log
+  on main (its digest lines only; no artifact). Start1's build
+  (`58c87df3`) was rebuilt in the scratch folder from that commit's
+  firmware, tools, config, SDK and seams files, taken one by one with
+  `git show`. `git archive` stopped on an object outside those paths,
+  which lazy fetching (off) would have downloaded. Its package link
+  matched the installed one (`46bbb942…`). The copy was deleted after.
+- Reads: HARDWARE-SPEC sections 27 and 28, HW-7, HW-9, HW-10, HW-40,
+  HW-56, HW-64, HW-85, HW-115 to HW-119; SPEC-REQUESTS SR-15, SR-16;
+  CONTRIBUTING "Numbering"; HARNESS "The LCD", "Versions".
+- **The pull requests:** #194 (the pin), this side's start3. Build A
+  still `aae50b29…`; the seams suite's hw and hw3 cases PASS. Start3's
+  hardware package (key `0x980F`) packed twice to the same bytes,
+  `fwsc.py check` passing; a file in `out/` for the owner.
+- Force-pushes: none.
+- C-SEP-TERMS on #195 (`3a8abc1e`): two names of this side's own in
+  hw_start3.c matched emulator-only words. The quick job's artifact was
+  fetched by the API, only `logs/C-SEP-TERMS.log` read from it (its HIT
+  lines), the zip deleted at once; the words found by hashing the lines'
+  words, and both names, with their pairs, renamed. The image is the same.
+- Disk: 2.7 GB free at the start; about 2.3 GB at the lowest.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

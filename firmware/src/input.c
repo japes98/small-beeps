@@ -260,6 +260,13 @@ static void pot(void)
 }
 
 #if defined(SB_HW_FM1)
+/* After main's sweep of the matrix (hw_start3.c), which leaves no column
+ * selected: the walk starts again from slot 0. */
+void input_scan_restart(void)
+{
+    slot = 0;
+}
+
 /* One bit into the shift registers and latched (HW-117): data, a clock
  * pulse, a latch pulse, each edge its own read-modify-write of OUT. */
 static void hw_shift(u32 data)
