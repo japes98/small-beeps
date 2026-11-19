@@ -1,0 +1,5 @@
+$ sh tools/fetch-emulator.sh --verify
+OK      SHA256SUMS (tree hash 10de917306750aa98cd50d1fe6bcb713c6db5dc078d51c14d86b3177f04fb10a)
+44 emulator files match commit 43ed5580064885e93bc8d20be931ae950d10cd4f plus patches
+
+exit status 0

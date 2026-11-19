@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 5f56a5f79e3fa0e7f07df274095bc860d91fdf2b..56b8b8074d02b6c92e882fcfbbd542626d9b919d
+OK     6d46a6a5c091 sessions: clean-sr15-flash starts (nothing to archive)
+OK     0097578faa30 firmware: the store writes to both flash parts (SR-15)
+EXEMPT abb59525a5bf (merge) merge: main (#191) into the SR-15 store change
+EXEMPT 7a71c49596b1 (merge) merge: main (#192) into the SR-15 store change
+EXEMPT 56b8b8074d02 (merge) Merge pull request #193 from japes98/store/both-parts
+5 commit(s) checked: PASS
+
+exit status 0

@@ -1,0 +1,73 @@
+{
+  "fwtest": {
+    "version": "0.10.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 55488,
+    "sha256": "aae50b29c21a34c91f194ad43679aba8fe99f867e90e32b0199269c153ca0896"
+  },
+  "script_sha256": "04ee4b52751b4f9843453a38af2cd78648c4663267fbae6c683f97ec7170f0ca",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "60800.943",
+    "instructions": {
+      "core0": 291151405,
+      "core1": 8099528
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 10729260,
+        "sha256": "66bc6bcbdf065e8aa73bae11715788e9e8c9afba2d816f089ef1f3e727e23a40"
+      },
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "ipb.csv",
+        "bytes": 993266,
+        "sha256": "036c05710ded6a6bab730d59428fa6ef7e99e944a715a7ce59dce64f1e3b2075"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 68267,
+        "sha256": "5da1f363c291ed3014ed68dd8ea069c4a54e92f72ff23f69e925b50b531719a3"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 89736,
+        "sha256": "06438dc89128a7f761fb421c01b7deef33925a78fc08b11f35d991046177040b"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "d36ff0e26199e3db3c27c7365acfa1dc29cbf16f860833cf8a6ee26abcc6353a"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "e902392e8a8a54d858986cabf8ef5aa0693f8ab62dc79b51cf5ed0784118d5f7"
+      },
+      {
+        "name": "ram-01c008d0-e0-1000ms.bin",
+        "bytes": 224,
+        "sha256": "44e5817e10cca30d4ae0d6bec3bf425722f75e2357be07543f86ff224c77f118"
+      },
+      {
+        "name": "ram-01c008d0-e0-end.bin",
+        "bytes": 224,
+        "sha256": "3462e0a8d4379527ea751d9e9f2f934d97aa270e859a75bd5689a86108545814"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
