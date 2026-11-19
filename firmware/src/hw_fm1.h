@@ -75,6 +75,7 @@ struct hw_start3 {
     int get_result, put_result;
     u8 grid[16];                      /* rows PA5-PA8 closed, by column word */
     u32 adc[HW3_ADC_CHANNELS];
+    u32 c1_pre, c1_post, c1_word, c1_fn; /* C1_CON before and after the release, the start word read back, the loop's address */
 };
 extern struct hw_start3 hw3;
 extern volatile u32 hw_core1_count, hw_scan_paused;
@@ -89,6 +90,9 @@ void hw_step(const char *text);
 void hw_hold(void);
 void hw_watch(u32 ms);
 void hw_rows_start(void);
+#if defined(SB_HW_FINDER)
+void hw_finder(void) __attribute__((noreturn));
+#endif
 #endif
 
 #endif

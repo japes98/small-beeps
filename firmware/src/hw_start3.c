@@ -407,10 +407,14 @@ static void sweep(void)
 void hw_core1_start(void)
 {
     hw_step("core 1: releasing");
-    C1_START = (u32)hw_core1_loop;
+    hw3.c1_fn = (u32)hw_core1_loop;
+    hw3.c1_pre = C1_CON;
+    C1_START = hw3.c1_fn;
     SYNC();
+    hw3.c1_word = C1_START;
     C1_CON |= 1u << 3;
     SYNC();
+    hw3.c1_post = C1_CON;
     hw_step("core 1: released");
 }
 
@@ -665,5 +669,339 @@ void hw_refresh(u32 second)
     if (second)
         draw_core1();
 }
+
+#if defined(SB_HW_FINDER)
+/* --- The knob finder (SB_HW_FINDER; clean-br17-finder) -------------------
+ * After the test screen, main hands over to hw_finder for good: the scan
+ * stays paused, and the finder sweeps without a pause between sweeps.
+ * Each sweep latches each of the 16 single-zero column words and then
+ * 0xFFFF (no column), and reads ports A, B, C, D and H at each, 12.5 us
+ * after the latch; then it converts SARADC channels 0 to 11. A pin whose
+ * level with no column selected changes is a "pin" change; a pin that
+ * reads differently with column c selected than with none is a matrix
+ * "cell" (c, pin), and a change in that is a cell change. A channel moving
+ * more than its threshold is an ADC change. Each source that changes gets
+ * one large line, kept for at least a second, with its count of changes
+ * and its level now (an ADC line: its value now and up to three other
+ * levels it has taken). For the first HW_FIND_QUIET_MS no control is to
+ * be touched: what changes then is marked noisy and left out, and each
+ * channel's threshold is set from its spread. The pins this build drives
+ * are masked (MASK_A, MASK_B, MASK_C, MASK_H), and port D's PD0 to PD6, the
+ * flash's (HW-85); port D is only read. */
+
+#define F_PORTS 5u
+#define F_COLS  17u                    /* 16 column words, then none */
+#define F_LINES 8u
+#define F_PIN   1u
+#define F_CELL  2u
+#define F_ADC   3u
+#if defined(SB_TEST_SHORT_HOLD)
+#define HW_FIND_QUIET_MS 400u
+#else
+#define HW_FIND_QUIET_MS 3000u
+#endif
+#define F_HOLD_MS 1000u
+#define F_BIG_Y(i) (22u + 18u * (i))
+#define F_CORE1_Y 170u
+#define F_SMALL_Y 188u                 /* five small rows, 188 to 227 */
+
+static const u32 f_base[F_PORTS] = { PA, PB, 0x00050080u, PD, PH };
+static const char f_name[F_PORTS] = { 'A', 'B', 'C', 'D', 'H' };
+static const u16 f_mask[F_PORTS] = { MASK_A, MASK_B, MASK_C, 0x7Fu, MASK_H };
+
+static u16 f_in[F_COLS][F_PORTS];
+static u16 f_prev[F_COLS][F_PORTS];    /* [16]: the pins; [c]: cells of c */
+static u16 f_noisy[F_COLS][F_PORTS];
+static u32 f_adc_min[HW3_ADC_CHANNELS], f_adc_max[HW3_ADC_CHANNELS];
+static u32 f_adc_thr[HW3_ADC_CHANNELS], f_adc_last[HW3_ADC_CHANNELS];
+static u32 f_adc_from;                 /* the channel's level before its change */
+
+struct hw_find_line {
+    u32 kind, col, port, bit;          /* kind 0: unused */
+    u32 count, value, when, fresh, dirty;
+    u32 levels[3], nlevels;
+};
+struct hw_finder {
+    u32 sweeps, rate, learning, noisy, dropped;
+    struct hw_find_line line[F_LINES];
+};
+struct hw_finder hw_find;
+
+/* One line of text at scale 2 (16 rows, one polled transfer), sent
+ * without waiting for it to end: callers look at lcd_busy first. */
+static void big_row(u32 y, const char *text, u32 colour)
+{
+    gfx_fill(4, y, SCREEN_W - 8, 2 * FONT_H, RGB565(0, 0, 0));
+    gfx_text(6, y, text, colour, RGB565(0, 0, 0), 2);
+    lcd_send_rows(y, 2 * FONT_H);
+}
+
+static void f_event(u32 kind, u32 col, u32 port, u32 bit, u32 value)
+{
+    struct hw_find_line *l, *pick = 0;
+    u32 now = sb_beacon.beats, i, b;
+
+    for (i = 0; i < F_LINES; i++) {
+        l = &hw_find.line[i];
+        if (l->kind == kind && l->col == col && l->port == port && l->bit == bit) {
+            pick = l;
+            break;
+        }
+    }
+    if (!pick) {
+        for (i = 0; i < F_LINES; i++) {
+            l = &hw_find.line[i];
+            if (!l->kind) {
+                pick = l;
+                break;
+            }
+            if (now - l->when >= F_HOLD_MS && (!pick || l->when < pick->when))
+                pick = l;
+        }
+        if (!pick) {
+            hw_find.dropped++;
+            return;
+        }
+        pick->kind = kind;
+        pick->col = col;
+        pick->port = port;
+        pick->bit = bit;
+        pick->count = 0;
+        pick->nlevels = 0;
+        /* A channel's new line starts from the level it left. */
+        if (kind == F_ADC) {
+            pick->value = f_adc_from;
+            pick->count = 1;
+        }
+    }
+    if (kind == F_ADC && pick->count) {
+        /* The level it leaves, kept if no kept level is within 0x40. */
+        b = pick->value;
+        for (i = 0; i < pick->nlevels; i++)
+            if ((pick->levels[i] > b ? pick->levels[i] - b : b - pick->levels[i]) < 0x40u)
+                break;
+        if (i == pick->nlevels) {
+            if (pick->nlevels == 3) {
+                pick->levels[0] = pick->levels[1];
+                pick->levels[1] = pick->levels[2];
+                pick->nlevels = 2;
+            }
+            pick->levels[pick->nlevels++] = b;
+        }
+    }
+    pick->count++;
+    pick->value = value;
+    pick->when = now;
+    pick->fresh = 1;
+    pick->dirty = 1;
+}
+
+static void f_bits(u32 col, u32 port, u32 changed, u32 now_bits)
+{
+    u32 bit;
+
+    for (bit = 0; changed; bit++, changed >>= 1)
+        if (changed & 1u) {
+            if (hw_find.learning) {
+                f_noisy[col][port] |= 1u << bit;
+                hw_find.noisy++;
+            } else {
+                f_event(col == 16 ? F_PIN : F_CELL, col, port, bit, now_bits >> bit & 1u);
+            }
+        }
+}
+
+static void f_sweep(void)
+{
+    u32 col, p, t, v, d;
+
+    for (col = 0; col < F_COLS; col++) {
+        shift_word(col < 16 ? 0xFFFFu & ~(1u << col) : 0xFFFFu);
+        t = sb_now();
+        while (sb_now() - t < 300u)
+            ;
+        for (p = 0; p < F_PORTS; p++)
+            f_in[col][p] = (u16)(PORT(f_base[p], IN) & ~f_mask[p]);
+    }
+    for (col = 0; col < F_COLS; col++)
+        for (p = 0; p < F_PORTS; p++) {
+            /* The pins as they read with no column; a cell, as it differs
+             * from that with column col. */
+            v = col == 16 ? f_in[16][p] : (u32)(f_in[col][p] ^ f_in[16][p]);
+            d = (v ^ f_prev[col][p]) & ~f_noisy[col][p] & 0xFFFFu;
+            f_prev[col][p] = (u16)v;
+            if (d && hw_find.sweeps)
+                f_bits(col, p, d, v);
+        }
+    adc_all();
+    for (p = 0; p < HW3_ADC_CHANNELS; p++) {
+        v = hw3.adc[p];
+        if (v > 0x3FFu)
+            continue;
+        if (hw_find.learning) {
+            if (!hw_find.sweeps || v < f_adc_min[p])
+                f_adc_min[p] = v;
+            if (!hw_find.sweeps || v > f_adc_max[p])
+                f_adc_max[p] = v;
+            f_adc_last[p] = v;
+            f_adc_thr[p] = 2u * (f_adc_max[p] - f_adc_min[p]) + 0x18u;
+        } else if ((v > f_adc_last[p] ? v - f_adc_last[p] : f_adc_last[p] - v) >= f_adc_thr[p]) {
+            f_adc_from = f_adc_last[p];
+            f_adc_last[p] = v;
+            f_event(F_ADC, 0, 0, p, v);
+        }
+    }
+    hw_find.sweeps++;
+}
+
+static void f_draw_line(u32 i)
+{
+    struct hw_find_line *l = &hw_find.line[i];
+    char t[48], *p = t;
+    u32 k;
+
+    if (l->kind == F_ADC) {
+        p = put_s(p, "AD");
+        p = put_dec(p, l->bit);
+        p = put_s(p, " ");
+        p = put_hex(p, l->value, 3);
+        if (l->nlevels)
+            *p++ = ':';
+        for (k = 0; k < l->nlevels; k++) {
+            if (k)
+                *p++ = ' ';
+            p = put_hex(p, l->levels[k], 3);
+        }
+    } else {
+        if (l->kind == F_CELL) {
+            p = put_s(p, "c");
+            p = put_dec(p, l->col);
+            p = put_s(p, " ");
+        } else {
+            p = put_s(p, "pin ");
+        }
+        *p++ = 'P';
+        *p++ = f_name[l->port];
+        p = put_dec(p, l->bit);
+        p = put_s(p, l->value ? " =1 x" : " =0 x");
+        p = put_dec(p, l->count);
+    }
+    *p = 0;
+    big_row(F_BIG_Y(i), t, l->fresh ? RGB565(31, 63, 0) : RGB565(31, 63, 31));
+}
+
+static void f_small(u32 n)
+{
+    char t[48], *p = t;
+    u32 k;
+
+    switch (n) {
+    case 0:
+        p = put_s(p, "c1con ");
+        p = put_hex(p, hw3.c1_pre, 8);
+        p = put_s(p, ">");
+        p = put_hex(p, hw3.c1_post, 8);
+        p = put_s(p, " now ");
+        p = put_hex(p, C1_CON, 8);
+        break;
+    case 1:
+        p = put_s(p, "c1 word ");
+        p = put_hex(p, hw3.c1_word, 8);
+        p = put_s(p, " fn ");
+        p = put_hex(p, hw3.c1_fn, 8);
+        break;
+    case 2:
+        p = put_s(p, "sweeps/s ");
+        p = put_dec(p, hw_find.rate);
+        p = put_s(p, " noisy ");
+        p = put_dec(p, hw_find.noisy);
+        p = put_s(p, " lost ");
+        p = put_dec(p, hw_find.dropped);
+        p = put_s(p, " on ");
+        p = put_dec(p, hw3.count);
+        break;
+    case 3:
+    case 4:
+        p = put_s(p, n == 3 ? "PU " : "DIR ");
+        for (k = 0; k < F_PORTS; k++) {
+            *p++ = f_name[k];
+            p = put_hex(p, PORT(f_base[k], n == 3 ? PU : DIR) & 0xFFFFu, 4);
+            *p++ = ' ';
+        }
+        break;
+    }
+    *p = 0;
+    row(F_SMALL_Y + FONT_H * n, t, RGB565(31, 63, 31));
+}
+
+static void f_core1(void)
+{
+    char t[24], *p = t;
+
+    p = put_s(p, "core1 ");
+    p = put_dec(p, hw_core1_count);
+    *p = 0;
+    big_row(F_CORE1_Y, t, hw_core1_count ? RGB565(0, 63, 0) : RGB565(31, 0, 0));
+}
+
+/* Never returns. */
+void hw_finder(void)
+{
+    u32 i, n, quiet_end, second, last_sweeps = 0, next_line = 0;
+
+    hw_scan_paused = 1;
+    PORT(PA, OUT) &= ~PA_LEDS;
+    PORT(PH, OUT) &= ~PH_LEDS;
+    SYNC();
+    lcd_wait();
+    gfx_fill(0, 0, SCREEN_W, SCREEN_H, RGB565(0, 0, 0));
+    lcd_send_rows(0, SCREEN_H);
+    lcd_wait();
+    big_row(2, "FINDER: hands off", RGB565(31, 0, 0));
+    lcd_wait();
+    for (n = 0; n < 5; n++)
+        f_small(n);
+    hw_find.learning = 1;
+    quiet_end = sb_beacon.beats + HW_FIND_QUIET_MS;
+    second = sb_beacon.beats + 1000u;
+    for (;;) {
+        f_sweep();
+        if (hw_find.learning && (int)(sb_beacon.beats - quiet_end) >= 0) {
+            hw_find.learning = 0;
+            lcd_wait();
+            big_row(2, "FINDER: turn one", RGB565(0, 63, 0));
+        }
+        if ((int)(sb_beacon.beats - second) >= 0) {
+            second += 1000u;
+            hw_find.rate = hw_find.sweeps - last_sweeps;
+            last_sweeps = hw_find.sweeps;
+            lcd_wait();
+            f_core1();
+            lcd_wait();
+            f_small(0);
+            f_small(2);
+            for (i = 0; i < F_LINES; i++)
+                if (hw_find.line[i].fresh && sb_beacon.beats - hw_find.line[i].when >= F_HOLD_MS) {
+                    hw_find.line[i].fresh = 0;
+                    hw_find.line[i].dirty = 1;
+                }
+            continue;
+        }
+        /* One changed line a sweep at most, and only once the last
+         * transfer has ended, so the sweeps go on while it is sent. */
+        if (!lcd_busy()) {
+            for (n = 0; n < F_LINES; n++) {
+                i = (next_line + n) % F_LINES;
+                if (hw_find.line[i].dirty) {
+                    hw_find.line[i].dirty = 0;
+                    f_draw_line(i);
+                    next_line = i + 1;
+                    break;
+                }
+            }
+        }
+    }
+}
+#endif
 
 #endif

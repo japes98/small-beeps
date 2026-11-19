@@ -4391,3 +4391,34 @@ lit one.
   mode word HW-128 gives (bits 23 to 20 at 9): part of SR-17's question,
   relayed from a photo with one digit uncertain. start3b shows it again.
 
+### 2026-11-19 clean-br17-finder: the knob finder, and core 1 (BR-17, R-HW-1)
+The owner's message: docs/prompts/clean-br17-finder.md. On the unit,
+start3b ran to its test screen and its main loop: every key registers; the
+store counted 14, then 15 after a power cycle, so the earlier starts
+had written 13 counts at `0xFC000`; the pot (MASTER) is channel 4.
+Which of start3b's changes cleared start3's hang isn't known: core 1's
+release moved after the store's step, and the wait for the test screen
+became a spin. Core 1 still doesn't run.
+
+- **Why start3's grid missed encoders.** It swept ten times a second. An
+  encoder rests with its contacts open and closes them only between
+  detents, so a slow sweep catches a contact only now and then, as KNOB1
+  showed "only when spun fast". The finder sweeps without a pause, a few
+  thousand times a second.
+- **Pins and cells kept apart.** Reading every port at every column word
+  finds a contact wherever it is wired. That includes a column against a
+  pin that isn't one of PA5 to PA8, which start3's "in" row (read with no
+  column) could never show. A pin wired outside the matrix changes at
+  every word alike, so it counts as a change of its level with no column,
+  not as 17 cells.
+- **Noise.** Floating or busy pins would fill the lines, so the first
+  3 s are hands-off: whatever changes then is left out, and each
+  channel's threshold is twice its spread plus `0x18`.
+- **No pin set-up changed.** The finder reads what start3b's set-up and
+  m-bootloader left. It shows the pull-up and direction registers, so a
+  control still unseen can be matched against the pins without
+  pull-ups. Turning pull-ups on would be the next step's choice.
+- **Core 1** (SR-18): HW-9's release left `C1_CON` at `01000002`, bit 3
+  clear. The finder shows `C1_CON` before and just after the write, and
+  the start word read back.
+
