@@ -862,3 +862,29 @@ an issue or a pull request against docs/HARNESS.md.
   not yet a fact in HARDWARE-SPEC.
 - Status: open
 
+
+### SR-20: Routing ALNK0 to its port C pins, and what the pins need
+- Asked: 2026-11-19, session clean-br17-audio1 (firmware side), for BR-17
+  (R-HW-1) and M4 on real hardware
+- Question:
+  1. **The group select.** HW-140 says the SDK drives ALNK0 on one of
+     three pin groups, and HW-141 gives group A's pins on the AC7911B:
+     master clock PC0, bit clock PC1, word select PC2, data 3 PC6. Which
+     register and bits select ALNK0's group (a `JL_IOMAP` word, as
+     HW-56's bit 4 does for SPI1, or a bit in ALNK0's own `CON0` to
+     `CON3`), and which value is group A? What is the reset value?
+  2. **The pins' set-up.** For the link to drive PC0, PC1, PC2 and PC6,
+     what do port C's `DIR`, `DIE`, `PU`, `PD` and drive bits need to be
+     (outputs, inputs for a slave, digital input off)? Does the master
+     clock out need a bit of its own?
+  3. **The link's mode.** Which of `CON0` to `CON3`'s bits pick master or
+     slave, the data width (16 or 24) and the bit clocks a frame (32 or
+     64), and which bits enable data channel 3? audio1 writes only `CON0`
+     bit 11, as fwtest needs; what the chip does with the rest at their
+     reset values is open.
+- Why: audio1 (`firmware/src/hw_audio.c`) runs ALNK0 as in fwtest but
+  can't route it to the pins, so on path 2 the unit is silent unless the
+  reset routing happens to fit. The prompt said to ask rather than guess
+  a register. The unit run will show whether ALNK0 runs and at what
+  rate; this request is the next step if it runs and is silent.
+- Status: open

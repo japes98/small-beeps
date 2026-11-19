@@ -103,6 +103,7 @@ void sb_wait_ms(u32 ms);
 /* irq.c */
 void sb_irq_init(void);
 void sb_irq_enable(u32 source, void (*handler)(void), u32 priority);
+void sb_irq_disable(u32 source);
 void sb_irq_on(void);
 void sb_halt(u32 reason, u32 source, u32 reti) __attribute__((noreturn));
 

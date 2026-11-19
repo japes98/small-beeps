@@ -102,6 +102,37 @@ void hw_rows_start(void);
 #if defined(SB_HW_FINDER)
 void hw_finder(void) __attribute__((noreturn));
 #endif
+#if defined(SB_HW_AUDIO1)
+/* audio1 (hw_audio.c, clean-br17-audio1): the audio probe. Its line on the
+ * test screen (scale 2), between core 1's row and the window's; the page's
+ * hold; how long the tone runs before the "tone on" registers are read. */
+#define HW_AUD_Y      160u
+#define HW_AUD_REGS   22u
+#if defined(SB_TEST_SHORT_HOLD)
+#define HW_AUD_PAGE_MS   1000u
+#define HW_AUD_SETTLE_MS 300u
+#else
+#define HW_AUD_PAGE_MS   10000u
+#define HW_AUD_SETTLE_MS 1500u
+#endif
+struct hw_audio {
+    u32 regs[2][HW_AUD_REGS];   /* read at main's start, and with the tone on */
+    u32 regs_read;              /* the second set read */
+    u32 started;                /* the beat the output started (0: not yet) */
+    u32 seq;                    /* odd while the handler writes n0 to t1 */
+    u32 n0_set, n0, t0, n1, t1; /* sb_audio.blocks and sb_now() at the base and the latest half */
+    u32 halves, units, fps10;   /* main's measure: halves and sb_now units since the base, frames a second x 10 */
+    u32 master, gain, tone_on;  /* MASTER (0-1023), the tone's gain now, PLAY's toggle */
+    u32 storm;                  /* the beat the guard stopped the output (0: never) */
+    u32 flips, pend;            /* main's polls on the page: CON0 bit 15 changed, CON2 bit 7 seen set */
+};
+extern struct hw_audio hw_aud;
+void hw_audio_boot(void);
+void hw_audio_start(void);
+void hw_audio_toggle(void);
+void hw_audio_line(void);
+void hw_audio_page(void);
+#endif
 #endif
 
 #endif
