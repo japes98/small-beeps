@@ -1,0 +1,94 @@
+{
+  "fwtest": {
+    "version": "0.12.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 60660,
+    "sha256": "fffdbe73ec0515950bb7df5a7fdd8ff86f08f59484bfbf26789d9b8bf82faddb"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "3000.999",
+    "instructions": {
+      "core0": 400325196,
+      "core1": 619313988
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00013000",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "write",
+        "count": 8
+      },
+      {
+        "address": "0x00040204",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x00040300",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "write",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "692caaa883ed01a2d7ed7e5513b9e26e8b508029bed1889bcde11c0f7c60aa96"
+      },
+      {
+        "name": "ram-01c22c98-74-end.bin",
+        "bytes": 116,
+        "sha256": "7ad1e732c6928574aa355dd8368f91c9b41c51d7c95a11b0d84585cbbab54067"
+      },
+      {
+        "name": "ram-01c22d24-4-2000ms.bin",
+        "bytes": 4,
+        "sha256": "f6b6b63ed2079303caf2b4f990bbb75fcaf19f8c725757c66ba73c6e1a0b28a7"
+      },
+      {
+        "name": "ram-01c22d24-4-end.bin",
+        "bytes": 4,
+        "sha256": "fad22f0fbc8a2a7a0e571a16da62d244507ad272f4fda07c0ee3b8e134123045"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

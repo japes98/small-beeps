@@ -1,0 +1,94 @@
+{
+  "fwtest": {
+    "version": "0.12.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 60828,
+    "sha256": "bf54bc796f0eb20b6f8d5cd95d0214038e55546d193ffcf1c669a4e34bb81120"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "6001.444",
+    "instructions": {
+      "core0": 590041365,
+      "core1": 1036275980
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00013000",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "write",
+        "count": 8
+      },
+      {
+        "address": "0x00040204",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x00040300",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "write",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "07f84b493771bd84800cf1490620db60b6ede14bd20128214ae25091840a14f6"
+      },
+      {
+        "name": "lcd-end.png",
+        "bytes": 173118,
+        "sha256": "b0c44f2693279dc1f5f8b426662cc5dad60359e7fdafc652901dbc2d08e444eb"
+      },
+      {
+        "name": "leds.csv",
+        "bytes": 5482,
+        "sha256": "f232c5627775d6346ab8afb8230e162da3b228545390e21e224af7ddc6636106"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "f6f89f8a8c43ce1aa7399d0807e874cd88264e92cf7f61ddadb113d47f9dd031"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

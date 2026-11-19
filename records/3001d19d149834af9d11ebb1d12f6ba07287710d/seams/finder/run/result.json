@@ -1,0 +1,84 @@
+{
+  "fwtest": {
+    "version": "0.12.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 62248,
+    "sha256": "f2a2240a44833753b9c05fb7c637ffbf5197dbab31483f4fb29d57f010649616"
+  },
+  "script_sha256": "39a3fd382c0711197f8aa9ce1862fde2e6698225b8ae0f34629c51aa97c53087",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "6000.000",
+    "instructions": {
+      "core0": 1427443532,
+      "core1": 1336747902
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00013000",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "write",
+        "count": 8
+      },
+      {
+        "address": "0x00040204",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x00040300",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "write",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "name": "lcd-end.png",
+        "bytes": 173118,
+        "sha256": "63346733e5249f123952fd0e03cb3d6760212d63e7ed764206bcd1834e57a930"
+      },
+      {
+        "name": "ram-01c22d2c-1b4-end.bin",
+        "bytes": 436,
+        "sha256": "679a1743fd82ac869fe3da9a51f87061de1755258fa2dea1edc77dae58d2a6b2"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range b3ad335172f71e1f766ac0bbb9c8e61e81b35733..3001d19d149834af9d11ebb1d12f6ba07287710d
+OK     922466ecb3c7 store: the read-back against a protected chip, and flash.bin's status bytes
+OK     63d81a8e093b firmware: the give-back writes BAUD; MASTER read; KNOB1 and MASTER named
+EXEMPT ec7e73bc89d8 (merge) merge: clean's #201 (the store's protection cases) into finder1's facts
+OK     23aee22ba511 spec: finder1's unit facts, KNOB1 on row PA5 (HW-136)
+EXEMPT 3001d19d1498 (merge) Merge pull request #202 from japes98/spec/finder1
+5 commit(s) checked: PASS
+
+exit status 0

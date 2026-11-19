@@ -1,0 +1,54 @@
+{
+  "fwtest": {
+    "version": "0.12.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 60692,
+    "sha256": "27cfc0bed8c0ac7313cd89fcc601f98f3ac9971fc049564ee925820e5fe8223f"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "halt",
+    "detail": "core 0 jumped to itself with interrupts disabled at pc 0x01c2e706",
+    "emulated_ms": "422.919",
+    "instructions": {
+      "core0": 101500751,
+      "core1": 1604598
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "name": "lcd-end.png",
+        "bytes": 173118,
+        "sha256": "0ec389d2539cead1368ad485e7211c88eb088f348366c6bb62d7b3bfc1bb620c"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "6e568c942aa72745eac9cfce777a6f7178565dedf739e42cfe1a32892e5739d6"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
