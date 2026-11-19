@@ -3217,6 +3217,24 @@ SR-3 wrote only its barrier-log row.*
   `firmware/src/hw_start3.c` for the finder's column words.
 - Disk: about 3.4 GB free.
 
+### Session spec-core1-unit (core 1 and the encoders on the unit)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-finder1 (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on a
+  new branch `spec/core1-unit` from main.
+- The owner's message, saved as docs/prompts/spec-core1-unit.md.
+- Recorded, source UNIT: HW-137 (core 1 runs once `C1_CON` bit 1 is
+  cleared; the `SYS_DIV` step not needed; what `C1_CON` and `SYS_DIV`
+  read) and HW-138 (the encoders' rows and columns; PA0 a row with its
+  pull-up). Kept as a note: PRESETS not found. Notes on Q-7, Q-8, Q-17.
+- The owner's follow-up, saved as docs/prompts/spec-core1-unit-select.md:
+  SELECT seen over several power cycles on core1 B, so HW-138 gives it
+  without the one-run note.
+- Read: nothing outside this repository; its own
+  `firmware/src/hw_start3.c` for the two builds' release steps.
+- Disk: about 10 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

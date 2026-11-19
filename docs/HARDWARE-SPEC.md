@@ -3601,6 +3601,59 @@ finder build (finder1, clean's #197, `SB_HW_FINDER`) and relayed on
 - Standing: confirmed (UNIT; one unit)
 - Needed by: BR-17 (Phase B), M3 on real hardware
 
+## 34. Core 1 and the encoders on the unit (core1 A and B)
+
+Observed by the owner on the owner's unit and relayed on 2026-11-19
+(source UNIT), with this repository's core 1 probe builds (clean's #203):
+core1 A (image `31bc037f…`, HW-135's release in full) and core1 B (image
+`c9115aaf…`, built with `SB_HW_CORE1_NO_SYSDIV`: no `SYS_DIV` step), each
+with its knob finder, PA0 pulled up. HW-137 and HW-138 add to HW-135 and
+HW-136, which stand.
+
+### HW-137: Core 1 runs once C1_CON bit 1 is cleared (Q-17)
+- Fact: On the owner's unit, after m-bootloader's call:
+  1. Core 1 runs when, with its start address in the word at
+     `0x01C7FFF8` (HW-9), `C1_CON` (`0x01EEE004`) bit 3 is set and then
+     bit 1 is cleared. It does so **with or without** HW-135's
+     `SYS_DIV` step: core1 A and core1 B both showed core 1's sign at
+     once.
+  2. `C1_CON` reads `0x01000002` after bit 3 is set: bit 3 doesn't read
+     back set. It reads `0x01000000` after bit 1 is cleared.
+  3. In core1 A, `SYS_DIV` (`0x00010008`) read `0x00010200`, then
+     `0x00010208` with bit 3 set, then the value first read once put
+     back.
+  So the release that works on the unit is HW-9's with bit 1 of
+  `C1_CON` cleared after bit 3 is set. The `SYS_DIV` step isn't needed
+  on the unit; what bits 1 and 24 are is still not given.
+- Sources: UNIT: core1 A and core1 B on the owner's unit, relayed by the
+  owner on 2026-11-19 (docs/prompts/spec-core1-unit.md); the builds'
+  steps as this repository's `firmware/src/hw_start3.c` makes them;
+  HW-9, HW-135.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: M1, BR-17 (Phase B)
+
+### HW-138: The encoders in the key matrix, and PA0 a row (Q-7)
+- Fact: On the owner's unit, each encoder reads as two adjacent matrix
+  columns on one row (column c is the word with only bit c zero,
+  HW-136):
+  - KNOB1: row PA5, columns 8 and 9 (HW-136);
+  - KNOB2: row PA0, columns 8 and 9;
+  - KNOB3: row PA0, columns 6 and 7;
+  - KNOB4: row PA0, columns 4 and 5;
+  - ALGORITHM: row PA0, columns 2 and 3;
+  - SELECT: row PA0, columns 0 and 1 (over several power cycles on
+    core1 B).
+  **PA0 is a matrix row** besides HW-117's PA5 to PA8, and needs its
+  pull-up on, as those rows do: without it the readings were unclear
+  (finder1, HW-136's notes). Which column of each pair is which phase,
+  and so which turn is "clockwise", is not given.
+- Sources: UNIT: the finders of core1 A and core1 B on the owner's unit,
+  PA0 pulled up, relayed by the owner on 2026-11-19
+  (docs/prompts/spec-core1-unit.md; SELECT over several power cycles,
+  docs/prompts/spec-core1-unit-select.md); HW-117, HW-136.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: BR-17 (Phase B), M3 on real hardware
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -3674,6 +3727,12 @@ spec request can turn one into a fact.
   and PRESETS gave no clear reading; turning SELECT and ALGORITHM briefly
   moved the cells at columns 0 to 2 on PA0, which reads with no pull-up.
   Settled by clean's next build.
+  *Session spec-core1-unit (HW-138):* the encoders' rows and columns:
+  KNOB2 to KNOB4, ALGORITHM and SELECT on row PA0, which is a row and
+  needs its pull-up. A note, not a fact: PRESETS was not found in the
+  matrix, on ports A, B, C or H, or on ADC channels 0 to 11 (core1 A
+  and B's finders, relayed). Still open: PRESETS, the encoders' phases,
+  LED current.
 - **Q-8. The other ADC channels.** What channel 3 and the other channels
   carry on the board (fwtest gives them fixed values).
   *Session spec-sr16 (HW-129):* the SDK maps channel 3 to PB1 and 4 to
@@ -3684,6 +3743,8 @@ spec request can turn one into a fact.
   through an ADC channel, which one not yet named (start3b, relayed).
   *Session spec-finder1 (HW-136):* MASTER on channel 4 again. A note:
   finder1 gave no clear ADC reading for PRESETS.
+  *Session spec-core1-unit:* a note: PRESETS was not found on ADC
+  channels 0 to 11 either (relayed).
 - **Q-9. Audio on the chip.** How `JL_ALNK0`'s output reaches the DAC or
   codec on real hardware, which bits of each word it uses, its clock set-up
   and true rate, and the analog set-up (FM-1-RE's audio document names DAC
@@ -3775,6 +3836,10 @@ spec request can turn one into a fact.
   *Session spec-sr18 (HW-135):* the chip's release, as FM-1-RE gives it,
   also sets `SYS_DIV` bit 3 for the release and clears `C1_CON` bit 1.
   Which of them core 1 needs is settled by a probe on a unit.
+  *Session spec-core1-unit (HW-137):* on the unit core 1 runs once
+  `C1_CON` bit 1 is cleared after bit 3 is set; the `SYS_DIV` step isn't
+  needed. Still open: what `C1_CON`'s bits are, the clock core 1 runs at,
+  and what the cores cost each other.
 - **Q-18. Memory seen across the cores on the chip.** Whether main RAM is
   cached, and whether a plain store by one core is seen by the other's
   next load without `csync` or a cache operation (HW-65). Settled by a
