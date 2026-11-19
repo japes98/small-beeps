@@ -3654,6 +3654,30 @@ HW-136, which stand.
 - Standing: confirmed (UNIT; one unit)
 - Needed by: BR-17 (Phase B), M3 on real hardware
 
+## 35. The encoders' phases, PRESETS and core 1 in the normal build (encoders1)
+
+Observed by the owner on the owner's unit with this repository's build
+encoders1 (image `f90fec1f…`, clean's #205) and relayed on 2026-11-19
+(source UNIT). HW-139 adds to HW-137 and HW-138, which stand.
+
+### HW-139: Which way each encoder turns, PRESETS on row PB7, core 1 in the normal build (Q-7, Q-17)
+- Fact: On the owner's unit, started by m-bootloader:
+  1. **Phase order.** Turned clockwise, each encoder closes the higher
+     column of its pair first (HW-138's columns): KNOB1 and KNOB2 column
+     9 before 8, KNOB3 7 before 6, KNOB4 5 before 4, ALGORITHM 3 before
+     2, SELECT 1 before 0. Turned anticlockwise, the lower column first.
+  2. **PRESETS** is an encoder in the matrix on row **PB7**, columns 11
+     and 12 (column c as in HW-136), and PB7 needs its pull-up on, as the
+     other rows do. A brisk turn closed each column 22 times. Its phase
+     order is not yet known.
+  3. **Core 1** runs in the normal build too, released by HW-137's
+     steps: the start word, `C1_CON` bit 3 set, then bit 1 cleared; no
+     `SYS_DIV` step.
+- Sources: UNIT: encoders1 on the owner's unit, relayed by the owner on
+  2026-11-19 (docs/prompts/spec-encoders1-audio.md); HW-136 to HW-138.
+- Standing: confirmed (UNIT; one unit; PRESETS' phase order not shown)
+- Needed by: BR-17 (Phase B), M3 on real hardware
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -3733,6 +3757,9 @@ spec request can turn one into a fact.
   matrix, on ports A, B, C or H, or on ADC channels 0 to 11 (core1 A
   and B's finders, relayed). Still open: PRESETS, the encoders' phases,
   LED current.
+  *Session spec-encoders1 (HW-139):* the encoders' phase order, and
+  PRESETS on row PB7, columns 11 and 12. Still open: PRESETS' phase
+  order, LED current.
 - **Q-8. The other ADC channels.** What channel 3 and the other channels
   carry on the board (fwtest gives them fixed values).
   *Session spec-sr16 (HW-129):* the SDK maps channel 3 to PB1 and 4 to

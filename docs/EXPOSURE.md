@@ -3259,6 +3259,18 @@ SR-3 wrote only its barrier-log row.*
   `firmware/src/hw_start3.c` for the two builds' release steps.
 - Disk: about 10 GB free.
 
+### Session spec-encoders1 (encoders1's unit facts: phases, PRESETS, core 1)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-core1-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  a new branch `spec/audio` from main.
+- The owner's message, saved as docs/prompts/spec-encoders1-audio.md.
+- Recorded, source UNIT: HW-139 (the encoders' phase order; PRESETS on
+  row PB7, columns 11 and 12; core 1 in the normal build). Note on Q-7.
+- Read: nothing outside this repository.
+- Disk: about 8.5 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
