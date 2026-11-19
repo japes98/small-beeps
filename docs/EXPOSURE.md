@@ -3079,6 +3079,26 @@ SR-3 wrote only its barrier-log row.*
   `980F/980F`. Then the address pattern, and no test screen.
 - Disk: 3.2 GB free at the start.
 
+### Session spec-start3b (start3b's unit result in HW-132 and the open questions)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-flash-protect, spec-sr17 and spec-start3-unit
+  (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on `spec/flash-protect` (#196).
+- The owner's message, saved as docs/prompts/spec-start3b.md.
+- Recorded, relayed and not taken as facts: what `CON` reads on the unit
+  (HW-132 item 4, SR-17 item 2), the round trip and the store's counter
+  (Q-22), core 1 after m-bootloader's call (Q-17), MASTER, PRESETS and
+  KNOB1 (Q-7, Q-8). The give-back restores `CON` as read, by the owner's
+  ruling (HW-132).
+- Merged clean's #195 at `7c7276a2` (start3b); the one conflict, here,
+  kept both entries.
+- Read: nothing outside this repository; its own `firmware/src/hw_start3.c`
+  for start3's give-back and its core 1 row.
+- The clean prompt for #196's follow-ups: `drop/prompts/clean-br17-protect.md`,
+  outside the repository.
+- Disk: about 3.2 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

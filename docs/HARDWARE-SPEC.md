@@ -3353,8 +3353,8 @@ protects.
 Read under the owner's request for SR-17 (2026-11-19, PROVENANCE P-502),
 from m-bootloader at the commit HW-123 and HW-128 used (`src/platform.c`,
 `src/boot.c`, `docs/SPEC.md` §3.4, §3.6, §5.3 and §7) and the SDK's
-`WL82.h` (as HW-84), with the owner's first start3 result from a unit
-(item 4). HW-132 adds to HW-128; HW-128 stands.
+`WL82.h` (as HW-84), with the owner's start3 and start3b results from a
+unit (item 4). HW-132 adds to HW-128; HW-128 stands.
 
 ### HW-132: The window's BAUD and mode word as m-bootloader sets them, and what CON reads
 - Fact: For the code window's controller (`JL_SFC`, `0x00040200`, HW-84):
@@ -3389,14 +3389,15 @@ from m-bootloader at the commit HW-123 and HW-128 used (`src/platform.c`,
   4. **Whether `CON` reads back:** the SDK marks `CON` read and write;
      `BAUD`, `CODE` and `BASE_ADR` are write only. m-bootloader never
      reads `CON`, and no allowed written source says that a read returns
-     the mode word last written. The owner relays (not yet taken as a
-     fact here) start3's first result on the owner's unit (image
-     `99e769ea…`, identity `FM-1_0.10.0-hw3`), after m-bootloader's
-     give-back: its "win" row showed `CON` non-zero, read from a phone
-     photo as `0x0098038?` (the last digit uncertain), apparently the
-     quad word `0x00980381`, and not its "reads 0" line. A build that
-     holds the start-up rows on screen confirms the digits; until then
-     the give-back below doesn't depend on it.
+     the mode word last written. The owner relays (not taken as a fact
+     here beyond what was read) that on the owner's unit, after
+     m-bootloader's call, `CON` reads **`0x009803B5`**: start3b's "win"
+     row, from a clear photo. start3's earlier photo (image `99e769ea…`,
+     identity `FM-1_0.10.0-hw3`) gave `0x0098038?`, a digit uncertain.
+     So `CON` reads back, but not as the quad word m-bootloader writes
+     (`0x00980381`, item 2): bits 2, 4 and 5 read set. What those bits
+     are, and whether the read differs from what the controller holds,
+     no allowed source says.
   5. **Whether writing `CON` changes `BAUD`:** no allowed source says.
      m-bootloader writes `BAUD` after its two `CON` writes and before the
      mode word, every time, so a give-back in that order doesn't depend
@@ -3404,10 +3405,11 @@ from m-bootloader at the commit HW-123 and HW-128 used (`src/platform.c`,
   6. Beyond HW-128's step 6, after setting the window cipher's control to
      1, m-bootloader sets bits 8 and 9 of `0x01EEE008` again, then does
      the `csync`. They are already set from step 5.
-  So a give-back that doesn't depend on `CON` reading back writes
-  `0x00F00000`, 0, `BAUD` = 1 and `0x00980381` itself. That holds only
-  while m-bootloader's width was quad, which a unit that never showed the
-  fallback had.
+  So, by the owner's ruling, a give-back reads `CON` before the take and
+  restores the value read, after `0x00F00000`, 0 and `BAUD` = 1, rather
+  than writing m-bootloader's word. Writing `0x00980381` itself, as
+  before, would leave bits 2, 4 and 5 clear where the unit had them set;
+  that it works on the unit is not shown.
 - Sources: MB `src/platform.c` (`hal_xip`: the writes, their order, the
   constant 9, the output-read words; `flash_init` and `flash_quad`: the
   width checks), `src/boot.c` (the built-in values, the width carried to
@@ -3415,11 +3417,10 @@ from m-bootloader at the commit HW-123 and HW-128 used (`src/platform.c`,
   visible; single width is markedly slower), §3.6 (the mode word table,
   bits 23-20), §5.3 (the built-in values, `SPI` `4_1_0_0`), §7 (the
   start's flash steps); SDK `WL82.h` lines 39-44 (`JL_SFC`, which
-  registers are read-write and which write-only); the owner's start3
-  result (item 4, relayed).
-- Standing: confirmed (MB, SDK; whether `CON` reads back the mode word:
-  the owner's first unit reading, to be confirmed; whether a `CON` write
-  changes `BAUD`, not shown)
+  registers are read-write and which write-only); the owner's start3 and
+  start3b results (item 4, relayed).
+- Standing: confirmed (MB, SDK; what `CON` reads: the owner's unit
+  reading, relayed; whether a `CON` write changes `BAUD`, not shown)
 - Needed by: M7, BR-17 (Phase B)
 
 ## Open questions
@@ -3486,11 +3487,19 @@ spec request can turn one into a fact.
   other keys' columns and rows, the encoders, and LED current.
   *Session spec-sr16 (HW-129):* no allowed source gives the rest of the
   matrix or the encoders' pins; probes on a unit.
+  *Session spec-start3b (relayed, not taken as a fact here):* the owner
+  relays from start3b on a unit that KNOB1 is in the matrix at columns 8
+  and 9, and that PRESETS looks like an encoder read through an ADC
+  channel.
 - **Q-8. The other ADC channels.** What channel 3 and the other channels
   carry on the board (fwtest gives them fixed values).
   *Session spec-sr16 (HW-129):* the SDK maps channel 3 to PB1 and 4 to
   PB6, and FM-1-RE says the FM-1's firmware reads both; which is the pot
   stays open.
+  *Session spec-start3b (relayed, not taken as a fact here):* the owner
+  relays from start3b on a unit that MASTER is channel 4, and that
+  PRESETS looks like an encoder read through an ADC channel (which one,
+  not relayed).
 - **Q-9. Audio on the chip.** How `JL_ALNK0`'s output reaches the DAC or
   codec on real hardware, which bits of each word it uses, its clock set-up
   and true rate, and the analog set-up (FM-1-RE's audio document names DAC
@@ -3576,6 +3585,11 @@ spec request can turn one into a fact.
   peripheral source enabled on both cores interrupts both. The `corex2`
   block has per-core counters (words 0x80 to 0x8F, SDK `csfr.h` lines
   119-134) whose meaning the SDK doesn't state. Settled by a probe on real hardware.
+  *Session spec-start3b (relayed, not taken as a fact here):* on the
+  owner's unit, after m-bootloader's call, core 1 did not run when
+  start3b released it as HW-9 gives (its counter stayed 0), and `C1_CON`
+  read `0x01000002` afterwards. What core 1 needs after m-bootloader's
+  call is open.
 - **Q-18. Memory seen across the cores on the chip.** Whether main RAM is
   cached, and whether a plain store by one core is seen by the other's
   next load without `csync` or a cache operation (HW-65). Settled by a
@@ -3627,6 +3641,11 @@ spec request can turn one into a fact.
   *Answered in part by session spec-sr16 (HW-128):* m-bootloader's take
   and give-back of the flash, SPI0's clock, and the cache invalidation;
   the round trip within one run of an app is not shown.
+  *Session spec-start3b (relayed, not taken as a fact here):* on the
+  owner's unit, start3's and start3b's round trip works (ID `856014`,
+  status 1 `00`, status 2 `02`, the window back), and the store's
+  power-on counter goes up one per power-on. What `CON` reads is in
+  HW-132 item 4.
 - **Q-23. Write protection on the FM-1's flash.** Whether the status
   register's block-protect bits (HW-78) are set on a shipped unit or by
   the loader, which would make erases and programs in the protected range

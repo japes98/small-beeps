@@ -765,12 +765,11 @@ an issue or a pull request against docs/HARNESS.md.
   1. **`BAUD`:** `0x00040204`, write only (SDK). m-bootloader writes 1,
      the same built-in divider it gives SPI0, after `CON` = `0x00F00000`
      and `CON` = 0 and before the mode word.
-  2. **Whether `CON` reads back:** the SDK marks it read-write, but no
-     allowed written source shows a read giving the mode word, and
-     m-bootloader never reads it. start3's first result on the owner's
-     unit, relayed from a photo, shows `CON` non-zero, apparently
-     `0x00980381`; to be confirmed by the build that holds its rows on
-     screen.
+  2. **Whether `CON` reads back:** the SDK marks it read-write, and
+     m-bootloader never reads it. On the owner's unit (start3b, relayed)
+     it reads `0x009803B5`, not the quad word `0x00980381` m-bootloader
+     writes. By the owner's ruling the give-back restores `CON` as read
+     before the take (HW-132).
   3. **Whether a `CON` write changes `BAUD`:** not shown. Writing `BAUD`
      after the two `CON` writes, as m-bootloader does, doesn't depend on
      it.
