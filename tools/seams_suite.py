@@ -214,6 +214,13 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   the first's flash; the matrix grid shows column 10, PA6, while PLAY is
   held; ADC channel 4 follows the pot; core 1's counter rises; only the
   window's registers are unmodelled. The shipping build tries neither.
+- core1 (BR-17, clean-br17-core1): core 1's release in HW-135's order is
+  checked in hw3's held run (SYS_DIV read, set with bit 3, put back as
+  read; C1_CON's bit 1 cleared; core 1's own flag seen; its counter
+  running); this case builds the variant, SB_HW_CORE1_NO_SYSDIV (steps 1
+  and 3 only, SYS_DIV never written), and checks the same but for SYS_DIV.
+  fwtest starts core 1 at either step (HW-10), so neither run tells which
+  the chip needs.
 - finder (BR-17, clean-br17-finder): the knob finder, SB_HW_FINDER, with
   SB_TEST_HW_WINDOW: PLAY's press shows as its matrix cell (column 10,
   PA6), one detent of fwtest's encoder 2 as two cells (columns 8 and 9,
@@ -1388,7 +1395,10 @@ def case_panel(a, work, log):
     return problems
 
 
-HW_WINDOW_READS = {"0x00040200", "0x0004020c", "0x00040304"}   # HW-128: CON, the base, the key
+# Since start3c the build reads the corex2 words 0x80 to 0x8F around core
+# 1's release (Q-17), which fwtest doesn't model either.
+HW_COREX2 = {"0x%08x" % (0x01EEE000 + 4 * (0x80 + i)) for i in range(16)}
+HW_WINDOW_READS = {"0x00040200", "0x0004020c", "0x00040304"} | HW_COREX2   # HW-128: CON, the base, the key
 # The round trip's registers (HW-128): those, the window's cipher and the
 # peripheral cipher. fwtest models none of them; 0x01F0xxxx is RAM there.
 HW_WINDOW_REGS = HW_WINDOW_READS | {"0x00040300", "0x00013000", "0x00040204"}   # and BAUD (HW-134)
@@ -1509,11 +1519,42 @@ HW3_LEN = 4 * len(HW3_FIELDS) + 16 + 4 * 12
 HW3_STEP_Y = 216    # hw_fm1.h
 
 
+# Then (since start3c) core 1's release in HW-135's order.
+HW3_C1 = ("c1_pre", "c1_post", "c1_word", "c1_fn", "sd_before", "sd_set", "sd_after", "c1_clr1", "c1_seen",
+          "c1_wait_ms", "c1_at")
+HW3_FULL_LEN = HW3_LEN + 4 * len(HW3_C1) + 4 * 33
+
+
 def hw3_record(data):
     w = dict(zip(HW3_FIELDS, struct.unpack_from("<13i", data)))
     w["grid"] = list(data[52:68])
     w["adc"] = list(struct.unpack_from("<12I", data, 68))
+    if len(data) >= HW3_FULL_LEN:
+        w.update(zip(HW3_C1, struct.unpack_from("<11I", data, HW3_LEN)))
+        o = HW3_LEN + 4 * len(HW3_C1)
+        w["cnt0"] = list(struct.unpack_from("<16I", data, o))
+        w["cnt1"] = list(struct.unpack_from("<16I", data, o + 64))
+        (w["count1"],) = struct.unpack_from("<I", data, o + 128)
     return w
+
+
+def core1_problems(name, w, sysdiv):
+    """The release's record (start3c): core 1's flag seen in fwtest, which
+    starts core 1 at the first of SYS_DIV bit 3 and C1_CON bit 3 (HW-10);
+    SYS_DIV set with bit 3 and put back exactly (sysdiv), or never written;
+    C1_CON's bit 1 cleared; the start word read back; core 1 counting."""
+    p = []
+    if not w["c1_seen"] or w["c1_wait_ms"] >= 100 or not w["count1"]:
+        p.append("%s: core 1's sign %d after %d ms, its counter %d a second later" % (name, w["c1_seen"],
+                                                                                    w["c1_wait_ms"], w["count1"]))
+    want_set = w["sd_before"] | 8 if sysdiv else 0
+    if w["sd_set"] != want_set or w["sd_after"] != w["sd_before"]:
+        p.append("%s: SYS_DIV %08x, %08x with bit 3, %08x after (expected %08x, then as before)"
+                 % (name, w["sd_before"], w["sd_set"], w["sd_after"], want_set))
+    if w["c1_clr1"] & 2 or w["c1_word"] != w["c1_fn"]:
+        p.append("%s: C1_CON %08x after bit 1 cleared; start word %08x, the loop at %08x"
+                 % (name, w["c1_clr1"], w["c1_word"], w["c1_fn"]))
+    return p
 
 
 def case_hw3(a, work, log):
@@ -1587,9 +1628,12 @@ def case_hw3(a, work, log):
     build(hb, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
           "--define", "SB_TEST_SHORT_HOLD")
     hout = os.path.join(work, "run-hold")
-    r = fwtest(os.path.join(hb, "app.bin"), hout, log, "--ms", "6000", "--flash-out", "--leds-every", "100",
-               "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN))
+    hh = fws.elf_symbols(os.path.join(hb, "app.elf"))["hw3"]
+    r = fwtest(os.path.join(hb, "app.bin"), hout, log, "--ms", "9000", "--flash-out", "--leds-every", "100",
+               "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN),
+               "--ram", "0x%08x:%d@end" % (hh, HW3_FULL_LEN))
     bc = fws.beacon(ram(hout, BEACON_ADDR, fws.BEACON_LEN))
+    problems += core1_problems("hold", hw3_record(ram(hout, hh, HW3_FULL_LEN, "end")), True)
     if r["run"]["outcome"] != "completed" or bc["screen"] != 2 or bc["halt_reason"]:
         problems.append("hold: %s, screen %d, halt %d (the test screen, no halt)"
                         % (r["run"]["outcome"], bc["screen"], bc["halt_reason"]))
@@ -1649,6 +1693,36 @@ def case_finder(a, work, log):
     return problems
 
 
+def case_core1(a, work, log):
+    """Core 1's release, the variant (SB_HW_CORE1_NO_SYSDIV): HW-135's steps
+    1 and 3 only, SYS_DIV read and never written. fwtest starts core 1 at
+    C1_CON bit 3 here (HW-10), so its sign is seen; the unit tells the two
+    variants apart."""
+    problems = []
+    fws = fw_suite()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_CORE1_NO_SYSDIV")
+    h = fws.elf_symbols(os.path.join(b, "app.elf"))["hw3"]
+    out = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "9000", "--lcd", "end",
+               "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN), "--ram", "0x%08x:%d@end" % (h, HW3_FULL_LEN))
+    if r["run"]["outcome"] != "completed":
+        problems.append("core1: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS)
+    if odd:
+        problems.append("core1: unmodelled accesses besides the window's and corex2's: %s" % odd[:8])
+    bc = fws.beacon(ram(out, BEACON_ADDR, fws.BEACON_LEN))
+    if bc["screen"] != 2 or bc["halt_reason"]:
+        problems.append("core1: screen %d, halt %d (the test screen, no halt)" % (bc["screen"], bc["halt_reason"]))
+    w = hw3_record(ram(out, h, HW3_FULL_LEN, "end"))
+    problems += core1_problems("core1", w, False)
+    print("core1: the variant (steps 1 and 3, SYS_DIV untouched at %08x): core 1's sign seen after %d ms, C1_CON"
+          " %08x > %08x > %08x; the test screen reached" % (w["sd_before"], w["c1_wait_ms"], w["c1_pre"],
+                                                            w["c1_post"], w["c1_clr1"]))
+    return problems
+
+
 def read_bytes(path):
     with open(path, "rb") as f:
         return f.read()
@@ -1673,6 +1747,7 @@ CASES = [
     ("hw", case_hw),
     ("hw3", case_hw3),
     ("finder", case_finder),
+    ("core1", case_core1),
 ]
 
 

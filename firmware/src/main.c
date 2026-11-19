@@ -522,6 +522,8 @@ int main(void)
         hw_watch(TEST_SCREEN_MS - 1 - sb_beacon.beats);
     hw_step("idle: 20 beats");
     sb_wait_ms(20);
+    /* start3c: core 1's screen, held (SB_HW_HOLD). */
+    hw_core1_screen();
     hw_step("test screen: drawing");
 #else
     if (sb_beacon.beats + 1 < TEST_SCREEN_MS)
