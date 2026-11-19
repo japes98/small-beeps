@@ -3813,6 +3813,26 @@ datasheet's group letters ("(A)") are not port letters.
   the chip and the analogue side open)
 - Needed by: M4, BR-17 (Phase B)
 
+## 37. PRESETS' phase and the 14-slot scan (presets1)
+
+Observed by the owner on the owner's unit with this repository's build
+presets1 (image `ffa5bb1e…`, clean's #207) and relayed on 2026-11-19
+(source UNIT). HW-143 adds to HW-139, which stands.
+
+### HW-143: PRESETS' phase order, and the scan with PRESETS in it (Q-7)
+- Fact: On the owner's unit, started by m-bootloader:
+  1. **PRESETS' phase order.** Turned clockwise, PRESETS closes column
+     12 before column 11, the higher column first as the other encoders
+     do (HW-139). All seven encoders' rows, columns and phase orders are
+     now known (HW-138, HW-139).
+  2. **The scan with PRESETS in it.** presets1's scan, with 14 column
+     slots, reads all the encoders and keys as before, and core 1 still
+     runs.
+- Sources: UNIT: presets1 on the owner's unit, relayed by the owner on
+  2026-11-19 (docs/prompts/spec-presets1.md); HW-138, HW-139.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: BR-17 (Phase B), M3 on real hardware
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -3895,6 +3915,10 @@ spec request can turn one into a fact.
   *Session spec-encoders1 (HW-139):* the encoders' phase order, and
   PRESETS on row PB7, columns 11 and 12. Still open: PRESETS' phase
   order, LED current.
+  *Session spec-presets1 (HW-143):* PRESETS' phase order; all seven
+  encoders known. A note, not a fact: with presets1's 14-slot scan the
+  button LEDs looked perhaps a little dimmer (relayed). Still open: LED
+  current and brightness.
 - **Q-8. The other ADC channels.** What channel 3 and the other channels
   carry on the board (fwtest gives them fixed values).
   *Session spec-sr16 (HW-129):* the SDK maps channel 3 to PB1 and 4 to
@@ -3916,6 +3940,13 @@ spec request can turn one into a fact.
   and ALNK1's interrupts. Still open: which path, the audio clock's
   set-up, the rate, the bits used, the amplifier and, for the chip's
   DAC, its analogue values. A unit probe comes first.
+  *Session spec-presets1:* the owner's plan for audio1's result (not a
+  fact): if the tone is heard on headphones but not on the speaker, list
+  the pins no source assigns as candidates for the amplifier's enable,
+  with what is known of each, and propose driving none until the owner
+  rules; if silent on both, weigh a part outside the chip fed by ALNK0
+  (its set-up and bus) against the chip's own DAC, saying what an
+  allowed source gives for each. Nothing until audio1's results come in.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores

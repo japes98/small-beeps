@@ -3292,6 +3292,19 @@ SR-3 wrote only its barrier-log row.*
   library.
 - Disk: about 8.5 GB free.
 
+### Session spec-presets1 (presets1's unit facts: PRESETS' phase, the 14-slot scan)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.329; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on a
+  new branch `spec/presets1-unit` from main.
+- The owner's message, saved as docs/prompts/spec-presets1.md.
+- Recorded, source UNIT: HW-143 (PRESETS' phase order; the 14-slot scan
+  reads all encoders and keys, core 1 runs). Notes on Q-7 (the LEDs
+  perhaps dimmer) and Q-9 (the owner's plan for audio1's result).
+- Read: nothing outside this repository.
+- Disk: about 9.3 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
