@@ -55,9 +55,17 @@
 #define PA_OURS   (PA_LATCH | PA_CLOCK | PA_DATA | PA_LED1 | PA_LED2)
 #define PH_OURS   (PH_LED3 | PH_LED4)
 
+#if defined(SB_HW_FM1)
+/* The FM-1 hardware build reads two columns more, 11 and 12, where the
+ * unit showed PRESETS (clean-br17-presets): 13 columns, a slot each, and
+ * slot 0, which reads nothing. */
+#define COLUMNS   13u
+#define SLOTS     14u
+#else
 #define COLUMNS   11u
-#define ROWS      6u
 #define SLOTS     12u
+#endif
+#define ROWS      6u
 
 /* HW-48: TIMER1 runs with CON bits 0-1 non-zero, prescaler setting 2
  * divides the 24 MHz clock by 16, CON bit 14 acknowledges; 125 counts of
@@ -92,12 +100,21 @@ static const u8 key_at[COLUMNS][4] = {
     {  5, 34, 23,  0 }, { 11, 35, 24,  1 }, {  4, 36, 25, 15 }, { 10, 37, 26, 14 },
     {  3, 38, 27, 17 }, {  9, 40, 28, 16 }, {  2, 39, 29, 19 }, {  8, 13, 30, 18 },
     { NONE, 7, 31, 20 }, { NONE, 6, 32, 21 }, { NONE, 12, 33, 22 },
+#if defined(SB_HW_FM1)
+    { NONE, NONE, NONE, NONE }, { NONE, NONE, NONE, NONE },
+#endif
 };
 
 /* HW-38 and HW-39: each encoder's contacts, A in column - 1 and B in
  * column, both on row; and its control. */
 static const struct { u8 column, row, control; } encoders[] = {
+#if defined(SB_HW_FM1)
+    /* PRESETS on the FM-1: PB7 (row 5) at columns 11 and 12, the owner's
+     * unit (clean-br17-presets), not HW-38's 0 and 1. */
+    { 1, 0, INPUT_SELECT },  { 12, 5, INPUT_PRESETS }, { 3, 0, INPUT_ALGORITHM },
+#else
     { 1, 0, INPUT_SELECT },  { 1, 5, INPUT_PRESETS }, { 3, 0, INPUT_ALGORITHM },
+#endif
     { 5, 0, INPUT_KNOB4 },   { 7, 0, INPUT_KNOB3 },   { 9, 0, INPUT_KNOB2 },
     { 9, 1, INPUT_KNOB1 },
 };
@@ -335,6 +352,14 @@ void input_scan(void)
     (void)base;
     JL_PORTA->OUT &= ~(PA_LED1 | PA_LED2);
     JL_PORTH->OUT = hbase;
+    /* Slot 0: three ones first, so the last cycle's 0 (at column 12)
+     * leaves the 16 bits before column 0's goes in, and no read sees two
+     * columns at once (columns 13 to 15 once shared slots with 0 to 2). */
+    if (!s) {
+        hw_shift(1);
+        hw_shift(1);
+        hw_shift(1);
+    }
     hw_shift(data);
     JL_PORTA->OUT |= lit & (PA_LED1 | PA_LED2);
     JL_PORTH->OUT = hbase | lit >> 16;
@@ -385,7 +410,12 @@ void input_scan(void)
     (void)keys;
 #endif
 #if !defined(SB_COST_NO_ENC)
+#if defined(SB_HW_FM1)
+    /* PRESETS' B contact is in column 12, an even one. */
+    if (s & 1 || s == 12)
+#else
     if (s & 1)
+#endif
         turns(s, last_rows[s - 1], rows);
     last_rows[s] = (u8)rows;
 #else
