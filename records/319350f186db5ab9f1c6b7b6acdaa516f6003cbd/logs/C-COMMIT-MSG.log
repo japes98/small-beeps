@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 96616a2e55fa3d8b223bf7f9596064e0db4f18cc..319350f186db5ab9f1c6b7b6acdaa516f6003cbd
+OK     992083a47a91 spec: presets1's unit facts, PRESETS' phase and the 14-slot scan (HW-143)
+EXEMPT 319350f186db (merge) Merge pull request #208 from japes98/spec/presets1-unit
+2 commit(s) checked: PASS
+
+exit status 0
