@@ -4263,3 +4263,18 @@ HW-83, docs/SPEC-REQUESTS.md's SR-15 and HARNESS.md's "The flash chip"
   code window to SPI0 and back on a unit (Q-22) and SPI0's clock (HW-124
   item 6). The store doesn't work on a unit until Q-22 is settled, on
   either part, so the hardware build (R-HW-1) still leaves it out.
+
+### 2026-11-19 fwtest 0.11.0: the panel's chip select in fwtest (clean-br17-start3, item 0)
+`config/fwtest-image` moves to fwtest 0.11.0
+(`sha256:34ec6720…`, published from main at `5f56a5f7`, #192), whose
+panel ignores SPI1's bytes while PC7 is an output driven high
+(HARNESS.md, "The LCD").
+- **Main's hardware build** (start2's, with PC7 driven by lcd.c) passes
+  the seams suite's hw case on 0.11.0 as on 0.10.0.
+- **Start1's build** (`58c87df3`; its package link `46bbb942…`, the bytes
+  the owner installed), rebuilt from that commit's files, now shows on
+  0.11.0 what it showed on the unit: black, then bands 1, 2 and 3, and
+  nothing more to the end of the run. Start1's own hw case fails there,
+  on three counts: the screens were black then bands 1 to 3 and no
+  pattern; no test screen; PLAY not named. So the chip select that only
+  the unit caught (clean-br17-start2) is now caught in fwtest.
