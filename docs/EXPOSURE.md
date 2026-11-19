@@ -3137,6 +3137,24 @@ SR-3 wrote only its barrier-log row.*
 - Disk: 2.2 GB free at the start; this side's scratch copy and three old
   build folders removed (2.4 GB after).
 
+### Session spec-sr18 (SR-18: releasing core 1 after m-bootloader's call)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-unit-facts (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  a new branch `spec/sr18` from main.
+- The owner's request, saved as docs/prompts/spec-sr18.md.
+- Read (PROVENANCE P-503), from scratch copies made earlier, nothing
+  fetched: FM-1-RE's `docs/io/01-boot.md` §4 and §5.2; m-bootloader's
+  `src/platform.c` and `docs/SPEC.md` §2.2; the vendored SDK's `csfr.h`
+  and `WL82.h`. Not recorded, by the guardrails: the stock firmware's
+  function names and code addresses, its core 1 entry address and stacks,
+  and the RAM byte it waits on; only the register steps and their order.
+  Not opened: `src/usb_midi.c`, any GPL firmware or stock package.
+- This repository's own files: HW-9, HW-10, HW-53, HW-130, HW-133;
+  harness/spec-experiments/README.md (E-4).
+- Disk: about 2.3 GB free.
+
 ### Session clean-br17-protect (fwtest 0.12.0; the store against a protected chip; the give-back's BAUD)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
