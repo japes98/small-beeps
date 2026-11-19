@@ -1,0 +1,11 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 3001d19d149834af9d11ebb1d12f6ba07287710d..a05655edf76e0875c4daa1ca41f6f39a1625f569
+EXEMPT d8e90983a657 (merge) merge: main (#199, SR-18's answer) into the core 1 probe
+OK     cec809abe775 sessions: clean-br17-core1 starts (nothing to archive)
+OK     87c704c5c135 firmware: core 1 released in HW-135's order, a probe; PA0 a row (BR-17)
+OK     bbe418dfbedd firmware: start3c's corex2 arrays renamed (C-SEP-TERMS)
+OK     73ade839a33c sessions: clean-br17-core1's C-SEP-TERMS rename in EXPOSURE
+EXEMPT e6b7ac790711 (merge) merge: main (#202) into the core 1 probe, keeping both EXPOSURE entries
+EXEMPT a05655edf76e (merge) Merge pull request #203 from japes98/hw/core1
+7 commit(s) checked: PASS
+
+exit status 0
