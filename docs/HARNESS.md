@@ -807,8 +807,10 @@ digest, so a firmware test always names the exact runner it used.
 
 - 0.12.0: block protection ("The flash chip"): a flash file 1 MiB and
   two bytes long sets the status registers, and the chip ignores an erase
-  or program the block-protect bits cover (HW-131). Its pin is the clean
-  side's pull request, opened once the image is published.
+  or program the block-protect bits cover (HW-131). Published from main
+  at `6aa273a9` (#196's merge, 2026-11-19) as
+  `ghcr.io/japes98/small-beeps@sha256:70f2c78853c3881f43a1d47b51d67c5971b60710d3f8959c0ccc99b280753b3b`;
+  its pin is the clean side's next pull request.
 - 0.11.0: the panel ignores SPI1's bytes while its chip select, PC7, is
   an output driven high ("The LCD"). Published from main at `5f56a5f7`
   (#192's merge, 2026-11-19) as
