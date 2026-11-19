@@ -4677,3 +4677,14 @@ chip, at what rate, and does any sound come out.
   build A stays byte for byte. In the hardware build `audio.c`'s
   underrun line, written to fwtest's `DBG_MSG` (HW-25), is left out; the
   page shows the count instead.
+
+### 2026-11-19 clean-br17-audio1-result: the page's MASTER (BR-17, R-HW-1)
+The owner's message: docs/prompts/clean-br17-audio1-result.md. On the
+unit ALNK0 did not run: `CON0` read back with its run bit set, but no
+half finished (no interrupt, `CON0` bit 15 never flipped, `CON2` bit 7
+never seen). The page showed "vol 0" with MASTER well up. The cause:
+`hw_aud.master` was read only in the engine, which runs from source 11's
+interrupt, so with no interrupt it stayed 0. The ADC and the scan were
+not at fault. The page now reads MASTER itself each time it draws its
+top lines. The rest waits on the spec side (the audio clock's set-up,
+SR-20).

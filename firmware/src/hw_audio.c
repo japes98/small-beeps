@@ -124,6 +124,16 @@ static s32 sine(u32 ph)
     return y;
 }
 
+/* MASTER (0 to 1023) into hw_aud.master: from the engine for the tone's
+ * level, and from the page, so the page shows it even when source 11
+ * never fires (audio1 on the unit showed "vol 0" with ALNK0 not running). */
+static void read_master(void)
+{
+    int m = input_value(INPUT_MASTER);
+
+    hw_aud.master = m < 0 ? 0u : m > 1023 ? 1023u : (u32)m;
+}
+
 static void storm(void)
 {
     JL_ALNK0->CON0 = 0;
@@ -159,11 +169,7 @@ static void tone_block(s32 *out, u32 frames)
     hw_aud.t1 = t;
     hw_aud.seq++;
 
-    {
-        int m = input_value(INPUT_MASTER);
-
-        hw_aud.master = m < 0 ? 0u : m > 1023 ? 1023u : (u32)m;
-    }
+    read_master();
     want = tone_on ? GAIN_TOP * hw_aud.master / 1023u : 0;
     for (n = 0; n < frames; n++) {
         s32 s;
@@ -311,6 +317,7 @@ static void page_top(void)
     char t[40], *p;
 
     measure();
+    read_master();
     gfx_fill(0, 0, SCREEN_W, PAGE_REGS_Y, BLACK);
     p = put_s(t, "IRQ ");
     p = put_dec(p, sb_audio.blocks);

@@ -3370,6 +3370,22 @@ SR-3 wrote only its barrier-log row.*
   allowed for that one call). Nothing else was fetched.
 - Disk: about 9 GB free.
 
+### Session clean-br17-audio1-result (BR-17: audio1's page shows MASTER)
+- Date: 2026-11-19 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.328, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio1's, continued. The owner's message (audio1's result on
+  the unit) saved unedited as docs/prompts/clean-br17-audio1-result.md.
+- Start: #209 found merged; the clean folder updated to main
+  (`77002bec`) by `tools/clean-update.sh`, no spec-side file on disk or
+  in `.git`. Nothing to archive (the last clean session is this one, live).
+- Reads: this side's own code (`hw_audio.c`).
+- Disk: about 8 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
