@@ -214,6 +214,11 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   the first's flash; the matrix grid shows column 10, PA6, while PLAY is
   held; ADC channel 4 follows the pot; core 1's counter rises; only the
   window's registers are unmodelled. The shipping build tries neither.
+- finder (BR-17, clean-br17-finder): the knob finder, SB_HW_FINDER, with
+  SB_TEST_HW_WINDOW: PLAY's press shows as its matrix cell (column 10,
+  PA6), one detent of fwtest's encoder 2 as two cells (columns 8 and 9,
+  PA5), each closed and opened once, and the pot as channel 4 from 900 to
+  300; nothing is marked noisy or lost.
 - hw (BR-17, Phase B): the FM-1 hardware build, SB_HW_FM1 (R-HW-1). In
   fwtest, where its one timer, TIMER0, counts 24 MHz rather than the
   chip's 60 MHz (HW-119), so its beats are 2.5 times slow: the screen goes
@@ -1595,6 +1600,48 @@ def case_hw3(a, work, log):
     return problems
 
 
+FIND_LINE = ("kind", "col", "port", "bit", "count", "value", "when", "fresh", "dirty", "l0", "l1", "l2", "nlevels")
+FIND_LEN = 4 * 5 + 8 * 4 * len(FIND_LINE)    # hw_start3.c, struct hw_finder
+
+
+def case_finder(a, work, log):
+    """The knob finder (SB_HW_FINDER, clean-br17-finder): PLAY's press as
+    its matrix cell, one detent of fwtest's encoder 2 as its two cells, the
+    pot as channel 4, and nothing marked noisy."""
+    problems = []
+    fws = fw_suite()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_FINDER",
+          "--define", "SB_TEST_SHORT_HOLD")
+    hf = fws.elf_symbols(os.path.join(b, "app.elf"))["hw_find"]
+    script = os.path.join(b, "finder.script")
+    with open(script, "w") as f:
+        f.write("3500 key %d down\n3800 key %d up\n4200 enc 2 +1\n4800 pot 300\n" % (HW_LED, HW_LED))
+    out = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "6000", "--script", os.path.relpath(script, ROOT),
+               "--lcd", "end", "--ram", "0x%08x:%d@end" % (hf, FIND_LEN))
+    if r["run"]["outcome"] != "completed":
+        problems.append("finder: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    data = ram(out, hf, FIND_LEN, "end")
+    sweeps, rate, learning, noisy, dropped = struct.unpack_from("<5I", data)
+    lines = [dict(zip(FIND_LINE, struct.unpack_from("<13I", data, 20 + 52 * i))) for i in range(8)]
+    got = {(l["kind"], l["col"], l["port"], l["bit"]): l for l in lines if l["kind"]}
+    want = {(2, 10, 0, 6): 2, (2, 8, 0, 5): 2, (2, 9, 0, 5): 2}
+    for k, n in want.items():
+        if k not in got or got[k]["count"] != n or got[k]["value"]:
+            problems.append("finder: cell %s %s (closed and opened %d times, open now)" % (k[1:], got.get(k), n // 2))
+    adc = got.get((3, 0, 0, 4))
+    if not adc or adc["value"] != 300 or adc["nlevels"] != 1 or adc["l0"] != 900:
+        problems.append("finder: channel 4's line %s (300, from 900)" % adc)
+    others = set(got) - set(want) - {(3, 0, 0, 4)}
+    if others or noisy or dropped or learning or not sweeps:
+        problems.append("finder: other lines %s, noisy %d, lost %d, learning %d, sweeps %d"
+                        % (sorted(others), noisy, dropped, learning, sweeps))
+    print("finder: PLAY as cell (10, PA6), encoder 2's detent as cells (8, PA5) and (9, PA5), the pot as channel 4"
+          " from 900 to 300; nothing noisy or lost; %d sweeps, %d a second" % (sweeps, rate))
+    return problems
+
+
 def read_bytes(path):
     with open(path, "rb") as f:
         return f.read()
@@ -1618,6 +1665,7 @@ CASES = [
     ("panel", case_panel),
     ("hw", case_hw),
     ("hw3", case_hw3),
+    ("finder", case_finder),
 ]
 
 

@@ -516,6 +516,10 @@ int main(void)
     /* start3's rows on the test screen (hw_start3.c). */
     lcd_wait();
     hw_rows_all();
+#if defined(SB_HW_FINDER)
+    /* The knob finder's screen, for good (hw_start3.c). */
+    hw_finder();
+#endif
 #endif
 #endif
 #if defined(SB_TEST_STORE_WIPE)
