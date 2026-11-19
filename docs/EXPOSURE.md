@@ -3228,6 +3228,9 @@ SR-3 wrote only its barrier-log row.*
   cleared; the `SYS_DIV` step not needed; what `C1_CON` and `SYS_DIV`
   read) and HW-138 (the encoders' rows and columns; PA0 a row with its
   pull-up). Kept as a note: PRESETS not found. Notes on Q-7, Q-8, Q-17.
+- The owner's follow-up, saved as docs/prompts/spec-core1-unit-select.md:
+  SELECT seen over several power cycles on core1 B, so HW-138 gives it
+  without the one-run note.
 - Read: nothing outside this repository; its own
   `firmware/src/hw_start3.c` for the two builds' release steps.
 - Disk: about 10 GB free.

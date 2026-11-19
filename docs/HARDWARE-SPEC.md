@@ -3641,15 +3641,17 @@ HW-136, which stand.
   - KNOB3: row PA0, columns 6 and 7;
   - KNOB4: row PA0, columns 4 and 5;
   - ALGORITHM: row PA0, columns 2 and 3;
-  - SELECT: row PA0, columns 0 and 1 (seen on core1 B's finder only).
+  - SELECT: row PA0, columns 0 and 1 (over several power cycles on
+    core1 B).
   **PA0 is a matrix row** besides HW-117's PA5 to PA8, and needs its
   pull-up on, as those rows do: without it the readings were unclear
   (finder1, HW-136's notes). Which column of each pair is which phase,
   and so which turn is "clockwise", is not given.
 - Sources: UNIT: the finders of core1 A and core1 B on the owner's unit,
   PA0 pulled up, relayed by the owner on 2026-11-19
-  (docs/prompts/spec-core1-unit.md); HW-117, HW-136.
-- Standing: confirmed (UNIT; one unit; SELECT from one run)
+  (docs/prompts/spec-core1-unit.md; SELECT over several power cycles,
+  docs/prompts/spec-core1-unit-select.md); HW-117, HW-136.
+- Standing: confirmed (UNIT; one unit)
 - Needed by: BR-17 (Phase B), M3 on real hardware
 
 ## Open questions
