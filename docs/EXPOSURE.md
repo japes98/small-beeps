@@ -3305,6 +3305,28 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing outside this repository.
 - Disk: about 9.3 GB free.
 
+### Session spec-audio1-unit (audio1's unit facts; ALNK0's clock; SR-20)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.329; model `claude-opus-5-5`. The same Claude Code
+  session as spec-presets1 (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on a
+  new branch `spec/audio1-unit` from main.
+- The owner's message, saved as docs/prompts/spec-audio1-unit.md.
+- Recorded: HW-144 (UNIT, MB: ALNK0 does not run; what PLL2 and
+  `CLK_CON2` hold), HW-145 (ALNK0's clock, known and open), HW-146 (SR-20:
+  routing, pins, mode); SR-20 answered; note on Q-9. Read (PROVENANCE
+  P-505): m-bootloader's `docs/SPEC.md` and `src/platform.c`; the SDK's
+  `clock_hw.h`, `clock.h`, `gpio.h` and the audio demo's `board.c`; P-504's
+  scratch copies again.
+- Not recorded, by the guardrails: from FM-1-RE, the stock firmware's
+  function names, addresses and the values it writes; only register
+  addresses and bit meanings at its confidence. Not opened: any GPL
+  firmware, stock package, SDK prebuilt library, or m-bootloader's
+  `src/usb_midi.c`.
+- Clean prompt written outside the repository:
+  drop/prompts/clean-br17-audio2.md.
+- Disk: about 9.0 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).

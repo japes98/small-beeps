@@ -887,4 +887,21 @@ an issue or a pull request against docs/HARNESS.md.
   reset routing happens to fit. The prompt said to ask rather than guess
   a register. The unit run will show whether ALNK0 runs and at what
   rate; this request is the next step if it runs and is silent.
-- Status: open
+- Status: answered (HARDWARE-SPEC.md, "38. ALNK0 on the unit, its clock
+  and its routing", HW-146, with HW-144 and HW-145):
+  1. **The group select:** no allowed source gives the register value.
+     The SDK's driver takes port A, C or G (driver values 0, 1, 2; its
+     demo uses C), but the register is in its prebuilt driver. FM-1-RE
+     (medium) puts the group select at `JL_IOMAP->CON5` (`0x00051030`)
+     with no value for port C, and elsewhere calls that word a clock
+     gate. Reset value not given: read `JL_IOMAP` `CON2` to `CON8`.
+  2. **The pins:** HW-56's port meanings hold; whether the link needs
+     `DIR` 0, `DIE` or drive set is not given. PC0 to PC2 are also SPI0's
+     port C group (`CON0` bit 5, reads clear) and PC0 has a clock output
+     of its own (`CLK_CON0` bits 10 to 12, HW-145). No master-clock-out
+     bit is given.
+  3. **The mode:** the SDK's driver names the settings but no bits;
+     FM-1-RE reads `CON3` as the channel enables, with no bit for data 3.
+     Beyond HW-45 no bits are given.
+  First, though: audio1 showed ALNK0 does not run (HW-144), so its clock
+  comes before its routing (HW-145).
