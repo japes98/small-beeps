@@ -9,6 +9,8 @@ Every outside source the firmware side uses is logged here: an ID, the
 source, what was learned, and where it was used. Commit messages name these
 IDs in their `Sources:` field. Allowed sources are listed in CONTRIBUTING.md
 ("Clean-room rules"); anything else needs the owner's approval first.
+Numbering (CONTRIBUTING.md, "Numbering"): from P-74 the firmware side's
+rows are P-74 to P-499 and the spec side's P-500 and up.
 
 | ID | Date | Session | Source | What was learned or taken | Used in |
 |----|------|---------|--------|---------------------------|---------|

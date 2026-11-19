@@ -225,6 +225,22 @@ its checksum-verified files) are public like the SDK's, the check says how
 many emulator terms that takes off, and `vendor/plaits/` itself is not
 scanned, except its `SOURCE.md`, which we write (R-SEP-1).
 
+## Numbering (both sides)
+
+Parallel pull requests from the two sides used to take the same numbers.
+Since 2026-11-18 (the owner's rule, session spec-ci-speed) each kind of
+number has one owner or its own range:
+
+- **HW- entries** (`docs/HARDWARE-SPEC.md`) are numbered by the spec side
+  only, the next after the highest on main and on the spec side's open
+  branches. The firmware side never adds one; it files a spec request.
+- **P- rows** (`PROVENANCE.md`) are split by side: the firmware (clean)
+  side takes **P-74 to P-499**, the next after its own highest; the spec
+  side takes **P-500 and up**, likewise. Rows up to P-73 keep their numbers.
+  A row's Session column says which side wrote it ("(spec side)" for the
+  spec side); `tests/test_numbering.py` (C-UNIT) checks every row from
+  P-74 on against its side's range and that no number is used twice.
+
 ## Commit messages
 
 Every commit follows `.gitmessage` (run `tools/install-hooks.sh` once to make
@@ -258,7 +274,15 @@ Exposure: the author's role and exposure (e.g. "firmware side, none")
 - Agents and contributors commit **unsigned** on branches and open a pull
   request using `.github/pull_request_template.md` (the same sections, plus
   links to the CI run and the record).
-- CI (`.github/workflows/ci.yml`) must pass.
+- CI (`.github/workflows/ci.yml`) must pass. It runs the quick static checks
+  first and stops at the first that fails; only if they pass do the rest run,
+  in parallel jobs, and a last job assembles the record as `tools/record.py
+  run` would write it (a check no job ran is marked SKIP and fails the
+  record). On a pull request C-HARNESS-ISA runs only when `harness/`,
+  `vendor/emulator/`, `config/fwtest-image`, `config/build-image`,
+  `tools/Dockerfile` or the CPU flags in `tools/build.sh` change (otherwise
+  SKIP, saying why); on main (`records.yml`) and so before every release it
+  always runs.
 - The **owner merges with GitHub's merge button** ("Create a merge commit").
   GitHub commits and signs the merge commit as `web-flow` (shown as
   Verified) and records the owner as the pull request's `merged_by`. No
