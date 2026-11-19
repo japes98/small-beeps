@@ -803,5 +803,21 @@ an issue or a pull request against docs/HARNESS.md.
   address. That can tell "bit 3 never took" from "it took and cleared",
   but not what is missing. No allowed source here gives more than HW-9.
   Read: HW-9, HW-10, HW-18, HW-64, HW-119, HW-130, Q-11, Q-17, Q-18.
-- Status: open
+- Status: answered (HARDWARE-SPEC.md, "32. Releasing core 1 after
+  m-bootloader's call", HW-135):
+  1. **`C1_CON`'s bits:** the SDK names none. What bits 1 and 24 are, and
+     whether bit 3 reads back or clears itself, no allowed source says.
+     The chip's release as FM-1-RE gives it clears bit 1 after setting
+     bit 3, and on the unit bit 1 still read set (HW-133).
+  2. **Anything else first:** FM-1-RE's release also sets
+     `JL_CLOCK->SYS_DIV` (`0x00010008`) bit 3 before `C1_CON` and puts
+     `SYS_DIV` back after core 1 has started. m-bootloader leaves that
+     bit as it was. No source names a clock gate, reset, power bit, or
+     cache or protection set-up beyond that.
+  3. **Core 1's stores seen by core 0:** open (Q-18). A probe should show
+     core 1 running by a sign that doesn't depend on it.
+  4. **E-4:** a spec-side experiment in fwtest, not on the chip
+     (harness/spec-experiments/README.md). HW-9's release rests on the
+     chip only through FM-1-RE, and that release has the steps above.
+- Answered: 2026-11-19, session spec-sr18 (spec side)
 

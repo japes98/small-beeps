@@ -3137,6 +3137,44 @@ SR-3 wrote only its barrier-log row.*
 - Disk: 2.2 GB free at the start; this side's scratch copy and three old
   build folders removed (2.4 GB after).
 
+### Session spec-sr18 (SR-18: releasing core 1 after m-bootloader's call)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-unit-facts (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  a new branch `spec/sr18` from main.
+- The owner's request, saved as docs/prompts/spec-sr18.md.
+- Read (PROVENANCE P-503), from scratch copies made earlier, nothing
+  fetched: FM-1-RE's `docs/io/01-boot.md` §4 and §5.2; m-bootloader's
+  `src/platform.c` and `docs/SPEC.md` §2.2; the vendored SDK's `csfr.h`
+  and `WL82.h`. Not recorded, by the guardrails: the stock firmware's
+  function names and code addresses, its core 1 entry address and stacks,
+  and the RAM byte it waits on; only the register steps and their order.
+  Not opened: `src/usb_midi.c`, any GPL firmware or stock package.
+- This repository's own files: HW-9, HW-10, HW-53, HW-130, HW-133;
+  harness/spec-experiments/README.md (E-4).
+- Disk: about 2.3 GB free.
+
+### Session clean-br17-protect (fwtest 0.12.0; the store against a protected chip; the give-back's BAUD)
+- Date: 2026-11-19 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.328, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-finder's, continued. The owner's prompt is the file
+  `~/<top>/drop/prompts/clean-br17-protect.md`, saved unedited as
+  docs/prompts/clean-br17-protect.md.
+- Start: #194 to #198 found merged, #197 in main through #198; the clean
+  folder updated to main (`4342678f`) by `tools/clean-update.sh`, which
+  left no spec-side file on disk or in `.git`. Nothing to archive.
+  `tools/check-transcripts.py`: 26 archived transcripts, PASS.
+- Reads: HARDWARE-SPEC HW-9, HW-121, HW-124, HW-128, HW-131, HW-133,
+  HW-134, and the notes on Q-7, Q-8, Q-17 and Q-22; SPEC-REQUESTS SR-17;
+  HARNESS "The flash chip" and "Versions".
+- Disk: 2.3 GB free at the start.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

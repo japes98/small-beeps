@@ -3527,6 +3527,58 @@ by m-bootloader (MB).
 - Standing: confirmed (UNIT; one unit, flash part `856014`)
 - Needed by: M7, BR-17 (Phase B)
 
+## 32. Releasing core 1 after m-bootloader's call (SR-18)
+
+Read under the owner's request for SR-18 (2026-11-19, PROVENANCE P-503),
+from FM-1-RE's boot document (an allowed boot-chain document; facts only,
+never code, under the owner's spec-1027 ruling, as HW-9 used it), the
+SDK's `csfr.h` and `WL82.h` (vendored), m-bootloader (as HW-123) and
+HW-133's unit fact. HW-135 adds to HW-9, which stands; HW-9's release is
+the whole release only in fwtest.
+
+### HW-135: What the chip's release of core 1 takes, beyond HW-9 (Q-17)
+- Fact: On the chip, FM-1-RE (medium confidence) gives the FM-1's
+  firmware releasing core 1 with these register steps, in this order:
+  1. core 1's start address in the word at `0x01C7FFF8` (HW-9);
+  2. bit 3 of `JL_CLOCK->SYS_DIV` (`0x00010008`, HW-53) set;
+  3. bit 3 of `C1_CON` (`0x01EEE004`) set, then bit 1 of `C1_CON`
+     cleared;
+  4. after core 1 has started (the firmware waits for a sign from core 1
+     in RAM), `SYS_DIV` put back as it was before step 2.
+  HW-9 gives steps 1 and the first half of 3 only. On the owner's unit,
+  after m-bootloader's call, a release by HW-9 alone left core 1 not
+  running, with `C1_CON` reading `0x01000002`: bit 1 still set, bit 3
+  clear, bit 24 set (HW-133). That fits step 3's clear of bit 1 being
+  needed, but no source says so; a probe on a unit settles it. Further:
+  - **`C1_CON`'s bits:** the SDK names the register (read-write) but none
+    of its bits. What bits 1 and 24 are, and whether bit 3 reads back
+    once set or clears itself, no allowed source says.
+  - **`SYS_DIV` bit 3:** FM-1-RE is the only source; the SDK switches its
+    definitions of `SYS_DIV`'s fields off (HW-53). m-bootloader writes
+    `SYS_DIV` only to set its bus dividers (bits 8-10 and 16-17, keeping
+    the other bits as they were), so it leaves bit 3 as the chip had it.
+    A release that sets bit 3 puts back the whole value it read, so the
+    dividers m-bootloader set are kept.
+  - **Anything else:** no allowed source names a clock gate, reset or
+    power bit, or a cache or protection set-up for core 1 beyond these
+    steps. m-bootloader never starts core 1 (HW-130).
+  - **What core 0 sees of core 1's RAM stores:** open (Q-18). FM-1-RE's
+    wait for a sign from core 1 in RAM suggests core 0 sees at least
+    that store; with what cache operation, if any, is not given.
+  - **In fwtest** core 1 starts at step 2 or at `C1_CON` bit 3, whichever
+    comes first, once only (HW-10); fwtest can't show which step the
+    chip needs.
+- Sources: RE `docs/io/01-boot.md` §5.2 (the release's register steps
+  and their order, `[med]`); SDK `csfr.h` lines 106-112 (`corex2`: `C1_CON`
+  read-write, no bits named), `WL82.h` (`JL_CLOCK`, HW-53); MB
+  `src/platform.c` (its `SYS_DIV` writes: the dividers only) and
+  `docs/SPEC.md` §2.2 (the clock dividers' bits); UNIT (HW-133 item 4);
+  HW-9, HW-10, HW-53, HW-130.
+- Standing: confirmed (RE, MB, UNIT; whether step 2 or the clear of
+  bit 1 is what core 1 lacked on the unit, the meaning of `C1_CON`'s
+  bits, and core 0's view of core 1's stores, not shown)
+- Needed by: M1, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -3691,10 +3743,15 @@ spec request can turn one into a fact.
   *Session spec-unit-facts (HW-133):* after m-bootloader's call, core 1
   does not run when released as HW-9 gives (`C1_CON` reads
   `0x01000002`). What it needs then is still open.
+  *Session spec-sr18 (HW-135):* the chip's release, as FM-1-RE gives it,
+  also sets `SYS_DIV` bit 3 for the release and clears `C1_CON` bit 1.
+  Which of them core 1 needs is settled by a probe on a unit.
 - **Q-18. Memory seen across the cores on the chip.** Whether main RAM is
   cached, and whether a plain store by one core is seen by the other's
   next load without `csync` or a cache operation (HW-65). Settled by a
   probe on real hardware.
+  *Session spec-sr18 (HW-135):* still open. A core 1 probe should show
+  that core 1 runs by a sign that doesn't rest on this.
 - **Q-19. The block moves' write-back forms on the chip.** What
   `{list} = [rN++]`, `{list} = [--rN]` and their stores leave in the base
   (fwtest: rN + 4n, rN - 4n), which wins when such a form's base is also
