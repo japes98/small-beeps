@@ -1,0 +1,89 @@
+{
+  "fwtest": {
+    "version": "0.12.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 60392,
+    "sha256": "a89998846d502ad47a4b75c8557fd9c2de69016c215cb18fb86afca5c2313556"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "6000.609",
+    "instructions": {
+      "core0": 590002836,
+      "core1": 1036075868
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00013000",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "write",
+        "count": 8
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x00040300",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "write",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "0f9bac6705f08616877ff8286ff9559636b0b82aacee150169e4bdffda7bd1b2"
+      },
+      {
+        "name": "lcd-end.png",
+        "bytes": 173118,
+        "sha256": "f5360c81f5c780e7534f2528702d4ad45d34f14da5f2df3959aa743047de9a22"
+      },
+      {
+        "name": "leds.csv",
+        "bytes": 5482,
+        "sha256": "f232c5627775d6346ab8afb8230e162da3b228545390e21e224af7ddc6636106"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "8a57660c2afd7bf969fb2dd617d787f908017470c7a95fe8c3b80b2ce14ef0cb"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

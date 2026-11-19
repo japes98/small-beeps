@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 4342678f096cf65aba99747dc9ac161ea8995d3d..b3ad335172f71e1f766ac0bbb9c8e61e81b35733
+OK     633be134e647 sessions: clean-br17-protect starts (nothing to archive)
+OK     76cf751de7c3 spec: SR-18, what the chip's release of core 1 takes (HW-135)
+OK     d807e83472c3 config: fwtest 0.12.0, whose flash chip shows block protection
+EXEMPT c0c09fd44477 (merge) merge: clean's #200 (fwtest 0.12.0's pin) into SR-18's answer
+EXEMPT b3ad335172f7 (merge) Merge pull request #199 from japes98/spec/sr18
+5 commit(s) checked: PASS
+
+exit status 0
