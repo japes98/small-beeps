@@ -24,14 +24,12 @@
  * with csync after it, the LED lines low while a column changes, and the
  * slot run from TIMER0's interrupt (main.c's hw_slot), not TIMER1, whose
  * clock on the chip HARDWARE-SPEC doesn't give. Rows 0 and 5 (the
- * encoders' PA0 and PB7) are left out, and so is the pot: their set-up
- * on the chip isn't known (Q-7, SR-16). */
+ * encoders' PA0 and PB7) are left out: their set-up on the chip isn't
+ * known (Q-7, SR-16). The pot is MASTER, SARADC channel 4 (HW-133 item 5,
+ * HW-40), on PB6 set up by hw_adc_start before input_start. */
 #define PA_ROWS   (0xFu << 5)           /* PA5 to PA8 (HW-117) */
 #define HW_ROWS   0x1Eu                 /* rows 1 to 4 */
 #define HW_EDGE() __asm__ volatile("csync" ::: "memory")
-#if !defined(SB_COST_NO_POT)
-#define SB_COST_NO_POT
-#endif
 /* Port A's and H's DIE, PU and PD (HW-56: +12, +16, +20). */
 #define HW_PORT_REG(port, off) (*(volatile u32 *)((u32)(port) + (off)))
 #endif
@@ -459,9 +457,7 @@ void input_start(void)
     ph_base = JL_PORTH->OUT & ~PH_OURS;
     for (i = 0; i < 16; i++)
         hw_shift(1);
-    (void)v;
-    return;
-#endif
+#else
     pa_base = JL_PORTA->OUT & ~PA_OURS;
     ph_base = JL_PORTH->OUT & ~PH_OURS;
     JL_PORTH->OUT = ph_base;
@@ -471,6 +467,7 @@ void input_start(void)
     }
     JL_PORTA->OUT = pa_base | PA_LATCH;
     JL_PORTA->OUT = pa_base;
+#endif
 
     /* The pot's first reading, waited for, so input_value() has it from
      * the start. */
@@ -485,7 +482,8 @@ void input_start(void)
     sb_input.values[INPUT_MASTER] = (int)v;
     JL_ADC->CON = ADC_START;
 
-#if defined(SB_COST_NO_SCAN)
+#if defined(SB_COST_NO_SCAN) || defined(SB_HW_FM1)
+    /* The hardware build's scan runs from TIMER0's interrupt (main.c). */
     return;
 #endif
     sb_irq_enable(SRC_TIMER1, input_scan, PRIO_SCAN);

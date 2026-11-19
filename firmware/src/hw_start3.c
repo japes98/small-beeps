@@ -33,6 +33,7 @@
 /* HW-128: the code window's controller, its cipher, the peripheral
  * cipher and the cache control. */
 #define WIN_CON      REG(0x40200)
+#define WIN_BAUD     REG(0x00040204)    /* write only (HW-134) */
 #define WIN_BASE     REG(0x4020C)
 #define WIN_CIPHER   REG(0x40300)
 #define WIN_KEY      REG(0x40304)
@@ -237,10 +238,12 @@ static void flash_take(void)
 }
 
 /* HW-128, "to give it back", with interrupts off for it; on again after if
- * they were. The window's BAUD isn't written: HARDWARE-SPEC gives no
- * address for it, and the take never wrote it (SR-17). The mode word is
- * the one read before the take; the base is HW-128's, the key the boot
- * block's. */
+ * they were: the one give-back, for the round trip and for the store's
+ * counter (hw_store_counter), which is the store's only way to the flash
+ * on a unit. As HW-134 gives it, by the owner's ruling: CON = 0x00F00000,
+ * CON = 0, BAUD = 1, then CON = the mode word read before the take; then
+ * HW-128's base (0x4000), the boot block's key, the cache, the cipher on,
+ * and bits 8 and 9 of the cache's control set again (HW-134 item 6). */
 static void flash_give(u32 irq_on)
 {
     u32 a, n;
@@ -252,6 +255,7 @@ static void flash_give(u32 irq_on)
     RT_MAP0 &= ~(1u << 16);
     WIN_CON = 0x00F00000u;
     WIN_CON = 0;
+    WIN_BAUD = 1u;
     WIN_CON = hw3.win_con;
     WIN_BASE = 0x4000u;
     WIN_KEY = hw_boot_key;
@@ -268,6 +272,7 @@ static void flash_give(u32 irq_on)
     if (n == IDLE_POLLS)
         hw3.idle_timeouts++;
     WIN_CIPHER = 1;
+    CACHE_CON |= CACHE_BITS;
     SYNC();
     if (irq_on)
         __asm__ volatile("sti" ::: "memory");
@@ -664,7 +669,12 @@ void hw_refresh(u32 second)
     sweep();
     draw_grid();
     draw_ports();
+    /* The scan reads the pot (input.c) from the conversion it started:
+     * paused meanwhile, and channel 4's conversion started again after. */
+    hw_scan_paused = 1;
     adc_all();
+    JL_ADC->CON = 4u << 8 | 1u << 4 | 1u << 6;
+    hw_scan_paused = 0;
     draw_adc();
     if (second)
         draw_core1();
@@ -861,9 +871,14 @@ static void f_draw_line(u32 i)
     u32 k;
 
     if (l->kind == F_ADC) {
-        p = put_s(p, "AD");
-        p = put_dec(p, l->bit);
-        p = put_s(p, " ");
+        /* MASTER is channel 4 (HW-133 item 5); the others by number. */
+        if (l->bit == 4) {
+            p = put_s(p, "MASTER ");
+        } else {
+            p = put_s(p, "AD");
+            p = put_dec(p, l->bit);
+            p = put_s(p, " ");
+        }
         p = put_hex(p, l->value, 3);
         if (l->nlevels)
             *p++ = ':';
@@ -874,6 +889,9 @@ static void f_draw_line(u32 i)
         }
     } else {
         if (l->kind == F_CELL) {
+            /* KNOB1 is at columns 8 and 9 (HW-133 item 6). */
+            if (l->col == 8 || l->col == 9)
+                p = put_s(p, "KNOB1 ");
             p = put_s(p, "c");
             p = put_dec(p, l->col);
             p = put_s(p, " ");
