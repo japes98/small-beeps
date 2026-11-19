@@ -33,6 +33,24 @@ import sys
 import zlib
 
 CHIP = 0x100000
+# Since fwtest 0.12.0 a flash file of the chip and two bytes more sets the
+# status registers 1 and 2 (block protection, HW-131), and a run's
+# flash.bin keeps them (HARNESS.md, "The flash chip").
+STATUS_BYTES = 2
+
+
+def chip_of(data):
+    """The 1 MiB chip of a flash.bin: its first 1 MiB, without the two
+    status bytes a protected run's file ends with."""
+    data = bytes(data)
+    assert len(data) in (CHIP, CHIP + STATUS_BYTES), "a flash.bin is 1 MiB, or 1 MiB and two status bytes"
+    return data[:CHIP]
+
+
+def status_of(data):
+    """A flash.bin's status registers 1 and 2: its two last bytes, or
+    (0, 0) for a 1 MiB file."""
+    return (data[CHIP], data[CHIP + 1]) if len(data) == CHIP + STATUS_BYTES else (0, 0)
 REGION_END = 0xFF000           # the region ends where the per-unit last sector begins (HW-80)
 USER_REGION = (0xEA000, 0xFC000)   # the stock firmware's saved patches (HW-80): never touched
 SECTOR = 4096
@@ -136,16 +154,18 @@ def check_record(b, off, room):
 
 
 class Image:
-    """What the firmware's start-up finds in a flash image (1 MiB, or the
-    store's region alone). sectors: the region's size in sectors; base:
+    """What the firmware's start-up finds in a flash image (1 MiB, or 1 MiB
+    and its two status bytes, or the store's region alone). sectors: the region's size in sectors; base:
     where it begins (by default, ending at REGION_END, as today's does)."""
 
     def __init__(self, data, sectors=SECTORS, base=None):
         data = bytes(data)
         self.sectors, self.base = sectors, region_base(sectors) if base is None else base
         size = sectors * SECTOR
-        self.region = data[self.base:self.base + size] if len(data) == CHIP else data
-        assert len(self.region) == size, "a 1 MiB chip or the store's region alone"
+        if len(data) in (CHIP, CHIP + STATUS_BYTES):
+            data = chip_of(data)[self.base:self.base + size]
+        self.region = data
+        assert len(self.region) == size, "a 1 MiB chip (with or without its status bytes) or the store's region alone"
         self.valid, self.seq = [False] * sectors, [0] * sectors
         self.head, self.append, self.next_seq = None, 0, 1
         self.counts = {"crc_bad": 0, "skipped": 0, "unknown": 0, "voided": 0}

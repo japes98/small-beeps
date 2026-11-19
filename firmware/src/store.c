@@ -94,9 +94,14 @@ static const u32 parts[] = { STORE_PARTS(PART_ID) };
 /* The part test build (tools/store_suite.py, tools/seams_suite.py): at
  * this chip offset, below the store, which only the test's flash file
  * writes, the ID and the two status bytes start-up takes in place of what
- * it read (fwtest's chip answers only 85 60 14 and never shows
- * protection, HARNESS.md "The flash chip"): a word, then status 1 and
- * status 2. An erased word (0xFFFFFFFF) leaves what was read. */
+ * it read: a word, then status 1 and status 2. An erased word
+ * (0xFFFFFFFF) leaves what was read. fwtest's chip answers only 85 60 14;
+ * since 0.12.0 it shows block protection when the flash file sets its
+ * status bytes (HARNESS.md "The flash chip"), ignoring a protected erase
+ * or program. The test build still takes status bytes of its own, so a
+ * case can show the store's own refusal (the status it is told, before
+ * any write) apart from its read-back (the chip's protection, told
+ * status 0: store suite case protect). */
 #define PART_PARAM (0xE8000u + 0x10u)   /* 16 bytes past the cut build's parameters */
 #endif
 

@@ -261,11 +261,31 @@ static void hw_show(const struct input_event *e)
     lcd_send_rect(HW_EVENT_X, HW_EVENT_Y, HW_EVENT_W, 16);
 }
 
+/* MASTER, the pot (HW-133 item 5), on the event line as it moves. */
+static void hw_show_master(int v)
+{
+    char text[16] = "MASTER ";
+    u32 i = 7, d;
+
+    for (d = 1000; d; d /= 10)
+        if ((u32)v >= d || d == 1)
+            text[i++] = (char)('0' + (u32)v / d % 10);
+    text[i] = 0;
+    gfx_fill(HW_EVENT_X, HW_EVENT_Y, HW_EVENT_W, 16, RGB565(0, 0, 0));
+    gfx_text(HW_EVENT_X, HW_EVENT_Y, text, RGB565(31, 63, 31), RGB565(0, 0, 0), 2);
+    lcd_send_rect(HW_EVENT_X, HW_EVENT_Y, HW_EVENT_W, 16);
+}
+
 static void hw_serve(void)
 {
     struct input_event e;
 
     while (input_read(&e)) {
+        if (e.control == INPUT_MASTER && e.kind == INPUT_MOVE) {
+            if (sb_beacon.screen == SB_SCREEN_TEST)
+                hw_show_master(e.value);
+            continue;
+        }
         if (e.control >= INPUT_LEDS || (e.kind != INPUT_PRESS && e.kind != INPUT_RELEASE))
             continue;
         input_led(e.control, e.kind == INPUT_PRESS ? INPUT_LED_FULL : 0);
@@ -381,8 +401,10 @@ int main(void)
      * is seen to report it (seams case hw). */
     sb_irq_enable(SRC_SPI1, lcd_spi_done, PRIO_SPI1);
 #endif
-    input_start();
+    /* PB1 and PB6 analogue first: input_start takes the pot's first
+     * reading (MASTER, channel 4, HW-133). */
     hw_adc_start();
+    input_start();
     JL_TIMER0->CNT = 0;
     JL_TIMER0->PRD = HW_SLOT_PRD;
     JL_TIMER0->CON = HW_SLOT_CON;

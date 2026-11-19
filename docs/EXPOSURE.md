@@ -3175,6 +3175,21 @@ SR-3 wrote only its barrier-log row.*
   HARNESS "The flash chip" and "Versions".
 - Disk: 2.3 GB free at the start.
 
+### Session spec-finder1 (finder1's unit facts: KNOB1's row, MASTER)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-sr18 (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on a new
+  branch `spec/finder1` from main.
+- The owner's message, saved as docs/prompts/spec-finder1.md.
+- Recorded: HW-136 (KNOB1 at columns 8 and 9 on row PA5; MASTER on
+  channel 4), source UNIT. Kept as notes on Q-7 and Q-8: KNOB2 to KNOB4,
+  SELECT, ALGORITHM, PRESETS and PA0.
+- Merged clean's #201 (store/protect, carrying #200); no conflicts.
+- Read: nothing outside this repository; its own
+  `firmware/src/hw_start3.c` for the finder's column words.
+- Disk: about 3.4 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

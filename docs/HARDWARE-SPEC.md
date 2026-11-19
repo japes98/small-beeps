@@ -3579,6 +3579,28 @@ the whole release only in fwtest.
   bits, and core 0's view of core 1's stores, not shown)
 - Needed by: M1, BR-17 (Phase B)
 
+## 33. KNOB1's row and MASTER on the unit (finder1)
+
+Observed by the owner on the owner's unit with this repository's knob
+finder build (finder1, clean's #197, `SB_HW_FINDER`) and relayed on
+2026-11-19 (source UNIT). HW-136 adds to HW-133 items 5 and 6, which stand.
+
+### HW-136: KNOB1 at columns 8 and 9 on row PA5; MASTER on channel 4 (Q-7, Q-8)
+- Fact: On the owner's unit, started by m-bootloader:
+  1. **KNOB1**, an encoder, reads on row **PA5** at matrix columns 8 and
+     9: the column words `0xFEFF` and `0xFDFF` (the word with only bit 8,
+     or only bit 9, zero; HW-117's pins and timing).
+  2. **MASTER** is SARADC channel 4 (PB6, HW-129), as HW-133 item 5
+     gives; finder1 shows it again.
+  Which of KNOB1's two columns is which phase, and so which turn is
+  "clockwise", is not given. The other knobs and buttons are open (Q-7).
+- Sources: UNIT: finder1 on the owner's unit, relayed by the owner on
+  2026-11-19 (docs/prompts/spec-finder1.md); the finder's column words
+  as this repository's `firmware/src/hw_start3.c` makes them (16 single-
+  zero words); HW-117, HW-129, HW-133.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: BR-17 (Phase B), M3 on real hardware
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -3647,6 +3669,11 @@ spec request can turn one into a fact.
   matrix columns 8 and 9. A note, not a fact: PRESETS looks like an
   encoder read through an ADC channel (start3b, relayed); a fact once a
   build names the channel.
+  *Session spec-finder1 (HW-136):* KNOB1 reads on row PA5. Notes, not
+  facts (finder1, relayed 2026-11-19): KNOB2 to KNOB4, SELECT, ALGORITHM
+  and PRESETS gave no clear reading; turning SELECT and ALGORITHM briefly
+  moved the cells at columns 0 to 2 on PA0, which reads with no pull-up.
+  Settled by clean's next build.
 - **Q-8. The other ADC channels.** What channel 3 and the other channels
   carry on the board (fwtest gives them fixed values).
   *Session spec-sr16 (HW-129):* the SDK maps channel 3 to PB1 and 4 to
@@ -3655,6 +3682,8 @@ spec request can turn one into a fact.
   *Answered in part by session spec-unit-facts (HW-133):* MASTER is
   channel 4. A note, not a fact: PRESETS looks like an encoder read
   through an ADC channel, which one not yet named (start3b, relayed).
+  *Session spec-finder1 (HW-136):* MASTER on channel 4 again. A note:
+  finder1 gave no clear ADC reading for PRESETS.
 - **Q-9. Audio on the chip.** How `JL_ALNK0`'s output reaches the DAC or
   codec on real hardware, which bits of each word it uses, its clock set-up
   and true rate, and the analog set-up (FM-1-RE's audio document names DAC
