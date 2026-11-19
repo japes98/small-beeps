@@ -766,10 +766,11 @@ an issue or a pull request against docs/HARNESS.md.
      the same built-in divider it gives SPI0, after `CON` = `0x00F00000`
      and `CON` = 0 and before the mode word.
   2. **Whether `CON` reads back:** the SDK marks it read-write, and
-     m-bootloader never reads it. On the owner's unit (start3b, relayed)
-     it reads `0x009803B5`, not the quad word `0x00980381` m-bootloader
-     writes. By the owner's ruling the give-back restores `CON` as read
-     before the take (HW-132).
+     m-bootloader never reads it. On the owner's unit it reads
+     `0x009803B5` (HW-133), not the quad word `0x00980381` m-bootloader
+     writes. By the owner's rulings the give-back writes `0x00F00000`, 0,
+     `BAUD` = 1 and then `CON` as read before the take (HW-134, which
+     supersedes HW-132).
   3. **Whether a `CON` write changes `BAUD`:** not shown. Writing `BAUD`
      after the two `CON` writes, as m-bootloader does, doesn't depend on
      it.
@@ -778,4 +779,29 @@ an issue or a pull request against docs/HARNESS.md.
      its menu). The word it writes is `0x00980381`, HW-128's quad word
      with 9 in bits 23-20 (dual `0x00980281`, single `0x00900089`).
 - Answered: 2026-11-19, session spec-sr17 (spec side)
+
+### SR-18: Releasing core 1 after m-bootloader's call
+- Asked: 2026-11-19, session clean-br17-finder (firmware side), for BR-17
+  start3 (d) (R-HW-1)
+- Question: on the FM-1 after m-bootloader's call (HW-119, HW-130), what
+  a firmware must do for core 1 to run, beyond HW-9:
+  1. **`C1_CON`'s bits** (`0x01EEE004`): what bits 1 and 24 are (both read
+     set), and whether bit 3 reads back once set or clears itself.
+  2. **Anything else core 1 needs first:** a clock gate, a reset or
+     power bit, a cache or protection set-up (Q-17), or another register
+     of the `corex2` block.
+  3. **Whether core 1 sees main RAM as core 0 does** (Q-18): could core 1
+     run while core 0 keeps reading 0 from a counter that core 1 writes?
+  4. **Whether E-4's release (HW-9) was on the chip or in fwtest**, and if
+     on the chip, from which state (a stock firmware, a raw image, or
+     after m-bootloader's call).
+- Why: start3b on the unit wrote core 1's loop address to `0x01C7FFF8` and
+  set `C1_CON` bit 3, as HW-9 says. A second later `C1_CON` read
+  `0x01000002`, with bit 3 clear, and the counter core 1 should increment
+  stayed 0. The finder build (`firmware/src/hw_start3.c`) shows `C1_CON`
+  before and just after the write, the start word read back and the loop's
+  address. That can tell "bit 3 never took" from "it took and cleared",
+  but not what is missing. No allowed source here gives more than HW-9.
+  Read: HW-9, HW-10, HW-18, HW-64, HW-119, HW-130, Q-11, Q-17, Q-18.
+- Status: open
 
