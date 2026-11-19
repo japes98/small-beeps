@@ -42,8 +42,8 @@
 #define CACHE_BITS   (3u << 8)
 #define IDLE_POLLS   1000000u
 /* HW-56: JL_IOMAP's CON0 and CON1; port registers from a port's base. */
-#define IOMAP_CON0   REG(0x0005101C)
-#define IOMAP_CON1   REG(0x00051020)
+#define RT_MAP0   REG(0x0005101C)
+#define RT_MAP1   REG(0x00051020)
 #define PORT(base, off) REG((base) + (off))
 #define PA 0x00050000u
 #define PB (0x00050000u + 0x40u)
@@ -161,8 +161,8 @@ static void shift_word(u32 word)
 
 /* --- (c) The flash, taken and given back (HW-128) ------------------------ */
 
-static void cs_low(void)  { PORT(PD, OUT) &= ~1u; }
-static void cs_high(void) { PORT(PD, OUT) |= 1u; }
+static void rt_cs_down(void)  { PORT(PD, OUT) &= ~1u; }
+static void rt_cs_up(void) { PORT(PD, OUT) |= 1u; }
 
 static u32 spi_byte(u32 b)
 {
@@ -178,14 +178,14 @@ static u32 spi_read(u32 cmd, u32 n)
 {
     u32 v = 0;
 
-    cs_low();
+    rt_cs_down();
     JL_SPI0->CON &= ~SPI_RX;
     spi_byte(cmd);
     JL_SPI0->CON |= SPI_RX;
     while (n--)
         v = v << 8 | spi_byte(0xFFu);
     JL_SPI0->CON &= ~SPI_RX;
-    cs_high();
+    rt_cs_up();
     return v;
 }
 
@@ -194,8 +194,8 @@ static void flash_take(void)
 {
     WIN_CON = 0;
     PERI_CIPHER = 0;
-    IOMAP_CON1 &= ~(1u << 1);
-    IOMAP_CON0 &= ~(1u << 5);
+    RT_MAP1 &= ~(1u << 1);
+    RT_MAP0 &= ~(1u << 5);
     PORT(PD, OUT) |= 1u;                  /* PD0, the chip select: high */
     PORT(PD, DIR) &= ~1u;
     PORT(PD, OUT) &= ~0x30u;              /* PD4, PD5: low */
@@ -209,10 +209,10 @@ static void flash_take(void)
     JL_SPI0->CON = 0x28u;
     JL_SPI0->BAUD = 1u;                   /* about 30 MHz (HW-128) */
     JL_SPI0->CON |= SPI_CLEAR | 1u;
-    cs_low();                             /* 0xFF twice (HW-123) */
+    rt_cs_down();                             /* 0xFF twice (HW-123) */
     spi_byte(0xFFu);
     spi_byte(0xFFu);
-    cs_high();
+    rt_cs_up();
 }
 
 /* HW-128, "to give it back", with interrupts off for it; on again after if
@@ -228,7 +228,7 @@ static void flash_give(u32 irq_on)
     JL_SPI0->CON = 0;
     PERI_CIPHER = 0;
     WIN_CIPHER = 0;
-    IOMAP_CON0 &= ~(1u << 16);
+    RT_MAP0 &= ~(1u << 16);
     WIN_CON = 0x00F00000u;
     WIN_CON = 0;
     WIN_CON = hw3.win_con;

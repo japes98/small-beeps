@@ -2990,6 +2990,11 @@ SR-3 wrote only its barrier-log row.*
   hardware package (key `0x980F`) packed twice to the same bytes,
   `fwsc.py check` passing; a file in `out/` for the owner.
 - Force-pushes: none.
+- C-SEP-TERMS on #195 (`3a8abc1e`): two names of this side's own in
+  hw_start3.c matched emulator-only words. The quick job's artifact was
+  fetched by the API, only `logs/C-SEP-TERMS.log` read from it (its HIT
+  lines), the zip deleted at once; the words found by hashing the lines'
+  words, and both names, with their pairs, renamed. The image is the same.
 - Disk: 2.7 GB free at the start; about 2.3 GB at the lowest.
 
 ## Corrections
