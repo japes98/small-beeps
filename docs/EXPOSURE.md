@@ -3271,6 +3271,27 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing outside this repository.
 - Disk: about 8.5 GB free.
 
+### Session spec-audio (audio on the chip: HW-140 to HW-142)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-encoders1 (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  `spec/audio`.
+- The owner's request, saved with spec-encoders1's as
+  docs/prompts/spec-encoders1-audio.md.
+- Read (PROVENANCE P-504): FM-1-RE's `docs/io/03-audio-dac.md`,
+  `docs/reversing/01-hardware-map.md` and `docs/architecture.md`; the
+  SDK's file tree, `dac.h`, `iis.h`, `audio.h`, `hwi.h` and the vendored
+  `WL82.h`; the AC7911B datasheet; the FM-1's manual.
+- Not recorded, by the guardrails: from FM-1-RE's audio document, the
+  stock firmware's function names and addresses, its task, struct and
+  buffer layouts, its render chain, its codec and trim tables and their
+  order, its volume table and its sample-rate table; only register
+  addresses, bit meanings, the rate and the pins' numbers, at its
+  confidence. Not opened: any GPL firmware, stock package or SDK prebuilt
+  library.
+- Disk: about 8.5 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

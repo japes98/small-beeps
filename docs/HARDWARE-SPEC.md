@@ -3678,6 +3678,141 @@ encoders1 (image `f90fec1f…`, clean's #205) and relayed on 2026-11-19
 - Standing: confirmed (UNIT; one unit; PRESETS' phase order not shown)
 - Needed by: BR-17 (Phase B), M3 on real hardware
 
+## 36. Audio on the chip: what small-beeps needs for sound (the owner's audio request)
+
+Read under the owner's request of 2026-11-19 (docs/prompts/spec-encoders1-audio.md,
+PROVENANCE P-504), from the SDK (`WL82.h`, vendored; `hwi.h`, `dac.h`,
+`iis.h` and `audio.h`, fetched), FM-1-RE's audio, hardware-map and
+architecture documents (allowed hardware documents; register facts only,
+at FM-1-RE's own confidence marks), the AC7911B datasheet (JL7911B) and
+the FM-1's manual (MAN). HW-140 to HW-142 add to HW-43 to HW-46 and
+HW-130, which stand. Pins are named by port (PC0 is port C pin 0); the
+datasheet's group letters ("(A)") are not port letters.
+
+### HW-140: The chip's audio blocks and their interrupts (Q-9)
+- Fact: On the chip:
+  - **Audio links.** `JL_ALNK0` at `0x00012E00` (HW-43) and `JL_ALNK1` at
+    `0x00015100`, the same layout: `CON0` and `CON1` 16-bit, `CON2` and
+    `CON3` 8-bit, `ADR0` to `ADR3` and `LEN` write only. Interrupt
+    sources: ALNK0 **11**, ALNK1 **12**. The SDK's I2S driver API
+    (`iis.h`) drives them as I2S with up to four data channels each,
+    master or slave, an optional master clock out, 16- or 24-bit data,
+    32 or 64 bit clocks a frame, on one of three pin groups.
+  - **The audio DAC.** `JL_AUDIO` at `0x00012F00`: `DAC_CON` +0, `DAC_ADR`
+    +4, `DAC_LEN` +8 (16-bit), `DAC_PNS`, `DAC_HRP`, `DAC_SWP`, `DAC_SWN`
+    (16-bit, from +0x0A), `DAC_VL0` +0x18, `DAC_VL1` +0x1C, `DAC_TM0`,
+    `DAC_TM1`, `DAC_DTV`, `DAC_DTB`, `DAC_COP` (write only), then the
+    audio ADC's `ADC_CON`, `ADC_ADR`, `ADC_LEN` and its pointers.
+    Interrupt source **13**. FM-1-RE reads `DAC_CON` (medium to high
+    confidence, names borrowed from a sibling chip): bit 4 enable, bit 5
+    interrupt enable, bit 6 clears the pending flag, bit 7 pending,
+    bit 11 busy; and gives `DAC_VL0`/`DAC_VL1` as the digital gain.
+  - **The analogue block.** `JL_ANA` at `0x00011900`: `WLA_CON0` to
+    `WLA_CON39` (+0 to +0x9C, the last nine read only), `PLL_CON0`
+    +0xA0, `PLL_CON1` +0xA4, `PLL2_CON0` +0xA8, `PLL2_CON1` +0xAC,
+    `DAA_CON0` to `DAA_CON3` +0xC0 to +0xCC, `DAA_CON7` +0xDC, `ADA_CON0`
+    to `ADA_CON2` +0xE0 to +0xE8. FM-1-RE sees the FM-1's firmware use
+    `0x119C4` to `0x119E8` (`DAA_CON1` to `ADA_CON2`) as the DAC's
+    analogue routing, enables and gain, bit 14 of `0x119CC` (`DAA_CON3`)
+    as a DAC clock gate, and `0x11904`, `0x11908`, `0x1190C` and
+    `0x1191C` as DAC analogue control and trims; the SDK names those four
+    `WLA_CON1`, `WLA_CON2`, `WLA_CON3` and `WLA_CON7`. Which is right is
+    not settled.
+  - **Others.** A sample-rate converter `JL_SRC` at `0x00014300`; PDM
+    links `JL_PLNK0`/`JL_PLNK1` (`0x00012D00`, `0x00015200`; sources 38,
+    39). FM-1-RE adds a codec register port at `0x0003101C` (bit 17
+    busy) that no SDK header names.
+  - **The interrupts FM-1's firmware takes for sound** are 11 and 12
+    (FM-1-RE), which the SDK gives as ALNK0 and ALNK1, not the audio
+    DAC's 13; and its synthesis output is fed through `0x12E00` (ALNK0)
+    a half at a time (HW-130).
+- Sources: SDK `WL82.h` (`JL_ANA` lines 488-546, `JL_PLNK`, `JL_ALNK`,
+  `JL_AUDIO` lines 648-711, `JL_SRC`), `hwi.h` lines 50-52 and 80-81
+  (blob `7a798b97`), `iis.h` (blob `25ee23cc`), `dac.h` (blob
+  `5a92002e`); RE `docs/io/03-audio-dac.md` §1 (the blocks, `DAC_CON`'s
+  bits, the codec port), §5.3, §8 (interrupts 11 and 12),
+  `docs/reversing/01-hardware-map.md` ("Audio DAC / codec registers");
+  HW-43, HW-130.
+- Standing: confirmed (SDK, RE; FM-1-RE's bit and register meanings at
+  its confidence, its names for `0x11904` to `0x1191C` against the
+  SDK's, open)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-141: The two possible output paths, and the FM-1's outputs (Q-9)
+- Fact:
+  - **The board.** The FM-1 has a built-in speaker and a headphone
+    output; plugging in headphones mutes the speaker (MAN). So an
+    amplifier with jack sensing sits after the chip; which pin, if any,
+    enables or mutes it is not given (the SDK's DAC set-up has an
+    amplifier mute pin, `dac.h`, so such a pin is usual).
+  - **Path 1, the chip's DAC.** The AC7911B package has one 16-bit DAC
+    channel with a headphone amplifier: pins `DACL`, `VCM`, `HPVSS`,
+    `DACVDD`, `AHVDD`; 0.9 V rms swing, at least 15 mW into 32 Ω
+    (JL7911B). FM-1-RE's architecture and hardware map say the FM-1's
+    sound comes from this internal DAC through its DMA. Its analogue
+    bring-up (power, VCM, the `DAA` set-up, trims) is in the SDK only as
+    prebuilt library code and in the FM-1's firmware as register
+    tables, neither of which is a source here: no allowed source gives
+    the values to write.
+  - **Path 2, ALNK0 as I2S to a part outside the chip.** On the AC7911B,
+    ALNK0's group A is on port C: master clock PC0, bit clock PC1, word
+    select PC2, data 2 PC5, data 3 PC6 (data 0 and 1 not bonded out).
+    FM-1-RE says the FM-1's firmware sets up four pins it numbers 32,
+    33, 34 and 38 with the synthesis output on ALNK0; in the SDK's
+    numbering, 16 pins a port as in HW-56, those are PC0, PC1, PC2 and
+    PC6: master clock, bit clock, word select and data 3. ALNK0's other
+    groups (B1 on port A, where the matrix is, HW-117) don't fit the
+    board. That FM-1's output uses this path is inferred from these
+    sources together; none states it, and FM-1-RE also says "internal
+    DAC". In fwtest, ALNK0 plays from `ADR3`, data 3 (HW-44).
+  - **Pins.** PC0, PC1, PC2 and PC6 have no other use in this
+    specification on the FM-1: PC0 and PC1 are SARADC channels 6 and 7
+    (HW-129) and in SPI0's unused port C group (its flash group is port
+    D); the panel is on PC7 to PC10 (HW-56).
+- Sources: MAN p. 11 ("Speaker"); JL7911B p. 2 (features), pp. 7-9
+  (Table 1-1: `DACL` and the analogue pins, PC0 to PC6's audio link
+  functions), p. 13 (Table 2-5, the DAC); SDK `dac.h`, `iis.h`;
+  RE `docs/architecture.md` §4, `docs/reversing/01-hardware-map.md`
+  (internal DAC), `docs/io/03-audio-dac.md` §5.2 (pins 32, 33, 34, 38),
+  §6 (the codec's register tables exist; not taken); HW-44, HW-56,
+  HW-117, HW-129.
+- Standing: confirmed (MAN, JL7911B, SDK, RE; which path the FM-1 uses,
+  the amplifier's pins and the internal DAC's analogue values open)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-142: Clocks, rate, DMA and the analogue side: known and open (Q-9)
+- Fact: For sound on the chip after m-bootloader's call (HW-119):
+  - **Clocks.** The audio clock comes from the second PLL (`PLL2_CON0`,
+    `0x000119A8`) and `CLK_CON2` (`0x00010014`): FM-1-RE (high
+    confidence) sees the FM-1's firmware set or clear `PLL2_CON0` bit
+    25 and `CLK_CON2` bits 8 and 10 by rate family (bits 8 and 10 cleared
+    for 11.025, 22.05, 44.1 and 88.2 kHz) and clear bits 9 and 11. The
+    SDK gives no field meanings for either. What m-bootloader leaves in
+    them, and whether ALNK0's clock runs without further set-up, is
+    open; HW-119's account of m-bootloader's set-up names no audio
+    block.
+  - **Rate.** The FM-1's firmware renders at 44 118 Hz (FM-1-RE). In
+    fwtest a frame lasts 544 / 24 MHz, 44 117.6 frames a second (HW-45).
+    The true rate on the chip with a given set-up is open; a unit run
+    settles it by timing the halves against a timer of known clock.
+  - **DMA.** ALNK0 plays from RAM a half at a time and raises source 11
+    at each finished half (HW-45; FM-1-RE §5.3: `CON2` bits 4 to 7 are
+    pending flags, each cleared by writing the bit four below it, bit 7
+    by bit 3 as HW-45 gives; `CON0` bit 15 the half playing). Which bits of each word the chip uses is open (Q-9).
+  - **The analogue side.** For path 2, none on the chip beyond the pins;
+    the part outside the chip and its amplifier are open. For path 1,
+    open (HW-141).
+  So the first build is a probe: ALNK0 set up as in fwtest on PC0, PC1,
+  PC2 and PC6, the registers above read and shown (not written), and the
+  owner listening on the speaker and on headphones. Writing the
+  analogue, PLL2 and clock registers waits for a source or a result.
+- Sources: RE `docs/io/03-audio-dac.md` §3.4 (the clock bits, `[high]`),
+  §5.2 (44 118 Hz), §5.3 (ALNK0's half flags, `[med]`-`[high]`); SDK
+  `WL82.h` (`JL_CLOCK`, `JL_ANA`); HW-44, HW-45, HW-119, HW-140, HW-141.
+- Standing: confirmed (RE, SDK; the clock fields' meaning, the rate on
+  the chip and the analogue side open)
+- Needed by: M4, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -3776,6 +3911,11 @@ spec request can turn one into a fact.
   codec on real hardware, which bits of each word it uses, its clock set-up
   and true rate, and the analog set-up (FM-1-RE's audio document names DAC
   registers at `0x00012F00`; not used here).
+  *Session spec-audio (HW-140 to HW-142):* the blocks, interrupts, pins
+  and the two possible output paths; the FM-1's firmware takes ALNK0
+  and ALNK1's interrupts. Still open: which path, the audio clock's
+  set-up, the rate, the bits used, the amplifier and, for the chip's
+  DAC, its analogue values. A unit probe comes first.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores
