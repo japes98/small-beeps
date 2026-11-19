@@ -155,21 +155,25 @@ void HW_BOOT hw_early(void)
 
 u32 hw_boot_block, hw_boot_key;
 
-/* The second LED of the flash round trip (R-HW-1, start3 (c) step 1),
- * from the window: PLAY's and REC's columns both selected (0xFBFF & 0xFF7F, HW-117,
- * HW-118) with PA10 high, so both their LEDs light. It is the first thing
- * run in the window after the give-back; the first LED (PLAY's alone) was
- * lit from RAM before it (hw_start3.c). Each edge its own read-modify-
- * write of OUT, csync after it; the pins were set up by the first. */
+/* The round trip's last LED mark (R-HW-1, start3b), from the window: OCT-'s
+ * and OCT+'s columns both selected (0xF7FE & 0xEFFD, HW-118) with PH9 high,
+ * so both octave LEDs light. It is the first thing run in the window after
+ * the give-back; the marks before it (PLAY's, then OCT-'s, then OCT+'s
+ * alone) were lit from RAM (hw_start3.c). Each edge its own read-modify-
+ * write of OUT, csync after it; the pins were set up there. */
 #define HW_PA_LATCH (1u << 1)
 #define HW_PA_CLOCK (1u << 3)
 #define HW_PA_DATA  (1u << 4)
 #define HW_PA_LED2  (1u << 10)
+#define HW_PORTH    0x000501C0u
+#define HW_PH_LED4  (1u << 9)
 void HW_BOOT hw_rt_led_window(void)
 {
-    u32 word = 0xFBFFu & 0xFF7Fu, n;
+    u32 word = 0xF7FEu & 0xEFFDu, n;
 
     HW_REG(HW_PORTA + HW_OUT) &= ~HW_PA_LED2;
+    __asm__ volatile("csync" ::: "memory");
+    HW_REG(HW_PORTH + HW_OUT) &= ~HW_PH_LED4;
     __asm__ volatile("csync" ::: "memory");
     for (n = 0; n < 16; n++, word <<= 1) {
         if (word & 0x8000u)
@@ -186,7 +190,7 @@ void HW_BOOT hw_rt_led_window(void)
     __asm__ volatile("csync" ::: "memory");
     HW_REG(HW_PORTA + HW_OUT) &= ~HW_PA_LATCH;
     __asm__ volatile("csync" ::: "memory");
-    HW_REG(HW_PORTA + HW_OUT) |= HW_PA_LED2;
+    HW_REG(HW_PORTH + HW_OUT) |= HW_PH_LED4;
     __asm__ volatile("csync" ::: "memory");
 }
 

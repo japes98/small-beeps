@@ -3057,6 +3057,28 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing new; this repository's own files only.
 - Disk: about 3.3 GB free.
 
+### Session clean-br17-start3b (BR-17: start3's hang, a step build)
+- Date: 2026-11-19 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.328, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-start3's, continued. The owner's two messages (start3's
+  result, then its correction) saved unedited as
+  docs/prompts/clean-br17-start3b.md and
+  docs/prompts/clean-br17-start3b-correction.md.
+- Start: nothing to archive (this session's own transcript is the only
+  clean one not archived). `tools/check-transcripts.py`: 26 archived
+  transcripts, PASS.
+- Reads: HARDWARE-SPEC HW-118 (the LEDs); this side's own code.
+- On the unit (relayed by the owner): the round trip read `856014`,
+  status 1 `00`, status 2 `02`, and came back; the window's CON read
+  non-zero (`0098038?`, a digit uncertain), base `04000`, key
+  `980F/980F`. Then the address pattern, and no test screen.
+- Disk: 3.2 GB free at the start.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

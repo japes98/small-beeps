@@ -4358,3 +4358,36 @@ HW-40, HW-56, HW-85 and HW-115 to HW-119 (PROVENANCE P-75).
   registers are unmodelled (`0x01F0xxxx`, the cache's ranges, is RAM in
   fwtest, HW-7).
 - Build A is unchanged (`aae50b29…`, #193's).
+
+### 2026-11-19 clean-br17-start3b: where start3 stops on the unit (BR-17, R-HW-1)
+The owner's messages: docs/prompts/clean-br17-start3b.md, then
+docs/prompts/clean-br17-start3b-correction.md. On the unit, start3 drew
+bands 1 to 3, the window's row (`CON` non-zero, about `0098038?`, base
+`04000`, key `980F/980F`) and "flash 856014 s1 00 s2 02 back"; then the
+address pattern, which stayed. No test screen; no LED lit and no button
+lit one.
+
+- **What that rules out.** The round trip came back (its row). The
+  pattern is sent after band 3 and after the store's counter step, so
+  that step returned too; the hang is after the pattern goes out: band 4's
+  wait for the pattern's chain, the display-on command, the idle wait for
+  the test screen, or the test screen's drawing. Buttons lighting nothing
+  fits: only the main loop lights them, and it comes after the test screen.
+  The round trip's LEDs couldn't be seen in start3: the scan, started a
+  few milliseconds later, drives the same shift register and lines.
+- **The flash at `0xFC000`.** Because the store's step returned, its
+  `store_put` most likely ran: on a blank region it erases and writes in
+  the store's region, `0xFC000` to `0xFEFFF`, and nowhere else. start3b's
+  store row shows what it found: a count of 2 or more at its first start
+  means start3's write landed.
+- **The suspects, and how start3b tells them apart.** Core 1 is released
+  after the store's step now, and the unit's build watches the tick for
+  300 beats after each (a spin, its row red if the beats stand still).
+  The wait for the test screen is a watched spin; idle follows alone for
+  20 beats. Each step names itself in the step row as it begins. Every row
+  is one transfer whose end is polled, so a row is drawn even with
+  interrupts stopped.
+- **The window's `CON`.** It reads back on the unit, as about the quad
+  mode word HW-128 gives (bits 23 to 20 at 9): part of SR-17's question,
+  relayed from a photo with one digit uncertain. start3b shows it again.
+
