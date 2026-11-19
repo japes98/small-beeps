@@ -3352,9 +3352,9 @@ protects.
 
 Read under the owner's request for SR-17 (2026-11-19, PROVENANCE P-502),
 from m-bootloader at the commit HW-123 and HW-128 used (`src/platform.c`,
-`src/boot.c`, `docs/SPEC.md` §3.4, §3.6, §5.3 and §7), the SDK's `WL82.h` (as
-HW-84) and FM-1-RE's storage document (as HW-84). HW-132 adds to HW-128;
-HW-128 stands.
+`src/boot.c`, `docs/SPEC.md` §3.4, §3.6, §5.3 and §7) and the SDK's
+`WL82.h` (as HW-84), with the owner's first start3 result from a unit
+(item 4). HW-132 adds to HW-128; HW-128 stands.
 
 ### HW-132: The window's BAUD and mode word as m-bootloader sets them, and what CON reads
 - Fact: For the code window's controller (`JL_SFC`, `0x00040200`, HW-84):
@@ -3387,12 +3387,16 @@ HW-128 stands.
      runs markedly slower (its `docs/SPEC.md`). Nothing tells the app which
      width it got, except the mode word, if `CON` reads it back (item 4).
   4. **Whether `CON` reads back:** the SDK marks `CON` read and write;
-     `BAUD`, `CODE` and `BASE_ADR` are write only. FM-1-RE (medium
-     confidence) describes the FM-1's firmware waiting for bit 31 of
-     `0x00040200` to clear before a direct flash command, so at least bit
-     31 reads as a state, not as the mode word's bit. m-bootloader never
-     reads `CON`. No allowed source says that a read returns the mode
-     word last written. start3's "window CON" row on a unit settles it.
+     `BAUD`, `CODE` and `BASE_ADR` are write only. m-bootloader never
+     reads `CON`, and no allowed written source says that a read returns
+     the mode word last written. The owner relays (not yet taken as a
+     fact here) start3's first result on the owner's unit (image
+     `99e769ea…`, identity `FM-1_0.10.0-hw3`), after m-bootloader's
+     give-back: its "win" row showed `CON` non-zero, read from a phone
+     photo as `0x0098038?` (the last digit uncertain), apparently the
+     quad word `0x00980381`, and not its "reads 0" line. A build that
+     holds the start-up rows on screen confirms the digits; until then
+     the give-back below doesn't depend on it.
   5. **Whether writing `CON` changes `BAUD`:** no allowed source says.
      m-bootloader writes `BAUD` after its two `CON` writes and before the
      mode word, every time, so a give-back in that order doesn't depend
@@ -3411,10 +3415,11 @@ HW-128 stands.
   visible; single width is markedly slower), §3.6 (the mode word table,
   bits 23-20), §5.3 (the built-in values, `SPI` `4_1_0_0`), §7 (the
   start's flash steps); SDK `WL82.h` lines 39-44 (`JL_SFC`, which
-  registers are read-write and which write-only); RE
-  `docs/io/09-storage.md` §1 (the wait on bit 31).
-- Standing: confirmed (MB, SDK, RE; whether `CON` reads back the mode
-  word, and whether a `CON` write changes `BAUD`, not shown)
+  registers are read-write and which write-only); the owner's start3
+  result (item 4, relayed).
+- Standing: confirmed (MB, SDK; whether `CON` reads back the mode word:
+  the owner's first unit reading, to be confirmed; whether a `CON` write
+  changes `BAUD`, not shown)
 - Needed by: M7, BR-17 (Phase B)
 
 ## Open questions

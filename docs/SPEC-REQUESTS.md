@@ -766,9 +766,11 @@ an issue or a pull request against docs/HARNESS.md.
      the same built-in divider it gives SPI0, after `CON` = `0x00F00000`
      and `CON` = 0 and before the mode word.
   2. **Whether `CON` reads back:** the SDK marks it read-write, but no
-     allowed source shows a read giving the mode word. FM-1-RE describes
-     bit 31 read as a state (an idle wait), and m-bootloader never reads
-     it. Open: start3's "window CON" row on a unit settles it.
+     allowed written source shows a read giving the mode word, and
+     m-bootloader never reads it. start3's first result on the owner's
+     unit, relayed from a photo, shows `CON` non-zero, apparently
+     `0x00980381`; to be confirmed by the build that holds its rows on
+     screen.
   3. **Whether a `CON` write changes `BAUD`:** not shown. Writing `BAUD`
      after the two `CON` writes, as m-bootloader does, doesn't depend on
      it.

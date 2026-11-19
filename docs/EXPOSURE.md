@@ -3034,6 +3034,29 @@ SR-3 wrote only its barrier-log row.*
   mode word it uses; nothing changed.
 - Disk: about 3.3 GB free.
 
+### Session spec-start3-unit (start3's unit result; FM-1-RE's bit-31 fact withdrawn)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-flash-protect and spec-sr17
+  (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on `spec/flash-protect` (#196).
+- The owner's message, saved as docs/prompts/spec-start3-unit.md: start3's
+  first result on the owner's unit, and the question which ruling allows
+  FM-1-RE as HW-132's source for `CON` bit 31.
+- **Withdrawn:** HW-132 item 4 and SR-17 item 2 said, from FM-1-RE's
+  `docs/io/09-storage.md` §1 (read in spec-sr17, P-502), that the FM-1's
+  firmware waits for `CON` bit 31 to clear. FM-1-RE itself is allowed
+  (CONTRIBUTING.md, "Firmware side may use" and "Spec side and the stock
+  firmware"; `docs/prompts/spec-1027.md`), and the spec side keeps its
+  storage document under the owner's evening-1024 ruling
+  (`docs/prompts/evening-1024.md`; PLAN.md), but only for its hardware
+  facts. That sentence described the stock firmware's own routine, which
+  the ruling leaves out, so it is taken out of both; the unit's reading
+  replaces it, relayed and to be confirmed. The firmware side never saw it
+  (#196 is unmerged). P-502 is annotated.
+- Read: nothing new; this repository's own files only.
+- Disk: about 3.3 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
