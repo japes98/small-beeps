@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 7561f0ae3ca53626c8b05e7b319edb1f10b625a4..5f56a5f79e3fa0e7f07df274095bc860d91fdf2b
+OK     1753001e0b1d spec: SR-16 in full (HW-125 to HW-130); fwtest 0.11.0, the panel's chip select
+EXEMPT d73223a72126 (merge) merge: main (#191) into SR-16
+OK     2f5481473f84 spec: patch 0018 without the four flagged words; record fails on any job
+OK     7a8d6abff5b2 docs: EXPOSURE notes how #192's C-SEP-TERMS hits were settled
+EXEMPT 5f56a5f79e3f (merge) Merge pull request #192 from japes98/spec/sr16
+5 commit(s) checked: PASS
+
+exit status 0
