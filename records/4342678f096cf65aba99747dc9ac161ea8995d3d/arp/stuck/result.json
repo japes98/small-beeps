@@ -1,0 +1,68 @@
+{
+  "fwtest": {
+    "version": "0.11.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 55488,
+    "sha256": "aae50b29c21a34c91f194ad43679aba8fe99f867e90e32b0199269c153ca0896"
+  },
+  "script_sha256": "9d5dbe46c4466fda62abc139221655ad2cce66b44feb74c0e16cfc2c87f8f4f4",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "5800.611",
+    "instructions": {
+      "core0": 19165512,
+      "core1": 5297437
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 1023276,
+        "sha256": "cbc85958f3be895d3a6893b80f7e2abb0920a0366bdda5ee55ac17101c6612c5"
+      },
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "ipb.csv",
+        "bytes": 87639,
+        "sha256": "76b569f55f1d5a2c81193962dec7cbaf25defcd67384f1deb47bcee51528de42"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 5890,
+        "sha256": "3ffa1e59a5fbdbbf6a3f840abfe911ab999a60f06f679d111c9f63d99d407224"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 6649,
+        "sha256": "ef36583778ae4320480e738ec8aa6ecfd0c4f3e4128fd8b9e5d5f0ac09e63d65"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "f0ae230e8fa82de1afc824f316b11b138cdbe2e3557f521df58118698ee82498"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "a09a5153be82c4d53dbdf9d6ad2301ce75fa62b4e2b04bb481175c9fec274f58"
+      },
+      {
+        "name": "ram-01c008d0-e0-end.bin",
+        "bytes": 224,
+        "sha256": "a044056b19107d9f23364a81a30752f959a5e854dc68611a22529e1bb4874555"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

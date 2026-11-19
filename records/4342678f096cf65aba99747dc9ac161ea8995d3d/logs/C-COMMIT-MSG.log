@@ -1,0 +1,12 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 6aa273a9083dc4f662f47a810e587b4fff40e25a..4342678f096cf65aba99747dc9ac161ea8995d3d
+OK     604baf8cc82c sessions: clean-br17-finder starts (nothing to archive)
+OK     02789a237a5d firmware: the knob finder, and core 1's release read back (BR-17)
+OK     2f6db6826bd1 spec: the owner's unit as a fact source (UNIT, HW-133); BAUD in the give-back
+EXEMPT 70ed354be350 (merge) merge: main (#196's merge) into the unit-facts change
+EXEMPT 68d47a29a076 (merge) merge: clean's #197 (the knob finder) into the unit-facts change
+OK     217490e81d96 harness: fwtest 0.12.0's published digest in HARNESS.md
+OK     d16e5f72bd7d spec: HW-134 supersedes HW-132 (CON as read, BAUD in the give-back)
+EXEMPT 4342678f096c (merge) Merge pull request #198 from japes98/spec/flash-protect
+8 commit(s) checked: PASS
+
+exit status 0

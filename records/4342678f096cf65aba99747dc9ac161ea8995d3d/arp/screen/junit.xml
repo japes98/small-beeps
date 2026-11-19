@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="4" failures="0">
+  <testsuite name="fwtest" tests="4" failures="0">
+    <testcase classname="fwtest" name="run"/>
+    <testcase classname="fwtest" name="golden lcd-1350ms.png"/>
+    <testcase classname="fwtest" name="golden lcd-2250ms.png"/>
+    <testcase classname="fwtest" name="golden lcd-3000ms.png"/>
+  </testsuite>
+</testsuites>
