@@ -3217,6 +3217,30 @@ SR-3 wrote only its barrier-log row.*
   `firmware/src/hw_start3.c` for the finder's column words.
 - Disk: about 3.4 GB free.
 
+### Session clean-br17-encoders (BR-17: the encoders, core 1 by B's release, PRESETS)
+- Date: 2026-11-19 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.328, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-core1's, continued after a reboot of the owner's computer.
+  The owner's message (core 1's and finder's results, the next build) and
+  its follow-up on SELECT saved unedited as
+  docs/prompts/clean-br17-encoders.md.
+- Start: #203 found merged; the clean folder updated to main
+  (`a05655ed`) by `tools/clean-update.sh`, no spec-side file on disk or
+  in `.git`. Nothing to archive. Open pull requests listed by number only
+  (the spec side's #204) before SR-19 and P-79 were numbered.
+- Before it, #203's conflict with main (#202) was resolved keeping both
+  EXPOSURE entries (`e6b7ac79`); local main was first updated by
+  `tools/clean-update.sh`, since a merge of the remote's main needed
+  objects lazy fetching (off) would have downloaded.
+- Reads: this side's own code; HARDWARE-SPEC HW-34, HW-38, HW-56, HW-85,
+  HW-117, HW-129, HW-133, HW-135.
+- Disk: 10 GB free at the start.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
