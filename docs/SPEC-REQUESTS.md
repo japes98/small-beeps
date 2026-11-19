@@ -821,3 +821,40 @@ an issue or a pull request against docs/HARNESS.md.
      chip only through FM-1-RE, and that release has the steps above.
 - Answered: 2026-11-19, session spec-sr18 (spec side)
 
+### SR-19: The unit's encoders and core 1's release, and where PRESETS might be
+- Asked: 2026-11-19, session clean-br17-encoders (firmware side), for BR-17
+  (R-HW-1)
+- Question:
+  1. **Record as UNIT facts, if the owner rules so** (as HW-133), from
+     start3c and finder1 on the owner's unit (docs/prompts/
+     clean-br17-encoders.md):
+     - core 1 runs after m-bootloader's call when released by HW-135's
+       steps 1 and 3 alone: the start word, `C1_CON` bit 3 set, then bit
+       1 cleared. `SYS_DIV` is not needed. `C1_CON` read `0x01000002`
+       before, `0x01000002` after bit 3 was set (bit 3 not read back),
+       and `0x01000000` after bit 1 was cleared;
+     - the encoders' cells: SELECT at columns 0 and 1, ALGORITHM at 2 and
+       3, KNOB4 at 4 and 5, KNOB3 at 6 and 7, and KNOB2 at 8 and 9, all
+       on PA0 with its pull-up on; KNOB1 at 8 and 9 on PA5 (HW-133's
+       columns, with its row). These are the cells fwtest's HW-38 gives
+       its encoders 0, 1, 5, 4, 3 and 2.
+  2. **PRESETS:** HW-38 puts fwtest's encoder 6 at columns 0 and 1 on
+     row 5, PB7 (HW-34). On the unit PB7 had no pull-up (`PU` port B
+     `0000`), as PA0 had none, and the finder saw nothing for PRESETS. The
+     next build pulls PB7 up and reads it as row 5. If PRESETS still
+     doesn't show:
+     - port E's, F's and G's register addresses on the chip, and whether
+       an app may read their inputs while the flash runs from port D (HW-85
+       leaves D to G to the chip);
+     - which pins the FM-1-RE or other allowed sources say the FM-1's
+       firmware reads for PRESETS.
+  3. **The phase order on the unit:** which contact of each encoder
+     closes first for a clockwise turn (Q-7, "which physical turn is
+     clockwise"). The next build shows each detent's leading column; the
+     owner's slow turns will give it.
+- Why: the hardware build (`firmware/src/input.c`) now decodes the six
+  encoders at those cells, with the scan's table (HW-38's layout, which
+  is emulator-only). The unit agreeing with it is a relayed observation,
+  not yet a fact in HARDWARE-SPEC.
+- Status: open
+

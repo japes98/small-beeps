@@ -411,11 +411,13 @@ static void sweep(void)
 
 /* After sb_irq_init has written the vector table, whose slot 126 this is;
  * nothing writes that slot afterwards. */
-/* HW-135's release, in its order: 1. the start word; 2. SYS_DIV bit 3 set,
- * from the value read first; 3. C1_CON bit 3 set, then bit 1 cleared;
- * 4. a wait for core 1's own flag (HW_C1_WAIT_MS at most), then SYS_DIV
- * put back exactly as read. With SB_HW_CORE1_NO_SYSDIV (the variant),
- * steps 1 and 3 only: SYS_DIV read, never written. Each register is read
+/* Core 1's release as the owner's unit showed it works (clean-br17-encoders:
+ * start3c's B started core 1 as A did): HW-135's steps 1 and 3, the start
+ * word, then C1_CON bit 3 set and bit 1 cleared, and a wait for core 1's
+ * own flag (HW_C1_WAIT_MS at most); SYS_DIV read, never written. With
+ * SB_HW_CORE1_SYSDIV (start3c's A, kept for the record), HW-135's full
+ * order: SYS_DIV bit 3 set from the value read before C1_CON, and put
+ * back exactly as read after the wait, with core 1's screen. Each register is read
  * back after each write, and the corex2 words 0x80 to 0x8F (Q-17: per-core
  * counters whose meaning the SDK doesn't state) before, for a sign of core
  * 1 that doesn't rest on what core 0 sees of its stores (Q-18). */
@@ -432,7 +434,7 @@ void hw_core1_start(void)
     C1_START = hw3.c1_fn;
     SYNC();
     hw3.c1_word = C1_START;
-#if !defined(SB_HW_CORE1_NO_SYSDIV)
+#if defined(SB_HW_CORE1_SYSDIV)
     SYS_DIV = hw3.sd_before | 1u << 3;
     SYNC();
     hw3.sd_set = SYS_DIV;
@@ -449,7 +451,7 @@ void hw_core1_start(void)
         ;
     hw3.c1_seen = hw_core1_flag;
     hw3.c1_wait_ms = sb_beacon.beats - t;
-#if !defined(SB_HW_CORE1_NO_SYSDIV)
+#if defined(SB_HW_CORE1_SYSDIV)
     SYS_DIV = hw3.sd_before;
     SYNC();
 #endif
@@ -458,10 +460,11 @@ void hw_core1_start(void)
     hw_step(hw3.c1_seen ? "core 1: its sign seen" : "core 1: no sign (timed out)");
 }
 
-/* SB_HW_HOLD: core 1's screen, a second or more after the release, held
- * HW_HOLD_MS: every value the release read, the corex2 words before and a
- * second after (yellow where they changed), core 1's counter. */
-#if defined(SB_HW_HOLD)
+/* SB_HW_HOLD with SB_HW_CORE1_SYSDIV: core 1's screen, a second or more
+ * after the release, held 2 x HW_HOLD_MS: every value the release read,
+ * the corex2 words before and a second after (yellow where they changed),
+ * core 1's counter. */
+#if defined(SB_HW_HOLD) && defined(SB_HW_CORE1_SYSDIV)
 static void c1_big(u32 y, const char *label, u32 v, u32 colour)
 {
     char t[24], *p = t;
@@ -473,20 +476,15 @@ static void c1_big(u32 y, const char *label, u32 v, u32 colour)
 }
 #endif
 
-void hw_core1_screen(void)
+#if defined(SB_HW_HOLD) && defined(SB_HW_CORE1_SYSDIV)
+static void core1_draw(void)
 {
-#if defined(SB_HW_HOLD)
     char t[24], *p;
     u32 i, white = RGB565(31, 63, 31), dim = RGB565(16, 32, 16), y = 4;
 
-    while (sb_beacon.beats - hw3.c1_at < 1000u)
-        ;
-    for (i = 0; i < 16; i++)
-        hw3.x2_after[i] = COREX2_WORD(i);
-    hw3.count1 = hw_core1_count;
     lcd_wait();
     gfx_fill(0, 0, SCREEN_W, SCREEN_H, RGB565(0, 0, 0));
-#if defined(SB_HW_CORE1_NO_SYSDIV)
+#if !defined(SB_HW_CORE1_SYSDIV)
     gfx_text(6, y, "CORE1 B: no SYSDIV", RGB565(0, 63, 31), RGB565(0, 0, 0), 2);
 #else
     gfx_text(6, y, "CORE1 A: HW-135", RGB565(0, 63, 31), RGB565(0, 0, 0), 2);
@@ -505,7 +503,7 @@ void hw_core1_screen(void)
     y += 16;
     c1_big(y, "SD    ", hw3.sd_before, white);
     y += 16;
-#if defined(SB_HW_CORE1_NO_SYSDIV)
+#if !defined(SB_HW_CORE1_SYSDIV)
     gfx_text(6, y, "SD+3  --------", dim, RGB565(0, 0, 0), 2);
 #else
     c1_big(y, "SD+3  ", hw3.sd_set, white);
@@ -536,6 +534,24 @@ void hw_core1_screen(void)
     i = sb_beacon.beats;
     while (sb_beacon.beats - i < 2u * HW_HOLD_MS)
         ;
+}
+#endif
+
+/* SB_HW_HOLD: a second or more after the release, the corex2 words and
+ * core 1's counter sampled again; with SB_HW_CORE1_SYSDIV, core 1's screen. */
+void hw_core1_screen(void)
+{
+#if defined(SB_HW_HOLD)
+    u32 i;
+
+    while (sb_beacon.beats - hw3.c1_at < 1000u)
+        ;
+    for (i = 0; i < 16; i++)
+        hw3.x2_after[i] = COREX2_WORD(i);
+    hw3.count1 = hw_core1_count;
+#if defined(SB_HW_CORE1_SYSDIV)
+    core1_draw();
+#endif
 #endif
 }
 
@@ -983,6 +999,21 @@ static void f_sweep(void)
     hw_find.sweeps++;
 }
 
+/* The encoder a cell belongs to, as a short tag: KNOB1 at columns 8 and 9
+ * on PA5 (HW-133 item 6); the others where the unit showed them, on PA0
+ * (finder1 and start3c, relayed: clean-br17-encoders); PRESETS where the
+ * scan's table puts it, on PB7, not yet seen ("P?"). */
+static const char *f_tag(u32 col, u32 port, u32 bit)
+{
+    if (port == 0 && bit == 5 && (col == 8 || col == 9))
+        return "K1 ";
+    if (port == 0 && bit == 0 && col < 10)
+        return col == 0 || col == 1 ? "SEL " : col < 4 ? "ALG " : col < 6 ? "K4 " : col < 8 ? "K3 " : "K2 ";
+    if (port == 1 && bit == 7 && col < 2)
+        return "P? ";
+    return "";
+}
+
 static void f_draw_line(u32 i)
 {
     struct hw_find_line *l = &hw_find.line[i];
@@ -1008,9 +1039,7 @@ static void f_draw_line(u32 i)
         }
     } else {
         if (l->kind == F_CELL) {
-            /* KNOB1 is at columns 8 and 9 (HW-133 item 6). */
-            if (l->col == 8 || l->col == 9)
-                p = put_s(p, "KNOB1 ");
+            p = put_s(p, f_tag(l->col, l->port, l->bit));
             p = put_s(p, "c");
             p = put_dec(p, l->col);
             p = put_s(p, " ");

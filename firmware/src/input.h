@@ -139,6 +139,7 @@ void input_start(void);
 void input_scan(void) SB_SLOT_HANDLER;
 #if defined(SB_HW_FM1)
 void input_scan_restart(void);
+u32 input_lead(u32 control);
 #endif
 
 #endif

@@ -276,6 +276,38 @@ static void hw_show_master(int v)
     lcd_send_rect(HW_EVENT_X, HW_EVENT_Y, HW_EVENT_W, 16);
 }
 
+/* An encoder's detent (clean-br17-encoders), on the event line: its name,
+ * +1 or -1 as the scan decodes it (HW-38's order: +1 when the B contact,
+ * the higher column, closes first), and the column that closed first. */
+static void hw_show_turn(u32 control, int d)
+{
+    static const char names[7][10] = {
+        "SELECT", "PRESETS", "ALGORITHM", "KNOB1", "KNOB2", "KNOB3", "KNOB4",
+    };
+    char text[24];
+    const char *n = names[control - INPUT_SELECT];
+    u32 i = 0, lead = input_lead(control);
+
+    while (*n)
+        text[i++] = *n++;
+    text[i++] = ' ';
+    text[i++] = d > 0 ? '+' : '-';
+    text[i++] = '1';
+    text[i++] = ' ';
+    text[i++] = 'c';
+    if (lead > 15) {
+        text[i++] = '?';
+    } else {
+        if (lead >= 10)
+            text[i++] = '1';
+        text[i++] = (char)('0' + lead % 10);
+    }
+    text[i] = 0;
+    gfx_fill(HW_EVENT_X, HW_EVENT_Y, HW_EVENT_W, 16, RGB565(0, 0, 0));
+    gfx_text(HW_EVENT_X, HW_EVENT_Y, text, RGB565(31, 63, 0), RGB565(0, 0, 0), 2);
+    lcd_send_rect(HW_EVENT_X, HW_EVENT_Y, HW_EVENT_W, 16);
+}
+
 static void hw_serve(void)
 {
     struct input_event e;
@@ -286,6 +318,16 @@ static void hw_serve(void)
                 hw_show_master(e.value);
             continue;
         }
+        if (e.kind == INPUT_TURN && e.control >= INPUT_SELECT && e.control <= INPUT_KNOB4) {
+            if (sb_beacon.screen == SB_SCREEN_TEST)
+                hw_show_turn(e.control, e.value);
+            continue;
+        }
+#if defined(SB_HW_FINDER)
+        /* HOME opens the knob finder, for good (hw_start3.c). */
+        if (e.control == INPUT_HOME && e.kind == INPUT_PRESS)
+            hw_finder();
+#endif
         if (e.control >= INPUT_LEDS || (e.kind != INPUT_PRESS && e.kind != INPUT_RELEASE))
             continue;
         input_led(e.control, e.kind == INPUT_PRESS ? INPUT_LED_FULL : 0);
@@ -540,10 +582,6 @@ int main(void)
     /* start3's rows on the test screen (hw_start3.c). */
     lcd_wait();
     hw_rows_all();
-#if defined(SB_HW_FINDER)
-    /* The knob finder's screen, for good (hw_start3.c). */
-    hw_finder();
-#endif
 #endif
 #endif
 #if defined(SB_TEST_STORE_WIPE)

@@ -214,11 +214,12 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   the first's flash; the matrix grid shows column 10, PA6, while PLAY is
   held; ADC channel 4 follows the pot; core 1's counter rises; only the
   window's registers are unmodelled. The shipping build tries neither.
-- core1 (BR-17, clean-br17-core1): core 1's release in HW-135's order is
-  checked in hw3's held run (SYS_DIV read, set with bit 3, put back as
-  read; C1_CON's bit 1 cleared; core 1's own flag seen; its counter
-  running); this case builds the variant, SB_HW_CORE1_NO_SYSDIV (steps 1
-  and 3 only, SYS_DIV never written), and checks the same but for SYS_DIV.
+- core1 (BR-17, clean-br17-core1): core 1's release, since
+  clean-br17-encoders B's (HW-135's steps 1 and 3: C1_CON bit 3 set and
+  bit 1 cleared, SYS_DIV never written; the unit showed it starts core 1),
+  is checked in hw3's held run (core 1's own flag seen, its counter
+  running); this case builds start3c's A, SB_HW_CORE1_SYSDIV (SYS_DIV bit
+  3 set and put back as read), and checks that too.
   fwtest starts core 1 at either step (HW-10), so neither run tells which
   the chip needs.
 - finder (BR-17, clean-br17-finder): the knob finder, SB_HW_FINDER, with
@@ -1566,7 +1567,7 @@ def case_hw3(a, work, log):
     h3, c1 = sy["hw3"], sy["hw_core1_count"]
     script = os.path.join(b, "press.script")
     with open(script, "w") as f:
-        f.write("3000 key %d down\n3800 key %d up\n4600 pot 300\n" % (HW_LED, HW_LED))
+        f.write("3000 key %d down\n3800 key %d up\n4600 pot 300\n5400 enc 6 +1\n" % (HW_LED, HW_LED))
 
     def run(name, ms, *opts):
         out = os.path.join(work, name)
@@ -1581,14 +1582,20 @@ def case_hw3(a, work, log):
         core1 = [struct.unpack("<I", ram(out, c1, 4, w))[0] for w in ("2000ms", "end")]
         return out, hw3_record(ram(out, h3, HW3_LEN, "end")), core1
 
-    out, e, core1 = run("first", 6000, "--script", os.path.relpath(script, ROOT), "--lcd", "4400", "--lcd", "end")
+    out, e, core1 = run("first", 6000, "--script", os.path.relpath(script, ROOT), "--lcd", "4400", "--lcd", "5200",
+                        "--lcd", "end")
     # MASTER (channel 4, HW-133) moved to 300 at 4.6 s: the event line,
-    # which named PLAY's release before it, names it after.
+    # which named PLAY's release before it, names it after. Then one detent
+    # of fwtest's encoder 6 (PRESETS, row 5: PB7, clean-br17-encoders) at
+    # 5.4 s, named after it in yellow.
     _, _, before = fws.read_png(os.path.join(out, "lcd-4400ms.png"))
+    _, _, mid = fws.read_png(os.path.join(out, "lcd-5200ms.png"))
     _, _, last = fws.read_png(os.path.join(out, "lcd-end.png"))
     box = [(x, y) for y in range(104, 120) for x in range(26, 214)]
-    if all(before[y][x] == last[y][x] for x, y in box) or not any(last[y][x] == (255, 255, 255) for x, y in box):
+    if all(before[y][x] == mid[y][x] for x, y in box) or not any(mid[y][x] == (255, 255, 255) for x, y in box):
         problems.append("first: MASTER's move not named on the test screen's event line")
+    if not any(last[y][x] == (255, 255, 0) for x, y in box):
+        problems.append("first: PRESETS' detent (PB7, row 5) not named on the test screen's event line")
     held = hw3_record(ram(out, h3, HW3_LEN, "3500ms"))
     for k, v in (("id", 0x856014), ("tried", 1), ("back", 1), ("idle_timeouts", 0), ("stored", 1), ("count", 1),
                  ("put_result", 0), ("get_result", -1)):
@@ -1633,7 +1640,7 @@ def case_hw3(a, work, log):
                "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN),
                "--ram", "0x%08x:%d@end" % (hh, HW3_FULL_LEN))
     bc = fws.beacon(ram(hout, BEACON_ADDR, fws.BEACON_LEN))
-    problems += core1_problems("hold", hw3_record(ram(hout, hh, HW3_FULL_LEN, "end")), True)
+    problems += core1_problems("hold", hw3_record(ram(hout, hh, HW3_FULL_LEN, "end")), False)
     if r["run"]["outcome"] != "completed" or bc["screen"] != 2 or bc["halt_reason"]:
         problems.append("hold: %s, screen %d, halt %d (the test screen, no halt)"
                         % (r["run"]["outcome"], bc["screen"], bc["halt_reason"]))
@@ -1667,7 +1674,10 @@ def case_finder(a, work, log):
     hf = fws.elf_symbols(os.path.join(b, "app.elf"))["hw_find"]
     script = os.path.join(b, "finder.script")
     with open(script, "w") as f:
-        f.write("3500 key %d down\n3800 key %d up\n4200 enc 2 +1\n4800 pot 300\n" % (HW_LED, HW_LED))
+        # HOME opens the finder (clean-br17-encoders); its release falls in
+        # the hands-off time, so its own cell may be marked noisy.
+        f.write("1500 key 8 down\n1550 key 8 up\n3500 key %d down\n3800 key %d up\n4200 enc 2 +1\n4800 pot 300\n"
+                % (HW_LED, HW_LED))
     out = os.path.join(work, "run")
     r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "6000", "--script", os.path.relpath(script, ROOT),
                "--lcd", "end", "--ram", "0x%08x:%d@end" % (hf, FIND_LEN))
@@ -1685,7 +1695,7 @@ def case_finder(a, work, log):
     if not adc or adc["value"] != 300 or adc["nlevels"] != 1 or adc["l0"] != 900:
         problems.append("finder: channel 4's line %s (300, from 900)" % adc)
     others = set(got) - set(want) - {(3, 0, 0, 4)}
-    if others or noisy or dropped or learning or not sweeps:
+    if others or noisy > 2 or dropped or learning or not sweeps:
         problems.append("finder: other lines %s, noisy %d, lost %d, learning %d, sweeps %d"
                         % (sorted(others), noisy, dropped, learning, sweeps))
     print("finder: PLAY as cell (10, PA6), encoder 2's detent as cells (8, PA5) and (9, PA5), the pot as channel 4"
@@ -1694,15 +1704,15 @@ def case_finder(a, work, log):
 
 
 def case_core1(a, work, log):
-    """Core 1's release, the variant (SB_HW_CORE1_NO_SYSDIV): HW-135's steps
-    1 and 3 only, SYS_DIV read and never written. fwtest starts core 1 at
-    C1_CON bit 3 here (HW-10), so its sign is seen; the unit tells the two
-    variants apart."""
+    """Core 1's release with SB_HW_CORE1_SYSDIV, start3c's A: HW-135's full
+    order, SYS_DIV bit 3 set and put back as read. The default since
+    clean-br17-encoders is B's (steps 1 and 3), checked in hw3's held run;
+    fwtest starts core 1 at either (HW-10)."""
     problems = []
     fws = fw_suite()
     b = os.path.join(work, "build")
     build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
-          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_CORE1_NO_SYSDIV")
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_CORE1_SYSDIV")
     h = fws.elf_symbols(os.path.join(b, "app.elf"))["hw3"]
     out = os.path.join(work, "run")
     r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "9000", "--lcd", "end",
@@ -1716,8 +1726,8 @@ def case_core1(a, work, log):
     if bc["screen"] != 2 or bc["halt_reason"]:
         problems.append("core1: screen %d, halt %d (the test screen, no halt)" % (bc["screen"], bc["halt_reason"]))
     w = hw3_record(ram(out, h, HW3_FULL_LEN, "end"))
-    problems += core1_problems("core1", w, False)
-    print("core1: the variant (steps 1 and 3, SYS_DIV untouched at %08x): core 1's sign seen after %d ms, C1_CON"
+    problems += core1_problems("core1", w, True)
+    print("core1: A (HW-135's full order, SYS_DIV %08x set with bit 3 and put back): core 1's sign seen after %d ms, C1_CON"
           " %08x > %08x > %08x; the test screen reached" % (w["sd_before"], w["c1_wait_ms"], w["c1_pre"],
                                                             w["c1_post"], w["c1_clr1"]))
     return problems

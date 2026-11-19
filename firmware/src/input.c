@@ -23,14 +23,17 @@
  * give them, each shift register edge its own read-modify-write of OUT
  * with csync after it, the LED lines low while a column changes, and the
  * slot run from TIMER0's interrupt (main.c's hw_slot), not TIMER1, whose
- * clock on the chip HARDWARE-SPEC doesn't give. Row 0 is PA0, set up as
- * PA5 to PA8 are, with its pull-up on: the owner's choice after finder1,
- * whose PA0 lines changed only while floating (HW-117 gives PA5 to PA8
- * alone; clean-br17-core1). Row 5 (PB7) is left out: its set-up on the
- * chip isn't known (Q-7, SR-16). The pot is MASTER, SARADC channel 4 (HW-133 item 5,
+ * clock on the chip HARDWARE-SPEC doesn't give. Rows 0 and 5 are PA0 and
+ * PB7, set up as PA5 to PA8 are, with their pull-ups on: PA0 the owner's
+ * choice after finder1 (clean-br17-core1), where the unit's encoders then
+ * showed at the cells this table gives them (clean-br17-encoders); PB7
+ * this build's, to look for PRESETS where the table puts it, since PB7
+ * reads without a pull-up on the unit as PA0 did (HW-117 gives PA5 to
+ * PA8 alone; SR-19). The pot is MASTER, SARADC channel 4 (HW-133 item 5,
  * HW-40), on PB6 set up by hw_adc_start before input_start. */
 #define PA_ROWS   (0xFu << 5 | 1u)      /* PA0, then PA5 to PA8 (HW-117) */
-#define HW_ROWS   0x1Fu                 /* rows 0 to 4 */
+#define PB_ROWS   (1u << 7)             /* PB7, row 5 */
+#define HW_ROWS   0x3Fu                 /* rows 0 to 5 */
 #define HW_EDGE() __asm__ volatile("csync" ::: "memory")
 /* Port A's and H's DIE, PU and PD (HW-56: +12, +16, +20). */
 #define HW_PORT_REG(port, off) (*(volatile u32 *)((u32)(port) + (off)))
@@ -122,6 +125,11 @@ static u8 enc_rows[COLUMNS];
 static u16 enc_seen[COLUMNS];
 static u8 enc_ab[ENCODERS];
 static s8 enc_steps[ENCODERS];
+#if defined(SB_HW_FM1)
+/* Per encoder: the column whose contact closed first as it left rest in
+ * its last detent, or NONE if both closed at once (clean-br17-encoders). */
+static u8 enc_lead[ENCODERS];
+#endif
 /* Each control's column << 4 | row, for its LED. */
 static u8 key_place[INPUT_LEDS];
 /* The LED lines to drive in each slot of each of 8 scans: port A's bits
@@ -224,6 +232,10 @@ static inline __attribute__((always_inline)) void turns(u32 c, u32 a_rows, u32 b
         if (ab == enc_ab[i])
             continue;
         steps = enc_steps[i] + quarter[enc_ab[i] << 2 | ab];
+#if defined(SB_HW_FM1)
+        if (!enc_ab[i])
+            enc_lead[i] = ab == 2 ? (u8)(c - 1) : ab == 1 ? (u8)c : NONE;
+#endif
         enc_ab[i] = (u8)ab;
         if (ab == 0) {
             int d = steps >= 2 ? 1 : steps <= -2 ? -1 : 0;
@@ -265,6 +277,18 @@ static void pot(void)
 void input_scan_restart(void)
 {
     slot = 0;
+}
+
+/* The column that led an encoder's last detent (enc_lead), by its
+ * control; 0xFF if none or both at once. */
+u32 input_lead(u32 control)
+{
+    u32 i;
+
+    for (i = 0; i < ENCODERS; i++)
+        if (encoders[i].control == control)
+            return enc_lead[i];
+    return NONE;
 }
 
 /* One bit into the shift registers and latched (HW-117): data, a clock
@@ -351,8 +375,7 @@ void input_scan(void)
     /* HW-34: rows 0 to 5 on PA0, PA5-PA8 and PB7, 0 while closed. */
     s--;
 #if defined(SB_HW_FM1)
-    (void)pb;
-    rows = ~((pa & 1u) | (pa >> 4 & 0x1Eu)) & HW_ROWS;
+    rows = ~((pa & 1u) | (pa >> 4 & 0x1Eu) | (pb >> 2 & 0x20u)) & HW_ROWS;
 #else
     rows = ~((pa & 1) | (pa >> 4 & 0x1Eu) | (pb >> 2 & 0x20u)) & 0x3Fu;
 #endif
@@ -455,6 +478,10 @@ void input_start(void)
     HW_PORT_REG(JL_PORTA, 12) |= PA_ROWS;
     HW_PORT_REG(JL_PORTA, 20) &= ~PA_ROWS;
     HW_PORT_REG(JL_PORTA, 16) |= PA_ROWS;
+    JL_PORTB->DIR |= PB_ROWS;
+    HW_PORT_REG(JL_PORTB, 12) |= PB_ROWS;
+    HW_PORT_REG(JL_PORTB, 20) &= ~PB_ROWS;
+    HW_PORT_REG(JL_PORTB, 16) |= PB_ROWS;
     pa_base = JL_PORTA->OUT & ~PA_OURS;
     ph_base = JL_PORTH->OUT & ~PH_OURS;
     for (i = 0; i < 16; i++)

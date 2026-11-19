@@ -4555,3 +4555,52 @@ HW-135 (SR-18's answer), with HW-9, HW-10, HW-53, HW-133, Q-17 and Q-18.
   line, driven low during the sweeps, and channels 0 and 1 are PA7 and
   PA8, rows with pull-ups: that is why they read 0 and `3FF`.
 
+### 2026-11-19 clean-br17-encoders: the encoders, core 1 by B's release, PRESETS (BR-17, R-HW-1)
+The owner's message: docs/prompts/clean-br17-encoders.md. On the unit,
+start3c's A and B both started core 1: its sign at once, its counter
+rising. `C1_CON` read `01000002`, then `01000002` after bit 3 was set,
+then `01000000` after bit 1 was cleared. `SYS_DIV` bit 3 isn't needed.
+The finder, with PA0 pulled up, showed SELECT, ALGORITHM, KNOB4, KNOB3
+and KNOB2 on PA0 at columns 0-1, 2-3, 4-5, 6-7 and 8-9, and KNOB1 at 8-9
+on PA5. PRESETS showed nothing.
+
+- **Core 1, B's release by default.** The start word, then `C1_CON` bit 3
+  set and bit 1 cleared, then the wait for core 1's flag. `SYS_DIV` is
+  read, never written. start3c's A stays behind `SB_HW_CORE1_SYSDIV`,
+  with its screen, for the record (seams case core1). Core 1 runs its
+  counting loop for good. Nothing depends on it yet. `core1.c`, the
+  firmware's own release (HW-9's bit 3 alone), is unchanged until
+  HARDWARE-SPEC records the unit's release (SR-19).
+- **The encoders.** The unit's cells are exactly where the scan's
+  encoder table (HW-38's layout, emulator-only) has SELECT, ALGORITHM,
+  KNOB4, KNOB3, KNOB2 and KNOB1. So the hardware build decodes them with
+  that table and its quadrature rule (+1 when the B contact, the higher
+  column, closes first), now that PA0 is row 0. The test screen names
+  each detent at scale 2: its name, +1 or -1, and the column that closed
+  first as the encoder left rest. A slow clockwise turn shows which
+  column leads, and so each encoder's phase order, and +1 or -1 shows
+  whether HW-38's clockwise is the unit's.
+- **PRESETS.** The table puts PRESETS at columns 0 and 1 on row 5, PB7.
+  On the unit PB7 read with no pull-up (port B's `PU` was `0000`), as PA0
+  had, so the finder couldn't see a contact close there. This build sets
+  PB7 up as PA5 to PA8 are and reads it as row 5, in the scan and in the
+  finder, which tags its cells "P?". That is the build's choice, a lead
+  rather than a fact. If PRESETS still doesn't show, SR-19 asks for port
+  E's to G's registers and any source for PRESETS' pins. Port D's masked
+  bits are the flash's pins (HW-85: PD0 to PD5, and PD6 its power gate),
+  which change with the flash's traffic, not with a control. The pins
+  this build drives are masked for the same reason.
+- **The finder** now opens when HOME is pressed on the test screen, so
+  the encoders can be tried there first. HOME's own release falls in the
+  finder's hands-off time, so its cell may be marked noisy. The finder
+  tags each cell with its encoder (K1 to K4, SEL, ALG), by column and row
+  rather than by column alone, so KNOB2 is no longer called KNOB1.
+- **SELECT on A** (only column 2 once): the owner's later runs show SELECT
+  at columns 0 and 1 every time, so that was the turning. Nothing in A's
+  finder differs from B's.
+- **Neighbouring columns** pick up a few counts (c4 with ALGORITHM, c8 with
+  KNOB3, c10 with KNOB1 and KNOB2). The scan's decoder looks at each
+  encoder's own two cells only, so this doesn't reach its detents. HW-117
+  says edges that are too short select the neighbouring column, which
+  fits.
+
