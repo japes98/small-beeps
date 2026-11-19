@@ -3175,6 +3175,27 @@ SR-3 wrote only its barrier-log row.*
   HARNESS "The flash chip" and "Versions".
 - Disk: 2.3 GB free at the start.
 
+### Session clean-br17-core1 (BR-17: core 1's release probe; PA0 as a row)
+- Date: 2026-11-19 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.328, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-protect's, continued. The owner's prompt is the file
+  `~/<top>/drop/prompts/clean-br17-core1.md`, saved unedited as
+  docs/prompts/clean-br17-core1.md. The owner's message with it, and the
+  finder1 result sent while the session worked, are saved as
+  docs/prompts/clean-br17-core1-finder1.md, the folder written as `<top>`.
+- Start: #199 and #200 found merged, #201 open, so this branch is built on
+  #201 with main merged in (`b3ad3351`, after `tools/clean-update.sh`:
+  no spec-side file on disk or in `.git`). Nothing to archive.
+  `tools/check-transcripts.py`: 26 archived transcripts, PASS.
+- Reads: HARDWARE-SPEC HW-9, HW-10, HW-53, HW-56, HW-129, HW-133, HW-134,
+  HW-135, Q-17, Q-18; SPEC-REQUESTS SR-18 (answered).
+- Disk: 4.2 GB free at the start.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
