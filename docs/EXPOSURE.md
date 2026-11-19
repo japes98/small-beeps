@@ -3019,6 +3019,27 @@ SR-3 wrote only its barrier-log row.*
   `980F/980F`. Then the address pattern, and no test screen.
 - Disk: 3.2 GB free at the start.
 
+### Session clean-br17-finder (BR-17: the knob finder, core 1)
+- Date: 2026-11-19 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.328, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-start3b's, continued. The owner's message (start3b's result,
+  and what to do next) saved unedited as docs/prompts/clean-br17-finder.md.
+- Start: nothing to archive. `tools/check-transcripts.py`: 26 archived
+  transcripts, PASS. Open pull requests listed by number and files only
+  (the spec side's #196) before SR-18 and P-76 were numbered; none opened.
+- Reads: HARDWARE-SPEC HW-9, HW-10, HW-18, HW-56, HW-64, HW-85, HW-117,
+  HW-118, HW-119, HW-129, HW-130, Q-11, Q-17.
+- On the unit (relayed): start3b ran to its test screen; the store counted
+  14, then 15; the pot is channel 4; core 1's counter stayed 0 with
+  `C1_CON` reading `01000002`.
+- Disk: 2.2 GB free at the start; this side's scratch copy and three old
+  build folders removed (2.4 GB after).
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
