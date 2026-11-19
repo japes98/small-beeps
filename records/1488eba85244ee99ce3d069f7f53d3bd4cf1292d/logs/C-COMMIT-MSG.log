@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range a05655edf76e0875c4daa1ca41f6f39a1625f569..1488eba85244ee99ce3d069f7f53d3bd4cf1292d
+OK     4d6362195b3a spec: core 1 and the encoders on the unit (HW-137, HW-138)
+OK     f4ae68ef9a53 spec: SELECT on row PA0 over several power cycles (HW-138)
+EXEMPT 1488eba85244 (merge) Merge pull request #204 from japes98/spec/core1-unit
+3 commit(s) checked: PASS
+
+exit status 0
