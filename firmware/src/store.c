@@ -80,6 +80,9 @@ static u8 record_buf[RECORD_MAX], check_buf[RECORD_MAX];
 static u8 h[BLOCK];
 
 volatile struct sb_store_record sb_store __attribute__((section(".beacon.store")));
+#if defined(SB_HW_FM1)
+volatile u32 sb_store_erase_fail;   /* erases that didn't read back all 0xFF */
+#endif
 _Static_assert(sizeof(struct sb_store_record) == 0xF0, "the store's record stays 0xF0 bytes: the engine's records follow at 0x01C00870");
 
 /* The parts the store writes to (store.h's STORE_PARTS, HW-120). */
@@ -300,7 +303,16 @@ static int erase(u32 addr)
      * (item 4), never in place of it: the chip ignores reads while busy. */
     if (wait_ready())
         return -1;
+#if defined(SB_HW_FM1)
+    /* The hardware build shows which check failed (R-HW-1). */
+    if (erased(addr)) {
+        sb_store_erase_fail++;
+        return -1;
+    }
+    return 0;
+#else
     return erased(addr);
+#endif
 }
 
 /* Programs n bytes at addr, a page program for each page they touch. */

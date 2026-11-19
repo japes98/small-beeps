@@ -42,6 +42,7 @@ run options:
                          package path does
   --script FILE          timed inputs (keys, encoders, pot, MIDI)
   --flash FILE           initial contents of the flash chip
+                         (and its status registers: two bytes past 1 MiB)
   --ram ADDR:LEN@WHEN    save LEN bytes of RAM at ADDR (hex with 0x, or decimal)
   --lcd WHEN             save the screen as PNG
   --leds-every MS        sample the LEDs every MS into leds.csv

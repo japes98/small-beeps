@@ -4263,3 +4263,131 @@ HW-83, docs/SPEC-REQUESTS.md's SR-15 and HARNESS.md's "The flash chip"
   code window to SPI0 and back on a unit (Q-22) and SPI0's clock (HW-124
   item 6). The store doesn't work on a unit until Q-22 is settled, on
   either part, so the hardware build (R-HW-1) still leaves it out.
+
+### 2026-11-19 fwtest 0.11.0: the panel's chip select in fwtest (clean-br17-start3, item 0)
+`config/fwtest-image` moves to fwtest 0.11.0
+(`sha256:34ec6720…`, published from main at `5f56a5f7`, #192), whose
+panel ignores SPI1's bytes while PC7 is an output driven high
+(HARNESS.md, "The LCD").
+- **Main's hardware build** (start2's, with PC7 driven by lcd.c) passes
+  the seams suite's hw case on 0.11.0 as on 0.10.0.
+- **Start1's build** (`58c87df3`; its package link `46bbb942…`, the bytes
+  the owner installed), rebuilt from that commit's files, now shows on
+  0.11.0 what it showed on the unit: black, then bands 1, 2 and 3, and
+  nothing more to the end of the run. Start1's own hw case fails there,
+  on three counts: the screens were black then bands 1 to 3 and no
+  pattern; no test screen; PLAY not named. So the chip select that only
+  the unit caught (clean-br17-start2) is now caught in fwtest.
+
+### 2026-11-19 clean-br17-start3: the matrix, the ADC, the flash and core 1 on a unit (BR-17, R-HW-1)
+The owner's prompt: docs/prompts/clean-br17-start3.md. The facts:
+HARDWARE-SPEC sections 27 and 28 (HW-120 to HW-130), with HW-9, HW-18,
+HW-40, HW-56, HW-85 and HW-115 to HW-119 (PROVENANCE P-75).
+- **What start3 asked that #193 already did.** Part (c) step 2 asks for
+  the store's changes from clean-sr15-flash.md. #193 (merged) made them:
+  both IDs, the refusals of an unknown ID and of any protection bit with
+  results of their own, each erase read back, the busy wait kept, the
+  test build `SB_TEST_STORE_PART`, and the cases with each part, an
+  unknown ID and each protection bit, at the default region and at
+  `0x80000`. Start3 adds only what is new: the read-only round trip with
+  its two LEDs, and the start-up counter at `0xFC000`.
+- **The reading taken for the screen.** "Each reports on the test screen
+  in rows of its own": the test screen keeps its border, its corner
+  squares, its title, start2's event line and the beat, and gives the
+  ramps', box's and font's rows to start3's. Start2's bands and its key
+  and LED test are as they were.
+- **Before the vector table** (HW-126): crt0 keeps r0 in r4 through the
+  stack fill, and `sb_start` reads the chip key at +12 of the block r0
+  pointed at before its copy. The vector table is written later, by
+  `sb_irq_init`, as before. A `csync` follows the copy (HW-127). Both
+  `ssp` and `sp` were already set before interrupts go on.
+- **(a) The matrix.** Our scan (input.c) walks one 0 bit through the
+  shift registers, one place a slot, twelve slots a cycle. With 16 bits,
+  the 0 from the cycle before is still at bits 12 to 15 while the new one
+  is at bits 0 to 3, so columns 0 to 3 are selected together with 12 to
+  15. That is our firmware's walk, not a fact about the board. The unit
+  confirmed every key under it, so start3 leaves the scan as it is.
+  About ten times a second, main sweeps instead: the scan skips its
+  slots, the LED lines go low, and each of the 16 single-zero words is
+  shifted in light1's way, rows PA5 to PA8 read at least 10 µs later.
+  Then `0xFFFF` is latched and the scan starts again from slot 0. Ports
+  A, B, C and H's inputs follow in hex, the pins this build drives itself
+  masked: PA1 to PA4, PA9, PA10, PB1, PB6, PC7 to PC10, PH6, PH9. Pull-ups
+  this build sets: PA5 to PA8 only. By default (HW-85): PD0, and PB1,
+  whose pull-up this build clears for the ADC. Every other pin is as the
+  ROM left it. In fwtest a detent of an encoder is four contact changes
+  2 ms apart that end where they began, so a sweep ten times a second
+  can't catch one there: hw3 tests the grid with a key, and the encoders
+  are the unit's to show.
+- **(b) The ADC**: channels 0 to 11 in turn, as HW-40 gives the bits, each
+  wait bounded. PB1 and PB6 are made analogue inputs as the prompt asks,
+  which is this build's choice, not section 28's.
+- **(c) The flash round trip** (HW-128), at start-up, after band 2, with
+  interrupts off, all from RAM:
+  - The window's `CON`, base and key, and the boot block's key, are shown
+    first, before anything changes, so they can be read even if
+    everything after hangs.
+  - If `CON` reads 0, nothing is tried. HW-128's quad mode word might not
+    be the width m-bootloader chose for this unit, and guessing wrong
+    would stop the window the round trip is testing (SR-17).
+  - Otherwise the build takes SPI0 as HW-128 lists, reads the ID and both
+    status bytes, and lights PLAY's LED from RAM. Then it gives the flash
+    back as HW-128 lists, except the window's `BAUD`, which has no
+    address there and which the take never wrote. It writes back the
+    `CON` it read, the base `0x4000` and the boot block's key, and bounds
+    the cache's idle wait, counting a timeout.
+  - The first thing it runs back in the window lights PLAY's and REC's
+    LEDs together (their words `0xFBFF` and `0xFF7F` ANDed).
+  If the round trip came back, the store's step follows band 3, with
+  interrupts on (every handler is in RAM): one take, `store_init`, the
+  counter's `store_get` and `store_put` (kind `0xF0`, id 0, a 4-byte
+  count), one give-back. Its row shows the count, both results, the
+  programs' and the erases' read-back failures (the latter a plain count
+  of its own, since the store's record can't grow) and the ID. A halt
+  while the flash is taken can't draw the red screen, which runs from the
+  window.
+- **(d) Core 1**: released after `sb_irq_init` (HW-9: slot 126 holds its
+  start, and nothing writes that slot afterwards), a `csync` before.
+  It runs a loop in RAM whose first instruction turns its interrupts
+  off, counting in a RAM word that main shows once a second, with
+  `C1_CON` read back.
+- **In fwtest** the window's controller isn't modelled and its `CON`
+  reads 0, so the shipping build tries no round trip there. The test
+  build `SB_TEST_HW_WINDOW` takes HW-128's quad mode word in its place,
+  and hw3 runs everything after it. Only the window's and the ciphers'
+  registers are unmodelled (`0x01F0xxxx`, the cache's ranges, is RAM in
+  fwtest, HW-7).
+- Build A is unchanged (`aae50b29…`, #193's).
+
+### 2026-11-19 clean-br17-start3b: where start3 stops on the unit (BR-17, R-HW-1)
+The owner's messages: docs/prompts/clean-br17-start3b.md, then
+docs/prompts/clean-br17-start3b-correction.md. On the unit, start3 drew
+bands 1 to 3, the window's row (`CON` non-zero, about `0098038?`, base
+`04000`, key `980F/980F`) and "flash 856014 s1 00 s2 02 back"; then the
+address pattern, which stayed. No test screen; no LED lit and no button
+lit one.
+
+- **What that rules out.** The round trip came back (its row). The
+  pattern is sent after band 3 and after the store's counter step, so
+  that step returned too; the hang is after the pattern goes out: band 4's
+  wait for the pattern's chain, the display-on command, the idle wait for
+  the test screen, or the test screen's drawing. Buttons lighting nothing
+  fits: only the main loop lights them, and it comes after the test screen.
+  The round trip's LEDs couldn't be seen in start3: the scan, started a
+  few milliseconds later, drives the same shift register and lines.
+- **The flash at `0xFC000`.** Because the store's step returned, its
+  `store_put` most likely ran: on a blank region it erases and writes in
+  the store's region, `0xFC000` to `0xFEFFF`, and nowhere else. start3b's
+  store row shows what it found: a count of 2 or more at its first start
+  means start3's write landed.
+- **The suspects, and how start3b tells them apart.** Core 1 is released
+  after the store's step now, and the unit's build watches the tick for
+  300 beats after each (a spin, its row red if the beats stand still).
+  The wait for the test screen is a watched spin; idle follows alone for
+  20 beats. Each step names itself in the step row as it begins. Every row
+  is one transfer whose end is polled, so a row is drawn even with
+  interrupts stopped.
+- **The window's `CON`.** It reads back on the unit, as about the quad
+  mode word HW-128 gives (bits 23 to 20 at 9): part of SR-17's question,
+  relayed from a photo with one digit uncertain. start3b shows it again.
+

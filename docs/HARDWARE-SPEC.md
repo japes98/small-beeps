@@ -3293,6 +3293,136 @@ and what would settle it; mostly that is a probe on a unit.
   UART1's pins open)
 - Needed by: M4, M5, M6, BR-17 (Phase B)
 
+## 29. Block protection on both flash parts (a harness request)
+
+Read under the owner's request of 2026-11-18 (clean's #193: fwtest's chip
+should ignore a protected erase or program, so the store's read-back can
+be tested; PROVENANCE P-501), from the same two datasheets as section 27
+(PUYA, UCUN). HW-121 says a protected erase or program is ignored, and
+HW-124 item 5 names the bits; HW-131 gives which bytes each setting
+protects.
+
+### HW-131: The protected area for each setting of BP0-BP4 and CMP
+- Fact: Both parts share one table, row for row (HW-122). BP4 to BP0 are
+  status register 1's bits 6 to 2, CMP is status register 2's bit 6.
+  Addresses are in the 1 MiB chip.
+  - **CMP = 0:**
+    - BP2-BP0 = `000`: nothing is protected, whatever BP4 and BP3.
+    - BP4 = 0 and BP2-BP0 = `001`, `010`, `011` or `100`: 64, 128, 256 or
+      512 KiB are protected, at the top of the chip (`0xF0000`,
+      `0xE0000`, `0xC0000` or `0x80000` to `0xFFFFF`) when BP3 = 0, at the
+      bottom (`0x00000` to `0x0FFFF`, `0x1FFFF`, `0x3FFFF` or `0x7FFFF`)
+      when BP3 = 1.
+    - BP4 = 0 and BP2-BP0 = `101`, or BP2 and BP1 both 1 (any BP4, BP3,
+      BP0): the whole chip is protected.
+    - BP4 = 1 and BP2-BP0 = `001`, `010`, `011`, or `10x`: 4, 8, 16 or
+      32 KiB are protected, at the top (`0xFF000`, `0xFE000`, `0xFC000` or
+      `0xF8000` to `0xFFFFF`) when BP3 = 0, at the bottom (`0x00000` to
+      `0x00FFF`, `0x01FFF`, `0x03FFF` or `0x07FFF`) when BP3 = 1.
+  - **CMP = 1:** each row protects exactly the bytes its CMP = 0 row
+    leaves unprotected: nothing becomes the whole chip, the whole chip
+    becomes nothing, and the top 64 KiB becomes `0x00000` to `0xEFFFF`.
+  - **Which commands are ignored:** an erase or program whose range holds
+    any protected byte is ignored, wholly. A chip erase (`0x60`, `0xC7`)
+    is carried out only when nothing is protected.
+  - **WEL and WIP after an ignored command:** PUYA says a protected
+    32 KiB block erase (`0x52`) changes nothing and still resets WEL.
+    Neither datasheet says so of the other erases and the page program,
+    nor whether WIP goes to 1 for any time; UCUN says neither for any
+    command.
+  - So a store at `0xFC000` is protected by, among others, BP0 alone
+    (the top 64 KiB), BP2 alone (the top half, which also covers
+    `0x80000`) and BP4 with BP1 and BP0 (the top 16 KiB).
+  - fwtest follows this table from 0.12.0, resetting WEL after every
+    ignored erase or program and never setting WIP for one, its own
+    choice where the datasheets are silent (HARNESS "The flash chip"); HW-83's chip, 0.6.0 to
+    0.11.0, has no block protection.
+- Sources: PUYA p. 15-16 (the two tables and note 2: an erase or program
+  touching protected data is ignored), p. 24 (when WEL resets), p. 26-27
+  (the bits), p. 40-43 (each erase and the page program: a protected one
+  not carried out; the 32 KiB erase's WEL), p. 42 (chip erase); UCUN
+  p. 9-10 (the bits), p. 10-11 (Table-6.0, Table-6.1 and
+  note 2), p. 15 (when WEL resets), p. 25-29 (each erase and program),
+  p. 28 (chip erase ignored if any block is protected).
+- Standing: confirmed (PUYA, UCUN)
+- Needed by: M7, BR-17 (Phase B); fwtest 0.12.0 (HARNESS.md, "The flash
+  chip")
+
+## 30. The code window's BAUD, its CON and its width (SR-17)
+
+Read under the owner's request for SR-17 (2026-11-19, PROVENANCE P-502),
+from m-bootloader at the commit HW-123 and HW-128 used (`src/platform.c`,
+`src/boot.c`, `docs/SPEC.md` §3.4, §3.6, §5.3 and §7) and the SDK's
+`WL82.h` (as HW-84), with the owner's start3 and start3b results from a
+unit (item 4). HW-132 adds to HW-128; HW-128 stands.
+
+### HW-132: The window's BAUD and mode word as m-bootloader sets them, and what CON reads
+- Fact: For the code window's controller (`JL_SFC`, `0x00040200`, HW-84):
+  1. **`BAUD`** is at `0x00040204` (`JL_SFC` +4). The SDK marks it write
+     only. In its give-back (HW-128 step 3) m-bootloader writes there the
+     same divider it gives SPI0's `BAUD`: its built-in SPI divider, **1**.
+     The order is `CON` = `0x00F00000`, `CON` = 0, `BAUD` = 1, then the
+     mode word. Its built-in values (`docs/SPEC.md` §5.3) equal every known
+     FM-1 configuration's `SPI` record, `4_1_0_0`: width 4, divider 1,
+     output reads. m-bootloader reads no configuration for them.
+  2. **The mode word written** is the width's output-read word with bits
+     23-20 replaced by 9. m-bootloader writes the 9 as a constant. Its
+     `docs/SPEC.md` gives it as the HSB clock in MHz times 45 / 1000,
+     plus one, which is 9 at 180 MHz. So the word written is:
+     - `0x00980381` at quad width (HW-128's `0x00280381` with 9 in bits
+       23-20);
+     - `0x00980281` at dual width;
+     - `0x00900089` at single width.
+     m-bootloader writes only output-read words. The other columns of
+     `docs/SPEC.md`'s table are not verified on hardware.
+  3. **The width it chooses:** quad (4) unless it falls back. Before the
+     window is set up, at each start, it:
+     - reads 32 bytes at single width;
+     - sets QE (status 2 bit 1), up to three more tries if it doesn't
+       stick, as HW-123 gives. Without QE it takes dual width;
+     - reads the same 32 bytes at that width, halving the width (quad,
+       dual, single) until they match.
+     The width it ends with is the window's. A fallback shows as "SPI
+     WIDTH FALLBACK" in its recovery menu, and an app at a narrower width
+     runs markedly slower (its `docs/SPEC.md`). Nothing tells the app which
+     width it got, except the mode word, if `CON` reads it back (item 4).
+  4. **Whether `CON` reads back:** the SDK marks `CON` read and write;
+     `BAUD`, `CODE` and `BASE_ADR` are write only. m-bootloader never
+     reads `CON`, and no allowed written source says that a read returns
+     the mode word last written. The owner relays (not taken as a fact
+     here beyond what was read) that on the owner's unit, after
+     m-bootloader's call, `CON` reads **`0x009803B5`**: start3b's "win"
+     row, from a clear photo. start3's earlier photo (image `99e769ea…`,
+     identity `FM-1_0.10.0-hw3`) gave `0x0098038?`, a digit uncertain.
+     So `CON` reads back, but not as the quad word m-bootloader writes
+     (`0x00980381`, item 2): bits 2, 4 and 5 read set. What those bits
+     are, and whether the read differs from what the controller holds,
+     no allowed source says.
+  5. **Whether writing `CON` changes `BAUD`:** no allowed source says.
+     m-bootloader writes `BAUD` after its two `CON` writes and before the
+     mode word, every time, so a give-back in that order doesn't depend
+     on it.
+  6. Beyond HW-128's step 6, after setting the window cipher's control to
+     1, m-bootloader sets bits 8 and 9 of `0x01EEE008` again, then does
+     the `csync`. They are already set from step 5.
+  So, by the owner's ruling, a give-back reads `CON` before the take and
+  restores the value read, after `0x00F00000`, 0 and `BAUD` = 1, rather
+  than writing m-bootloader's word. Writing `0x00980381` itself, as
+  before, would leave bits 2, 4 and 5 clear where the unit had them set;
+  that it works on the unit is not shown.
+- Sources: MB `src/platform.c` (`hal_xip`: the writes, their order, the
+  constant 9, the output-read words; `flash_init` and `flash_quad`: the
+  width checks), `src/boot.c` (the built-in values, the width carried to
+  `hal_xip`, the fallback line), `docs/SPEC.md` §3.4 (a fallback is
+  visible; single width is markedly slower), §3.6 (the mode word table,
+  bits 23-20), §5.3 (the built-in values, `SPI` `4_1_0_0`), §7 (the
+  start's flash steps); SDK `WL82.h` lines 39-44 (`JL_SFC`, which
+  registers are read-write and which write-only); the owner's start3 and
+  start3b results (item 4, relayed).
+- Standing: confirmed (MB, SDK; what `CON` reads: the owner's unit
+  reading, relayed; whether a `CON` write changes `BAUD`, not shown)
+- Needed by: M7, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -3357,11 +3487,19 @@ spec request can turn one into a fact.
   other keys' columns and rows, the encoders, and LED current.
   *Session spec-sr16 (HW-129):* no allowed source gives the rest of the
   matrix or the encoders' pins; probes on a unit.
+  *Session spec-start3b (relayed, not taken as a fact here):* the owner
+  relays from start3b on a unit that KNOB1 is in the matrix at columns 8
+  and 9, and that PRESETS looks like an encoder read through an ADC
+  channel.
 - **Q-8. The other ADC channels.** What channel 3 and the other channels
   carry on the board (fwtest gives them fixed values).
   *Session spec-sr16 (HW-129):* the SDK maps channel 3 to PB1 and 4 to
   PB6, and FM-1-RE says the FM-1's firmware reads both; which is the pot
   stays open.
+  *Session spec-start3b (relayed, not taken as a fact here):* the owner
+  relays from start3b on a unit that MASTER is channel 4, and that
+  PRESETS looks like an encoder read through an ADC channel (which one,
+  not relayed).
 - **Q-9. Audio on the chip.** How `JL_ALNK0`'s output reaches the DAC or
   codec on real hardware, which bits of each word it uses, its clock set-up
   and true rate, and the analog set-up (FM-1-RE's audio document names DAC
@@ -3447,6 +3585,11 @@ spec request can turn one into a fact.
   peripheral source enabled on both cores interrupts both. The `corex2`
   block has per-core counters (words 0x80 to 0x8F, SDK `csfr.h` lines
   119-134) whose meaning the SDK doesn't state. Settled by a probe on real hardware.
+  *Session spec-start3b (relayed, not taken as a fact here):* on the
+  owner's unit, after m-bootloader's call, core 1 did not run when
+  start3b released it as HW-9 gives (its counter stayed 0), and `C1_CON`
+  read `0x01000002` afterwards. What core 1 needs after m-bootloader's
+  call is open.
 - **Q-18. Memory seen across the cores on the chip.** Whether main RAM is
   cached, and whether a plain store by one core is seen by the other's
   next load without `csync` or a cache operation (HW-65). Settled by a
@@ -3498,6 +3641,11 @@ spec request can turn one into a fact.
   *Answered in part by session spec-sr16 (HW-128):* m-bootloader's take
   and give-back of the flash, SPI0's clock, and the cache invalidation;
   the round trip within one run of an app is not shown.
+  *Session spec-start3b (relayed, not taken as a fact here):* on the
+  owner's unit, start3's and start3b's round trip works (ID `856014`,
+  status 1 `00`, status 2 `02`, the window back), and the store's
+  power-on counter goes up one per power-on. What `CON` reads is in
+  HW-132 item 4.
 - **Q-23. Write protection on the FM-1's flash.** Whether the status
   register's block-protect bits (HW-78) are set on a shipped unit or by
   the loader, which would make erases and programs in the protected range

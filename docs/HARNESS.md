@@ -120,6 +120,31 @@ Since 0.6.0 fwtest's flash chip behaves as the P25Q80H's datasheet says
   fault) during an erase or program saves `flash.bin` (with
   `--flash-out`) as if that operation had finished: the bytes change when
   it starts. Use `--power-cut` for a cut.
+- **Block protection.** Since 0.12.0 a flash file of exactly 1 MiB and
+  two bytes more sets status registers 1 and 2 as the chip powers up:
+  the last two bytes, status 1 then status 2. Their bits 0 and 1 of
+  status 1 (busy, write enable) must be 0, or the run is refused. The
+  chip reads them back (`0x05` with the busy and write-enable bits as
+  they are, `0x35` as given), and an erase or program whose range holds a
+  byte that BP0 to BP4 and CMP protect is ignored, by `HARDWARE-SPEC.md`'s
+  table (HW-131): the bytes stay as they were, so only a read-back shows
+  it (HW-124 item 4). A chip erase goes ahead only when nothing is
+  protected.
+  - An ignored erase or program resets the write-enable bit, as the
+    P25Q80H's datasheet says of its 32 KiB erase (HW-131). fwtest's
+    choices, where the datasheets don't say: it does so for every erase
+    and program, never makes the chip busy for one, and doesn't list it
+    in `--flash-log` or count it for a power cut.
+  - The status register writes (`0x01`, `0x31`) aren't modelled: the
+    registers stay as the file gives them for the whole run.
+  - The image at `0x4000` is written whatever protects it: fwtest writes
+    it, not a command.
+  - `flash.bin` keeps the two bytes when either isn't 0, so a run's
+    `flash.bin` given as the next `--flash` keeps the protection; with
+    both 0 it is the 1 MiB chip, as before. A shorter flash file still
+    loads at offset 0, unprotected: pad it to 1 MiB to add the two bytes.
+    A tool that reads `flash.bin` as the 1 MiB chip takes its first
+    1 MiB.
 
 ## Time
 
@@ -780,9 +805,15 @@ pushing Docker compresses the layers; the image ID does not.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.12.0: block protection ("The flash chip"): a flash file 1 MiB and
+  two bytes long sets the status registers, and the chip ignores an erase
+  or program the block-protect bits cover (HW-131). Its pin is the clean
+  side's pull request, opened once the image is published.
 - 0.11.0: the panel ignores SPI1's bytes while its chip select, PC7, is
-  an output driven high ("The LCD"). Its pin is the clean side's pull
-  request, opened once the image is published.
+  an output driven high ("The LCD"). Published from main at `5f56a5f7`
+  (#192's merge, 2026-11-19) as
+  `ghcr.io/japes98/small-beeps@sha256:34ec67200e5d977c7cbfb3a49f38c3e041b4ea397f9b8ef65315aac88ca39375`;
+  pinned by the clean side's #194.
 - 0.10.0: the toolchain audit ("Instructions", "The toolchain audit"):
   the float rounding and `__fp16` forms, `fcmp` and the flag branches,
   the memory shifts by a register and `&= ~R`, the 64-bit index scaled by

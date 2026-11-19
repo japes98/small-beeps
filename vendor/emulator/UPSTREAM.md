@@ -12,8 +12,9 @@ SPDX-FileCopyrightText: 2026 japes98
 - Licence: MIT, copyright 2026 Joakim Eriksson (`LICENSE` here, copied
   unmodified).
 - What: `crates/fm1-isa`, `crates/fm1-core` and `crates/fm1-soc`, at the
-  same paths, unmodified but for the patches below (0002 to 0018: bug
-  fixes, two speed-only changes, MIDI out and the panel's chip select) and the workspace manifest
+  same paths, unmodified but for the patches below (0002 to 0019: bug
+  fixes, two speed-only changes, MIDI out, the panel's chip select and the
+  flash chip's block protection) and the workspace manifest
   `Cargo.toml` (patched, 0001). docs/EMULATOR-PARITY.md compares them with
   the F-Emulator app's.
   Nothing else from that repository: no other crates, no `fm1-sid/`, no
@@ -187,6 +188,16 @@ Applied in file-name order by the fetch script, after checkout:
   crate test `lcd_ignores_bytes_while_its_chip_select_is_high` and the
   harness test `lcd_ignores_bytes_while_pc7_is_high` (image
   `tests/images/lcdcs.c`) fail without it (fwtest 0.11.0).
+- `patches/0019-flash-block-protection.patch` (the owner's request,
+  2026-11-18, from clean's #193): `crates/fm1-soc/src/spiflash.rs`, the
+  flash chip keeps status registers 1 and 2 as given at power-up, reads
+  them back, and ignores an erase or program the block-protect bits cover
+  (HW-121, HW-131's table); fwtest takes the two registers from a flash
+  file two bytes past 1 MiB. The crate tests
+  `each_protection_setting_covers_its_rows_area` and
+  `a_protected_erase_or_program_is_ignored`, and the harness test
+  `flash_protection_from_the_flash_file` (image
+  `tests/images/flashprot.c`), fail without it (fwtest 0.12.0).
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
 and the harness suite gave byte-identical outputs (284 files) from fwtest

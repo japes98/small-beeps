@@ -843,6 +843,52 @@ fn flash_persists_and_power_cuts() {
     assert_eq!(output(&r, "flash.bin").len(), 0x100000);
 }
 
+/// HARNESS.md ("The flash chip"): a flash file 2 bytes past 1 MiB sets
+/// status registers 1 and 2; an erase or program the block-protect bits
+/// cover is ignored (HW-121, HW-131), so a read-back catches it, and
+/// `flash.bin` keeps the two bytes for the next run (patch 0019).
+#[test]
+fn flash_protection_from_the_flash_file() {
+    let img = image("flashprot");
+    let mut chip = vec![0xffu8; 0x100000];
+    chip[0x80000..0x81000].fill(0x5a);
+    let go = |file: Vec<u8>| {
+        let mut o = opts(60);
+        o.flash_in = Some(file);
+        o.flash_out = true;
+        o.halt_ok = true;
+        o.ram = vec![(OUT0, 20, When::End)];
+        let r = run(&img, &o).unwrap();
+        (words(output(&r, "ram-01c00100-14-end.bin")), output(&r, "flash.bin").to_vec())
+    };
+    let with = |s1: u8, s2: u8| [chip.as_slice(), &[s1, s2]].concat();
+
+    let (w, f) = go(chip.clone());
+    assert_eq!(w, vec![0, 0, 0, 0, 0x600d], "unprotected: erased and written");
+    assert_eq!((f.len(), &f[0x80000..0x80010]), (0x100000, &b"written, or not."[..]));
+
+    // BP2: the top half, 0x80000 included
+    let (w, f) = go(with(0x10, 0));
+    assert_eq!(w, vec![0x10, 0, 4096, 16, 0x600d], "both ignored, both read-backs fail");
+    assert_eq!(f.len(), 0x100002);
+    assert_eq!(&f[0x100000..], &[0x10, 0], "flash.bin keeps the status registers");
+    assert!(f[0x80000..0x81000].iter().all(|&b| b == 0x5a), "the sector as it was");
+    assert_eq!(&f[0x4000..0x4000 + img.len()], &img[..], "the image is written whatever protects it");
+    let (w, _) = go(f);
+    assert_eq!(w[..3], [0x10, 0, 4096], "still protected in the next run");
+
+    // CMP with BP2: the bottom half, so 0x80000 is free
+    let (w, f) = go(with(0x10, 0x40));
+    assert_eq!(w, vec![0x10, 0x40, 0, 0, 0x600d]);
+    assert_eq!(&f[0x100000..], &[0x10, 0x40]);
+
+    let mut o = opts(5);
+    o.flash_in = Some(with(0x03, 0));
+    assert!(run(&img, &o).err().unwrap().contains("bits 0 and 1"));
+    o.flash_in = Some([chip.as_slice(), &[0]].concat());
+    assert!(run(&img, &o).err().unwrap().contains("with its status registers"));
+}
+
 /// R-HARN-3: `--power-cut` on the command line: exit 0, `power-cut` as a
 /// suite expectation, and not with `--ms`.
 #[test]

@@ -92,7 +92,7 @@ static void sb_silent_block(s32 *out, u32 frames)
  * (hw_fm1.h) and its count, in the same 24 MHz units: 2000 a slot, 2 / 5
  * a count. A slot whose interrupt is pending but not yet taken (the count
  * has wrapped) is added. */
-static volatile u32 hw_slots;
+volatile u32 hw_slots;
 
 u32 sb_now(void)
 {
@@ -213,7 +213,9 @@ void hw_slot(void)
 
     JL_TIMER0->CON = HW_SLOT_CON | TICK_ACK;
     hw_slots++;
-    input_scan();
+    /* Not while main sweeps the matrix (hw_start3.c). */
+    if (!hw_scan_paused)
+        input_scan();
     if (++n == HW_SLOTS_TICK) {
         n = 0;
         sb_tick();
@@ -269,6 +271,19 @@ static void hw_serve(void)
         input_led(e.control, e.kind == INPUT_PRESS ? INPUT_LED_FULL : 0);
         if (sb_beacon.screen == SB_SCREEN_TEST)
             hw_show(&e);
+    }
+    /* start3's rows (hw_start3.c): about ten times a second, and core 1's
+     * counter once a second; main is woken for them through sb_wake_at. */
+    if (sb_beacon.screen == SB_SCREEN_TEST) {
+        static u32 next = 0, seconds = 0;
+        u32 now = sb_beacon.beats;
+
+        if ((int)(now - next) >= 0) {
+            hw_refresh(sb_seconds != seconds);
+            seconds = sb_seconds;
+            next = now + 100;
+        }
+        sb_wake_at = next;
     }
 }
 #endif
@@ -349,6 +364,15 @@ int main(void)
     }
 #endif
 
+#if defined(SB_HW_FM1)
+    /* start3 (c) step 1: the flash's read-only round trip, from RAM with
+     * interrupts off, before the vector table is written (hw_start3.c). */
+    hw_round_trip();
+    /* start3b: the rows and the round trip's LED marks held on the unit
+     * (SB_HW_HOLD), before the scan takes the LEDs. */
+    hw_hold();
+    hw_step("interrupts: setting up");
+#endif
     sb_irq_init();
 #if defined(SB_HW_FM1)
     sb_irq_enable(SRC_TIMER0, hw_slot, PRIO_TICK);
@@ -358,17 +382,33 @@ int main(void)
     sb_irq_enable(SRC_SPI1, lcd_spi_done, PRIO_SPI1);
 #endif
     input_start();
+    hw_adc_start();
     JL_TIMER0->CNT = 0;
     JL_TIMER0->PRD = HW_SLOT_PRD;
     JL_TIMER0->CON = HW_SLOT_CON;
-    /* No engine, core 1, store, audio or MIDI on a unit yet: HARDWARE-SPEC
-     * gives none of their set-up on the chip (SR-16). */
+    hw_step("interrupts: on, waiting 2 beats");
     sb_irq_on();
     /* Interrupts and TIMER0 work: the tick has counted two beats. A spin,
-     * not idle, so idle is tested apart (the pattern's wait, below). */
+     * not idle, so idle is tested apart (below). */
     while (sb_beacon.beats < 2)
         ;
     hw_band(3);
+    /* start3 (c) step 2: the store's start-up counter, if step 1 came
+     * back (hw_start3.c). */
+    hw_store_counter();
+#if defined(SB_HW_HOLD)
+    /* start3b: is the tick still running after the store's step? */
+    hw_step("tick after the store");
+    hw_watch(HW_WATCH_MS);
+#endif
+    /* start3 (d): core 1 counting, after the vector table (HW-9). No
+     * engine, audio or MIDI on a unit yet (HW-130). Since start3b after
+     * the store's step, so a hang tells them apart. */
+    hw_core1_start();
+#if defined(SB_HW_HOLD)
+    hw_step("tick after core 1");
+    hw_watch(HW_WATCH_MS);
+#endif
 #else
     sb_irq_enable(SRC_TIMER0, sb_tick, PRIO_TICK);
     sb_irq_enable(SRC_SPI1, lcd_spi_done, PRIO_SPI1);
@@ -436,19 +476,35 @@ int main(void)
     lcd_command(LCD_DISPON, 0, 0);
     sb_beacon.screen = SB_SCREEN_BLANK;
 #else
+#if defined(SB_HW_FM1)
+    hw_step("pattern: sending");
+#endif
     screen_pattern();
     lcd_send_rows(0, SCREEN_H);
 #if defined(SB_HW_FM1)
     /* Band 4 (yellow), over the pattern: its DMA chain ended by SPI1's
-     * interrupts (R-HW-1). */
+     * interrupts (R-HW-1); then start3b's rows again over it. */
     lcd_wait();
     hw_band(4);
+    hw_rows_start();
+    hw_step("pattern: sent, display on");
 #endif
     lcd_command(LCD_DISPON, 0, 0);
     sb_beacon.screen = SB_SCREEN_PATTERN;
 
+#if defined(SB_HW_FM1)
+    /* start3b: a watched spin in place of idle, the tick's row drawn as it
+     * goes; then idle alone, briefly. */
+    hw_step("waiting for the test screen (spin)");
+    if (sb_beacon.beats + 1 < TEST_SCREEN_MS)
+        hw_watch(TEST_SCREEN_MS - 1 - sb_beacon.beats);
+    hw_step("idle: 20 beats");
+    sb_wait_ms(20);
+    hw_step("test screen: drawing");
+#else
     if (sb_beacon.beats + 1 < TEST_SCREEN_MS)
         sb_wait_ms(TEST_SCREEN_MS - 1 - sb_beacon.beats);
+#endif
     {
         u32 t = sb_now();
         screen_test();
@@ -456,6 +512,11 @@ int main(void)
     }
     lcd_send_rows(0, SCREEN_H);
     sb_beacon.screen = SB_SCREEN_TEST;
+#if defined(SB_HW_FM1)
+    /* start3's rows on the test screen (hw_start3.c). */
+    lcd_wait();
+    hw_rows_all();
+#endif
 #endif
 #if defined(SB_TEST_STORE_WIPE)
     sb_test_store_wipe();

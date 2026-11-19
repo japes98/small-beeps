@@ -207,6 +207,13 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   no port or SPI1 access is unmodelled; its hardware package passes
   fwsc.py's unit checks; and a build with SB_PROBE_LIGHT as well is
   refused.
+- hw3 (BR-17, start3): the hardware build with SB_TEST_HW_WINDOW, which
+  takes HW-128's quad mode word where fwtest's window CON reads 0, so the
+  round trip and the store run: the round trip reads 856014 and comes
+  back; the store's start-up counter is 1, then 2 at the next start from
+  the first's flash; the matrix grid shows column 10, PA6, while PLAY is
+  held; ADC channel 4 follows the pot; core 1's counter rises; only the
+  window's registers are unmodelled. The shipping build tries neither.
 - hw (BR-17, Phase B): the FM-1 hardware build, SB_HW_FM1 (R-HW-1). In
   fwtest, where its one timer, TIMER0, counts 24 MHz rather than the
   chip's 60 MHz (HW-119), so its beats are 2.5 times slow: the screen goes
@@ -1376,6 +1383,10 @@ def case_panel(a, work, log):
     return problems
 
 
+HW_WINDOW_READS = {"0x00040200", "0x0004020c", "0x00040304"}   # HW-128: CON, the base, the key
+# The round trip's registers (HW-128): those, the window's cipher and the
+# peripheral cipher. fwtest models none of them; 0x01F0xxxx is RAM there.
+HW_WINDOW_REGS = HW_WINDOW_READS | {"0x00040300", "0x00013000"}
 HW_RATIO = 60 / 24.0                # the chip's TIMER0 clock over fwtest's (HW-119, HW-48)
 HW_LED = 12                         # fwtest's LED of PLAY (HW-35, HW-42)
 HW_BANDS = ((0, 0, 255), (0, 255, 0), (255, 255, 255))
@@ -1412,8 +1423,11 @@ def case_hw(a, work, log):
                "--lcd", "1000", "--lcd", "3500", "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN), *early)
     if r["run"]["outcome"] != "completed":
         problems.append("hw: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
-    if r["run"]["unmodelled_accesses"]:
-        problems.append("hw: unmodelled accesses: %s" % [u["address"] for u in r["run"]["unmodelled_accesses"]][:8])
+    # Since start3 the build reads the window's registers before its round
+    # trip (HW-128), which fwtest doesn't model: those, and nothing else.
+    odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_READS)
+    if odd:
+        problems.append("hw: unmodelled accesses: %s" % odd[:8])
     seen = []
     for t in range(400, 431):
         _, _, rows = fws.read_png(os.path.join(out, "lcd-%dms.png" % t))
@@ -1424,7 +1438,9 @@ def case_hw(a, work, log):
     if seen != want:
         problems.append("hw: the start-up's screens in order were %s, not black, bands 1, 2, 3, then the pattern" % seen)
     _, _, pat = fws.read_png(os.path.join(out, "lcd-1000ms.png"))
-    if pat[40 + 24 * 4 + 8][120] != (255, 255, 0) or pat[8][8] != fws.rgb8(1, 2, 0):
+    # Band 4 is rows 136 to 151; since start3b the store's row (142 to 149)
+    # is drawn again over the pattern, so its last rows are looked at.
+    if pat[40 + 24 * 4 + 14][120] != (255, 255, 0) or pat[8][8] != fws.rgb8(1, 2, 0):
         problems.append("hw: at 1 s not the address pattern with band 4 (yellow) over it")
     bc = fws.beacon(ram(out, BEACON_ADDR, fws.BEACON_LEN))
     lo, hi = (5000 - 430) / HW_RATIO - 2, (5000 - 400) / HW_RATIO + 2
@@ -1482,6 +1498,103 @@ def case_hw(a, work, log):
     return problems
 
 
+HW3_FIELDS = ("win_con", "win_base", "win_key", "tried", "back", "idle_timeouts", "id", "status1", "status2",
+              "stored", "count", "get_result", "put_result")    # hw_fm1.h, struct hw_start3
+HW3_LEN = 4 * len(HW3_FIELDS) + 16 + 4 * 12
+HW3_STEP_Y = 216    # hw_fm1.h
+
+
+def hw3_record(data):
+    w = dict(zip(HW3_FIELDS, struct.unpack_from("<13i", data)))
+    w["grid"] = list(data[52:68])
+    w["adc"] = list(struct.unpack_from("<12I", data, 68))
+    return w
+
+
+def case_hw3(a, work, log):
+    problems = []
+    fws = fw_suite()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW")
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    h3, c1 = sy["hw3"], sy["hw_core1_count"]
+    script = os.path.join(b, "press.script")
+    with open(script, "w") as f:
+        f.write("3000 key %d down\n3800 key %d up\n4600 pot 300\n" % (HW_LED, HW_LED))
+
+    def run(name, ms, *opts):
+        out = os.path.join(work, name)
+        r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", str(ms), "--flash-out",
+                   "--ram", "0x%08x:%d@3500" % (h3, HW3_LEN), "--ram", "0x%08x:%d@end" % (h3, HW3_LEN),
+                   "--ram", "0x%08x:4@2000" % c1, "--ram", "0x%08x:4@end" % c1, *opts)
+        if r["run"]["outcome"] != "completed":
+            problems.append("%s: %s (%s)" % (name, r["run"]["outcome"], r["run"].get("detail")))
+        odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS)
+        if odd:
+            problems.append("%s: unmodelled accesses besides the window's: %s" % (name, odd[:8]))
+        core1 = [struct.unpack("<I", ram(out, c1, 4, w))[0] for w in ("2000ms", "end")]
+        return out, hw3_record(ram(out, h3, HW3_LEN, "end")), core1
+
+    out, e, core1 = run("first", 6000, "--script", os.path.relpath(script, ROOT))
+    held = hw3_record(ram(out, h3, HW3_LEN, "3500ms"))
+    for k, v in (("id", 0x856014), ("tried", 1), ("back", 1), ("idle_timeouts", 0), ("stored", 1), ("count", 1),
+                 ("put_result", 0), ("get_result", -1)):
+        if e[k] != v:
+            problems.append("first: %s is %d, not %d" % (k, e[k], v))
+    if held["grid"] != [2 if c == 10 else 0 for c in range(16)] or any(e["grid"]):
+        problems.append("first: the grid while PLAY was held %s, at the end %s (column 10, PA6, alone)"
+                        % (held["grid"], e["grid"]))
+    if held["adc"][4] != 900 or e["adc"][4] != 300 or e["adc"][3] != 640:
+        problems.append("first: ADC channel 4 %d then %d (900 then the pot's 300), channel 3 %d (640)"
+                        % (held["adc"][4], e["adc"][4], e["adc"][3]))
+    if not 0 < core1[0] < core1[1]:
+        problems.append("first: core 1's counter %d at 2 s, %d at the end: not rising" % tuple(core1))
+    with open(os.path.join(out, "flash.bin"), "rb") as f:
+        chip = f.read()
+    flash = os.path.join(work, "first-out.bin")
+    with open(flash, "wb") as f:
+        f.write(chip)
+    _, e, _ = run("second", 3000, "--flash", os.path.relpath(flash, ROOT))
+    if (e["count"], e["get_result"], e["put_result"]) != (2, 4, 0):
+        problems.append("second: count %d, get %d, put %d (2, 4, 0)" % (e["count"], e["get_result"], e["put_result"]))
+    # The shipping build: the window's CON reads 0 in fwtest, so no round trip.
+    sb = os.path.join(work, "shipping")
+    build(sb, log, "--define", "SB_HW_FM1")
+    sh3 = fws.elf_symbols(os.path.join(sb, "app.elf"))["hw3"]
+    r = fwtest(os.path.join(sb, "app.bin"), os.path.join(work, "run-shipping"), log, "--ms", "2000",
+               "--ram", "0x%08x:%d@end" % (sh3, HW3_LEN))
+    e = hw3_record(ram(os.path.join(work, "run-shipping"), sh3, HW3_LEN, "end"))
+    if e["tried"] or e["stored"] or r["run"]["outcome"] != "completed":
+        problems.append("shipping: tried %d, stored %d, %s (the window's CON reads 0: neither)"
+                        % (e["tried"], e["stored"], r["run"]["outcome"]))
+    # start3b's unit build (SB_HW_HOLD), its hold cut short: the round
+    # trip's last LED mark (OCT- and OCT+ alone) held until the scan, the
+    # tick watched after the store and core 1, the test screen reached and
+    # the step row drawn there.
+    hb = os.path.join(work, "hold")
+    build(hb, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD")
+    hout = os.path.join(work, "run-hold")
+    r = fwtest(os.path.join(hb, "app.bin"), hout, log, "--ms", "6000", "--flash-out", "--leds-every", "100",
+               "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN))
+    bc = fws.beacon(ram(hout, BEACON_ADDR, fws.BEACON_LEN))
+    if r["run"]["outcome"] != "completed" or bc["screen"] != 2 or bc["halt_reason"]:
+        problems.append("hold: %s, screen %d, halt %d (the test screen, no halt)"
+                        % (r["run"]["outcome"], bc["screen"], bc["halt_reason"]))
+    with open(os.path.join(hout, "leds.csv")) as f:
+        leds = [[int(v) for v in row[1:]] for row in list(csv.reader(f))[1:]]
+    if not any(v[0] and v[1] and not any(v[2:]) for v in leds):
+        problems.append("hold: no sample with OCT- and OCT+ alone lit (the round trip's last mark)")
+    _, _, end = fws.read_png(os.path.join(hout, "lcd-end.png"))
+    if not any(end[y][x] != (0, 0, 0) for y in range(HW3_STEP_Y, HW3_STEP_Y + 8) for x in range(6, 120)):
+        problems.append("hold: no step row on the test screen")
+    print("hw3: the round trip read 856014 and came back; the store's counter 1, then 2 at the next start; the grid"
+          " column 10, PA6, while PLAY was held; ADC channel 4 900, then 300; core 1 counting; the shipping build,"
+          " whose window CON reads 0 in fwtest, tries neither; the held build reaches the test screen, its round"
+          " trip's last LED mark (OCT- and OCT+) held, its step row drawn")
+    return problems
+
+
 def read_bytes(path):
     with open(path, "rb") as f:
         return f.read()
@@ -1504,6 +1617,7 @@ CASES = [
     ("light", case_light),
     ("panel", case_panel),
     ("hw", case_hw),
+    ("hw3", case_hw3),
 ]
 
 

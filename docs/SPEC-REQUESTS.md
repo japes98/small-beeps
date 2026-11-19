@@ -736,3 +736,46 @@ an issue or a pull request against docs/HARNESS.md.
   m-bootloader's take and give-back of the flash; the round trip within
   one run of an app is not shown, and a probe settles it.
 - Answered: 2026-11-18, session spec-sr16 (spec side)
+
+### SR-17: The code window's BAUD register, and whether its CON reads back
+- Asked: 2026-11-19, session clean-br17-start3 (firmware side), for BR-17
+  start3's flash round trip (R-HW-1)
+- Question: for the code window's controller after m-bootloader's call
+  (HW-128):
+  1. **Its `BAUD` register:** the address, and the value m-bootloader
+     writes there in step 3 of its give-back ("sets its BAUD").
+  2. **Whether its `CON` (`0x40200`) reads back** the mode word last
+     written, so an app can read it before taking the flash and write it
+     back when it gives the flash back.
+  3. **Whether writing `CON` (0 in the take; `0x00F00000`, then 0, in the
+     give-back) changes `BAUD`.**
+  4. **Which width m-bootloader chooses for the window on FM-1 units**,
+     and so which mode word: HW-128 gives the quad one, `0x00280381` with
+     bits 23-20 at 9.
+- Why: start3's round trip (`firmware/src/hw_start3.c`) takes the flash
+  and gives it back as HW-128 lists. It doesn't write the window's `BAUD`,
+  since no address is given and the take never writes it, and it writes
+  back the `CON` it read before the take rather than a mode word of its
+  own. If `CON` doesn't read back, the build shows "window CON reads 0"
+  and tries nothing. Either way the build doesn't depend on the answer,
+  but the owner's result can't tell these cases apart. Read: HW-84,
+  HW-85, HW-91, HW-123, HW-126 to HW-128.
+- Status: answered (HARDWARE-SPEC.md, "30. The code window's BAUD, its
+  CON and its width", HW-132):
+  1. **`BAUD`:** `0x00040204`, write only (SDK). m-bootloader writes 1,
+     the same built-in divider it gives SPI0, after `CON` = `0x00F00000`
+     and `CON` = 0 and before the mode word.
+  2. **Whether `CON` reads back:** the SDK marks it read-write, and
+     m-bootloader never reads it. On the owner's unit (start3b, relayed)
+     it reads `0x009803B5`, not the quad word `0x00980381` m-bootloader
+     writes. By the owner's ruling the give-back restores `CON` as read
+     before the take (HW-132).
+  3. **Whether a `CON` write changes `BAUD`:** not shown. Writing `BAUD`
+     after the two `CON` writes, as m-bootloader does, doesn't depend on
+     it.
+  4. **The width:** quad, output reads, unless m-bootloader's start-up
+     checks fall back to dual or single (shown as "SPI WIDTH FALLBACK" in
+     its menu). The word it writes is `0x00980381`, HW-128's quad word
+     with 9 in bits 23-20 (dual `0x00980281`, single `0x00900089`).
+- Answered: 2026-11-19, session spec-sr17 (spec side)
+

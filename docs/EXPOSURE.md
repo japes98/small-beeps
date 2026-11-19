@@ -2955,6 +2955,150 @@ SR-3 wrote only its barrier-log row.*
 - Force-pushes: none.
 - Disk: 5.9 GB free at the start.
 
+### Session spec-flash-protect (fwtest 0.12.0: the flash chip's block protection)
+- Date: 2026-11-18 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.327; model `claude-opus-5-5`. The same Claude Code
+  session as spec-sr15, spec-ci-speed and spec-sr16
+  (`3554477d-915e-4869-a94a-6a2ff3efe04a`). Branch `spec/flash-protect`
+  from main at `56b8b807` (#193's merge).
+- The owner's request (clean's #193 question), saved as
+  docs/prompts/spec-flash-protect.md.
+- Read (PROVENANCE P-501): the protected-area tables and the protection
+  notes of the two flash datasheets already read for SR-15 (P-53, P-73),
+  from the same scratch copies, nothing fetched again.
+- The vendored emulator (spec side): patch 0019 written, fwtest 0.12.0.
+  This repository's own firmware: the store's part test build
+  (`SB_TEST_STORE_PART`) on main, built and run in fwtest 0.12.0 with a
+  protected chip to show its read-back catching an ignored erase; no
+  firmware file changed.
+- Disk: about 2.3 GB free.
+
+### Session clean-br17-start3 (BR-17: start3, and fwtest 0.11.0)
+- Date: 2026-11-19 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.327, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-sr15-flash's, continued. The owner's prompt is the file
+  `~/<top>/drop/prompts/clean-br17-start3.md`, saved unedited as
+  docs/prompts/clean-br17-start3.md. The owner's message with it said to
+  build on #193 rather than redo the store's changes.
+- Start: #189, #191, #192 and #193 found merged. Nothing to archive.
+  `tools/check-transcripts.py`: 26 archived transcripts, PASS. Open pull
+  requests listed (only this side's #194) before P-75 and SR-17 were
+  numbered.
+- Merges of main into #193 (twice: #191, then #192) kept both sides'
+  rows in PROVENANCE and EXPOSURE; the spec-side folders the merges
+  brought stayed out of the work tree (all skip-worktree, from git's
+  index, nothing opened).
+- fwtest 0.11.0's digest was read from the `fwtest-image` workflow's log
+  on main (its digest lines only; no artifact). Start1's build
+  (`58c87df3`) was rebuilt in the scratch folder from that commit's
+  firmware, tools, config, SDK and seams files, taken one by one with
+  `git show`. `git archive` stopped on an object outside those paths,
+  which lazy fetching (off) would have downloaded. Its package link
+  matched the installed one (`46bbb942…`). The copy was deleted after.
+- Reads: HARDWARE-SPEC sections 27 and 28, HW-7, HW-9, HW-10, HW-40,
+  HW-56, HW-64, HW-85, HW-115 to HW-119; SPEC-REQUESTS SR-15, SR-16;
+  CONTRIBUTING "Numbering"; HARNESS "The LCD", "Versions".
+- **The pull requests:** #194 (the pin), this side's start3. Build A
+  still `aae50b29…`; the seams suite's hw and hw3 cases PASS. Start3's
+  hardware package (key `0x980F`) packed twice to the same bytes,
+  `fwsc.py check` passing; a file in `out/` for the owner.
+- Force-pushes: none.
+- C-SEP-TERMS on #195 (`3a8abc1e`): two names of this side's own in
+  hw_start3.c matched emulator-only words. The quick job's artifact was
+  fetched by the API, only `logs/C-SEP-TERMS.log` read from it (its HIT
+  lines), the zip deleted at once; the words found by hashing the lines'
+  words, and both names, with their pairs, renamed. The image is the same.
+- Disk: 2.7 GB free at the start; about 2.3 GB at the lowest.
+
+### Session spec-sr17 (SR-17: the code window's BAUD, CON and width)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.327; model `claude-opus-5-5`. The same Claude Code
+  session as spec-flash-protect (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on its branch `spec/flash-protect` (#196).
+- The owner's request, saved as docs/prompts/spec-sr17.md.
+- Read (PROVENANCE P-502), from scratch copies made earlier, nothing
+  fetched: m-bootloader's `src/platform.c`, `src/boot.c` and
+  `docs/SPEC.md` §3.4, §3.6, §5.3 and §7; the vendored SDK's `WL82.h`;
+  FM-1-RE's storage document §1. Not recorded, by the guardrails: what
+  FM-1-RE says of the FM-1 firmware's flash routines beyond the wait on
+  `CON` bit 31. Not opened: `src/usb_midi.c`, any GPL firmware or stock
+  package.
+- This repository's own firmware: start3's `hw_start3.c` read for the
+  mode word it uses; nothing changed.
+- Disk: about 3.3 GB free.
+
+### Session spec-start3-unit (start3's unit result; FM-1-RE's bit-31 fact withdrawn)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-flash-protect and spec-sr17
+  (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on `spec/flash-protect` (#196).
+- The owner's message, saved as docs/prompts/spec-start3-unit.md: start3's
+  first result on the owner's unit, and the question which ruling allows
+  FM-1-RE as HW-132's source for `CON` bit 31.
+- **Withdrawn:** HW-132 item 4 and SR-17 item 2 said, from FM-1-RE's
+  `docs/io/09-storage.md` §1 (read in spec-sr17, P-502), that the FM-1's
+  firmware waits for `CON` bit 31 to clear. FM-1-RE itself is allowed
+  (CONTRIBUTING.md, "Firmware side may use" and "Spec side and the stock
+  firmware"; `docs/prompts/spec-1027.md`), and the spec side keeps its
+  storage document under the owner's evening-1024 ruling
+  (`docs/prompts/evening-1024.md`; PLAN.md), but only for its hardware
+  facts. That sentence described the stock firmware's own routine, which
+  the ruling leaves out, so it is taken out of both; the unit's reading
+  replaces it, relayed and to be confirmed. The firmware side never saw it
+  (#196 is unmerged). P-502 is annotated.
+- Read: nothing new; this repository's own files only.
+- Disk: about 3.3 GB free.
+
+### Session clean-br17-start3b (BR-17: start3's hang, a step build)
+- Date: 2026-11-19 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.328, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-start3's, continued. The owner's two messages (start3's
+  result, then its correction) saved unedited as
+  docs/prompts/clean-br17-start3b.md and
+  docs/prompts/clean-br17-start3b-correction.md.
+- Start: nothing to archive (this session's own transcript is the only
+  clean one not archived). `tools/check-transcripts.py`: 26 archived
+  transcripts, PASS.
+- Reads: HARDWARE-SPEC HW-118 (the LEDs); this side's own code.
+- On the unit (relayed by the owner): the round trip read `856014`,
+  status 1 `00`, status 2 `02`, and came back; the window's CON read
+  non-zero (`0098038?`, a digit uncertain), base `04000`, key
+  `980F/980F`. Then the address pattern, and no test screen.
+- Disk: 3.2 GB free at the start.
+
+### Session spec-start3b (start3b's unit result in HW-132 and the open questions)
+- Date: 2026-11-19 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.328; model `claude-opus-5-5`. The same Claude Code
+  session as spec-flash-protect, spec-sr17 and spec-start3-unit
+  (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on `spec/flash-protect` (#196).
+- The owner's message, saved as docs/prompts/spec-start3b.md.
+- Recorded, relayed and not taken as facts: what `CON` reads on the unit
+  (HW-132 item 4, SR-17 item 2), the round trip and the store's counter
+  (Q-22), core 1 after m-bootloader's call (Q-17), MASTER, PRESETS and
+  KNOB1 (Q-7, Q-8). The give-back restores `CON` as read, by the owner's
+  ruling (HW-132).
+- Merged clean's #195 at `7c7276a2` (start3b); the one conflict, here,
+  kept both entries.
+- Read: nothing outside this repository; its own `firmware/src/hw_start3.c`
+  for start3's give-back and its core 1 row.
+- The clean prompt for #196's follow-ups: `drop/prompts/clean-br17-protect.md`,
+  outside the repository.
+- Disk: about 3.2 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

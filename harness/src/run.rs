@@ -233,7 +233,7 @@ pub fn run(image: &[u8], opt: &Options) -> Result<Report, String> {
         outputs.push(Output { name: "leds.csv".into(), data: s.into_bytes() });
     }
     if opt.flash_out || opt.power_cut {
-        outputs.push(Output { name: "flash.bin".into(), data: board.soc.flash.mem.clone() });
+        outputs.push(Output { name: "flash.bin".into(), data: crate::machine::flash_out(&board.soc.flash) });
     }
     if opt.flash_log {
         let us = CYCLES_PER_MS / 1000;

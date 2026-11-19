@@ -81,6 +81,12 @@ void screen_test(void)
     gfx_text(SCREEN_W - 18 - 6 * FONT_CELL, SCREEN_H - 13, "yellow", YELLOW, BLACK, 1);
 
     gfx_text(36, 20, "small-beeps M3", WHITE, BLACK, 2);
+#if defined(SB_HW_FM1)
+    /* The FM-1 hardware build (start3, R-HW-1) keeps the border, the
+     * corners, the title and the beat, and gives the ramps', the box's
+     * and the font's rows to its own (hw_start3.c). */
+    (void)rows;
+#else
     for (i = 0; i < 32; i++) {
         gfx_fill(24 + 6 * i, 44, 6, 14, RGB565(i, 0, 0));
         gfx_fill(24 + 6 * i, 76, 6, 14, RGB565(0, 0, i));
@@ -96,6 +102,7 @@ void screen_test(void)
 
     for (i = 0; i < 3; i++)
         gfx_text(24, 166 + 10 * i, rows[i], WHITE, BLACK, 1);
+#endif
 
     for (i = 0; i < BEAT_DIGITS; i++)
         beat_digits[i] = 0;
