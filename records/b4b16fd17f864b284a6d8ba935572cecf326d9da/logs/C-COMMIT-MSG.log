@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 588225d634a102471cf900e21b4dcb96e4f5e04c..b4b16fd17f864b284a6d8ba935572cecf326d9da
+OK     398dd4ba226e sessions: clean-br17-audio2 starts (nothing to archive)
+OK     a896c070a0c8 firmware: audio2, audio1 plus CLK_CON2 bit 9 by hand (BR-17)
+EXEMPT b4b16fd17f86 (merge) Merge pull request #212 from japes98/hw/audio2
+3 commit(s) checked: PASS
+
+exit status 0
