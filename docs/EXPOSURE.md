@@ -3347,7 +3347,12 @@ SR-3 wrote only its barrier-log row.*
   it sets or clears where that is a bit's evidence. Not opened: any GPL
   firmware, stock package, SDK prebuilt library, or m-bootloader's
   `src/usb_midi.c`.
-- No clean prompt: the owner rules first.
+- No clean prompt: the owner rules first. Then, after the owner's
+  rulings (docs/prompts/spec-audio3-rulings.md): HW-149 (UNIT: core 1
+  stops once ALNK0 is started; clean's hypothesis recorded as one), a
+  note on Q-9 (no bit for data 3 in FM-1-RE, so option C is dropped), and
+  the clean prompt drop/prompts/clean-br17-audio3.md, written outside
+  the repository. Nothing new read.
 - Disk: about 6.8 GB free.
 
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)

@@ -4073,6 +4073,22 @@ HW-146, which stand.
   source, the port map's `CON2` to `CON8` and the core 1 cause open)
 - Needed by: M4, BR-17 (Phase B)
 
+### HW-149: In audio2, core 1 starts and then stops when ALNK0 is started (Q-17, Q-9)
+- Fact: On the owner's unit, audio2 started by m-bootloader with no key
+  pressed (a video of the boot): core 1's count was 6 742 150 at boot
+  step 16 and about 36 586 082 when the test screen came up, then stayed
+  at 419 825 784 from about 21 s after power-on while core 0's main loop
+  kept running. So in audio2 core 1 starts and runs, and stops once
+  ALNK0 has been told to run (`CON0` bit 11) with its clock bit (`CLK_CON2`
+  bit 9) clear; with bit 9 set it runs (HW-147). Why is open. The clean
+  side's working explanation, a hypothesis and not a fact: ALNK0 told to
+  run with no clock holds up core 1's memory accesses, and bit 9 lets
+  them go on.
+- Sources: UNIT: a video of audio2's boot on the owner's unit, relayed by
+  the owner on 2026-11-20 (docs/prompts/spec-audio3-rulings.md); HW-147.
+- Standing: confirmed (UNIT; one unit; the cause open)
+- Needed by: M4, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -4199,6 +4215,10 @@ spec request can turn one into a fact.
   does not start ALNK0; core 1 in audio2 ran only while it was set
   (cause open). The remaining options and their risks await the owner's
   ruling (the session's report, 2026-11-20).
+  *Session spec-audio3 (HW-149):* core 1 stops once ALNK0 is told to
+  run without bit 9. A note: FM-1-RE names ALNK0's `CON3` as the data
+  channels' enables but gives no bit for each channel, so no source says
+  which bit enables data 3.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores
