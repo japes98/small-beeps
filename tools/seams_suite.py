@@ -236,6 +236,11 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   the count, HW-48, which reads about 80 ppm high); ALNK0's CON0 bit 11
   reads clear at main's start and set with the tone on; HOME shows the
   page again; nothing unmodelled but the window's, corex2's and DAC_CON.
+- audio2 (BR-17, clean-br17-audio2): the same build with REC pressed
+  twice: CLK_CON2 bit 9 set alone, then CLK_CON2 put back exactly as
+  read; CLK_CON2 has no effect in fwtest (HW-53), so the tone plays on in
+  both channels at 440 Hz and 44 117.6 frames a second; REC shows the
+  page; nothing unmodelled but the window's, corex2's and DAC_CON.
 - hw (BR-17, Phase B): the FM-1 hardware build, SB_HW_FM1 (R-HW-1). In
   fwtest, where its one timer, TIMER0, counts 24 MHz rather than the
   chip's 60 MHz (HW-119), so its beats are 2.5 times slow: the screen goes
@@ -1838,6 +1843,72 @@ def case_audio1(a, work, log):
     return problems
 
 
+AUD_MORE = 13
+AUD_STEP_FIELDS = ("step_state", "steps", "clk_before", "clk_set", "clk_back")
+AUD2_LEN = AUD_LEN + 4 * (3 * AUD_MORE + AUD_REGS + len(AUD_STEP_FIELDS))
+AUD_CLK2 = 1          # CLK_CON2 in audio1's registers (hw_audio.c)
+HW_REC = 13           # fwtest's key of REC (HW-35)
+
+
+def case_audio2(a, work, log):
+    """audio2 (clean-br17-audio2): audio1's build with the clock step. REC
+    sets CLK_CON2 bit 9 alone and a second REC puts back the value read
+    before, exactly; CLK_CON2 has no effect in fwtest (HW-53), so the tone
+    plays on through both, at fwtest's 44 117.6 frames a second; the new
+    registers are read at the start, with the tone on and after each step;
+    nothing unmodelled but the window's, corex2's and DAC_CON."""
+    problems = []
+    fws = fw_suite()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_AUDIO1")
+    h = fws.elf_symbols(os.path.join(b, "app.elf"))["hw_aud"]
+    script = os.path.join(b, "audio2.script")
+    with open(script, "w") as f:
+        # After audio1's page (about 6.5 s): the step at 7.5 s, its page
+        # until about 10 s, then the undo at 11 s.
+        f.write("7500 key %d down\n7600 key %d up\n11000 key %d down\n11100 key %d up\n"
+                % (HW_REC, HW_REC, HW_REC, HW_REC))
+    out = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "15000", "--wav", "--script", os.path.relpath(script, ROOT),
+               "--lcd", "9500", "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN),
+               "--ram", "0x%08x:%d@end" % (h, AUD2_LEN))
+    if r["run"]["outcome"] != "completed":
+        problems.append("audio2: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"})
+    if odd:
+        problems.append("audio2: unmodelled accesses besides the window's, corex2's and DAC_CON: %s" % odd[:8])
+    bc = fws.beacon(ram(out, BEACON_ADDR, fws.BEACON_LEN))
+    if bc["screen"] != 2 or bc["halt_reason"]:
+        problems.append("audio2: screen %d, halt %d (the test screen, no halt)" % (bc["screen"], bc["halt_reason"]))
+    data = ram(out, h, AUD2_LEN)
+    e = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), data, 8 * AUD_REGS)))
+    o = AUD_LEN + 4 * (3 * AUD_MORE)
+    regs_step = list(struct.unpack_from("<%dI" % AUD_REGS, data, o))
+    st = dict(zip(AUD_STEP_FIELDS, struct.unpack_from("<5I", data, o + 4 * AUD_REGS)))
+    if (st["step_state"], st["steps"]) != (2, 2) or st["clk_set"] != st["clk_before"] | 0x200 \
+            or st["clk_back"] != st["clk_before"] or regs_step[AUD_CLK2] != st["clk_before"]:
+        problems.append("audio2: step %s, CLK_CON2 after %08x (taken then undone: bit 9 alone set, then exactly"
+                        " as read)" % (st, regs_step[AUD_CLK2]))
+    fps = e["fps10"] / 10.0 / HW_RATIO
+    if not e["fps10"] or abs(fps / AUD_FPS - 1) > 200e-6 or e["storm"]:
+        problems.append("audio2: %.1f frames a second in fwtest's time (%.1f), storm %d" % (fps, AUD_FPS, e["storm"]))
+    _, left, right = aa.read_wav(os.path.join(out, "audio.wav"))
+    tail = left[-4 * 44100:]
+    if left != right or min(max(abs(v) for v in tail[w:w + 441]) for w in range(0, len(tail) - 441, 441)) < 2000:
+        problems.append("audio2: the tone doesn't play on through the steps in both channels")
+    else:
+        fit = aa.sine_fit(tail[4410:-4410])
+        if abs(fit["frequency"] - 440) > 0.5:
+            problems.append("audio2: the tone at %.2f Hz (440)" % fit["frequency"])
+    _, _, page = fws.read_png(os.path.join(out, "lcd-9500ms.png"))
+    if not any(page[y][x] == (0, 255, 0) for y in range(0, 16) for x in range(6, 200)):
+        problems.append("audio2: REC didn't show the page")
+    print("audio2: CLK_CON2 %08x, %08x with bit 9, %08x put back; the tone on at 440 Hz, %.1f frames a second in"
+          " fwtest's time" % (st["clk_before"], st["clk_set"], st["clk_back"], fps))
+    return problems
+
+
 def read_bytes(path):
     with open(path, "rb") as f:
         return f.read()
@@ -1864,6 +1935,7 @@ CASES = [
     ("finder", case_finder),
     ("core1", case_core1),
     ("audio1", case_audio1),
+    ("audio2", case_audio2),
 ]
 
 

@@ -4688,3 +4688,37 @@ interrupt, so with no interrupt it stayed 0. The ADC and the scan were
 not at fault. The page now reads MASTER itself each time it draws its
 top lines. The rest waits on the spec side (the audio clock's set-up,
 SR-20).
+
+### 2026-11-19 clean-br17-audio2: audio1 plus CLK_CON2 bit 9, by hand (BR-17, R-HW-1)
+The spec side's prompt: docs/prompts/clean-br17-audio2.md, with the
+owner's ruling allowing the step exactly as it describes. audio1 showed
+ALNK0 doesn't run after m-bootloader's call (HW-144). The only clock
+write any source gives is `CLK_CON2` bit 9 (HW-145), so audio2 adds that
+step behind a key, and reads more back.
+
+- **The key is REC.** PLAY already toggles the tone and HOME shows the
+  page. REC is pressed only on the test screen, so audio1's state is seen
+  before the step.
+- **The step.** `CLK_CON2` is read, written with bit 9 alone added, and
+  read back. The next press writes back the value read before the first
+  (not "bit 9 cleared"), so anything the write changed besides bit 9 is
+  put back too. A third press takes the step again from a fresh read.
+  Before each write the step row (start3b's, row 216) names it with the
+  value. If the unit hangs on the write, that row is left showing.
+- **What stays as read.** `CLK_CON2`'s low byte (m-bootloader's system
+  clock select), bit 8 (0: 192 MHz / 17, the 44.1 kHz family), bits 10
+  and 11 (ALNK1's); `PLL_CON0`, `PLL_CON1`, `PLL2_CON0` and `PLL2_CON1`,
+  since PLL2 clocks the processor (HW-144); `CLK_CON0` (PC0's clock
+  output, HW-145); every routing, mode and port C register (HW-146 gives
+  no value for any).
+- **The page.** audio1's 22 registers and audio2's 13 don't fit on one
+  screen, so the page shows audio1's for the first half of its hold and
+  audio2's for the second, each with three columns: at the call, tone
+  on, and after the last step. The CLK_CON2 sequence (read, with bit 9,
+  put back) is under audio2's half. REC shows the page after each step;
+  HOME shows it any time.
+- **The rate after a step.** If ALNK0 starts only after the step, its
+  first half becomes the measure's base, so the frames a second read
+  from that point on, over at least a second.
+- **fwtest** stores `CLK_CON2` but nothing depends on it (HW-53), so the
+  tone plays on through both presses (case audio2).
