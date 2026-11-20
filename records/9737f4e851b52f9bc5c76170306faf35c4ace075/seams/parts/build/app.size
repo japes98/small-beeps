@@ -1,0 +1,7 @@
+code 15568
+data 48
+bss 148816
+image 15616
+stack 4096
+irq_stack 2048
+ram_code 15448

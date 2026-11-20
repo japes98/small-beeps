@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range b4b16fd17f864b284a6d8ba935572cecf326d9da..9737f4e851b52f9bc5c76170306faf35c4ace075
+OK     3067b08b231f spec: audio2's unit facts and what they say (HW-147, HW-148)
+OK     5f794f05fa59 spec: core 1 stops once ALNK0 is started in audio2 (HW-149)
+EXEMPT 9737f4e851b5 (merge) Merge pull request #213 from japes98/spec/audio2-unit
+3 commit(s) checked: PASS
+
+exit status 0
