@@ -108,6 +108,7 @@ void hw_finder(void) __attribute__((noreturn));
  * hold; how long the tone runs before the "tone on" registers are read. */
 #define HW_AUD_Y      160u
 #define HW_AUD_REGS   22u
+#define HW_AUD_MORE   13u
 #if defined(SB_TEST_SHORT_HOLD)
 #define HW_AUD_PAGE_MS   1000u
 #define HW_AUD_SETTLE_MS 300u
@@ -125,7 +126,17 @@ struct hw_audio {
     u32 master, gain, tone_on;  /* MASTER (0-1023), the tone's gain now, PLAY's toggle */
     u32 storm;                  /* the beat the guard stopped the output (0: never) */
     u32 flips, pend;            /* main's polls on the page: CON0 bit 15 changed, CON2 bit 7 seen set */
+    /* audio2 (clean-br17-audio2), after audio1's fields so their places stay: */
+    u32 more[3][HW_AUD_MORE];   /* the clock, PLL and pin-map words: at main's start, tone on, after the last step */
+    u32 regs_step[HW_AUD_REGS]; /* audio1's registers after the last step */
+    u32 step_state;             /* HW_STEP_NONE, _TAKEN or _UNDONE */
+    u32 steps;                  /* key presses taken */
+    u32 clk_before, clk_set, clk_back; /* CLK_CON2 read before, read back after bit 9 set, read back after it is put back */
 };
+#define HW_STEP_NONE   0u
+#define HW_STEP_TAKEN  1u
+#define HW_STEP_UNDONE 2u
+void hw_audio_step(void);
 extern struct hw_audio hw_aud;
 void hw_audio_boot(void);
 void hw_audio_start(void);

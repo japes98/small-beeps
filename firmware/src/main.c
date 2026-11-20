@@ -345,6 +345,14 @@ static void hw_serve(void)
          * the audio page again, then the test screen. */
         if (e.control == INPUT_PLAY && e.kind == INPUT_PRESS)
             hw_audio_toggle();
+        /* audio2: REC takes CLK_CON2 bit 9's step, or puts it back; then
+         * the page, then the test screen. */
+        if (e.control == INPUT_REC && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_audio_step();
+            hw_audio_page();
+            hw_test_screen();
+            continue;
+        }
         if (e.control == INPUT_HOME && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
             hw_audio_page();
             hw_test_screen();

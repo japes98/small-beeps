@@ -53,6 +53,9 @@
 
 struct hw_audio hw_aud;
 
+static char *put_s(char *p, const char *s);
+static char *put_hex(char *p, u32 v, u32 digits);
+
 /* The registers read, in hw_aud.regs' order (hw_fm1.h, HW_AUD_REGS). */
 static const char reg_name[HW_AUD_REGS][6] = {
     "PLL2", "CLK2", "DAA0", "DAA1", "DAA2", "DAA3", "DAA7", "ADA0", "ADA1", "ADA2",
@@ -86,9 +89,77 @@ static void read_regs(u32 *r)
     r[21] = REG(0x00050094u);
 }
 
+/* audio2: the clock, PLL and pin-map words (HW-144 to HW-146), read only. */
+static const char more_name[HW_AUD_MORE][6] = {
+    "CLK0", "CLK1", "SYSDV", "PLL0", "PLL1", "PL2_1",
+    "MAP2", "MAP3", "MAP4", "MAP5", "MAP6", "MAP7", "MAP8",
+};
+
+static void read_more(u32 *r)
+{
+    u32 i;
+
+    r[0] = JL_CLOCK->CLK_CON0;
+    r[1] = JL_CLOCK->CLK_CON1;
+    r[2] = JL_CLOCK->SYS_DIV;
+    r[3] = JL_ANA->PLL_CON0;
+    r[4] = JL_ANA->PLL_CON1;
+    r[5] = JL_ANA->PLL2_CON1;
+    for (i = 0; i < 7; i++)
+        r[6 + i] = REG(0x00051024u + 4u * i);   /* JL_IOMAP->CON2 to CON8 */
+}
+
 void hw_audio_boot(void)
 {
     read_regs(hw_aud.regs[0]);
+    read_more(hw_aud.more[0]);
+}
+
+/* --- audio2's clock step (HW-145; the owner's ruling) --------------------- */
+
+#define CLK2_ALNK0_EN (1u << 9)
+
+static char step_text[40];
+
+/* A key press: CLK_CON2 read, bit 9 alone set, written back and read back;
+ * the next press writes back exactly the value read before, and the one
+ * after that takes the step again. Nothing else of CLK_CON2 changes (its
+ * low byte, bit 8 and bits 10 and 11 stay as read), and nothing else is
+ * written. The step row names each write before it is made, so a hang
+ * shows which; then the registers are read again. */
+void hw_audio_step(void)
+{
+    char *p;
+
+    if (hw_aud.step_state != HW_STEP_TAKEN) {
+        u32 v = JL_CLOCK->CLK_CON2;
+
+        hw_aud.clk_before = v;
+        p = put_s(step_text, "audio2: CLK_CON2 ");
+        p = put_hex(p, v, 8);
+        p = put_s(p, " |bit 9");
+        *p = 0;
+        hw_step(step_text);
+        JL_CLOCK->CLK_CON2 = v | CLK2_ALNK0_EN;
+        hw_aud.clk_set = JL_CLOCK->CLK_CON2;
+        hw_aud.step_state = HW_STEP_TAKEN;
+        p = put_s(step_text, "audio2: bit 9 set, reads ");
+    } else {
+        p = put_s(step_text, "audio2: CLK_CON2 back to ");
+        p = put_hex(p, hw_aud.clk_before, 8);
+        *p = 0;
+        hw_step(step_text);
+        JL_CLOCK->CLK_CON2 = hw_aud.clk_before;
+        hw_aud.clk_back = JL_CLOCK->CLK_CON2;
+        hw_aud.step_state = HW_STEP_UNDONE;
+        p = put_s(step_text, "audio2: put back, reads ");
+    }
+    p = put_hex(p, JL_CLOCK->CLK_CON2, 8);
+    *p = 0;
+    hw_step(step_text);
+    hw_aud.steps++;
+    read_regs(hw_aud.regs_step);
+    read_more(hw_aud.more[2]);
 }
 
 /* --- The tone ------------------------------------------------------------- */
@@ -301,6 +372,7 @@ void hw_audio_line(void)
     p = put_dec(p, sb_audio.blocks);
     *p++ = ' ';
     p = put_fps(p);
+    p = put_s(p, hw_aud.step_state == HW_STEP_TAKEN ? " T" : hw_aud.step_state == HW_STEP_UNDONE ? " U" : "");
     *p = 0;
     gfx_fill(4, HW_AUD_Y, SCREEN_W - 8, 2 * FONT_H, BLACK);
     gfx_text(6, HW_AUD_Y, t, verdict_colour(), BLACK, 2);
@@ -341,57 +413,82 @@ static void page_top(void)
     p = put_s(p, " vol ");
     p = put_dec(p, hw_aud.master);
     p = put_s(p, hw_aud.tone_on ? " on" : " off");
+    p = put_s(p, hw_aud.step_state == HW_STEP_TAKEN ? " step TAKEN" :
+                 hw_aud.step_state == HW_STEP_UNDONE ? " step UNDONE" : " step no");
     *p = 0;
     gfx_text(6, 48, t, WHITE, BLACK, 1);
     lcd_send_rows(0, PAGE_REGS_Y);
     lcd_wait();
 }
 
-static void page_regs(void)
+/* One table of registers: at the call, with the tone on, after the last
+ * step ("--------" before any). View 0 is audio1's; view 1 audio2's. */
+static void page_regs(u32 view)
 {
-    char t[40], *p;
-    u32 i;
+    char t[48], *p;
+    u32 i, n = view ? HW_AUD_MORE : HW_AUD_REGS, y = PAGE_REGS_Y;
 
     gfx_fill(0, PAGE_REGS_Y, SCREEN_W, SCREEN_H - PAGE_REGS_Y, BLACK);
-    gfx_text(6, PAGE_REGS_Y, "reg    at call  tone on", DIM, BLACK, 1);
-    for (i = 0; i < HW_AUD_REGS; i++) {
-        p = put_s(t, reg_name[i]);
+    p = put_s(t, view ? "2/2 reg  call     tone     " : "1/2 reg  call     tone     ");
+    p = put_s(p, hw_aud.step_state == HW_STEP_TAKEN ? "taken" : hw_aud.step_state == HW_STEP_UNDONE ? "undone" : "no step");
+    *p = 0;
+    gfx_text(6, y, t, DIM, BLACK, 1);
+    for (i = 0; i < n; i++) {
+        u32 a = view ? hw_aud.more[0][i] : hw_aud.regs[0][i];
+        u32 b = view ? hw_aud.more[1][i] : hw_aud.regs[1][i];
+        u32 c = view ? hw_aud.more[2][i] : hw_aud.regs_step[i];
+
+        p = put_s(t, view ? more_name[i] : reg_name[i]);
         while (p < t + 6)
             *p++ = ' ';
-        p = put_hex(p, hw_aud.regs[0][i], 8);
+        p = put_hex(p, a, 8);
         *p++ = ' ';
-        p = put_hex(p, hw_aud.regs[1][i], 8);
+        p = put_hex(p, b, 8);
+        *p++ = ' ';
+        p = hw_aud.steps ? put_hex(p, c, 8) : put_s(p, "--------");
         *p = 0;
-        gfx_text(6, PAGE_REGS_Y + FONT_H * (i + 1), t,
-                 hw_aud.regs[0][i] != hw_aud.regs[1][i] ? YELLOW : WHITE, BLACK, 1);
+        y += FONT_H;
+        gfx_text(6, y, t, a != b || (hw_aud.steps && b != c) ? YELLOW : WHITE, BLACK, 1);
     }
-    p = put_s(t, "map: none written (SR-20)");
-    *p = 0;
-    gfx_text(6, PAGE_REGS_Y + FONT_H * (HW_AUD_REGS + 1), t, DIM, BLACK, 1);
+    if (view) {
+        y += FONT_H;
+        gfx_text(6, y, "pins and map: none written (SR-20)", DIM, BLACK, 1);
+        y += FONT_H;
+        p = put_s(t, "CLK2 ");
+        p = put_hex(p, hw_aud.clk_before, 8);
+        p = put_s(p, " > ");
+        p = put_hex(p, hw_aud.clk_set, 8);
+        p = put_s(p, " > ");
+        p = put_hex(p, hw_aud.clk_back, 8);
+        *p = 0;
+        gfx_text(6, y, t, WHITE, BLACK, 1);
+    }
     lcd_send_rows(PAGE_REGS_Y, SCREEN_H - PAGE_REGS_Y);
     lcd_wait();
 }
 
 /* The audio page, held for HW_AUD_PAGE_MS: the counts and the frames a
  * second at the top, redrawn every quarter second, and the registers at
- * the call and with the tone on. Meanwhile main polls CON0 bit 15 and
+ * the call, with the tone on and after the last step: audio1's for the
+ * first half, audio2's for the second. Meanwhile main polls CON0 bit 15 and
  * CON2 bit 7 itself: the flips of the one, and the times it sees the
  * other set (a half finished whose interrupt hasn't been taken yet). The
  * first time, the "tone on" registers are read here. The caller puts the
  * test screen back. */
 void hw_audio_page(void)
 {
-    u32 start, next, last;
+    u32 start, next, last, view = 0;
 
     if (!hw_aud.regs_read) {
         while (sb_beacon.beats - hw_aud.started < HW_AUD_SETTLE_MS)
             ;
         read_regs(hw_aud.regs[1]);
+        read_more(hw_aud.more[1]);
         hw_aud.regs_read = 1;
     }
     lcd_wait();
     gfx_fill(0, 0, SCREEN_W, SCREEN_H, BLACK);
-    page_regs();
+    page_regs(0);
     page_top();
     start = sb_beacon.beats;
     next = start + 250u;
@@ -407,6 +504,10 @@ void hw_audio_page(void)
             hw_aud.pend++;
         if ((int)(sb_beacon.beats - next) >= 0) {
             next += 250u;
+            if (!view && sb_beacon.beats - start >= HW_AUD_PAGE_MS / 2) {
+                view = 1;
+                page_regs(1);
+            }
             page_top();
         }
     }
