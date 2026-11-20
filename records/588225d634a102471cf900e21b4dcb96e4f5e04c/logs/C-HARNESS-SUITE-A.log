@@ -1,0 +1,4 @@
+$ sh harness/ci.sh suite /home/runner/work/small-beeps/small-beeps/out/588225d634a102471cf900e21b4dcb96e4f5e04c/harness-a /mnt/harness-a
+fwtest suite: PASS
+
+exit status 0

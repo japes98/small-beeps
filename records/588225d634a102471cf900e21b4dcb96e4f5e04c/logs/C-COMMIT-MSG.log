@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 77002bec22f9dd80d547983f5da76ac0e685347f..588225d634a102471cf900e21b4dcb96e4f5e04c
+OK     653988711fdd firmware: audio1's page reads MASTER itself (BR-17)
+OK     b1128ce9d9c5 spec: audio1's unit facts, ALNK0's clock and routing (HW-144 to HW-146, SR-20)
+EXEMPT 0ff93d5abebb (merge) merge: clean's #210 (audio1's page reads MASTER) into the audio1 change
+OK     e315a5bc1a2b spec: note on Q-2, and the audio1 EXPOSURE entry made exact
+EXEMPT 588225d634a1 (merge) Merge pull request #211 from japes98/spec/audio1-unit
+5 commit(s) checked: PASS
+
+exit status 0
