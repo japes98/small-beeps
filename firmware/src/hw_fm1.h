@@ -108,6 +108,14 @@ void hw_core1_start(void);
 void hw_rows_all(void);
 void hw_refresh(u32 second);
 extern volatile u32 hw_slots;
+#if defined(SB_TEST_NOW_RACE)
+/* The test build's check that sb_now() never goes back (main.c). */
+struct hw_now_test {
+    u32 done, runs;
+    u32 backs[5];               /* by the point the slot's time-keeping came at (1 to 4) */
+};
+extern struct hw_now_test hw_now_test;
+#endif
 void hw_step(const char *text);
 void hw_hold(void);
 void hw_watch(u32 ms);
@@ -127,7 +135,7 @@ void hw_rows_start(void);
 #define HW_LOG_REC     2048u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
-#define HW_LOG_LAYOUT  3u                   /* tools/report_decode.py's FIELDS[3] */
+#define HW_LOG_LAYOUT  4u                   /* tools/report_decode.py's FIELDS[4] */
 #define HW_LOG_HEAD    12u                  /* header words before the fields */
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
 /* The build's identity in each record: the package's version, which the
@@ -138,8 +146,17 @@ struct hw_report {
     u32 found;                  /* valid records found then */
     u32 slot, seq;              /* where and with what number the next record goes */
     u32 saved, fails;           /* records written and verified; writes that failed */
-    u32 last_err;               /* 1 no flash, 2 image too long, 3 erase, 4 program, 5 verify */
+    u32 last_err;               /* 1 no flash, 2 image too long, 3 erase, 4 program, 5 verify, 6 busy at the take */
+    /* Since the next build after audio5 (three records failed their CRC on
+     * the unit): what each failed write saw, the last HW_LOG_FAILS. */
+    u32 busy_waits;             /* takes that found the chip busy and waited */
+    u32 glitches;               /* verifies that failed once and read back right the second time */
+    u32 retries;                /* records written again in the next slot after a failed one */
+    u32 page_rewaits;           /* page programs whose wait said busy and were waited on again */
+    u32 fail_n;                 /* failed writes so far (fail[] holds the last HW_LOG_FAILS) */
+    u32 fail[4][8];             /* seq, slot, err, pages that differ (bit per 256 bytes), first differing byte, bytes read 0xFF where 0xFF wasn't written, the word written there, the word read */
 };
+#define HW_LOG_FAILS 4u
 extern struct hw_report hw_rep;
 int hw_flash_take(void);
 void hw_flash_give(void);
@@ -290,6 +307,13 @@ void hw_audio_keypage(void);
 void hw_audio_keypage_hi(void);
 u32 hw_audio_key_lit(u32 control);
 void hw_audio_leds(u32 held);
+/* The next key (the owner's request after audio5): the build's suggested
+ * order, one table (hw_audio.c, guide); its next key's LED blinks slowly
+ * and the step row says "next: KEY (what)". */
+void hw_guide_key(u32 control);
+void hw_guide_show(void);
+void hw_guide_tick(void);
+extern u32 hw_guide_at;
 #define HW_STEP_NONE   0u
 #define HW_STEP_TAKEN  1u
 #define HW_STEP_UNDONE 2u

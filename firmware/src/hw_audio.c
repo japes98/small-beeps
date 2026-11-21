@@ -914,6 +914,7 @@ static int j_try(u32 reg, u32 bit, u32 t)
             pend++;
         c1_poll();
     }
+    hw_guide_tick();
     hw_aud.j_flips = flips;
     hw_aud.j_pend = pend;
     hw_aud.j_irq = sb_audio.blocks - irq0;
@@ -1785,6 +1786,7 @@ static void page_views(const u8 *order, u32 n)
                 draw_view(order[i]);
             }
             page_top();
+            hw_guide_tick();
         }
     }
 }
@@ -1819,6 +1821,86 @@ void hw_audio_keypage(void)
     static const u8 keys[2] = { 3, 2 };
 
     page_views(keys, 2);
+}
+
+/* --- The next key (the owner's request after audio5) ------------------- */
+
+/* The build's suggested order, the one table: each entry a key and what
+ * its press does. A press of the entry's key moves on to the next; any
+ * other key leaves it. This is audio5's order (the spec side's prompt:
+ * K, then J with bit 9 set, then J with bit 9 clear), then a save. */
+struct guide_step {
+    u8 key;
+    char what[13];
+};
+static const struct guide_step guide[] = {
+    { INPUT_GLO, "K" },
+    { INPUT_GLO, "K undo" },
+    { INPUT_REC, "bit 9" },
+    { INPUT_OCT_UP, "J sweep" },
+    { INPUT_REC, "bit 9 undo" },
+    { INPUT_OCT_UP, "J sweep" },
+    { INPUT_EDIT, "save" },
+};
+#define GUIDE_N (sizeof guide / sizeof guide[0])
+#define GUIDE_BLINK_MS 500u
+
+u32 hw_guide_at;
+
+static const char *key_name(u32 c)
+{
+    switch (c) {
+    case INPUT_OCT_DOWN: return "OCT-";
+    case INPUT_OCT_UP:   return "OCT+";
+    case INPUT_FX:       return "FX";
+    case INPUT_SEL:      return "SEL";
+    case INPUT_ENV:      return "ENV";
+    case INPUT_LFO:      return "LFO";
+    case INPUT_EDIT:     return "EDIT";
+    case INPUT_GLO:      return "GLO";
+    case INPUT_HOME:     return "HOME";
+    case INPUT_SAVE:     return "SAVE";
+    case INPUT_ARP:      return "ARP";
+    case INPUT_SEQ:      return "SEQ";
+    case INPUT_PLAY:     return "PLAY";
+    case INPUT_REC:      return "REC";
+    default:             return "?";
+    }
+}
+
+/* A key pressed on the test screen: the guide moves on if it was the next. */
+void hw_guide_key(u32 control)
+{
+    if (hw_guide_at < GUIDE_N && control == guide[hw_guide_at].key)
+        hw_guide_at++;
+}
+
+/* "next: KEY (what)" on the step row, or that the order is done. */
+void hw_guide_show(void)
+{
+    static char t[40];
+    char *p;
+
+    if (hw_guide_at >= GUIDE_N) {
+        hw_step("next: none, the suggested order is done");
+        return;
+    }
+    p = put_s(t, "next: ");
+    p = put_s(p, key_name(guide[hw_guide_at].key));
+    p = put_s(p, " (");
+    p = put_s(p, guide[hw_guide_at].what);
+    p = put_s(p, ")");
+    *p = 0;
+    hw_step(t);
+}
+
+/* The next key's LED, blinking: on and off for GUIDE_BLINK_MS each. A key
+ * whose LED is lit for its step blinks too while it is next; once the
+ * guide moves on, its press and release set it as before. */
+void hw_guide_tick(void)
+{
+    if (hw_guide_at < GUIDE_N)
+        input_led(guide[hw_guide_at].key, sb_beacon.beats / GUIDE_BLINK_MS & 1u ? 0 : INPUT_LED_FULL);
 }
 
 /* --- leds1: the step keys' LEDs (the owner's request) ---------------------- */

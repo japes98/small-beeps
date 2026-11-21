@@ -134,7 +134,7 @@ static void copy16(u32 *w, const char *s)
     }
 }
 
-/* The fields, in tools/report_decode.py's FIELDS[3] order. */
+/* The fields, in tools/report_decode.py's FIELDS[4] order. */
 static u32 fields(u32 *w)
 {
     u32 n = 0;
@@ -152,6 +152,20 @@ static u32 fields(u32 *w)
 #if defined(SB_HW_AUDIO1)
     n += hw_audio_report(w + n);
 #endif
+    /* Layout 4: the log's own health, last (since the build after audio5). */
+    w[n++] = hw_rep.last_err;
+    w[n++] = hw_rep.busy_waits;
+    w[n++] = hw_rep.glitches;
+    w[n++] = hw_rep.retries;
+    w[n++] = hw_rep.page_rewaits;
+    w[n++] = hw_rep.fail_n;
+    {
+        u32 i, j;
+
+        for (i = 0; i < HW_LOG_FAILS; i++)
+            for (j = 0; j < 8; j++)
+                w[n++] = hw_rep.fail[i][j];
+    }
     return n;
 }
 
@@ -171,10 +185,96 @@ static void say(const char *what, u32 seq)
     hw_step(text);
 }
 
+/* A failed write, kept for the next records (hw_rep.fail): which pages of
+ * the slot differ from what was written, where first, and how many of the
+ * differing bytes read 0xFF (left unprogrammed) - a program cut short,
+ * ignored or crossing into another page shows as erased pages; bits lost
+ * or a program over data that wasn't erased shows as other values. */
+static void note_fail(u32 err)
+{
+    u32 *f = hw_rep.fail[hw_rep.fail_n % HW_LOG_FAILS], i, pages = 0, first = 0xFFFFFFFFu, ff = 0;
+    const u8 *a = (const u8 *)rec, *b = (const u8 *)chk;
+
+    if (err == 5) {
+        for (i = 0; i < HW_LOG_REC; i++) {
+            if (a[i] == b[i])
+                continue;
+            pages |= 1u << (i / 256u);
+            if (first == 0xFFFFFFFFu)
+                first = i;
+            if (b[i] == 0xFFu)
+                ff++;
+        }
+    }
+    f[0] = hw_rep.seq;
+    f[1] = hw_rep.slot;
+    f[2] = err;
+    f[3] = pages;
+    f[4] = first;
+    f[5] = ff;
+    f[6] = first < HW_LOG_REC ? rec[first / 4u] : 0;
+    f[7] = first < HW_LOG_REC ? chk[first / 4u] : 0;
+    hw_rep.fail_n++;
+}
+
+/* Programs the record into hw_rep.slot a 256-byte page at a time, each
+ * finished before the next: if a page's wait says the chip is still busy
+ * (audio5's three cut-off records were that, a wait cut short), it waits
+ * again, up to PAGE_WAITS times, counted; only a chip that stays busy
+ * stops the write (4). Then checks it: 0 or 5 (verify). A verify that
+ * fails is read again: if the second read is right the flash holds the
+ * record and the first read was the glitch (counted). */
+#define PAGE_WAITS 8u
+
+static u32 write_slot(void)
+{
+    u32 i, pass, page, w;
+    const u8 *src = (const u8 *)rec;
+#if defined(SB_TEST_LOG_VERIFY_FAIL)
+    /* The test build: the first record is programmed with one bit wrong,
+     * as a failed write on the unit leaves it, so its verify fails and it
+     * is written again in the next slot. */
+    u32 spoil = hw_rep.seq == 1u && !hw_rep.retries;
+
+    if (spoil)
+        rec[20] ^= 0x00010000u;
+#endif
+    for (page = 0; page < HW_LOG_REC; page += 256u) {
+        int busy = store_raw_program(slot_addr(hw_rep.slot) + page, src + page, 256u);
+
+        for (w = 0; busy && w < PAGE_WAITS; w++) {
+            hw_rep.page_rewaits++;
+            busy = store_raw_wait();
+        }
+        if (busy) {
+#if defined(SB_TEST_LOG_VERIFY_FAIL)
+            if (spoil)
+                rec[20] ^= 0x00010000u;
+#endif
+            return 4;
+        }
+    }
+#if defined(SB_TEST_LOG_VERIFY_FAIL)
+    if (spoil)
+        rec[20] ^= 0x00010000u;
+#endif
+    for (pass = 0; pass < 2; pass++) {
+        store_raw_read(slot_addr(hw_rep.slot), (u8 *)chk, HW_LOG_REC);
+        for (i = 0; i < WORDS && chk[i] == rec[i]; i++)
+            ;
+        if (i == WORDS) {
+            if (pass)
+                hw_rep.glitches++;
+            return 0;
+        }
+    }
+    return 5;
+}
+
 void hw_report_save(const char *label)
 {
     u32 image_end = 0x4000u + (u32)__data_load - 0x02000000u + (u32)(__data_end - __data_start);
-    u32 err = 0, i, n;
+    u32 err = 0, i, n, tries;
 
     say("report: writing #", hw_rep.scanned ? hw_rep.seq : 0);
     if (image_end + 4096u > HW_LOG_BASE) {
@@ -182,31 +282,40 @@ void hw_report_save(const char *label)
     } else if (hw_flash_take()) {
         err = 1;
     } else {
-        if (!hw_rep.scanned)
-            scan();
-        err = prepare();
-        if (!err) {
-            for (i = 0; i < WORDS; i++)
-                rec[i] = 0;
-            n = fields(rec + HW_LOG_HEAD);
-            rec[0] = HW_LOG_MAGIC;
-            rec[1] = HW_LOG_LAYOUT | n << 16;
-            rec[2] = hw_rep.seq;
-            rec[3] = sb_beacon.beats;
-            copy16(rec + 4, HW_BUILD_ID);
-            copy16(rec + 8, label);
-            rec[WORDS - 1u] = store_crc32((const u8 *)rec, HW_LOG_REC - 4u);
-            if (store_raw_program(slot_addr(hw_rep.slot), (const u8 *)rec, HW_LOG_REC)) {
-                err = 4;
-            } else {
-                store_raw_read(slot_addr(hw_rep.slot), (u8 *)chk, HW_LOG_REC);
-                for (i = 0; i < WORDS && chk[i] == rec[i]; i++)
-                    ;
-                if (i < WORDS)
-                    err = 5;
+        /* The chip may still be busy with whatever came before the take
+         * (a read while busy is ignored: a slot could look erased). */
+        if (store_raw_busy())
+            hw_rep.busy_waits++;
+        if (store_raw_wait()) {
+            err = 6;
+        } else {
+            if (!hw_rep.scanned)
+                scan();
+            for (tries = 0; tries < 2; tries++) {
+                err = prepare();
+                if (err)
+                    break;
+                for (i = 0; i < WORDS; i++)
+                    rec[i] = 0;
+                n = fields(rec + HW_LOG_HEAD);
+                rec[0] = HW_LOG_MAGIC;
+                rec[1] = HW_LOG_LAYOUT | n << 16;
+                rec[2] = hw_rep.seq;
+                rec[3] = sb_beacon.beats;
+                copy16(rec + 4, HW_BUILD_ID);
+                copy16(rec + 8, label);
+                rec[WORDS - 1u] = store_crc32((const u8 *)rec, HW_LOG_REC - 4u);
+                err = write_slot();
+                if (err)
+                    note_fail(err);
+                /* The slot is used either way: the next record goes after it. */
+                hw_rep.slot = (hw_rep.slot + 1u) % HW_LOG_SLOTS;
+                if (!err)
+                    break;
+                /* Once more, in the next slot, under the same number: the
+                 * failed slot's CRC fails, so the decoder skips it. */
+                hw_rep.retries++;
             }
-            /* The slot is used either way: the next record goes after it. */
-            hw_rep.slot = (hw_rep.slot + 1u) % HW_LOG_SLOTS;
         }
         hw_flash_give();
     }
@@ -215,9 +324,9 @@ void hw_report_save(const char *label)
         hw_rep.fails++;
         say(err == 1 ? "report: NOT saved, no flash #" : err == 2 ? "report: NOT saved, image long #" :
             err == 3 ? "report: NOT saved, erase #" : err == 4 ? "report: NOT saved, program #" :
-            "report: NOT saved, verify #", hw_rep.seq);
+            err == 6 ? "report: NOT saved, chip busy #" : "report: NOT saved, verify #", hw_rep.seq);
         /* A slot written to keeps its number, so no two records share one. */
-        if (err >= 4)
+        if (err == 4 || err == 5)
             hw_rep.seq++;
         return;
     }

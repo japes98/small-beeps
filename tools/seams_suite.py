@@ -277,6 +277,13 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   stops the output); the tone plays at 440 Hz and 44 117.6 frames a
   second after the sweeps, before that try. Whether fwtest stores CON1
   and CON3 is printed.
+- nowrace (BR-17, after audio5): the hardware build's sb_now() never
+  goes back. A test build (SB_TEST_NOW_RACE) makes the slot interrupt's
+  time-keeping (its acknowledge and its count) happen at each point
+  between sb_now()'s reads just after TIMER0 has wrapped, 50 times at
+  each of the four, and every reading is no earlier than the one before
+  it. (Until the fix the wrap flag was read after the loop: an interrupt
+  there put the time one slot back, which a busy wait read as a timeout.)
 - report1 (BR-17, clean-br17-report1): the report log, SB_HW_REPORT with
   audio1's build. From a chip whose log region holds older data (as the
   owner's unit does): the records of boot, each page, REC, ARP and its
@@ -285,7 +292,9 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   tools/report_decode.py reads them back, and the last record's fields
   match the probe's state in RAM. A second run from that chip numbers on
   after the newest; a run from a full ring erases the oldest sector and
-  keeps the rest.
+  keeps the rest. A write that fails its check (SB_TEST_LOG_VERIFY_FAIL)
+  is kept in the log's own fields and written again in the next slot
+  under the same number, and the decoder lists the failed one.
 - hw (BR-17, Phase B): the FM-1 hardware build, SB_HW_FM1 (R-HW-1). In
   fwtest, where its one timer, TIMER0, counts 24 MHz rather than the
   chip's 60 MHz (HW-119), so its beats are 2.5 times slow: the screen goes
@@ -2195,8 +2204,36 @@ def case_report1(a, work, log):
         problems.append("report1 wrap: sequences %s..%s (%d records), the first new at %s (%d to %d, then two"
                         " new from slot 0)" % (seqs[:3], seqs[-3:], len(seqs), hex(rs3[-2]["offset"]) if len(rs3) > 1
                                                else None, first, 999 + slots))
+    # A write that fails (SB_TEST_LOG_VERIFY_FAIL: the first record programmed
+    # with one bit wrong): it is found, kept in the log's own fields, and the
+    # record written again in the next slot under the same number; the
+    # decoder lists the failed one with its header.
+    vb = os.path.join(work, "build-verify")
+    build(vb, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_AUDIO1", "--define", "SB_HW_REPORT",
+          "--define", "SB_TEST_LOG_VERIFY_FAIL")
+    vout = os.path.join(work, "verify")
+    vflash = os.path.join(work, "verify-seed.bin")
+    with open(vflash, "wb") as f:
+        f.write(bytes(seed))
+    r = fwtest(os.path.join(vb, "app.bin"), vout, log, "--ms", "8000", "--flash", os.path.relpath(vflash, ROOT),
+               "--flash-out")
+    with open(os.path.join(vout, "flash.bin"), "rb") as f:
+        vchip = f.read()
+    vrs, vbad = rd.records(vchip)
+    vb0 = rd.bad_record(vchip, vbad[0]) if vbad else {}
+    vl = vrs[-1]["fields"] if vrs else {}
+    got = (len(vbad), vb0.get("slot"), vb0.get("seq"), vb0.get("label"), [(x["seq"], x["label"]) for x in vrs[:2]],
+           [x["offset"] for x in vrs[:2]], vl.get("log_fail_count"), vl.get("log_retries"), vl.get("log_fail0_seq"),
+           vl.get("log_fail0_slot"), vl.get("log_fail0_err"), vl.get("log_fail0_pages_differ"),
+           vl.get("log_fail0_first_byte"), vl.get("log_fail0_bytes_read_ff"), vl.get("log_page_rewaits"))
+    exp = (1, 0, 1, "boot", [(1, "boot"), (2, "page")], [rd.LOG_BASE + rd.REC, rd.LOG_BASE + 2 * rd.REC], 1, 1, 1, 0,
+           5, 1, 82, 0, 0)
+    if r["run"]["outcome"] != "completed" or got != exp:
+        problems.append("report1 verify: %s (%s)" % (got, exp))
     print("report1: from older data, %d records (%s) decoded, the sectors past them untouched; a second run"
-          " numbered on (%s); from a full ring the oldest sector erased, %d records kept"
+          " numbered on (%s); from a full ring the oldest sector erased, %d records kept; a failed write found,"
+          " logged and written again in the next slot"
           % (len(rs), ", ".join(labels), [r["seq"] for r in new], len(rs3)))
     return problems
 
@@ -2288,7 +2325,7 @@ def case_audio4(a, work, log):
     for lab in ("H taken", "REC taken", "H measured", "I taken", "I bit 10", "REC refused", "I undone", "REC undone",
                 "H undone"):
         want += [lab, "page"]
-    if labels != want or bad or any(x["layout"] != 3 or not x["known"] for x in rs):
+    if labels != want or bad or any(x["layout"] != max(rd.FIELDS) or not x["known"] for x in rs):
         problems.append("audio4: log records %s (%s), layouts %s, %d bad" % (labels, want,
                         sorted({(x["layout"], x["count"]) for x in rs}), len(bad)))
     elif rs:
@@ -2378,7 +2415,7 @@ def case_audio5(a, work, log):
     for n, i in enumerate(starts):
         end = starts[n + 1] if n + 1 < len(starts) else len(labels)
         sweeps.append([l for l in labels[i + 1:end] if l.startswith("CON") or l.startswith("J ")])
-    if bad or any(x["layout"] != 3 or not x["known"] for x in rs) or len(sweeps) != 3:
+    if bad or any(x["layout"] != max(rd.FIELDS) or not x["known"] for x in rs) or len(sweeps) != 3:
         problems.append("audio5: log: %d sweeps, %d bad, layouts %s" % (len(sweeps), len(bad),
                                                                         sorted({x["layout"] for x in rs})))
     else:
@@ -2424,6 +2461,27 @@ def case_audio5(a, work, log):
     return problems
 
 
+def case_nowrace(a, work, log):
+    """sb_now() never goes back: the slot interrupt's time-keeping forced
+    at each point between its reads, just after TIMER0 wraps (main.c,
+    SB_TEST_NOW_RACE); 200 runs, no reading earlier than the one before."""
+    problems = []
+    fws = fw_suite()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_TEST_NOW_RACE")
+    h = fws.elf_symbols(os.path.join(b, "app.elf"))["hw_now_test"]
+    out = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "3000", "--ram", "0x%08x:28@end" % h)
+    done, runs, *backs = struct.unpack("<7I", ram(out, h, 28))
+    if r["run"]["outcome"] != "completed" or (done, runs) != (1, 200) or any(backs):
+        problems.append("nowrace: %s, done %d, runs %d, readings that went back by point %s (done, 200, none)"
+                        % (r["run"]["outcome"], done, runs, backs[1:]))
+    print("nowrace: the slot's time-keeping forced at each of sb_now()'s four points, %d runs: %s readings went back"
+          % (runs, sum(backs)))
+    return problems
+
+
 def read_bytes(path):
     with open(path, "rb") as f:
         return f.read()
@@ -2455,6 +2513,7 @@ CASES = [
     ("report1", case_report1),
     ("audio4", case_audio4),
     ("audio5", case_audio5),
+    ("nowrace", case_nowrace),
 ]
 
 

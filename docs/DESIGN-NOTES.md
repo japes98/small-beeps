@@ -5034,6 +5034,106 @@ sweep. Built on leds1 (merged with #220), one file.
   26 records.
 - The build's identity is 0.10.0-hw3n: fwsc refuses "hw3m", whose "m"
   would make a marker byte the format's end.
+
+### 2026-11-21 after audio5: three log records with a failing CRC, and the next key (BR-17, R-HW-1)
+The owner's report (docs/prompts/clean-br17-audio5-result.md): audio5's
+run left 65 valid records and three with the magic but a failing CRC, at
+sequence gaps #34, #36 and #45 (about 0x64800, 0x65800 and 0x6A000: the
+ring's slots 33, 35 and 44). And a request: light the key to press next.
+Both go into the next build (with step D, when its prompt comes); audio5
+isn't rebuilt for them.
+
+- **What the run says.** This code skips a sequence number only when a
+  write's page program timed out or its read-back didn't match (errors 4
+  and 5); every other failure keeps the number. The owner's look at the
+  raw bytes (the same prompt file, its second part): each of the three is
+  cut off, its first pages right and its last 256-byte pages still erased
+  (#34 page 7, #36 pages 3-7, #45 pages 6-7), all in fast bursts of
+  records. That is `program` returning at a page whose busy wait said
+  "timed out": the remaining pages are never programmed. Records don't
+  overlap: main writes them one after another.
+- **The cause: time going back.** The busy wait (store.c, `wait_ready`)
+  measures with `sb_now()`, `d = sb_now() - t`, unsigned, against a 3 s
+  limit. The hardware build's `sb_now()` read the slots counted and
+  TIMER0's count in a loop that repeats if a slot's interrupt comes
+  between them, but read the count's wrap flag (`CON` bit 15) after the
+  loop. A slot's interrupt there counts the slot and clears the flag, so a
+  count read after the wrap was paired with the slots before it: one slot
+  (83 us) back in time. A wait that started just after reads a "time" of
+  about 4 000 million units, past the limit at once, and stops while the
+  chip is still programming a page. Many records in a burst give the race
+  more chances. Nothing else ruled in: no page program crosses a page
+  (records start on 2048-byte boundaries, `program` splits at every
+  256-byte page), the limit is 3 s against a page's 3 ms (HW-77), and no
+  interrupt handler or core 1 touches SPI0 or the flash's pins.
+- **The fix.** `sb_now()` reads the wrap flag inside its loop, with the
+  slots and the count, so it never goes back. The log programs a record a
+  page at a time, each finished before the next: a page whose wait says
+  busy is waited on again (up to eight times, counted), and only a chip
+  that stays busy stops the write. Each write also first waits until the
+  chip isn't busy (counting the times it was), reads a mismatch back a
+  second time (a right second read is a read glitch, counted, and the
+  record stands), and on a real failure writes the record again in the
+  next slot under the same number, so no record is lost or number
+  skipped. Each failure is kept, the last four, in every later record
+  (layout 4): its number and slot, the error, which 256-byte pages
+  differ, the first differing byte, how many differing bytes read 0xFF,
+  and the word written and the word read there; with the counts of busy
+  takes, glitches, retries and repeated page waits. The decoder prints
+  each record whose CRC fails with its offset, slot, header, page map (F
+  all 0xFF, 0 all zero, d other bytes) and its blank pages, and the
+  firmware's own counts. A test build (`SB_TEST_LOG_VERIFY_FAIL`)
+  programs the first record with one bit wrong, and case report1 checks
+  it is found, logged, and written again.
+- **Every other difference of two readings** (the owner's follow-up, the
+  same prompt file's third part), in the hardware build, where the race
+  was; build A's `sb_now()` is TIMER4's free-running count, one register,
+  and never had it. The race needs the slot interrupt to come between
+  `sb_now()`'s loop and its flag read, so it could hit main and the audio
+  interrupt (priority 0, which the slot's, priority 2, preempts), never
+  code inside the slot interrupt itself. A step back made one difference
+  about 4 000 million units:
+  - *Could act wrongly:* the flash's busy wait (store.c, `wait_ready`,
+    3 s limit), the log's cut-off records, and the same for the store's
+    start-up counter (its write or erase could have failed at boot; it
+    never did on the unit); and the 12.5 us settle in the matrix sweep and
+    the knob finder (hw_start3.c, `while (sb_now() - t < 300)`), cut to
+    nothing, so one sweep could read a column before it settled: a
+    momentary wrong grid cell on the test screen, or a spurious cell
+    change in the finder (the keys and knobs themselves come from the
+    scan in the slot interrupt, which never had it).
+  - *A wrong number, nothing acting on it:* audio.c's fill time
+    (`fill_last`, `fill_max`) and the audio probe's rate base (hw_audio.c:
+    a `t1` before `t0` just after a fresh base gives one wrong frames a
+    second until the next half, and a needless re-base); ALNK0 never ran
+    on the unit, so neither showed. The store's `init_ticks` and
+    `put_max`, lcd.c's `frame_ticks`, screen.c's `beat_ticks`, main's
+    `render_ticks` and input.c's `led_lag_max`: durations kept for the
+    beacon and the records only.
+  - *Never affected:* everything timed in beats (the slot interrupt counts
+    them): the panel's 500-beat wait, the pages, the settles, K's and J's
+    waits, H's gates, core 1's wait; `sb_tick` and the scan's event times,
+    taken inside the slot interrupt; the engine, MIDI and views, which the
+    hardware build doesn't run.
+- **The race kept out by a test.** In fwtest an interrupt is taken at
+  the first instruction after the wrap, so the race doesn't happen there
+  by itself. A test build (`SB_TEST_NOW_RACE`) makes the slot interrupt's
+  time-keeping (its acknowledge and its count) happen at each of four
+  points between `sb_now()`'s reads, just after TIMER0 has wrapped with
+  interrupts off, 50 times at each; case nowrace checks that no reading
+  is earlier than the one before it. Built with the old order (the flag
+  read after the loop) it fails, every one of the 50 runs at the fourth
+  point going back.
+- **The next key.** One table in hw_audio.c (`guide`) holds the build's
+  suggested order, each entry a key and what it does; now audio5's: GLO
+  (K), GLO (K's undo), REC (bit 9), OCT+ (J), REC (bit 9's undo), OCT+
+  (J), EDIT (a save). The next key's LED blinks, half a second on and
+  half off, refreshed every tenth of a second and through the pages and
+  J's sweep; the step row says "next: KEY (what)" after each key's page
+  (and "next: none" at the end). A press of that key moves on; any other
+  key leaves it. A key lit for its step blinks too while it is next.
+  Step D's build replaces the table with its own order; its case
+  (audio6) checks the guide.
 - **fwtest**: the counter isn't modelled (K's gates time out, its counts
   0); ALNK0's `CON1` and `CON3` are stored (every try read back as
   written); and with ALNK0 running, `CON1` bit 0 sets off a burst of
