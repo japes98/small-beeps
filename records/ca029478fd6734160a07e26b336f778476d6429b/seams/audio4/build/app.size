@@ -1,0 +1,7 @@
+code 76820
+data 68
+bss 169920
+image 76888
+stack 4096
+irq_stack 2048
+ram_code 76108

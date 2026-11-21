@@ -1,0 +1,7 @@
+code 74696
+data 68
+bss 167808
+image 74764
+stack 4096
+irq_stack 2048
+ram_code 73984

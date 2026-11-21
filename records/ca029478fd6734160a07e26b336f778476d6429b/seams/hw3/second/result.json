@@ -1,0 +1,174 @@
+{
+  "fwtest": {
+    "version": "0.12.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 61216,
+    "sha256": "ddf2d2dd727a113d244cd18ab0aea0f26f9d428545fd6f307e89ad5edbff85be"
+  },
+  "script_sha256": null,
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "3000.168",
+    "instructions": {
+      "core0": 400427555,
+      "core1": 619117465
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00013000",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "write",
+        "count": 8
+      },
+      {
+        "address": "0x00040204",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x00040300",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x01eee200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee204",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee208",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee20c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee210",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee214",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee218",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee21c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee220",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee224",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee228",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee22c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee230",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee234",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee238",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee23c",
+        "access": "read",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "1664d4babf41c162c8b3e48f2da208abd288f897edceceb99790746738ca4d72"
+      },
+      {
+        "name": "ram-01c22c98-74-end.bin",
+        "bytes": 116,
+        "sha256": "7ad1e732c6928574aa355dd8368f91c9b41c51d7c95a11b0d84585cbbab54067"
+      },
+      {
+        "name": "ram-01c22dc8-4-2000ms.bin",
+        "bytes": 4,
+        "sha256": "be59750a5fbf589750bdf217dffa4aaad9ae9b9f1f124d7fa855105891c78144"
+      },
+      {
+        "name": "ram-01c22dc8-4-end.bin",
+        "bytes": 4,
+        "sha256": "d7e57ac2c5f62ab42b8411d467e5e6705dfb01cfdf3642bdfad6d852f6d3fca3"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
