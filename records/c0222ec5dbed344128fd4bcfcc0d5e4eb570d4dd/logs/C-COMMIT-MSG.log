@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 189e168a65af11cd7f35e03e3cb8096534463bfb..c0222ec5dbed344128fd4bcfcc0d5e4eb570d4dd
+OK     f27a0d99a90e spec: the audio link's fields from JieLi's AW30N SDK (HW-157, HW-158)
+OK     471ce8176e45 spec: HW-157 names both of the AW30N SDK's link-clock fields; HW-158 says three fields
+EXEMPT c0222ec5dbed (merge) Merge pull request #225 from japes98/spec/jieli-alink
+3 commit(s) checked: PASS
+
+exit status 0
