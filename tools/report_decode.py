@@ -7,9 +7,9 @@
 
 IMAGE is a whole flash read back from a unit (1 MiB) or fwtest's flash.bin.
 The log (firmware/src/hw_report.c, SB_HW_REPORT; clean-br17-report1) is a
-ring of 64 sectors ending at 0x93FFF, of 2048-byte records (layout 3,
-since clean-br17-audio5); layouts 1 and 2 were 1024-byte records in 32
-sectors, and are still read. Every 4-byte
+ring of 96 sectors ending at 0x93FFF (since clean-br17-audio6; 64 in
+audio5), of 2048-byte records (since layout 3, clean-br17-audio5);
+layouts 1 and 2 were 1024-byte records in 32 sectors, and are still read. Every 4-byte
 boundary of the image is searched for a record's magic, so a record turns
 up wherever it lies. Each found is checked by its CRC-32 and printed in
 sequence order with its fields named; a failing CRC is counted only in
@@ -28,11 +28,11 @@ import sys
 import zlib
 
 MAGIC = 0x4C524253          # "SBRL" (hw_fm1.h, HW_LOG_MAGIC)
-REC = 2048                  # HW_LOG_REC, since layout 3 (audio5)
-REC_OF = {1: 1024, 2: 1024, 3: 2048}   # a record's size by its layout
+REC = 4096                  # HW_LOG_REC, since layout 6 (audio7); 2048 for layouts 3 to 5, 1024 before
+REC_OF = {1: 1024, 2: 1024, 3: 2048, 4: 2048, 5: 2048, 6: 4096}   # a record's size by its layout
 HEAD = 12                   # HW_LOG_HEAD
 LOG_END = 0x94000           # HW_LOG_END
-LOG_SECTORS = 64            # HW_LOG_SECTORS, since layout 3 (32 before)
+LOG_SECTORS = 96            # HW_LOG_SECTORS, since audio6 (64 in audio5, 32 before)
 LOG_BASE = LOG_END - LOG_SECTORS * 4096
 SECTOR = 4096
 
@@ -110,7 +110,90 @@ def _layout3():
     return f
 
 
-FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3()}
+def _layout4():
+    """Layout 4 (the build after audio5): layout 3, then the log's own
+    health: the last write's error, the takes that found the chip busy,
+    the verifies that failed once and read right the second time, the
+    records written again after a failed write, the page programs whose
+    wait said busy and were waited on again, the failed writes so far, and
+    the last four failed writes."""
+    f = _layout3() + ["log_last_err", "log_busy_waits", "log_glitches", "log_retries", "log_page_rewaits",
+                      "log_fail_count"]
+    for i in range(4):
+        f += ["log_fail%d_%s" % (i, v) for v in ("seq", "slot", "err", "pages_differ", "first_byte", "bytes_read_ff",
+                                                 "word_written", "word_read")]
+    return f
+
+
+D_STATES = ("not run", "done, no stop", "stopped", "BIT KEPT", "undone")
+D_STOPS = ("none", "the matrix check failed with the bit set (undone)", "the link moved, the matrix right (bit kept)",
+           "the link moved, the matrix check failed (undone)", "the check after the undo failed",
+           "stopped by OCT-")
+PA_REGS = ("OUT", "IN", "DIR", "DIE", "PU", "PD", "HD0", "HD")
+
+
+def _layout5():
+    """Layout 5 (clean-br17-audio6): layout 3, then step D, then layout 4's
+    log health."""
+    f = ["d_state", "d_sweeps", "d_tries", "d_bit", "d_stop", "d_phase", "d_clk2", "d_con5_before", "d_con5_written",
+         "d_con5_read", "d_con5_back", "d_con5_after"]
+    f += ["d_iomap_before_CON%d" % i for i in range(9)] + ["d_iomap_after_CON%d" % i for i in range(9)]
+    for w in ("before", "set", "after"):
+        f += ["d_pa_%s_%s" % (w, r) for r in PA_REGS]
+    f += ["d_pa_in_watch_start", "d_pa_in_watch_end", "d_b15_flips", "d_pend", "d_irq"]
+    for w in ("base", "set", "after"):
+        f += ["d_rows_idle_%s" % w] + ["d_cells_%s_%d" % (w, i) for i in range(3)]
+    f += ["d_check_set", "d_check_after"] + ["d_al0_CON%d" % i for i in range(4)]
+    f += ["d_irq_now", "d_core1", "d_j_putback", "d_con5_now"]
+    return _layout3() + f + _layout4()[len(_layout3()):]
+
+
+L_STATES = ("not run", "KEPT, running", "undone by key", "put back (nothing moved)", "STOPPED")
+
+
+def _layout6():
+    """Layout 6 (clean-br17-audio7): layout 5 with set-ups L1 and L2 after
+    step D, before layout 4's log health."""
+    l5 = _layout5()
+    health = len(_layout4()) - len(_layout3())
+    f = ["l_state", "l_which", "l_runs", "l_stop", "l_phase", "l_stopped"]
+    f += ["l_before_AL0_CON%d" % i for i in range(4)]
+    f += ["l_len_read", "l_adr3_read", "l_len_used", "l_clk1", "l_clk2"]
+    f += ["l_pa_before_%s" % r for r in PA_REGS] + ["l_irq_before", "l_core1_before"]
+    f += ["l_expect_fps_x10", "l_expect_hps_x10_a", "l_expect_hps_x10_b"]
+    f += ["l_wrote_%s" % w for w in ("CON0_stop", "CON3", "CON1", "CON0_run")]
+    f += ["l_readback_%s" % w for w in ("CON0_stop", "CON3", "CON1", "CON0_run")]
+    f += ["l_b15_flips", "l_pend", "l_irq", "l_span_units", "l_hps_x10", "l_fps_x10_a", "l_fps_x10_b"]
+    f += ["l_rows_idle_base"] + ["l_cells_base_%d" % i for i in range(3)]
+    f += ["l_rows_idle_set"] + ["l_cells_set_%d" % i for i in range(3)] + ["l_pa_set_%s" % r for r in PA_REGS]
+    f += ["l_check_set", "l_rows_idle_after"] + ["l_cells_after_%d" % i for i in range(3)]
+    f += ["l_pa_after_%s" % r for r in PA_REGS] + ["l_check_after"]
+    f += ["l_back_CON0", "l_back_CON1", "l_back_CON3", "l_clk2_end", "l_core1_end"]
+    return l5[:len(l5) - health] + f + l5[len(l5) - health:]
+
+
+FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6()}
+LOG_ERRORS = {0: "none", 1: "no flash (no round trip)", 2: "image too long", 3: "erase", 4: "program", 5: "verify",
+              6: "chip busy at the take"}
+
+
+def bad_record(image, off):
+    """What a record whose CRC fails holds: its header as written (magic,
+    layout, field count, sequence, beat, build, label), its stored CRC and
+    the CRC of what is there, and which 256-byte pages read all 0xFF (a
+    program cut short or ignored) or hold other bytes."""
+    w1 = struct.unpack_from("<I", image, off + 4)[0]
+    size = REC_OF.get(w1 & 0xFFFF, REC)
+    r = image[off:off + size]
+    pages = []
+    for p in range(0, len(r), 256):
+        page = r[p:p + 256]
+        pages.append("F" if page == b"\xff" * len(page) else "0" if page == bytes(len(page)) else "d")
+    return {"offset": off, "slot": (off - LOG_BASE) // size if LOG_BASE <= off < LOG_END else None,
+            "layout": w1 & 0xFFFF, "count": w1 >> 16, "seq": struct.unpack_from("<I", r, 8)[0],
+            "beat": struct.unpack_from("<I", r, 12)[0], "build": _text(r[16:32]), "label": _text(r[32:48]),
+            "crc_stored": struct.unpack_from("<I", r, size - 4)[0],
+            "crc_now": zlib.crc32(r[:size - 4]) & 0xFFFFFFFF, "pages": "".join(pages)}
 
 
 def derived(fields):
@@ -118,6 +201,27 @@ def derived(fields):
     expected, HW-119 over HW-54) and the audio clock in MHz (the gate is
     the 24 MHz crystal)."""
     out = []
+    if fields.get("l_runs"):
+        out.append("L%d: %s; wrote CON3 %02X CON1 %04X CON0 %04X, read back %02X %04X %04X; b15 %d, irq %d; %.1f halves"
+                   " a second: %.1f frames a second if a half is LEN frames (a), %.1f if LEN/2 (b); expected %.1f (LEN %d:"
+                   " %.1f or %.1f halves a second); put back %04X %04X %02X; CLK_CON2 %08X"
+                   % (fields["l_which"], L_STATES[min(fields["l_state"], 4)], fields["l_wrote_CON3"],
+                      fields["l_wrote_CON1"], fields["l_wrote_CON0_run"], fields["l_readback_CON3"],
+                      fields["l_readback_CON1"], fields["l_readback_CON0_run"], fields["l_b15_flips"], fields["l_irq"],
+                      fields["l_hps_x10"] / 10.0, fields["l_fps_x10_a"] / 10.0, fields["l_fps_x10_b"] / 10.0,
+                      fields["l_expect_fps_x10"] / 10.0, fields["l_len_used"], fields["l_expect_hps_x10_a"] / 10.0,
+                      fields["l_expect_hps_x10_b"] / 10.0, fields["l_back_CON0"], fields["l_back_CON1"],
+                      fields["l_back_CON3"], fields["l_clk2"]))
+    if fields.get("d_sweeps"):
+        bad = lambda b: "ok" if not b else "BAD (" + ", ".join(n for i, n in enumerate(
+            ("idle rows", "cells", "port A", "CON5 not back", "JL_IOMAP not back")) if b >> i & 1) + ")"
+        out.append("D: %s, sweep %d, try %d of bit %d (step %d): CON5 %08X written %08X read back %08X put back %08X;"
+                   " b15 %d, pend %d, irq %d; check with the bit %s, after the undo %s; stop: %s; CLK_CON2 %08X"
+                   % (D_STATES[min(fields["d_state"], 4)], fields["d_sweeps"], fields["d_tries"], fields["d_bit"],
+                      fields["d_phase"], fields["d_con5_before"], fields["d_con5_written"], fields["d_con5_read"],
+                      fields["d_con5_back"], fields["d_b15_flips"], fields["d_pend"], fields["d_irq"],
+                      bad(fields["d_check_set"]), bad(fields["d_check_after"]), D_STOPS[min(fields["d_stop"], 5)],
+                      fields["d_clk2"]))
     gate = fields.get("h_gate_cycles")
     if gate and fields.get("k_presses") and fields.get("k_state") == 1:
         out.append("K: " + ", ".join("%s %.3f MHz" % (m, fields["k_%s_num2" % m] * 24.0 / gate) for m in K_LABELS))
@@ -133,7 +237,10 @@ def derived(fields):
     return out
 
 # Shown in decimal; every other field in hex.
-DECIMAL = {"k_state", "k_presses", "j_state", "j_sweeps", "j_tries", "j_reg", "j_bit", "j_b15_flips", "j_pend", "j_irq",
+DECIMAL = {"l_state", "l_which", "l_runs", "l_stop", "l_phase", "l_stopped", "l_len_read", "l_len_used", "l_irq_before",
+           "l_core1_before", "l_expect_fps_x10", "l_expect_hps_x10_a", "l_expect_hps_x10_b", "l_b15_flips", "l_pend",
+           "l_irq", "l_span_units", "l_hps_x10", "l_fps_x10_a", "l_fps_x10_b", "l_core1_end", "d_state", "d_sweeps", "d_tries", "d_bit", "d_stop", "d_phase", "d_b15_flips", "d_pend", "d_irq", "d_irq_now",
+           "d_core1", "log_last_err", "log_busy_waits", "log_glitches", "log_retries", "log_page_rewaits", "log_fail_count", "k_state", "k_presses", "j_state", "j_sweeps", "j_tries", "j_reg", "j_bit", "j_b15_flips", "j_pend", "j_irq",
            "h_state", "h_presses", "h_measures", "h_gate_cycles", "h_bus_num1", "h_bus_num2", "h_bus_timeouts",
            "h_audio_num1", "h_audio_num2", "h_audio_timeouts", "GPCNT_NUM_now", "i_state", "i_presses", "i_bit10",
            "i_b15_flips", "i_pend", "i_poll_beats", "i_halves_per_s_x10", "clk2_steps_taken", "core1_count", "store_count", "store_put", "log_found_at_start", "log_fails", "irq", "alt",
@@ -146,8 +253,8 @@ STATES = {"rec_state": ("not taken", "taken", "undone"), "a_state": ("not taken"
 
 
 def _decimal(name):
-    return name in DECIMAL or name.startswith(("mark_", "flash_status")) or name.endswith(("_irq", "_core1", "_num1",
-                                                                                            "_num2", "_timeouts"))
+    return name in DECIMAL or name.startswith(("mark_", "flash_status")) or name.endswith(
+        ("_irq", "_core1", "_num1", "_num2", "_timeouts", "_seq", "_slot", "_err", "_first_byte", "_bytes_read_ff"))
 
 
 def _text(b):
@@ -215,6 +322,7 @@ def show(rs, all_fields):
                 names.append(k)
     if not all_fields:
         names = [k for k in names if any(r["fields"].get(k) for r in rs)]
+    shown_fails = 0
     for r in rs:
         print("#%d  beat %d  %s  build %s  at 0x%05X%s" % (r["seq"], r["beat"], r["label"], r["build"],
               r["offset"], "" if r["known"] else "  (layout %d, %d fields: names not known)"
@@ -243,6 +351,18 @@ def show(rs, all_fields):
             print(line)
         for d in derived(r["fields"]):
             print("    " + d)
+        f = r["fields"]
+        if f.get("log_fail_count", 0) == shown_fails:
+            continue
+        shown_fails = f.get("log_fail_count", 0)
+        for i in range(4):
+            if f.get("log_fail%d_err" % i):
+                print("    failed write %d: #%d slot %d, %s; pages differing %02X, first at byte %d, %d bytes read 0xFF;"
+                      " wrote %08X, read %08X" % (i, f["log_fail%d_seq" % i], f["log_fail%d_slot" % i],
+                                                 LOG_ERRORS.get(f["log_fail%d_err" % i], "?"),
+                                                 f["log_fail%d_pages_differ" % i], f["log_fail%d_first_byte" % i],
+                                                 f["log_fail%d_bytes_read_ff" % i], f["log_fail%d_word_written" % i],
+                                                 f["log_fail%d_word_read" % i]))
 
 
 def main(argv):
@@ -265,7 +385,31 @@ def main(argv):
     print("%d record(s) in %s, #%d to #%d%s" % (len(rs), args[0], rs[0]["seq"], rs[-1]["seq"],
           "; %d more with the magic but a failing CRC" % len(bad) if bad else ""))
     show(rs, "--all" in opts)
+    show_bad(image, bad, rs)
     return 0
+
+
+def show_bad(image, bad, rs):
+    """Each record whose CRC fails: where, its header, and its pages (F all
+    0xFF, 0 all zero, d other bytes); then what the firmware's own records
+    say of failed writes (layout 4)."""
+    if not bad:
+        return
+    print("records with the magic but a failing CRC (pages: F all 0xFF, 0 all zero, d other bytes):")
+    for off in bad:
+        b = bad_record(image, off)
+        blank = [i for i, c in enumerate(b["pages"]) if c == "F"]
+        print("  at 0x%05X (slot %s): #%d beat %d %s build %s, layout %d, %d fields; CRC stored %08X, of what is"
+              " there %08X; pages %s; blank (all 0xFF): %s" % (b["offset"], b["slot"], b["seq"], b["beat"], b["label"],
+                                                               b["build"], b["layout"], b["count"], b["crc_stored"],
+                                                               b["crc_now"], b["pages"],
+                                                               ", ".join(map(str, blank)) or "none"))
+    seen = rs[-1]["fields"] if rs else {}
+    if "log_fail_count" in seen:
+        print("  the firmware's own count, in record #%d: %d failed writes, %d retried, %d read glitches, %d busy"
+              " at the take, %d page waits repeated" % (rs[-1]["seq"], seen["log_fail_count"], seen["log_retries"],
+                                                        seen["log_glitches"], seen["log_busy_waits"],
+                                                        seen["log_page_rewaits"]))
 
 
 if __name__ == "__main__":

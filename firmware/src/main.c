@@ -94,18 +94,73 @@ static void sb_silent_block(s32 *out, u32 frames)
  * has wrapped) is added. */
 volatile u32 hw_slots;
 
+/* The slots counted, the count and its wrap flag (CON bit 15) taken
+ * together: a slot's interrupt between them changes hw_slots, and the
+ * three are read again. Until the build after audio5 the flag was read
+ * after the loop, so an interrupt there (counting the slot and clearing
+ * the flag) could pair a count read after the wrap with the slots before
+ * it: one slot back in time, which the flash's busy wait (store.c) read
+ * as a 3 s timeout, leaving a log record's last pages unprogrammed. */
+#if defined(SB_TEST_NOW_RACE)
+/* The test build (case nowrace): the slot interrupt's time-keeping (its
+ * acknowledge and its count) made to happen at one chosen point between
+ * sb_now()'s reads, the race fwtest's prompt interrupts never hit. */
+static volatile u32 race_at;
+#define RACE(k) do { if (race_at == (k)) { race_at = 0; JL_TIMER0->CON = HW_SLOT_CON | TICK_ACK; hw_slots++; } } while (0)
+#else
+#define RACE(k) do { } while (0)
+#endif
+
 u32 sb_now(void)
 {
-    u32 s, c;
+    u32 s, c, f;
 
     do {
         s = hw_slots;
+        RACE(1u);
         c = JL_TIMER0->CNT;
+        RACE(2u);
+        f = JL_TIMER0->CON & 0x8000u;
+        RACE(3u);
     } while (s != hw_slots);
-    if ((JL_TIMER0->CON & 0x8000u) && c < HW_SLOT_PRD / 2)
+    RACE(4u);
+    if (f && c < HW_SLOT_PRD / 2)
         s++;
     return s * HW_SLOT_UNITS + c * 2 / 5;
 }
+
+#if defined(SB_TEST_NOW_RACE)
+/* At each of the four points, NOW_RACE_RUNS times: with interrupts off,
+ * wait for TIMER0 to wrap (its flag set, its count small), read sb_now(),
+ * then read it again with the slot's time-keeping made to happen at that
+ * point; the second must not be earlier. hw_now_test counts the runs and,
+ * by point, the readings that went back. */
+#define NOW_RACE_RUNS 50u
+struct hw_now_test hw_now_test;
+
+static void now_race_test(void)
+{
+    u32 k, n, before, after;
+
+    for (k = 1; k <= 4u; k++) {
+        for (n = 0; n < NOW_RACE_RUNS; n++) {
+            __asm__ volatile("cli" ::: "memory");
+            while (!(JL_TIMER0->CON & 0x8000u))
+                ;
+            before = sb_now();
+            race_at = k;
+            after = sb_now();
+            race_at = 0;
+            __asm__ volatile("sti" ::: "memory");
+            hw_now_test.runs++;
+            if ((int)(after - before) < 0)
+                hw_now_test.backs[k]++;
+            sb_wait_ms(1);
+        }
+    }
+    hw_now_test.done = 1;
+}
+#endif
 
 u32 sb_ticks(void)
 {
@@ -353,6 +408,11 @@ static void hw_serve(void)
          * too. */
         if (e.control < INPUT_LEDS && (e.kind == INPUT_PRESS || e.kind == INPUT_RELEASE))
             input_led(e.control, hw_led_level(&e));
+#if defined(SB_HW_AUDIO1)
+        /* The next key: a press of it on the test screen moves the guide on. */
+        if (e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST)
+            hw_guide_key(e.control);
+#endif
 #if defined(SB_HW_FINDER)
         /* HOME opens the knob finder, for good (hw_start3.c). */
         if (e.control == INPUT_HOME && e.kind == INPUT_PRESS)
@@ -363,6 +423,9 @@ static void hw_serve(void)
          * step row. */
         if (e.control == INPUT_EDIT && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
             hw_report_save("save key");
+#if defined(SB_HW_AUDIO1)
+            hw_guide_show();
+#endif
             continue;
         }
 #endif
@@ -378,6 +441,7 @@ static void hw_serve(void)
             hw_audio_leds(e.control);
             hw_audio_keypage();
             hw_test_screen();
+            hw_guide_show();
             continue;
         }
         /* audio3 (the spec side's clean-br17-audio3): ARP takes step A
@@ -392,6 +456,7 @@ static void hw_serve(void)
             hw_audio_leds(e.control);
             hw_audio_keypage();
             hw_test_screen();
+            hw_guide_show();
             continue;
         }
         /* audio4 (the spec side's clean-br17-audio4): ENV takes step H
@@ -411,6 +476,7 @@ static void hw_serve(void)
             hw_audio_leds(e.control);
             hw_audio_keypage_hi();
             hw_test_screen();
+            hw_guide_show();
             continue;
         }
         /* audio5 (the spec side's clean-br17-audio5): GLO takes step K
@@ -427,6 +493,29 @@ static void hw_serve(void)
             hw_audio_leds(e.control);
             hw_audio_keypage_kj();
             hw_test_screen();
+            hw_guide_show();
+            continue;
+        }
+        /* audio6 (the spec side's clean-br17-audio6): OCT- runs step D's
+         * sweep of JL_IOMAP->CON5 (a press while it runs stops it; a press
+         * with a bit kept puts CON5 back). */
+        if (e.control == INPUT_OCT_DOWN && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_audio_d();
+            hw_audio_leds(e.control);
+            hw_audio_keypage_d();
+            hw_test_screen();
+            hw_guide_show();
+            continue;
+        }
+        /* audio7 (the spec side's clean-br17-audio7): KEY1 takes set-up L1,
+         * KEY2 set-up L2; a kept set-up is put back by either. */
+        if ((e.control == INPUT_KEY(1) || e.control == INPUT_KEY(2)) && e.kind == INPUT_PRESS
+                && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_audio_l(e.control == INPUT_KEY(1) ? 1u : 2u);
+            hw_audio_leds(e.control);
+            hw_audio_keypage_l();
+            hw_test_screen();
+            hw_guide_show();
             continue;
         }
         /* audio3: SEQ stops ALNK0 (CON0 bit 11 cleared alone), or puts
@@ -436,11 +525,13 @@ static void hw_serve(void)
             hw_audio_leds(e.control);
             hw_audio_keypage();
             hw_test_screen();
+            hw_guide_show();
             continue;
         }
         if (e.control == INPUT_HOME && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
             hw_audio_page();
             hw_test_screen();
+            hw_guide_show();
             continue;
         }
 #endif
@@ -457,6 +548,9 @@ static void hw_serve(void)
         u32 now = sb_beacon.beats;
 
         if ((int)(now - next) >= 0) {
+#if defined(SB_HW_AUDIO1)
+            hw_guide_tick();
+#endif
             hw_refresh(sb_seconds != seconds);
             seconds = sb_seconds;
             next = now + 100;
@@ -577,6 +671,9 @@ int main(void)
      * not idle, so idle is tested apart (below). */
     while (sb_beacon.beats < 2)
         ;
+#if defined(SB_TEST_NOW_RACE)
+    now_race_test();
+#endif
     hw_band(3);
     /* start3 (c) step 2: the store's start-up counter, if step 1 came
      * back (hw_start3.c). */
@@ -719,6 +816,7 @@ int main(void)
     hw_step("audio: page");
     hw_audio_page();
     hw_test_screen();
+    hw_guide_show();
 #endif
 #endif
 #endif

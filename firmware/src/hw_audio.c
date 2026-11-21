@@ -859,16 +859,16 @@ static char *put_try(char *p, u32 reg, u32 bit)
     return put_dec(p, bit);
 }
 
-/* 1 if the abort key (OCT+, J's own) was pressed since the sweep began;
- * other keys' events are read and set their LEDs, and are otherwise
- * ignored while the sweep runs. */
-static int j_abort_pressed(void)
+/* 1 if key (the sweep's own: OCT+ for J, OCT- for D) was pressed since
+ * the last look; other keys' events are read and set their LEDs, and are
+ * otherwise ignored while a sweep runs. */
+static int key_pressed_in_sweep(u32 key)
 {
     struct input_event e;
     int abort = 0;
 
     while (input_read(&e)) {
-        if (e.control == INPUT_OCT_UP && e.kind == INPUT_PRESS)
+        if (e.control == key && e.kind == INPUT_PRESS)
             abort = 1;
         else if (e.control < INPUT_LEDS && (e.kind == INPUT_PRESS || e.kind == INPUT_RELEASE))
             input_led(e.control, e.kind == INPUT_PRESS || hw_audio_key_lit(e.control) ? INPUT_LED_FULL : 0);
@@ -914,6 +914,7 @@ static int j_try(u32 reg, u32 bit, u32 t)
             pend++;
         c1_poll();
     }
+    hw_guide_tick();
     hw_aud.j_flips = flips;
     hw_aud.j_pend = pend;
     hw_aud.j_irq = sb_audio.blocks - irq0;
@@ -973,7 +974,7 @@ void hw_audio_j(void)
     *p = 0;
     hw_step(step_text);
     report("J starting");
-    (void)j_abort_pressed();        /* the press that started it */
+    (void)key_pressed_in_sweep(INPUT_OCT_UP);        /* the press that started it */
     hw_aud.j_state = HW_J_DONE;
     for (t = 0; t < HW_J_TRIES; t++) {
         u32 reg = t < 16u ? 1u : 3u, bit = t < 16u ? t : t - 16u;
@@ -983,7 +984,7 @@ void hw_audio_j(void)
             fresh_base();
             break;
         }
-        if (j_abort_pressed()) {
+        if (key_pressed_in_sweep(INPUT_OCT_UP)) {
             hw_aud.j_state = HW_J_ABORTED;
             break;
         }
@@ -996,6 +997,464 @@ void hw_audio_j(void)
     c1_key_marks();
     snap(HW_K_J, 1);
     report(hw_aud.j_state == HW_J_MOVED ? "J moved" : hw_aud.j_state == HW_J_ABORTED ? "J aborted" : "J done");
+}
+
+/* --- audio6's step D: JL_IOMAP->CON5, a bit at a time (HW-146, HW-156) --- */
+
+#define IOMAP_WORD(i) REG(0x0005101Cu + 4u * (i))   /* JL_IOMAP CON0 to CON8 (HW-56) */
+#define IOMAP_CON5    IOMAP_WORD(5)
+#define PA_CHECKED(w, b) ((w)[2] != (b)[2] || (w)[3] != (b)[3] || (w)[4] != (b)[4] || (w)[5] != (b)[5])
+
+static void d_iomap(u32 *w)
+{
+    u32 i;
+
+    for (i = 0; i < 9; i++)
+        w[i] = IOMAP_WORD(i);
+}
+
+static void d_snap_end(void)
+{
+    hw_aud.d_al0[0] = JL_ALNK0->CON0;
+    hw_aud.d_al0[1] = JL_ALNK0->CON1;
+    hw_aud.d_al0[2] = JL_ALNK0->CON2;
+    hw_aud.d_al0[3] = JL_ALNK0->CON3;
+    hw_aud.d_irq_now = sb_audio.blocks;
+    hw_aud.d_core1 = hw_core1_count;
+    hw_aud.d_clk2 = JL_CLOCK->CLK_CON2;
+}
+
+/* The matrix check (D's steps 4 and 6, L's too): the idle rows all high,
+ * the cells as the baseline base_map taken just before the write, and
+ * port A's DIR, DIE, PU and PD as base_pa, read before. 0 if it passed,
+ * else bits: 0 the idle rows, 1 the cells, 2 port A. */
+static u32 matrix_check_vs(u32 *idle, u32 *map, u32 *pa, const u32 *base_map, const u32 *base_pa)
+{
+    u32 bad = 0;
+
+    hw_matrix_check(idle, map);
+    hw_port_a(pa);
+    if (*idle != 0x3Fu)
+        bad |= 1u;
+    if (map[0] != base_map[0] || map[1] != base_map[1] || map[2] != base_map[2])
+        bad |= 2u;
+    if (PA_CHECKED(pa, base_pa))
+        bad |= 4u;
+    return bad;
+}
+
+static u32 d_check(u32 *idle, u32 *map, u32 *pa)
+{
+    return matrix_check_vs(idle, map, pa, hw_aud.d_map_base, hw_aud.d_pa_before);
+}
+
+static char *put_bit(char *p, const char *label, u32 bit)
+{
+    p = put_s(p, label);
+    return put_dec(p, bit);
+}
+
+/* One try of bit (steps 1 to 7 of the spec side's prompt): 0 to go on, or
+ * a stop reason (HW_D_STOP_*). */
+static u32 d_try(u32 bit)
+{
+    char label[16], *p;
+    u32 start, last, irq0, moved, i;
+
+    hw_aud.d_bit = bit;
+    hw_aud.d_phase = 1;
+    /* 1: what is there, logged before the write (the record complete in
+     * the flash before step 2, so a hang leaves it last). */
+    hw_aud.d_con5_before = IOMAP_CON5;
+    d_iomap(hw_aud.d_iomap_before);
+    hw_port_a(hw_aud.d_pa_before);
+    d_snap_end();
+    hw_aud.d_flips = hw_aud.d_pend = hw_aud.d_irq = 0;
+    hw_aud.d_check_set = hw_aud.d_check_after = 0;
+    hw_aud.d_con5_written = hw_aud.d_con5_read = hw_aud.d_con5_back = hw_aud.d_con5_after = 0;
+    p = put_bit(label, "D b", bit);
+    p = put_s(p, " before");
+    *p = 0;
+    report(label);
+    /* 2: the scan paused, the matrix's baseline, then the write. */
+    hw_aud.d_phase = 2;
+    p = put_bit(step_text, "audio6: D: CON5 bit ", bit);
+    p = put_s(p, " of ");
+    p = put_hex(p, hw_aud.d_con5_before, 8);
+    *p = 0;
+    hw_step(step_text);
+    hw_scan_pause();
+    hw_matrix_check(&hw_aud.d_idle_base, hw_aud.d_map_base);
+    irq0 = sb_audio.blocks;
+    last = JL_ALNK0->CON0 & AL_HALF;
+    hw_aud.d_con5_written = hw_aud.d_con5_before | 1u << bit;
+    IOMAP_CON5 = hw_aud.d_con5_written;
+    hw_aud.d_con5_read = IOMAP_CON5;
+    /* 3: the watch. */
+    hw_aud.d_phase = 3;
+    hw_aud.d_in_start = REG(0x00050004u);
+    start = sb_beacon.beats;
+    while (sb_beacon.beats - start < HW_J_WAIT_MS) {
+        u32 now = JL_ALNK0->CON0 & AL_HALF;
+
+        if (now != last) {
+            hw_aud.d_flips++;
+            last = now;
+        }
+        if (JL_ALNK0->CON2 & AL_PEND)
+            hw_aud.d_pend++;
+        c1_poll();
+    }
+    hw_aud.d_in_end = REG(0x00050004u);
+    hw_aud.d_irq = sb_audio.blocks - irq0;
+    /* 4: the matrix check with the bit still set. */
+    hw_aud.d_phase = 4;
+    hw_aud.d_check_set = d_check(&hw_aud.d_idle_set, hw_aud.d_map_set, hw_aud.d_pa_set);
+#if defined(SB_TEST_D_CHECK_FAIL)
+    /* The test build: the check with bit 2 set made to fail (row PA0 low). */
+    if (bit == 2u) {
+        hw_aud.d_idle_set &= ~1u;
+        hw_aud.d_check_set |= 1u;
+    }
+#endif
+    moved = hw_aud.d_flips || hw_aud.d_irq;
+    /* 5: the undo, the firmware's own, unless the link moved with the
+     * matrix right: then the bit stays and the sweep stops. */
+    hw_aud.d_phase = 5;
+    if (moved && !hw_aud.d_check_set) {
+        hw_aud.d_con5_back = hw_aud.d_con5_read;
+        hw_scan_resume();
+        d_snap_end();
+        hw_aud.d_phase = 7;
+        p = put_bit(label, "D b", bit);
+        p = put_s(p, " kept");
+        *p = 0;
+        report(label);
+        return HW_D_STOP_MOVED;
+    }
+    IOMAP_CON5 = hw_aud.d_con5_before;
+    hw_aud.d_con5_back = IOMAP_CON5;
+    /* 6: the check after the undo. */
+    hw_aud.d_phase = 6;
+    d_iomap(hw_aud.d_iomap_after);
+    hw_aud.d_check_after = d_check(&hw_aud.d_idle_after, hw_aud.d_map_after, hw_aud.d_pa_after);
+    hw_aud.d_con5_after = IOMAP_CON5;
+    if (hw_aud.d_con5_after != hw_aud.d_con5_before)
+        hw_aud.d_check_after |= 8u;
+    for (i = 0; i < 9; i++)
+        if (i != 5u && hw_aud.d_iomap_after[i] != hw_aud.d_iomap_before[i])
+            hw_aud.d_check_after |= 16u;
+    hw_scan_resume();
+    /* 7: the try's record. */
+    hw_aud.d_phase = 7;
+    d_snap_end();
+    p = put_bit(label, "D b", bit);
+    p = put_s(p, hw_aud.d_check_after ? " after BAD" : hw_aud.d_check_set ? " check BAD" : moved ? " moved" : "");
+    *p = 0;
+    report(label);
+    if (hw_aud.d_check_after)
+        return HW_D_STOP_AFTER;
+    if (moved)
+        return HW_D_STOP_MOVED_BAD;
+    if (hw_aud.d_check_set)
+        return HW_D_STOP_CHECK;
+    return HW_D_STOP_NONE;
+}
+
+/* --- audio7's set-ups L1 and L2 (HW-157, HW-158; the owner's rulings) ---- */
+
+#define L_PINS (3u << 7)            /* CON0 bits 7 and 8: clocks to pins (HW-157), kept clear */
+#define L_CON1 0x1000u              /* data 3 an I2S output, 16-bit (HW-157) */
+static const u8 l_con3[3] = { 0, 0xC2u, 0x83u };    /* L1: the oscillator, /1, 512 a frame; L2: the PLL's audio clock, /1, 256 */
+static const u32 l_fps10[3] = { 0, 468750u, 441176u };
+
+/* CON0, CON1 and CON3 back as read before the set-up, in that order, each
+ * read back. */
+static void l_put_back(void)
+{
+    JL_ALNK0->CON0 = hw_aud.l_before[0];
+    hw_aud.l_back[0] = JL_ALNK0->CON0;
+    JL_ALNK0->CON1 = hw_aud.l_before[1];
+    hw_aud.l_back[1] = JL_ALNK0->CON1;
+    JL_ALNK0->CON3 = hw_aud.l_before[3];
+    hw_aud.l_back[2] = JL_ALNK0->CON3;
+}
+
+static void l_end(void)
+{
+    hw_aud.l_clk2_end = JL_CLOCK->CLK_CON2;
+    hw_aud.l_core1_end = hw_core1_count;
+}
+
+static void l_label(char *label, u32 which, const char *what)
+{
+    char *p = put_bit(label, "L", which);
+
+    p = put_s(p, " ");
+    p = put_s(p, what);
+    *p = 0;
+}
+
+/* KEY1 (L1) or KEY2 (L2): one set-up, with D's safety machinery. A kept
+ * set-up is put back first, by either key; its own key does only that. */
+void hw_audio_l(u32 which)
+{
+    char label[16], *p;
+    u32 start, last, irq0, t_first = 0, t_last = 0, moved, i;
+
+    if (hw_aud.l_state == HW_L_KEPT) {
+        p = put_bit(step_text, "audio7: L", hw_aud.l_which);
+        p = put_s(p, " undo: CON0, CON1, CON3 back");
+        *p = 0;
+        hw_step(step_text);
+        l_put_back();
+        hw_aud.l_state = HW_L_UNDONE;
+        fresh_base();
+        l_end();
+        l_label(label, hw_aud.l_which, "undone");
+        report(label);
+        if (which == hw_aud.l_which) {
+            c1_key_marks();
+            return;
+        }
+    }
+    if (hw_aud.l_stopped) {
+        hw_step("audio7: L refused: stopped after a failed check");
+        hw_aud.refused++;
+        report("L refused");
+        return;
+    }
+    /* As D does: the matrix check wants no key held, so the set-up's key
+     * is waited for until it is released, at most HW_D_RELEASE_MS. */
+    p = put_bit(step_text, "audio7: release KEY", which);
+    p = put_s(p, " to start");
+    *p = 0;
+    hw_step(step_text);
+    start = sb_beacon.beats;
+    while (input_value(INPUT_KEY(which)) > 0 && sb_beacon.beats - start < HW_D_RELEASE_MS)
+        hw_guide_tick();
+    /* 1: what is there, logged before the writes. */
+    hw_aud.l_which = which;
+    hw_aud.l_presses++;
+    hw_aud.l_stop = HW_D_STOP_NONE;
+    hw_aud.l_phase = 1;
+    hw_aud.l_before[0] = JL_ALNK0->CON0;
+    hw_aud.l_before[1] = JL_ALNK0->CON1;
+    hw_aud.l_before[2] = JL_ALNK0->CON2;
+    hw_aud.l_before[3] = JL_ALNK0->CON3;
+    hw_aud.l_len_read = JL_ALNK0->LEN;
+    hw_aud.l_adr_read = JL_ALNK0->ADR3;
+    /* LEN is write-only in the SDK's header: the expectations use what
+     * reads back if it isn't 0, else the value audio_start wrote. */
+    hw_aud.l_len_used = hw_aud.l_len_read ? hw_aud.l_len_read : 2u * AUDIO_FRAMES;
+    hw_aud.l_clk1 = JL_CLOCK->CLK_CON1;
+    hw_aud.l_clk2 = JL_CLOCK->CLK_CON2;
+    hw_port_a(hw_aud.l_pa_before);
+    hw_aud.l_irq0 = sb_audio.blocks;
+    hw_aud.l_core1_0 = hw_core1_count;
+    hw_aud.l_exp_fps10 = l_fps10[which];
+    hw_aud.l_exp_hps10_a = hw_aud.l_exp_fps10 / hw_aud.l_len_used;
+    hw_aud.l_exp_hps10_b = 2u * hw_aud.l_exp_fps10 / hw_aud.l_len_used;
+    hw_aud.l_flips = hw_aud.l_pend = hw_aud.l_irq = hw_aud.l_span = 0;
+    hw_aud.l_hps10 = hw_aud.l_fps10_a = hw_aud.l_fps10_b = 0;
+    hw_aud.l_check_set = hw_aud.l_check_after = 0;
+    for (i = 0; i < 4; i++)
+        hw_aud.l_w[i] = hw_aud.l_rb[i] = 0;
+    for (i = 0; i < 3; i++)
+        hw_aud.l_back[i] = 0;
+    l_end();
+    l_label(label, which, "before");
+    report(label);
+    /* 2: the scan paused, the matrix's baseline, then the writes in
+     * HW-157's driver's order, each read back. */
+    hw_aud.l_phase = 2;
+    p = put_bit(step_text, "audio7: L", which);
+    p = put_s(p, ": CON3 ");
+    p = put_hex(p, l_con3[which], 2);
+    p = put_s(p, " CON1 1000, run");
+    *p = 0;
+    hw_step(step_text);
+    hw_scan_pause();
+    hw_matrix_check(&hw_aud.l_idle_base, hw_aud.l_map_base);
+    hw_aud.l_w[0] = hw_aud.l_before[0] & ~AL_RUN;
+    JL_ALNK0->CON0 = hw_aud.l_w[0];
+    hw_aud.l_rb[0] = JL_ALNK0->CON0;
+    hw_aud.l_w[1] = l_con3[which];
+    JL_ALNK0->CON3 = hw_aud.l_w[1];
+    hw_aud.l_rb[1] = JL_ALNK0->CON3;
+    hw_aud.l_w[2] = L_CON1;
+    JL_ALNK0->CON1 = hw_aud.l_w[2];
+    hw_aud.l_rb[2] = JL_ALNK0->CON1;
+    hw_aud.l_w[3] = (hw_aud.l_before[0] & ~L_PINS) | AL_RUN;
+    irq0 = sb_audio.blocks;
+    JL_ALNK0->CON0 = hw_aud.l_w[3];
+    hw_aud.l_rb[3] = JL_ALNK0->CON0;
+    /* 3: the watch, timed against sb_now() as audio1 times the halves. */
+    hw_aud.l_phase = 3;
+    last = JL_ALNK0->CON0 & AL_HALF;
+    start = sb_beacon.beats;
+    while (sb_beacon.beats - start < HW_L_WAIT_MS) {
+        u32 now = JL_ALNK0->CON0 & AL_HALF;
+
+        if (now != last) {
+            t_last = sb_now();
+            if (!hw_aud.l_flips)
+                t_first = t_last;
+            hw_aud.l_flips++;
+            last = now;
+        }
+        if (JL_ALNK0->CON2 & AL_PEND)
+            hw_aud.l_pend++;
+        c1_poll();
+    }
+    hw_aud.l_irq = sb_audio.blocks - irq0;
+    if (hw_aud.l_flips >= 2u && t_last != t_first) {
+        hw_aud.l_span = t_last - t_first;
+        hw_aud.l_hps10 = div64((u64)(hw_aud.l_flips - 1u) * 240000000ull, hw_aud.l_span);
+        hw_aud.l_fps10_a = hw_aud.l_hps10 * hw_aud.l_len_used;
+        hw_aud.l_fps10_b = hw_aud.l_hps10 * hw_aud.l_len_used / 2u;
+    }
+    /* 4: the matrix check with the set-up in place. */
+    hw_aud.l_phase = 4;
+    hw_aud.l_check_set = matrix_check_vs(&hw_aud.l_idle_set, hw_aud.l_map_set, hw_aud.l_pa_set, hw_aud.l_map_base,
+                                         hw_aud.l_pa_before);
+#if defined(SB_TEST_L_CHECK_FAIL)
+    /* The test build: L1's check made to fail (row PA0 low). */
+    if (which == 1u) {
+        hw_aud.l_idle_set &= ~1u;
+        hw_aud.l_check_set |= 1u;
+    }
+#endif
+    moved = hw_aud.l_flips || hw_aud.l_irq;
+    /* 5: kept if the link moved with the matrix right; else put back. */
+    hw_aud.l_phase = 5;
+    if (moved && !hw_aud.l_check_set) {
+        hw_scan_resume();
+        hw_aud.l_state = HW_L_KEPT;
+        hw_aud.l_stop = HW_D_STOP_MOVED;
+        fresh_base();
+        hw_aud.l_phase = 7;
+        l_end();
+        l_label(label, which, "kept");
+        report(label);
+        p = put_bit(step_text, "audio7: L", which);
+        p = put_s(p, " MOVED, kept: h/s ");
+        p = put_dec(p, hw_aud.l_hps10 / 10u);
+        *p = 0;
+        hw_step(step_text);
+        c1_key_marks();
+        return;
+    }
+    l_put_back();
+    /* 6: the check after the undo, and the registers against step 1's. */
+    hw_aud.l_phase = 6;
+    hw_aud.l_check_after = matrix_check_vs(&hw_aud.l_idle_after, hw_aud.l_map_after, hw_aud.l_pa_after,
+                                           hw_aud.l_map_base, hw_aud.l_pa_before);
+    if ((hw_aud.l_back[0] ^ hw_aud.l_before[0]) & ~AL_HALF || hw_aud.l_back[1] != hw_aud.l_before[1]
+            || hw_aud.l_back[2] != hw_aud.l_before[3])
+        hw_aud.l_check_after |= 8u;
+    hw_scan_resume();
+    /* 7: the set-up's record. */
+    hw_aud.l_phase = 7;
+    hw_aud.l_stop = hw_aud.l_check_after ? HW_D_STOP_AFTER : moved ? HW_D_STOP_MOVED_BAD :
+                    hw_aud.l_check_set ? HW_D_STOP_CHECK : HW_D_STOP_NONE;
+    hw_aud.l_state = hw_aud.l_stop ? HW_L_STOPPED : HW_L_DONE;
+    if (hw_aud.l_stop)
+        hw_aud.l_stopped = 1;
+    fresh_base();
+    l_end();
+    l_label(label, which, hw_aud.l_check_after ? "after BAD" : hw_aud.l_check_set ? "check BAD" :
+                          moved ? "moved BAD" : "put back");
+    report(label);
+    p = put_bit(step_text, "audio7: L", which);
+    p = put_s(p, hw_aud.l_stop ? " stopped, put back" : " didn't run, put back");
+    *p = 0;
+    hw_step(step_text);
+    c1_key_marks();
+}
+
+static const char *d_stop_word(u32 st)
+{
+    return st == HW_D_STOP_CHECK ? "matrix broke, undone" : st == HW_D_STOP_MOVED ? "LINK MOVED, bit kept" :
+           st == HW_D_STOP_MOVED_BAD ? "moved, matrix broke, undone" : st == HW_D_STOP_AFTER ? "check after undo BAD" :
+           st == HW_D_STOP_KEY ? "stopped by OCT-" : "none";
+}
+
+/* OCT-: step D. A press runs the sweep of CON5's bits 0 to 31, each tried
+ * alone, checked and undone by the firmware itself, stopping at the first
+ * try that moves the link or fails a check; a press while it runs stops
+ * it after the try in progress; a press with a bit kept puts CON5 back as
+ * read. J's register goes back as read before a sweep. */
+void hw_audio_d(void)
+{
+    char *p;
+    u32 bit, start, stop = HW_D_STOP_NONE;
+
+    if (hw_aud.d_state == HW_D_KEPT) {
+        p = put_s(step_text, "audio6: D undo: CON5 to ");
+        p = put_hex(p, hw_aud.d_con5_before, 8);
+        *p = 0;
+        hw_step(step_text);
+        IOMAP_CON5 = hw_aud.d_con5_before;
+        hw_aud.d_con5_back = IOMAP_CON5;
+        hw_aud.d_state = HW_D_UNDONE;
+        fresh_base();
+        c1_key_marks();
+        d_snap_end();
+        report("D undone");
+        return;
+    }
+    hw_aud.d_j_putback = 0;
+    if (hw_aud.j_state == HW_J_MOVED) {
+        j_set(hw_aud.j_reg, hw_aud.j_before);
+        hw_aud.j_back = j_get(hw_aud.j_reg);
+        hw_aud.j_state = HW_J_UNDONE;
+        hw_aud.d_j_putback = hw_aud.j_reg << 16 | hw_aud.j_before;
+        hw_step("audio6: J's bit put back before D");
+        report("J back for D");
+    }
+    hw_aud.d_sweeps++;
+    hw_aud.d_tries = 0;
+    hw_aud.d_stop = HW_D_STOP_NONE;
+    p = put_s(step_text, "audio6: D sweep, CLK_CON2 ");
+    p = put_hex(p, JL_CLOCK->CLK_CON2, 8);
+    *p = 0;
+    hw_step(step_text);
+    d_snap_end();
+    report("D starting");
+    /* The matrix check wants no key held: OCT-, which started the sweep,
+     * is waited for until it is released (its cell would otherwise differ
+     * between the baseline and the check), at most HW_D_RELEASE_MS. */
+    hw_step("audio6: D: release OCT- to start");
+    start = sb_beacon.beats;
+    while (input_value(INPUT_OCT_DOWN) > 0 && sb_beacon.beats - start < HW_D_RELEASE_MS)
+        hw_guide_tick();
+    (void)key_pressed_in_sweep(INPUT_OCT_DOWN);
+    for (bit = 0; bit < 32u; bit++) {
+        hw_aud.d_tries = bit + 1u;
+        stop = d_try(bit);
+        if (stop)
+            break;
+        hw_guide_tick();
+        if (key_pressed_in_sweep(INPUT_OCT_DOWN)) {
+            stop = HW_D_STOP_KEY;
+            break;
+        }
+    }
+    hw_aud.d_stop = stop;
+    hw_aud.d_state = stop == HW_D_STOP_MOVED ? HW_D_KEPT : stop ? HW_D_STOPPED : HW_D_DONE;
+    if (stop == HW_D_STOP_MOVED)
+        fresh_base();
+    p = put_s(step_text, "audio6: D ");
+    p = put_s(p, stop ? d_stop_word(stop) : "done, none stopped it");
+    if (stop) {
+        p = put_bit(p, " b", hw_aud.d_bit);
+    }
+    *p = 0;
+    hw_step(step_text);
+    c1_key_marks();
+    d_snap_end();
+    report(stop == HW_D_STOP_MOVED ? "D kept" : stop ? "D stopped" : "D done");
 }
 
 /* --- The tone ------------------------------------------------------------- */
@@ -1196,7 +1655,7 @@ static char *put_fps(char *p)
 #define YELLOW RGB565(31, 63, 0)
 #define DIM    RGB565(16, 32, 16)
 
-#define HW_AUD_BOX_X 168u
+#define HW_AUD_BOX_X 150u
 
 static char state_char(u32 st)
 {
@@ -1236,6 +1695,9 @@ void hw_audio_line(void)
     *p++ = state_char(hw_aud.h_state);
     p = put_s(p, " K");
     *p++ = state_char(hw_aud.k_state);
+    p = put_s(p, " D");
+    *p++ = hw_aud.d_state == HW_D_KEPT ? 'K' : hw_aud.d_state == HW_D_DONE ? 'D' :
+           hw_aud.d_state == HW_D_STOPPED ? 'S' : hw_aud.d_state == HW_D_UNDONE ? 'U' : 'h';
     *p = 0;
     gfx_fill(HW_AUD_BOX_X - 2, HW_AUD_Y, SCREEN_W - HW_AUD_BOX_X - 2, 2 * FONT_H, BLACK);
     gfx_text(HW_AUD_BOX_X, HW_AUD_Y, t, WHITE, BLACK, 1);
@@ -1248,6 +1710,9 @@ void hw_audio_line(void)
     p = put_s(p, " J");
     *p++ = hw_aud.j_state == HW_J_MOVED ? 'M' : hw_aud.j_state == HW_J_DONE ? 'D' :
            hw_aud.j_state == HW_J_ABORTED ? 'X' : hw_aud.j_state == HW_J_UNDONE ? 'U' : '-';
+    p = put_s(p, " L");
+    *p++ = hw_aud.l_state == HW_L_KEPT ? (char)('0' + hw_aud.l_which) : hw_aud.l_state == HW_L_UNDONE ? 'U' :
+           hw_aud.l_state == HW_L_DONE ? 'D' : hw_aud.l_state == HW_L_STOPPED ? 'X' : '-';
     *p = 0;
     gfx_text(HW_AUD_BOX_X, HW_AUD_Y + FONT_H, t, WHITE, BLACK, 1);
     lcd_send_rows(HW_AUD_Y, 2 * FONT_H);
@@ -1303,7 +1768,7 @@ static void page_regs(u32 view)
     u32 i, n = view ? HW_AUD_MORE : HW_AUD_REGS, y = PAGE_REGS_Y;
 
     gfx_fill(0, PAGE_REGS_Y, SCREEN_W, SCREEN_H - PAGE_REGS_Y, BLACK);
-    p = put_s(t, view ? "2/6 reg  call     tone     " : "1/6 reg  call     tone     ");
+    p = put_s(t, view ? "2/8 reg  call     tone     " : "1/8 reg  call     tone     ");
     p = put_s(p, hw_aud.step_state == HW_STEP_TAKEN ? "taken" : hw_aud.step_state == HW_STEP_UNDONE ? "undone" : "no step");
     *p = 0;
     gfx_text(6, y, t, DIM, BLACK, 1);
@@ -1378,7 +1843,7 @@ static void page_core1(void)
     db = hw_aud.c1_beat[HW_C1_PRE] - hw_aud.c1_beat[HW_C1_REL];
     if (db)
         rate = div64(hw_aud.c1_count[HW_C1_PRE] - hw_aud.c1_count[HW_C1_REL], db);
-    p = put_s(t, "3/6 moved ");
+    p = put_s(t, "3/8 moved ");
     p = put_dec(p, hw_aud.c1_moved);
     p = put_s(p, " now ");
     p = put_dec(p, sb_beacon.beats);
@@ -1434,7 +1899,7 @@ static void page_steps(void)
     u32 k, y = PAGE_REGS_Y, now[HW_SNAP];
 
     gfx_fill(0, PAGE_REGS_Y, SCREEN_W, SCREEN_H - PAGE_REGS_Y, BLACK);
-    gfx_text(6, y, "4/6 steps: before (b), after (a), now (n)", YELLOW, BLACK, 1);
+    gfx_text(6, y, "4/8 steps: before (b), after (a), now (n)", YELLOW, BLACK, 1);
     y += FONT_H;
     gfx_text(6, y, "  CON0     CLK2     irq core1", DIM, BLACK, 1);
     /* The first six steps; K's and J's are on their own view. */
@@ -1558,7 +2023,7 @@ static void page_hi(void)
     u32 y = PAGE_REGS_Y, w[4], i;
 
     gfx_fill(0, PAGE_REGS_Y, SCREEN_W, SCREEN_H - PAGE_REGS_Y, BLACK);
-    row_at(&y, "5/6 ENV=H FX=H again LFO=I SEL=I bit10", YELLOW);
+    row_at(&y, "5/8 ENV=H FX=H again LFO=I SEL=I bit10", YELLOW);
     p = put_s(t, "H ");
     p = put_s(p, state_word(hw_aud.h_state));
     p = put_s(p, ", presses ");
@@ -1650,7 +2115,7 @@ static void page_kj(void)
     u32 y = PAGE_REGS_Y, i;
 
     gfx_fill(0, PAGE_REGS_Y, SCREEN_W, SCREEN_H - PAGE_REGS_Y, BLACK);
-    row_at(&y, "6/6 GLO=K OCT+=J (again: undo, abort)", YELLOW);
+    row_at(&y, "6/8 GLO=K OCT+=J (again: undo, abort)", YELLOW);
     p = put_s(t, "K ");
     p = put_s(p, state_word(hw_aud.k_state));
     p = put_s(p, ", presses ");
@@ -1718,6 +2183,235 @@ static void page_kj(void)
     lcd_wait();
 }
 
+/* The D view: the sweep's state, the try in progress or the one it
+ * stopped at (the bit, CON5 read, written, read back, put back; the watch's
+ * counts; the matrix: idle rows and cells before, with the bit set and
+ * after the undo; the checks), port A's registers before, with the bit
+ * set and after, and core 1's count. */
+static const char d_state_word[5][14] = { "not run", "done, no stop", "STOPPED", "BIT KEPT", "undone" };
+static const char pa_name[8][5] = { "OUT", "IN", "DIR", "DIE", "PU", "PD", "HD0", "HD" };
+
+static char *put_check(char *p, u32 bad)
+{
+    if (!bad)
+        return put_s(p, "ok");
+    p = put_s(p, "BAD");
+    p = put_s(p, bad & 1u ? " rows" : "");
+    p = put_s(p, bad & 2u ? " cells" : "");
+    p = put_s(p, bad & 4u ? " portA" : "");
+    p = put_s(p, bad & 8u ? " CON5" : "");
+    return put_s(p, bad & 16u ? " map" : "");
+}
+
+static void page_d(void)
+{
+    char t[80], *p;
+    u32 y = PAGE_REGS_Y, i;
+
+    gfx_fill(0, PAGE_REGS_Y, SCREEN_W, SCREEN_H - PAGE_REGS_Y, BLACK);
+    row_at(&y, "7/8 D HELD (OCT-), not in this order", YELLOW);
+    p = put_s(t, "D ");
+    p = put_s(p, d_state_word[hw_aud.d_state < 5u ? hw_aud.d_state : 0]);
+    p = put_s(p, ", sweeps ");
+    p = put_dec(p, hw_aud.d_sweeps);
+    p = put_s(p, ", tries ");
+    p = put_dec(p, hw_aud.d_tries);
+    *p = 0;
+    row_at(&y, t, hw_aud.d_state == HW_D_KEPT ? GREEN : hw_aud.d_state == HW_D_STOPPED ? YELLOW : WHITE);
+    p = put_s(t, "stop: ");
+    p = put_s(p, d_stop_word(hw_aud.d_stop));
+    p = put_s(p, " C2 ");
+    p = put_hex(p, hw_aud.d_clk2, 8);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    p = put_bit(t, "b", hw_aud.d_bit);
+    p = put_s(p, " C5 ");
+    p = put_hex(p, hw_aud.d_con5_before, 8);
+    *p++ = '>';
+    p = put_hex(p, hw_aud.d_con5_written, 8);
+    p = put_s(p, " rb ");
+    p = put_hex(p, hw_aud.d_con5_read, 8);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    p = put_s(t, "back ");
+    p = put_hex(p, hw_aud.d_con5_back, 8);
+    p = put_s(p, " b15 ");
+    p = put_dec(p, hw_aud.d_flips);
+    p = put_s(p, " pend ");
+    p = put_dec(p, hw_aud.d_pend);
+    p = put_s(p, " irq ");
+    p = put_dec(p, hw_aud.d_irq);
+    *p = 0;
+    row_at(&y, t, hw_aud.d_flips || hw_aud.d_irq ? GREEN : WHITE);
+    p = put_s(t, "rows ");
+    p = put_hex(p, hw_aud.d_idle_base, 2);
+    *p++ = '>';
+    p = put_hex(p, hw_aud.d_idle_set, 2);
+    *p++ = '>';
+    p = put_hex(p, hw_aud.d_idle_after, 2);
+    p = put_s(p, " set ");
+    p = put_check(p, hw_aud.d_check_set);
+    p = put_s(p, " undo ");
+    p = put_check(p, hw_aud.d_check_after);
+    *p = 0;
+    row_at(&y, t, hw_aud.d_check_set || hw_aud.d_check_after ? RED : WHITE);
+    for (i = 0; i < 3; i++) {
+        const u32 *m = i == 0 ? hw_aud.d_map_base : i == 1 ? hw_aud.d_map_set : hw_aud.d_map_after;
+
+        p = put_s(t, i == 0 ? "cells " : i == 1 ? "  set " : "  undo ");
+        while (p < t + 7)
+            *p++ = ' ';
+        p = put_hex(p, m[2], 8);
+        p = put_hex(p, m[1], 8);
+        p = put_hex(p, m[0], 8);
+        *p = 0;
+        row_at(&y, t, WHITE);
+    }
+    row_at(&y, "PA   before   bit set  after", DIM);
+    for (i = 0; i < 8; i++) {
+        p = put_s(t, pa_name[i]);
+        while (p < t + 4)
+            *p++ = ' ';
+        p = put_hex(p, hw_aud.d_pa_before[i], 8);
+        *p++ = ' ';
+        p = put_hex(p, hw_aud.d_pa_set[i], 8);
+        *p++ = ' ';
+        p = put_hex(p, hw_aud.d_pa_after[i], 8);
+        *p = 0;
+        row_at(&y, t, (i >= 2u && i <= 5u) && (hw_aud.d_pa_set[i] != hw_aud.d_pa_before[i] ||
+                       hw_aud.d_pa_after[i] != hw_aud.d_pa_before[i]) ? RED : WHITE);
+    }
+    p = put_s(t, "IN watch ");
+    p = put_hex(p, hw_aud.d_in_start, 8);
+    *p++ = '>';
+    p = put_hex(p, hw_aud.d_in_end, 8);
+    p = put_s(p, " c1 ");
+    p = put_dec(p, hw_core1_count);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    lcd_send_rows(PAGE_REGS_Y, SCREEN_H - PAGE_REGS_Y);
+    lcd_wait();
+}
+
+/* The L view: the set-up's state, CON0 to CON3 and LEN before, each write
+ * and its read-back, the watch's counts, the halves and frames a second by
+ * each LEN reading beside the expected, the checks, what was put back,
+ * port A before, with the set-up in place and after, CLK_CON1, CLK_CON2,
+ * core 1's count. */
+static const char l_state_word[5][16] = { "not run", "KEPT, running", "undone by key", "put back", "STOPPED" };
+
+static char *put_x10(char *p, u32 v)
+{
+    p = put_dec(p, v / 10u);
+    *p++ = '.';
+    return put_dec(p, v % 10u);
+}
+
+static void page_l(void)
+{
+    char t[80], *p;
+    u32 y = PAGE_REGS_Y, i;
+
+    gfx_fill(0, PAGE_REGS_Y, SCREEN_W, SCREEN_H - PAGE_REGS_Y, BLACK);
+    row_at(&y, "8/8 KEY1=L1 KEY2=L2 (again: undo)", YELLOW);
+    p = put_bit(t, "L", hw_aud.l_which);
+    *p++ = ' ';
+    p = put_s(p, l_state_word[hw_aud.l_state < 5u ? hw_aud.l_state : 0]);
+    p = put_s(p, ", runs ");
+    p = put_dec(p, hw_aud.l_presses);
+    p = put_s(p, " C2 ");
+    p = put_hex(p, hw_aud.l_clk2, 8);
+    *p = 0;
+    row_at(&y, t, hw_aud.l_state == HW_L_KEPT ? GREEN : hw_aud.l_state == HW_L_STOPPED ? RED : WHITE);
+    p = put_s(t, "was ");
+    for (i = 0; i < 4; i++) {
+        p = put_hex(p, hw_aud.l_before[i], i < 2u ? 4 : 2);
+        *p++ = ' ';
+    }
+    p = put_s(p, "LEN ");
+    p = put_hex(p, hw_aud.l_len_read, 4);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    p = put_s(t, "C0 ");
+    p = put_hex(p, hw_aud.l_w[0], 4);
+    *p++ = '>';
+    p = put_hex(p, hw_aud.l_rb[0], 4);
+    p = put_s(p, " C3 ");
+    p = put_hex(p, hw_aud.l_w[1], 2);
+    *p++ = '>';
+    p = put_hex(p, hw_aud.l_rb[1], 2);
+    p = put_s(p, " C1 ");
+    p = put_hex(p, hw_aud.l_w[2], 4);
+    *p++ = '>';
+    p = put_hex(p, hw_aud.l_rb[2], 4);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    p = put_s(t, "run C0 ");
+    p = put_hex(p, hw_aud.l_w[3], 4);
+    *p++ = '>';
+    p = put_hex(p, hw_aud.l_rb[3], 4);
+    p = put_s(p, " back ");
+    p = put_hex(p, hw_aud.l_back[0], 4);
+    *p++ = ' ';
+    p = put_hex(p, hw_aud.l_back[1], 4);
+    *p++ = ' ';
+    p = put_hex(p, hw_aud.l_back[2], 2);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    p = put_s(t, "b15 ");
+    p = put_dec(p, hw_aud.l_flips);
+    p = put_s(p, " pend ");
+    p = put_dec(p, hw_aud.l_pend);
+    p = put_s(p, " irq ");
+    p = put_dec(p, hw_aud.l_irq);
+    p = put_s(p, " h/s ");
+    p = put_x10(p, hw_aud.l_hps10);
+    *p = 0;
+    row_at(&y, t, hw_aud.l_flips || hw_aud.l_irq ? GREEN : WHITE);
+    p = put_s(t, "f/s a ");
+    p = put_x10(p, hw_aud.l_fps10_a);
+    p = put_s(p, " b ");
+    p = put_x10(p, hw_aud.l_fps10_b);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    p = put_s(t, "want ");
+    p = put_x10(p, hw_aud.l_exp_fps10);
+    p = put_s(p, " h/s a ");
+    p = put_x10(p, hw_aud.l_exp_hps10_a);
+    p = put_s(p, " b ");
+    p = put_x10(p, hw_aud.l_exp_hps10_b);
+    *p = 0;
+    row_at(&y, t, DIM);
+    p = put_s(t, "check set ");
+    p = put_check(p, hw_aud.l_check_set);
+    p = put_s(p, " after ");
+    p = put_check(p, hw_aud.l_check_after);
+    *p = 0;
+    row_at(&y, t, hw_aud.l_check_set || hw_aud.l_check_after ? RED : WHITE);
+    row_at(&y, "PA   before   set up   after", DIM);
+    for (i = 0; i < 8; i++) {
+        p = put_s(t, pa_name[i]);
+        while (p < t + 4)
+            *p++ = ' ';
+        p = put_hex(p, hw_aud.l_pa_before[i], 8);
+        *p++ = ' ';
+        p = put_hex(p, hw_aud.l_pa_set[i], 8);
+        *p++ = ' ';
+        p = put_hex(p, hw_aud.l_pa_after[i], 8);
+        *p = 0;
+        row_at(&y, t, (i >= 2u && i <= 5u) && (hw_aud.l_pa_set[i] != hw_aud.l_pa_before[i] ||
+                       (hw_aud.l_pa_after[i] && hw_aud.l_pa_after[i] != hw_aud.l_pa_before[i])) ? RED : WHITE);
+    }
+    p = put_s(t, "C1 ");
+    p = put_hex(p, hw_aud.l_clk1, 8);
+    p = put_s(p, " c1 ");
+    p = put_dec(p, hw_core1_count);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    lcd_send_rows(PAGE_REGS_Y, SCREEN_H - PAGE_REGS_Y);
+    lcd_wait();
+}
+
 static void draw_view(u32 v)
 {
     if (v < 2)
@@ -1728,8 +2422,12 @@ static void draw_view(u32 v)
         page_steps();
     else if (v == 4)
         page_hi();
-    else
+    else if (v == 5)
         page_kj();
+    else if (v == 6)
+        page_d();
+    else
+        page_l();
 }
 
 static void page_views(const u8 *order, u32 n)
@@ -1785,16 +2483,33 @@ static void page_views(const u8 *order, u32 n)
                 draw_view(order[i]);
             }
             page_top();
+            hw_guide_tick();
         }
     }
 }
 
-/* The first page: the first four views; HOME: all six. */
+/* The first page: the first four views; HOME: all eight. */
 void hw_audio_page(void)
 {
-    static const u8 all[6] = { 0, 1, 2, 3, 4, 5 };
+    static const u8 all[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
-    page_views(all, hw_aud.regs_read ? 6 : 4);
+    page_views(all, hw_aud.regs_read ? 8 : 4);
+}
+
+/* After L's keys: the L view, then core 1's. */
+void hw_audio_keypage_l(void)
+{
+    static const u8 keys[2] = { 7, 2 };
+
+    page_views(keys, 2);
+}
+
+/* After D's key: the D view, then core 1's. */
+void hw_audio_keypage_d(void)
+{
+    static const u8 keys[2] = { 6, 2 };
+
+    page_views(keys, 2);
 }
 
 /* After K's or J's key: the K and J view, then core 1's. */
@@ -1821,6 +2536,114 @@ void hw_audio_keypage(void)
     page_views(keys, 2);
 }
 
+/* --- The next key (the owner's request after audio5) ------------------- */
+
+/* The build's suggested order, the one table: each entry a key and what
+ * its press does. A press of the entry's key moves on to the next; any
+ * other key leaves it. This is audio7's order (the spec side's prompt: L1,
+ * bit 9, L2, bit 9 again, L2), then a save; D is held and out of it.
+ * While a set-up is kept, the next key is its own, to put it back, ahead
+ * of the table; likewise OCT- while D has a bit kept. */
+struct guide_step {
+    u8 key;
+    char what[13];
+};
+static const struct guide_step guide[] = {
+    { INPUT_KEY(1), "L1" },
+    { INPUT_REC, "bit 9" },
+    { INPUT_KEY(2), "L2" },
+    { INPUT_REC, "bit 9 undo" },
+    { INPUT_KEY(2), "L2" },
+    { INPUT_EDIT, "save" },
+};
+#define GUIDE_N (sizeof guide / sizeof guide[0])
+#define GUIDE_BLINK_MS 500u
+
+u32 hw_guide_at;
+
+static const char *key_name(u32 c)
+{
+    switch (c) {
+    case INPUT_OCT_DOWN: return "OCT-";
+    case INPUT_OCT_UP:   return "OCT+";
+    case INPUT_FX:       return "FX";
+    case INPUT_SEL:      return "SEL";
+    case INPUT_ENV:      return "ENV";
+    case INPUT_LFO:      return "LFO";
+    case INPUT_EDIT:     return "EDIT";
+    case INPUT_GLO:      return "GLO";
+    case INPUT_HOME:     return "HOME";
+    case INPUT_SAVE:     return "SAVE";
+    case INPUT_ARP:      return "ARP";
+    case INPUT_SEQ:      return "SEQ";
+    case INPUT_PLAY:     return "PLAY";
+    case INPUT_REC:      return "REC";
+    case INPUT_KEY(1):   return "KEY1";
+    case INPUT_KEY(2):   return "KEY2";
+    default:             return "?";
+    }
+}
+
+/* The next key and what it does: D's undo while a bit is kept, else the
+ * table's entry; 0 when the order is done. */
+static u32 guide_next(const char **what)
+{
+    if (hw_aud.l_state == HW_L_KEPT) {
+        *what = hw_aud.l_which == 1u ? "L1 undo" : "L2 undo";
+        return INPUT_KEY(hw_aud.l_which) + 1u;
+    }
+    if (hw_aud.d_state == HW_D_KEPT) {
+        *what = "D undo";
+        return INPUT_OCT_DOWN + 1u;
+    }
+    if (hw_guide_at >= GUIDE_N)
+        return 0;
+    *what = guide[hw_guide_at].what;
+    return guide[hw_guide_at].key + 1u;
+}
+
+/* A key pressed on the test screen: the guide moves on if it was the
+ * table's next (D's undo of a kept bit isn't in the table). */
+void hw_guide_key(u32 control)
+{
+    if (hw_aud.l_state != HW_L_KEPT && hw_aud.d_state != HW_D_KEPT && hw_guide_at < GUIDE_N
+            && control == guide[hw_guide_at].key)
+        hw_guide_at++;
+}
+
+/* "next: KEY (what)" on the step row, or that the order is done. */
+void hw_guide_show(void)
+{
+    static char t[40];
+    const char *what = "";
+    u32 k = guide_next(&what);
+    char *p;
+
+    if (!k) {
+        hw_step("next: none, the suggested order is done");
+        return;
+    }
+    p = put_s(t, "next: ");
+    p = put_s(p, key_name(k - 1u));
+    p = put_s(p, " (");
+    p = put_s(p, what);
+    p = put_s(p, ")");
+    *p = 0;
+    hw_step(t);
+}
+
+/* The next key's LED, blinking: on and off for GUIDE_BLINK_MS each. A key
+ * whose LED is lit for its step blinks too while it is next; once the
+ * guide moves on, its press and release set it as before. */
+void hw_guide_tick(void)
+{
+    const char *what;
+    u32 k = guide_next(&what);
+
+    if (k)
+        input_led(k - 1u, sb_beacon.beats / GUIDE_BLINK_MS & 1u ? 0 : INPUT_LED_FULL);
+}
+
 /* --- leds1: the step keys' LEDs (the owner's request) ---------------------- */
 
 /* 1 while the step a key stands for is taken: REC bit 9, SEQ ALNK0
@@ -1840,6 +2663,9 @@ u32 hw_audio_key_lit(u32 control)
     case INPUT_SEL:  return hw_aud.i_state == HW_STEP_TAKEN && hw_aud.i_bit10;
     case INPUT_GLO:  return hw_aud.k_state == HW_STEP_TAKEN;
     case INPUT_OCT_UP: return hw_aud.j_state == HW_J_MOVED;
+    case INPUT_OCT_DOWN: return hw_aud.d_state == HW_D_KEPT;
+    case INPUT_KEY(1): return hw_aud.l_state == HW_L_KEPT && hw_aud.l_which == 1u;
+    case INPUT_KEY(2): return hw_aud.l_state == HW_L_KEPT && hw_aud.l_which == 2u;
     default:         return 0;
     }
 }
@@ -1849,17 +2675,17 @@ u32 hw_audio_key_lit(u32 control)
  * pressed, still held, lit. */
 void hw_audio_leds(u32 held)
 {
-    static const u8 keys[10] = { INPUT_REC, INPUT_SEQ, INPUT_ARP, INPUT_SAVE, INPUT_ENV, INPUT_FX, INPUT_LFO, INPUT_SEL,
-                                 INPUT_GLO, INPUT_OCT_UP };
+    static const u8 keys[13] = { INPUT_REC, INPUT_SEQ, INPUT_ARP, INPUT_SAVE, INPUT_ENV, INPUT_FX, INPUT_LFO, INPUT_SEL,
+                                 INPUT_GLO, INPUT_OCT_UP, INPUT_OCT_DOWN, INPUT_KEY(1), INPUT_KEY(2) };
     u32 i;
 
-    for (i = 0; i < 10; i++)
+    for (i = 0; i < 13; i++)
         input_led(keys[i], keys[i] == held || hw_audio_key_lit(keys[i]) ? INPUT_LED_FULL : 0);
 }
 
 #if defined(SB_HW_REPORT)
 /* The audio probe's fields for the report log, in tools/report-decode.py's
- * FIELDS[3] order after the common ones: audio1's registers and audio2's,
+ * FIELDS[5] order after the common ones (layout 4's log fields come after these): audio1's registers and audio2's,
  * read now; the counts and measures; each step's state and readbacks;
  * core 1's marks; the corex2 words now; each step's snapshots. */
 u32 hw_audio_report(u32 *w)
@@ -1991,6 +2817,102 @@ u32 hw_audio_report(u32 *w)
         w[n++] = hw_aud.j_rb[i];
     w[n++] = JL_ALNK0->CON1;
     w[n++] = JL_ALNK0->CON3;
+    /* Layout 5: step D. */
+    w[n++] = hw_aud.d_state;
+    w[n++] = hw_aud.d_sweeps;
+    w[n++] = hw_aud.d_tries;
+    w[n++] = hw_aud.d_bit;
+    w[n++] = hw_aud.d_stop;
+    w[n++] = hw_aud.d_phase;
+    w[n++] = hw_aud.d_clk2;
+    w[n++] = hw_aud.d_con5_before;
+    w[n++] = hw_aud.d_con5_written;
+    w[n++] = hw_aud.d_con5_read;
+    w[n++] = hw_aud.d_con5_back;
+    w[n++] = hw_aud.d_con5_after;
+    for (i = 0; i < 9; i++)
+        w[n++] = hw_aud.d_iomap_before[i];
+    for (i = 0; i < 9; i++)
+        w[n++] = hw_aud.d_iomap_after[i];
+    for (i = 0; i < 8; i++)
+        w[n++] = hw_aud.d_pa_before[i];
+    for (i = 0; i < 8; i++)
+        w[n++] = hw_aud.d_pa_set[i];
+    for (i = 0; i < 8; i++)
+        w[n++] = hw_aud.d_pa_after[i];
+    w[n++] = hw_aud.d_in_start;
+    w[n++] = hw_aud.d_in_end;
+    w[n++] = hw_aud.d_flips;
+    w[n++] = hw_aud.d_pend;
+    w[n++] = hw_aud.d_irq;
+    w[n++] = hw_aud.d_idle_base;
+    for (i = 0; i < 3; i++)
+        w[n++] = hw_aud.d_map_base[i];
+    w[n++] = hw_aud.d_idle_set;
+    for (i = 0; i < 3; i++)
+        w[n++] = hw_aud.d_map_set[i];
+    w[n++] = hw_aud.d_idle_after;
+    for (i = 0; i < 3; i++)
+        w[n++] = hw_aud.d_map_after[i];
+    w[n++] = hw_aud.d_check_set;
+    w[n++] = hw_aud.d_check_after;
+    for (i = 0; i < 4; i++)
+        w[n++] = hw_aud.d_al0[i];
+    w[n++] = hw_aud.d_irq_now;
+    w[n++] = hw_aud.d_core1;
+    w[n++] = hw_aud.d_j_putback;
+    w[n++] = IOMAP_CON5;
+    /* Layout 6: set-ups L1 and L2. */
+    w[n++] = hw_aud.l_state;
+    w[n++] = hw_aud.l_which;
+    w[n++] = hw_aud.l_presses;
+    w[n++] = hw_aud.l_stop;
+    w[n++] = hw_aud.l_phase;
+    w[n++] = hw_aud.l_stopped;
+    for (i = 0; i < 4; i++)
+        w[n++] = hw_aud.l_before[i];
+    w[n++] = hw_aud.l_len_read;
+    w[n++] = hw_aud.l_adr_read;
+    w[n++] = hw_aud.l_len_used;
+    w[n++] = hw_aud.l_clk1;
+    w[n++] = hw_aud.l_clk2;
+    for (i = 0; i < 8; i++)
+        w[n++] = hw_aud.l_pa_before[i];
+    w[n++] = hw_aud.l_irq0;
+    w[n++] = hw_aud.l_core1_0;
+    w[n++] = hw_aud.l_exp_fps10;
+    w[n++] = hw_aud.l_exp_hps10_a;
+    w[n++] = hw_aud.l_exp_hps10_b;
+    for (i = 0; i < 4; i++)
+        w[n++] = hw_aud.l_w[i];
+    for (i = 0; i < 4; i++)
+        w[n++] = hw_aud.l_rb[i];
+    w[n++] = hw_aud.l_flips;
+    w[n++] = hw_aud.l_pend;
+    w[n++] = hw_aud.l_irq;
+    w[n++] = hw_aud.l_span;
+    w[n++] = hw_aud.l_hps10;
+    w[n++] = hw_aud.l_fps10_a;
+    w[n++] = hw_aud.l_fps10_b;
+    w[n++] = hw_aud.l_idle_base;
+    for (i = 0; i < 3; i++)
+        w[n++] = hw_aud.l_map_base[i];
+    w[n++] = hw_aud.l_idle_set;
+    for (i = 0; i < 3; i++)
+        w[n++] = hw_aud.l_map_set[i];
+    for (i = 0; i < 8; i++)
+        w[n++] = hw_aud.l_pa_set[i];
+    w[n++] = hw_aud.l_check_set;
+    w[n++] = hw_aud.l_idle_after;
+    for (i = 0; i < 3; i++)
+        w[n++] = hw_aud.l_map_after[i];
+    for (i = 0; i < 8; i++)
+        w[n++] = hw_aud.l_pa_after[i];
+    w[n++] = hw_aud.l_check_after;
+    for (i = 0; i < 3; i++)
+        w[n++] = hw_aud.l_back[i];
+    w[n++] = hw_aud.l_clk2_end;
+    w[n++] = hw_aud.l_core1_end;
     return n;
 }
 #endif
