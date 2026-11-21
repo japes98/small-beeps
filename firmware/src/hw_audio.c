@@ -245,7 +245,7 @@ static void report(const char *label)
 static void refuse(u32 k, const char *why)
 {
     static const char label[HW_K_N][16] = { "REC refused", "SEQ refused", "A refused", "B refused", "H refused",
-                                            "I refused" };
+                                            "I refused", "K refused", "J refused" };
 
     hw_step(why);
     hw_aud.refused++;
@@ -254,7 +254,7 @@ static void refuse(u32 k, const char *why)
 }
 
 /* The CLK_CON2 steps taken, in order (REC, B, I): only the last undoes. */
-static const char clk_name[HW_K_N][4] = { "REC", "SEQ", "A", "B", "H", "I" };
+static const char clk_name[HW_K_N][4] = { "REC", "SEQ", "A", "B", "H", "I", "K", "J" };
 
 static void clk_push(u32 k)
 {
@@ -563,6 +563,10 @@ void hw_audio_h(void)
     char *p;
 
     snap(HW_K_H, 0);
+    if (hw_aud.h_state != HW_STEP_TAKEN && hw_aud.k_state == HW_STEP_TAKEN) {
+        refuse(HW_K_H, "audio5: H refused: undo K first (GLO)");
+        return;
+    }
     if (hw_aud.h_state != HW_STEP_TAKEN) {
         hw_aud.h_clk1_before = JL_CLOCK->CLK_CON1;
         hw_aud.h_gp_before = JL_GPCNT->CON;
@@ -728,6 +732,270 @@ void hw_audio_i10(void)
     c1_key_marks();
     snap(HW_K_I, 1);
     report("I bit 10");
+}
+
+/* --- audio5's steps K and J (HW-151, HW-153, HW-154; the owner's rulings) - */
+
+#define CLK1_DAC      (3u << 2)     /* CLK_CON1 bits 2-3: the DAC's clock choice (HW-53) */
+#define GP_CSS_480    (6u << 1)     /* counted: the counter's own 480 MHz input */
+
+/* One of K's measurements, by H's method with K's wait: JL_GPCNT->CON
+ * written with the counted clock css, NUM read twice a gate apart (each
+ * after the pending flag or HW_K_WAIT_MS), into k_m[i]. CLK_CON1 is set by
+ * the caller. */
+static void k_count(u32 i, u32 css)
+{
+    u32 g = HW_H_GATE_N << 8 | GP_GSS_XOSC | css, j, t, *m = hw_aud.k_m[i];
+
+    m[0] = JL_CLOCK->CLK_CON1;
+    JL_GPCNT->CON = g | GP_CLR;
+    JL_GPCNT->CON = g | GP_CLR | GP_EN;
+    m[1] = JL_GPCNT->CON;
+    m[5] = JL_CLOCK->CLK_CON2;
+    m[4] = 0;
+    for (j = 0; j < 2; j++) {
+        t = sb_beacon.beats;
+        while (!(JL_GPCNT->CON & GP_PND) && sb_beacon.beats - t < HW_K_WAIT_MS)
+            c1_poll();
+        if (!(JL_GPCNT->CON & GP_PND))
+            m[4]++;
+        m[2 + j] = JL_GPCNT->NUM;
+        JL_GPCNT->CON = g | GP_CLR | GP_EN;
+    }
+}
+
+/* CLK_CON1 with the bits in mask set to v (read-modify-write of those bits alone). */
+static void clk1_bits(u32 mask, u32 v)
+{
+    JL_CLOCK->CLK_CON1 = (JL_CLOCK->CLK_CON1 & ~mask) | v;
+}
+
+/* GLO: step K, every measurement from one press; a second press undoes. */
+void hw_audio_k(void)
+{
+    static const u8 inputs[5] = { CLK1_HSB, 1u, CLK1_AUDIO, 6u, 7u };
+    char *p;
+    u32 i, dac;
+
+    snap(HW_K_K, 0);
+    if (hw_aud.k_state != HW_STEP_TAKEN) {
+        if (hw_aud.h_state == HW_STEP_TAKEN) {
+            refuse(HW_K_K, "audio5: K refused: undo H first (ENV)");
+            return;
+        }
+        hw_aud.k_clk1_before = JL_CLOCK->CLK_CON1;
+        hw_aud.k_gp_before = JL_GPCNT->CON;
+        dac = hw_aud.k_clk1_before & CLK1_DAC;
+        p = put_s(step_text, "audio5: K: CLK_CON1 ");
+        p = put_hex(p, hw_aud.k_clk1_before, 8);
+        *p = 0;
+        hw_step(step_text);
+        report("K starting");
+        /* 1: the clock system's inputs 3, 1, 5, 6 and 7. */
+        for (i = 0; i < 5; i++) {
+            p = put_s(step_text, "audio5: K: input ");
+            p = put_dec(p, inputs[i]);
+            *p = 0;
+            hw_step(step_text);
+            clk1_bits(CLK1_SEL, (u32)inputs[i] << 4);
+            k_count(i, GP_CSS_INPUT);
+        }
+        /* 2: the counter's own 480 MHz input. */
+        hw_step("audio5: K: the counter's 480 MHz");
+        k_count(5, GP_CSS_480);
+        /* 3: input 5 with the DAC's clock choice 1, 2, 3, then as read. */
+        clk1_bits(CLK1_SEL, CLK1_AUDIO << 4);
+        for (i = 0; i < 4; i++) {
+            u32 d = i < 3 ? (i + 1u) << 2 : dac;
+
+            p = put_s(step_text, "audio5: K: input 5, DAC choice ");
+            p = put_dec(p, d >> 2);
+            *p = 0;
+            hw_step(step_text);
+            clk1_bits(CLK1_DAC, d);
+            k_count(6 + i, GP_CSS_INPUT);
+        }
+        hw_aud.k_state = HW_STEP_TAKEN;
+        p = put_s(step_text, "audio5: K: input 5 ");
+        p = put_dec(p, hw_aud.k_m[2][3]);
+        p = put_s(p, " usb ");
+        p = put_dec(p, hw_aud.k_m[4][3]);
+        *p = 0;
+        hw_step(step_text);
+    } else {
+        p = put_s(step_text, "audio5: K undo: CLK_CON1 to ");
+        p = put_hex(p, hw_aud.k_clk1_before, 8);
+        *p = 0;
+        hw_step(step_text);
+        JL_CLOCK->CLK_CON1 = hw_aud.k_clk1_before;
+        hw_aud.k_clk1_back = JL_CLOCK->CLK_CON1;
+        JL_GPCNT->CON = hw_aud.k_gp_before;
+        hw_aud.k_gp_back = JL_GPCNT->CON;
+        hw_aud.k_state = HW_STEP_UNDONE;
+    }
+    hw_aud.k_keys++;
+    c1_key_marks();
+    snap(HW_K_K, 1);
+    report(hw_aud.k_state == HW_STEP_TAKEN ? "K measured" : "K undone");
+}
+
+/* J's registers: ALNK0's CON1 (16 bits) and CON3 (8 bits). */
+static u32 j_get(u32 reg)
+{
+    return reg == 1u ? JL_ALNK0->CON1 : JL_ALNK0->CON3;
+}
+
+static void j_set(u32 reg, u32 v)
+{
+    if (reg == 1u)
+        JL_ALNK0->CON1 = v;
+    else
+        JL_ALNK0->CON3 = v;
+}
+
+static char *put_try(char *p, u32 reg, u32 bit)
+{
+    p = put_s(p, reg == 1u ? "CON1 b" : "CON3 b");
+    return put_dec(p, bit);
+}
+
+/* 1 if the abort key (OCT+, J's own) was pressed since the sweep began;
+ * other keys' events are read and set their LEDs, and are otherwise
+ * ignored while the sweep runs. */
+static int j_abort_pressed(void)
+{
+    struct input_event e;
+    int abort = 0;
+
+    while (input_read(&e)) {
+        if (e.control == INPUT_OCT_UP && e.kind == INPUT_PRESS)
+            abort = 1;
+        else if (e.control < INPUT_LEDS && (e.kind == INPUT_PRESS || e.kind == INPUT_RELEASE))
+            input_led(e.control, e.kind == INPUT_PRESS || hw_audio_key_lit(e.control) ? INPUT_LED_FULL : 0);
+    }
+    return abort;
+}
+
+/* One try: reg's bit set alone (every other bit as read), read back, the
+ * link watched for HW_J_WAIT_MS; 1 if it moved (CON0 bit 15 changed or
+ * source 11 counted), and the bit left set; else the register put back
+ * exactly as read and read back. Logged either way. */
+static int j_try(u32 reg, u32 bit, u32 t)
+{
+    char *p, label[16];
+    u32 start, last, irq0, flips = 0, pend = 0, moved;
+
+    hw_aud.j_reg = reg;
+    hw_aud.j_bit = bit;
+    hw_aud.j_before = j_get(reg);
+    hw_aud.j_written = hw_aud.j_before | 1u << bit;
+    p = put_s(step_text, "audio5: J: ");
+    p = put_try(p, reg, bit);
+    p = put_s(p, " ");
+    p = put_hex(p, hw_aud.j_written, 4);
+    *p = 0;
+    hw_step(step_text);
+    irq0 = sb_audio.blocks;
+    last = JL_ALNK0->CON0 & AL_HALF;
+    j_set(reg, hw_aud.j_written);
+    hw_aud.j_read = j_get(reg);
+    hw_aud.j_rb[t] = hw_aud.j_read;
+    if (!(hw_aud.j_read & 1u << bit))
+        hw_aud.j_nohold |= 1u << t;
+    start = sb_beacon.beats;
+    while (sb_beacon.beats - start < HW_J_WAIT_MS) {
+        u32 now = JL_ALNK0->CON0 & AL_HALF;
+
+        if (now != last) {
+            flips++;
+            last = now;
+        }
+        if (JL_ALNK0->CON2 & AL_PEND)
+            pend++;
+        c1_poll();
+    }
+    hw_aud.j_flips = flips;
+    hw_aud.j_pend = pend;
+    hw_aud.j_irq = sb_audio.blocks - irq0;
+    hw_aud.j_con0 = JL_ALNK0->CON0;
+    hw_aud.j_con2 = JL_ALNK0->CON2;
+    hw_aud.j_clk2 = JL_CLOCK->CLK_CON2;
+    moved = flips || hw_aud.j_irq;
+    if (!moved) {
+        j_set(reg, hw_aud.j_before);
+        hw_aud.j_back = j_get(reg);
+    } else {
+        hw_aud.j_back = hw_aud.j_read;
+    }
+    hw_aud.j_tries = t + 1u;
+    p = put_try(label, reg, bit);
+    p = put_s(p, moved ? " moved" : "");
+    *p = 0;
+    report(label);
+    return (int)moved;
+}
+
+/* OCT+: step J. A press runs the whole sweep, CON1 bits 0-15 then CON3
+ * bits 0-7, each alone and put back, in CLK_CON2's state now; it stops
+ * by itself at a try that moves the link, leaving that bit set, and a
+ * press while it runs aborts it, the try in progress put back. A press
+ * with a bit left set puts it back; any other press sweeps again. */
+void hw_audio_j(void)
+{
+    char *p;
+    u32 t;
+
+    snap(HW_K_J, 0);
+    if (hw_aud.j_state == HW_J_MOVED) {
+        p = put_s(step_text, "audio5: J undo: ");
+        p = put_try(p, hw_aud.j_reg, hw_aud.j_bit);
+        p = put_s(p, " to ");
+        p = put_hex(p, hw_aud.j_before, 4);
+        *p = 0;
+        hw_step(step_text);
+        j_set(hw_aud.j_reg, hw_aud.j_before);
+        hw_aud.j_back = j_get(hw_aud.j_reg);
+        hw_aud.j_state = HW_J_UNDONE;
+        fresh_base();
+        c1_key_marks();
+        snap(HW_K_J, 1);
+        report("J undone");
+        return;
+    }
+    hw_aud.j_sweeps++;
+    hw_aud.j_tries = 0;
+    hw_aud.j_nohold = 0;
+    for (t = 0; t < HW_J_TRIES; t++)
+        hw_aud.j_rb[t] = 0xFFFFFFFFu;
+    hw_aud.j_clk2_sweep = JL_CLOCK->CLK_CON2;
+    p = put_s(step_text, "audio5: J sweep, CLK_CON2 ");
+    p = put_hex(p, hw_aud.j_clk2_sweep, 8);
+    *p = 0;
+    hw_step(step_text);
+    report("J starting");
+    (void)j_abort_pressed();        /* the press that started it */
+    hw_aud.j_state = HW_J_DONE;
+    for (t = 0; t < HW_J_TRIES; t++) {
+        u32 reg = t < 16u ? 1u : 3u, bit = t < 16u ? t : t - 16u;
+
+        if (j_try(reg, bit, t)) {
+            hw_aud.j_state = HW_J_MOVED;
+            fresh_base();
+            break;
+        }
+        if (j_abort_pressed()) {
+            hw_aud.j_state = HW_J_ABORTED;
+            break;
+        }
+    }
+    p = put_s(step_text, hw_aud.j_state == HW_J_MOVED ? "audio5: J MOVED at " :
+                         hw_aud.j_state == HW_J_ABORTED ? "audio5: J aborted after " : "audio5: J done, last ");
+    p = put_try(p, hw_aud.j_reg, hw_aud.j_bit);
+    *p = 0;
+    hw_step(step_text);
+    c1_key_marks();
+    snap(HW_K_J, 1);
+    report(hw_aud.j_state == HW_J_MOVED ? "J moved" : hw_aud.j_state == HW_J_ABORTED ? "J aborted" : "J done");
 }
 
 /* --- The tone ------------------------------------------------------------- */
@@ -928,7 +1196,7 @@ static char *put_fps(char *p)
 #define YELLOW RGB565(31, 63, 0)
 #define DIM    RGB565(16, 32, 16)
 
-#define HW_AUD_BOX_X 186u
+#define HW_AUD_BOX_X 168u
 
 static char state_char(u32 st)
 {
@@ -966,6 +1234,8 @@ void hw_audio_line(void)
     *p++ = hw_aud.al_state == HW_AL_STOPPED ? 'S' : hw_aud.al_state == HW_AL_BACK ? 'R' : '-';
     p = put_s(p, " H");
     *p++ = state_char(hw_aud.h_state);
+    p = put_s(p, " K");
+    *p++ = state_char(hw_aud.k_state);
     *p = 0;
     gfx_fill(HW_AUD_BOX_X - 2, HW_AUD_Y, SCREEN_W - HW_AUD_BOX_X - 2, 2 * FONT_H, BLACK);
     gfx_text(HW_AUD_BOX_X, HW_AUD_Y, t, WHITE, BLACK, 1);
@@ -975,6 +1245,9 @@ void hw_audio_line(void)
     *p++ = state_char(hw_aud.b_state);
     p = put_s(p, " I");
     *p++ = state_char(hw_aud.i_state);
+    p = put_s(p, " J");
+    *p++ = hw_aud.j_state == HW_J_MOVED ? 'M' : hw_aud.j_state == HW_J_DONE ? 'D' :
+           hw_aud.j_state == HW_J_ABORTED ? 'X' : hw_aud.j_state == HW_J_UNDONE ? 'U' : '-';
     *p = 0;
     gfx_text(HW_AUD_BOX_X, HW_AUD_Y + FONT_H, t, WHITE, BLACK, 1);
     lcd_send_rows(HW_AUD_Y, 2 * FONT_H);
@@ -1030,7 +1303,7 @@ static void page_regs(u32 view)
     u32 i, n = view ? HW_AUD_MORE : HW_AUD_REGS, y = PAGE_REGS_Y;
 
     gfx_fill(0, PAGE_REGS_Y, SCREEN_W, SCREEN_H - PAGE_REGS_Y, BLACK);
-    p = put_s(t, view ? "2/5 reg  call     tone     " : "1/5 reg  call     tone     ");
+    p = put_s(t, view ? "2/6 reg  call     tone     " : "1/6 reg  call     tone     ");
     p = put_s(p, hw_aud.step_state == HW_STEP_TAKEN ? "taken" : hw_aud.step_state == HW_STEP_UNDONE ? "undone" : "no step");
     *p = 0;
     gfx_text(6, y, t, DIM, BLACK, 1);
@@ -1105,7 +1378,7 @@ static void page_core1(void)
     db = hw_aud.c1_beat[HW_C1_PRE] - hw_aud.c1_beat[HW_C1_REL];
     if (db)
         rate = div64(hw_aud.c1_count[HW_C1_PRE] - hw_aud.c1_count[HW_C1_REL], db);
-    p = put_s(t, "3/5 moved ");
+    p = put_s(t, "3/6 moved ");
     p = put_dec(p, hw_aud.c1_moved);
     p = put_s(p, " now ");
     p = put_dec(p, sb_beacon.beats);
@@ -1156,15 +1429,16 @@ static char *put_snap(char *p, const char *label, const u32 *v)
 static void page_steps(void)
 {
     static const char title[HW_K_N][16] = { "REC  bit 9 ", "SEQ  stop  ", "ARP  A     ", "SAVE B bit8 ",
-                                            "ENV  H     ", "LFO  I     " };
+                                            "ENV  H     ", "LFO  I     ", "GLO  K     ", "OCT+ J     " };
     char t[80], *p;
     u32 k, y = PAGE_REGS_Y, now[HW_SNAP];
 
     gfx_fill(0, PAGE_REGS_Y, SCREEN_W, SCREEN_H - PAGE_REGS_Y, BLACK);
-    gfx_text(6, y, "4/5 steps: before (b), after (a), now (n)", YELLOW, BLACK, 1);
+    gfx_text(6, y, "4/6 steps: before (b), after (a), now (n)", YELLOW, BLACK, 1);
     y += FONT_H;
     gfx_text(6, y, "  CON0     CLK2     irq core1", DIM, BLACK, 1);
-    for (k = 0; k < HW_K_N; k++) {
+    /* The first six steps; K's and J's are on their own view. */
+    for (k = 0; k <= HW_K_I; k++) {
         u32 st = k == HW_K_REC ? hw_aud.step_state : k == HW_K_A ? hw_aud.a_state : k == HW_K_B ? hw_aud.b_state :
                  k == HW_K_H ? hw_aud.h_state : k == HW_K_I ? hw_aud.i_state : 0;
         u32 n = k == HW_K_REC ? hw_aud.steps : k == HW_K_SEQ ? hw_aud.al_keys : k == HW_K_A ? hw_aud.a_keys :
@@ -1284,7 +1558,7 @@ static void page_hi(void)
     u32 y = PAGE_REGS_Y, w[4], i;
 
     gfx_fill(0, PAGE_REGS_Y, SCREEN_W, SCREEN_H - PAGE_REGS_Y, BLACK);
-    row_at(&y, "5/5 ENV=H FX=H again LFO=I SEL=I bit10", YELLOW);
+    row_at(&y, "5/6 ENV=H FX=H again LFO=I SEL=I bit10", YELLOW);
     p = put_s(t, "H ");
     p = put_s(p, state_word(hw_aud.h_state));
     p = put_s(p, ", presses ");
@@ -1357,6 +1631,93 @@ static void page_hi(void)
     lcd_wait();
 }
 
+/* The K and J view: the keys; each of K's measurements (CLK_CON1 as read
+ * back, both counts, the second in kHz of the 24 MHz gate); J's state,
+ * its last try (register and bit, before, written, read back, put back;
+ * bit 15's changes, pending flags and interrupts over its wait), the
+ * tries whose bit didn't hold, and CLK_CON2 when the sweep began. */
+static const char k_label[HW_KM_N][6] = { "in3", "in1", "in5", "in6", "in7", "480", "5 d1", "5 d2", "5 d3", "5 dx" };
+
+static const char *j_word(u32 st)
+{
+    return st == HW_J_DONE ? "done, none moved" : st == HW_J_MOVED ? "MOVED, bit left set" :
+           st == HW_J_ABORTED ? "aborted" : st == HW_J_UNDONE ? "undone" : "not run";
+}
+
+static void page_kj(void)
+{
+    char t[80], *p;
+    u32 y = PAGE_REGS_Y, i;
+
+    gfx_fill(0, PAGE_REGS_Y, SCREEN_W, SCREEN_H - PAGE_REGS_Y, BLACK);
+    row_at(&y, "6/6 GLO=K OCT+=J (again: undo, abort)", YELLOW);
+    p = put_s(t, "K ");
+    p = put_s(p, state_word(hw_aud.k_state));
+    p = put_s(p, ", presses ");
+    p = put_dec(p, hw_aud.k_keys);
+    p = put_s(p, ", C1 ");
+    p = put_hex(p, hw_aud.k_clk1_before, 8);
+    *p = 0;
+    row_at(&y, t, hw_aud.k_state == HW_STEP_TAKEN ? YELLOW : WHITE);
+    for (i = 0; i < HW_KM_N; i++) {
+        const u32 *m = hw_aud.k_m[i];
+
+        p = put_s(t, k_label[i]);
+        while (p < t + 5)
+            *p++ = ' ';
+        p = put_hex(p, m[0], 8);
+        *p++ = ' ';
+        p = put_dec(p, m[2]);
+        *p++ = ' ';
+        p = put_dec(p, m[3]);
+        *p++ = ' ';
+        p = put_dec(p, div64((u64)m[3] * 24000u, HW_H_GATE));
+        p = put_s(p, "k");
+        *p = 0;
+        row_at(&y, t, i == 2 ? GREEN : WHITE);
+    }
+    p = put_s(t, "J ");
+    p = put_s(p, j_word(hw_aud.j_state));
+    p = put_s(p, ", sweeps ");
+    p = put_dec(p, hw_aud.j_sweeps);
+    p = put_s(p, ", tries ");
+    p = put_dec(p, hw_aud.j_tries);
+    *p = 0;
+    row_at(&y, t, hw_aud.j_state == HW_J_MOVED ? GREEN : WHITE);
+    p = put_s(t, "last ");
+    p = put_try(p, hw_aud.j_reg, hw_aud.j_bit);
+    p = put_s(p, " ");
+    p = put_hex(p, hw_aud.j_before, 4);
+    *p++ = '>';
+    p = put_hex(p, hw_aud.j_written, 4);
+    p = put_s(p, " rb ");
+    p = put_hex(p, hw_aud.j_read, 4);
+    p = put_s(p, " bk ");
+    p = put_hex(p, hw_aud.j_back, 4);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    p = put_s(t, "b15 ");
+    p = put_dec(p, hw_aud.j_flips);
+    p = put_s(p, " pend ");
+    p = put_dec(p, hw_aud.j_pend);
+    p = put_s(p, " irq ");
+    p = put_dec(p, hw_aud.j_irq);
+    p = put_s(p, " C2 ");
+    p = put_hex(p, hw_aud.j_clk2_sweep, 8);
+    *p = 0;
+    row_at(&y, t, hw_aud.j_flips || hw_aud.j_irq ? GREEN : WHITE);
+    p = put_s(t, "didn't hold: ");
+    p = put_hex(p, hw_aud.j_nohold, 6);
+    p = put_s(p, " now CON1 ");
+    p = put_hex(p, JL_ALNK0->CON1, 4);
+    p = put_s(p, " CON3 ");
+    p = put_hex(p, JL_ALNK0->CON3, 2);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    lcd_send_rows(PAGE_REGS_Y, SCREEN_H - PAGE_REGS_Y);
+    lcd_wait();
+}
+
 static void draw_view(u32 v)
 {
     if (v < 2)
@@ -1365,8 +1726,10 @@ static void draw_view(u32 v)
         page_core1();
     else if (v == 3)
         page_steps();
-    else
+    else if (v == 4)
         page_hi();
+    else
+        page_kj();
 }
 
 static void page_views(const u8 *order, u32 n)
@@ -1426,12 +1789,20 @@ static void page_views(const u8 *order, u32 n)
     }
 }
 
-/* The first page: the first four views; HOME: all five. */
+/* The first page: the first four views; HOME: all six. */
 void hw_audio_page(void)
 {
-    static const u8 all[5] = { 0, 1, 2, 3, 4 };
+    static const u8 all[6] = { 0, 1, 2, 3, 4, 5 };
 
-    page_views(all, hw_aud.regs_read ? 5 : 4);
+    page_views(all, hw_aud.regs_read ? 6 : 4);
+}
+
+/* After K's or J's key: the K and J view, then core 1's. */
+void hw_audio_keypage_kj(void)
+{
+    static const u8 keys[2] = { 5, 2 };
+
+    page_views(keys, 2);
 }
 
 /* After H's or I's key: the H and I view, then core 1's. */
@@ -1454,7 +1825,8 @@ void hw_audio_keypage(void)
 
 /* 1 while the step a key stands for is taken: REC bit 9, SEQ ALNK0
  * stopped, ARP A, SAVE B, ENV H, FX H (it measures again), LFO I, SEL I
- * with bit 10. EDIT (a save) and every other key: 0. */
+ * with bit 10, GLO K, OCT+ J with a bit left set. EDIT (a save) and every
+ * other key: 0. */
 u32 hw_audio_key_lit(u32 control)
 {
     switch (control) {
@@ -1466,6 +1838,8 @@ u32 hw_audio_key_lit(u32 control)
     case INPUT_FX:   return hw_aud.h_state == HW_STEP_TAKEN;
     case INPUT_LFO:  return hw_aud.i_state == HW_STEP_TAKEN;
     case INPUT_SEL:  return hw_aud.i_state == HW_STEP_TAKEN && hw_aud.i_bit10;
+    case INPUT_GLO:  return hw_aud.k_state == HW_STEP_TAKEN;
+    case INPUT_OCT_UP: return hw_aud.j_state == HW_J_MOVED;
     default:         return 0;
     }
 }
@@ -1475,16 +1849,17 @@ u32 hw_audio_key_lit(u32 control)
  * pressed, still held, lit. */
 void hw_audio_leds(u32 held)
 {
-    static const u8 keys[8] = { INPUT_REC, INPUT_SEQ, INPUT_ARP, INPUT_SAVE, INPUT_ENV, INPUT_FX, INPUT_LFO, INPUT_SEL };
+    static const u8 keys[10] = { INPUT_REC, INPUT_SEQ, INPUT_ARP, INPUT_SAVE, INPUT_ENV, INPUT_FX, INPUT_LFO, INPUT_SEL,
+                                 INPUT_GLO, INPUT_OCT_UP };
     u32 i;
 
-    for (i = 0; i < 8; i++)
+    for (i = 0; i < 10; i++)
         input_led(keys[i], keys[i] == held || hw_audio_key_lit(keys[i]) ? INPUT_LED_FULL : 0);
 }
 
 #if defined(SB_HW_REPORT)
 /* The audio probe's fields for the report log, in tools/report-decode.py's
- * FIELDS[2] order after the common ones: audio1's registers and audio2's,
+ * FIELDS[3] order after the common ones: audio1's registers and audio2's,
  * read now; the counts and measures; each step's state and readbacks;
  * core 1's marks; the corex2 words now; each step's snapshots. */
 u32 hw_audio_report(u32 *w)
@@ -1585,6 +1960,37 @@ u32 hw_audio_report(u32 *w)
     i_read(w + n);
     n += 4;
     w[n++] = hw_aud.clk_depth;
+    /* Layout 3: steps K and J. */
+    w[n++] = hw_aud.k_state;
+    w[n++] = hw_aud.k_keys;
+    w[n++] = hw_aud.k_clk1_before;
+    w[n++] = hw_aud.k_gp_before;
+    w[n++] = hw_aud.k_clk1_back;
+    w[n++] = hw_aud.k_gp_back;
+    for (i = 0; i < HW_KM_N; i++)
+        for (j = 0; j < 6; j++)
+            w[n++] = hw_aud.k_m[i][j];
+    w[n++] = hw_aud.j_state;
+    w[n++] = hw_aud.j_sweeps;
+    w[n++] = hw_aud.j_tries;
+    w[n++] = hw_aud.j_reg;
+    w[n++] = hw_aud.j_bit;
+    w[n++] = hw_aud.j_before;
+    w[n++] = hw_aud.j_written;
+    w[n++] = hw_aud.j_read;
+    w[n++] = hw_aud.j_back;
+    w[n++] = hw_aud.j_flips;
+    w[n++] = hw_aud.j_pend;
+    w[n++] = hw_aud.j_irq;
+    w[n++] = hw_aud.j_con0;
+    w[n++] = hw_aud.j_con2;
+    w[n++] = hw_aud.j_clk2;
+    w[n++] = hw_aud.j_clk2_sweep;
+    w[n++] = hw_aud.j_nohold;
+    for (i = 0; i < HW_J_TRIES; i++)
+        w[n++] = hw_aud.j_rb[i];
+    w[n++] = JL_ALNK0->CON1;
+    w[n++] = JL_ALNK0->CON3;
     return n;
 }
 #endif

@@ -7,7 +7,9 @@
 
 IMAGE is a whole flash read back from a unit (1 MiB) or fwtest's flash.bin.
 The log (firmware/src/hw_report.c, SB_HW_REPORT; clean-br17-report1) is a
-ring of 32 sectors ending at 0x93FFF, of 1024-byte records. Every 4-byte
+ring of 64 sectors ending at 0x93FFF, of 2048-byte records (layout 3,
+since clean-br17-audio5); layouts 1 and 2 were 1024-byte records in 32
+sectors, and are still read. Every 4-byte
 boundary of the image is searched for a record's magic, so a record turns
 up wherever it lies. Each found is checked by its CRC-32 and printed in
 sequence order with its fields named; a failing CRC is counted only in
@@ -26,10 +28,11 @@ import sys
 import zlib
 
 MAGIC = 0x4C524253          # "SBRL" (hw_fm1.h, HW_LOG_MAGIC)
-REC = 1024                  # HW_LOG_REC
+REC = 2048                  # HW_LOG_REC, since layout 3 (audio5)
+REC_OF = {1: 1024, 2: 1024, 3: 2048}   # a record's size by its layout
 HEAD = 12                   # HW_LOG_HEAD
 LOG_END = 0x94000           # HW_LOG_END
-LOG_SECTORS = 32            # HW_LOG_SECTORS
+LOG_SECTORS = 64            # HW_LOG_SECTORS, since layout 3 (32 before)
 LOG_BASE = LOG_END - LOG_SECTORS * 4096
 SECTOR = 4096
 
@@ -83,7 +86,31 @@ def _layout2():
     return f
 
 
-FIELDS = {1: _layout1(), 2: _layout2()}
+K_LABELS = ("in3_bus", "in1_src", "in5_audio", "in6_wireless", "in7_usb", "own480", "in5_dac1", "in5_dac2",
+            "in5_dac3", "in5_dac_back")
+
+
+def _layout3():
+    """Layout 3 (since clean-br17-audio5): layout 2 with the snapshots of
+    eight steps (K and J too), then steps K and J."""
+    l2 = _layout2()
+    at = len(_layout1()) - 32
+    f = l2[:at]
+    for k in ("rec", "seq", "a", "b", "h", "i", "k", "j"):
+        for w in ("before", "after"):
+            f += ["%s_%s_%s" % (k, w, v) for v in ("CON0", "CLK_CON2", "irq", "core1")]
+    f += l2[at + 48:]
+    f += ["k_state", "k_presses", "k_clk1_before", "k_gpcnt_before", "k_clk1_back", "k_gpcnt_back"]
+    for m in K_LABELS:
+        f += ["k_%s_%s" % (m, v) for v in ("clk1", "gpcnt", "num1", "num2", "timeouts", "clk2")]
+    f += ["j_state", "j_sweeps", "j_tries", "j_reg", "j_bit", "j_before", "j_written", "j_read", "j_back",
+          "j_b15_flips", "j_pend", "j_irq", "j_con0", "j_con2", "j_clk2", "j_clk2_at_sweep", "j_didnt_hold"]
+    f += ["j_readback_CON1_b%d" % i for i in range(16)] + ["j_readback_CON3_b%d" % i for i in range(8)]
+    f += ["AL0_CON1_now", "AL0_CON3_now"]
+    return f
+
+
+FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3()}
 
 
 def derived(fields):
@@ -92,13 +119,22 @@ def derived(fields):
     the 24 MHz crystal)."""
     out = []
     gate = fields.get("h_gate_cycles")
+    if gate and fields.get("k_presses") and fields.get("k_state") == 1:
+        out.append("K: " + ", ".join("%s %.3f MHz" % (m, fields["k_%s_num2" % m] * 24.0 / gate) for m in K_LABELS))
+    if fields.get("j_sweeps"):
+        out.append("J: %s; last try %s bit %d: wrote %04X, read back %04X, put back %04X; b15 %d, irq %d; CLK_CON2 at"
+                   " the sweep %08X" % (("not run", "done, none moved", "MOVED, bit left set", "aborted", "undone")
+                                        [min(fields["j_state"], 4)], "CON1" if fields["j_reg"] == 1 else "CON3",
+                                        fields["j_bit"], fields["j_written"], fields["j_read"], fields["j_back"],
+                                        fields["j_b15_flips"], fields["j_irq"], fields["j_clk2_at_sweep"]))
     if gate and fields.get("h_presses"):
         out.append("H: bus %.4f x the gate (7.5 expected); audio clock %.4f MHz (about 11.29, or 12.31 with bit 8, if it is the"
                    " links' clock)" % (fields["h_bus_num2"] / gate, fields["h_audio_num2"] * 24.0 / gate))
     return out
 
 # Shown in decimal; every other field in hex.
-DECIMAL = {"h_state", "h_presses", "h_measures", "h_gate_cycles", "h_bus_num1", "h_bus_num2", "h_bus_timeouts",
+DECIMAL = {"k_state", "k_presses", "j_state", "j_sweeps", "j_tries", "j_reg", "j_bit", "j_b15_flips", "j_pend", "j_irq",
+           "h_state", "h_presses", "h_measures", "h_gate_cycles", "h_bus_num1", "h_bus_num2", "h_bus_timeouts",
            "h_audio_num1", "h_audio_num2", "h_audio_timeouts", "GPCNT_NUM_now", "i_state", "i_presses", "i_bit10",
            "i_b15_flips", "i_pend", "i_poll_beats", "i_halves_per_s_x10", "clk2_steps_taken", "core1_count", "store_count", "store_put", "log_found_at_start", "log_fails", "irq", "alt",
            "b15_flips", "pend", "fps_x10", "halves", "master", "gain", "tone_on", "storm_beat",
@@ -110,7 +146,8 @@ STATES = {"rec_state": ("not taken", "taken", "undone"), "a_state": ("not taken"
 
 
 def _decimal(name):
-    return name in DECIMAL or name.startswith(("mark_", "flash_status")) or name.endswith(("_irq", "_core1"))
+    return name in DECIMAL or name.startswith(("mark_", "flash_status")) or name.endswith(("_irq", "_core1", "_num1",
+                                                                                            "_num2", "_timeouts"))
 
 
 def _text(b):
@@ -121,18 +158,21 @@ def records(image):
     """Every record whose magic and CRC hold, sorted by sequence: dicts
     with offset, seq, beat, build, label, layout, fields (name to value)."""
     found, bad = [], []
-    for off in range(0, len(image) - REC + 1, 4):
+    for off in range(0, len(image) - 1024 + 1, 4):
         if struct.unpack_from("<I", image, off)[0] != MAGIC:
             continue
-        r = image[off:off + REC]
-        crc = struct.unpack_from("<I", r, REC - 4)[0]
-        if zlib.crc32(r[:REC - 4]) & 0xFFFFFFFF != crc:
+        size = REC_OF.get(struct.unpack_from("<I", image, off + 4)[0] & 0xFFFF, REC)
+        r = image[off:off + size]
+        if len(r) < size:
+            continue
+        crc = struct.unpack_from("<I", r, size - 4)[0]
+        if zlib.crc32(r[:size - 4]) & 0xFFFFFFFF != crc:
             # Outside the region the magic is most likely the firmware's own
             # constant in its image: only the region's are counted.
             if LOG_BASE <= off < LOG_END:
                 bad.append(off)
             continue
-        w = struct.unpack("<%dI" % (REC // 4), r)
+        w = struct.unpack("<%dI" % (size // 4), r)
         layout, n = w[1] & 0xFFFF, w[1] >> 16
         names = FIELDS.get(layout, [])
         vals = w[HEAD:HEAD + n]

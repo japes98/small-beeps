@@ -3567,6 +3567,25 @@ SR-3 wrote only its barrier-log row.*
   tools/seams_suite.py's LED checks, docs/HARNESS.md's `leds.csv`).
 - Disk: about 5 GB free.
 
+### Session clean-br17-audio5 (BR-17: steps K and J)
+- Date: 2026-11-21 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.329, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-leds1's, continued. Saved unedited: the spec side's prompt as
+  docs/prompts/clean-br17-audio5.md and the owner's message with the
+  change to J as docs/prompts/clean-br17-audio5-owner.md.
+- Start: #220 (which carried #221, leds1) found merged; the branch made
+  from main at `19d26448`, its clean-side blobs fetched alone. Nothing to
+  archive (the last clean session is this one, live).
+- Reads: this side's own code; HARDWARE-SPEC HW-43 to HW-45, HW-53,
+  HW-140, HW-145, HW-146, HW-151, HW-153, HW-154 and Q-9's notes (read
+  from origin/main before the merge).
+- Disk: about 4 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
