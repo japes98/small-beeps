@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range da7547f9cfb2dddf3b2189c9ab1d22e42bc8384d..a8bda4dc362522e0f7e0997b1be3e1f5da608375
+OK     545af6f9a096 sessions: the owner's rulings on H and I saved (spec-audio4-rulings)
+EXEMPT a8bda4dc3625 (merge) Merge pull request #216 from japes98/spec/audio4-rulings
+2 commit(s) checked: PASS
+
+exit status 0
