@@ -340,6 +340,14 @@ static void hw_serve(void)
         if (e.control == INPUT_HOME && e.kind == INPUT_PRESS)
             hw_finder();
 #endif
+#if defined(SB_HW_REPORT)
+        /* report1: EDIT saves a report (hw_report.c); "saved #n" on the
+         * step row. */
+        if (e.control == INPUT_EDIT && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_report_save("save key");
+            continue;
+        }
+#endif
 #if defined(SB_HW_AUDIO1)
         /* audio1 (hw_audio.c): PLAY stops and starts the tone; HOME shows
          * the audio page again, then the test screen. */
@@ -643,6 +651,10 @@ int main(void)
     /* start3's rows on the test screen (hw_start3.c). */
     lcd_wait();
     hw_rows_all();
+#if defined(SB_HW_REPORT)
+    /* report1: the end of boot, the test screen up (hw_report.c). */
+    hw_report_save("boot");
+#endif
 #if defined(SB_HW_AUDIO1)
     /* audio1: the tone, once the test screen is up; its page, then the
      * test screen again (hw_audio.c). */

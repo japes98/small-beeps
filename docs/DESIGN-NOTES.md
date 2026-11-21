@@ -4832,3 +4832,72 @@ file. The owner allowed A and B and nothing else.
   440 Hz and 44 117.6 frames a second (`CLK_CON2` has no effect there,
   HW-53, and A restarts the link as HW-45 says). Case audio3 checks that
   ARP is refused without bit 9.
+
+### 2026-11-21 clean-br17-report1: a report log in the flash (BR-17, R-HW-1)
+The owner's request (docs/prompts/clean-br17-report1.md): photos are too
+slow and error-prone, so after a run the owner reads the whole 1 MiB flash
+back in download mode and it is decoded. With the owner's unit
+observation (docs/prompts/clean-br17-report1-unit.md): the store's record
+at 0xFC000 reads back as plain bytes, and the sectors outside the image and
+the store hold older data.
+
+- **Where.** A ring of 32 sectors, 0x74000 to 0x93FFF, the end of the
+  app area (HW-80). The repo's rule for a region of the firmware's own
+  (tools/store-region.pl, R-STORE-12, from HW-80 and HW-110) allows the
+  app area after the image; an install writes only its image's range
+  (HW-110) and a start writes nothing (HW-112), so installing a new build
+  never touches it, and it is out of the store, the boot area, the stock
+  layout's regions past the app area and the last sector. The request
+  says "a flash sector"; one 4 KiB sector holds four of these records and
+  a wrap would erase them all, while one audio3-style run makes some 40,
+  so the log takes 32 sectors (128 records), as the reading taken. Before
+  each write the image's end is checked to be at least a sector below
+  the ring. hw_fm1.h's HW_LOG_* is the one definition.
+- **Never blank.** Each sector is erased, and read back as erased (the
+  store's erase), before its first record unless all of it already reads
+  erased; a record whose slot isn't erased moves to the next sector's
+  start. So the first run on the unit erases the ring's sectors one at a
+  time as it reaches them, and the older data past them stays.
+- **A record** is 1024 bytes, little-endian words: the magic "SBRL", the
+  layout (1) and the field count, a sequence number, the beat, the
+  build's identity (16 bytes: the package's version, "0.10.0-hw3k"), a
+  label (16 bytes), the fields, zeros, and the CRC-32 (the store's) of
+  everything before. Layout 1's 155 fields: core 1's count, `C1_CON`, the
+  store's counter and result, the window's `CON`, the flash's ID and
+  status; then, in the audio build, audio1's 22 registers and audio2's 13
+  read at the record, the counts and frames a second, each step's state,
+  presses and readbacks, the refusals, core 1's marks, the corex2 words
+  and each step's snapshots. A new field goes at the end with a new
+  layout number; the decoder names fields by layout.
+- **The ring.** At a run's first record every slot is read; the next
+  record follows the newest valid one by sequence, or starts at slot 0
+  with sequence 1. A slot written to, even if its read-back failed, is
+  never reused before the ring comes round, and its number isn't either.
+- **When.** At the end of boot (the test screen up), at each page's
+  start (after its settle, the first time), after each step key's write
+  or refusal (REC, SEQ, ARP, SAVE, labelled with what happened), and on
+  EDIT ("save key"), which was free. Each write takes the flash from the
+  code window and gives it back as the store's counter does, names itself
+  on the step row first ("report: writing #n"), then says "saved #n" or
+  what failed (no flash, image too long, erase, program, verify). Without
+  the round trip there is no flash access, and the record is refused.
+  The take and give-back has run only at boot on a unit before; now it
+  runs with core 1 running and the tone on.
+- **The decoder** (tools/report_decode.py, Python 3, standard library):
+  searches every 4-byte boundary of the image for the magic, so a record
+  outside the ring still turns up, checks each CRC, and prints the records
+  by sequence with their fields named (states in words, counts in
+  decimal, registers in hex; fields 0 in every record left out unless
+  --all; --json for tools). With no valid record it says so, and whether
+  the ring is erased, holds other bytes, or holds the magic with failing
+  CRCs. A failing CRC outside the ring isn't counted: the magic is also a
+  constant in the firmware's own image.
+- **fwtest** (case report1): from a chip whose ring holds older data, the
+  nine records of boot, the pages, REC, ARP, ARP's undo and EDIT, numbered
+  1 to 9 in the first slots, the third sector's rest erased and the
+  sectors past it untouched; the last record's fields match the probe's
+  RAM; a second run numbers on (10, 11); a full ring of valid records
+  loses its oldest sector to the next record and keeps the rest.
+- **The candidate** is audio3's build with the log (`SB_HW_REPORT`), so
+  its run repeats audio3's and compares with the photos. Every hardware
+  candidate from now on is built with it.

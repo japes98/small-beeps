@@ -286,6 +286,24 @@ static void flash_give(u32 irq_on)
         __asm__ volatile("sti" ::: "memory");
 }
 
+#if defined(SB_HW_REPORT)
+/* The report log's take and give-back (hw_report.c): the same as the
+ * store's counter's, interrupts on after; refused (-1) unless the round
+ * trip came back. */
+int hw_flash_take(void)
+{
+    if (!hw3.back)
+        return -1;
+    flash_take();
+    return 0;
+}
+
+void hw_flash_give(void)
+{
+    flash_give(1);
+}
+#endif
+
 /* (c) step 1, before interrupts are on: the window's registers as
  * m-bootloader left them, shown before anything is changed; then, if its
  * CON reads back, the read-only round trip with its two LEDs. */

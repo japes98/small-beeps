@@ -210,12 +210,25 @@ static void snap(u32 k, u32 when)
     v[3] = hw_core1_count;
 }
 
+/* A record in the report log (hw_report.c, SB_HW_REPORT), labelled. */
+static void report(const char *label)
+{
+#if defined(SB_HW_REPORT)
+    hw_report_save(label);
+#else
+    (void)label;
+#endif
+}
+
 /* A step's key refused: said on the step row, counted, nothing written. */
 static void refuse(u32 k, const char *why)
 {
+    static const char label[HW_K_N][16] = { "REC refused", "SEQ refused", "A refused", "B refused" };
+
     hw_step(why);
     hw_aud.refused++;
     snap(k, 1);
+    report(label[k]);
 }
 
 /* After a step that may start or change the link: a fresh base for the
@@ -272,6 +285,7 @@ void hw_audio_step(void)
     snap(HW_K_REC, 1);
     read_regs(hw_aud.regs_step);
     read_more(hw_aud.more[2]);
+    report(hw_aud.step_state == HW_STEP_TAKEN ? "REC taken" : "REC undone");
 }
 
 /* --- audio3's ALNK0 stop (HW-43; the owner's approval) -------------------- */
@@ -318,6 +332,7 @@ void hw_audio_alnk(void)
     hw_aud.al_keys++;
     c1_key_marks();
     snap(HW_K_SEQ, 1);
+    report(hw_aud.al_state == HW_AL_STOPPED ? "SEQ stopped" : "SEQ put back");
 }
 
 /* --- audio3's steps A and B (HW-45, HW-145, HW-148; the owner's rulings) - */
@@ -372,6 +387,7 @@ void hw_audio_a(void)
     fresh_base();
     c1_key_marks();
     snap(HW_K_A, 1);
+    report(hw_aud.a_state == HW_STEP_TAKEN ? "A taken" : "A undone");
 }
 
 /* SAVE: step B. With bit 9 set, CLK_CON2 read and written with bit 8
@@ -416,6 +432,7 @@ void hw_audio_b(void)
     fresh_base();
     c1_key_marks();
     snap(HW_K_B, 1);
+    report(hw_aud.b_state == HW_STEP_TAKEN ? "B taken" : "B undone");
 }
 
 /* --- The tone ------------------------------------------------------------- */
@@ -938,6 +955,7 @@ static void page_views(const u8 *order, u32 n)
     hw_c1_mark(HW_C1_NOW);
     read_x2(hw_aud.x2[0]);
     read_x2(hw_aud.x2[1]);
+    report("page");
     lcd_wait();
     gfx_fill(0, 0, SCREEN_W, SCREEN_H, BLACK);
     draw_view(order[0]);
@@ -992,5 +1010,69 @@ void hw_audio_keypage(void)
 
     page_views(keys, 2);
 }
+
+#if defined(SB_HW_REPORT)
+/* The audio probe's fields for the report log, in tools/report-decode.py's
+ * FIELDS[1] order after the common ones: audio1's registers and audio2's,
+ * read now; the counts and measures; each step's state and readbacks;
+ * core 1's marks; the corex2 words now; each step's snapshots. */
+u32 hw_audio_report(u32 *w)
+{
+    u32 n = 0, i, j, k;
+
+    measure();
+    read_regs(w + n);
+    n += HW_AUD_REGS;
+    read_more(w + n);
+    n += HW_AUD_MORE;
+    w[n++] = sb_audio.blocks;
+    w[n++] = sb_audio.underruns;
+    w[n++] = hw_aud.flips;
+    w[n++] = hw_aud.pend;
+    w[n++] = hw_aud.fps10;
+    w[n++] = hw_aud.halves;
+    w[n++] = hw_aud.master;
+    w[n++] = hw_aud.gain;
+    w[n++] = hw_aud.tone_on;
+    w[n++] = hw_aud.storm;
+    w[n++] = hw_aud.started;
+    w[n++] = hw_aud.step_state;
+    w[n++] = hw_aud.steps;
+    w[n++] = hw_aud.clk_before;
+    w[n++] = hw_aud.clk_set;
+    w[n++] = hw_aud.clk_back;
+    w[n++] = hw_aud.al_state;
+    w[n++] = hw_aud.al_keys;
+    w[n++] = hw_aud.al_before;
+    w[n++] = hw_aud.al_stop;
+    w[n++] = hw_aud.al_back;
+    w[n++] = hw_aud.al_blocks_stop;
+    w[n++] = hw_aud.al_blocks_back;
+    w[n++] = hw_aud.a_state;
+    w[n++] = hw_aud.a_keys;
+    w[n++] = hw_aud.a_before;
+    w[n++] = hw_aud.a_clr;
+    w[n++] = hw_aud.a_set;
+    w[n++] = hw_aud.a_back;
+    w[n++] = hw_aud.b_state;
+    w[n++] = hw_aud.b_keys;
+    w[n++] = hw_aud.b_before;
+    w[n++] = hw_aud.b_set;
+    w[n++] = hw_aud.b_back;
+    w[n++] = hw_aud.refused;
+    w[n++] = hw_aud.c1_moved;
+    for (i = 0; i < HW_C1_MARKS; i++)
+        w[n++] = hw_aud.c1_beat[i];
+    for (i = 0; i < HW_C1_MARKS; i++)
+        w[n++] = hw_aud.c1_count[i];
+    read_x2(w + n);
+    n += 16;
+    for (k = 0; k < HW_K_N; k++)
+        for (j = 0; j < 2; j++)
+            for (i = 0; i < HW_SNAP; i++)
+                w[n++] = hw_aud.snap[k][j][i];
+    return n;
+}
+#endif
 
 #endif

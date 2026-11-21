@@ -112,6 +112,40 @@ void hw_step(const char *text);
 void hw_hold(void);
 void hw_watch(u32 ms);
 void hw_rows_start(void);
+#if defined(SB_HW_REPORT)
+/* The report log (hw_report.c, clean-br17-report1): fixed records of
+ * HW_LOG_REC bytes in a ring of HW_LOG_SECTORS sectors ending at the app
+ * area's end, 0x93FFF (HW-80), past the image, so an install never writes
+ * it (HW-110) and a start never does (HW-112): the one definition of where
+ * it is. Each sector is erased before its first record (the unit's flash
+ * there holds older data). */
+#define HW_LOG_SECTORS 32u
+#define HW_LOG_END     0x94000u
+#define HW_LOG_BASE    (HW_LOG_END - HW_LOG_SECTORS * 4096u)
+#define HW_LOG_REC     1024u
+#define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
+#define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
+#define HW_LOG_LAYOUT  1u                   /* tools/report-decode.py's FIELDS[1] */
+#define HW_LOG_HEAD    12u                  /* header words before the fields */
+#define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
+/* The build's identity in each record: the package's version, which the
+ * candidate's pack must match (tools/report-decode.py prints it). */
+#define HW_BUILD_ID    "0.10.0-hw3k"
+struct hw_report {
+    u32 scanned;                /* the ring read once */
+    u32 found;                  /* valid records found then */
+    u32 slot, seq;              /* where and with what number the next record goes */
+    u32 saved, fails;           /* records written and verified; writes that failed */
+    u32 last_err;               /* 1 no flash, 2 image too long, 3 erase, 4 program, 5 verify */
+};
+extern struct hw_report hw_rep;
+int hw_flash_take(void);
+void hw_flash_give(void);
+void hw_report_save(const char *label);
+#if defined(SB_HW_AUDIO1)
+u32 hw_audio_report(u32 *w);
+#endif
+#endif
 #if defined(SB_HW_FINDER)
 void hw_finder(void) __attribute__((noreturn));
 #endif

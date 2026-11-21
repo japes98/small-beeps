@@ -253,6 +253,15 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   write, on the page), whose beats run in order; the page reaches its
   core 1 view; ARP without bit 9 is refused, nothing written; nothing
   unmodelled but the window's, corex2's and DAC_CON.
+- report1 (BR-17, clean-br17-report1): the report log, SB_HW_REPORT with
+  audio1's build. From a chip whose log region holds older data (as the
+  owner's unit does): the records of boot, each page, REC, ARP and its
+  undo and the save key (EDIT), numbered 1 on in consecutive slots, each
+  sector erased before its first record and the rest left as they were;
+  tools/report_decode.py reads them back, and the last record's fields
+  match the probe's state in RAM. A second run from that chip numbers on
+  after the newest; a run from a full ring erases the oldest sector and
+  keeps the rest.
 - hw (BR-17, Phase B): the FM-1 hardware build, SB_HW_FM1 (R-HW-1). In
   fwtest, where its one timer, TIMER0, counts 24 MHz rather than the
   chip's 60 MHz (HW-119), so its beats are 2.5 times slow: the screen goes
@@ -281,6 +290,7 @@ import re
 import shutil
 import struct
 import subprocess
+import zlib
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -2034,6 +2044,132 @@ def case_audio3(a, work, log):
     return problems
 
 
+def report_decoder():
+    spec = importlib.util.spec_from_file_location("report_decode", os.path.join(ROOT, "tools", "report_decode.py"))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+HW_EDIT = 6           # fwtest's key of EDIT: save a report
+REP_FIELDS = ("scanned", "found", "slot", "seq", "saved", "fails", "last_err")
+
+
+def case_report1(a, work, log):
+    """report1 (SB_HW_REPORT, clean-br17-report1): the report log in
+    audio1's build. A chip whose log region holds older data gets the
+    records of boot, each page, REC, ARP, ARP's undo and EDIT's save,
+    numbered 1 on in consecutive slots from the region's start, each
+    sector erased before its first record and the rest untouched; the
+    decoder reads them back, and the last record matches the probe's state
+    in RAM. From that chip a second run numbers on; from a full ring a run
+    erases the oldest sector and keeps the rest."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_AUDIO1", "--define", "SB_HW_REPORT")
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    h, hr = sy["hw_aud"], sy["hw_rep"]
+    with open(os.path.join(b, "app.bin"), "rb") as f:
+        if b"0.10.0-hw3k" not in f.read():
+            problems.append("report1: the build's identity isn't in app.bin")
+
+    def run(name, seed, ms, keys):
+        flash = os.path.join(work, name + "-seed.bin")
+        with open(flash, "wb") as f:
+            f.write(seed)
+        script = os.path.join(work, name + ".script")
+        with open(script, "w") as f:
+            for t, k in keys:
+                f.write("%d key %d down\n%d key %d up\n" % (t, k, t + 100, k))
+            f.write("%d pot 900\n" % (ms - 10))
+        out = os.path.join(work, name)
+        r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", str(ms), "--flash", os.path.relpath(flash, ROOT),
+                   "--flash-out", "--script", os.path.relpath(script, ROOT),
+                   "--ram", "0x%08x:%d@end" % (h, AUD3_LEN), "--ram", "0x%08x:%d@end" % (hr, 4 * len(REP_FIELDS)))
+        if r["run"]["outcome"] != "completed":
+            problems.append("report1 %s: %s (%s)" % (name, r["run"]["outcome"], r["run"].get("detail")))
+        odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"})
+        if odd:
+            problems.append("report1 %s: unmodelled accesses besides the window's, corex2's and DAC_CON: %s"
+                            % (name, odd[:8]))
+        with open(os.path.join(out, "flash.bin"), "rb") as f:
+            chip = f.read()
+        rep = dict(zip(REP_FIELDS, struct.unpack("<%dI" % len(REP_FIELDS), ram(out, hr, 4 * len(REP_FIELDS)))))
+        return chip, rep, ram(out, h, AUD3_LEN)
+
+    # The unit's case: the log region holds older data, never 0xFF.
+    seed = bytearray(b"\xff" * 0x100000)
+    for i in range(rd.LOG_BASE, rd.LOG_END):
+        seed[i] = (i * 7 + 3) & 0x7F
+    keys = ((9000, HW_REC), (11500, HW_ARP), (14000, HW_ARP), (16500, HW_EDIT))
+    chip, rep, data = run("first", bytes(seed), 18000, keys)
+    rs, bad = rd.records(chip)
+    labels = [r["label"] for r in rs]
+    want = ["boot", "page", "REC taken", "page", "A taken", "page", "A undone", "page", "save key"]
+    if labels != want or [r["seq"] for r in rs] != list(range(1, 10)) or bad \
+            or [r["offset"] for r in rs] != [rd.LOG_BASE + rd.REC * i for i in range(9)]:
+        problems.append("report1 first: records %s (%s, numbered 1 to 9 in the first slots), %d with a bad CRC"
+                        % ([(r["seq"], r["label"], hex(r["offset"])) for r in rs], want, len(bad)))
+    if (rep["saved"], rep["fails"], rep["found"]) != (9, 0, 0):
+        problems.append("report1 first: saved %d, failed %d, found at the start %d (9, 0, 0)"
+                        % (rep["saved"], rep["fails"], rep["found"]))
+    if any(not r["known"] or r["build"] != "0.10.0-hw3k" for r in rs):
+        problems.append("report1 first: a record of an unknown layout or another build: %s"
+                        % [(r["layout"], r["count"], r["build"]) for r in rs])
+    used = 3 * 4096       # 9 records of 1 KiB: three sectors, the rest as they were
+    if chip[rd.LOG_BASE + used:rd.LOG_END] != bytes(seed[rd.LOG_BASE + used:rd.LOG_END]) \
+            or chip[rd.LOG_BASE + 9 * rd.REC:rd.LOG_BASE + used] != b"\xff" * (used - 9 * rd.REC):
+        problems.append("report1 first: the sectors past the records' changed, or the rest of the third isn't"
+                        " erased")
+    if rs:
+        last = rs[-1]["fields"]
+        ab = aud_ab(data)
+        e = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), data, 8 * AUD_REGS)))
+        st = dict(zip(AUD_STEP_FIELDS, struct.unpack_from("<5I", data, AUD_LEN + 4 * (3 * AUD_MORE + AUD_REGS))))
+        got = (last["rec_state"], last["rec_presses"], last["rec_clk_set"], last["a_state"], last["a_presses"],
+               last["a_con0_back"], last["master"], last["CLK_CON2"] & 0x200)
+        exp = (st["step_state"], st["steps"], st["clk_set"], ab["a_state"], ab["a_keys"], ab["a_back"], e["master"],
+               0x200)
+        if got != exp or not 0 < last["core1_count"] or last["log_found_at_start"] != 0:
+            problems.append("report1 first: the last record %s, RAM %s (rec, A, MASTER, bit 9), core 1 %d"
+                            % (got, exp, last["core1_count"]))
+    # A second run from that chip: numbered on after the newest, next slots.
+    chip2, rep2, _ = run("second", chip, 8000, ())
+    rs2, _ = rd.records(chip2)
+    new = [r for r in rs2 if r["seq"] > 9]
+    if [(r["seq"], r["label"], r["offset"]) for r in new] != [(10, "boot", rd.LOG_BASE + 9 * rd.REC),
+                                                             (11, "page", rd.LOG_BASE + 10 * rd.REC)] \
+            or len(rs2) != 11 or rep2["found"] != 9:
+        problems.append("report1 second: new records %s, %d in all, %d found at the start (10 boot and 11 page"
+                        " after the first run's 9)" % ([(r["seq"], r["label"], hex(r["offset"])) for r in new],
+                                                       len(rs2), rep2["found"]))
+    # A full ring: the next record goes in slot 0, its sector erased.
+    full = bytearray(b"\xff" * 0x100000)
+    slots = (rd.LOG_END - rd.LOG_BASE) // rd.REC
+    for i in range(slots):
+        w = [0] * (rd.REC // 4)
+        w[0], w[1], w[2], w[3] = rd.MAGIC, 1, 1000 + i, i
+        rec = bytearray(struct.pack("<%dI" % (rd.REC // 4), *w))
+        rec[32:35] = b"old"
+        struct.pack_into("<I", rec, rd.REC - 4, zlib.crc32(bytes(rec[:rd.REC - 4])) & 0xFFFFFFFF)
+        full[rd.LOG_BASE + rd.REC * i:rd.LOG_BASE + rd.REC * (i + 1)] = rec
+    chip3, rep3, _ = run("wrap", bytes(full), 8000, ())
+    rs3, _ = rd.records(chip3)
+    seqs = [r["seq"] for r in rs3]
+    if seqs != list(range(1004, 1000 + slots)) + [1000 + slots, 1001 + slots] \
+            or rs3[-2]["offset"] != rd.LOG_BASE or rep3["found"] != slots:
+        problems.append("report1 wrap: sequences %s..%s (%d records), the first new at %s (1004 to %d, then two"
+                        " new from slot 0)" % (seqs[:3], seqs[-3:], len(seqs), hex(rs3[-2]["offset"]) if len(rs3) > 1
+                                               else None, 999 + slots))
+    print("report1: from older data, %d records (%s) decoded, the sectors past them untouched; a second run"
+          " numbered on (%s); from a full ring the oldest sector erased, %d records kept"
+          % (len(rs), ", ".join(labels), [r["seq"] for r in new], len(rs3)))
+    return problems
+
+
 def read_bytes(path):
     with open(path, "rb") as f:
         return f.read()
@@ -2062,6 +2198,7 @@ CASES = [
     ("audio1", case_audio1),
     ("audio2", case_audio2),
     ("audio3", case_audio3),
+    ("report1", case_report1),
 ]
 
 
