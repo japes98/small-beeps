@@ -265,6 +265,18 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   read 0: the counter's gates time out, ALNK1 doesn't play), which the case
   prints; if a later fwtest plays ALNK1, its halves a second must fit
   44 117.6 frames.
+- audio5 (BR-17, clean-br17-audio5): report1's build with steps K and J:
+  GLO's K measures the clock system's inputs 3, 1, 5, 6 and 7, the
+  counter's 480 MHz and input 5 with the DAC's clock choice 1, 2, 3 and
+  as read (CLK_CON1 bits 4-6 and 2-3 alone), and its undo puts CLK_CON1
+  and the counter back; with ALNK0 stopped (SEQ) OCT+'s J sweeps ALNK0's
+  CON1 bits 0-15 and CON3 bits 0-7, each alone, put back and logged; a
+  second sweep is aborted by a press; with ALNK0 running again the sweep
+  stops at its first try, which moves the link, and a press puts it
+  back (in fwtest that bit sets off a burst of source 11, and the guard
+  stops the output); the tone plays at 440 Hz and 44 117.6 frames a
+  second after the sweeps, before that try. Whether fwtest stores CON1
+  and CON3 is printed.
 - report1 (BR-17, clean-br17-report1): the report log, SB_HW_REPORT with
   audio1's build. From a chip whose log region holds older data (as the
   owner's unit does): the records of boot, each page, REC, ARP and its
@@ -2028,8 +2040,9 @@ def case_audio3(a, work, log):
     counts = list(struct.unpack_from("<%dI" % AUD3_C1, data, o + 4 * AUD3_C1))
     st = dict(zip(AUD3_FIELDS, struct.unpack_from("<%dI" % len(AUD3_FIELDS), data, o + 8 * AUD3_C1)))
     if (st["al_state"], st["al_keys"]) != (2, 2) or not st["al_before"] & 0x800 \
-            or st["al_stop"] != st["al_before"] & ~0x800 or st["al_back"] != st["al_before"]:
-        problems.append("audio3: ALNK0 %s (stopped by bit 11 alone, then put back exactly as read)" % st)
+            or st["al_stop"] & ~0x8000 != st["al_before"] & ~0x8800 or (st["al_back"] ^ st["al_before"]) & ~0x8000:
+        problems.append("audio3: ALNK0 %s (stopped by bit 11 alone, then put back exactly as read, bit 15, the half"
+                        " playing, aside)" % st)
     if st["al_blocks_back"] - st["al_blocks_stop"] > 1 or e["n1"] < st["al_blocks_back"] + 100:
         problems.append("audio3: halves %d at the stop, %d at the restart, %d at the end (none while stopped, then"
                         " on again)" % (st["al_blocks_stop"], st["al_blocks_back"], e["n1"]))
@@ -2088,7 +2101,7 @@ def case_report1(a, work, log):
     sy = fws.elf_symbols(os.path.join(b, "app.elf"))
     h, hr = sy["hw_aud"], sy["hw_rep"]
     with open(os.path.join(b, "app.bin"), "rb") as f:
-        if b"0.10.0-hw3l" not in f.read():
+        if b"0.10.0-hw3n" not in f.read():
             problems.append("report1: the build's identity isn't in app.bin")
 
     def run(name, seed, ms, keys):
@@ -2133,10 +2146,10 @@ def case_report1(a, work, log):
     if (rep["saved"], rep["fails"], rep["found"]) != (9, 0, 0):
         problems.append("report1 first: saved %d, failed %d, found at the start %d (9, 0, 0)"
                         % (rep["saved"], rep["fails"], rep["found"]))
-    if any(not r["known"] or r["build"] != "0.10.0-hw3l" for r in rs):
+    if any(not r["known"] or r["build"] != "0.10.0-hw3n" for r in rs):
         problems.append("report1 first: a record of an unknown layout or another build: %s"
                         % [(r["layout"], r["count"], r["build"]) for r in rs])
-    used = 3 * 4096       # 9 records of 1 KiB: three sectors, the rest as they were
+    used = (9 * rd.REC + 4095) // 4096 * 4096    # the sectors 9 records take; the rest as they were
     if chip[rd.LOG_BASE + used:rd.LOG_END] != bytes(seed[rd.LOG_BASE + used:rd.LOG_END]) \
             or chip[rd.LOG_BASE + 9 * rd.REC:rd.LOG_BASE + used] != b"\xff" * (used - 9 * rd.REC):
         problems.append("report1 first: the sectors past the records' changed, or the rest of the third isn't"
@@ -2168,7 +2181,7 @@ def case_report1(a, work, log):
     slots = (rd.LOG_END - rd.LOG_BASE) // rd.REC
     for i in range(slots):
         w = [0] * (rd.REC // 4)
-        w[0], w[1], w[2], w[3] = rd.MAGIC, 1, 1000 + i, i
+        w[0], w[1], w[2], w[3] = rd.MAGIC, 3, 1000 + i, i
         rec = bytearray(struct.pack("<%dI" % (rd.REC // 4), *w))
         rec[32:35] = b"old"
         struct.pack_into("<I", rec, rd.REC - 4, zlib.crc32(bytes(rec[:rd.REC - 4])) & 0xFFFFFFFF)
@@ -2176,18 +2189,20 @@ def case_report1(a, work, log):
     chip3, rep3, _ = run("wrap", bytes(full), 8000, ())
     rs3, _ = rd.records(chip3)
     seqs = [r["seq"] for r in rs3]
-    if seqs != list(range(1004, 1000 + slots)) + [1000 + slots, 1001 + slots] \
+    first = 1000 + 4096 // rd.REC     # the oldest sector's records go
+    if seqs != list(range(first, 1000 + slots)) + [1000 + slots, 1001 + slots] \
             or rs3[-2]["offset"] != rd.LOG_BASE or rep3["found"] != slots:
-        problems.append("report1 wrap: sequences %s..%s (%d records), the first new at %s (1004 to %d, then two"
+        problems.append("report1 wrap: sequences %s..%s (%d records), the first new at %s (%d to %d, then two"
                         " new from slot 0)" % (seqs[:3], seqs[-3:], len(seqs), hex(rs3[-2]["offset"]) if len(rs3) > 1
-                                               else None, 999 + slots))
+                                               else None, first, 999 + slots))
     print("report1: from older data, %d records (%s) decoded, the sectors past them untouched; a second run"
           " numbered on (%s); from a full ring the oldest sector erased, %d records kept"
           % (len(rs), ", ".join(labels), [r["seq"] for r in new], len(rs3)))
     return problems
 
 
-AUD_HI_AT = AUD_AB_AT + 4 * (len(AUD_AB_FIELDS) + 6 * 2 * 4)
+AUD_STEPS = 8         # hw_fm1.h, HW_K_N: the steps' snapshots (6 before audio5)
+AUD_HI_AT = AUD_AB_AT + 4 * (len(AUD_AB_FIELDS) + AUD_STEPS * 2 * 4)
 AUD_H_FIELDS = ("h_state", "h_keys", "h_measures", "clk1_before", "clk1_check", "clk1_audio", "clk1_back",
                 "gp_before", "gp_check", "gp_audio", "gp_back", "check0", "check1", "audio0", "audio1", "check_to",
                 "audio_to", "check_clk2", "audio_clk2")
@@ -2273,7 +2288,7 @@ def case_audio4(a, work, log):
     for lab in ("H taken", "REC taken", "H measured", "I taken", "I bit 10", "REC refused", "I undone", "REC undone",
                 "H undone"):
         want += [lab, "page"]
-    if labels != want or bad or any(x["layout"] != 2 or not x["known"] for x in rs):
+    if labels != want or bad or any(x["layout"] != 3 or not x["known"] for x in rs):
         problems.append("audio4: log records %s (%s), layouts %s, %d bad" % (labels, want,
                         sorted({(x["layout"], x["count"]) for x in rs}), len(bad)))
     elif rs:
@@ -2303,6 +2318,109 @@ def case_audio4(a, work, log):
              hh["audio1"], hh["check_to"], hh["audio_to"], "unmodelled" if gp_unmodelled else "modelled",
              ii["clk_before"], ii["clk_set"], ii["clk_set10"], ii["clk_back"], "plays" if plays else "doesn't play",
              ii["flips"], ii["hps10"] // 10, ii["hps10"] % 10, "unmodelled" if al1_unmodelled else "modelled", len(rs)))
+    return problems
+
+
+AUD_K_AT = AUD4_LEN
+AUD_K_FIELDS = ("k_state", "k_keys", "k_clk1_before", "k_gp_before", "k_clk1_back", "k_gp_back")
+AUD5_LEN = AUD_K_AT + 4 * (len(AUD_K_FIELDS) + 10 * 6)
+HW_GLO, HW_OCTUP = 7, 1      # fwtest's keys of GLO (step K) and OCT+ (step J) (input.h)
+
+
+def case_audio5(a, work, log):
+    """audio5 (clean-br17-audio5): steps K and J in report1's build. K's
+    one press measures input 5 every way the prompt gives, writing
+    CLK_CON1 bits 4-6 and 2-3 alone, and its undo puts CLK_CON1 and the
+    counter back. J's sweep, with ALNK0 stopped, tries each of CON1's 16
+    bits and CON3's 8 alone and puts each back; a press aborts a second
+    sweep; with ALNK0 running the sweep stops at its first try and a press
+    puts it back. Every step is in the log; the tone plays on."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_AUDIO1", "--define", "SB_HW_REPORT")
+    h = fws.elf_symbols(os.path.join(b, "app.elf"))["hw_aud"]
+    keys = ((9000, HW_GLO), (11500, HW_GLO), (14000, HW_SEQ), (16500, HW_OCTUP), (25000, HW_OCTUP),
+            (25600, HW_OCTUP), (30000, HW_SEQ), (32500, HW_OCTUP), (36000, HW_OCTUP))
+    script = os.path.join(work, "audio5.script")
+    with open(script, "w") as f:
+        for t, k in keys:
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + 100, k))
+    out = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "40000", "--flash-out", "--wav",
+               "--script", os.path.relpath(script, ROOT), "--ram", "0x%08x:%d@end" % (h, AUD5_LEN),
+               "--ram", "0x%08x:%d@32000" % (h, AUD_LEN))
+    if r["run"]["outcome"] != "completed":
+        problems.append("audio5: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    acc = {u["address"] for u in r["run"]["unmodelled_accesses"]}
+    odd = sorted(acc - HW_WINDOW_REGS - {"0x00012f00"} - GPCNT_REGS - ALNK1_REGS)
+    if odd:
+        problems.append("audio5: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1: %s"
+                        % odd[:8])
+    data = ram(out, h, AUD5_LEN)
+    k = dict(zip(AUD_K_FIELDS, struct.unpack_from("<%dI" % len(AUD_K_FIELDS), data, AUD_K_AT)))
+    m = [struct.unpack_from("<6I", data, AUD_K_AT + 4 * (len(AUD_K_FIELDS) + 6 * i)) for i in range(10)]
+    c1 = k["k_clk1_before"]
+    want = [(c1 & ~0x70) | s << 4 for s in (3, 1, 5, 6, 7)] + [(c1 & ~0x70) | 0x70]
+    want += [(c1 & ~0x7C) | 0x50 | d << 2 for d in (1, 2, 3)] + [(c1 & ~0x70) | 0x50]
+    if (k["k_state"], k["k_keys"]) != (2, 2) or [x[0] for x in m] != want or k["k_clk1_back"] != c1 \
+            or k["k_gp_back"] != k["k_gp_before"]:
+        problems.append("audio5: step K %s, CLK_CON1 at each %s (%s)" % (k, ["%x" % x[0] for x in m],
+                                                                       ["%x" % x for x in want]))
+    with open(os.path.join(out, "flash.bin"), "rb") as f:
+        rs, bad = rd.records(f.read())
+    labels = [x["label"] for x in rs]
+    tries = ["CON1 b%d" % i for i in range(16)] + ["CON3 b%d" % i for i in range(8)]
+    starts = [i for i, l in enumerate(labels) if l == "J starting"]
+    sweeps = []
+    for n, i in enumerate(starts):
+        end = starts[n + 1] if n + 1 < len(starts) else len(labels)
+        sweeps.append([l for l in labels[i + 1:end] if l.startswith("CON") or l.startswith("J ")])
+    if bad or any(x["layout"] != 3 or not x["known"] for x in rs) or len(sweeps) != 3:
+        problems.append("audio5: log: %d sweeps, %d bad, layouts %s" % (len(sweeps), len(bad),
+                                                                        sorted({x["layout"] for x in rs})))
+    else:
+        if sweeps[0] != tries + ["J done"]:
+            problems.append("audio5: the first sweep %s (every try, then J done)" % sweeps[0])
+        if sweeps[1][-1:] != ["J aborted"] or not 1 <= len(sweeps[1]) - 1 < len(tries):
+            problems.append("audio5: the second sweep %s (some tries, then aborted)" % sweeps[1])
+        if sweeps[2][:3] != ["CON1 b0 moved", "J moved", "J undone"]:
+            problems.append("audio5: the third sweep %s (its first try moves; then undone)" % sweeps[2])
+    last = rs[-1]["fields"] if rs else {}
+    if last.get("AL0_CON1_now") or last.get("AL0_CON3_now") or last.get("j_state") != 4 \
+            or last.get("j_back") != last.get("j_before"):
+        problems.append("audio5: at the end CON1 %s, CON3 %s, J state %s, put back %s of %s (0, 0, undone, as read)"
+                        % tuple(last.get(x) for x in ("AL0_CON1_now", "AL0_CON3_now", "j_state", "j_back",
+                                                       "j_before")))
+    first = [x for x in rs if x["label"] in tries]
+    stored = [x["fields"]["j_read"] == x["fields"]["j_written"] for x in first[:24]]
+    # The tone and its rate after K, the sweeps and SEQ's restart, before
+    # the third sweep: in fwtest CON1 bit 0 sets off a burst
+    # of source 11 with ALNK0 running, the guard stops the output (storm),
+    # and that try counts as moving the link.
+    _, left, right = aa.read_wav(os.path.join(out, "audio.wav"))
+    seg = left[-int(1.5 * 44100):]     # the WAV holds only what played: its end is after the restart
+    if left != right or min(max(abs(v) for v in seg[w:w + 441]) for w in range(0, len(seg) - 441, 441)) < 2000:
+        problems.append("audio5: the tone doesn't play after the sweeps in both channels")
+    else:
+        fit = aa.sine_fit(seg[4410:-4410])
+        if abs(fit["frequency"] - 440) > 0.5:
+            problems.append("audio5: the tone at %.2f Hz (440)" % fit["frequency"])
+    e = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), ram(out, h, AUD_LEN, "32000ms"),
+                                                 8 * AUD_REGS)))
+    fps = e["fps10"] / 10.0 / HW_RATIO
+    if not e["fps10"] or abs(fps / AUD_FPS - 1) > 200e-6 or e["storm"]:
+        problems.append("audio5: %.1f frames a second in fwtest's time (%.1f), storm %d, at 32 s"
+                        % (fps, AUD_FPS, e["storm"]))
+    end = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), data, 8 * AUD_REGS)))
+    print("audio5: K: CLK_CON1 %08x through inputs 3, 1, 5, 6, 7, the 480 MHz and the DAC choices, back %08x (fwtest's"
+          " counter %s); J: sweeps of %s tries, fwtest %s CON1 and CON3 (%d of %d read back as written); the tone at 440"
+          " Hz, %.1f frames a second after the sweeps; with ALNK0 running, CON1 bit 0 %s in fwtest; %d log records"
+          % (c1, k["k_clk1_back"], "unmodelled" if acc & GPCNT_REGS else "modelled",
+             "/".join(str(len(x) - 1) for x in sweeps), "stores" if all(stored) and stored else "doesn't store",
+             sum(stored), len(stored), fps, "set off the storm guard" if end["storm"] else "moved the link", len(rs)))
     return problems
 
 
@@ -2336,6 +2454,7 @@ CASES = [
     ("audio3", case_audio3),
     ("report1", case_report1),
     ("audio4", case_audio4),
+    ("audio5", case_audio5),
 ]
 
 

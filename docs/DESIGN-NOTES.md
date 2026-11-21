@@ -4982,3 +4982,64 @@ lit while their step is taken. Nothing else changes.
 - The build's identity is 0.10.0-hw3l. Case audio4 samples the LEDs:
   each step key's lit (one slot in 14, as PLAY's) while its step is
   taken, and every other dark, at moments with no key held.
+
+### 2026-11-21 clean-br17-audio5: steps K and J, in leds1's build (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio5.md; HW-153,
+HW-154), with the owner's rulings allowing K and J and the owner's change
+to J (docs/prompts/clean-br17-audio5-owner.md): one press runs J's whole
+sweep. Built on leds1 (merged with #220), one file.
+
+- **Keys.** GLO takes step K, OCT+ runs step J; both were free. A second
+  GLO undoes K. An OCT+ while J's sweep runs aborts it; an OCT+ with a bit
+  left set puts it back; any other OCT+ sweeps again, in whatever
+  `CLK_CON2` state the other keys left. Each lights its LED while taken
+  (K; J with a bit left set).
+- **Step K** (HW-151, HW-153, HW-154), all from one press: H's method
+  and gate (the crystal, 32 768 cycles, two readings), each reading after
+  the pending flag or 5 ms (report1 never saw the flag set, and the two
+  readings agreed, HW-153). In turn: the clock system's inputs 3, 1, 5, 6
+  and 7 (`CLK_CON1` bits 4-6, those bits alone); the counter's own 480 MHz
+  input (its counted-clock choice 6); then input 5 with the DAC's clock
+  choice, `CLK_CON1` bits 2-3 alone, at 1, 2 and 3 and then as read. Each
+  measurement keeps `CLK_CON1` and the counter's `CON` as read back, both
+  counts, the timeouts and `CLK_CON2`. K is refused while H is taken, and
+  H while K is (both write `CLK_CON1` back as read before their own
+  press). The undo writes back `CLK_CON1` and `CON` as read before K.
+- **Step J**, the owner's form: one press sweeps ALNK0's `CON1` bits 0-15
+  and then `CON3` bits 0-7. Each try reads the register, writes it with
+  the one bit added, reads it back, watches the link for 100 ms (`CON0`
+  bit 15's changes, `CON2` bit 7 seen, source 11's interrupts), and, if
+  nothing moved, writes back the value read and reads it back; a record
+  for each try. If a try moves the link the sweep stops there with that
+  bit left set until the next OCT+; a press during the sweep aborts it
+  after the try in progress has been put back (keys other than OCT+ only
+  light their LEDs while it runs). J writes nothing but `CON1` and `CON3`.
+  Each try's read-back is kept, and the tries whose bit didn't read back
+  set. After a try that moves the link, and after J's undo, the frames a
+  second are measured from a fresh base.
+- **The page** gets a sixth view, K and J: each of K's measurements
+  (`CLK_CON1`, both counts, the second in kHz), J's state, its last try,
+  the tries whose bit didn't hold, and `CLK_CON2` when the sweep began.
+  K's and J's keys show it, then core 1's; HOME shows all six. The steps
+  view keeps the first six steps; the state box adds K and J (J: D done,
+  M moved, X aborted, U undone).
+- **The log**: layout 3, 344 fields: layout 2 with eight steps'
+  snapshots, then K's ten measurements and J's last try, read-backs and
+  state, and ALNK0's `CON1` and `CON3` now. That doesn't fit a 1024-byte
+  record, so layout 3's are 2048 bytes, in a ring of the 64 sectors ending
+  at the app area's end (128 records, as before). Layouts 1 and 2 stay
+  1024 bytes; the decoder takes a record's size from its layout, so older
+  records still read, and the firmware treats them as not blank and
+  erases their sectors when the ring reaches them. A J sweep writes some
+  26 records.
+- The build's identity is 0.10.0-hw3n: fwsc refuses "hw3m", whose "m"
+  would make a marker byte the format's end.
+- **fwtest**: the counter isn't modelled (K's gates time out, its counts
+  0); ALNK0's `CON1` and `CON3` are stored (every try read back as
+  written); and with ALNK0 running, `CON1` bit 0 sets off a burst of
+  source 11 there, the guard stops the output (a storm), and the try
+  counts as moving the link. Case audio5: K's ten `CLK_CON1` values and its
+  undo; with ALNK0 stopped (SEQ) a full sweep of 24 tries, each put back,
+  then a second sweep aborted; with ALNK0 running again the third stops at
+  `CON1` bit 0 and is put back; the tone at 440 Hz and 44 117.6 frames a
+  second after the sweeps, before that try.

@@ -413,6 +413,22 @@ static void hw_serve(void)
             hw_test_screen();
             continue;
         }
+        /* audio5 (the spec side's clean-br17-audio5): GLO takes step K
+         * (every measurement of input 5 from one press), OCT+ runs J's
+         * sweep of ALNK0's CON1 and CON3 (a press while it runs aborts
+         * it; a press with a bit left set puts it back); a second GLO
+         * undoes K. */
+        if ((e.control == INPUT_GLO || e.control == INPUT_OCT_UP) && e.kind == INPUT_PRESS
+                && sb_beacon.screen == SB_SCREEN_TEST) {
+            if (e.control == INPUT_GLO)
+                hw_audio_k();
+            else
+                hw_audio_j();
+            hw_audio_leds(e.control);
+            hw_audio_keypage_kj();
+            hw_test_screen();
+            continue;
+        }
         /* audio3: SEQ stops ALNK0 (CON0 bit 11 cleared alone), or puts
          * back the CON0 read before; then the page, then the test screen. */
         if (e.control == INPUT_SEQ && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {

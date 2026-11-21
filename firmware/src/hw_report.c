@@ -134,7 +134,7 @@ static void copy16(u32 *w, const char *s)
     }
 }
 
-/* The fields, in tools/report_decode.py's FIELDS[2] order. */
+/* The fields, in tools/report_decode.py's FIELDS[3] order. */
 static u32 fields(u32 *w)
 {
     u32 n = 0;

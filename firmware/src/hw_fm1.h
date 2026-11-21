@@ -118,19 +118,21 @@ void hw_rows_start(void);
  * area's end, 0x93FFF (HW-80), past the image, so an install never writes
  * it (HW-110) and a start never does (HW-112): the one definition of where
  * it is. Each sector is erased before its first record (the unit's flash
- * there holds older data). */
-#define HW_LOG_SECTORS 32u
+ * there holds older data). Since audio5 (layout 3) the records are 2048
+ * bytes and the ring 64 sectors, 128 records; layouts 1 and 2 were 1024
+ * bytes in 32 sectors. */
+#define HW_LOG_SECTORS 64u
 #define HW_LOG_END     0x94000u
 #define HW_LOG_BASE    (HW_LOG_END - HW_LOG_SECTORS * 4096u)
-#define HW_LOG_REC     1024u
+#define HW_LOG_REC     2048u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
-#define HW_LOG_LAYOUT  2u                   /* tools/report_decode.py's FIELDS[2] */
+#define HW_LOG_LAYOUT  3u                   /* tools/report_decode.py's FIELDS[3] */
 #define HW_LOG_HEAD    12u                  /* header words before the fields */
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
 /* The build's identity in each record: the package's version, which the
  * candidate's pack must match (tools/report-decode.py prints it). */
-#define HW_BUILD_ID    "0.10.0-hw3l"
+#define HW_BUILD_ID    "0.10.0-hw3n"
 struct hw_report {
     u32 scanned;                /* the ring read once */
     u32 found;                  /* valid records found then */
@@ -185,7 +187,25 @@ void hw_finder(void) __attribute__((noreturn));
 #define HW_K_B    3u     /* audio3's step B: CLK_CON2 bit 8 */
 #define HW_K_H    4u     /* audio4's step H: the audio clock measured by JL_GPCNT */
 #define HW_K_I    5u     /* audio4's step I: ALNK1 with CLK_CON2 bit 11 */
-#define HW_K_N    6u
+#define HW_K_K    6u     /* audio5's step K: what input 5 is (JL_GPCNT) */
+#define HW_K_J    7u     /* audio5's step J: ALNK0's CON1 and CON3, a bit at a time */
+#define HW_K_N    8u
+/* Step K's measurements, in order (hw_audio.c, k_label). */
+#define HW_KM_N   10u
+/* Step K: how long a gate's count is waited for (the pending flag isn't
+ * relied on: report1 never saw it set, HW-153); step J: each try's wait. */
+#define HW_K_WAIT_MS  5u
+#if defined(SB_TEST_SHORT_HOLD)
+#define HW_J_WAIT_MS  30u
+#else
+#define HW_J_WAIT_MS  100u
+#endif
+#define HW_J_TRIES    24u    /* CON1 bits 0-15, then CON3 bits 0-7 */
+#define HW_J_NONE     0u
+#define HW_J_DONE     1u     /* swept, nothing moved, every try put back */
+#define HW_J_MOVED    2u     /* stopped at a try that moved: its bit left set */
+#define HW_J_ABORTED  3u     /* stopped by a second press, the try put back */
+#define HW_J_UNDONE   4u     /* the moved try put back by a second press */
 /* Step H's gate: 32 x 2^HW_H_GATE_N cycles of the crystal (HW-151), and
  * how long one gate's pending flag is waited for; step I's poll of ALNK1. */
 #define HW_H_GATE_N   10u
@@ -240,6 +260,17 @@ struct hw_audio {
     u32 i_clk_before, i_clk_set, i_clk_set10, i_clk_back; /* CLK_CON2 read before; after bit 11, after bit 10, put back */
     u32 i_flips, i_pend, i_span, i_hps10; /* the last poll: CON0 bit 15 changes, CON2 bit 7 seen, over beats; halves a second x 10 */
     u32 clk_stack[3], clk_depth; /* the CLK_CON2 steps taken (REC, B, I), in order: only the last is undone */
+    /* audio5's steps K and J (clean-br17-audio5), after audio4's: */
+    u32 k_state, k_keys;
+    u32 k_clk1_before, k_gp_before, k_clk1_back, k_gp_back; /* CLK_CON1 and JL_GPCNT->CON read before K, read back after its undo */
+    u32 k_m[HW_KM_N][6];        /* each measurement: CLK_CON1 and JL_GPCNT->CON as read back, NUM twice, timeouts, CLK_CON2 */
+    u32 j_state, j_sweeps, j_tries; /* HW_J_*; sweeps run; tries in the last sweep */
+    u32 j_reg, j_bit;           /* the last try: 1 CON1 or 3 CON3, and its bit */
+    u32 j_before, j_written, j_read, j_back; /* its register read before, written, read back, read back after it was put back */
+    u32 j_flips, j_pend, j_irq, j_con0, j_con2, j_clk2; /* over its wait: CON0 bit 15 changes, CON2 bit 7 seen, source 11's interrupts; CON0, CON2, CLK_CON2 at its end */
+    u32 j_clk2_sweep;           /* CLK_CON2 when the last sweep began */
+    u32 j_rb[HW_J_TRIES];       /* each try's read-back in the last sweep (0xFFFFFFFF: not tried) */
+    u32 j_nohold;               /* tries whose bit didn't read back set: bit t for try t */
 };
 #define HW_AL_RUN     0u
 #define HW_AL_STOPPED 1u
@@ -252,6 +283,9 @@ void hw_audio_h(void);
 void hw_audio_h_again(void);
 void hw_audio_i(void);
 void hw_audio_i10(void);
+void hw_audio_k(void);
+void hw_audio_j(void);
+void hw_audio_keypage_kj(void);
 void hw_audio_keypage(void);
 void hw_audio_keypage_hi(void);
 u32 hw_audio_key_lit(u32 control);
