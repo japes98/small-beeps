@@ -349,7 +349,28 @@ static void hw_serve(void)
          * the page, then the test screen. */
         if (e.control == INPUT_REC && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
             hw_audio_step();
-            hw_audio_page();
+            hw_audio_keypage();
+            hw_test_screen();
+            continue;
+        }
+        /* audio3 (the spec side's clean-br17-audio3): ARP takes step A
+         * (CON0 bit 11 cleared and set again, with bit 9 set), SAVE step B
+         * (CLK_CON2 bit 8, with bit 9 set); a second press undoes each. */
+        if ((e.control == INPUT_ARP || e.control == INPUT_SAVE) && e.kind == INPUT_PRESS
+                && sb_beacon.screen == SB_SCREEN_TEST) {
+            if (e.control == INPUT_ARP)
+                hw_audio_a();
+            else
+                hw_audio_b();
+            hw_audio_keypage();
+            hw_test_screen();
+            continue;
+        }
+        /* audio3: SEQ stops ALNK0 (CON0 bit 11 cleared alone), or puts
+         * back the CON0 read before; then the page, then the test screen. */
+        if (e.control == INPUT_SEQ && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_audio_alnk();
+            hw_audio_keypage();
             hw_test_screen();
             continue;
         }
@@ -505,6 +526,10 @@ int main(void)
      * engine, audio or MIDI on a unit yet (HW-130). Since start3b after
      * the store's step, so a hang tells them apart. */
     hw_core1_start();
+#if defined(SB_HW_AUDIO1)
+    /* audio3: core 1's count just after its release (hw_audio.c). */
+    hw_c1_mark(HW_C1_REL);
+#endif
 #if defined(SB_HW_HOLD)
     hw_step("tick after core 1");
     hw_watch(HW_WATCH_MS);

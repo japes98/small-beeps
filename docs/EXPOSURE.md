@@ -3436,6 +3436,35 @@ SR-3 wrote only its barrier-log row.*
   for the register structs.
 - Disk: about 8 GB free.
 
+### Session clean-br17-audio3 (BR-17: why core 1 stops in the audio builds)
+- Date: 2026-11-20 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.329, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio2's, continued. Saved unedited: the owner's messages
+  docs/prompts/clean-br17-audio2-result.md (audio2 on the unit, and the
+  request to explain core 1), docs/prompts/clean-br17-core1-probe.md
+  (the boot video's counts and the approval to build the core 1 probe)
+  and docs/prompts/clean-br17-audio3-owner.md (#213 merged; steps A and B
+  into the same build); and the spec side's prompt as
+  docs/prompts/clean-br17-audio3.md.
+- Later in the session: #213 (spec) found merged; HW-147 to HW-149 read
+  from origin/main's `docs/HARDWARE-SPEC.md` (`9737f4e8`), its one blob
+  fetched alone (clean-side file).
+- Start: #212 found merged; the clean folder updated to main
+  (`b4b16fd1`) by `tools/clean-update.sh`, no spec-side file on disk or
+  in `.git`. Nothing to archive (the last clean session is this one,
+  live); tools/check-transcripts.py passed (26 archived).
+- Reads: this side's own code (`hw_audio.c`, `hw_start3.c`,
+  `hw_core1.S`, `core1.c`, `main.c`, `audio.c`); HARDWARE-SPEC HW-9,
+  HW-45, HW-65, HW-133, HW-135, HW-137, HW-139, HW-144 to HW-149 and the
+  notes on Q-9 and Q-17; the build's own
+  symbol table and disassembly (in the pinned build container).
+- Disk: about 5 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

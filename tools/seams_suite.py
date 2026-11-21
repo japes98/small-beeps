@@ -240,7 +240,19 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   twice: CLK_CON2 bit 9 set alone, then CLK_CON2 put back exactly as
   read; CLK_CON2 has no effect in fwtest (HW-53), so the tone plays on in
   both channels at 440 Hz and 44 117.6 frames a second; REC shows the
-  page; nothing unmodelled but the window's, corex2's and DAC_CON.
+  page; nothing unmodelled but the window's, corex2's and DAC_CON. Since
+  clean-br17-audio3, with bit 9 taken: ARP's step A (CON0 bit 11 cleared
+  and set again) and its undo, then SAVE's step B (CLK_CON2 bit 8 alone)
+  and its undo, each undo putting back the value read before; the tone
+  plays on.
+- audio3 (BR-17, clean-br17-audio3): the same build with SEQ pressed
+  twice: ALNK0's CON0 bit 11 cleared alone, then CON0 put back exactly as
+  read; no half is taken while it is stopped, and the tone plays again at
+  440 Hz after; core 1's count, in its own 64-byte block, rises through
+  every fixed point (its release, around audio_start, around the key's
+  write, on the page), whose beats run in order; the page reaches its
+  core 1 view; ARP without bit 9 is refused, nothing written; nothing
+  unmodelled but the window's, corex2's and DAC_CON.
 - hw (BR-17, Phase B): the FM-1 hardware build, SB_HW_FM1 (R-HW-1). In
   fwtest, where its one timer, TIMER0, counts 24 MHz rather than the
   chip's 60 MHz (HW-119), so its beats are 2.5 times slow: the screen goes
@@ -1848,6 +1860,26 @@ AUD_STEP_FIELDS = ("step_state", "steps", "clk_before", "clk_set", "clk_back")
 AUD2_LEN = AUD_LEN + 4 * (3 * AUD_MORE + AUD_REGS + len(AUD_STEP_FIELDS))
 AUD_CLK2 = 1          # CLK_CON2 in audio1's registers (hw_audio.c)
 HW_REC = 13           # fwtest's key of REC (HW-35)
+AUD3_C1 = 13          # hw_fm1.h, HW_C1_MARKS
+AUD3_FIELDS = ("c1_seen", "c1_moved", "al_state", "al_keys", "al_before", "al_stop", "al_back",
+               "al_blocks_stop", "al_blocks_back")
+AUD_AB_FIELDS = ("a_state", "a_keys", "a_before", "a_clr", "a_set", "a_back", "b_state", "b_keys", "b_before",
+                 "b_set", "b_back", "refused")
+AUD3_LEN = AUD2_LEN + 4 * (2 * AUD3_C1 + len(AUD3_FIELDS) + 32 + len(AUD_AB_FIELDS) + 32)
+AUD_AB_AT = AUD2_LEN + 4 * (2 * AUD3_C1 + len(AUD3_FIELDS) + 32)
+HW_SEQ = 11           # fwtest's key of SEQ (HW-35)
+HW_ARP = 10           # fwtest's key of ARP: step A
+HW_SAVE = 9           # fwtest's key of SAVE: step B
+
+
+def aud_ab(data):
+    return dict(zip(AUD_AB_FIELDS, struct.unpack_from("<%dI" % len(AUD_AB_FIELDS), data, AUD_AB_AT)))
+
+
+def st_clk_bit9(data):
+    """CLK_CON2 as REC's step left it: the value read before, with bit 9."""
+    o = AUD_LEN + 4 * (3 * AUD_MORE + AUD_REGS)
+    return struct.unpack_from("<5I", data, o)[3]
 
 
 def case_audio2(a, work, log):
@@ -1856,7 +1888,11 @@ def case_audio2(a, work, log):
     before, exactly; CLK_CON2 has no effect in fwtest (HW-53), so the tone
     plays on through both, at fwtest's 44 117.6 frames a second; the new
     registers are read at the start, with the tone on and after each step;
-    nothing unmodelled but the window's, corex2's and DAC_CON."""
+    nothing unmodelled but the window's, corex2's and DAC_CON. Since
+    clean-br17-audio3, with bit 9 taken: ARP's step A (CON0 bit 11 cleared
+    and set again) and its undo, then SAVE's step B (CLK_CON2 bit 8) and
+    its undo, each undo putting back the value read before; the link
+    restarts as HW-45 says and the tone plays on."""
     problems = []
     fws = fw_suite()
     b = os.path.join(work, "build")
@@ -1865,14 +1901,16 @@ def case_audio2(a, work, log):
     h = fws.elf_symbols(os.path.join(b, "app.elf"))["hw_aud"]
     script = os.path.join(b, "audio2.script")
     with open(script, "w") as f:
-        # After audio1's page (about 6.5 s): the step at 7.5 s, its page
-        # until about 10 s, then the undo at 11 s.
-        f.write("7500 key %d down\n7600 key %d up\n11000 key %d down\n11100 key %d up\n"
-                % (HW_REC, HW_REC, HW_REC, HW_REC))
+        # After audio1's page (about 7 s), each key's page lasting about
+        # 1.5 s: bit 9 at 7.5 s, A at 9.5 s, its undo at 11.5 s, B at
+        # 13.5 s, its undo at 15.5 s, bit 9's undo at 17.5 s.
+        for t, k in ((7500, HW_REC), (9500, HW_ARP), (11500, HW_ARP), (13500, HW_SAVE), (15500, HW_SAVE),
+                     (17500, HW_REC)):
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + 100, k))
     out = os.path.join(work, "run")
-    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "15000", "--wav", "--script", os.path.relpath(script, ROOT),
-               "--lcd", "9500", "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN),
-               "--ram", "0x%08x:%d@end" % (h, AUD2_LEN))
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "22000", "--wav", "--script", os.path.relpath(script, ROOT),
+               "--lcd", "8500", "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN),
+               "--ram", "0x%08x:%d@end" % (h, AUD3_LEN))
     if r["run"]["outcome"] != "completed":
         problems.append("audio2: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
     odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"})
@@ -1881,8 +1919,17 @@ def case_audio2(a, work, log):
     bc = fws.beacon(ram(out, BEACON_ADDR, fws.BEACON_LEN))
     if bc["screen"] != 2 or bc["halt_reason"]:
         problems.append("audio2: screen %d, halt %d (the test screen, no halt)" % (bc["screen"], bc["halt_reason"]))
-    data = ram(out, h, AUD2_LEN)
+    data = ram(out, h, AUD3_LEN)
     e = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), data, 8 * AUD_REGS)))
+    ab = aud_ab(data)
+    run = 0x800
+    if (ab["a_state"], ab["a_keys"], ab["b_state"], ab["b_keys"], ab["refused"]) != (2, 2, 2, 2, 0) \
+            or not ab["a_before"] & run or ab["a_clr"] & run or not ab["a_set"] & run \
+            or (ab["a_back"] ^ ab["a_before"]) & ~0x8000 \
+            or ab["b_before"] != st_clk_bit9(data) or ab["b_set"] != ab["b_before"] | 0x100 \
+            or ab["b_back"] != ab["b_before"]:
+        problems.append("audio2: steps A and B %s (A: bit 11 cleared, set, then CON0 as read, bit 15 aside; B: bit 8"
+                        " alone, then CLK_CON2 as read)" % {k: "%x" % v for k, v in ab.items()})
     o = AUD_LEN + 4 * (3 * AUD_MORE)
     regs_step = list(struct.unpack_from("<%dI" % AUD_REGS, data, o))
     st = dict(zip(AUD_STEP_FIELDS, struct.unpack_from("<5I", data, o + 4 * AUD_REGS)))
@@ -1901,11 +1948,89 @@ def case_audio2(a, work, log):
         fit = aa.sine_fit(tail[4410:-4410])
         if abs(fit["frequency"] - 440) > 0.5:
             problems.append("audio2: the tone at %.2f Hz (440)" % fit["frequency"])
-    _, _, page = fws.read_png(os.path.join(out, "lcd-9500ms.png"))
+    _, _, page = fws.read_png(os.path.join(out, "lcd-8500ms.png"))
     if not any(page[y][x] == (0, 255, 0) for y in range(0, 16) for x in range(6, 200)):
         problems.append("audio2: REC didn't show the page")
-    print("audio2: CLK_CON2 %08x, %08x with bit 9, %08x put back; the tone on at 440 Hz, %.1f frames a second in"
-          " fwtest's time" % (st["clk_before"], st["clk_set"], st["clk_back"], fps))
+    print("audio2: CLK_CON2 %08x, %08x with bit 9, %08x put back; A: CON0 %08x, %08x, %08x, back %08x; B: CLK_CON2"
+          " %08x, %08x, back %08x; the tone on at 440 Hz, %.1f frames a second in fwtest's time"
+          % (st["clk_before"], st["clk_set"], st["clk_back"], ab["a_before"], ab["a_clr"], ab["a_set"], ab["a_back"],
+             ab["b_before"], ab["b_set"], ab["b_back"], fps))
+    return problems
+
+
+
+
+def case_audio3(a, work, log):
+    """audio3 (clean-br17-audio3): audio1's build with ALNK0 stopped and
+    started again by SEQ. The first press clears CON0 bit 11 alone and no
+    half is taken while it is stopped; the second writes back the CON0
+    read before, exactly, and the tone plays again at 440 Hz. Core 1's
+    count, in its own 64-byte block, rises through every fixed point,
+    whose beats run in order; the page reaches its core 1 view; nothing
+    unmodelled but the window's, corex2's and DAC_CON."""
+    problems = []
+    fws = fw_suite()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_AUDIO1")
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    h, blk = sy["hw_aud"], sy["hw_core1_blk"]
+    if blk % 64:
+        problems.append("audio3: core 1's block at %08x (on a 64-byte boundary)" % blk)
+    script = os.path.join(b, "audio3.script")
+    with open(script, "w") as f:
+        # After audio1's page (about 7 s): ALNK0 stopped at 7.5 s, its page
+        # until about 9 s, started again at 11.5 s; ARP at 13.5 s, refused
+        # (bit 9 not set).
+        f.write("7500 key %d down\n7600 key %d up\n11500 key %d down\n11600 key %d up\n13500 key %d down\n"
+                "13600 key %d up\n" % (HW_SEQ, HW_SEQ, HW_SEQ, HW_SEQ, HW_ARP, HW_ARP))
+    out = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "17500", "--wav", "--script", os.path.relpath(script, ROOT),
+               "--lcd", "end", "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN),
+               "--ram", "0x%08x:%d@end" % (h, AUD3_LEN))
+    if r["run"]["outcome"] != "completed":
+        problems.append("audio3: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"})
+    if odd:
+        problems.append("audio3: unmodelled accesses besides the window's, corex2's and DAC_CON: %s" % odd[:8])
+    bc = fws.beacon(ram(out, BEACON_ADDR, fws.BEACON_LEN))
+    if bc["screen"] != 2 or bc["halt_reason"]:
+        problems.append("audio3: screen %d, halt %d (the test screen, no halt)" % (bc["screen"], bc["halt_reason"]))
+    data = ram(out, h, AUD3_LEN)
+    e = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), data, 8 * AUD_REGS)))
+    o = AUD2_LEN
+    beats = list(struct.unpack_from("<%dI" % AUD3_C1, data, o))
+    counts = list(struct.unpack_from("<%dI" % AUD3_C1, data, o + 4 * AUD3_C1))
+    st = dict(zip(AUD3_FIELDS, struct.unpack_from("<%dI" % len(AUD3_FIELDS), data, o + 8 * AUD3_C1)))
+    if (st["al_state"], st["al_keys"]) != (2, 2) or not st["al_before"] & 0x800 \
+            or st["al_stop"] != st["al_before"] & ~0x800 or st["al_back"] != st["al_before"]:
+        problems.append("audio3: ALNK0 %s (stopped by bit 11 alone, then put back exactly as read)" % st)
+    if st["al_blocks_back"] - st["al_blocks_stop"] > 1 or e["n1"] < st["al_blocks_back"] + 100:
+        problems.append("audio3: halves %d at the stop, %d at the restart, %d at the end (none while stopped, then"
+                        " on again)" % (st["al_blocks_stop"], st["al_blocks_back"], e["n1"]))
+    ab = aud_ab(data)
+    if (ab["a_keys"], ab["a_state"], ab["refused"]) != (0, 0, 1):
+        problems.append("audio3: ARP without bit 9: A %d presses taken, state %d, %d refused (refused, nothing taken)"
+                        % (ab["a_keys"], ab["a_state"], ab["refused"]))
+    # Two marks in one beat may read one count (core 1's turns in fwtest);
+    # across a beat the count must rise.
+    if beats != sorted(beats) or not counts[0] or counts != sorted(counts) \
+            or any(q <= p for p, q, b0, b1 in zip(counts, counts[1:], beats, beats[1:]) if b1 > b0):
+        problems.append("audio3: core 1's marks: beats %s, counts %s (in order, the count rising across each beat)"
+                        % (beats, counts))
+    if beats[-1] <= beats[-2]:
+        problems.append("audio3: the page's core 1 view wasn't redrawn (now %d, page %d)" % (beats[-1], beats[-2]))
+    _, left, right = aa.read_wav(os.path.join(out, "audio.wav"))
+    tail = left[-2 * 44100:]
+    if left != right or min(max(abs(v) for v in tail[w:w + 441]) for w in range(0, len(tail) - 441, 441)) < 2000:
+        problems.append("audio3: the tone doesn't play again after the restart in both channels")
+    else:
+        fit = aa.sine_fit(tail[4410:-4410])
+        if abs(fit["frequency"] - 440) > 0.5:
+            problems.append("audio3: the tone at %.2f Hz (440)" % fit["frequency"])
+    print("audio3: ALNK0 CON0 %08x, %08x stopped, %08x put back; halves %d at the stop, %d at the restart, %d at the"
+          " end; core 1's count at the marks %s" % (st["al_before"], st["al_stop"], st["al_back"], st["al_blocks_stop"],
+                                                   st["al_blocks_back"], e["n1"], counts))
     return problems
 
 
@@ -1936,6 +2061,7 @@ CASES = [
     ("core1", case_core1),
     ("audio1", case_audio1),
     ("audio2", case_audio2),
+    ("audio3", case_audio3),
 ]
 
 

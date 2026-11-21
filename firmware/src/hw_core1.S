@@ -18,10 +18,19 @@
 hw_core1_loop:
 	cli
 	/* Its own sign first (start3c, HW-135 step 4): core 0 waits for it. */
+#if defined(SB_HW_AUDIO1)
+	/* audio3: the flag and the count in their own 64-byte block,
+	 * hw_core1_blk (hw_fm1.h), the flag first. */
+	r0 = hw_core1_blk
+	r1 = 1
+	[r0+0] = r1
+	r0 += 4
+#else
 	r0 = hw_core1_flag
 	r1 = 1
 	[r0+0] = r1
 	r0 = hw_core1_count
+#endif
 .Lcount:
 	r1 = [r0+0]
 	r1 += 1
