@@ -501,6 +501,18 @@ void hw_scan_pause(void)
     hw_scan_paused = 1;
 }
 
+/* audio8: the scan paused and held, the LED lines low and no column
+ * (0xFFFF latched), so nothing of the scan's moves a port A or H pin
+ * while audio8 samples pins. */
+void hw_scan_hold(void)
+{
+    hw_scan_paused = 1;
+    PORT(PA, OUT) &= ~PA_LEDS;
+    REG(0x000501C0u + OUT) &= ~PH_LEDS;
+    SYNC();
+    shift_word(0xFFFFu);
+}
+
 void hw_scan_resume(void)
 {
     shift_word(0xFFFFu);
