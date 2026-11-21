@@ -3480,6 +3480,39 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing new. No spec entries changed.
 - Disk: about 4.2 GB free.
 
+### Session spec-round-rules (faster rounds; audio7's outcomes ruled ahead)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio7-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/audio7-unit` from main. By the owner's rule this
+  branch goes up as one PR with audio7's unit results.
+- The owner's message, saved unedited as docs/prompts/spec-round-rules.md.
+- Updated drop/prompts/clean-br17-audio7.md in place: the iteration rule
+  (touched seams cases only, PR once packed, CI runs the full suite) and
+  the timing report.
+- Read: this repository's REQUIREMENTS.md (R-REPRO, R-HARN, R-SEP-3),
+  TOOLCHAIN.md and config/fwtest-image, for the native-build proposal.
+  No new outside source. No spec entries changed.
+- Disk: about 4.2 GB free.
+
+### Session spec-audio7-unit (audio7: ALNK0 runs; the audio8 draft)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-round-rules (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  continuing on `spec/audio7-unit`, the round's one PR.
+- The owner's message, saved unedited as docs/prompts/spec-audio7-unit.md.
+- Recorded: HW-159 (UNIT: L1 and L2 with bit 9 clear run ALNK0; L2 with
+  bit 9 set does not), HW-160 (what it settles: the fields, `LEN` as
+  frames a half, bit 9, the 16-bit buffer); standing notes on HW-44,
+  HW-45, HW-145 and HW-158; note on Q-9.
+- Wrote the draft clean prompt drop/prompts/clean-br17-audio8.md (L2 at
+  start-up, port C routing, the headphone-sense scan), outside the
+  repository, marked as awaiting the owner's rulings on R0 to R5.
+- Read: nothing new.
+- Disk: about 3.6 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
@@ -3650,6 +3683,64 @@ SR-3 wrote only its barrier-log row.*
 - Reads: this side's own code; HARDWARE-SPEC HW-43 to HW-45, HW-53,
   HW-140, HW-145, HW-146, HW-151, HW-153, HW-154 and Q-9's notes (read
   from origin/main before the merge).
+- Disk: about 4 GB free.
+
+### Session clean-br17-audio5-result (BR-17: the log's failed writes, the next key)
+- Date: 2026-11-21 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.329, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio5's, continued. The owner's message saved unedited as
+  docs/prompts/clean-br17-audio5-result.md.
+- Start: #222 found merged; the clean folder updated to main
+  (`7959867f`) by `tools/clean-update.sh`. Nothing to archive (the last
+  clean session is this one, live).
+- Reads: this side's own code (`store.c`, `hw_report.c`, `hw_start3.c`'s
+  take and give-back, every user of SPI0 and port D); HARDWARE-SPEC HW-77,
+  HW-85, HW-115, HW-124.
+- Disk: about 4 GB free.
+
+### Session clean-br17-audio6 (BR-17: step D)
+- Date: 2026-11-21 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.329, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio5-result's, continued. Saved unedited: the spec side's
+  prompt as docs/prompts/clean-br17-audio6.md and the owner's message as
+  docs/prompts/clean-br17-audio6-owner.md.
+- Start: #223 and #224 found merged and merged into the branch, their
+  clean-side blobs fetched alone. Nothing to archive (the last clean
+  session is this one, live).
+- Reads: this side's own code (the matrix sweep, the scan, the port
+  registers); HARDWARE-SPEC HW-45, HW-85, HW-117, HW-118, HW-138, HW-139,
+  HW-141, HW-146, HW-148, HW-153, HW-155, HW-156 and Q-9's notes; the
+  vendored SDK `WL82.h` for `JL_IOMAP` and the port registers.
+- Disk: about 4 GB free.
+
+### Session clean-br17-audio7 (BR-17: set-ups L1 and L2)
+- Date: 2026-11-21 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.329, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio6's, continued. The spec side's prompt and the owner's
+  message saved unedited (docs/prompts/clean-br17-audio7.md,
+  clean-br17-audio7-owner.md).
+- Start: #225 and #226 found merged and merged into the branch, their
+  clean-side blobs fetched alone. Nothing to archive (the last clean
+  session is this one, live).
+- Reads: this side's own code; HARDWARE-SPEC HW-43 to HW-45, HW-53,
+  HW-145, HW-146, HW-153, HW-155 to HW-158 and Q-9's notes (HW-157 is the
+  spec side's reading of another chip's open SDK; nothing of that SDK
+  read here).
 - Disk: about 4 GB free.
 
 ## Corrections

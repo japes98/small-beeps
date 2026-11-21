@@ -108,6 +108,14 @@ void hw_core1_start(void);
 void hw_rows_all(void);
 void hw_refresh(u32 second);
 extern volatile u32 hw_slots;
+#if defined(SB_TEST_NOW_RACE)
+/* The test build's check that sb_now() never goes back (main.c). */
+struct hw_now_test {
+    u32 done, runs;
+    u32 backs[5];               /* by the point the slot's time-keeping came at (1 to 4) */
+};
+extern struct hw_now_test hw_now_test;
+#endif
 void hw_step(const char *text);
 void hw_hold(void);
 void hw_watch(u32 ms);
@@ -118,28 +126,38 @@ void hw_rows_start(void);
  * area's end, 0x93FFF (HW-80), past the image, so an install never writes
  * it (HW-110) and a start never does (HW-112): the one definition of where
  * it is. Each sector is erased before its first record (the unit's flash
- * there holds older data). Since audio5 (layout 3) the records are 2048
- * bytes and the ring 64 sectors, 128 records; layouts 1 and 2 were 1024
- * bytes in 32 sectors. */
-#define HW_LOG_SECTORS 64u
+ * there holds older data). Since audio7 (layout 6) a record is 4096
+ * bytes, a sector each, 96 in the ring of 96 sectors; layouts 3 to 5 were
+ * 2048 bytes, 1 and 2 1024 (audio5's ring 64 sectors, report1's 32). The
+ * ring's first read finds records of every size, so the numbers go on. */
+#define HW_LOG_SECTORS 96u
 #define HW_LOG_END     0x94000u
 #define HW_LOG_BASE    (HW_LOG_END - HW_LOG_SECTORS * 4096u)
-#define HW_LOG_REC     2048u
+#define HW_LOG_REC     4096u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
-#define HW_LOG_LAYOUT  3u                   /* tools/report_decode.py's FIELDS[3] */
+#define HW_LOG_LAYOUT  6u                   /* tools/report_decode.py's FIELDS[6] */
 #define HW_LOG_HEAD    12u                  /* header words before the fields */
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
 /* The build's identity in each record: the package's version, which the
  * candidate's pack must match (tools/report-decode.py prints it). */
-#define HW_BUILD_ID    "0.10.0-hw3n"
+#define HW_BUILD_ID    "0.10.0-hw3q"
 struct hw_report {
     u32 scanned;                /* the ring read once */
     u32 found;                  /* valid records found then */
     u32 slot, seq;              /* where and with what number the next record goes */
     u32 saved, fails;           /* records written and verified; writes that failed */
-    u32 last_err;               /* 1 no flash, 2 image too long, 3 erase, 4 program, 5 verify */
+    u32 last_err;               /* 1 no flash, 2 image too long, 3 erase, 4 program, 5 verify, 6 busy at the take */
+    /* Since the next build after audio5 (three records failed their CRC on
+     * the unit): what each failed write saw, the last HW_LOG_FAILS. */
+    u32 busy_waits;             /* takes that found the chip busy and waited */
+    u32 glitches;               /* verifies that failed once and read back right the second time */
+    u32 retries;                /* records written again in the next slot after a failed one */
+    u32 page_rewaits;           /* page programs whose wait said busy and were waited on again */
+    u32 fail_n;                 /* failed writes so far (fail[] holds the last HW_LOG_FAILS) */
+    u32 fail[4][8];             /* seq, slot, err, pages that differ (bit per 256 bytes), first differing byte, bytes read 0xFF where 0xFF wasn't written, the word written there, the word read */
 };
+#define HW_LOG_FAILS 4u
 extern struct hw_report hw_rep;
 int hw_flash_take(void);
 void hw_flash_give(void);
@@ -271,7 +289,60 @@ struct hw_audio {
     u32 j_clk2_sweep;           /* CLK_CON2 when the last sweep began */
     u32 j_rb[HW_J_TRIES];       /* each try's read-back in the last sweep (0xFFFFFFFF: not tried) */
     u32 j_nohold;               /* tries whose bit didn't read back set: bit t for try t */
+    /* audio6's step D (clean-br17-audio6), after audio5's: the last try,
+     * which is the one the sweep stopped at if it stopped. */
+    u32 d_state, d_sweeps, d_tries, d_bit, d_stop, d_phase; /* HW_D_*; sweeps; tries this sweep; the bit; HW_D_STOP_*; the try's step (1 to 7) */
+    u32 d_clk2;                 /* CLK_CON2 at the try */
+    u32 d_con5_before, d_con5_written, d_con5_read, d_con5_back, d_con5_after; /* CON5: read, written, read back, put back (read back), read after the undo's check */
+    u32 d_iomap_before[9], d_iomap_after[9]; /* JL_IOMAP CON0-CON8 before the try and after its undo */
+    u32 d_pa_before[8], d_pa_set[8], d_pa_after[8]; /* port A's OUT, IN, DIR, DIE, PU, PD, HD0, HD: before, with the bit set, after the undo */
+    u32 d_in_start, d_in_end;   /* port A's IN at the watch's start and end */
+    u32 d_flips, d_pend, d_irq; /* over the watch: CON0 bit 15's changes, CON2 bit 7 seen, source 11's interrupts */
+    u32 d_idle_base, d_map_base[3]; /* the matrix just before the write: rows with no column (6 bits, 1 open), closed cells */
+    u32 d_idle_set, d_map_set[3]; /* the same with the bit set */
+    u32 d_idle_after, d_map_after[3]; /* the same after the undo */
+    u32 d_check_set, d_check_after; /* 0 passed; else bit 0 the idle rows, 1 the cells, 2 port A's DIR, DIE, PU or PD, 3 CON5 not back, 4 JL_IOMAP not back */
+    u32 d_al0[4], d_irq_now, d_core1; /* ALNK0's CON0-CON3, source 11's count, core 1's count, at the try's end */
+    u32 d_j_putback;            /* J's register put back before the sweep: register << 16 | value (0: none) */
+    /* audio7's set-ups L1 and L2 (clean-br17-audio7), after audio6's: the
+     * last set-up, which is the one kept or stopped at if any. */
+    u32 l_state, l_which, l_presses, l_stop, l_phase, l_stopped; /* HW_L_*; 1 or 2; set-ups run; HW_D_STOP_*'s reasons; its step (1 to 7); 1 once a check after an undo failed (no more set-ups) */
+    u32 l_before[4];            /* ALNK0's CON0 to CON3 read before */
+    u32 l_len_read, l_adr_read, l_len_used; /* LEN and ADR3 as read (write-only registers: what reads back), the LEN the expectations use */
+    u32 l_clk1, l_clk2;         /* CLK_CON1 and CLK_CON2 before */
+    u32 l_pa_before[8];         /* port A's eight registers before */
+    u32 l_irq0, l_core1_0;      /* source 11's and core 1's counts before */
+    u32 l_exp_fps10, l_exp_hps10_a, l_exp_hps10_b; /* expected frames a second x 10; halves a second x 10, (a) LEN frames a half, (b) LEN / 2 */
+    u32 l_w[4], l_rb[4];        /* written and read back: CON0 stopped, CON3, CON1, CON0 running */
+    u32 l_flips, l_pend, l_irq, l_span; /* over the watch: CON0 bit 15's changes, CON2 bit 7 seen, source 11's interrupts; sb_now() units from the first change to the last */
+    u32 l_hps10, l_fps10_a, l_fps10_b; /* halves a second x 10, and frames a second x 10 by each LEN reading */
+    u32 l_idle_base, l_map_base[3], l_idle_set, l_map_set[3], l_pa_set[8], l_check_set; /* the matrix: before, with the set-up in place (as D's) */
+    u32 l_idle_after, l_map_after[3], l_pa_after[8], l_check_after; /* after the undo */
+    u32 l_back[3];              /* CON0, CON1 and CON3 read back after they were put back */
+    u32 l_clk2_end, l_core1_end;
 };
+#define HW_L_NONE    0u
+#define HW_L_KEPT    1u     /* the link moved with the matrix right: the set-up running */
+#define HW_L_UNDONE  2u     /* a kept set-up put back by a key */
+#define HW_L_DONE    3u     /* nothing moved: the firmware put it back */
+#define HW_L_STOPPED 4u     /* a check failed: put back by the firmware, l_stop says which */
+#if defined(SB_TEST_SHORT_HOLD)
+#define HW_L_WAIT_MS 300u
+#else
+#define HW_L_WAIT_MS 1000u
+#endif
+#define HW_D_NONE     0u
+#define HW_D_DONE     1u     /* every bit tried, none stopped it */
+#define HW_D_STOPPED  2u     /* stopped at a try (d_stop says why), CON5 put back */
+#define HW_D_KEPT     3u     /* the link moved with the matrix right: the bit kept */
+#define HW_D_UNDONE   4u     /* the kept bit put back by a press */
+#define HW_D_STOP_NONE      0u
+#define HW_D_STOP_CHECK     1u   /* the matrix check failed with the bit set: undone */
+#define HW_D_STOP_MOVED     2u   /* the link moved, the check passed: kept */
+#define HW_D_STOP_MOVED_BAD 3u   /* the link moved, the check failed: undone */
+#define HW_D_STOP_AFTER     4u   /* the check after the undo failed */
+#define HW_D_STOP_KEY       5u   /* a press of D's key stopped it */
+#define HW_D_RELEASE_MS     5000u /* how long D waits for OCT- to be released before its first try */
 #define HW_AL_RUN     0u
 #define HW_AL_STOPPED 1u
 #define HW_AL_BACK    2u
@@ -286,10 +357,25 @@ void hw_audio_i10(void);
 void hw_audio_k(void);
 void hw_audio_j(void);
 void hw_audio_keypage_kj(void);
+void hw_audio_d(void);
+void hw_audio_keypage_d(void);
+void hw_audio_l(u32 which);
+void hw_audio_keypage_l(void);
+void hw_matrix_check(u32 *idle, u32 *map);
+void hw_port_a(u32 *w);
+void hw_scan_pause(void);
+void hw_scan_resume(void);
 void hw_audio_keypage(void);
 void hw_audio_keypage_hi(void);
 u32 hw_audio_key_lit(u32 control);
 void hw_audio_leds(u32 held);
+/* The next key (the owner's request after audio5): the build's suggested
+ * order, one table (hw_audio.c, guide); its next key's LED blinks slowly
+ * and the step row says "next: KEY (what)". */
+void hw_guide_key(u32 control);
+void hw_guide_show(void);
+void hw_guide_tick(void);
+extern u32 hw_guide_at;
 #define HW_STEP_NONE   0u
 #define HW_STEP_TAKEN  1u
 #define HW_STEP_UNDONE 2u

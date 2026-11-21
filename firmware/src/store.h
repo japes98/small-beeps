@@ -236,6 +236,8 @@ extern volatile u32 sb_store_erase_fail;
  * returns 0 when done, -1 if the chip stayed busy or the erase didn't
  * hold. store_crc32 is the store's CRC-32 (the common one). */
 void store_raw_read(u32 addr, u8 *buf, u32 n);
+int store_raw_wait(void);           /* 0 once the chip isn't busy; -1 if it stays busy */
+int store_raw_busy(void);           /* 1 if status register 1 says busy now */
 int store_raw_erase(u32 addr);
 int store_raw_program(u32 addr, const u8 *data, u32 n);
 u32 store_crc32(const u8 *p, u32 n);

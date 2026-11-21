@@ -5034,6 +5034,106 @@ sweep. Built on leds1 (merged with #220), one file.
   26 records.
 - The build's identity is 0.10.0-hw3n: fwsc refuses "hw3m", whose "m"
   would make a marker byte the format's end.
+
+### 2026-11-21 after audio5: three log records with a failing CRC, and the next key (BR-17, R-HW-1)
+The owner's report (docs/prompts/clean-br17-audio5-result.md): audio5's
+run left 65 valid records and three with the magic but a failing CRC, at
+sequence gaps #34, #36 and #45 (about 0x64800, 0x65800 and 0x6A000: the
+ring's slots 33, 35 and 44). And a request: light the key to press next.
+Both go into the next build (with step D, when its prompt comes); audio5
+isn't rebuilt for them.
+
+- **What the run says.** This code skips a sequence number only when a
+  write's page program timed out or its read-back didn't match (errors 4
+  and 5); every other failure keeps the number. The owner's look at the
+  raw bytes (the same prompt file, its second part): each of the three is
+  cut off, its first pages right and its last 256-byte pages still erased
+  (#34 page 7, #36 pages 3-7, #45 pages 6-7), all in fast bursts of
+  records. That is `program` returning at a page whose busy wait said
+  "timed out": the remaining pages are never programmed. Records don't
+  overlap: main writes them one after another.
+- **The cause: time going back.** The busy wait (store.c, `wait_ready`)
+  measures with `sb_now()`, `d = sb_now() - t`, unsigned, against a 3 s
+  limit. The hardware build's `sb_now()` read the slots counted and
+  TIMER0's count in a loop that repeats if a slot's interrupt comes
+  between them, but read the count's wrap flag (`CON` bit 15) after the
+  loop. A slot's interrupt there counts the slot and clears the flag, so a
+  count read after the wrap was paired with the slots before it: one slot
+  (83 us) back in time. A wait that started just after reads a "time" of
+  about 4 000 million units, past the limit at once, and stops while the
+  chip is still programming a page. Many records in a burst give the race
+  more chances. Nothing else ruled in: no page program crosses a page
+  (records start on 2048-byte boundaries, `program` splits at every
+  256-byte page), the limit is 3 s against a page's 3 ms (HW-77), and no
+  interrupt handler or core 1 touches SPI0 or the flash's pins.
+- **The fix.** `sb_now()` reads the wrap flag inside its loop, with the
+  slots and the count, so it never goes back. The log programs a record a
+  page at a time, each finished before the next: a page whose wait says
+  busy is waited on again (up to eight times, counted), and only a chip
+  that stays busy stops the write. Each write also first waits until the
+  chip isn't busy (counting the times it was), reads a mismatch back a
+  second time (a right second read is a read glitch, counted, and the
+  record stands), and on a real failure writes the record again in the
+  next slot under the same number, so no record is lost or number
+  skipped. Each failure is kept, the last four, in every later record
+  (layout 4): its number and slot, the error, which 256-byte pages
+  differ, the first differing byte, how many differing bytes read 0xFF,
+  and the word written and the word read there; with the counts of busy
+  takes, glitches, retries and repeated page waits. The decoder prints
+  each record whose CRC fails with its offset, slot, header, page map (F
+  all 0xFF, 0 all zero, d other bytes) and its blank pages, and the
+  firmware's own counts. A test build (`SB_TEST_LOG_VERIFY_FAIL`)
+  programs the first record with one bit wrong, and case report1 checks
+  it is found, logged, and written again.
+- **Every other difference of two readings** (the owner's follow-up, the
+  same prompt file's third part), in the hardware build, where the race
+  was; build A's `sb_now()` is TIMER4's free-running count, one register,
+  and never had it. The race needs the slot interrupt to come between
+  `sb_now()`'s loop and its flag read, so it could hit main and the audio
+  interrupt (priority 0, which the slot's, priority 2, preempts), never
+  code inside the slot interrupt itself. A step back made one difference
+  about 4 000 million units:
+  - *Could act wrongly:* the flash's busy wait (store.c, `wait_ready`,
+    3 s limit), the log's cut-off records, and the same for the store's
+    start-up counter (its write or erase could have failed at boot; it
+    never did on the unit); and the 12.5 us settle in the matrix sweep and
+    the knob finder (hw_start3.c, `while (sb_now() - t < 300)`), cut to
+    nothing, so one sweep could read a column before it settled: a
+    momentary wrong grid cell on the test screen, or a spurious cell
+    change in the finder (the keys and knobs themselves come from the
+    scan in the slot interrupt, which never had it).
+  - *A wrong number, nothing acting on it:* audio.c's fill time
+    (`fill_last`, `fill_max`) and the audio probe's rate base (hw_audio.c:
+    a `t1` before `t0` just after a fresh base gives one wrong frames a
+    second until the next half, and a needless re-base); ALNK0 never ran
+    on the unit, so neither showed. The store's `init_ticks` and
+    `put_max`, lcd.c's `frame_ticks`, screen.c's `beat_ticks`, main's
+    `render_ticks` and input.c's `led_lag_max`: durations kept for the
+    beacon and the records only.
+  - *Never affected:* everything timed in beats (the slot interrupt counts
+    them): the panel's 500-beat wait, the pages, the settles, K's and J's
+    waits, H's gates, core 1's wait; `sb_tick` and the scan's event times,
+    taken inside the slot interrupt; the engine, MIDI and views, which the
+    hardware build doesn't run.
+- **The race kept out by a test.** In fwtest an interrupt is taken at
+  the first instruction after the wrap, so the race doesn't happen there
+  by itself. A test build (`SB_TEST_NOW_RACE`) makes the slot interrupt's
+  time-keeping (its acknowledge and its count) happen at each of four
+  points between `sb_now()`'s reads, just after TIMER0 has wrapped with
+  interrupts off, 50 times at each; case nowrace checks that no reading
+  is earlier than the one before it. Built with the old order (the flag
+  read after the loop) it fails, every one of the 50 runs at the fourth
+  point going back.
+- **The next key.** One table in hw_audio.c (`guide`) holds the build's
+  suggested order, each entry a key and what it does; now audio5's: GLO
+  (K), GLO (K's undo), REC (bit 9), OCT+ (J), REC (bit 9's undo), OCT+
+  (J), EDIT (a save). The next key's LED blinks, half a second on and
+  half off, refreshed every tenth of a second and through the pages and
+  J's sweep; the step row says "next: KEY (what)" after each key's page
+  (and "next: none" at the end). A press of that key moves on; any other
+  key leaves it. A key lit for its step blinks too while it is next.
+  Step D's build replaces the table with its own order; its case
+  (audio6) checks the guide.
 - **fwtest**: the counter isn't modelled (K's gates time out, its counts
   0); ALNK0's `CON1` and `CON3` are stored (every try read back as
   written); and with ALNK0 running, `CON1` bit 0 sets off a burst of
@@ -5043,3 +5143,138 @@ sweep. Built on leds1 (merged with #220), one file.
   then a second sweep aborted; with ALNK0 running again the third stops at
   `CON1` bit 0 and is put back; the tone at 440 Hz and 44 117.6 frames a
   second after the sweeps, before that try.
+
+### 2026-11-21 clean-br17-audio6: step D, JL_IOMAP->CON5 a bit at a time (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio6.md; HW-155,
+HW-156), allowed by the owner, built on the build after audio5 (the
+sb_now() fix, the log's retries, the next key) as one file
+(docs/prompts/clean-br17-audio6-owner.md).
+
+- **The key.** OCT-, the last free key. A press runs the sweep: `CON5` as
+  read with bit 0 alone set, then bit 1, up to bit 31, each with every
+  other bit as read. A press while it runs stops it after the try in
+  progress (which the firmware undoes as always); a press with a bit kept
+  puts `CON5` back as read. OCT-'s LED is lit while a bit is kept. If J has
+  a bit left set, its register goes back as read before the sweep, logged
+  ("J back for D"). Before its first try the sweep waits (at most 5 s,
+  "release OCT- to start" on the step row) until OCT- is released: held,
+  its cell would differ between a try's baseline and its check (fwtest
+  showed it). A press of OCT- to stop a sweep that lands during a check
+  shows as that try's failed check: undone and stopped all the same.
+- **Each try**, in the prompt's order: (1) a record "D bN before" with
+  `CON5`, `JL_IOMAP` `CON0` to `CON8`, port A's eight registers, `CLK_CON2`,
+  ALNK0's `CON0` to `CON3`, source 11's and core 1's counts, written and
+  verified before anything else; (2) the scan paused, the matrix's
+  baseline taken, `CON5` written with the one bit added and read back;
+  (3) the watch, 100 ms: `CON0` bit 15's changes, `CON2` bit 7 seen,
+  source 11's interrupts, port A's `IN` at its start and end; (4) the
+  matrix check with the bit set; (5) the undo, the firmware's own,
+  unless the link moved with the check right: then the bit stays and the
+  sweep stops; (6) after the undo, port A and `JL_IOMAP` read again and
+  the check repeated, `CON5` read back against the value read before; (7)
+  the scan resumed and the try's record ("D bN", or with "moved", "check
+  BAD", "after BAD", or "kept"). No undo waits on a key.
+- **The matrix check.** 0xFFFF latched (no column): rows PA0, PA5 to PA8
+  and PB7 (HW-117, HW-138, HW-139) must all read high; then each of the 16
+  single-zero column words: the closed cells must be those of the
+  baseline taken just before the write, with the scan paused (so a knob
+  resting with a contact closed doesn't count as a key; a key held during
+  the sweep makes its check fail and stops it); then port A's `DIR`, `DIE`,
+  `PU` and `PD` against step 1's. Its port A writes are the test screen's
+  matrix sweep's own (the LED lines low, the shift register's data, clock
+  and latch). The check fails on any of these, and the try's record says
+  which (rows, cells, port A, `CON5` not back, another `JL_IOMAP` word
+  changed).
+- **Where it stops.** At the first try whose check fails (undone), whose
+  link moves (kept if the check passed, else undone), or whose check after
+  the undo fails; else it runs to bit 31 ("D done"). It takes no further
+  try after a stop.
+- **What D writes.** `JL_IOMAP->CON5` alone. Port A only as the matrix
+  sweep always has; no other `JL_IOMAP` word, no port C, no PLL, no
+  `CLK_CON2` low byte; ALNK0's `CON1`/`CON3` only by putting back what J
+  left.
+- **The log.** Two records a try, about 67 a sweep; two sweeps would
+  overrun the 128-record ring of audio5, so the ring is now 96 sectors
+  (192 records) ending at the app area's end, its base still far above
+  the image (checked before each write). Layout 5 adds D's 81 fields (the
+  last try's every reading) before layout 4's log fields; the decoder
+  prints a D line for each record.
+- **The page and the guide.** A seventh view, D: the state and stop, the
+  try's bit and `CON5` values, the watch's counts, the idle rows and
+  cells before, with the bit set and after, the checks, port A's eight
+  registers before, with the bit set and after (`DIR`, `DIE`, `PU`, `PD`
+  red if they changed), `IN` over the watch, core 1's count. HOME shows all
+  seven; OCT- shows D's and core 1's. The guide's table is now D's order:
+  REC (bit 9), OCT- (D), REC (bit 9's undo), OCT- (D), EDIT; while a bit
+  is kept, OCT- (D's undo) comes first. The identity is 0.10.0-hw3p.
+- **fwtest** stores `CON5` (case audio6 prints whether every try read
+  back as written) and does nothing else with it that the sweep sees: with
+  ALNK0 stopped both sweeps run through all 32 bits, every try put back
+  and both checks passing; with ALNK0 running its link moves at bit 0, so
+  the sweep keeps that bit, and a press puts it back. A test build
+  (`SB_TEST_D_CHECK_FAIL`) makes the check at bit 2 fail: the sweep
+  undoes that try itself and stops.
+
+### 2026-11-21 clean-br17-audio7: set-ups L1 and L2, D held (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio7.md; HW-157, HW-158),
+allowed by the owner, into the same build as audio6 and the fixes after
+audio5, one file (docs/prompts/clean-br17-audio7-owner.md).
+
+- **D held.** D's code stays (OCT- still runs it), but it is out of the
+  guide's order; its view's title says it is held, and the state box
+  shows it as `h` until it is run. A D result in this run counts for
+  nothing.
+- **Keys.** KEY1 (the keyboard's lowest key) takes L1, KEY2 L2: every
+  panel button was taken. A set-up kept running is put back by a press
+  of either key; its own key does only that, the other then runs its
+  own set-up. Each key's LED is lit while its set-up is kept.
+- **A set-up**, HW-157's driver's order on ALNK0's own registers alone:
+  `CON0` as read with bit 11 clear, then `CON3` (L1 `0xC2`: the
+  oscillator, divided by 1, 512 master clocks a frame; L2 `0x83`: the
+  PLL's audio clock, by 1, 256), then `CON1` = `0x1000` (data 3 an I2S
+  output, 16-bit), then `CON0` as read with bit 11 set and bits 7 and 8
+  clear; each read back. `ADR3`, `LEN` and the buffer stay as audio1 set
+  them; `CON2` is written only as audio1's handler does; `CLK_CON2` bit 9
+  only by REC. As D does, a set-up first waits (at most 5 s, "release
+  KEYn to start") for its key to be released, so the matrix check sees no
+  key held. With D's safety machinery: (1) a record before, with
+  `CON0` to `CON3`, `LEN` and `ADR3` as they read back (both are
+  write-only in the SDK's header; the expectations use `LEN` as read if
+  not 0, else the 128 audio_start wrote), `CLK_CON1`, `CLK_CON2`, port A,
+  source 11's and core 1's counts, and the expected frames a second
+  (46 875 for L1, 44 117.6 for L2) with the halves a second that gives
+  by each reading of `LEN` (HW-157's: a half `LEN` frames; fwtest's,
+  HW-44: `LEN` / 2); (2) the scan paused, the matrix's baseline, the
+  writes; (3) a 1 s watch: bit 15's changes, `CON2` bit 7, source 11's
+  interrupts, and the halves timed against `sb_now()` from the first
+  change to the last, as halves a second and frames a second by each
+  `LEN` reading; (4) D's matrix check with the set-up in place; (5) kept
+  if the link moved with the check right, else `CON0`, `CON1` and `CON3`
+  put back as read, in that order, each read back; (6) the check again
+  and the three against step 1's; (7) the record ("L1 kept", "put back",
+  "check BAD", ...). Any failure stops: no further set-up is taken.
+- **The guide**: L1, REC (bit 9), L2, REC (bit 9's undo), L2, EDIT (a
+  save); while a set-up is kept its own key ("L1 undo", "L2 undo") comes
+  first, which is the prompt's "undo if it was kept".
+- **The log**: L's 78 fields don't fit a 2048-byte record beside the
+  rest, so layout 6's records are 4096 bytes, a sector each, 96 in the
+  ring; the ring's first read now finds records of every size (looking
+  at every 1024 bytes), so the numbers go on from the last build's. With
+  96 records the ring holds one of D's sweeps (about 67 records) and
+  part of another: if D is run twice, the first sweep's oldest records
+  give way (D is held in this build). This run's L1 and L2, with their
+  undos, pages and the rest, take about 30. The
+  decoder prints an L line for each record, with both `LEN` readings
+  beside the expected rates.
+- **The page**: an eighth view, L: the set-up's state, `CON0` to `CON3`
+  and `LEN` before, each write and read-back, the counts, the halves and
+  frames a second by each reading beside the expected, the checks, what
+  was put back, port A before, set up and after. KEY1 and KEY2 show it,
+  then core 1's; HOME shows all eight.
+- **fwtest** stores `CON1` and `CON3` and plays the link whatever they
+  hold (HW-44, HW-45), so in case audio7 each set-up is kept, its halves
+  read fwtest's 44 117.6 by fwtest's `LEN` reading, and its key puts the
+  three back as read. A test build (`SB_TEST_L_CHECK_FAIL`) fails L1's
+  check: the firmware puts it back and refuses the next set-up. The
+  identity is 0.10.0-hw3q.
+

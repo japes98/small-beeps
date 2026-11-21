@@ -377,6 +377,16 @@ void store_raw_read(u32 addr, u8 *buf, u32 n)
     read(addr, buf, n);
 }
 
+int store_raw_wait(void)
+{
+    return wait_ready();
+}
+
+int store_raw_busy(void)
+{
+    return (status_read(CMD_STATUS) & STATUS_BUSY) != 0;
+}
+
 int store_raw_erase(u32 addr)
 {
     return erase(addr);

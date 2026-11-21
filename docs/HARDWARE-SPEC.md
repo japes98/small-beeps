@@ -663,7 +663,7 @@ least significant. Register names are the JieLi SDK's.
   `0x007FFFFF`, `0xFF800000`, `0x01000000` and `0x00000080` came out as
   32767, -32768, 32767 and 0, and a left ramp written as value × 256 came
   out as the values; HARNESS ("audio.wav").
-- Standing: confirmed (E-9)
+- Standing: confirmed (E-9; fwtest only: on the unit a half is `LEN` frames, HW-159)
 - Needed by: M4
 
 ### HW-45: The output's rate and halves
@@ -679,7 +679,7 @@ least significant. Register names are the JieLi SDK's.
   at 1.459 ms), the first to finish was half 0, and `CON0` bit 15 inverted
   named it each time; RE `docs/io/03-audio-dac.md` §5.3 (the meaning of
   `CON2` bit 7 and of `CON0` bit 15 in this block); HARNESS ("audio.wav").
-- Standing: confirmed (RE, E-9)
+- Standing: confirmed (RE, E-9; fwtest's half length differs from the unit's, HW-159)
 - Needed by: M4
 
 ### HW-46: When fwtest takes the samples, and what it measures
@@ -3937,7 +3937,8 @@ AC7911B datasheet. HW-144 to HW-146 add to HW-140 to HW-142, which stand.
   registers": `0x51000`, `0x51030`); HW-45, HW-53, HW-141, HW-144.
 - Standing: confirmed (SDK, MB, RE; bit 9's meaning only from the SDK's
   switched-off definitions and against FM-1-RE; the 192 MHz source and
-  PLL2's part open)
+  PLL2's part open; on the unit the link runs from the PLL's audio clock
+  with bit 9 clear and not with it set, HW-159)
 - Needed by: M4, BR-17 (Phase B)
 
 ### HW-146: Routing ALNK0 to port C, the pins and the link's mode (SR-20, Q-9)
@@ -4441,7 +4442,72 @@ FM-1's chip.
 - Sources: SDKAW (HW-157); UNIT (HW-153, HW-155); SDK `WL82.h` (HW-43),
   `clock_hw.h` (HW-53); RE (HW-45, HW-142); HW-44, HW-145, HW-146.
 - Standing: confirmed (UNIT, SDK, RE; that the FM-1's chip uses the
-  AW30N's `CON0`, `CON1` and `CON3` fields inferred, not given)
+  AW30N's `CON0`, `CON1` and `CON3` fields inferred, not given; the
+  values tried hold on the unit, HW-159)
+- Needed by: M4, BR-17 (Phase B)
+
+## 44. audio7 on the unit: ALNK0 runs
+
+Read back exactly from the flash log of this repository's build audio7
+(hw3q, clean's #227) on the owner's unit, relayed on 2026-11-21 (source
+UNIT, docs/prompts/spec-audio7-unit.md). HW-159 gives the results; HW-160
+says what they settle and what stays open.
+
+### HW-159: audio7: ALNK0 runs from the oscillator and from the PLL's audio clock with bit 9 clear (Q-9)
+- Fact: On the owner's unit, started by m-bootloader, ALNK0 set up as
+  audio1 does (`LEN` 128, data 3's buffer at `ADR3`), then, each written
+  and read back the same:
+  1. **L1:** `CON3` `0xC2`, `CON1` `0x1000`, `CON0` `0x0800`, with
+     `CLK_CON2` `0x00000006`. The link ran: 366 half changes and 366
+     interrupts on source 11 in one second, 366.2 halves a second.
+  2. **L2 with `CLK_CON2` bit 9 set** (`0x00000206`): `CON3` `0x83`,
+     `CON1` `0x1000`, `CON0` `0x0800`. Nothing moved: no half change, no
+     interrupt.
+  3. **L2 with bit 9 clear** (`0x00000006`): the link ran: 345 half
+     changes and 345 interrupts, 344.7 halves a second.
+  4. Every set-up was undone (by key when kept, by the firmware
+     otherwise) and put back cleanly; the matrix's idle rows read `0x3F`
+     before, during and after each, port A did not change, core 1 kept
+     counting, nothing hung, and no log write failed.
+- Sources: UNIT: audio7's flash log (hw3q), read back by the owner and
+  relayed on 2026-11-21 (docs/prompts/spec-audio7-unit.md); HW-157,
+  HW-158.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-160: What audio7 settles: the link's clocks, LEN and bit 9 (Q-9, Q-2)
+- Fact:
+  - **The AW30N's fields hold here** for the values tried (HW-157,
+    HW-158): `CON1` `0x1000` gives data 3 a channel; `CON3`'s source 2
+    is a clock of 24 MHz and source 3 one of 11.29 MHz, each with `CON3`
+    bits 5-7 setting master clocks a frame.
+  - **`LEN` counts frames a half** on the chip, in 16-bit mode: 366.2
+    halves a second with `LEN` 128 is 46 873.6 frames a second against
+    24 MHz / 512 = 46 875, and 344.7 is 44 121.6 against 192 MHz / 17 /
+    256 = 44 117.6, each within 0.01 % (the timer's own accuracy is not
+    given). Under fwtest's reading (`LEN` / 2 frames a half, HW-44,
+    HW-45) both would be twice the expected rate. So the unit and fwtest
+    differ here: fwtest plays `LEN` 32-bit words a half, the chip `LEN`
+    frames.
+  - **The buffer in 16-bit mode.** The AW30N's driver sizes a half as
+    `LEN` frames of two 16-bit samples, four bytes a frame (HW-157), the
+    same bytes as `LEN` 32-bit words. Which half of each word is the
+    left sample is not given, and neither is the bit layout in 24-bit
+    mode.
+  - **44 117.6 frames a second needs no PLL write**: the PLL's audio
+    clock reaches ALNK0 as m-bootloader leaves the clocks, with
+    `CLK_CON2` bits 8 and 9 clear.
+  - **Bit 9 stops it.** With `CLK_CON2` bit 9 set, the PLL's audio clock
+    does not reach the link; the oscillator source does not depend on
+    it (L1 ran with bit 9 clear; L1 with bit 9 set was not tried). That
+    is the opposite of the SDK's switched-off definition of bit 9 as
+    ALNK0's clock enable (HW-145).
+  - **Still open:** the pins (the group select's value; HW-146), the
+    part outside the chip, if any, and the amplifier (HW-141).
+- Sources: UNIT (HW-159); SDKAW (HW-157); SDK (HW-53, HW-145); E-9
+  (HW-44, HW-45); HW-141, HW-146, HW-158.
+- Standing: confirmed (UNIT, SDK, E-9; the timer's accuracy, the sample
+  layout in a word and the routing open)
 - Needed by: M4, BR-17 (Phase B)
 
 ## Open questions
@@ -4589,6 +4655,11 @@ spec request can turn one into a fact.
   ALNK0 here, and in them `CON1` and `CON3` at 0 leave the link with no
   channel and no clock. Whether the FM-1's chip uses the same fields is
   open.
+  *Session spec-audio7-unit (HW-159, HW-160):* ALNK0 runs on the unit:
+  from the oscillator (46 873.6 frames a second) and from the PLL's audio
+  clock with `CLK_CON2` bit 9 clear (44 121.6), not with bit 9 set; `LEN`
+  is frames a half. Still open: routing data 3 to the pins, the part
+  outside the chip, the amplifier and headphone sensing.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores
