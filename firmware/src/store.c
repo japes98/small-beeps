@@ -370,6 +370,29 @@ static int program_verify(u32 addr, const u8 *data, u32 n)
     return STORE_OK;
 }
 
+#if defined(SB_HW_REPORT)
+/* The report log's way to the flash (store.h). */
+void store_raw_read(u32 addr, u8 *buf, u32 n)
+{
+    read(addr, buf, n);
+}
+
+int store_raw_erase(u32 addr)
+{
+    return erase(addr);
+}
+
+int store_raw_program(u32 addr, const u8 *data, u32 n)
+{
+    return program(addr, data, n);
+}
+
+u32 store_crc32(const u8 *p, u32 n)
+{
+    return crc32(p, n);
+}
+#endif
+
 /* --- Records ---------------------------------------------------------- */
 static u32 sector_addr(u32 s)
 {

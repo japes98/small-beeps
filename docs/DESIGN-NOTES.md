@@ -4832,3 +4832,129 @@ file. The owner allowed A and B and nothing else.
   440 Hz and 44 117.6 frames a second (`CLK_CON2` has no effect there,
   HW-53, and A restarts the link as HW-45 says). Case audio3 checks that
   ARP is refused without bit 9.
+
+### 2026-11-21 clean-br17-report1: a report log in the flash (BR-17, R-HW-1)
+The owner's request (docs/prompts/clean-br17-report1.md): photos are too
+slow and error-prone, so after a run the owner reads the whole 1 MiB flash
+back in download mode and it is decoded. With the owner's unit
+observation (docs/prompts/clean-br17-report1-unit.md): the store's record
+at 0xFC000 reads back as plain bytes, and the sectors outside the image and
+the store hold older data.
+
+- **Where.** A ring of the 32 sectors ending at 0x93FFF, the end of the
+  app area (HW-80). The repo's rule for a region of the firmware's own
+  (tools/store-region.pl, R-STORE-12, from HW-80 and HW-110) allows the
+  app area after the image; an install writes only its image's range
+  (HW-110) and a start writes nothing (HW-112), so installing a new build
+  never touches it, and it is out of the store, the boot area, the stock
+  layout's regions past the app area and the last sector. The request
+  says "a flash sector"; one 4 KiB sector holds four of these records and
+  a wrap would erase them all, while one audio3-style run makes some 40,
+  so the log takes 32 sectors (128 records), as the reading taken. Before
+  each write the image's end is checked to be at least a sector below
+  the ring. hw_fm1.h's HW_LOG_* is the one definition.
+- **Never blank.** Each sector is erased, and read back as erased (the
+  store's erase), before its first record unless all of it already reads
+  erased; a record whose slot isn't erased moves to the next sector's
+  start. So the first run on the unit erases the ring's sectors one at a
+  time as it reaches them, and the older data past them stays.
+- **A record** is 1024 bytes, little-endian words: the magic "SBRL", the
+  layout (1) and the field count, a sequence number, the beat, the
+  build's identity (16 bytes: the package's version, "0.10.0-hw3k"), a
+  label (16 bytes), the fields, zeros, and the CRC-32 (the store's) of
+  everything before. Layout 1's 155 fields (layout 2 since audio4): core 1's count, `C1_CON`, the
+  store's counter and result, the window's `CON`, the flash's ID and
+  status; then, in the audio build, audio1's 22 registers and audio2's 13
+  read at the record, the counts and frames a second, each step's state,
+  presses and readbacks, the refusals, core 1's marks, the corex2 words
+  and each step's snapshots. A new field goes at the end with a new
+  layout number; the decoder names fields by layout.
+- **The ring.** At a run's first record every slot is read; the next
+  record follows the newest valid one by sequence, or starts at slot 0
+  with sequence 1. A slot written to, even if its read-back failed, is
+  never reused before the ring comes round, and its number isn't either.
+- **When.** At the end of boot (the test screen up), at each page's
+  start (after its settle, the first time), after each step key's write
+  or refusal (REC, SEQ, ARP, SAVE, labelled with what happened), and on
+  EDIT ("save key"), which was free. Each write takes the flash from the
+  code window and gives it back as the store's counter does, names itself
+  on the step row first ("report: writing #n"), then says "saved #n" or
+  what failed (no flash, image too long, erase, program, verify). Without
+  the round trip there is no flash access, and the record is refused.
+  The take and give-back has run only at boot on a unit before; now it
+  runs with core 1 running and the tone on.
+- **The decoder** (tools/report_decode.py, Python 3, standard library):
+  searches every 4-byte boundary of the image for the magic, so a record
+  outside the ring still turns up, checks each CRC, and prints the records
+  by sequence with their fields named (states in words, counts in
+  decimal, registers in hex; fields 0 in every record left out unless
+  --all; --json for tools). With no valid record it says so, and whether
+  the ring is erased, holds other bytes, or holds the magic with failing
+  CRCs. A failing CRC outside the ring isn't counted: the magic is also a
+  constant in the firmware's own image.
+- **fwtest** (case report1): from a chip whose ring holds older data, the
+  nine records of boot, the pages, REC, ARP, ARP's undo and EDIT, numbered
+  1 to 9 in the first slots, the third sector's rest erased and the
+  sectors past it untouched; the last record's fields match the probe's
+  RAM; a second run numbers on (10, 11); a full ring of valid records
+  loses its oldest sector to the next record and keeps the rest.
+- **The candidate** is audio3's build with the log (`SB_HW_REPORT`), so
+  its run repeats audio3's and compares with the photos. Every hardware
+  candidate from now on is built with it.
+
+### 2026-11-21 clean-br17-audio4: steps H and I, in report1's build (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio4.md; HW-150 to
+HW-152, SR-21), with the owner's rulings allowing H and I and nothing
+else new, into report1's build and branch so the owner flashes one file.
+
+- **Keys.** ENV takes step H and FX measures again while it is taken; LFO
+  takes step I and SEL adds `CLK_CON2` bit 10 while it is taken; a second
+  ENV or LFO undoes. All four were free; the page's H and I view names
+  them.
+- **Step H** (HW-151): `CLK_CON1` bits 4-6 set by read-modify-write of
+  those bits alone, first to 3 (the high-speed bus, a check: 180 MHz
+  over the 24 MHz crystal is 7.5 times the gate, HW-119 and HW-54), then
+  to 5 (the audio clock), in whatever state REC, B and I left `CLK_CON2`.
+  `JL_GPCNT->CON`: counted clock 4 (the clock system's input), gate clock
+  1 (the crystal), gate 32 x 2^10 = 32 768 cycles (1.37 ms), enabled with
+  the pending flag cleared. Since when `NUM` holds a gate's count isn't
+  given, each measurement takes two readings, each after the pending flag
+  (bit 7) or a 20 ms timeout, the flag cleared with bit 6 after each, and
+  logs both and the timeouts. The undo writes back `CLK_CON1` and
+  `JL_GPCNT->CON` as read before the first press. The prompt's expected
+  audio clocks, about 11.29 MHz (bit 8 clear) and 12.31 MHz (bit 8 set),
+  would read about 15 410 and 16 810 a gate.
+- **Step I** (HW-140, HW-145): ALNK1 at 0x00015100, set up as ALNK0 is
+  in fwtest (`ADR3` its own silent buffer, `LEN`, `CON2` bit 3, `CON0`
+  bit 11 added to the value read), and `CLK_CON2` bit 11 alone; source
+  12 is never enabled. ALNK1 is polled for 1 s: `CON0` bit 15's changes
+  and `CON2` bit 7 seen (cleared with bit 3), giving halves a second. The
+  undo writes back `CON0` and `CLK_CON2` as read before the first press.
+- **Undo order.** REC, B and I all write `CLK_CON2` back as read before
+  their own press, so undoing one taken earlier would clear a later
+  one's bit behind its back. Of the three, only the one taken last can be
+  undone; the others are refused, the step row naming the step to undo
+  first (this replaces audio3's "REC's undo refused while B is taken").
+- **The page** gets a fifth view, H and I: H's `CLK_CON1` and `CON`
+  sequences, its counts (the bus count per 1000 gate cycles, 7500
+  expected; the audio clock in kHz) and `CLK_CON2` at each; I's ALNK1
+  registers before, after and put back, `CLK_CON2`'s sequence, the poll
+  and ALNK1 now. H's and I's keys show it, then core 1's view; HOME shows
+  all five; the first page keeps its four. The steps view lists all six
+  steps; the test screen's state box adds H and I.
+- **The log**: layout 2, 219 fields: layout 1 with six steps' snapshots,
+  then H's and I's readbacks and counts, `CLK_CON1`, `JL_GPCNT` and
+  ALNK1's registers as read at the record, and the `CLK_CON2` steps
+  taken. A record after every H, FX, I and SEL press and each refusal,
+  and at each page; the decoder prints H's counts as a multiple of the
+  gate and in MHz.
+- **A bug found on the way:** the step row's `draw_step` built "step n: "
+  and the text in a 48-byte stack buffer with no bound, so a 40-character
+  text after a two-digit step number overran it (in fwtest, a jump into
+  RAM after I's first step text). It now stops at the row's 40
+  characters, and the probe's text buffers are larger. The earlier
+  builds' texts stayed just inside it.
+- **fwtest** models neither `JL_GPCNT` nor ALNK1: their registers read 0,
+  so H's gates time out and ALNK1 doesn't play; case audio4 checks every
+  write, read-back, undo and refusal, and the log's records, and prints
+  that.
