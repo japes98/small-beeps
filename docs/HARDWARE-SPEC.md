@@ -80,6 +80,7 @@ least significant. Register names are the JieLi SDK's.
 |-----|--------|
 | SDK | JieLi AC79 SDK, `Jieli-Tech/fw-AC79_AIoT_SDK` (Gitee), commit `5fa84a9b2f723a5e9337ad79dc2ad741fc98fe2d`, Apache-2.0 (PROVENANCE P-2, P-10). `WL82.h` and `csfr.h` are vendored in `vendor/jieli-sdk/include_lib/driver/cpu/wl82/asm/`; the other files cited are at the same commit and path prefix. Line numbers refer to that commit. |
 | SDK63 | JieLi AC63 Bluetooth SDK, `https://github.com/Jieli-Tech/fw-AC63_BT_SDK`, commit `fdc018de81629e21e594d677cf05f87d288be0f0` (2025-03-18), Apache-2.0 (its `LICENSE`, SHA-256 `c71d239d…5d0ab4`) (PROVENANCE P-48). **Different chips:** its `cpu/br23/`, `cpu/br25/` and `cpu/bd29/` parts, not the FM-1's chip. Read file by file, not vendored; line numbers refer to that commit. |
+| SDKAW | JieLi AW30N SDK, `https://github.com/Jieli-Tech/AW30N`, commit `0eae1336a89333d3a919db12d5731a8236d33e45` (2026-07-06), Apache-2.0 (its `LICENSE`, blob `29f81d81`) (PROVENANCE P-509). **A different chip** (its `cpu/bd49/` parts), not the FM-1's chip. Read file by file through GitHub's API, each checked against its git blob hash, not vendored; line numbers refer to that commit. Allowed by the owner's ruling of 2026-11-21 (docs/prompts/spec-jieli-sources.md). |
 | RE | AL-255/FM-1-RE (GitHub, WTFPL), commit `ec832f281ca165a7d5e0722985f3acb1465046d5`: its hardware and boot documents `docs/reversing/01-hardware-map.md`, `docs/io/01-boot.md`, `docs/io/03-audio-dac.md`, `docs/io/08-display.md`, `docs/io/09-storage.md` (PROVENANCE P-9); since SR-8 also `docs/io/05-midi.md`, `docs/io/06-usb.md` and `docs/reversing/04-subsystems.md` (PROVENANCE P-41); since SR-9 also `docs/architecture.md`, `docs/io/11-ota-protocol.md`, `docs/io/12-v15-reflash-proof.md` and `docs/reversing/02-boot-and-runtime.md` (PROVENANCE P-51). Only their hardware facts are used here. Since evening-1024 `docs/io/09-storage.md` is for the spec side only (CONTRIBUTING.md); the firmware side takes its facts from here. |
 | JL7911B | Zhuhai Jieli Technology's "AC7911B Datasheet", V1.1, 2021-09-03, 16 pages, as LCSC serves it from `https://atta.szlcsc.com/upload/public/pdf/source/20241209/7B2C0C261932781E1CA5530337098F4C.pdf`, accessed 2026-10-25, SHA-256 `c7f35c89…2bf1022` (PROVENANCE P-56). The AC7911B is one of the AC791N's packages (the SDK builds its AC791N apps for it, `board_7911B_cfg.h`); which package the FM-1 carries is not known, so its pin numbers are not the FM-1's, only its pin functions are used. Page numbers as printed. |
 | DS | Sitronix ST7789V datasheet, version 1.3 (2014-03), 316 pages, from `https://www.newhavendisplay.com/appnotes/datasheets/LCDs/ST7789V.pdf`, SHA-256 `8ecf0e43…5d04ca1` (PROVENANCE P-11). Page numbers as printed. |
@@ -4331,6 +4332,111 @@ to HW-153; HW-156 says what it means.
   of `CON1`, `CON3` and `CON5` open)
 - Needed by: M4, BR-17 (Phase B)
 
+## 43. The audio link in JieLi's own open SDKs (the owner's source ruling)
+
+By the owner's ruling of 2026-11-21 (docs/prompts/spec-jieli-sources.md)
+the spec side may read JieLi's own Apache-2.0 SDKs at
+github.com/Jieli-Tech. Of those, only the AW30N SDK has the audio link's
+driver as source; the AC63 SDK (SDK63) has its headers only (its pin
+groups for other chips; no register bits). HW-157 gives what the AW30N
+SDK says for its own chip; HW-158 sets it against what is known of the
+FM-1's chip.
+
+### HW-157: The audio link's fields on the AW30N's chip (bd49) (Q-9)
+- Fact: On the AW30N SDK's chip (bd49), not the FM-1's:
+  1. **Layout.** `JL_ALNK0` is `CON0` (16 bits), `CON1` (16), `CON2`
+     (8), `CON3` (8), `ADR0` to `ADR3`, `LEN`, then pointer registers
+     the FM-1's chip's header doesn't have (HW-43).
+  2. **`CON0`.** Bit 6 the extended (DSP) modes; bit 7 the bit clock
+     and word select driven out to their pins; bit 8 the master clock
+     driven out; bit 9 set for 32 bit clocks a frame, clear for 64;
+     bit 10 the bit clock's edge; bit 11 the link on. Bits 12 to 15
+     read which half of its buffer data channels 0 to 3 are on.
+  3. **`CON1`, four bits a data channel** (channel n at bits 4n to
+     4n+3): the low two bits are the channel's mode, 0 off, 1 I2S, 2
+     left-justified, 3 right-justified (the DSP modes with `CON0` bit
+     6); the third bit, 24-bit data (with 64 bit clocks a frame); the
+     fourth, the direction, 1 in and 0 out. Data 3's are bits 12 to 15.
+  4. **`CON2`.** Bits 4 to 7 are data channels 0 to 3's half-done
+     flags; writing bits 0 to 3 as 1 clears them.
+  5. **`CON3`, the clocks.** Bits 0-1 the master clock's source: 0 from
+     outside the chip, 1 the system clock, 2 the oscillator, 3 the PLL's
+     audio clock. Bits 2-4 divide it by 1, 2, 4, 8 or 16 (values 0 to
+     4). Bits 5-7 make the word select from it: 0 from outside (as a
+     slave), then 1 to 7 for 64, 128, 192, 256, 384, 512 and 768 master
+     clocks a frame.
+  6. **`LEN`** is the points a buffer holds (the driver writes 64);
+     each channel's `ADRn` is its buffer's address.
+  7. **The driver's order.** Clear `CON0` to `CON3`; clear the flags
+     (`CON2` = `0xF`); take the link's interrupt; master clock from the
+     PLL's audio clock (`CON3` bits 0-1 = 3); for a master, set each
+     used pin as an output driven high, route the link's output to it
+     and set `CON0` bits 7 and 8; set the mode, data width, edge and
+     frame length; write `LEN`; set the rate (below); per data channel,
+     its mode and direction in `CON1`, its `ADRn` and its pin; then
+     `CON0` bit 11.
+  8. **The rate.** The PLL's audio clock is 192 MHz / 17 (11.294 MHz)
+     for 44.1 kHz rates or 320 MHz / 26 (12.307 MHz) for 48 kHz, chosen
+     in that chip's own clock registers. 44.1 kHz is 11.294 MHz / 1 /
+     256 (`CON3` bits 2-4 = 0, bits 5-7 = 4), which the SDK names
+     44 117 Hz; its 48 kHz is 48 077 Hz.
+  9. **`CLK_CON1` bits 2-3** are named the audio clock's input: 0 the
+     PLL's 48 MHz, 1 the oscillator, 2 the low-speed bus, 3 off. The
+     driver checks that an audio clock is open before any set-up (the
+     check is in prebuilt code).
+- Sources: SDKAW `sdk/apps/include_lib/cpu/bd49/iis.h` (blob
+  `d7fcd8b1`) lines 4-45; `sdk/apps/app/bsp/cpu/bd49/audio_link/audio_link.c`
+  (blob `8591e86f`) lines 23-93, 196-300, 330-360;
+  `sdk/apps/include_lib/cpu/bd49/audio_link/audio_link.h` (blob
+  `75805bc3`) lines 22-65; `sdk/apps/include_lib/cpu/bd49/bd49.h` (blob
+  `104ad6f4`) lines 970-997; `sdk/apps/include_lib/cpu/bd49/clock_hw.h`
+  (blob `a8aa698a`) lines 128-133, 262-280, 405-406; SDK63
+  `cpu/br23/audio_common/audio_link.h` (blob `ba5a9893`) lines 12-16
+  (pin groups only).
+- Standing: other chip (SDKAW)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-158: The AW30N's audio link set against ALNK0 on the FM-1's chip (Q-9)
+- Fact:
+  - **Where they agree.** Everything known of ALNK0 on the FM-1's chip
+    fits HW-157: the registers' order to `LEN` (HW-43); `CON0` bit 11
+    starts the link and bit 15 reads data 3's half (HW-45); `CON2` bit 7
+    is data 3's flag, cleared by bit 3 (HW-45, HW-142); `CON1` holds 16
+    bits and `CON3` 8 (HW-155); and `CLK_CON1` bits 2-3 at 0 give 48 MHz
+    on the unit (HW-155), as HW-157 names it and not as the AC79 SDK's
+    "PLL 24 MHz" (HW-53). The bit positions above bit 11 in `CON0`, and
+    every field of `CON1` and `CON3`, are given for the AW30N's chip
+    only; that the FM-1's chip uses the same is inferred from this
+    agreement, not given.
+  - **What it would mean for audio1 to audio5.** Every build so far
+    leaves `CON1` and `CON3` at 0 (HW-146, HW-153). In HW-157's layout,
+    that is every data channel off, and the master clock taken from
+    outside the chip with the word select from outside as well, so the
+    link would have no channel and no clock of its own whatever
+    `CLK_CON2` holds. A single bit gives at most one of the two (J tried
+    each alone, HW-155). In fwtest the link plays without them
+    (HW-44, HW-45).
+  - **A clock with no PLL write.** In HW-157's layout `CON3` bits 0-1 =
+    2 takes the master clock from the oscillator (24 MHz, measured on
+    the unit, HW-155); with bits 2-4 = 0 and bits 5-7 = 6 (512 a frame)
+    that is 46 875 frames a second; 1, the system clock, is the other
+    choice. Only 3, the PLL's audio clock, needs the clock bits that
+    `CLK_CON2` bits 8 and 9 may be (HW-145). Arithmetic on HW-157's
+    layout, untried on the FM-1's chip.
+  - **Pins.** The AW30N's driver sets each pin the link drives as an
+    output driven high before routing it (HW-146 left open whether the
+    link needs `DIR` 0). Its routing is per pin, unlike the FM-1's
+    chip's groups (HW-146), so it gives no value for `JL_IOMAP->CON5`.
+    The link's mode and data width (HW-146) are given for the AW30N's
+    chip by HW-157.
+  - **`LEN`.** HW-157's `LEN` counts points a buffer; fwtest's counts
+    32-bit words a half (HW-44). Which the chip uses is open.
+- Sources: SDKAW (HW-157); UNIT (HW-153, HW-155); SDK `WL82.h` (HW-43),
+  `clock_hw.h` (HW-53); RE (HW-45, HW-142); HW-44, HW-145, HW-146.
+- Standing: confirmed (UNIT, SDK, RE; that the FM-1's chip uses the
+  AW30N's `CON0`, `CON1` and `CON3` fields inferred, not given)
+- Needed by: M4, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -4471,6 +4577,11 @@ spec request can turn one into a fact.
   clock, 48 MHz at choice 0; no single bit of ALNK0's `CON1` or `CON3`
   starts it. The owner has ruled D (`JL_IOMAP->CON5`) next, by its own
   prompt.
+  *Session spec-jieli-sources (HW-157, HW-158):* JieLi's own AW30N SDK
+  gives its chip's audio link fields; they fit everything known of
+  ALNK0 here, and in them `CON1` and `CON3` at 0 leave the link with no
+  channel and no clock. Whether the FM-1's chip uses the same fields is
+  open.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores
