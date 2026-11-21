@@ -320,6 +320,19 @@ static void hw_test_screen(void)
 }
 #endif
 
+/* A key's LED level (leds1): lit while it is held; with the audio probe,
+ * a step key's also while its step is taken (hw_audio_key_lit). */
+static u32 hw_led_level(const struct input_event *e)
+{
+    if (e->kind == INPUT_PRESS)
+        return INPUT_LED_FULL;
+#if defined(SB_HW_AUDIO1)
+    return hw_audio_key_lit(e->control) ? INPUT_LED_FULL : 0;
+#else
+    return 0;
+#endif
+}
+
 static void hw_serve(void)
 {
     struct input_event e;
@@ -335,6 +348,11 @@ static void hw_serve(void)
                 hw_show_turn(e.control, e.value);
             continue;
         }
+        /* leds1 (the owner's request): every key's LED follows it, before
+         * any key's own work, so the keys that are handled below light
+         * too. */
+        if (e.control < INPUT_LEDS && (e.kind == INPUT_PRESS || e.kind == INPUT_RELEASE))
+            input_led(e.control, hw_led_level(&e));
 #if defined(SB_HW_FINDER)
         /* HOME opens the knob finder, for good (hw_start3.c). */
         if (e.control == INPUT_HOME && e.kind == INPUT_PRESS)
@@ -357,6 +375,7 @@ static void hw_serve(void)
          * the page, then the test screen. */
         if (e.control == INPUT_REC && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
             hw_audio_step();
+            hw_audio_leds(e.control);
             hw_audio_keypage();
             hw_test_screen();
             continue;
@@ -370,6 +389,7 @@ static void hw_serve(void)
                 hw_audio_a();
             else
                 hw_audio_b();
+            hw_audio_leds(e.control);
             hw_audio_keypage();
             hw_test_screen();
             continue;
@@ -388,6 +408,7 @@ static void hw_serve(void)
                 hw_audio_i();
             else
                 hw_audio_i10();
+            hw_audio_leds(e.control);
             hw_audio_keypage_hi();
             hw_test_screen();
             continue;
@@ -396,6 +417,7 @@ static void hw_serve(void)
          * back the CON0 read before; then the page, then the test screen. */
         if (e.control == INPUT_SEQ && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
             hw_audio_alnk();
+            hw_audio_leds(e.control);
             hw_audio_keypage();
             hw_test_screen();
             continue;
@@ -408,7 +430,7 @@ static void hw_serve(void)
 #endif
         if (e.control >= INPUT_LEDS || (e.kind != INPUT_PRESS && e.kind != INPUT_RELEASE))
             continue;
-        input_led(e.control, e.kind == INPUT_PRESS ? INPUT_LED_FULL : 0);
+        input_led(e.control, hw_led_level(&e));
         if (sb_beacon.screen == SB_SCREEN_TEST)
             hw_show(&e);
     }

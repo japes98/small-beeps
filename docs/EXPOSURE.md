@@ -3550,6 +3550,23 @@ SR-3 wrote only its barrier-log row.*
   vendored SDK `WL82.h` for `JL_GPCNT` and `JL_ALNK1`.
 - Disk: about 5 GB free.
 
+### Session clean-br17-leds1 (BR-17: the keys' LEDs)
+- Date: 2026-11-21 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.329, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-report1's, continued. The owner's message saved unedited as
+  docs/prompts/clean-br17-leds1.md. #217 closed at the owner's request
+  (replaced by #218).
+- Start: on #218's branch (not yet merged), so the PR stays cumulative.
+  Nothing to archive (the last clean session is this one, live).
+- Reads: this side's own code (`main.c`, `hw_audio.c`, `input.h`,
+  tools/seams_suite.py's LED checks, docs/HARNESS.md's `leds.csv`).
+- Disk: about 5 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

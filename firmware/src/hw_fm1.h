@@ -130,7 +130,7 @@ void hw_rows_start(void);
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
 /* The build's identity in each record: the package's version, which the
  * candidate's pack must match (tools/report-decode.py prints it). */
-#define HW_BUILD_ID    "0.10.0-hw3k"
+#define HW_BUILD_ID    "0.10.0-hw3l"
 struct hw_report {
     u32 scanned;                /* the ring read once */
     u32 found;                  /* valid records found then */
@@ -254,6 +254,8 @@ void hw_audio_i(void);
 void hw_audio_i10(void);
 void hw_audio_keypage(void);
 void hw_audio_keypage_hi(void);
+u32 hw_audio_key_lit(u32 control);
+void hw_audio_leds(u32 held);
 #define HW_STEP_NONE   0u
 #define HW_STEP_TAKEN  1u
 #define HW_STEP_UNDONE 2u
