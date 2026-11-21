@@ -235,7 +235,8 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   24 MHz TIMER0 is allowed for (HW_RATIO; fwtest's acknowledge restarts
   the count, HW-48, which reads about 80 ppm high); ALNK0's CON0 bit 11
   reads clear at main's start and set with the tone on; HOME shows the
-  page again; nothing unmodelled but the window's, corex2's and DAC_CON.
+  page again; nothing unmodelled but the window's, corex2's and DAC_CON
+  (and, read by HOME's fifth view since audio4, JL_GPCNT's and ALNK1's).
 - audio2 (BR-17, clean-br17-audio2): the same build with REC pressed
   twice: CLK_CON2 bit 9 set alone, then CLK_CON2 put back exactly as
   read; CLK_CON2 has no effect in fwtest (HW-53), so the tone plays on in
@@ -253,6 +254,25 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   write, on the page), whose beats run in order; the page reaches its
   core 1 view; ARP without bit 9 is refused, nothing written; nothing
   unmodelled but the window's, corex2's and DAC_CON.
+- audio4 (BR-17, clean-br17-audio4): report1's build with steps H and I:
+  ENV (H: CLK_CON1 bits 4-6 set to 3, then 5, those bits alone, the
+  counter set and read), REC, FX (H again), LFO (I: ALNK1 started,
+  CLK_CON2 bit 11 alone), SEL (bit 10 alone), REC's undo refused while I
+  is taken, then I's, REC's and H's undos, each putting back the values
+  read before; the log holds a record for each, in order, the last
+  matching RAM. fwtest models neither JL_GPCNT nor ALNK1 (their registers
+  read 0: the counter's gates time out, ALNK1 doesn't play), which the case
+  prints; if a later fwtest plays ALNK1, its halves a second must fit
+  44 117.6 frames.
+- report1 (BR-17, clean-br17-report1): the report log, SB_HW_REPORT with
+  audio1's build. From a chip whose log region holds older data (as the
+  owner's unit does): the records of boot, each page, REC, ARP and its
+  undo and the save key (EDIT), numbered 1 on in consecutive slots, each
+  sector erased before its first record and the rest left as they were;
+  tools/report_decode.py reads them back, and the last record's fields
+  match the probe's state in RAM. A second run from that chip numbers on
+  after the newest; a run from a full ring erases the oldest sector and
+  keeps the rest.
 - hw (BR-17, Phase B): the FM-1 hardware build, SB_HW_FM1 (R-HW-1). In
   fwtest, where its one timer, TIMER0, counts 24 MHz rather than the
   chip's 60 MHz (HW-119), so its beats are 2.5 times slow: the screen goes
@@ -281,6 +301,7 @@ import re
 import shutil
 import struct
 import subprocess
+import zlib
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -1799,9 +1820,12 @@ def case_audio1(a, work, log):
                "--ram", "0x%08x:%d@end" % (h, AUD_LEN))
     if r["run"]["outcome"] != "completed":
         problems.append("audio1: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
-    odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"})
+    # Since audio4 HOME's fifth view reads ALNK1 and the counter, which fwtest doesn't model (read only).
+    odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"}
+                 - GPCNT_REGS - ALNK1_REGS)
     if odd:
-        problems.append("audio1: unmodelled accesses besides the window's, corex2's and DAC_CON: %s" % odd[:8])
+        problems.append("audio1: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1:"
+                        " %s" % odd[:8])
     bc = fws.beacon(ram(out, BEACON_ADDR, fws.BEACON_LEN))
     if bc["screen"] != 2 or bc["halt_reason"]:
         problems.append("audio1: screen %d, halt %d (the test screen, no halt)" % (bc["screen"], bc["halt_reason"]))
@@ -2034,6 +2058,240 @@ def case_audio3(a, work, log):
     return problems
 
 
+def report_decoder():
+    spec = importlib.util.spec_from_file_location("report_decode", os.path.join(ROOT, "tools", "report_decode.py"))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+HW_EDIT = 6           # fwtest's key of EDIT: save a report
+REP_FIELDS = ("scanned", "found", "slot", "seq", "saved", "fails", "last_err")
+
+
+def case_report1(a, work, log):
+    """report1 (SB_HW_REPORT, clean-br17-report1): the report log in
+    audio1's build. A chip whose log region holds older data gets the
+    records of boot, each page, REC, ARP, ARP's undo and EDIT's save,
+    numbered 1 on in consecutive slots from the region's start, each
+    sector erased before its first record and the rest untouched; the
+    decoder reads them back, and the last record matches the probe's state
+    in RAM. From that chip a second run numbers on; from a full ring a run
+    erases the oldest sector and keeps the rest."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_AUDIO1", "--define", "SB_HW_REPORT")
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    h, hr = sy["hw_aud"], sy["hw_rep"]
+    with open(os.path.join(b, "app.bin"), "rb") as f:
+        if b"0.10.0-hw3k" not in f.read():
+            problems.append("report1: the build's identity isn't in app.bin")
+
+    def run(name, seed, ms, keys):
+        flash = os.path.join(work, name + "-seed.bin")
+        with open(flash, "wb") as f:
+            f.write(seed)
+        script = os.path.join(work, name + ".script")
+        with open(script, "w") as f:
+            for t, k in keys:
+                f.write("%d key %d down\n%d key %d up\n" % (t, k, t + 100, k))
+            f.write("%d pot 900\n" % (ms - 10))
+        out = os.path.join(work, name)
+        r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", str(ms), "--flash", os.path.relpath(flash, ROOT),
+                   "--flash-out", "--script", os.path.relpath(script, ROOT),
+                   "--ram", "0x%08x:%d@end" % (h, AUD3_LEN), "--ram", "0x%08x:%d@end" % (hr, 4 * len(REP_FIELDS)))
+        if r["run"]["outcome"] != "completed":
+            problems.append("report1 %s: %s (%s)" % (name, r["run"]["outcome"], r["run"].get("detail")))
+        # Each record reads ALNK1's and the counter's registers (layout 2), unmodelled in fwtest.
+        odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"}
+                     - GPCNT_REGS - ALNK1_REGS)
+        if odd:
+            problems.append("report1 %s: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and"
+                            " ALNK1: %s" % (name, odd[:8]))
+        with open(os.path.join(out, "flash.bin"), "rb") as f:
+            chip = f.read()
+        rep = dict(zip(REP_FIELDS, struct.unpack("<%dI" % len(REP_FIELDS), ram(out, hr, 4 * len(REP_FIELDS)))))
+        return chip, rep, ram(out, h, AUD3_LEN)
+
+    # The unit's case: the log region holds older data, never 0xFF.
+    seed = bytearray(b"\xff" * 0x100000)
+    for i in range(rd.LOG_BASE, rd.LOG_END):
+        seed[i] = (i * 7 + 3) & 0x7F
+    keys = ((9000, HW_REC), (11500, HW_ARP), (14000, HW_ARP), (16500, HW_EDIT))
+    chip, rep, data = run("first", bytes(seed), 18000, keys)
+    rs, bad = rd.records(chip)
+    labels = [r["label"] for r in rs]
+    want = ["boot", "page", "REC taken", "page", "A taken", "page", "A undone", "page", "save key"]
+    if labels != want or [r["seq"] for r in rs] != list(range(1, 10)) or bad \
+            or [r["offset"] for r in rs] != [rd.LOG_BASE + rd.REC * i for i in range(9)]:
+        problems.append("report1 first: records %s (%s, numbered 1 to 9 in the first slots), %d with a bad CRC"
+                        % ([(r["seq"], r["label"], hex(r["offset"])) for r in rs], want, len(bad)))
+    if (rep["saved"], rep["fails"], rep["found"]) != (9, 0, 0):
+        problems.append("report1 first: saved %d, failed %d, found at the start %d (9, 0, 0)"
+                        % (rep["saved"], rep["fails"], rep["found"]))
+    if any(not r["known"] or r["build"] != "0.10.0-hw3k" for r in rs):
+        problems.append("report1 first: a record of an unknown layout or another build: %s"
+                        % [(r["layout"], r["count"], r["build"]) for r in rs])
+    used = 3 * 4096       # 9 records of 1 KiB: three sectors, the rest as they were
+    if chip[rd.LOG_BASE + used:rd.LOG_END] != bytes(seed[rd.LOG_BASE + used:rd.LOG_END]) \
+            or chip[rd.LOG_BASE + 9 * rd.REC:rd.LOG_BASE + used] != b"\xff" * (used - 9 * rd.REC):
+        problems.append("report1 first: the sectors past the records' changed, or the rest of the third isn't"
+                        " erased")
+    if rs:
+        last = rs[-1]["fields"]
+        ab = aud_ab(data)
+        e = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), data, 8 * AUD_REGS)))
+        st = dict(zip(AUD_STEP_FIELDS, struct.unpack_from("<5I", data, AUD_LEN + 4 * (3 * AUD_MORE + AUD_REGS))))
+        got = (last["rec_state"], last["rec_presses"], last["rec_clk_set"], last["a_state"], last["a_presses"],
+               last["a_con0_back"], last["master"], last["CLK_CON2"] & 0x200)
+        exp = (st["step_state"], st["steps"], st["clk_set"], ab["a_state"], ab["a_keys"], ab["a_back"], e["master"],
+               0x200)
+        if got != exp or not 0 < last["core1_count"] or last["log_found_at_start"] != 0:
+            problems.append("report1 first: the last record %s, RAM %s (rec, A, MASTER, bit 9), core 1 %d"
+                            % (got, exp, last["core1_count"]))
+    # A second run from that chip: numbered on after the newest, next slots.
+    chip2, rep2, _ = run("second", chip, 8000, ())
+    rs2, _ = rd.records(chip2)
+    new = [r for r in rs2 if r["seq"] > 9]
+    if [(r["seq"], r["label"], r["offset"]) for r in new] != [(10, "boot", rd.LOG_BASE + 9 * rd.REC),
+                                                             (11, "page", rd.LOG_BASE + 10 * rd.REC)] \
+            or len(rs2) != 11 or rep2["found"] != 9:
+        problems.append("report1 second: new records %s, %d in all, %d found at the start (10 boot and 11 page"
+                        " after the first run's 9)" % ([(r["seq"], r["label"], hex(r["offset"])) for r in new],
+                                                       len(rs2), rep2["found"]))
+    # A full ring: the next record goes in slot 0, its sector erased.
+    full = bytearray(b"\xff" * 0x100000)
+    slots = (rd.LOG_END - rd.LOG_BASE) // rd.REC
+    for i in range(slots):
+        w = [0] * (rd.REC // 4)
+        w[0], w[1], w[2], w[3] = rd.MAGIC, 1, 1000 + i, i
+        rec = bytearray(struct.pack("<%dI" % (rd.REC // 4), *w))
+        rec[32:35] = b"old"
+        struct.pack_into("<I", rec, rd.REC - 4, zlib.crc32(bytes(rec[:rd.REC - 4])) & 0xFFFFFFFF)
+        full[rd.LOG_BASE + rd.REC * i:rd.LOG_BASE + rd.REC * (i + 1)] = rec
+    chip3, rep3, _ = run("wrap", bytes(full), 8000, ())
+    rs3, _ = rd.records(chip3)
+    seqs = [r["seq"] for r in rs3]
+    if seqs != list(range(1004, 1000 + slots)) + [1000 + slots, 1001 + slots] \
+            or rs3[-2]["offset"] != rd.LOG_BASE or rep3["found"] != slots:
+        problems.append("report1 wrap: sequences %s..%s (%d records), the first new at %s (1004 to %d, then two"
+                        " new from slot 0)" % (seqs[:3], seqs[-3:], len(seqs), hex(rs3[-2]["offset"]) if len(rs3) > 1
+                                               else None, 999 + slots))
+    print("report1: from older data, %d records (%s) decoded, the sectors past them untouched; a second run"
+          " numbered on (%s); from a full ring the oldest sector erased, %d records kept"
+          % (len(rs), ", ".join(labels), [r["seq"] for r in new], len(rs3)))
+    return problems
+
+
+AUD_HI_AT = AUD_AB_AT + 4 * (len(AUD_AB_FIELDS) + 6 * 2 * 4)
+AUD_H_FIELDS = ("h_state", "h_keys", "h_measures", "clk1_before", "clk1_check", "clk1_audio", "clk1_back",
+                "gp_before", "gp_check", "gp_audio", "gp_back", "check0", "check1", "audio0", "audio1", "check_to",
+                "audio_to", "check_clk2", "audio_clk2")
+AUD_I_FIELDS = ("i_state", "i_keys", "i_bit10", "b0", "b1", "b2", "b3", "a0", "a1", "a2", "a3", "con_back",
+                "clk_before", "clk_set", "clk_set10", "clk_back", "flips", "pend", "span", "hps10")
+AUD4_LEN = AUD_HI_AT + 4 * (len(AUD_H_FIELDS) + len(AUD_I_FIELDS) + 4)
+HW_ENV, HW_FX, HW_LFO, HW_SEL = 4, 2, 5, 3      # fwtest's keys of ENV, FX, LFO and SEL (input.h)
+GPCNT_REGS = {"0x00011100", "0x00011104"}
+ALNK1_REGS = {"0x%08x" % (0x00015100 + 4 * i) for i in range(9)}
+
+
+def case_audio4(a, work, log):
+    """audio4 (clean-br17-audio4): steps H and I in report1's build. H
+    sets CLK_CON1 bits 4-6 alone (3, then 5) and the counter, FX measures
+    again, I starts ALNK1 with CLK_CON2 bit 11 alone and SEL adds bit 10;
+    REC's undo is refused while I, taken after it, is; every undo puts back
+    the values read before. The log holds one record for each press and
+    each page, in order, the last matching RAM."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_AUDIO1", "--define", "SB_HW_REPORT")
+    h = fws.elf_symbols(os.path.join(b, "app.elf"))["hw_aud"]
+    keys = ((9000, HW_ENV), (11500, HW_REC), (14000, HW_FX), (16500, HW_LFO), (20000, HW_SEL), (23500, HW_REC),
+            (26000, HW_LFO), (28500, HW_REC), (31000, HW_ENV))
+    script = os.path.join(work, "audio4.script")
+    with open(script, "w") as f:
+        for t, k in keys:
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + 100, k))
+    out = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "34000", "--flash-out",
+               "--script", os.path.relpath(script, ROOT), "--ram", "0x%08x:%d@end" % (h, AUD4_LEN))
+    if r["run"]["outcome"] != "completed":
+        problems.append("audio4: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"}
+                 - GPCNT_REGS - ALNK1_REGS)
+    gp_unmodelled = bool({u["address"] for u in r["run"]["unmodelled_accesses"]} & GPCNT_REGS)
+    al1_unmodelled = bool({u["address"] for u in r["run"]["unmodelled_accesses"]} & ALNK1_REGS)
+    if odd:
+        problems.append("audio4: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1:"
+                        " %s" % odd[:8])
+    data = ram(out, h, AUD4_LEN)
+    st = dict(zip(AUD_STEP_FIELDS, struct.unpack_from("<5I", data, AUD_LEN + 4 * (3 * AUD_MORE + AUD_REGS))))
+    ab = aud_ab(data)
+    hh = dict(zip(AUD_H_FIELDS, struct.unpack_from("<%dI" % len(AUD_H_FIELDS), data, AUD_HI_AT)))
+    ii = dict(zip(AUD_I_FIELDS, struct.unpack_from("<%dI" % len(AUD_I_FIELDS), data,
+                                                    AUD_HI_AT + 4 * len(AUD_H_FIELDS))))
+    depth = struct.unpack_from("<I", data, AUD4_LEN - 4)[0]
+    c1 = hh["clk1_before"]
+    if (hh["h_state"], hh["h_keys"], hh["h_measures"]) != (2, 2, 2) \
+            or hh["clk1_check"] != (c1 & ~0x70) | 0x30 or hh["clk1_audio"] != (c1 & ~0x70) | 0x50 \
+            or hh["clk1_back"] != c1 or hh["gp_back"] != hh["gp_before"] \
+            or (not gp_unmodelled and (hh["gp_check"] & 0x7F0F != 0x1A09 or hh["gp_audio"] & 0x7F0F != 0x1A09)):
+        problems.append("audio4: step H %s (CLK_CON1 bits 4-6 alone to 3 and 5, the counter set on, both put back)"
+                        % {k: "%x" % v for k, v in hh.items()})
+    if (ii["i_state"], ii["i_keys"], ii["i_bit10"]) != (2, 2, 1) or ii["clk_set"] != ii["clk_before"] | 0x800 \
+            or ii["clk_set10"] != ii["clk_set"] | 0x400 or ii["clk_back"] != ii["clk_before"] \
+            or (not al1_unmodelled and not ii["a0"] & 0x800) or (ii["con_back"] ^ ii["b0"]) & ~0x8000:
+        problems.append("audio4: step I %s (ALNK1 on, bit 11 alone, bit 10 alone, then CON0 and CLK_CON2 as read)"
+                        % {k: "%x" % v for k, v in ii.items()})
+    if (st["step_state"], st["steps"], ab["refused"], depth) != (2, 2, 1, 0) or st["clk_back"] != st["clk_before"] \
+            or ii["clk_before"] != st["clk_set"]:
+        problems.append("audio4: REC %s, refused %d, CLK_CON2 steps left %d (taken, its undo refused once while I"
+                        " was taken, then undone; none left)" % (st, ab["refused"], depth))
+    frames = 64
+    with open(os.path.join(ROOT, "firmware", "src", "audio.h")) as f:
+        m = re.search(r"#define AUDIO_FRAMES\s+(\d+)", f.read())
+        if m:
+            frames = int(m.group(1))
+    plays = ii["flips"] > 0
+    if plays:
+        fps = ii["hps10"] / 10.0 / HW_RATIO * frames
+        if abs(fps / AUD_FPS - 1) > 0.02:
+            problems.append("audio4: ALNK1's halves %.1f a second, %.0f frames in fwtest's time (44 117.6, 2 %%)"
+                            % (ii["hps10"] / 10.0, fps))
+    with open(os.path.join(out, "flash.bin"), "rb") as f:
+        chip = f.read()
+    rs, bad = rd.records(chip)
+    labels = [x["label"] for x in rs]
+    want = ["boot", "page"]
+    for lab in ("H taken", "REC taken", "H measured", "I taken", "I bit 10", "REC refused", "I undone", "REC undone",
+                "H undone"):
+        want += [lab, "page"]
+    if labels != want or bad or any(x["layout"] != 2 or not x["known"] for x in rs):
+        problems.append("audio4: log records %s (%s), layouts %s, %d bad" % (labels, want,
+                        sorted({(x["layout"], x["count"]) for x in rs}), len(bad)))
+    elif rs:
+        last = rs[-1]["fields"]
+        got = (last["h_state"], last["h_clk1_back"], last["i_state"], last["i_clk2_back"], last["i_b15_flips"],
+               last["refused"], last["clk2_steps_taken"])
+        exp = (hh["h_state"], hh["clk1_back"], ii["i_state"], ii["clk_back"], ii["flips"], ab["refused"], depth)
+        if got != exp:
+            problems.append("audio4: the last record %s, RAM %s" % (got, exp))
+    print("audio4: H: CLK_CON1 %08x > %08x > %08x > back %08x, counts bus %d/%d audio %d/%d (%d and %d gates timed"
+          " out; fwtest's counter %s); I: CLK_CON2 %08x > %08x > %08x > back %08x, ALNK1 %s (%d half changes, %d.%d"
+          " a second; fwtest's ALNK1 %s); REC's undo refused once; %d log records in order"
+          % (c1, hh["clk1_check"], hh["clk1_audio"], hh["clk1_back"], hh["check0"], hh["check1"], hh["audio0"],
+             hh["audio1"], hh["check_to"], hh["audio_to"], "unmodelled" if gp_unmodelled else "modelled",
+             ii["clk_before"], ii["clk_set"], ii["clk_set10"], ii["clk_back"], "plays" if plays else "doesn't play",
+             ii["flips"], ii["hps10"] // 10, ii["hps10"] % 10, "unmodelled" if al1_unmodelled else "modelled", len(rs)))
+    return problems
+
+
 def read_bytes(path):
     with open(path, "rb") as f:
         return f.read()
@@ -2062,6 +2320,8 @@ CASES = [
     ("audio1", case_audio1),
     ("audio2", case_audio2),
     ("audio3", case_audio3),
+    ("report1", case_report1),
+    ("audio4", case_audio4),
 ]
 
 
