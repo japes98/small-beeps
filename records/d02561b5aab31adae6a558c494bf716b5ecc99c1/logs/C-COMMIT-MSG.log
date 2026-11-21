@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 9737f4e851b52f9bc5c76170306faf35c4ace075..d02561b5aab31adae6a558c494bf716b5ecc99c1
+OK     bb482a4c889d sessions: clean-br17-audio3 starts (nothing to archive)
+OK     7415b58942dc firmware: audio3, the core 1 probe with steps A and B (BR-17)
+EXEMPT 4657bcef0581 (merge) merge: main (#213, the spec side's audio2 unit facts) into audio3
+EXEMPT d02561b5aab3 (merge) Merge pull request #214 from japes98/hw/audio3
+4 commit(s) checked: PASS
+
+exit status 0
