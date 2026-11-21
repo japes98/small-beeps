@@ -3414,6 +3414,25 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing new. No spec entries changed.
 - Disk: about 5.5 GB free.
 
+### Session spec-audio5-unit (audio5's log: input 5 is the DAC clock; the clean prompt for D)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio5-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/audio5-unit` from main.
+- The owner's message, saved unedited as docs/prompts/spec-audio5-unit.md.
+- Recorded: HW-155 (UNIT: the clock system's inputs, the main PLL's 480
+  MHz, input 5 following the DAC clock's choice, ALNK0's `CON1` and
+  `CON3` writable with no bit starting it), HW-156 (what it says; the 44
+  117.6 point; ALNK0's port A group B1); standing notes on HW-53, HW-148
+  and HW-154; note on Q-9.
+- Read: the AC7911B datasheet (as P-56, the same file by SHA-256), Table
+  1-1's port A rows, for the links' B1 pins: P-508.
+- Wrote the clean prompt drop/prompts/clean-br17-audio6.md (D, one bit
+  of `JL_IOMAP->CON5` a key press, each try checked and undone by the
+  firmware), outside the repository, from HW-45 to HW-156.
+- Disk: about 4.4 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
