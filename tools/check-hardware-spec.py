@@ -11,9 +11,11 @@ It fails on:
   - a missing or empty field, or a field it doesn't know;
   - an ID used twice, or an open question (`**Q-n.`) numbered twice;
   - a standing that isn't `confirmed ...`, `emulator-only ...`,
-    `other chip (SDK63)` or `superseded by HW-n` (an entry that exists);
-  - an `other chip` entry whose sources don't cite SDK63 (another JieLi
-    chip's SDK; such an entry is never confirmed for the FM-1's chip);
+    `other chip (SDK63)`, `other chip (SDKAW)` or `superseded by HW-n`
+    (an entry that exists);
+  - an `other chip` entry whose sources don't cite the SDK its standing
+    names (SDK63 or SDKAW: another JieLi chip's SDK; such an entry is
+    never confirmed for the FM-1's chip);
   - a confirmed entry whose sources name nothing independent: it must cite
     SDK, PKG (the SDK's packaging tools run on our own input), MF or MB
     (the unit's installer and bootloader, by the owner's ruling), UNIT
@@ -43,7 +45,7 @@ HEAD = re.compile(r"^### (HW-(\d+)): (\S.*)$")
 FIELD = re.compile(r"^- ([A-Z][a-z]+(?: by)?):\s*(.*)$")
 SOURCE_KEYS = re.compile(r"\b(SDK|PKG|MF|MB|UNIT|RE|DS|PUYA|UCUN|PANEL|MAN|E-\d+)\b")
 # Another chip's SDK: a source, but never an independent one for this chip.
-OTHER_CHIP = re.compile(r"\bSDK63\b")
+OTHER_CHIP = {"SDK63": re.compile(r"\bSDK63\b"), "SDKAW": re.compile(r"\bSDKAW\b")}
 EXP = re.compile(r"\bE-(\d+)\b")
 
 
@@ -118,8 +120,9 @@ def lint(text, base_text=None, known_exps=None):
             if not SOURCE_KEYS.search(e.get("Sources", "")):
                 problems.append("%s: confirmed, but its sources name no independent source (SDK, PKG, MF, MB, UNIT, RE, DS, PUYA, UCUN, PANEL, MAN, E-n)" % eid)
         elif st.startswith("other chip"):
-            if st != "other chip (SDK63)" or not OTHER_CHIP.search(e.get("Sources", "")):
-                problems.append("%s: other chip, but its standing isn't 'other chip (SDK63)' or its sources don't cite SDK63" % eid)
+            m = re.fullmatch(r"other chip \((SDK63|SDKAW)\)", st)
+            if not m or not OTHER_CHIP[m.group(1)].search(e.get("Sources", "")):
+                problems.append("%s: other chip, but its standing isn't 'other chip (SDK63)' or 'other chip (SDKAW)', or its sources don't cite that SDK" % eid)
         elif not st.startswith("emulator-only"):
             problems.append("%s: standing '%s' is not confirmed, emulator-only, other chip or superseded by HW-n" % (eid, st))
         if known_exps is not None:

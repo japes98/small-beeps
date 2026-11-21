@@ -3447,6 +3447,39 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing new. No spec entries changed.
 - Disk: about 4.3 GB free.
 
+### Session spec-jieli-sources (JieLi's own open SDKs: the audio link)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio6-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/jieli-alink` from main.
+- The owner's source ruling, saved unedited as
+  docs/prompts/spec-jieli-sources.md.
+- Read: Jieli-Tech's repository list and seven Apache-2.0 SDKs' file
+  trees; the AW30N SDK's audio link driver, headers and clock header, and
+  the AC63 SDK's audio link headers (P-509). Facts only; no code copied.
+  Not read: `fw-AW31N_BLE_SDK` (no licence reported). No third-party
+  mirror was opened or looked for.
+- Recorded: source key SDKAW; HW-157 (other chip: the AW30N's link
+  fields), HW-158 (set against ALNK0 here); note on Q-9. The lint
+  (`tools/check-hardware-spec.py`) accepts `other chip (SDKAW)` beside
+  `other chip (SDK63)`.
+- Disk: about 4.3 GB free.
+
+### Session spec-audio7-rulings (the clean prompt for L1 and L2; D held)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-jieli-sources (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/audio7-rulings` from main.
+- The owner's rulings, saved unedited as docs/prompts/spec-audio7-rulings.md.
+- Wrote the clean prompt drop/prompts/clean-br17-audio7.md (L1, the
+  oscillator set-up, and L2, the PLL's audio clock with bit 9 set and
+  clear, as additions to audio6; D out of the next-key order), outside the
+  repository, from HW-43 to HW-158.
+- Read: nothing new. No spec entries changed.
+- Disk: about 4.2 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
