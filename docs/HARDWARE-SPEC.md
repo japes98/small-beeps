@@ -4376,8 +4376,12 @@ FM-1's chip.
      its mode and direction in `CON1`, its `ADRn` and its pin; then
      `CON0` bit 11.
   8. **The rate.** The PLL's audio clock is 192 MHz / 17 (11.294 MHz)
-     for 44.1 kHz rates or 320 MHz / 26 (12.307 MHz) for 48 kHz, chosen
-     in that chip's own clock registers. 44.1 kHz is 11.294 MHz / 1 /
+     for 44.1 kHz rates or 320 MHz / 26 (12.307 MHz) for 48 kHz. The
+     driver chooses it by writing two fields of `JL_CLOCK->PRP_CON1`
+     (bits 4-7 the source, bits 8-13 the divider less one); the chip's
+     `clock_hw.h` instead names a choice of 192 MHz / 17 or 480 MHz / 39
+     (in a macro that does nothing) and fields in `PLL_CON2` bits 8-11.
+     Which of the two is live is not given. 44.1 kHz is 11.294 MHz / 1 /
      256 (`CON3` bits 2-4 = 0, bits 5-7 = 4), which the SDK names
      44 117 Hz; its 48 kHz is 48 077 Hz.
   9. **`CLK_CON1` bits 2-3** are named the audio clock's input: 0 the
@@ -4386,7 +4390,7 @@ FM-1's chip.
      check is in prebuilt code).
 - Sources: SDKAW `sdk/apps/include_lib/cpu/bd49/iis.h` (blob
   `d7fcd8b1`) lines 4-45; `sdk/apps/app/bsp/cpu/bd49/audio_link/audio_link.c`
-  (blob `8591e86f`) lines 23-93, 196-300, 330-360;
+  (blob `8591e86f`) lines 23-93, 196-300, 330-360 (`PRP_CON1` at lines 83-93);
   `sdk/apps/include_lib/cpu/bd49/audio_link/audio_link.h` (blob
   `75805bc3`) lines 22-65; `sdk/apps/include_lib/cpu/bd49/bd49.h` (blob
   `104ad6f4`) lines 970-997; `sdk/apps/include_lib/cpu/bd49/clock_hw.h`
@@ -4413,8 +4417,11 @@ FM-1's chip.
     that is every data channel off, and the master clock taken from
     outside the chip with the word select from outside as well, so the
     link would have no channel and no clock of its own whatever
-    `CLK_CON2` holds. A single bit gives at most one of the two (J tried
-    each alone, HW-155). In fwtest the link plays without them
+    `CLK_CON2` holds. A master link needs three fields at once in that
+    layout: a data channel's mode (`CON1`), the master clock's source
+    (`CON3` bits 0-1) and the word select's divider (`CON3` bits 5-7,
+    where 0 is from outside). A single bit sets at most one of them (J
+    tried each alone, HW-155). In fwtest the link plays without them
     (HW-44, HW-45).
   - **A clock with no PLL write.** In HW-157's layout `CON3` bits 0-1 =
     2 takes the master clock from the oscillator (24 MHz, measured on
