@@ -3509,7 +3509,9 @@ SR-3 wrote only its barrier-log row.*
   clean-br17-audio3's, continued. Saved unedited: the owner's audio3 unit
   result (docs/prompts/clean-br17-audio3-result.md), the request
   (docs/prompts/clean-br17-report1.md) and the unit observation
-  (docs/prompts/clean-br17-report1-unit.md).
+  (docs/prompts/clean-br17-report1-unit.md); later the spec side's prompt
+  for steps H and I as docs/prompts/clean-br17-audio4.md (#215 and #216
+  merged, read from origin/main, its clean-side blobs fetched alone).
 - Start: #214 found merged; the clean folder updated to main
   (`d02561b5`) by `tools/clean-update.sh`, no spec-side file on disk or
   in `.git`. Nothing to archive (the last clean session is this one,
@@ -3517,7 +3519,9 @@ SR-3 wrote only its barrier-log row.*
   session.
 - Reads: this side's own code (`store.c`, `store.h`, `hw_start3.c`,
   `hw_audio.c`, `main.c`, tools/store-region.pl, docs/HARNESS.md's flash
-  chip); HARDWARE-SPEC HW-65, HW-80, HW-81, HW-110 to HW-112.
+  chip); HARDWARE-SPEC HW-44, HW-45, HW-54, HW-65, HW-80, HW-81, HW-110 to
+  HW-112, HW-119, HW-140, HW-150 to HW-152; SPEC-REQUESTS SR-21; the
+  vendored SDK `WL82.h` for `JL_GPCNT` and `JL_ALNK1`.
 - Disk: about 5 GB free.
 
 ## Corrections
