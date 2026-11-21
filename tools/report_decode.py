@@ -7,9 +7,9 @@
 
 IMAGE is a whole flash read back from a unit (1 MiB) or fwtest's flash.bin.
 The log (firmware/src/hw_report.c, SB_HW_REPORT; clean-br17-report1) is a
-ring of 64 sectors ending at 0x93FFF, of 2048-byte records (layout 3,
-since clean-br17-audio5); layouts 1 and 2 were 1024-byte records in 32
-sectors, and are still read. Every 4-byte
+ring of 96 sectors ending at 0x93FFF (since clean-br17-audio6; 64 in
+audio5), of 2048-byte records (since layout 3, clean-br17-audio5);
+layouts 1 and 2 were 1024-byte records in 32 sectors, and are still read. Every 4-byte
 boundary of the image is searched for a record's magic, so a record turns
 up wherever it lies. Each found is checked by its CRC-32 and printed in
 sequence order with its fields named; a failing CRC is counted only in
@@ -29,10 +29,10 @@ import zlib
 
 MAGIC = 0x4C524253          # "SBRL" (hw_fm1.h, HW_LOG_MAGIC)
 REC = 2048                  # HW_LOG_REC, since layout 3 (audio5)
-REC_OF = {1: 1024, 2: 1024, 3: 2048, 4: 2048}   # a record's size by its layout
+REC_OF = {1: 1024, 2: 1024, 3: 2048, 4: 2048, 5: 2048}   # a record's size by its layout
 HEAD = 12                   # HW_LOG_HEAD
 LOG_END = 0x94000           # HW_LOG_END
-LOG_SECTORS = 64            # HW_LOG_SECTORS, since layout 3 (32 before)
+LOG_SECTORS = 96            # HW_LOG_SECTORS, since audio6 (64 in audio5, 32 before)
 LOG_BASE = LOG_END - LOG_SECTORS * 4096
 SECTOR = 4096
 
@@ -125,7 +125,30 @@ def _layout4():
     return f
 
 
-FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4()}
+D_STATES = ("not run", "done, no stop", "stopped", "BIT KEPT", "undone")
+D_STOPS = ("none", "the matrix check failed with the bit set (undone)", "the link moved, the matrix right (bit kept)",
+           "the link moved, the matrix check failed (undone)", "the check after the undo failed",
+           "stopped by OCT-")
+PA_REGS = ("OUT", "IN", "DIR", "DIE", "PU", "PD", "HD0", "HD")
+
+
+def _layout5():
+    """Layout 5 (clean-br17-audio6): layout 3, then step D, then layout 4's
+    log health."""
+    f = ["d_state", "d_sweeps", "d_tries", "d_bit", "d_stop", "d_phase", "d_clk2", "d_con5_before", "d_con5_written",
+         "d_con5_read", "d_con5_back", "d_con5_after"]
+    f += ["d_iomap_before_CON%d" % i for i in range(9)] + ["d_iomap_after_CON%d" % i for i in range(9)]
+    for w in ("before", "set", "after"):
+        f += ["d_pa_%s_%s" % (w, r) for r in PA_REGS]
+    f += ["d_pa_in_watch_start", "d_pa_in_watch_end", "d_b15_flips", "d_pend", "d_irq"]
+    for w in ("base", "set", "after"):
+        f += ["d_rows_idle_%s" % w] + ["d_cells_%s_%d" % (w, i) for i in range(3)]
+    f += ["d_check_set", "d_check_after"] + ["d_al0_CON%d" % i for i in range(4)]
+    f += ["d_irq_now", "d_core1", "d_j_putback", "d_con5_now"]
+    return _layout3() + f + _layout4()[len(_layout3()):]
+
+
+FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5()}
 LOG_ERRORS = {0: "none", 1: "no flash (no round trip)", 2: "image too long", 3: "erase", 4: "program", 5: "verify",
               6: "chip busy at the take"}
 
@@ -154,6 +177,16 @@ def derived(fields):
     expected, HW-119 over HW-54) and the audio clock in MHz (the gate is
     the 24 MHz crystal)."""
     out = []
+    if fields.get("d_sweeps"):
+        bad = lambda b: "ok" if not b else "BAD (" + ", ".join(n for i, n in enumerate(
+            ("idle rows", "cells", "port A", "CON5 not back", "JL_IOMAP not back")) if b >> i & 1) + ")"
+        out.append("D: %s, sweep %d, try %d of bit %d (step %d): CON5 %08X written %08X read back %08X put back %08X;"
+                   " b15 %d, pend %d, irq %d; check with the bit %s, after the undo %s; stop: %s; CLK_CON2 %08X"
+                   % (D_STATES[min(fields["d_state"], 4)], fields["d_sweeps"], fields["d_tries"], fields["d_bit"],
+                      fields["d_phase"], fields["d_con5_before"], fields["d_con5_written"], fields["d_con5_read"],
+                      fields["d_con5_back"], fields["d_b15_flips"], fields["d_pend"], fields["d_irq"],
+                      bad(fields["d_check_set"]), bad(fields["d_check_after"]), D_STOPS[min(fields["d_stop"], 5)],
+                      fields["d_clk2"]))
     gate = fields.get("h_gate_cycles")
     if gate and fields.get("k_presses") and fields.get("k_state") == 1:
         out.append("K: " + ", ".join("%s %.3f MHz" % (m, fields["k_%s_num2" % m] * 24.0 / gate) for m in K_LABELS))
@@ -169,7 +202,8 @@ def derived(fields):
     return out
 
 # Shown in decimal; every other field in hex.
-DECIMAL = {"log_last_err", "log_busy_waits", "log_glitches", "log_retries", "log_page_rewaits", "log_fail_count", "k_state", "k_presses", "j_state", "j_sweeps", "j_tries", "j_reg", "j_bit", "j_b15_flips", "j_pend", "j_irq",
+DECIMAL = {"d_state", "d_sweeps", "d_tries", "d_bit", "d_stop", "d_phase", "d_b15_flips", "d_pend", "d_irq", "d_irq_now",
+           "d_core1", "log_last_err", "log_busy_waits", "log_glitches", "log_retries", "log_page_rewaits", "log_fail_count", "k_state", "k_presses", "j_state", "j_sweeps", "j_tries", "j_reg", "j_bit", "j_b15_flips", "j_pend", "j_irq",
            "h_state", "h_presses", "h_measures", "h_gate_cycles", "h_bus_num1", "h_bus_num2", "h_bus_timeouts",
            "h_audio_num1", "h_audio_num2", "h_audio_timeouts", "GPCNT_NUM_now", "i_state", "i_presses", "i_bit10",
            "i_b15_flips", "i_pend", "i_poll_beats", "i_halves_per_s_x10", "clk2_steps_taken", "core1_count", "store_count", "store_put", "log_found_at_start", "log_fails", "irq", "alt",

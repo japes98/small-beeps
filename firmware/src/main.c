@@ -496,6 +496,17 @@ static void hw_serve(void)
             hw_guide_show();
             continue;
         }
+        /* audio6 (the spec side's clean-br17-audio6): OCT- runs step D's
+         * sweep of JL_IOMAP->CON5 (a press while it runs stops it; a press
+         * with a bit kept puts CON5 back). */
+        if (e.control == INPUT_OCT_DOWN && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_audio_d();
+            hw_audio_leds(e.control);
+            hw_audio_keypage_d();
+            hw_test_screen();
+            hw_guide_show();
+            continue;
+        }
         /* audio3: SEQ stops ALNK0 (CON0 bit 11 cleared alone), or puts
          * back the CON0 read before; then the page, then the test screen. */
         if (e.control == INPUT_SEQ && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {

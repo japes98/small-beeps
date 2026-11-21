@@ -439,6 +439,76 @@ static void sweep(void)
     hw_scan_paused = 0;
 }
 
+#if defined(SB_HW_AUDIO1)
+/* --- audio6's step D: the matrix check and port A (hw_audio.c) ----------- */
+
+/* Rows PA0, PA5 to PA8 and PB7 (HW-117, HW-138, HW-139) as 6 bits, 1 high
+ * (open). */
+static u32 matrix_rows(void)
+{
+    u32 a = PORT(PA, IN), b = PORT(PB, IN);
+
+    return (a & 1u) | (a >> 5 & 0xFu) << 1 | (b >> 7 & 1u) << 5;
+}
+
+static void matrix_settle(void)
+{
+    u32 t = sb_now();
+
+    while (sb_now() - t < 300u)        /* 12.5 us of 24 MHz units */
+        ;
+}
+
+/* With the scan paused by the caller (hw_scan_paused): the LED lines low,
+ * as sweep() sets them, 0xFFFF latched (no column) and the rows read into
+ * idle; then each of the 16 single-zero column words latched and its
+ * closed rows set in map (bit 6 x column + row); 0xFFFF latched at the
+ * end. Its port A writes are sweep()'s own. */
+void hw_matrix_check(u32 *idle, u32 *map)
+{
+    u32 col, r, row;
+
+    PORT(PA, OUT) &= ~PA_LEDS;
+    REG(0x000501C0u + OUT) &= ~PH_LEDS;
+    SYNC();
+    map[0] = map[1] = map[2] = 0;
+    shift_word(0xFFFFu);
+    matrix_settle();
+    *idle = matrix_rows();
+    for (col = 0; col < 16; col++) {
+        shift_word(0xFFFFu & ~(1u << col));
+        matrix_settle();
+        r = ~matrix_rows() & 0x3Fu;
+        for (row = 0; row < 6u; row++)
+            if (r >> row & 1u)
+                map[(col * 6u + row) / 32u] |= 1u << (col * 6u + row) % 32u;
+    }
+    shift_word(0xFFFFu);
+}
+
+/* Port A's OUT, IN, DIR, DIE, PU, PD, HD0 and HD, read. */
+void hw_port_a(u32 *w)
+{
+    u32 i;
+
+    for (i = 0; i < 8; i++)
+        w[i] = REG(PA + 4u * i);
+}
+
+/* The scan paused (as sweep() pauses it) and started again. */
+void hw_scan_pause(void)
+{
+    hw_scan_paused = 1;
+}
+
+void hw_scan_resume(void)
+{
+    shift_word(0xFFFFu);
+    input_scan_restart();
+    hw_scan_paused = 0;
+}
+#endif
+
 /* --- (d) Core 1 (HW-9) --------------------------------------------------- */
 
 /* After sb_irq_init has written the vector table, whose slot 126 this is;

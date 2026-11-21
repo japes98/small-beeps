@@ -5143,3 +5143,75 @@ isn't rebuilt for them.
   then a second sweep aborted; with ALNK0 running again the third stops at
   `CON1` bit 0 and is put back; the tone at 440 Hz and 44 117.6 frames a
   second after the sweeps, before that try.
+
+### 2026-11-21 clean-br17-audio6: step D, JL_IOMAP->CON5 a bit at a time (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio6.md; HW-155,
+HW-156), allowed by the owner, built on the build after audio5 (the
+sb_now() fix, the log's retries, the next key) as one file
+(docs/prompts/clean-br17-audio6-owner.md).
+
+- **The key.** OCT-, the last free key. A press runs the sweep: `CON5` as
+  read with bit 0 alone set, then bit 1, up to bit 31, each with every
+  other bit as read. A press while it runs stops it after the try in
+  progress (which the firmware undoes as always); a press with a bit kept
+  puts `CON5` back as read. OCT-'s LED is lit while a bit is kept. If J has
+  a bit left set, its register goes back as read before the sweep, logged
+  ("J back for D"). Before its first try the sweep waits (at most 5 s,
+  "release OCT- to start" on the step row) until OCT- is released: held,
+  its cell would differ between a try's baseline and its check (fwtest
+  showed it). A press of OCT- to stop a sweep that lands during a check
+  shows as that try's failed check: undone and stopped all the same.
+- **Each try**, in the prompt's order: (1) a record "D bN before" with
+  `CON5`, `JL_IOMAP` `CON0` to `CON8`, port A's eight registers, `CLK_CON2`,
+  ALNK0's `CON0` to `CON3`, source 11's and core 1's counts, written and
+  verified before anything else; (2) the scan paused, the matrix's
+  baseline taken, `CON5` written with the one bit added and read back;
+  (3) the watch, 100 ms: `CON0` bit 15's changes, `CON2` bit 7 seen,
+  source 11's interrupts, port A's `IN` at its start and end; (4) the
+  matrix check with the bit set; (5) the undo, the firmware's own,
+  unless the link moved with the check right: then the bit stays and the
+  sweep stops; (6) after the undo, port A and `JL_IOMAP` read again and
+  the check repeated, `CON5` read back against the value read before; (7)
+  the scan resumed and the try's record ("D bN", or with "moved", "check
+  BAD", "after BAD", or "kept"). No undo waits on a key.
+- **The matrix check.** 0xFFFF latched (no column): rows PA0, PA5 to PA8
+  and PB7 (HW-117, HW-138, HW-139) must all read high; then each of the 16
+  single-zero column words: the closed cells must be those of the
+  baseline taken just before the write, with the scan paused (so a knob
+  resting with a contact closed doesn't count as a key; a key held during
+  the sweep makes its check fail and stops it); then port A's `DIR`, `DIE`,
+  `PU` and `PD` against step 1's. Its port A writes are the test screen's
+  matrix sweep's own (the LED lines low, the shift register's data, clock
+  and latch). The check fails on any of these, and the try's record says
+  which (rows, cells, port A, `CON5` not back, another `JL_IOMAP` word
+  changed).
+- **Where it stops.** At the first try whose check fails (undone), whose
+  link moves (kept if the check passed, else undone), or whose check after
+  the undo fails; else it runs to bit 31 ("D done"). It takes no further
+  try after a stop.
+- **What D writes.** `JL_IOMAP->CON5` alone. Port A only as the matrix
+  sweep always has; no other `JL_IOMAP` word, no port C, no PLL, no
+  `CLK_CON2` low byte; ALNK0's `CON1`/`CON3` only by putting back what J
+  left.
+- **The log.** Two records a try, about 67 a sweep; two sweeps would
+  overrun the 128-record ring of audio5, so the ring is now 96 sectors
+  (192 records) ending at the app area's end, its base still far above
+  the image (checked before each write). Layout 5 adds D's 81 fields (the
+  last try's every reading) before layout 4's log fields; the decoder
+  prints a D line for each record.
+- **The page and the guide.** A seventh view, D: the state and stop, the
+  try's bit and `CON5` values, the watch's counts, the idle rows and
+  cells before, with the bit set and after, the checks, port A's eight
+  registers before, with the bit set and after (`DIR`, `DIE`, `PU`, `PD`
+  red if they changed), `IN` over the watch, core 1's count. HOME shows all
+  seven; OCT- shows D's and core 1's. The guide's table is now D's order:
+  REC (bit 9), OCT- (D), REC (bit 9's undo), OCT- (D), EDIT; while a bit
+  is kept, OCT- (D's undo) comes first. The identity is 0.10.0-hw3p.
+- **fwtest** stores `CON5` (case audio6 prints whether every try read
+  back as written) and does nothing else with it that the sweep sees: with
+  ALNK0 stopped both sweeps run through all 32 bits, every try put back
+  and both checks passing; with ALNK0 running its link moves at bit 0, so
+  the sweep keeps that bit, and a press puts it back. A test build
+  (`SB_TEST_D_CHECK_FAIL`) makes the check at bit 2 fail: the sweep
+  undoes that try itself and stops.
+
