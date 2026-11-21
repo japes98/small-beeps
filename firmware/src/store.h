@@ -227,4 +227,18 @@ extern volatile struct sb_store_record sb_store;
 extern volatile u32 sb_store_erase_fail;
 #endif
 
+#if defined(SB_HW_REPORT)
+/* The report log (hw_report.c, clean-br17-report1): the store's own flash
+ * commands by chip offset, for a region that is not the store's; the
+ * caller has taken the flash from the code window. store_raw_erase erases
+ * the 4 KiB sector at addr and checks it reads all 0xFF; store_raw_program
+ * programs n bytes page by page (no read-back: the caller verifies). Each
+ * returns 0 when done, -1 if the chip stayed busy or the erase didn't
+ * hold. store_crc32 is the store's CRC-32 (the common one). */
+void store_raw_read(u32 addr, u8 *buf, u32 n);
+int store_raw_erase(u32 addr);
+int store_raw_program(u32 addr, const u8 *data, u32 n);
+u32 store_crc32(const u8 *p, u32 n);
+#endif
+
 #endif

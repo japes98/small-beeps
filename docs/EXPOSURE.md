@@ -3388,6 +3388,20 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing new. No spec entries changed.
 - Disk: about 5.6 GB free.
 
+### Session spec-report1-unit (report1's log: the counter, input 5, ALNK1)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.329; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio4-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/report1-unit` from main.
+- The owner's message, saved as docs/prompts/spec-report1-unit.md.
+- Recorded: HW-153 (UNIT: `DAA_CON7` corrected; the counter checked;
+  input 5 at 48.00 MHz in every state; ALNK1 dead), HW-154 (what it
+  says); HW-144 and HW-147's standing notes the correction; note on Q-9.
+- Read: nothing new; sources as P-505 to P-507.
+- No clean prompt: the owner rules first.
+- Disk: about 5.5 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
@@ -3496,6 +3510,32 @@ SR-3 wrote only its barrier-log row.*
   HW-45, HW-65, HW-133, HW-135, HW-137, HW-139, HW-144 to HW-149 and the
   notes on Q-9 and Q-17; the build's own
   symbol table and disassembly (in the pinned build container).
+- Disk: about 5 GB free.
+
+### Session clean-br17-report1 (BR-17: a report log in the flash)
+- Date: 2026-11-21 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.329, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio3's, continued. Saved unedited: the owner's audio3 unit
+  result (docs/prompts/clean-br17-audio3-result.md), the request
+  (docs/prompts/clean-br17-report1.md) and the unit observation
+  (docs/prompts/clean-br17-report1-unit.md); later the spec side's prompt
+  for steps H and I as docs/prompts/clean-br17-audio4.md (#215 and #216
+  merged, read from origin/main, its clean-side blobs fetched alone).
+- Start: #214 found merged; the clean folder updated to main
+  (`d02561b5`) by `tools/clean-update.sh`, no spec-side file on disk or
+  in `.git`. Nothing to archive (the last clean session is this one,
+  live); tools/check-transcripts.py passed (26 archived) earlier in the
+  session.
+- Reads: this side's own code (`store.c`, `store.h`, `hw_start3.c`,
+  `hw_audio.c`, `main.c`, tools/store-region.pl, docs/HARNESS.md's flash
+  chip); HARDWARE-SPEC HW-44, HW-45, HW-54, HW-65, HW-80, HW-81, HW-110 to
+  HW-112, HW-119, HW-140, HW-150 to HW-152; SPEC-REQUESTS SR-21; the
+  vendored SDK `WL82.h` for `JL_GPCNT` and `JL_ALNK1`.
 - Disk: about 5 GB free.
 
 ## Corrections

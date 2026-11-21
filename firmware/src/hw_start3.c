@@ -286,6 +286,24 @@ static void flash_give(u32 irq_on)
         __asm__ volatile("sti" ::: "memory");
 }
 
+#if defined(SB_HW_REPORT)
+/* The report log's take and give-back (hw_report.c): the same as the
+ * store's counter's, interrupts on after; refused (-1) unless the round
+ * trip came back. */
+int hw_flash_take(void)
+{
+    if (!hw3.back)
+        return -1;
+    flash_take();
+    return 0;
+}
+
+void hw_flash_give(void)
+{
+    flash_give(1);
+}
+#endif
+
 /* (c) step 1, before interrupts are on: the window's registers as
  * m-bootloader left them, shown before anything is changed; then, if its
  * CON reads back, the read-only round trip with its two LEDs. */
@@ -661,14 +679,20 @@ static void draw_core1(void)
 static u32 step_n;
 static const char *step_text = "";
 
+/* The row holds 40 characters at scale 1: "step n: " and as much of the
+ * text as fits, never more (a longer text once overran t, clean-br17-audio4). */
+#define STEP_CHARS 40u
+
 static void draw_step(void)
 {
-    char t[48], *p;
+    char t[STEP_CHARS + 16], *p;
+    const char *s = step_text;
 
     p = put_s(t, "step ");
     p = put_dec(p, step_n);
     p = put_s(p, ": ");
-    p = put_s(p, step_text);
+    while (*s && p < t + STEP_CHARS)
+        *p++ = *s++;
     *p = 0;
     row(HW3_STEP_Y, t, RGB565(0, 63, 31));
 }

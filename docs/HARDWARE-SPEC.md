@@ -3878,7 +3878,7 @@ AC7911B datasheet. HW-144 to HW-146 add to HW-140 to HW-142, which stand.
   steps 2 to 4 (the PLL words, the 360 MHz case's source 6 and its final
   `PLL2_CON0`), `src/platform.c` (`hal_clock_a`: only `CLK_CON2`'s low
   byte written); HW-44, HW-45, HW-119, HW-140, HW-142.
-- Standing: confirmed (UNIT, MB; one unit)
+- Standing: confirmed (UNIT, MB; one unit; `DAA_CON7` read from a photo, corrected by HW-153)
 - Needed by: M4, BR-17 (Phase B)
 
 ### HW-145: What ALNK0's clock needs: known and open (Q-9, Q-2)
@@ -4018,7 +4018,7 @@ HW-146, which stand.
 - Sources: UNIT: audio2 on the owner's unit, relayed by the owner on
   2026-11-20 (docs/prompts/spec-audio2-unit.md); HW-139, HW-143,
   HW-144, HW-145.
-- Standing: confirmed (UNIT; one unit; the core 1 cause open)
+- Standing: confirmed (UNIT; one unit; the core 1 cause open; `DAA_CON7` read from a photo, corrected by HW-153)
 - Needed by: M4, BR-17 (Phase B)
 
 ### HW-148: What audio2's values say, and what they don't (Q-9, Q-2)
@@ -4191,6 +4191,73 @@ HW-53 and HW-145; HW-152 answers SR-21 (the data cache and the cores).
   caches are kept in step and a register-level flush open)
 - Needed by: M5, BR-17 (Phase B)
 
+## 41. report1 on the unit: the counter, the audio clock and ALNK1
+
+Read back exactly from the flash log of this repository's build report1
+(hw3k, clean's #217 and #218) on the owner's unit, relayed on 2026-11-21
+(source UNIT, docs/prompts/spec-report1-unit.md; no photo reading).
+HW-153 adds to HW-150 and HW-151; HW-154 says what it means.
+
+### HW-153: report1: the counter works, input 5 counts 48 MHz, ALNK1 is dead too (Q-9)
+- Fact: On the owner's unit, started by m-bootloader:
+  1. **`DAA_CON7` reads `0x00004901`.** HW-144 and HW-147's
+     `0x0000C901` was read from a photo; the log gives `0x00004901`.
+  2. **The counter (HW-151) reads as the SDK says.** With `CLK_CON1`
+     `0x00010030` (bits 4-6 = 3, the high-speed bus) and `JL_GPCNT->CON`
+     `0x00001A09` (enabled; counting the clock system's input; gated by
+     the crystal oscillator for 32 768 cycles), `NUM` read 245 760 twice:
+     exactly 7.5 times the gate, 180 MHz against 24 MHz. The pending flag
+     (bit 7) was never seen set; the two readings agree all the same.
+  3. **Input 5, "the audio clock".** With `CLK_CON1` `0x00010050` (bits
+     4-6 = 5) and the same gate, `NUM` read 65 537 and 65 537 with
+     `CLK_CON2` `0x00000006`; 65 536 and 65 536 with `0x00000206` (bit 9
+     set); 65 537 and 65 537 with `0x00000306` (bits 9 and 8 set): 48.00
+     MHz, twice the crystal, in every state, and not changed by bits 8 or
+     9.
+  4. **ALNK1** set running (`CON0` `0x00000800`), with `CLK_CON2` taken
+     from `0x00000306` to `0x00000B06` (bit 11) and then `0x00000F06`
+     (bit 10): `CON0` bit 15 never changed and no pending flag was seen
+     over more than 1 000 polls. ALNK0 stayed dead throughout (no
+     interrupts). Both links fail the same way.
+  5. Core 1 counted throughout; every step was undone or refused as
+     built.
+- Sources: UNIT: report1's flash log, read back by the owner and relayed
+  on 2026-11-21 (docs/prompts/spec-report1-unit.md); HW-140, HW-144,
+  HW-145, HW-147, HW-151.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-154: What the 48 MHz says, and what it doesn't (Q-9)
+- Fact:
+  - **A fixed clock.** The count is an integer ratio of the crystal
+    (2.000), steady, and unmoved by `CLK_CON2` bits 8 to 11. The SDK
+    names PLL clocks of 48 MHz elsewhere in the clock system (the USB
+    and UART choices, HW-53; the USB clock reads its 48 MHz choice in
+    `CLK_CON1` bits 0-1 = 0), and m-bootloader's main PLL runs at 480
+    MHz from the crystal (HW-144). That input 5 carries one of those, a
+    divided main-PLL clock, is the likeliest reading but is not given;
+    nor is it given whether input 5 is the audio links' clock, the audio
+    block's (DAC and ADC) bus clock, or another.
+  - **Not the clock bits 8 and 9 choose.** If input 5 were the links'
+    clock as the SDK's switched-off bits describe it (192 MHz / 17 or
+    the other choice), it would read 11.29 or 12.31 MHz and change with
+    bit 8. It does neither. So either input 5 is not that clock, or those
+    bits don't do on this chip what the switched-off definitions say.
+  - **The rate fits 48 MHz too.** 48 MHz / 1 088 is 44 117.6 Hz, the
+    FM-1's rate and fwtest's (HW-45: 544 / 24 MHz), as 192 MHz / 4 352
+    is. That a link could make its rate from this 48 MHz by an integer
+    divider is arithmetic, not a fact; which divider, if any, and where
+    it is set (ALNK0's `CON1`, all zero, has no bits given) is open.
+  - **Both links dead.** ALNK1 fails as ALNK0 does with its own bits 10
+    and 11, so the cause is common to both links: a clock or enable they
+    share, or set-up in their own `CON0` to `CON3` that no source gives.
+- Sources: UNIT (HW-153); SDK `clock_hw.h` (the 48 MHz choices; the
+  switched-off bits 8 to 11), `gpcnt.h`; MB `docs/SPEC.md` §3.2; HW-45,
+  HW-53, HW-144, HW-145, HW-151.
+- Standing: confirmed (UNIT, SDK, MB; what input 5 is, and what the
+  links lack, open)
+- Needed by: M4, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -4324,6 +4391,9 @@ spec request can turn one into a fact.
   *Session spec-audio3-unit (HW-150, HW-151):* steps A and B leave
   ALNK0 dead; the general-purpose counter can measure "the audio clock".
   The options for the owner's ruling are in the session's report.
+  *Session spec-report1-unit (HW-153, HW-154):* the counter's input 5
+  reads 48.00 MHz whatever `CLK_CON2` bits 8 to 11 hold; ALNK1 is dead
+  as ALNK0 is. What input 5 is, and what both links lack, is open.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores

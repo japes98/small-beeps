@@ -340,6 +340,14 @@ static void hw_serve(void)
         if (e.control == INPUT_HOME && e.kind == INPUT_PRESS)
             hw_finder();
 #endif
+#if defined(SB_HW_REPORT)
+        /* report1: EDIT saves a report (hw_report.c); "saved #n" on the
+         * step row. */
+        if (e.control == INPUT_EDIT && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_report_save("save key");
+            continue;
+        }
+#endif
 #if defined(SB_HW_AUDIO1)
         /* audio1 (hw_audio.c): PLAY stops and starts the tone; HOME shows
          * the audio page again, then the test screen. */
@@ -363,6 +371,24 @@ static void hw_serve(void)
             else
                 hw_audio_b();
             hw_audio_keypage();
+            hw_test_screen();
+            continue;
+        }
+        /* audio4 (the spec side's clean-br17-audio4): ENV takes step H
+         * (the audio clock measured), FX measures again; LFO takes step I
+         * (ALNK1 with CLK_CON2 bit 11), SEL adds bit 10; a second ENV or
+         * LFO undoes. */
+        if ((e.control == INPUT_ENV || e.control == INPUT_FX || e.control == INPUT_LFO || e.control == INPUT_SEL)
+                && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            if (e.control == INPUT_ENV)
+                hw_audio_h();
+            else if (e.control == INPUT_FX)
+                hw_audio_h_again();
+            else if (e.control == INPUT_LFO)
+                hw_audio_i();
+            else
+                hw_audio_i10();
+            hw_audio_keypage_hi();
             hw_test_screen();
             continue;
         }
@@ -643,6 +669,10 @@ int main(void)
     /* start3's rows on the test screen (hw_start3.c). */
     lcd_wait();
     hw_rows_all();
+#if defined(SB_HW_REPORT)
+    /* report1: the end of boot, the test screen up (hw_report.c). */
+    hw_report_save("boot");
+#endif
 #if defined(SB_HW_AUDIO1)
     /* audio1: the tone, once the test screen is up; its page, then the
      * test screen again (hw_audio.c). */
