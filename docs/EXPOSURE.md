@@ -3402,6 +3402,18 @@ SR-3 wrote only its barrier-log row.*
 - No clean prompt: the owner rules first.
 - Disk: about 5.5 GB free.
 
+### Session spec-audio5-rulings (the clean prompt for K and J)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.329; model `claude-opus-5-5`. The same Claude Code
+  session as spec-report1-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/audio5-rulings` from main.
+- The owner's rulings, saved as docs/prompts/spec-audio5-rulings.md.
+- Wrote the clean prompt drop/prompts/clean-br17-audio5.md (K and J as
+  additions to leds1), outside the repository, from HW-140 to HW-154.
+- Read: nothing new. No spec entries changed.
+- Disk: about 5.5 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
@@ -3536,6 +3548,23 @@ SR-3 wrote only its barrier-log row.*
   chip); HARDWARE-SPEC HW-44, HW-45, HW-54, HW-65, HW-80, HW-81, HW-110 to
   HW-112, HW-119, HW-140, HW-150 to HW-152; SPEC-REQUESTS SR-21; the
   vendored SDK `WL82.h` for `JL_GPCNT` and `JL_ALNK1`.
+- Disk: about 5 GB free.
+
+### Session clean-br17-leds1 (BR-17: the keys' LEDs)
+- Date: 2026-11-21 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.329, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-report1's, continued. The owner's message saved unedited as
+  docs/prompts/clean-br17-leds1.md. #217 closed at the owner's request
+  (replaced by #218).
+- Start: on #218's branch (not yet merged), so the PR stays cumulative.
+  Nothing to archive (the last clean session is this one, live).
+- Reads: this side's own code (`main.c`, `hw_audio.c`, `input.h`,
+  tools/seams_suite.py's LED checks, docs/HARNESS.md's `leds.csv`).
 - Disk: about 5 GB free.
 
 ## Corrections

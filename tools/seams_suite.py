@@ -260,7 +260,8 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   CLK_CON2 bit 11 alone), SEL (bit 10 alone), REC's undo refused while I
   is taken, then I's, REC's and H's undos, each putting back the values
   read before; the log holds a record for each, in order, the last
-  matching RAM. fwtest models neither JL_GPCNT nor ALNK1 (their registers
+  matching RAM; each step key's LED is lit while its step is taken
+  (leds1). fwtest models neither JL_GPCNT nor ALNK1 (their registers
   read 0: the counter's gates time out, ALNK1 doesn't play), which the case
   prints; if a later fwtest plays ALNK1, its halves a second must fit
   44 117.6 frames.
@@ -2087,7 +2088,7 @@ def case_report1(a, work, log):
     sy = fws.elf_symbols(os.path.join(b, "app.elf"))
     h, hr = sy["hw_aud"], sy["hw_rep"]
     with open(os.path.join(b, "app.bin"), "rb") as f:
-        if b"0.10.0-hw3k" not in f.read():
+        if b"0.10.0-hw3l" not in f.read():
             problems.append("report1: the build's identity isn't in app.bin")
 
     def run(name, seed, ms, keys):
@@ -2132,7 +2133,7 @@ def case_report1(a, work, log):
     if (rep["saved"], rep["fails"], rep["found"]) != (9, 0, 0):
         problems.append("report1 first: saved %d, failed %d, found at the start %d (9, 0, 0)"
                         % (rep["saved"], rep["fails"], rep["found"]))
-    if any(not r["known"] or r["build"] != "0.10.0-hw3k" for r in rs):
+    if any(not r["known"] or r["build"] != "0.10.0-hw3l" for r in rs):
         problems.append("report1 first: a record of an unknown layout or another build: %s"
                         % [(r["layout"], r["count"], r["build"]) for r in rs])
     used = 3 * 4096       # 9 records of 1 KiB: three sectors, the rest as they were
@@ -2219,7 +2220,7 @@ def case_audio4(a, work, log):
         for t, k in keys:
             f.write("%d key %d down\n%d key %d up\n" % (t, k, t + 100, k))
     out = os.path.join(work, "run")
-    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "34000", "--flash-out",
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "34000", "--flash-out", "--leds-every", "500",
                "--script", os.path.relpath(script, ROOT), "--ram", "0x%08x:%d@end" % (h, AUD4_LEN))
     if r["run"]["outcome"] != "completed":
         problems.append("audio4: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
@@ -2282,6 +2283,19 @@ def case_audio4(a, work, log):
         exp = (hh["h_state"], hh["clk1_back"], ii["i_state"], ii["clk_back"], ii["flips"], ab["refused"], depth)
         if got != exp:
             problems.append("audio4: the last record %s, RAM %s" % (got, exp))
+    # leds1: a step key's LED lit (one slot in 14, about 71) while its step
+    # is taken, every other LED dark, at moments when no key is held.
+    with open(os.path.join(out, "leds.csv")) as f:
+        leds = {int(float(row[0])): [int(v) for v in row[1:]] for row in list(csv.reader(f))[1:]}
+    # A key's release is read once its page is over, so each moment is
+    # after a page and before the next press.
+    lit_at = {13000: {HW_ENV, HW_FX, HW_REC}, 21500: {HW_ENV, HW_FX, HW_REC, HW_LFO, HW_SEL},
+              28500: {HW_ENV, HW_FX, HW_REC}, 31000: {HW_ENV, HW_FX}, 33500: set()}
+    for t, want_lit in sorted(lit_at.items()):
+        row = leds.get(t)
+        if not row or any((60 <= v <= 85) != (i in want_lit) or (i not in want_lit and v) for i, v in enumerate(row)):
+            problems.append("audio4: LEDs at %d ms %s (lit: %s)" % (t, row and {i: v for i, v in enumerate(row) if v},
+                                                                     sorted(want_lit)))
     print("audio4: H: CLK_CON1 %08x > %08x > %08x > back %08x, counts bus %d/%d audio %d/%d (%d and %d gates timed"
           " out; fwtest's counter %s); I: CLK_CON2 %08x > %08x > %08x > back %08x, ALNK1 %s (%d half changes, %d.%d"
           " a second; fwtest's ALNK1 %s); REC's undo refused once; %d log records in order"

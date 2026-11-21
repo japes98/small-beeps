@@ -4958,3 +4958,27 @@ else new, into report1's build and branch so the owner flashes one file.
   so H's gates time out and ALNK1 doesn't play; case audio4 checks every
   write, read-back, undo and refusal, and the log's records, and prints
   that.
+
+### 2026-11-21 clean-br17-leds1: the keys' LEDs show what is held and taken (BR-17, R-HW-1)
+The owner's request (docs/prompts/clean-br17-leds1.md), after report1 ran
+on the unit (23 records read back from a full flash image, all CRCs
+valid): light each key's LED while it is held, and keep the step keys'
+lit while their step is taken. Nothing else changes.
+
+- **Held.** Every key's LED is set at its press and release before any
+  key's own work, so the keys main handles itself (HOME, EDIT and the
+  step keys, which never lit before) light while held, as the others
+  always did.
+- **Taken.** With the audio probe, a step key's LED stays lit after its
+  release while its step is taken: REC (bit 9), ARP (A), SAVE (B), ENV
+  (H), LFO (I); SEQ while ALNK0 is stopped; FX while H is taken (it
+  measures H again); SEL while I is taken with bit 10 set. EDIT saves a
+  report and has no state, so it lights only while held. After each step
+  key's work every step key's LED is set again from its state, since a
+  step can change another key's (I's undo clears SEL's bit 10).
+- **While a page shows.** A step key's page holds main for 10 s, and its
+  release is read after it, so the key's LED stays lit through its page
+  even if released sooner.
+- The build's identity is 0.10.0-hw3l. Case audio4 samples the LEDs:
+  each step key's lit (one slot in 14, as PLAY's) while its step is
+  taken, and every other dark, at moments with no key held.
