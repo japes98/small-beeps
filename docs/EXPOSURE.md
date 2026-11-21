@@ -3433,6 +3433,20 @@ SR-3 wrote only its barrier-log row.*
   firmware), outside the repository, from HW-45 to HW-156.
 - Disk: about 4.4 GB free.
 
+### Session spec-audio6-rulings (D's pacing: one press, one sweep)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio5-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/audio6-rulings` from `spec/audio5-unit` (#223).
+- The owner's ruling, saved unedited as docs/prompts/spec-audio6-rulings.md.
+- Updated the clean prompt drop/prompts/clean-br17-audio6.md in place:
+  one key press runs the whole 32-bit sweep, each try as before, stopping
+  at the first failed check or moving link. The "To clean" part of the
+  owner's previous message was meant for clean; nothing taken from it.
+- Read: nothing new. No spec entries changed.
+- Disk: about 4.3 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
