@@ -3366,7 +3366,10 @@ SR-3 wrote only its barrier-log row.*
   audio2's core 1 result was core 0 not seeing core 1's stores), HW-149
   marked superseded, HW-151 (SDK: the general-purpose counter); notes on
   Q-9 and Q-18. Read (PROVENANCE P-507): the SDK's `gpcnt.h` and its
-  example; P-505's copies.
+  example; P-505's copies. Then, on the owner's follow-up: HW-152 and
+  SR-21 (the data cache and the cores), from the SDK's `cache.h` and
+  `csfr.h` and m-bootloader's `docs/SPEC.md`; bit 9's effect in audio2
+  recorded as open.
 - Not recorded, by the guardrails: nothing new from FM-1-RE. Not opened:
   any GPL firmware, stock package, SDK prebuilt library, or m-bootloader's
   `src/usb_midi.c`.

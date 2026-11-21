@@ -4089,13 +4089,13 @@ HW-146, which stand.
 - Standing: superseded by HW-150
 - Needed by: M4, BR-17 (Phase B)
 
-## 40. audio3 on the unit, and a way to measure the audio clock
+## 40. audio3 on the unit, a way to measure the audio clock, and the cache (SR-21)
 
 Observed by the owner on the owner's unit with this repository's build
 audio3 (image `b139e49d…`, clean's #214) and relayed on 2026-11-21
 (source UNIT, docs/prompts/spec-audio3-unit.md); then read under the
 same request (PROVENANCE P-507). HW-150 replaces HW-149; HW-151 adds to
-HW-53 and HW-145.
+HW-53 and HW-145; HW-152 answers SR-21 (the data cache and the cores).
 
 ### HW-150: audio3: steps A and B leave ALNK0 dead; core 1 never stopped (Q-9, Q-18)
 - Fact: On the owner's unit, started by m-bootloader:
@@ -4110,7 +4110,9 @@ HW-53 and HW-145.
      count moved to a 32-byte block of its own. So what audio2 showed
      (HW-147 item 2, HW-149) was core 0 not seeing core 1's stores to a
      word sharing a 32-byte block with core 0's data, not anything the
-     clock or ALNK0 did. HW-149's hypothesis is withdrawn.
+     clock or ALNK0 did. HW-149's hypothesis is withdrawn. Why setting
+     `CLK_CON2` bit 9 made core 0 see the count move in audio2, every
+     time, is open: neither side can explain it yet.
 - Sources: UNIT: audio3 on the owner's unit, relayed by the owner on
   2026-11-21 (docs/prompts/spec-audio3-unit.md); HW-145, HW-147, HW-149.
 - Standing: confirmed (UNIT; one unit)
@@ -4144,6 +4146,50 @@ HW-53 and HW-145.
 - Standing: confirmed (SDK; `NUM`'s timing and what "audio clock" feeds
   open)
 - Needed by: M4, BR-17 (Phase B)
+
+### HW-152: The data cache, main RAM and the two cores (SR-21, Q-18)
+- Fact:
+  - **Line size.** The SDK's cache calls work in lines of 32 bytes
+    (`CACHE_LINE_COUNT` 32). On the unit, a word one core writes and the
+    other reads was seen once it had a 32-byte block to itself
+    (HW-150), which fits.
+  - **What is cached.** The cache control word (`CACHE_CON`,
+    `0x01EEE008`, in the `corex2` block shared by the cores, HW-65) has
+    bit 8 for a read-only cache of the flash window and bit 9 for a
+    read/write cache; bit 14 reads idle (m-bootloader). Which addresses
+    the read/write cache holds, main RAM's included, no allowed source
+    says. The SDK's uncached alias exists only for addresses at or above
+    `0x04000000`, and gives main RAM none (HW-65).
+  - **The cores' caches in step.** No allowed source says whether each
+    core has its own data cache, or whether they are kept in step. On
+    the unit (HW-150), core 0 kept reading a stale value of a word core 1
+    was storing to while that word shared a 32-byte block with data core
+    0 wrote, and read it fresh once the word had a block of its own. That
+    fits caches that are not kept in step for a line both cores write;
+    it doesn't show more, and why bit 9 changed it (HW-150) is open.
+  - **Flush and invalidate.** The SDK's operations are by address range:
+    flush the data cache, flush and invalidate it, choose how many of its
+    ways the cores and the peripherals use, and a "cwt" range with a
+    buffer sync (no meaning given); their code is in prebuilt libraries,
+    not a source here, so no register-level way to do them is given.
+    m-bootloader invalidates every cache only with the caches switched
+    off and before running the flash's code (clearing the cache's
+    internal arrays), which a running app can't use. The SDK's own
+    hand-off between cores is its lock: `testset`, with `csync` before
+    and after, and `csync` before a shared load (HW-65).
+  So, from these sources: a word one core writes and the other reads
+  goes in a block of its own at least 32 bytes long and 32-byte aligned
+  (the clean side's 64-byte rule meets this), with only one core writing
+  it, and `csync` as HW-65 gives. Whether that is enough in every case,
+  and which flush a larger hand-off (a buffer written by one core and
+  read by the other) needs, is open.
+- Sources: SDK `include_lib/driver/cpu/wl82/asm/cache.h` (blob
+  `14d757c0`) lines 22-32; SDK `csfr.h` lines 106-115 (`corex2`); MB
+  `docs/SPEC.md` §2.2 (the cache control word's bits 8, 9 and 14), §3.6
+  (the invalidation); UNIT (HW-150); HW-65, HW-127.
+- Standing: confirmed (SDK, MB, UNIT; what is cached, whether the cores'
+  caches are kept in step and a register-level flush open)
+- Needed by: M5, BR-17 (Phase B)
 
 ## Open questions
 
@@ -4381,6 +4427,10 @@ spec request can turn one into a fact.
   32-byte block of its own (audio3). So shared words between the cores
   need a block of their own, or a cache operation; which, and why, is
   still open.
+  *Session spec-audio3-unit (HW-152, SR-21):* the cache's lines are 32
+  bytes; what is cached, whether the cores' caches are kept in step and
+  a register-level flush are still open; why bit 9 made the count move
+  in audio2 is open.
 - **Q-19. The block moves' write-back forms on the chip.** What
   `{list} = [rN++]`, `{list} = [--rN]` and their stores leave in the base
   (fwtest: rN + 4n, rN - 4n), which wins when such a form's base is also

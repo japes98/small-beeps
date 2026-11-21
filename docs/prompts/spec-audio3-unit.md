@@ -16,3 +16,14 @@ undone or recovered from (a power cycle, or REC-at-power-on download
 mode). Rank them. Also say plainly whether there is any route to sound
 left that doesn't touch PLL2 or the system clock. Don't write a clean
 prompt yet. End with "done, ready to clear".
+
+---
+Follow-up from the owner, same day:
+
+Also, from clean (SR-21, please answer with the rest): the data cache's
+line size; whether main RAM is cached, and whether the two cores' caches
+stay in step; and which flush or invalidate a hand-off between the cores
+needs (Q-18). Clean's working rule meanwhile: anything one core writes
+and the other reads sits in its own 64-byte aligned, padded block. Clean
+still can't explain why bit 9 made the count move in audio2; record that
+as open.
