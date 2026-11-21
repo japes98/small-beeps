@@ -85,7 +85,20 @@ struct hw_start3 {
     u32 count1;                       /* hw_core1_count a second after */
 };
 extern struct hw_start3 hw3;
+#if defined(SB_HW_AUDIO1)
+/* audio3 (clean-br17-audio3): core 1's flag and count in a block of their
+ * own, 64 bytes on a 64-byte boundary, so no store of core 0's shares a
+ * cache line with them (Q-18); hw_core1.S writes them by the block. */
+struct hw_core1_blk {
+    volatile u32 flag, count, pad[14];
+};
+extern struct hw_core1_blk hw_core1_blk;
+#define hw_core1_flag  (hw_core1_blk.flag)
+#define hw_core1_count (hw_core1_blk.count)
+extern volatile u32 hw_scan_paused;
+#else
 extern volatile u32 hw_core1_count, hw_core1_flag, hw_scan_paused;
+#endif
 #define HW_C1_WAIT_MS 100u
 void hw_core1_screen(void);
 void hw_round_trip(void);
@@ -113,9 +126,32 @@ void hw_finder(void) __attribute__((noreturn));
 #define HW_AUD_PAGE_MS   1000u
 #define HW_AUD_SETTLE_MS 300u
 #else
-#define HW_AUD_PAGE_MS   10000u
+#define HW_AUD_PAGE_MS   20000u
 #define HW_AUD_SETTLE_MS 1500u
 #endif
+/* audio3: core 1's count at fixed points (hw_aud.c1_beat, c1_count). */
+#define HW_C1_REL   0u   /* just after core 1's release */
+#define HW_C1_PRE   1u   /* just before audio_start */
+#define HW_C1_POST  2u   /* just after it */
+#define HW_C1_P10   3u   /* 10 ms after it */
+#define HW_C1_P100  4u   /* 100 ms after it */
+#define HW_C1_S0    5u   /* the first page's settle over, before its register reads */
+#define HW_C1_S1    6u   /* just after those reads */
+#define HW_C1_POLL  7u   /* after the first page loop's first CON0 and CON2 reads */
+#define HW_C1_KEY   8u   /* just after the last key's write (REC, SEQ, ARP or SAVE) */
+#define HW_C1_K10   9u   /* 10 ms after it */
+#define HW_C1_K100  10u  /* 100 ms after it */
+#define HW_C1_PAGE  11u  /* the page's start */
+#define HW_C1_NOW   12u  /* the page's latest redraw */
+#define HW_C1_MARKS 13u
+/* The keyed steps, in hw_aud.snap's order. */
+#define HW_K_REC  0u     /* audio2's CLK_CON2 bit 9 */
+#define HW_K_SEQ  1u     /* the core 1 probe's ALNK0 stop */
+#define HW_K_A    2u     /* audio3's step A: CON0 bit 11 cleared and set again */
+#define HW_K_B    3u     /* audio3's step B: CLK_CON2 bit 8 */
+#define HW_K_N    4u
+/* A snapshot: CON0, CLK_CON2, source 11's interrupts, core 1's count. */
+#define HW_SNAP   4u
 struct hw_audio {
     u32 regs[2][HW_AUD_REGS];   /* read at main's start, and with the tone on */
     u32 regs_read;              /* the second set read */
@@ -132,7 +168,29 @@ struct hw_audio {
     u32 step_state;             /* HW_STEP_NONE, _TAKEN or _UNDONE */
     u32 steps;                  /* key presses taken */
     u32 clk_before, clk_set, clk_back; /* CLK_CON2 read before, read back after bit 9 set, read back after it is put back */
+    /* audio3 (clean-br17-audio3), after audio2's: */
+    u32 c1_beat[HW_C1_MARKS], c1_count[HW_C1_MARKS]; /* core 1's count at the fixed points, and their beats */
+    u32 c1_seen, c1_moved;      /* the count last seen, and the beat it was last seen to change */
+    u32 al_state, al_keys;      /* HW_AL_RUN, _STOPPED or _BACK; SEQ presses taken */
+    u32 al_before, al_stop, al_back; /* ALNK0 CON0 read before, read back after bit 11 cleared, read back after it is put back */
+    u32 al_blocks_stop, al_blocks_back; /* sb_audio.blocks at the stop and at the restart */
+    u32 x2[2][16];              /* corex2 words 0x80-0x8F at the page's start, and at its core 1 view */
+    /* audio3's steps A and B (clean-br17-audio3), after the core 1 probe's: */
+    u32 a_state, a_keys;        /* step A: HW_STEP_NONE, _TAKEN or _UNDONE; presses taken */
+    u32 a_before, a_clr, a_set, a_back; /* CON0 read before; read back after bit 11 cleared, after it set again, after it is put back */
+    u32 b_state, b_keys;        /* step B, likewise */
+    u32 b_before, b_set, b_back; /* CLK_CON2 read before; read back after bit 8 set, after it is put back */
+    u32 refused;                /* presses refused (A or B without bit 9; REC's undo with B taken) */
+    u32 snap[HW_K_N][2][HW_SNAP]; /* each step's last press: before and 100 ms after */
 };
+#define HW_AL_RUN     0u
+#define HW_AL_STOPPED 1u
+#define HW_AL_BACK    2u
+void hw_c1_mark(u32 i);
+void hw_audio_alnk(void);
+void hw_audio_a(void);
+void hw_audio_b(void);
+void hw_audio_keypage(void);
 #define HW_STEP_NONE   0u
 #define HW_STEP_TAKEN  1u
 #define HW_STEP_UNDONE 2u

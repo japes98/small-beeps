@@ -4722,3 +4722,113 @@ step behind a key, and reads more back.
   from that point on, over at least a second.
 - **fwtest** stores `CLK_CON2` but nothing depends on it (HW-53), so the
   tone plays on through both presses (case audio2).
+
+### 2026-11-20 clean-br17-audio3: why core 1 stops in the audio builds (BR-17, R-HW-1)
+The owner's unit report on audio2 (docs/prompts/clean-br17-audio2-result.md)
+and approval (docs/prompts/clean-br17-core1-probe.md). On the unit, core 1
+counted from its release (6 742 150 at the step after it, about
+36 586 082 at the test screen), then froze at 419 825 784 about 21 s
+after power-on and stayed there while the beats ran on. It ran again
+only while `CLK_CON2` bit 9 was set. Nothing in this repository's code
+links core 1 to the audio: its release comes before any audio code, and
+its loop touches only RAM. The two readings: (A) ALNK0, told to run
+with no clock, stalls core 1's access to memory, and bit 9 releases it;
+(B) core 0 doesn't see core 1's stores because the count shares a cache
+line with core 0's writes (in audio2 it shared 32 bytes with `hw3`,
+`step_n` and `hw_scan_paused`). The frozen non-zero count favours A.
+But the freeze did not come at `audio_start`: core 1 counted about 383
+million more after the first test screen, which `audio_start` follows,
+so it stopped some seconds later, during the page's 1.5 s settle or its
+10 s hold (the core 1 row isn't drawn on the page, so "21 s" is only
+when the test screen came back). What core 0 does first in that span,
+with core 1 running and ALNK0's clock off, is read the analogue, audio,
+ALNK0 and pin-map registers again (`hw_audio_boot`'s same reads ran
+before core 1's release), then poll ALNK0's `CON0` and `CON2` in a
+tight loop. Either could be what stops core 1, as could ALNK0 itself
+some time after it was told to run. audio3 tells these apart without
+guessing:
+
+- **The count at fixed points:** just after the release, just before
+  and after `audio_start`, 10 ms and 100 ms later, at the end of the
+  page's first settle (before its register reads) and just after them,
+  after the page loop's first `CON0` and `CON2` reads, the same three
+  after each REC or SEQ write, at the page's start and at each redraw.
+  Each mark keeps its beat, and the beat the count was last seen to
+  change is kept too (polled in the settle, on the page, by the test
+  screen's line and in the waits). Core 1's rate (counts a beat, from
+  the release to `audio_start`) is shown with them, so a frozen count
+  converts back to a time.
+- **SEQ stops ALNK0** by clearing `CON0` bit 11 alone (HW-43), the
+  write `audio_start` makes the other way; the next press writes back
+  the `CON0` read before, exactly, like REC's step. No clock step and no
+  other register. If core 1 counts again after the stop, A is shown
+  without touching `CLK_CON2`. SEQ was free (PLAY, REC and HOME are
+  taken), and is pressed on the test screen only.
+- **Core 1's own block:** the flag and the count in a 64-byte struct on
+  a 64-byte boundary (`hw_core1_blk`), wider than any likely line, so no
+  store of core 0's shares it. If core 1 still stops, B is ruled out.
+  Only `SB_HW_AUDIO1` moves them; the other hardware builds keep their
+  layout.
+- **The corex2 words 0x80 to 0x8F** (Q-17's per-core counters) read
+  at the page's start and again when its third view shows, some seconds
+  later in the same state; a changing word is shown yellow. That is a
+  sign of core 1 that doesn't rest on what core 0 sees of RAM.
+- **The page** now has four views, 5 s each on a unit: audio1's
+  registers, audio2's, core 1's (the marks, the last-moved beat and
+  rate, `CON0`'s stop sequence and the corex2 words) and the steps' (see
+  below), the last two redrawn each quarter second. HOME and the first
+  page show all four (20 s); a step's key shows the steps view, then core
+  1's (10 s). The test screen's line keeps the interrupts and frames a
+  second at scale 2, with the steps' states at its right at scale 1
+  (R and S above, A and B below: T taken, U undone, S stopped, R put
+  back, - never pressed). With the short hold the whole page stays 1 s,
+  so the older cases' timings hold.
+- **fwtest** stops ALNK0 on bit 11 clear, so no half is taken while it
+  is stopped, and the tone plays again after (case audio3); core 1 runs
+  there throughout, so its count rises through every mark (two marks in
+  one beat may read the same count: core 1 takes turns with core 0).
+
+### 2026-11-20 clean-br17-audio3: steps A and B, in the same build (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio3.md, after #213:
+HW-147 to HW-149), relayed by the owner (docs/prompts/clean-br17-audio3-owner.md)
+to go into the core 1 probe's build and branch, so the owner flashes one
+file. The owner allowed A and B and nothing else.
+
+- **Keys.** ARP takes step A and SAVE step B; a second press of the same
+  key undoes it, and a third takes it again. PLAY, REC, HOME and SEQ
+  were taken; ARP and SAVE sit together and are free in this build. Each
+  is pressed on the test screen only.
+- **Step A** (HW-45's start, fwtest's; HW-148: no source says a restart
+  is needed): `CON0` read, bit 11 cleared (written, read back), then set
+  again (written, read back), at once, with no wait between: no source
+  gives one. The undo writes back the `CON0` read before.
+- **Step B** (HW-145; the SDK's switched-off definitions only):
+  `CLK_CON2` read and written with bit 8 alone added, read back; the
+  undo writes back the value read before. Its low byte and bits 9 to 11
+  stay as read.
+- **Bit 9 first.** A and B are refused unless `CLK_CON2` bit 9 reads
+  set, as the prompt gives both "with bit 9 set". REC's undo is refused
+  while B is taken: it would put back the `CLK_CON2` read before REC,
+  clearing bit 8 behind B's back, so B's undo comes first and each undo
+  stays "the value read before its own press". A refusal is said on the
+  step row and counted; nothing is written.
+- **What each press shows.** As REC's step does, the step row names each
+  write before it is made, with the value, so a hang leaves it showing.
+  Each step keeps a snapshot before and 100 ms after its last press:
+  `CON0` (bit 15 in it), `CLK_CON2`, source 11's interrupts and core 1's
+  count, with core 1's marks after the write (key, +10 ms, +100 ms). The
+  steps view shows every step's state, presses and snapshots, the same
+  four values now, A's readbacks and B's, and the refusals; the page's
+  top lines keep the interrupts, bit 15's flips and frames a second.
+- **The frames a second after a step** are measured from a fresh base
+  (the next half the handler sees) after A, B, REC and SEQ's restart, so
+  a link that starts, restarts or changes clock is measured on its own,
+  over at least a second. With B taken, 48 077 frames a second would fit
+  12.31 MHz and a 256-clock frame (the prompt; no source gives the
+  frame); the tone's pitch then rises with it.
+- **fwtest** (case audio2, extended): bit 9, A, A's undo, B, B's undo,
+  then bit 9's undo; each undo puts back the value read before (A's
+  `CON0` with bit 15 aside, the half playing), the tone plays on at
+  440 Hz and 44 117.6 frames a second (`CLK_CON2` has no effect there,
+  HW-53, and A restarts the link as HW-45 says). Case audio3 checks that
+  ARP is refused without bit 9.

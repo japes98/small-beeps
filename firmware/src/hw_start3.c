@@ -87,7 +87,13 @@
 #define COUNTER_KIND 0xF0u
 
 struct hw_start3 hw3;
+#if defined(SB_HW_AUDIO1)
+/* audio3: core 1's flag and count alone in a 64-byte block, so nothing
+ * core 0 writes shares their cache line (hw_fm1.h). */
+struct hw_core1_blk hw_core1_blk __attribute__((aligned(64)));
+#else
 volatile u32 hw_core1_count, hw_core1_flag;
+#endif
 volatile u32 hw_scan_paused;
 void hw_core1_loop(void);
 static void draw_store(void);
