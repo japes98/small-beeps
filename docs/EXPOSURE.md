@@ -3376,6 +3376,18 @@ SR-3 wrote only its barrier-log row.*
 - No clean prompt: the owner rules first.
 - Disk: about 5.6 GB free.
 
+### Session spec-audio4-rulings (the clean prompt for H and I)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.329; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio3-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  a new branch `spec/audio4-rulings` from main.
+- The owner's rulings, saved as docs/prompts/spec-audio4-rulings.md.
+- Wrote the clean prompt drop/prompts/clean-br17-audio4.md (H and I as
+  additions to report1), outside the repository, from HW-140 to HW-152.
+- Read: nothing new. No spec entries changed.
+- Disk: about 5.6 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
