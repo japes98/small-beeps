@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range d02561b5aab31adae6a558c494bf716b5ecc99c1..da7547f9cfb2dddf3b2189c9ab1d22e42bc8384d
+OK     6a4478a338fe spec: audio3's unit facts, and the counter that can measure the audio clock (HW-150, HW-151)
+OK     168f08cd826c spec: SR-21 answered, the data cache and the cores (HW-152)
+EXEMPT da7547f9cfb2 (merge) Merge pull request #215 from japes98/spec/audio3-unit
+3 commit(s) checked: PASS
+
+exit status 0

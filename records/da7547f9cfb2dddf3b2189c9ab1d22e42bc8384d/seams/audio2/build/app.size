@@ -1,0 +1,7 @@
+code 70056
+data 68
+bss 166464
+image 70124
+stack 4096
+irq_stack 2048
+ram_code 69344
