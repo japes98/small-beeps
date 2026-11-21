@@ -1450,6 +1450,38 @@ void hw_audio_keypage(void)
     page_views(keys, 2);
 }
 
+/* --- leds1: the step keys' LEDs (the owner's request) ---------------------- */
+
+/* 1 while the step a key stands for is taken: REC bit 9, SEQ ALNK0
+ * stopped, ARP A, SAVE B, ENV H, FX H (it measures again), LFO I, SEL I
+ * with bit 10. EDIT (a save) and every other key: 0. */
+u32 hw_audio_key_lit(u32 control)
+{
+    switch (control) {
+    case INPUT_REC:  return hw_aud.step_state == HW_STEP_TAKEN;
+    case INPUT_SEQ:  return hw_aud.al_state == HW_AL_STOPPED;
+    case INPUT_ARP:  return hw_aud.a_state == HW_STEP_TAKEN;
+    case INPUT_SAVE: return hw_aud.b_state == HW_STEP_TAKEN;
+    case INPUT_ENV:
+    case INPUT_FX:   return hw_aud.h_state == HW_STEP_TAKEN;
+    case INPUT_LFO:  return hw_aud.i_state == HW_STEP_TAKEN;
+    case INPUT_SEL:  return hw_aud.i_state == HW_STEP_TAKEN && hw_aud.i_bit10;
+    default:         return 0;
+    }
+}
+
+/* After a step key's work: every step key's LED from its state (a step
+ * can change another key's: I's undo clears SEL's bit 10), the key just
+ * pressed, still held, lit. */
+void hw_audio_leds(u32 held)
+{
+    static const u8 keys[8] = { INPUT_REC, INPUT_SEQ, INPUT_ARP, INPUT_SAVE, INPUT_ENV, INPUT_FX, INPUT_LFO, INPUT_SEL };
+    u32 i;
+
+    for (i = 0; i < 8; i++)
+        input_led(keys[i], keys[i] == held || hw_audio_key_lit(keys[i]) ? INPUT_LED_FULL : 0);
+}
+
 #if defined(SB_HW_REPORT)
 /* The audio probe's fields for the report log, in tools/report-decode.py's
  * FIELDS[2] order after the common ones: audio1's registers and audio2's,
