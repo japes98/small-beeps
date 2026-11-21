@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 19d264481ca117b0abe323b04ef42e049224fd98..7959867fdda6567a08927df9f2a88545678bbacd
+OK     d5ffce7a4a7e sessions: clean-br17-audio5 starts (nothing to archive)
+OK     eeee9eba355c firmware: audio5, steps K and J in leds1's build (BR-17)
+EXEMPT 7959867fdda6 (merge) Merge pull request #222 from japes98/hw/audio5
+3 commit(s) checked: PASS
+
+exit status 0
