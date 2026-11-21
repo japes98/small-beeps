@@ -3480,6 +3480,22 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing new. No spec entries changed.
 - Disk: about 4.2 GB free.
 
+### Session spec-round-rules (faster rounds; audio7's outcomes ruled ahead)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio7-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/audio7-unit` from main. By the owner's rule this
+  branch goes up as one PR with audio7's unit results.
+- The owner's message, saved unedited as docs/prompts/spec-round-rules.md.
+- Updated drop/prompts/clean-br17-audio7.md in place: the iteration rule
+  (touched seams cases only, PR once packed, CI runs the full suite) and
+  the timing report.
+- Read: this repository's REQUIREMENTS.md (R-REPRO, R-HARN, R-SEP-3),
+  TOOLCHAIN.md and config/fwtest-image, for the native-build proposal.
+  No new outside source. No spec entries changed.
+- Disk: about 4.2 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
