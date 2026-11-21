@@ -905,3 +905,27 @@ an issue or a pull request against docs/HARNESS.md.
      Beyond HW-45 no bits are given.
   First, though: audio1 showed ALNK0 does not run (HW-144), so its clock
   comes before its routing (HW-145).
+
+### SR-21: The data cache and hand-offs between the cores
+- Asked: 2026-11-21, by the clean side through the owner, for BR-17 and
+  M5 (Q-18)
+- Question: the data cache's line size; whether main RAM is cached, and
+  whether the two cores' caches stay in step; which flush or invalidate a
+  hand-off between the cores needs. The clean side's working rule
+  meanwhile: anything one core writes and the other reads sits in its
+  own 64-byte aligned, padded block.
+- Why: audio2's core 1 count stayed stale on core 0 while it shared a
+  32-byte block with core 0's data; audio3, with the count in its own
+  block, saw it move (HW-150).
+- Status: answered (HARDWARE-SPEC.md, section 40, HW-152):
+  1. **Line size:** 32 bytes (the SDK's cache calls; the unit result fits).
+  2. **Main RAM cached, the cores in step:** not given. The cache control
+     word has a read/write cache enable (bit 9), but which addresses it
+     holds is not said; the unit result fits caches not kept in step for
+     a line both cores write.
+  3. **Flush or invalidate:** the SDK's are range calls in prebuilt
+     libraries; no register-level way is given. Follow HW-65 (`testset`,
+     `csync`). The clean side's 64-byte rule meets the 32-byte line; a
+     buffer handed from one core to the other stays open.
+  Why bit 9 made the count move in audio2 is open.
+
