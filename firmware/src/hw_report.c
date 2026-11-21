@@ -56,11 +56,6 @@ static u32 slot_addr(u32 s)
     return HW_LOG_BASE + s * HW_LOG_REC;
 }
 
-static int valid(const u32 *r)
-{
-    return r[0] == HW_LOG_MAGIC && store_crc32((const u8 *)r, HW_LOG_REC - 4u) == r[WORDS - 1u];
-}
-
 static int blank(const u32 *r)
 {
     u32 i;
@@ -71,23 +66,38 @@ static int blank(const u32 *r)
     return 1;
 }
 
-/* The ring read once: the newest valid record, by sequence. */
+/* A record's size by its layout: 1024 bytes for layouts 1 and 2, 2048 for
+ * 3 to 5, 4096 since 6 (audio7). */
+static u32 rec_size(u32 layout)
+{
+    return layout <= 2u ? 1024u : layout <= 5u ? 2048u : 4096u;
+}
+
+/* The ring read once: the newest valid record of any size, by sequence,
+ * looked for at every 1024 bytes; the next record goes in the slot after
+ * the one that holds it. */
 static void scan(void)
 {
-    u32 s, best = 0, seq = 0, n = 0;
+    u32 off, best = 0, seq = 0, n = 0, size;
 
-    for (s = 0; s < HW_LOG_SLOTS; s++) {
-        store_raw_read(slot_addr(s), (u8 *)chk, HW_LOG_REC);
-        if (!valid(chk))
+    for (off = 0; off < HW_LOG_SECTORS * 4096u; off += 1024u) {
+        store_raw_read(HW_LOG_BASE + off, (u8 *)chk, 16u);
+        if (chk[0] != HW_LOG_MAGIC)
+            continue;
+        size = rec_size(chk[1] & 0xFFFFu);
+        if (off + size > HW_LOG_SECTORS * 4096u)
+            continue;
+        store_raw_read(HW_LOG_BASE + off, (u8 *)chk, size);
+        if (store_crc32((const u8 *)chk, size - 4u) != chk[size / 4u - 1u])
             continue;
         if (!n || (int)(chk[2] - seq) > 0) {
-            best = s;
+            best = off;
             seq = chk[2];
         }
         n++;
     }
     hw_rep.found = n;
-    hw_rep.slot = n ? (best + 1u) % HW_LOG_SLOTS : 0;
+    hw_rep.slot = n ? (best / HW_LOG_REC + 1u) % HW_LOG_SLOTS : 0;
     hw_rep.seq = n ? seq + 1u : 1u;
     hw_rep.scanned = 1;
 }
@@ -134,7 +144,7 @@ static void copy16(u32 *w, const char *s)
     }
 }
 
-/* The fields, in tools/report_decode.py's FIELDS[5] order. */
+/* The fields, in tools/report_decode.py's FIELDS[6] order. */
 static u32 fields(u32 *w)
 {
     u32 n = 0;

@@ -5215,3 +5215,66 @@ sb_now() fix, the log's retries, the next key) as one file
   (`SB_TEST_D_CHECK_FAIL`) makes the check at bit 2 fail: the sweep
   undoes that try itself and stops.
 
+### 2026-11-21 clean-br17-audio7: set-ups L1 and L2, D held (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio7.md; HW-157, HW-158),
+allowed by the owner, into the same build as audio6 and the fixes after
+audio5, one file (docs/prompts/clean-br17-audio7-owner.md).
+
+- **D held.** D's code stays (OCT- still runs it), but it is out of the
+  guide's order; its view's title says it is held, and the state box
+  shows it as `h` until it is run. A D result in this run counts for
+  nothing.
+- **Keys.** KEY1 (the keyboard's lowest key) takes L1, KEY2 L2: every
+  panel button was taken. A set-up kept running is put back by a press
+  of either key; its own key does only that, the other then runs its
+  own set-up. Each key's LED is lit while its set-up is kept.
+- **A set-up**, HW-157's driver's order on ALNK0's own registers alone:
+  `CON0` as read with bit 11 clear, then `CON3` (L1 `0xC2`: the
+  oscillator, divided by 1, 512 master clocks a frame; L2 `0x83`: the
+  PLL's audio clock, by 1, 256), then `CON1` = `0x1000` (data 3 an I2S
+  output, 16-bit), then `CON0` as read with bit 11 set and bits 7 and 8
+  clear; each read back. `ADR3`, `LEN` and the buffer stay as audio1 set
+  them; `CON2` is written only as audio1's handler does; `CLK_CON2` bit 9
+  only by REC. As D does, a set-up first waits (at most 5 s, "release
+  KEYn to start") for its key to be released, so the matrix check sees no
+  key held. With D's safety machinery: (1) a record before, with
+  `CON0` to `CON3`, `LEN` and `ADR3` as they read back (both are
+  write-only in the SDK's header; the expectations use `LEN` as read if
+  not 0, else the 128 audio_start wrote), `CLK_CON1`, `CLK_CON2`, port A,
+  source 11's and core 1's counts, and the expected frames a second
+  (46 875 for L1, 44 117.6 for L2) with the halves a second that gives
+  by each reading of `LEN` (HW-157's: a half `LEN` frames; fwtest's,
+  HW-44: `LEN` / 2); (2) the scan paused, the matrix's baseline, the
+  writes; (3) a 1 s watch: bit 15's changes, `CON2` bit 7, source 11's
+  interrupts, and the halves timed against `sb_now()` from the first
+  change to the last, as halves a second and frames a second by each
+  `LEN` reading; (4) D's matrix check with the set-up in place; (5) kept
+  if the link moved with the check right, else `CON0`, `CON1` and `CON3`
+  put back as read, in that order, each read back; (6) the check again
+  and the three against step 1's; (7) the record ("L1 kept", "put back",
+  "check BAD", ...). Any failure stops: no further set-up is taken.
+- **The guide**: L1, REC (bit 9), L2, REC (bit 9's undo), L2, EDIT (a
+  save); while a set-up is kept its own key ("L1 undo", "L2 undo") comes
+  first, which is the prompt's "undo if it was kept".
+- **The log**: L's 78 fields don't fit a 2048-byte record beside the
+  rest, so layout 6's records are 4096 bytes, a sector each, 96 in the
+  ring; the ring's first read now finds records of every size (looking
+  at every 1024 bytes), so the numbers go on from the last build's. With
+  96 records the ring holds one of D's sweeps (about 67 records) and
+  part of another: if D is run twice, the first sweep's oldest records
+  give way (D is held in this build). This run's L1 and L2, with their
+  undos, pages and the rest, take about 30. The
+  decoder prints an L line for each record, with both `LEN` readings
+  beside the expected rates.
+- **The page**: an eighth view, L: the set-up's state, `CON0` to `CON3`
+  and `LEN` before, each write and read-back, the counts, the halves and
+  frames a second by each reading beside the expected, the checks, what
+  was put back, port A before, set up and after. KEY1 and KEY2 show it,
+  then core 1's; HOME shows all eight.
+- **fwtest** stores `CON1` and `CON3` and plays the link whatever they
+  hold (HW-44, HW-45), so in case audio7 each set-up is kept, its halves
+  read fwtest's 44 117.6 by fwtest's `LEN` reading, and its key puts the
+  three back as read. A test build (`SB_TEST_L_CHECK_FAIL`) fails L1's
+  check: the firmware puts it back and refuses the next set-up. The
+  identity is 0.10.0-hw3q.
+

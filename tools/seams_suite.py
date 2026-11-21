@@ -285,8 +285,19 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   sweep stops at bit 0 with the bit kept and the matrix right, and a press
   puts CON5 back; the tone plays at 440 Hz and 44 117.6 frames a second.
   A test build (SB_TEST_D_CHECK_FAIL) fails the check at bit 2: the
-  firmware undoes that try itself and stops the sweep there. The next key
-  (REC first) blinks, and the guide moves on with REC and OCT-.
+  firmware undoes that try itself and stops the sweep there. (Since
+  audio7 the ring holds 96 records: the first sweep's have gone by the
+  end, so the second and third are read from the log.)
+- audio7 (BR-17, clean-br17-audio7): set-ups L1 (KEY1) and L2 (KEY2),
+  HW-157's fields written to ALNK0's CON3, CON1 and CON0: L1, bit 9, L2,
+  bit 9's undo, L2, each logged before its writes and after; fwtest's
+  link runs through each (fwtest stores CON1 and CON3), so each is kept
+  with the matrix right, its halves timed (frames a second by both LEN
+  readings, fwtest's at 44 117.6) and the expected rates logged, and
+  its key puts CON0, CON1 and CON3 back as read; the guide follows the
+  table, a kept set-up's undo first; the tone plays on. A test build
+  (SB_TEST_L_CHECK_FAIL) fails L1's check: the firmware puts it back
+  and takes no further set-up.
 - nowrace (BR-17, after audio5): the hardware build's sb_now() never
   goes back. A test build (SB_TEST_NOW_RACE) makes the slot interrupt's
   time-keeping (its acknowledge and its count) happen at each point
@@ -2211,7 +2222,7 @@ def case_report1(a, work, log):
     slots = (rd.LOG_END - rd.LOG_BASE) // rd.REC
     for i in range(slots):
         w = [0] * (rd.REC // 4)
-        w[0], w[1], w[2], w[3] = rd.MAGIC, 3, 1000 + i, i
+        w[0], w[1], w[2], w[3] = rd.MAGIC, max(rd.FIELDS), 1000 + i, i
         rec = bytearray(struct.pack("<%dI" % (rd.REC // 4), *w))
         rec[32:35] = b"old"
         struct.pack_into("<I", rec, rd.REC - 4, zlib.crc32(bytes(rec[:rd.REC - 4])) & 0xFFFFFFFF)
@@ -2219,7 +2230,9 @@ def case_report1(a, work, log):
     chip3, rep3, _ = run("wrap", bytes(full), 8000, ())
     rs3, _ = rd.records(chip3)
     seqs = [r["seq"] for r in rs3]
-    first = 1000 + 4096 // rd.REC     # the oldest sector's records go
+    # The two new records erase as many sectors as they take; those
+    # sectors' old records go.
+    first = 1000 + (2 * rd.REC + 4095) // 4096 * 4096 // rd.REC
     if seqs != list(range(first, 1000 + slots)) + [1000 + slots, 1001 + slots] \
             or rs3[-2]["offset"] != rd.LOG_BASE or rep3["found"] != slots:
         problems.append("report1 wrap: sequences %s..%s (%d records), the first new at %s (%d to %d, then two"
@@ -2525,11 +2538,16 @@ def case_audio6(a, work, log):
     full = []
     for bit in range(32):
         full += ["D b%d before" % bit, "D b%d" % bit]
-    if bad or any(x["layout"] != max(rd.FIELDS) or not x["known"] for x in rs) or len(sweeps) != 3:
+    # Since audio7 the ring holds 96 records of 4096 bytes, and a sweep
+    # writes about 67: the newest stay, so the first sweep has gone by the
+    # third's end. The second (bit 9 clear) and the third are checked; the
+    # first in RAM below.
+    if bad or any(x["layout"] != max(rd.FIELDS) or not x["known"] for x in rs) or len(sweeps) < 2:
         problems.append("audio6: log: %d sweeps, %d bad, layouts %s" % (len(sweeps), len(bad),
                                                                         sorted({x["layout"] for x in rs})))
     else:
-        for n in (0, 1):
+        sweeps = [None] * (3 - len(sweeps)) + sweeps
+        for n in (1,):
             names = [x["label"] for x in sweeps[n]]
             tries = [x["fields"] for x in sweeps[n] if x["label"].startswith("D b") and not x["label"].endswith("before")]
             if names != full + ["D done"] or any(f["d_con5_back"] != f["d_con5_before"] or f["d_check_set"]
@@ -2537,9 +2555,12 @@ def case_audio6(a, work, log):
                 problems.append("audio6: sweep %d: %s (every bit tried and put back, the checks passing)"
                                 % (n + 1, [(x["label"], x["fields"]["d_check_set"], x["fields"]["d_check_after"])
                                            for x in sweeps[n] if x["label"] not in full[::2]][:6]))
-        clk = [sweeps[n][0]["fields"]["d_clk2"] & 0x200 for n in (0, 1)]
-        if clk != [0x200, 0]:
-            problems.append("audio6: CLK_CON2 bit 9 at the sweeps %s (set, then clear)" % clk)
+        clk = sweeps[1][0]["fields"]["d_clk2"] & 0x200
+        if clk:
+            problems.append("audio6: CLK_CON2 bit 9 set at the second sweep (clear)")
+        done2 = [x for x in rs if x["label"] == "D done" and x["fields"]["d_sweeps"] == 2]
+        if not done2 or done2[0]["fields"]["d_tries"] != 32:
+            problems.append("audio6: the second sweep's end %s (32 tries)" % (done2 and done2[0]["fields"]["d_tries"]))
         names = [x["label"] for x in sweeps[2]]
         if names[:4] != ["D b0 before", "D b0 kept", "D kept", "D undone"]:
             problems.append("audio6: the third sweep %s (bit 0 kept, then undone)" % names[:6])
@@ -2547,7 +2568,8 @@ def case_audio6(a, work, log):
     if last.get("d_state") != 4 or last.get("d_con5_now") != last.get("d_con5_before"):
         problems.append("audio6: at the end D %s, CON5 %s (undone, as read)" % (last.get("d_state"),
                                                                              last.get("d_con5_now")))
-    stored = [x["fields"]["d_con5_read"] == x["fields"]["d_con5_written"] for x in (sweeps[0] if sweeps else [])
+    stored = [x["fields"]["d_con5_read"] == x["fields"]["d_con5_written"] for x in (sweeps[1] if len(sweeps) > 1 and
+                                                                                     sweeps[1] else [])
               if x["label"].startswith("D b") and not x["label"].endswith("before")]
     e = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), ram(out, h, AUD_LEN, "51000ms"),
                                                  8 * AUD_REGS)))
@@ -2558,13 +2580,6 @@ def case_audio6(a, work, log):
     tail = left[-int(1.5 * 44100):]
     if left != right or min(max(abs(v) for v in tail[w:w + 441]) for w in range(0, len(tail) - 441, 441)) < 2000:
         problems.append("audio6: the tone doesn't play at the end in both channels")
-    at = struct.unpack("<I", ram(out, ga, 4))[0]
-    with open(os.path.join(out, "leds.csv")) as f:
-        leds = {int(float(row[0])): [int(v) for v in row[1:]] for row in list(csv.reader(f))[1:]}
-    l1 = leds.get(7500)
-    if at != 4 or not l1 or not 25 <= l1[HW_REC] <= 45 or any(v for i, v in enumerate(l1) if i != HW_REC):
-        problems.append("audio6: the guide at %d (4), LEDs at 7.5 s %s (REC blinking first)"
-                        % (at, l1 and {i: v for i, v in enumerate(l1) if v}))
     # The forced check failure: the sweep stops at bit 2, the try undone.
     fb = os.path.join(work, "build-fail")
     build(fb, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
@@ -2591,6 +2606,108 @@ def case_audio6(a, work, log):
           " matrix right; fwtest %s CON5 (%d of %d read back as written); with ALNK0 running bit 0 kept, then put back;"
           " a forced check failure stopped the sweep at bit 2, undone; the tone at %.1f frames a second; %d records"
           % ("stores" if stored and all(stored) else "doesn't store", sum(stored), len(stored), fps, len(rs)))
+    return problems
+
+
+HW_KEY1, HW_KEY2 = 14, 15   # fwtest's keys of KEY1 (L1) and KEY2 (L2) (input.h, INPUT_KEY(1) and (2))
+
+
+def case_audio7(a, work, log):
+    """audio7 (clean-br17-audio7): set-ups L1 and L2 in the next-key order,
+    each with D's safety machinery; kept and put back by key in fwtest,
+    where the link runs; a forced check failure put back by the firmware."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_AUDIO1", "--define", "SB_HW_REPORT")
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    h, ga = sy["hw_aud"], sy["hw_guide_at"]
+    keys = ((9000, HW_KEY1), (13000, HW_KEY1), (15500, HW_REC), (18000, HW_KEY2), (22000, HW_KEY2), (24500, HW_REC),
+            (27000, HW_KEY2), (31000, HW_KEY2), (33500, HW_EDIT))
+    script = os.path.join(work, "audio7.script")
+    with open(script, "w") as f:
+        for t, k in keys:
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + 100, k))
+    out = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "38000", "--flash-out", "--wav",
+               "--script", os.path.relpath(script, ROOT), "--ram", "0x%08x:4@end" % ga,
+               "--ram", "0x%08x:%d@end" % (h, AUD_LEN))
+    if r["run"]["outcome"] != "completed":
+        problems.append("audio7: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    acc = {u["address"] for u in r["run"]["unmodelled_accesses"]}
+    odd = sorted(acc - HW_WINDOW_REGS - {"0x00012f00"} - GPCNT_REGS - ALNK1_REGS)
+    if odd:
+        problems.append("audio7: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1: %s"
+                        % odd[:8])
+    with open(os.path.join(out, "flash.bin"), "rb") as f:
+        rs, bad = rd.records(f.read())
+    ls = [x for x in rs if x["label"].startswith("L")]
+    want = ["L1 before", "L1 kept", "L1 undone"] + ["L2 before", "L2 kept", "L2 undone"] * 2
+    if bad or [x["label"] for x in ls] != want or any(x["layout"] != max(rd.FIELDS) or not x["known"] for x in ls):
+        problems.append("audio7: L records %s (%s), %d bad" % ([x["label"] for x in ls], want, len(bad)))
+    else:
+        for i in range(0, 9, 3):
+            bf, kp, ud = (x["fields"] for x in ls[i:i + 3])
+            which = kp["l_which"]
+            con3 = (0xC2, 0x83)[which - 1]
+            fps = kp["l_fps_x10_b"] / 10.0 / HW_RATIO
+            if kp["l_check_set"] or kp["l_readback_CON3"] != con3 or kp["l_readback_CON1"] != 0x1000 \
+                    or not kp["l_expect_hps_x10_a"] or not kp["l_expect_hps_x10_b"] or abs(fps / AUD_FPS - 1) > 0.01:
+                problems.append("audio7: L%d kept: check %d, CON3 %02x, CON1 %04x, expected halves %s/%s, %.1f frames a"
+                                " second by fwtest's LEN reading (44 117.6)" % (which, kp["l_check_set"],
+                                                                               kp["l_readback_CON3"],
+                                                                               kp["l_readback_CON1"],
+                                                                               kp["l_expect_hps_x10_a"],
+                                                                               kp["l_expect_hps_x10_b"], fps))
+            if (ud["l_back_CON0"] ^ bf["l_before_AL0_CON0"]) & ~0x8000 or ud["l_back_CON1"] != bf["l_before_AL0_CON1"] \
+                    or ud["l_back_CON3"] != bf["l_before_AL0_CON3"]:
+                problems.append("audio7: L%d undone: CON0 %04x CON1 %04x CON3 %02x, before %04x %04x %02x"
+                                % (which, ud["l_back_CON0"], ud["l_back_CON1"], ud["l_back_CON3"],
+                                   bf["l_before_AL0_CON0"], bf["l_before_AL0_CON1"], bf["l_before_AL0_CON3"]))
+        bits = [ls[i]["fields"]["l_clk2"] & 0x200 for i in (3, 6)]
+        if bits != [0x200, 0]:
+            problems.append("audio7: CLK_CON2 bit 9 at the L2s %s (set, then clear)" % bits)
+    at = struct.unpack("<I", ram(out, ga, 4))[0]
+    if at != 6:
+        problems.append("audio7: the guide at %d (6: L1, bit 9, L2, bit 9, L2, save)" % at)
+    e = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), ram(out, h, AUD_LEN), 8 * AUD_REGS)))
+    fps = e["fps10"] / 10.0 / HW_RATIO
+    if not e["fps10"] or abs(fps / AUD_FPS - 1) > 200e-6 or e["storm"]:
+        problems.append("audio7: %.1f frames a second in fwtest's time (%.1f), storm %d" % (fps, AUD_FPS, e["storm"]))
+    _, left, right = aa.read_wav(os.path.join(out, "audio.wav"))
+    tail = left[-2 * 44100:]
+    if left != right or min(max(abs(v) for v in tail[w:w + 441]) for w in range(0, len(tail) - 441, 441)) < 2000:
+        problems.append("audio7: the tone doesn't play at the end in both channels")
+    # The forced check failure: L1 put back by the firmware, no further set-up.
+    fb = os.path.join(work, "build-fail")
+    build(fb, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_AUDIO1", "--define", "SB_HW_REPORT",
+          "--define", "SB_TEST_L_CHECK_FAIL")
+    fscript = os.path.join(work, "fail.script")
+    with open(fscript, "w") as f:
+        for t, k in ((9000, HW_KEY1), (13000, HW_KEY2)):
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + 100, k))
+    fout = os.path.join(work, "run-fail")
+    r = fwtest(os.path.join(fb, "app.bin"), fout, log, "--ms", "16000", "--flash-out",
+               "--script", os.path.relpath(fscript, ROOT))
+    with open(os.path.join(fout, "flash.bin"), "rb") as f:
+        frs, _ = rd.records(f.read())
+    fl = [x for x in frs if x["label"].startswith("L")]
+    f1 = fl[1]["fields"] if len(fl) > 1 else {}
+    if r["run"]["outcome"] != "completed" or [x["label"] for x in fl] != ["L1 before", "L1 check BAD", "L refused"] \
+            or f1.get("l_check_set") != 1 or f1.get("l_stopped") != 1 \
+            or (f1.get("l_back_CON0", 0) ^ f1.get("l_before_AL0_CON0", 0)) & ~0x8000 \
+            or f1.get("l_back_CON3") != f1.get("l_before_AL0_CON3") or f1.get("l_back_CON1") != f1.get("l_before_AL0_CON1"):
+        problems.append("audio7 fail: %s, records %s, %s" % (r["run"]["outcome"], [x["label"] for x in fl],
+                                                             {k: f1.get(k) for k in ("l_check_set", "l_stopped",
+                                                                                     "l_back_CON0", "l_back_CON1",
+                                                                                     "l_back_CON3")}))
+    print("audio7: L1, bit 9, L2, bit 9's undo, L2: each kept in fwtest (its link runs) with the matrix right and put"
+          " back by its key; fwtest stores CON1 and CON3; the guide through its table; the tone at %.1f frames a"
+          " second; a forced check failure put back by the firmware and the next set-up refused; %d records"
+          % (fps, len(rs)))
     return problems
 
 
@@ -2648,6 +2765,7 @@ CASES = [
     ("audio5", case_audio5),
     ("nowrace", case_nowrace),
     ("audio6", case_audio6),
+    ("audio7", case_audio7),
 ]
 
 

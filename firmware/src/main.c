@@ -507,6 +507,17 @@ static void hw_serve(void)
             hw_guide_show();
             continue;
         }
+        /* audio7 (the spec side's clean-br17-audio7): KEY1 takes set-up L1,
+         * KEY2 set-up L2; a kept set-up is put back by either. */
+        if ((e.control == INPUT_KEY(1) || e.control == INPUT_KEY(2)) && e.kind == INPUT_PRESS
+                && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_audio_l(e.control == INPUT_KEY(1) ? 1u : 2u);
+            hw_audio_leds(e.control);
+            hw_audio_keypage_l();
+            hw_test_screen();
+            hw_guide_show();
+            continue;
+        }
         /* audio3: SEQ stops ALNK0 (CON0 bit 11 cleared alone), or puts
          * back the CON0 read before; then the page, then the test screen. */
         if (e.control == INPUT_SEQ && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {

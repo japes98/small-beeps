@@ -28,8 +28,8 @@ import sys
 import zlib
 
 MAGIC = 0x4C524253          # "SBRL" (hw_fm1.h, HW_LOG_MAGIC)
-REC = 2048                  # HW_LOG_REC, since layout 3 (audio5)
-REC_OF = {1: 1024, 2: 1024, 3: 2048, 4: 2048, 5: 2048}   # a record's size by its layout
+REC = 4096                  # HW_LOG_REC, since layout 6 (audio7); 2048 for layouts 3 to 5, 1024 before
+REC_OF = {1: 1024, 2: 1024, 3: 2048, 4: 2048, 5: 2048, 6: 4096}   # a record's size by its layout
 HEAD = 12                   # HW_LOG_HEAD
 LOG_END = 0x94000           # HW_LOG_END
 LOG_SECTORS = 96            # HW_LOG_SECTORS, since audio6 (64 in audio5, 32 before)
@@ -148,7 +148,31 @@ def _layout5():
     return _layout3() + f + _layout4()[len(_layout3()):]
 
 
-FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5()}
+L_STATES = ("not run", "KEPT, running", "undone by key", "put back (nothing moved)", "STOPPED")
+
+
+def _layout6():
+    """Layout 6 (clean-br17-audio7): layout 5 with set-ups L1 and L2 after
+    step D, before layout 4's log health."""
+    l5 = _layout5()
+    health = len(_layout4()) - len(_layout3())
+    f = ["l_state", "l_which", "l_runs", "l_stop", "l_phase", "l_stopped"]
+    f += ["l_before_AL0_CON%d" % i for i in range(4)]
+    f += ["l_len_read", "l_adr3_read", "l_len_used", "l_clk1", "l_clk2"]
+    f += ["l_pa_before_%s" % r for r in PA_REGS] + ["l_irq_before", "l_core1_before"]
+    f += ["l_expect_fps_x10", "l_expect_hps_x10_a", "l_expect_hps_x10_b"]
+    f += ["l_wrote_%s" % w for w in ("CON0_stop", "CON3", "CON1", "CON0_run")]
+    f += ["l_readback_%s" % w for w in ("CON0_stop", "CON3", "CON1", "CON0_run")]
+    f += ["l_b15_flips", "l_pend", "l_irq", "l_span_units", "l_hps_x10", "l_fps_x10_a", "l_fps_x10_b"]
+    f += ["l_rows_idle_base"] + ["l_cells_base_%d" % i for i in range(3)]
+    f += ["l_rows_idle_set"] + ["l_cells_set_%d" % i for i in range(3)] + ["l_pa_set_%s" % r for r in PA_REGS]
+    f += ["l_check_set", "l_rows_idle_after"] + ["l_cells_after_%d" % i for i in range(3)]
+    f += ["l_pa_after_%s" % r for r in PA_REGS] + ["l_check_after"]
+    f += ["l_back_CON0", "l_back_CON1", "l_back_CON3", "l_clk2_end", "l_core1_end"]
+    return l5[:len(l5) - health] + f + l5[len(l5) - health:]
+
+
+FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6()}
 LOG_ERRORS = {0: "none", 1: "no flash (no round trip)", 2: "image too long", 3: "erase", 4: "program", 5: "verify",
               6: "chip busy at the take"}
 
@@ -177,6 +201,17 @@ def derived(fields):
     expected, HW-119 over HW-54) and the audio clock in MHz (the gate is
     the 24 MHz crystal)."""
     out = []
+    if fields.get("l_runs"):
+        out.append("L%d: %s; wrote CON3 %02X CON1 %04X CON0 %04X, read back %02X %04X %04X; b15 %d, irq %d; %.1f halves"
+                   " a second: %.1f frames a second if a half is LEN frames (a), %.1f if LEN/2 (b); expected %.1f (LEN %d:"
+                   " %.1f or %.1f halves a second); put back %04X %04X %02X; CLK_CON2 %08X"
+                   % (fields["l_which"], L_STATES[min(fields["l_state"], 4)], fields["l_wrote_CON3"],
+                      fields["l_wrote_CON1"], fields["l_wrote_CON0_run"], fields["l_readback_CON3"],
+                      fields["l_readback_CON1"], fields["l_readback_CON0_run"], fields["l_b15_flips"], fields["l_irq"],
+                      fields["l_hps_x10"] / 10.0, fields["l_fps_x10_a"] / 10.0, fields["l_fps_x10_b"] / 10.0,
+                      fields["l_expect_fps_x10"] / 10.0, fields["l_len_used"], fields["l_expect_hps_x10_a"] / 10.0,
+                      fields["l_expect_hps_x10_b"] / 10.0, fields["l_back_CON0"], fields["l_back_CON1"],
+                      fields["l_back_CON3"], fields["l_clk2"]))
     if fields.get("d_sweeps"):
         bad = lambda b: "ok" if not b else "BAD (" + ", ".join(n for i, n in enumerate(
             ("idle rows", "cells", "port A", "CON5 not back", "JL_IOMAP not back")) if b >> i & 1) + ")"
@@ -202,7 +237,9 @@ def derived(fields):
     return out
 
 # Shown in decimal; every other field in hex.
-DECIMAL = {"d_state", "d_sweeps", "d_tries", "d_bit", "d_stop", "d_phase", "d_b15_flips", "d_pend", "d_irq", "d_irq_now",
+DECIMAL = {"l_state", "l_which", "l_runs", "l_stop", "l_phase", "l_stopped", "l_len_read", "l_len_used", "l_irq_before",
+           "l_core1_before", "l_expect_fps_x10", "l_expect_hps_x10_a", "l_expect_hps_x10_b", "l_b15_flips", "l_pend",
+           "l_irq", "l_span_units", "l_hps_x10", "l_fps_x10_a", "l_fps_x10_b", "l_core1_end", "d_state", "d_sweeps", "d_tries", "d_bit", "d_stop", "d_phase", "d_b15_flips", "d_pend", "d_irq", "d_irq_now",
            "d_core1", "log_last_err", "log_busy_waits", "log_glitches", "log_retries", "log_page_rewaits", "log_fail_count", "k_state", "k_presses", "j_state", "j_sweeps", "j_tries", "j_reg", "j_bit", "j_b15_flips", "j_pend", "j_irq",
            "h_state", "h_presses", "h_measures", "h_gate_cycles", "h_bus_num1", "h_bus_num2", "h_bus_timeouts",
            "h_audio_num1", "h_audio_num2", "h_audio_timeouts", "GPCNT_NUM_now", "i_state", "i_presses", "i_bit10",
