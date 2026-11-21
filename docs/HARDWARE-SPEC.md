@@ -4086,8 +4086,110 @@ HW-146, which stand.
   them go on.
 - Sources: UNIT: a video of audio2's boot on the owner's unit, relayed by
   the owner on 2026-11-20 (docs/prompts/spec-audio3-rulings.md); HW-147.
-- Standing: confirmed (UNIT; one unit; the cause open)
+- Standing: superseded by HW-150
 - Needed by: M4, BR-17 (Phase B)
+
+## 40. audio3 on the unit, a way to measure the audio clock, and the cache (SR-21)
+
+Observed by the owner on the owner's unit with this repository's build
+audio3 (image `b139e49d…`, clean's #214) and relayed on 2026-11-21
+(source UNIT, docs/prompts/spec-audio3-unit.md); then read under the
+same request (PROVENANCE P-507). HW-150 replaces HW-149; HW-151 adds to
+HW-53 and HW-145; HW-152 answers SR-21 (the data cache and the cores).
+
+### HW-150: audio3: steps A and B leave ALNK0 dead; core 1 never stopped (Q-9, Q-18)
+- Fact: On the owner's unit, started by m-bootloader:
+  1. **ALNK0.** With `CLK_CON2` bit 9 set, restarting the link (`CON0`
+     bit 11 cleared and set again) and setting `CLK_CON2` bit 8 (reads
+     `0x00000306`), alone and together, leave ALNK0 dead: source 11 is
+     never raised, `CON0` bit 15 never changes, no frames are counted,
+     nothing is heard. Every step reads back as written and is undone
+     cleanly, with no hang.
+  2. **Core 1** never stopped in audio3, with or without bit 9 and
+     through every step. The one change from audio2 was that core 1's
+     count moved to a 32-byte block of its own. So what audio2 showed
+     (HW-147 item 2, HW-149) was core 0 not seeing core 1's stores to a
+     word sharing a 32-byte block with core 0's data, not anything the
+     clock or ALNK0 did. HW-149's hypothesis is withdrawn. Why setting
+     `CLK_CON2` bit 9 made core 0 see the count move in audio2, every
+     time, is open: neither side can explain it yet.
+- Sources: UNIT: audio3 on the owner's unit, relayed by the owner on
+  2026-11-21 (docs/prompts/spec-audio3-unit.md); HW-145, HW-147, HW-149.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-151: The general-purpose counter, and the audio clock as its input (Q-9, Q-2)
+- Fact: The chip has a counter that counts one clock's cycles over a
+  gate of another's: `JL_GPCNT` at `0x00011100`, `CON` +0 and `NUM` +4.
+  In `CON`: bit 0 enables it; bits 1-3 pick the clock to count; bit 6
+  clears and bit 7 is the pending flag; bits 8-11 set the gate's length,
+  32 × 2^n cycles of the gate clock; bits 12-14 pick the gate clock. For
+  bits 1-3 and 12-14 the choices are 0 the low-speed bus clock, 1 the
+  crystal oscillator, 2 and 3 input channels, 4 the clock system's own
+  input, 5 a ring oscillator, 6 the PLL's 480 MHz, 7 another input
+  channel. The clock system's input is picked by `CLK_CON1` bits 4-6: 0
+  none, 1 the sample-rate converter's, 2 SPI0's, 3 the high-speed bus,
+  4 none, 5 **the audio clock**, 6 the wireless block's, 7 the USB's
+  (all live definitions). The SDK's driver lists its counted clocks in a
+  longer order that also names an HCO and a PLL clock, and fits
+  `CLK_CON1`'s list only in part. Which register `NUM` counts into at
+  what moment, and whether it reads the last gate's count, the SDK does
+  not say. That the "audio clock" is the audio links' clock is not
+  given.
+- Sources: SDK `include_lib/driver/device/gpcnt.h` (blob `68044e9c`)
+  (`GPCNT_EN`, `GPCNT_CSS`, `GPCNT_CLR_PEND`, `GPCNT_PND`, `GPCNT_GTS`,
+  `GPCNT_GSS`, the clock lists, "32*2^n"); SDK `WL82.h` lines 419-427
+  (`JL_GPCNT`); SDK `include_lib/driver/cpu/wl82/clock_hw.h` (blob
+  `4058e263`) lines 298-309 (`GPCNT_CLOCK_IN`, live);
+  `apps/common/example/peripheral/gpcnt/gpcnt_test.c` (blob `1a44e5b7`);
+  HW-53, HW-145.
+- Standing: confirmed (SDK; `NUM`'s timing and what "audio clock" feeds
+  open)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-152: The data cache, main RAM and the two cores (SR-21, Q-18)
+- Fact:
+  - **Line size.** The SDK's cache calls work in lines of 32 bytes
+    (`CACHE_LINE_COUNT` 32). On the unit, a word one core writes and the
+    other reads was seen once it had a 32-byte block to itself
+    (HW-150), which fits.
+  - **What is cached.** The cache control word (`CACHE_CON`,
+    `0x01EEE008`, in the `corex2` block shared by the cores, HW-65) has
+    bit 8 for a read-only cache of the flash window and bit 9 for a
+    read/write cache; bit 14 reads idle (m-bootloader). Which addresses
+    the read/write cache holds, main RAM's included, no allowed source
+    says. The SDK's uncached alias exists only for addresses at or above
+    `0x04000000`, and gives main RAM none (HW-65).
+  - **The cores' caches in step.** No allowed source says whether each
+    core has its own data cache, or whether they are kept in step. On
+    the unit (HW-150), core 0 kept reading a stale value of a word core 1
+    was storing to while that word shared a 32-byte block with data core
+    0 wrote, and read it fresh once the word had a block of its own. That
+    fits caches that are not kept in step for a line both cores write;
+    it doesn't show more, and why bit 9 changed it (HW-150) is open.
+  - **Flush and invalidate.** The SDK's operations are by address range:
+    flush the data cache, flush and invalidate it, choose how many of its
+    ways the cores and the peripherals use, and a "cwt" range with a
+    buffer sync (no meaning given); their code is in prebuilt libraries,
+    not a source here, so no register-level way to do them is given.
+    m-bootloader invalidates every cache only with the caches switched
+    off and before running the flash's code (clearing the cache's
+    internal arrays), which a running app can't use. The SDK's own
+    hand-off between cores is its lock: `testset`, with `csync` before
+    and after, and `csync` before a shared load (HW-65).
+  So, from these sources: a word one core writes and the other reads
+  goes in a block of its own at least 32 bytes long and 32-byte aligned
+  (the clean side's 64-byte rule meets this), with only one core writing
+  it, and `csync` as HW-65 gives. Whether that is enough in every case,
+  and which flush a larger hand-off (a buffer written by one core and
+  read by the other) needs, is open.
+- Sources: SDK `include_lib/driver/cpu/wl82/asm/cache.h` (blob
+  `14d757c0`) lines 22-32; SDK `csfr.h` lines 106-115 (`corex2`); MB
+  `docs/SPEC.md` §2.2 (the cache control word's bits 8, 9 and 14), §3.6
+  (the invalidation); UNIT (HW-150); HW-65, HW-127.
+- Standing: confirmed (SDK, MB, UNIT; what is cached, whether the cores'
+  caches are kept in step and a register-level flush open)
+- Needed by: M5, BR-17 (Phase B)
 
 ## Open questions
 
@@ -4219,6 +4321,9 @@ spec request can turn one into a fact.
   run without bit 9. A note: FM-1-RE names ALNK0's `CON3` as the data
   channels' enables but gives no bit for each channel, so no source says
   which bit enables data 3.
+  *Session spec-audio3-unit (HW-150, HW-151):* steps A and B leave
+  ALNK0 dead; the general-purpose counter can measure "the audio clock".
+  The options for the owner's ruling are in the session's report.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores
@@ -4316,6 +4421,16 @@ spec request can turn one into a fact.
   probe on real hardware.
   *Session spec-sr18 (HW-135):* still open. A core 1 probe should show
   that core 1 runs by a sign that doesn't rest on this.
+  *Session spec-audio3-unit (HW-150):* answered in part, on the unit:
+  core 0 did not see core 1's stores to a counter that shared a 32-byte
+  block with core 0's data (audio2), and saw them once the counter had a
+  32-byte block of its own (audio3). So shared words between the cores
+  need a block of their own, or a cache operation; which, and why, is
+  still open.
+  *Session spec-audio3-unit (HW-152, SR-21):* the cache's lines are 32
+  bytes; what is cached, whether the cores' caches are kept in step and
+  a register-level flush are still open; why bit 9 made the count move
+  in audio2 is open.
 - **Q-19. The block moves' write-back forms on the chip.** What
   `{list} = [rN++]`, `{list} = [--rN]` and their stores leave in the base
   (fwtest: rN + 4n, rN - 4n), which wins when such a form's base is also
