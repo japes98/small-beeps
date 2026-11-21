@@ -892,7 +892,7 @@ requests. Section 19 completes it (SR-9).
 - Sources: SDK `WL82.h` lines 15-16, 347-358 (`JL_CLOCK`); SDK
   `include_lib/driver/cpu/wl82/clock_hw.h` lines 235-341 (the fields in
   use) and 344 (the PLL and `SYS_DIV` fields under `#if 0`).
-- Standing: confirmed (SDK)
+- Standing: confirmed (SDK; on the unit the DAC clock's choice 0 measures 48 MHz, not 24, HW-155)
 - Needed by: real hardware (Level 2)
 
 ### HW-54: System clock rates, and FM-1's own setting
@@ -4070,7 +4070,8 @@ HW-146, which stand.
   map fields); RE `docs/io/03-audio-dac.md` §1, §3.4, §5.2;
   `docs/reversing/01-hardware-map.md`; HW-45, HW-53, HW-144 to HW-147.
 - Standing: confirmed (UNIT, MB, SDK, RE; the PLL outputs, ALNK0's clock
-  source, the port map's `CON2` to `CON8` and the core 1 cause open)
+  source, the port map's `CON2` to `CON8` and the core 1 cause open; the
+  DAC clock's choice 0 measures 48 MHz on the unit, HW-155)
 - Needed by: M4, BR-17 (Phase B)
 
 ### HW-149: In audio2, core 1 starts and then stops when ALNK0 is started (Q-17, Q-9)
@@ -4254,8 +4255,80 @@ HW-153 adds to HW-150 and HW-151; HW-154 says what it means.
 - Sources: UNIT (HW-153); SDK `clock_hw.h` (the 48 MHz choices; the
   switched-off bits 8 to 11), `gpcnt.h`; MB `docs/SPEC.md` §3.2; HW-45,
   HW-53, HW-144, HW-145, HW-151.
-- Standing: confirmed (UNIT, SDK, MB; what input 5 is, and what the
-  links lack, open)
+- Standing: confirmed (UNIT, SDK, MB; what input 5 is answered by
+  HW-155 and HW-156: the DAC clock; what the links lack open)
+- Needed by: M4, BR-17 (Phase B)
+
+## 42. audio5 on the unit: what input 5 is, and ALNK0's CON1 and CON3
+
+Read back exactly from the flash log of this repository's build audio5
+(hw3n, clean's #222, `6c3097a2`) on the owner's unit, relayed on
+2026-11-21 (source UNIT, docs/prompts/spec-audio5-unit.md). HW-155 adds
+to HW-153; HW-156 says what it means.
+
+### HW-155: audio5: input 5 is the DAC clock; no bit of ALNK0's CON1 or CON3 starts it (Q-9)
+- Fact: On the owner's unit, started by m-bootloader, with the counter
+  as HW-153 checked it (the crystal oscillator as the gate):
+  1. **The clock system's inputs** (`CLK_CON1` bits 4-6): 3, the
+     high-speed bus, 180.000 MHz; 1, the sample-rate converter's,
+     360.001 MHz; 5, the audio clock, 48.000 MHz; 6, the wireless
+     block's, 48.000 MHz; 7, the USB's, 48.000 MHz.
+  2. **The counter's own 480 MHz input** (its counted-clock choice 6,
+     HW-151) reads 480.001 MHz: the first measurement of the main PLL's
+     output on the unit, and it agrees with m-bootloader's 480 MHz
+     (HW-144).
+  3. **Input 5 follows the DAC clock's choice** (`CLK_CON1` bits 2-3,
+     HW-53): 1 (the oscillator) 24.000 MHz; 2 (the low-speed bus)
+     60.001 MHz, HW-119's low-speed bus rate; 3 (off) 0.000; back to 0
+     as read, 48.000 MHz. So input 5 is the DAC clock, and on this unit
+     choice 0 gives 48 MHz, not the "PLL 24 MHz" HW-53's SDK definition
+     names.
+  4. **ALNK0's `CON1` and `CON3`, one bit at a time** (bits 0 to 15 of
+     `CON1`, then 0 to 7 of `CON3`, each alone for 100 ms with every
+     other bit as read), with `CLK_CON2` at `0x00000206` (bit 9 set) and
+     again at `0x00000006`: every bit read back as written and was put
+     back. So all 16 bits of `CON1` and all 8 of `CON3` hold what is
+     written. No bit moved `CON0` bit 15 or counted an interrupt.
+- Sources: UNIT: audio5's flash log (hw3n), read back by the owner and
+  relayed on 2026-11-21 (docs/prompts/spec-audio5-unit.md); HW-53,
+  HW-119, HW-144, HW-146, HW-151, HW-153.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-156: What K and J say, the 44 117.6 point, and ALNK0's port A group (Q-9)
+- Fact:
+  - **Input 5.** The counter's "audio clock" input is the output of the
+    DAC clock select (HW-155). Choice 0 reads 48 MHz, the rate the USB
+    and wireless inputs read too; that choice 0 takes the PLL's shared
+    48 MHz is the likeliest reading, not a given. The DAC clock is one
+    clock of the audio block; that ALNK0 or ALNK1 take their clock from
+    it is not given, and the links' own clock bits (`CLK_CON2` bits 8 to
+    11, the SDK's switched-off definitions) have still not been seen to
+    change any measured clock. The owner has ruled that K's result meets
+    the condition for D (docs/prompts/spec-audio5-unit.md).
+  - **The 44 117.6 point.** Arithmetic only, as in HW-154: 48 MHz / 1 088
+    is 44 117.6 Hz, and so is the oscillator's 24 MHz / 544, which is
+    fwtest's frame (HW-45). Both now rest on a measured clock, the DAC
+    clock at choice 0 or 1. Which divider a link would use, and where,
+    is not given: `CON1` holds 16 writable bits but no source gives
+    their meaning. The SDK's switched-off 192 MHz / 17 point is
+    unchanged by K: input 5 is not that clock.
+  - **J.** With bit 9 set or clear, no single bit of `CON1` or `CON3`
+    starts either link's half flags; combinations of bits are untried.
+  - **ALNK0's port A group.** The AC7911B's pin table gives each link a
+    second pin group, B1, on port A: master clock PA4, bit clock PA5,
+    word select PA6, data 0 to 3 on PA7 to PA10. On the FM-1 those pins
+    are the key matrix's shift-register data (PA4), its rows PA5 to PA8
+    (HW-117) and two LED lines, PA9 and PA10 (HW-118). If
+    `JL_IOMAP->CON5` is the group select and a value picks B1, the link
+    could take over those pins. Which `CON5` value picks which group is
+    not given (HW-146); it reads 0 after m-bootloader on every run so
+    far.
+- Sources: UNIT (HW-155); JL7911B Table 1-1 (PDF pages 5 and 6, port A's
+  rows, P-508); SDK `clock_hw.h` (as HW-53); HW-45, HW-53, HW-117,
+  HW-118, HW-145, HW-146, HW-148, HW-154.
+- Standing: confirmed (UNIT, JL7911B, SDK; the links' clock, the meaning
+  of `CON1`, `CON3` and `CON5` open)
 - Needed by: M4, BR-17 (Phase B)
 
 ## Open questions
@@ -4394,6 +4467,10 @@ spec request can turn one into a fact.
   *Session spec-report1-unit (HW-153, HW-154):* the counter's input 5
   reads 48.00 MHz whatever `CLK_CON2` bits 8 to 11 hold; ALNK1 is dead
   as ALNK0 is. What input 5 is, and what both links lack, is open.
+  *Session spec-audio5-unit (HW-155, HW-156):* input 5 is the DAC
+  clock, 48 MHz at choice 0; no single bit of ALNK0's `CON1` or `CON3`
+  starts it. The owner has ruled D (`JL_IOMAP->CON5`) next, by its own
+  prompt.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores
