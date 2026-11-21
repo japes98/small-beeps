@@ -1,0 +1,33 @@
+{
+  "fwtest": {
+    "version": "0.12.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 55488,
+    "sha256": "aae50b29c21a34c91f194ad43679aba8fe99f867e90e32b0199269c153ca0896"
+  },
+  "script_sha256": "38d2b038674d312d98f27d56f4469d24cf669cf1d05cc54419fe015d47a41901",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "800.073",
+    "instructions": {
+      "core0": 4360768,
+      "core1": 3135910
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "f8cc0820285c803e8280faf224d265c3bfa7f7232899ca887cbe3444515ab8fd"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

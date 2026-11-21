@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="1" failures="1">
+  <testsuite name="fwtest" tests="1" failures="1">
+    <testcase classname="fwtest" name="run">
+      <failure message="fault: core 0 at pc 0x000007fe: the pc left every memory that can hold code"/>
+    </testcase>
+  </testsuite>
+</testsuites>

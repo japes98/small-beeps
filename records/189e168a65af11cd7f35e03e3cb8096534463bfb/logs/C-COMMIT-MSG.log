@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 7959867fdda6567a08927df9f2a88545678bbacd..189e168a65af11cd7f35e03e3cb8096534463bfb
+OK     f1dc796031f3 spec: audio5's log, input 5 is the DAC clock, CON1/CON3 tried (HW-155, HW-156)
+OK     7cedc0d1fad6 sessions: the owner's ruling on D's pacing saved (spec-audio6-rulings)
+EXEMPT 189e168a65af (merge) Merge pull request #224 from japes98/spec/audio6-rulings
+3 commit(s) checked: PASS
+
+exit status 0

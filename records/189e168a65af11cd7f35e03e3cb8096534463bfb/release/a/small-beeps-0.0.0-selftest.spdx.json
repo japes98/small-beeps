@@ -1,0 +1,914 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "creationInfo": {
+    "created": "1970-01-01T00:00:00Z",
+    "creators": [
+      "Tool: tools/release.py"
+    ]
+  },
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://github.com/japes98/small-beeps/releases/m0/sbom/0000000000000000000000000000000000000000",
+  "files": [
+    {
+      "SPDXID": "SPDXRef-src-0",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c548507e2f7251d54ce2fd43262ca3a420f86f3efdcf191badf3421f01de1fc6"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/app.ld",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-1",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b44bb2a193bc359f5e90ab3346b2e90ef0b00d7940bc4d2b2b1e47cb378e2377"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/platform.ld",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-2",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d15cf62438daef4c1fef798409b83e6bd4723f47e570f539f0b315d25801bbaf"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/arp.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-3",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "78ea4faf9aec840c68de0de9eb25941e671d05135a7277a6560048e75602bd51"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/arp.h",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-4",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7ed3234708d7d035738da0d09557e21475d8c221f6acd698268e6a4dd3919423"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/audio.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-5",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4b344216380daefbaf7a3d62035e21ca61122d08d8072aed89b00dd08624a2a2"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/audio.h",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-6",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "430ec6e5bffd13d907241f0dd6343a5fe4be3a4b317164698e4c86d6ceb8ed38"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/core1.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-7",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "170fefda4411bd0cbd132edc154f4d833b29cd03db8be031eb46031b6c1ddd08"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/core1.h",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-8",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "da245866d0db6b566031799703c9feaeca379639a49e7df8b7acf074ce1c091f"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/core1_entry.S",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-9",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5f29ab55d3a515fa9a671c8a3188471d478242a92a41e7337b5534fb6a715309"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/crt0.S",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-10",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "050cec3aef8f0abef081c5043fbb7d4ec7ac0acd3157d3aa827b01428011772d"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/engine.h",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-11",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c5a1bdec37e2b1389a42ff74bcdfc5eb50fef3d7d81b18cd61bdddd71c99af2b"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/fm.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-12",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cd0550e0b5a7b02ffee0bed3757684b51aafdf95c04e32c415f9985ea118d2c5"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/fm.h",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-13",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "122abffaee3f735934dde65dc5acbd0e852cd6ccf7031f707f2d432d3c0125a1"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/fm_play.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-14",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e7dde5f188b3ceabd21405d821261c0605faab2ad96d974a851038924e9147d8"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/font.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-15",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "67397239a357a20f45939dbdb2b3605ef033a54a04788b464e46ae6f20eb7e3f"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/gfx.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-16",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "bb62ef2fbcb441f239ac5acf621c525b9deaec130c1962c5d689717c071874ad"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/hw_audio.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-17",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "44a084a42162e7b920f3b14a96b15dad77d90bca6fa00a7e0df124a1cc64897e"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/hw_core1.S",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-18",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "42b589cf68eda7cce064c9918a2205e2f16601624e8378987070e757c30e3b7f"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/hw_fm1.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-19",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "035f54d4d677dde8dfe699b5036916cccc229dda7e644978720ad9ee3212c98a"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/hw_fm1.h",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-20",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "96d4ef4c07114a86e8afdc60f6ddd3ecdbcf500eff08af132b600a93c270a7e4"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/hw_report.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-21",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "30955b21f06bc70ea21e580ced877db528f83f69f99ad7d890e603a79fed8b09"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/hw_start3.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-22",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "16b2825092dd15a9f783c214d2f02d0df3e574b6f9ba680479a998816f06ce16"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/input.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-23",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "01c88ae7be68c35746e4a267899cd2711e0ecdfaeaee0708c67d13ba1fabdd58"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/input.h",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-24",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "949efbb2c77ba9a7d21f665b0955f177ff6e5908c3102676a05f92c7d77a943e"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/irq.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-25",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "fc841e2c049ccef8f03f5a07456e90ee3b4b746192feb40f1256d30ef42a9a22"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/lcd.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-26",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "6c97d8244396a0fe30deebc53256a03971bd52856b940d147ded1235059b90f0"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/main.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-27",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e31f196480e4fddd84c381b08cfd513be8af52ab548bfd66bc302e2765bcf1d6"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/midi.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-28",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "19576225e8f6fd40b6771175dcd249c2254d5377e051ff0304ea968e79957a56"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/midi.h",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-29",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "58fb469d7ba399f74a911ec39bc2b000e25df9c13ba3a76c88d39e70e26878b1"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/midi_out.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-30",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4c34a57d7cc4ad0ce13a19c89440e3101cbf3b27169cde395302d542a17d8edb"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/midi_out.h",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-31",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "04d90e8efefc35ad8d1c926fe2cd4fb7cb619514ad0282f7f37c4fdd2733b125"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/patches.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-32",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "95e00ea8bec70fb45c1a517f6dd84a8d409e90e7f1efd9598148784e9e4c4bd5"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/probe.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-33",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cf5ab4ed76d51f18f045057f64ea42bd58eb05177fb8fe0372a349b09a78e5ab"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/saving.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-34",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2c2739d5e8fefe8cace2a0b821fda6967e7d39a74b89ae6009ead0669ec59d87"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/sb.h",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-35",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "81f6855374c424a4b158a3d238e3cc1ee035592390c293e6d4a32876bd5990ce"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/screen.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-36",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "0ff3343f55591661d7fad251bf1f5e8c2f0f491952f4579a3e8b2cba257efa9a"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/spectrum.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-37",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cd490efde844f00b00a7ba4030669ceb56a973a036e6041ba60dcc5d48d38b4f"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/start.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-38",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d621b8ac691d515a66051b073a687b7961c7c2f833f2f200a3e46cabaea2a234"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/store.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-39",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "66923c03b92df4c090997dc06575f0a52c580525322f7a5de8541b89e3dcd741"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/store.h",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-40",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c352ad60039f6c57bdac5aa6793f6bec2a2a6e69f5c83427fa84add93700b580"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/ui.h",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-src-41",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "eef9c9192934a0fe4452e0721a85a975087ad0b7c45ea8bf79596f0409cf62e0"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "fileName": "./firmware/src/views.c",
+      "licenseConcluded": "MIT",
+      "licenseInfoInFiles": [
+        "MIT"
+      ]
+    }
+  ],
+  "name": "small-beeps 0.0.0-selftest",
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-small-beeps",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "aae50b29c21a34c91f194ad43679aba8fe99f867e90e32b0199269c153ca0896"
+        }
+      ],
+      "copyrightText": "Copyright (c) 2026 japes98",
+      "downloadLocation": "git+https://github.com/japes98/small-beeps@0000000000000000000000000000000000000000",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "name": "small-beeps",
+      "primaryPackagePurpose": "FIRMWARE",
+      "versionInfo": "0.0.0-selftest (m0, 0000000000000000000000000000000000000000)"
+    },
+    {
+      "SPDXID": "SPDXRef-ac79-sdk",
+      "copyrightText": "Copyright JIELI (as stated in the files' headers)",
+      "downloadLocation": "git+https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK@5fa84a9b2f723a5e9337ad79dc2ad741fc98fe2d",
+      "filesAnalyzed": false,
+      "licenseConcluded": "Apache-2.0",
+      "licenseDeclared": "Apache-2.0",
+      "name": "fw-AC79_AIoT_SDK (register-definition headers)",
+      "primaryPackagePurpose": "SOURCE",
+      "versionInfo": "5fa84a9b2f723a5e9337ad79dc2ad741fc98fe2d"
+    },
+    {
+      "SPDXID": "SPDXRef-toolchain",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958"
+        }
+      ],
+      "comment": "Build tool only; not in the image (docs/TOOLCHAIN.md).",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "name": "jieli-linux-toolchains",
+      "primaryPackagePurpose": "APPLICATION"
+    }
+  ],
+  "relationships": [
+    {
+      "relatedSpdxElement": "SPDXRef-small-beeps",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-0",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-1",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-2",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-3",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-4",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-5",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-6",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-7",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-8",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-9",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-10",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-11",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-12",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-13",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-14",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-15",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-16",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-17",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-18",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-19",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-20",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-21",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-22",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-23",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-24",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-25",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-26",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-27",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-28",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-29",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-30",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-31",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-32",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-33",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-34",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-35",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-36",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-37",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-38",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-39",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-40",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-src-41",
+      "relationshipType": "CONTAINS",
+      "spdxElementId": "SPDXRef-small-beeps"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-ac79-sdk",
+      "relationshipType": "DEPENDS_ON",
+      "spdxElementId": "SPDXRef-small-beeps"
+    }
+  ],
+  "spdxVersion": "SPDX-2.3"
+}
