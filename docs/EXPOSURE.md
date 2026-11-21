@@ -3388,6 +3388,20 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing new. No spec entries changed.
 - Disk: about 5.6 GB free.
 
+### Session spec-report1-unit (report1's log: the counter, input 5, ALNK1)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.329; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio4-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/report1-unit` from main.
+- The owner's message, saved as docs/prompts/spec-report1-unit.md.
+- Recorded: HW-153 (UNIT: `DAA_CON7` corrected; the counter checked;
+  input 5 at 48.00 MHz in every state; ALNK1 dead), HW-154 (what it
+  says); HW-144 and HW-147's standing notes the correction; note on Q-9.
+- Read: nothing new; sources as P-505 to P-507.
+- No clean prompt: the owner rules first.
+- Disk: about 5.5 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
