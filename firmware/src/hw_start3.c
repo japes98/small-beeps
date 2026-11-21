@@ -679,14 +679,20 @@ static void draw_core1(void)
 static u32 step_n;
 static const char *step_text = "";
 
+/* The row holds 40 characters at scale 1: "step n: " and as much of the
+ * text as fits, never more (a longer text once overran t, clean-br17-audio4). */
+#define STEP_CHARS 40u
+
 static void draw_step(void)
 {
-    char t[48], *p;
+    char t[STEP_CHARS + 16], *p;
+    const char *s = step_text;
 
     p = put_s(t, "step ");
     p = put_dec(p, step_n);
     p = put_s(p, ": ");
-    p = put_s(p, step_text);
+    while (*s && p < t + STEP_CHARS)
+        *p++ = *s++;
     *p = 0;
     row(HW3_STEP_Y, t, RGB565(0, 63, 31));
 }

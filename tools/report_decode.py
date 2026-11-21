@@ -62,14 +62,50 @@ def _layout1():
     return f
 
 
-FIELDS = {1: _layout1()}
+def _layout2():
+    """Layout 2 (since clean-br17-audio4): layout 1 with the snapshots of
+    six steps (H and I too), then steps H and I."""
+    f = _layout1()[:-32]
+    for k in ("rec", "seq", "a", "b", "h", "i"):
+        for w in ("before", "after"):
+            f += ["%s_%s_%s" % (k, w, v) for v in ("CON0", "CLK_CON2", "irq", "core1")]
+    f += ["h_state", "h_presses", "h_measures", "h_gate_cycles", "h_clk1_before", "h_clk1_bus", "h_clk1_audio",
+          "h_clk1_back", "h_gpcnt_before", "h_gpcnt_bus", "h_gpcnt_audio", "h_gpcnt_back", "h_bus_num1",
+          "h_bus_num2", "h_bus_timeouts", "h_bus_clk2", "h_audio_num1", "h_audio_num2", "h_audio_timeouts",
+          "h_audio_clk2", "CLK_CON1_now", "GPCNT_CON_now", "GPCNT_NUM_now"]
+    f += ["i_state", "i_presses", "i_bit10"]
+    f += ["i_al1_before_CON%d" % i for i in range(4)]
+    f += ["i_al1_after_CON%d" % i for i in range(4)]
+    f += ["i_al1_back_CON0", "i_clk2_before", "i_clk2_set11", "i_clk2_set10", "i_clk2_back", "i_b15_flips",
+          "i_pend", "i_poll_beats", "i_halves_per_s_x10"]
+    f += ["AL1_CON%d_now" % i for i in range(4)]
+    f += ["clk2_steps_taken"]
+    return f
+
+
+FIELDS = {1: _layout1(), 2: _layout2()}
+
+
+def derived(fields):
+    """What step H's counts say: the bus count per gate cycle (7.5
+    expected, HW-119 over HW-54) and the audio clock in MHz (the gate is
+    the 24 MHz crystal)."""
+    out = []
+    gate = fields.get("h_gate_cycles")
+    if gate and fields.get("h_presses"):
+        out.append("H: bus %.4f x the gate (7.5 expected); audio clock %.4f MHz (about 11.29, or 12.31 with bit 8, if it is the"
+                   " links' clock)" % (fields["h_bus_num2"] / gate, fields["h_audio_num2"] * 24.0 / gate))
+    return out
 
 # Shown in decimal; every other field in hex.
-DECIMAL = {"core1_count", "store_count", "store_put", "log_found_at_start", "log_fails", "irq", "alt",
+DECIMAL = {"h_state", "h_presses", "h_measures", "h_gate_cycles", "h_bus_num1", "h_bus_num2", "h_bus_timeouts",
+           "h_audio_num1", "h_audio_num2", "h_audio_timeouts", "GPCNT_NUM_now", "i_state", "i_presses", "i_bit10",
+           "i_b15_flips", "i_pend", "i_poll_beats", "i_halves_per_s_x10", "clk2_steps_taken", "core1_count", "store_count", "store_put", "log_found_at_start", "log_fails", "irq", "alt",
            "b15_flips", "pend", "fps_x10", "halves", "master", "gain", "tone_on", "storm_beat",
            "audio_started_beat", "rec_state", "rec_presses", "seq_state", "seq_presses", "seq_irq_at_stop",
            "seq_irq_at_back", "a_state", "a_presses", "b_state", "b_presses", "refused", "core1_last_moved_beat"}
 STATES = {"rec_state": ("not taken", "taken", "undone"), "a_state": ("not taken", "taken", "undone"),
+          "h_state": ("not taken", "taken", "undone"), "i_state": ("not taken", "taken", "undone"),
           "b_state": ("not taken", "taken", "undone"), "seq_state": ("running", "stopped", "put back")}
 
 
@@ -165,6 +201,8 @@ def show(rs, all_fields):
             line += " " + c + " "
         if line.strip():
             print(line)
+        for d in derived(r["fields"]):
+            print("    " + d)
 
 
 def main(argv):

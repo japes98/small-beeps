@@ -374,6 +374,24 @@ static void hw_serve(void)
             hw_test_screen();
             continue;
         }
+        /* audio4 (the spec side's clean-br17-audio4): ENV takes step H
+         * (the audio clock measured), FX measures again; LFO takes step I
+         * (ALNK1 with CLK_CON2 bit 11), SEL adds bit 10; a second ENV or
+         * LFO undoes. */
+        if ((e.control == INPUT_ENV || e.control == INPUT_FX || e.control == INPUT_LFO || e.control == INPUT_SEL)
+                && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            if (e.control == INPUT_ENV)
+                hw_audio_h();
+            else if (e.control == INPUT_FX)
+                hw_audio_h_again();
+            else if (e.control == INPUT_LFO)
+                hw_audio_i();
+            else
+                hw_audio_i10();
+            hw_audio_keypage_hi();
+            hw_test_screen();
+            continue;
+        }
         /* audio3: SEQ stops ALNK0 (CON0 bit 11 cleared alone), or puts
          * back the CON0 read before; then the page, then the test screen. */
         if (e.control == INPUT_SEQ && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {

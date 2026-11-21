@@ -235,7 +235,8 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   24 MHz TIMER0 is allowed for (HW_RATIO; fwtest's acknowledge restarts
   the count, HW-48, which reads about 80 ppm high); ALNK0's CON0 bit 11
   reads clear at main's start and set with the tone on; HOME shows the
-  page again; nothing unmodelled but the window's, corex2's and DAC_CON.
+  page again; nothing unmodelled but the window's, corex2's and DAC_CON
+  (and, read by HOME's fifth view since audio4, JL_GPCNT's and ALNK1's).
 - audio2 (BR-17, clean-br17-audio2): the same build with REC pressed
   twice: CLK_CON2 bit 9 set alone, then CLK_CON2 put back exactly as
   read; CLK_CON2 has no effect in fwtest (HW-53), so the tone plays on in
@@ -253,6 +254,16 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   write, on the page), whose beats run in order; the page reaches its
   core 1 view; ARP without bit 9 is refused, nothing written; nothing
   unmodelled but the window's, corex2's and DAC_CON.
+- audio4 (BR-17, clean-br17-audio4): report1's build with steps H and I:
+  ENV (H: CLK_CON1 bits 4-6 set to 3, then 5, those bits alone, the
+  counter set and read), REC, FX (H again), LFO (I: ALNK1 started,
+  CLK_CON2 bit 11 alone), SEL (bit 10 alone), REC's undo refused while I
+  is taken, then I's, REC's and H's undos, each putting back the values
+  read before; the log holds a record for each, in order, the last
+  matching RAM. fwtest models neither JL_GPCNT nor ALNK1 (their registers
+  read 0: the counter's gates time out, ALNK1 doesn't play), which the case
+  prints; if a later fwtest plays ALNK1, its halves a second must fit
+  44 117.6 frames.
 - report1 (BR-17, clean-br17-report1): the report log, SB_HW_REPORT with
   audio1's build. From a chip whose log region holds older data (as the
   owner's unit does): the records of boot, each page, REC, ARP and its
@@ -1809,9 +1820,12 @@ def case_audio1(a, work, log):
                "--ram", "0x%08x:%d@end" % (h, AUD_LEN))
     if r["run"]["outcome"] != "completed":
         problems.append("audio1: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
-    odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"})
+    # Since audio4 HOME's fifth view reads ALNK1 and the counter, which fwtest doesn't model (read only).
+    odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"}
+                 - GPCNT_REGS - ALNK1_REGS)
     if odd:
-        problems.append("audio1: unmodelled accesses besides the window's, corex2's and DAC_CON: %s" % odd[:8])
+        problems.append("audio1: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1:"
+                        " %s" % odd[:8])
     bc = fws.beacon(ram(out, BEACON_ADDR, fws.BEACON_LEN))
     if bc["screen"] != 2 or bc["halt_reason"]:
         problems.append("audio1: screen %d, halt %d (the test screen, no halt)" % (bc["screen"], bc["halt_reason"]))
@@ -2091,10 +2105,12 @@ def case_report1(a, work, log):
                    "--ram", "0x%08x:%d@end" % (h, AUD3_LEN), "--ram", "0x%08x:%d@end" % (hr, 4 * len(REP_FIELDS)))
         if r["run"]["outcome"] != "completed":
             problems.append("report1 %s: %s (%s)" % (name, r["run"]["outcome"], r["run"].get("detail")))
-        odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"})
+        # Each record reads ALNK1's and the counter's registers (layout 2), unmodelled in fwtest.
+        odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"}
+                     - GPCNT_REGS - ALNK1_REGS)
         if odd:
-            problems.append("report1 %s: unmodelled accesses besides the window's, corex2's and DAC_CON: %s"
-                            % (name, odd[:8]))
+            problems.append("report1 %s: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and"
+                            " ALNK1: %s" % (name, odd[:8]))
         with open(os.path.join(out, "flash.bin"), "rb") as f:
             chip = f.read()
         rep = dict(zip(REP_FIELDS, struct.unpack("<%dI" % len(REP_FIELDS), ram(out, hr, 4 * len(REP_FIELDS)))))
@@ -2170,6 +2186,112 @@ def case_report1(a, work, log):
     return problems
 
 
+AUD_HI_AT = AUD_AB_AT + 4 * (len(AUD_AB_FIELDS) + 6 * 2 * 4)
+AUD_H_FIELDS = ("h_state", "h_keys", "h_measures", "clk1_before", "clk1_check", "clk1_audio", "clk1_back",
+                "gp_before", "gp_check", "gp_audio", "gp_back", "check0", "check1", "audio0", "audio1", "check_to",
+                "audio_to", "check_clk2", "audio_clk2")
+AUD_I_FIELDS = ("i_state", "i_keys", "i_bit10", "b0", "b1", "b2", "b3", "a0", "a1", "a2", "a3", "con_back",
+                "clk_before", "clk_set", "clk_set10", "clk_back", "flips", "pend", "span", "hps10")
+AUD4_LEN = AUD_HI_AT + 4 * (len(AUD_H_FIELDS) + len(AUD_I_FIELDS) + 4)
+HW_ENV, HW_FX, HW_LFO, HW_SEL = 4, 2, 5, 3      # fwtest's keys of ENV, FX, LFO and SEL (input.h)
+GPCNT_REGS = {"0x00011100", "0x00011104"}
+ALNK1_REGS = {"0x%08x" % (0x00015100 + 4 * i) for i in range(9)}
+
+
+def case_audio4(a, work, log):
+    """audio4 (clean-br17-audio4): steps H and I in report1's build. H
+    sets CLK_CON1 bits 4-6 alone (3, then 5) and the counter, FX measures
+    again, I starts ALNK1 with CLK_CON2 bit 11 alone and SEL adds bit 10;
+    REC's undo is refused while I, taken after it, is; every undo puts back
+    the values read before. The log holds one record for each press and
+    each page, in order, the last matching RAM."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD",
+          "--define", "SB_TEST_SHORT_HOLD", "--define", "SB_HW_AUDIO1", "--define", "SB_HW_REPORT")
+    h = fws.elf_symbols(os.path.join(b, "app.elf"))["hw_aud"]
+    keys = ((9000, HW_ENV), (11500, HW_REC), (14000, HW_FX), (16500, HW_LFO), (20000, HW_SEL), (23500, HW_REC),
+            (26000, HW_LFO), (28500, HW_REC), (31000, HW_ENV))
+    script = os.path.join(work, "audio4.script")
+    with open(script, "w") as f:
+        for t, k in keys:
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + 100, k))
+    out = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "34000", "--flash-out",
+               "--script", os.path.relpath(script, ROOT), "--ram", "0x%08x:%d@end" % (h, AUD4_LEN))
+    if r["run"]["outcome"] != "completed":
+        problems.append("audio4: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    odd = sorted({u["address"] for u in r["run"]["unmodelled_accesses"]} - HW_WINDOW_REGS - {"0x00012f00"}
+                 - GPCNT_REGS - ALNK1_REGS)
+    gp_unmodelled = bool({u["address"] for u in r["run"]["unmodelled_accesses"]} & GPCNT_REGS)
+    al1_unmodelled = bool({u["address"] for u in r["run"]["unmodelled_accesses"]} & ALNK1_REGS)
+    if odd:
+        problems.append("audio4: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1:"
+                        " %s" % odd[:8])
+    data = ram(out, h, AUD4_LEN)
+    st = dict(zip(AUD_STEP_FIELDS, struct.unpack_from("<5I", data, AUD_LEN + 4 * (3 * AUD_MORE + AUD_REGS))))
+    ab = aud_ab(data)
+    hh = dict(zip(AUD_H_FIELDS, struct.unpack_from("<%dI" % len(AUD_H_FIELDS), data, AUD_HI_AT)))
+    ii = dict(zip(AUD_I_FIELDS, struct.unpack_from("<%dI" % len(AUD_I_FIELDS), data,
+                                                    AUD_HI_AT + 4 * len(AUD_H_FIELDS))))
+    depth = struct.unpack_from("<I", data, AUD4_LEN - 4)[0]
+    c1 = hh["clk1_before"]
+    if (hh["h_state"], hh["h_keys"], hh["h_measures"]) != (2, 2, 2) \
+            or hh["clk1_check"] != (c1 & ~0x70) | 0x30 or hh["clk1_audio"] != (c1 & ~0x70) | 0x50 \
+            or hh["clk1_back"] != c1 or hh["gp_back"] != hh["gp_before"] \
+            or (not gp_unmodelled and (hh["gp_check"] & 0x7F0F != 0x1A09 or hh["gp_audio"] & 0x7F0F != 0x1A09)):
+        problems.append("audio4: step H %s (CLK_CON1 bits 4-6 alone to 3 and 5, the counter set on, both put back)"
+                        % {k: "%x" % v for k, v in hh.items()})
+    if (ii["i_state"], ii["i_keys"], ii["i_bit10"]) != (2, 2, 1) or ii["clk_set"] != ii["clk_before"] | 0x800 \
+            or ii["clk_set10"] != ii["clk_set"] | 0x400 or ii["clk_back"] != ii["clk_before"] \
+            or (not al1_unmodelled and not ii["a0"] & 0x800) or (ii["con_back"] ^ ii["b0"]) & ~0x8000:
+        problems.append("audio4: step I %s (ALNK1 on, bit 11 alone, bit 10 alone, then CON0 and CLK_CON2 as read)"
+                        % {k: "%x" % v for k, v in ii.items()})
+    if (st["step_state"], st["steps"], ab["refused"], depth) != (2, 2, 1, 0) or st["clk_back"] != st["clk_before"] \
+            or ii["clk_before"] != st["clk_set"]:
+        problems.append("audio4: REC %s, refused %d, CLK_CON2 steps left %d (taken, its undo refused once while I"
+                        " was taken, then undone; none left)" % (st, ab["refused"], depth))
+    frames = 64
+    with open(os.path.join(ROOT, "firmware", "src", "audio.h")) as f:
+        m = re.search(r"#define AUDIO_FRAMES\s+(\d+)", f.read())
+        if m:
+            frames = int(m.group(1))
+    plays = ii["flips"] > 0
+    if plays:
+        fps = ii["hps10"] / 10.0 / HW_RATIO * frames
+        if abs(fps / AUD_FPS - 1) > 0.02:
+            problems.append("audio4: ALNK1's halves %.1f a second, %.0f frames in fwtest's time (44 117.6, 2 %%)"
+                            % (ii["hps10"] / 10.0, fps))
+    with open(os.path.join(out, "flash.bin"), "rb") as f:
+        chip = f.read()
+    rs, bad = rd.records(chip)
+    labels = [x["label"] for x in rs]
+    want = ["boot", "page"]
+    for lab in ("H taken", "REC taken", "H measured", "I taken", "I bit 10", "REC refused", "I undone", "REC undone",
+                "H undone"):
+        want += [lab, "page"]
+    if labels != want or bad or any(x["layout"] != 2 or not x["known"] for x in rs):
+        problems.append("audio4: log records %s (%s), layouts %s, %d bad" % (labels, want,
+                        sorted({(x["layout"], x["count"]) for x in rs}), len(bad)))
+    elif rs:
+        last = rs[-1]["fields"]
+        got = (last["h_state"], last["h_clk1_back"], last["i_state"], last["i_clk2_back"], last["i_b15_flips"],
+               last["refused"], last["clk2_steps_taken"])
+        exp = (hh["h_state"], hh["clk1_back"], ii["i_state"], ii["clk_back"], ii["flips"], ab["refused"], depth)
+        if got != exp:
+            problems.append("audio4: the last record %s, RAM %s" % (got, exp))
+    print("audio4: H: CLK_CON1 %08x > %08x > %08x > back %08x, counts bus %d/%d audio %d/%d (%d and %d gates timed"
+          " out; fwtest's counter %s); I: CLK_CON2 %08x > %08x > %08x > back %08x, ALNK1 %s (%d half changes, %d.%d"
+          " a second; fwtest's ALNK1 %s); REC's undo refused once; %d log records in order"
+          % (c1, hh["clk1_check"], hh["clk1_audio"], hh["clk1_back"], hh["check0"], hh["check1"], hh["audio0"],
+             hh["audio1"], hh["check_to"], hh["audio_to"], "unmodelled" if gp_unmodelled else "modelled",
+             ii["clk_before"], ii["clk_set"], ii["clk_set10"], ii["clk_back"], "plays" if plays else "doesn't play",
+             ii["flips"], ii["hps10"] // 10, ii["hps10"] % 10, "unmodelled" if al1_unmodelled else "modelled", len(rs)))
+    return problems
+
+
 def read_bytes(path):
     with open(path, "rb") as f:
         return f.read()
@@ -2199,6 +2321,7 @@ CASES = [
     ("audio2", case_audio2),
     ("audio3", case_audio3),
     ("report1", case_report1),
+    ("audio4", case_audio4),
 ]
 
 

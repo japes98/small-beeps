@@ -4862,7 +4862,7 @@ the store hold older data.
   layout (1) and the field count, a sequence number, the beat, the
   build's identity (16 bytes: the package's version, "0.10.0-hw3k"), a
   label (16 bytes), the fields, zeros, and the CRC-32 (the store's) of
-  everything before. Layout 1's 155 fields: core 1's count, `C1_CON`, the
+  everything before. Layout 1's 155 fields (layout 2 since audio4): core 1's count, `C1_CON`, the
   store's counter and result, the window's `CON`, the flash's ID and
   status; then, in the audio build, audio1's 22 registers and audio2's 13
   read at the record, the counts and frames a second, each step's state,
@@ -4901,3 +4901,60 @@ the store hold older data.
 - **The candidate** is audio3's build with the log (`SB_HW_REPORT`), so
   its run repeats audio3's and compares with the photos. Every hardware
   candidate from now on is built with it.
+
+### 2026-11-21 clean-br17-audio4: steps H and I, in report1's build (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio4.md; HW-150 to
+HW-152, SR-21), with the owner's rulings allowing H and I and nothing
+else new, into report1's build and branch so the owner flashes one file.
+
+- **Keys.** ENV takes step H and FX measures again while it is taken; LFO
+  takes step I and SEL adds `CLK_CON2` bit 10 while it is taken; a second
+  ENV or LFO undoes. All four were free; the page's H and I view names
+  them.
+- **Step H** (HW-151): `CLK_CON1` bits 4-6 set by read-modify-write of
+  those bits alone, first to 3 (the high-speed bus, a check: 180 MHz
+  over the 24 MHz crystal is 7.5 times the gate, HW-119 and HW-54), then
+  to 5 (the audio clock), in whatever state REC, B and I left `CLK_CON2`.
+  `JL_GPCNT->CON`: counted clock 4 (the clock system's input), gate clock
+  1 (the crystal), gate 32 x 2^10 = 32 768 cycles (1.37 ms), enabled with
+  the pending flag cleared. Since when `NUM` holds a gate's count isn't
+  given, each measurement takes two readings, each after the pending flag
+  (bit 7) or a 20 ms timeout, the flag cleared with bit 6 after each, and
+  logs both and the timeouts. The undo writes back `CLK_CON1` and
+  `JL_GPCNT->CON` as read before the first press. The prompt's expected
+  audio clocks, about 11.29 MHz (bit 8 clear) and 12.31 MHz (bit 8 set),
+  would read about 15 410 and 16 810 a gate.
+- **Step I** (HW-140, HW-145): ALNK1 at 0x00015100, set up as ALNK0 is
+  in fwtest (`ADR3` its own silent buffer, `LEN`, `CON2` bit 3, `CON0`
+  bit 11 added to the value read), and `CLK_CON2` bit 11 alone; source
+  12 is never enabled. ALNK1 is polled for 1 s: `CON0` bit 15's changes
+  and `CON2` bit 7 seen (cleared with bit 3), giving halves a second. The
+  undo writes back `CON0` and `CLK_CON2` as read before the first press.
+- **Undo order.** REC, B and I all write `CLK_CON2` back as read before
+  their own press, so undoing one taken earlier would clear a later
+  one's bit behind its back. Of the three, only the one taken last can be
+  undone; the others are refused, the step row naming the step to undo
+  first (this replaces audio3's "REC's undo refused while B is taken").
+- **The page** gets a fifth view, H and I: H's `CLK_CON1` and `CON`
+  sequences, its counts (the bus count per 1000 gate cycles, 7500
+  expected; the audio clock in kHz) and `CLK_CON2` at each; I's ALNK1
+  registers before, after and put back, `CLK_CON2`'s sequence, the poll
+  and ALNK1 now. H's and I's keys show it, then core 1's view; HOME shows
+  all five; the first page keeps its four. The steps view lists all six
+  steps; the test screen's state box adds H and I.
+- **The log**: layout 2, 219 fields: layout 1 with six steps' snapshots,
+  then H's and I's readbacks and counts, `CLK_CON1`, `JL_GPCNT` and
+  ALNK1's registers as read at the record, and the `CLK_CON2` steps
+  taken. A record after every H, FX, I and SEL press and each refusal,
+  and at each page; the decoder prints H's counts as a multiple of the
+  gate and in MHz.
+- **A bug found on the way:** the step row's `draw_step` built "step n: "
+  and the text in a 48-byte stack buffer with no bound, so a 40-character
+  text after a two-digit step number overran it (in fwtest, a jump into
+  RAM after I's first step text). It now stops at the row's 40
+  characters, and the probe's text buffers are larger. The earlier
+  builds' texts stayed just inside it.
+- **fwtest** models neither `JL_GPCNT` nor ALNK1: their registers read 0,
+  so H's gates time out and ALNK1 doesn't play; case audio4 checks every
+  write, read-back, undo and refusal, and the log's records, and prints
+  that.

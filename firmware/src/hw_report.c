@@ -47,7 +47,7 @@
 
 struct hw_report hw_rep;
 static u32 rec[WORDS], chk[WORDS];
-static char text[40];
+static char text[64];
 
 extern const char __data_load[], __data_start[], __data_end[];
 
@@ -134,7 +134,7 @@ static void copy16(u32 *w, const char *s)
     }
 }
 
-/* The fields, in tools/report-decode.py's FIELDS[1] order. */
+/* The fields, in tools/report_decode.py's FIELDS[2] order. */
 static u32 fields(u32 *w)
 {
     u32 n = 0;
