@@ -3986,6 +3986,109 @@ AC7911B datasheet. HW-144 to HW-146 add to HW-140 to HW-142, which stand.
   the pins' needs and the mode bits open)
 - Needed by: M4, BR-17 (Phase B)
 
+## 39. audio2 on the unit: CLK_CON2 bit 9, and the clocks and port map as read
+
+Observed by the owner on the owner's unit with this repository's build
+audio2 (image `73604762…`, clean's #212) and relayed on 2026-11-20
+(source UNIT), under the owner's rulings of 2026-11-19
+(docs/prompts/spec-audio2-rulings.md); read against the sources of
+section 38 (PROVENANCE P-505, P-506). HW-147 and HW-148 add to HW-144 to
+HW-146, which stand.
+
+### HW-147: audio2: bit 9 alone does not start ALNK0; the readback (Q-9, Q-2, Q-17)
+- Fact: On the owner's unit, started by m-bootloader:
+  1. **The step.** Setting `CLK_CON2` bit 9 alone by read-modify-write
+     reads back (`0x00000006` → `0x00000206`), causes no hang, and is
+     undone cleanly. ALNK0 still does not run: source 11 is never
+     raised, `CON0` bit 15 never changes, no frames are counted, and
+     nothing is heard on the speaker or on headphones.
+  2. **Core 1 in audio2** runs only while bit 9 is set, every time:
+     stopped after power-on, running after the step, stopped again after
+     the undo; `C1_CON` reads `0x01000000` throughout. In encoders1 and
+     presets1 core 1 ran with no step (HW-139, HW-143). The cause is
+     open; what core 1 does in audio2 is the clean side's to say.
+  3. **Values as read** after m-bootloader's call, unchanged with the
+     tone on and after the step: `CLK_CON0` `0x000001C1`; `CLK_CON1`
+     `0x00010000`; `SYS_DIV` `0x00010200`; `PLL_CON0` `0x45400203`;
+     `PLL_CON1` `0x3F503026`; `PLL2_CON0` `0x0940022B`; `PLL2_CON1`
+     `0x0750310C`; `JL_IOMAP` `CON2` `0x003C0000`, `CON3` `0x00008888`,
+     `CON4` 0, `CON5` 0, `CON6` `0xFFFFFFFF`, `CON7` 0, `CON8` 0;
+     `DAA_CON7` `0x0000C901`, `DAC_CON` 0, ALNK0's `CON0` `0x00000800`
+     with the tone on, `CON1` to `CON3` 0.
+- Sources: UNIT: audio2 on the owner's unit, relayed by the owner on
+  2026-11-20 (docs/prompts/spec-audio2-unit.md); HW-139, HW-143,
+  HW-144, HW-145.
+- Standing: confirmed (UNIT; one unit; the core 1 cause open)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-148: What audio2's values say, and what they don't (Q-9, Q-2)
+- Fact:
+  - **The clocks are m-bootloader's.** All four PLL words are the final
+    values m-bootloader's specification gives (`PLL2_CON1` `0x0750310C`
+    included), and `SYS_DIV` is its step 5 (bits 17:16 = 1, bits 10:8 =
+    2). By HW-53's live fields, `CLK_CON0` says: the RC oscillator on at
+    250 kHz (bits 0, 1), the crystal oscillator as the oscillator input
+    (bits 4-5 = 0), the PLL as the main clock (bits 6-8 = 7), nothing
+    sent out on PC0 (bits 10-12 = 0). `CLK_CON1` says: the DAC's clock
+    from the PLL's 24 MHz (bits 2-3 = 0), the UART's from the oscillator
+    (bits 10-11 = 0), the USB's from the PLL's 48 MHz (bits 0-1 = 0), and
+    the memory clock always on (bit 16).
+  - **The PLL outputs.** No live definition names an output enable in
+    either PLL's words. In the SDK's switched-off layout (HW-145) bits 24
+    to 28 of a PLL's second word enable its 480, 320, 192, 137 and 107
+    MHz outputs; `PLL_CON1` has bits 24 to 29 set, so if that layout
+    applies to the main PLL, its 192 MHz output is on. `PLL2_CON1` has
+    bits 24 to 26 set (m-bootloader's field 26:24 = 7); m-bootloader's
+    specification gives no meaning for them, and whether PLL2 has the
+    same outputs is not given. So the 192 MHz source looks available on
+    the main PLL by inference only; that ALNK0's clock is taken from the
+    main PLL and not PLL2 is not given either.
+  - **The port map's `CON2` to `CON8`.** No allowed source gives their
+    fields. `CON5` (`0x00051030`) reads 0, which fits both of FM-1-RE's
+    readings (a closed gate, or the first group); if it were the group
+    select in the SDK driver's order (port A 0, C 1, G 2, HW-146), 0
+    would be port A, not port C: an inference, not a fact. FM-1-RE's
+    per-pin output enable (`0x100000` shifted by a pin number) names no
+    word; `CON2`'s bits 20 and 21 would fit it for two pins, again an
+    inference. What `CON2` (bits 18-21), `CON3` (bits 3, 7, 11, 15) and
+    `CON6` (all ones) hold is not given.
+  - **Bit 9 and core 1.** The only source naming `CLK_CON2` bit 9 is the
+    SDK's switched-off definition of it as ALNK0's clock enable; no
+    allowed source ties it to anything else, core 1 included.
+  - **Starting the link.** No allowed source says the link must be
+    started again after its clock is enabled, or that `CON0` needs more
+    than bit 11. HW-45's start (bit 11) is fwtest's. FM-1-RE's account
+    of the FM-1's firmware programming `0x12E00` (§5.2, `[med]`) lists a
+    halfword, a byte at +8, `CON3`'s low bits and a further bit 8 without
+    saying which word bit 8 is in; and its rate change (§3.4, `[high]`)
+    is made on a link already running, with its enable bit (bit 9) left
+    clear.
+- Sources: UNIT (HW-147); MB `docs/SPEC.md` §3.2 steps 3 to 5; SDK
+  `include_lib/driver/cpu/wl82/clock_hw.h` (blob `4058e263`) lines
+  237-334 (live `CLK_CON0` and `CLK_CON1` fields), 344, 376-390, 435-450;
+  `apps/common/example/peripheral/gpio/gpio.c` (blob `ac835b79`; no port
+  map fields); RE `docs/io/03-audio-dac.md` §1, §3.4, §5.2;
+  `docs/reversing/01-hardware-map.md`; HW-45, HW-53, HW-144 to HW-147.
+- Standing: confirmed (UNIT, MB, SDK, RE; the PLL outputs, ALNK0's clock
+  source, the port map's `CON2` to `CON8` and the core 1 cause open)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-149: In audio2, core 1 starts and then stops when ALNK0 is started (Q-17, Q-9)
+- Fact: On the owner's unit, audio2 started by m-bootloader with no key
+  pressed (a video of the boot): core 1's count was 6 742 150 at boot
+  step 16 and about 36 586 082 when the test screen came up, then stayed
+  at 419 825 784 from about 21 s after power-on while core 0's main loop
+  kept running. So in audio2 core 1 starts and runs, and stops once
+  ALNK0 has been told to run (`CON0` bit 11) with its clock bit (`CLK_CON2`
+  bit 9) clear; with bit 9 set it runs (HW-147). Why is open. The clean
+  side's working explanation, a hypothesis and not a fact: ALNK0 told to
+  run with no clock holds up core 1's memory accesses, and bit 9 lets
+  them go on.
+- Sources: UNIT: a video of audio2's boot on the owner's unit, relayed by
+  the owner on 2026-11-20 (docs/prompts/spec-audio3-rulings.md); HW-147.
+- Standing: confirmed (UNIT; one unit; the cause open)
+- Needed by: M4, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -4108,6 +4211,14 @@ spec request can turn one into a fact.
   there. Still open: ALNK0's clock enable (only the SDK's switched-off
   `CLK_CON2` bit 9), the 192 MHz source, PLL2's part in audio, the
   group select's value, the pins' needs and the mode bits.
+  *Session spec-audio2-unit (HW-147, HW-148):* `CLK_CON2` bit 9 alone
+  does not start ALNK0; core 1 in audio2 ran only while it was set
+  (cause open). The remaining options and their risks await the owner's
+  ruling (the session's report, 2026-11-20).
+  *Session spec-audio3 (HW-149):* core 1 stops once ALNK0 is told to
+  run without bit 9. A note: FM-1-RE names ALNK0's `CON3` as the data
+  channels' enables but gives no bit for each channel, so no source says
+  which bit enables data 3.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores
