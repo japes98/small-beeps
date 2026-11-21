@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range ca029478fd6734160a07e26b336f778476d6429b..19d264481ca117b0abe323b04ef42e049224fd98
+OK     124d97fb435c sessions: the owner's rulings on K and J saved (spec-audio5-rulings)
+OK     b81efb8fffb6 sessions: clean-br17-leds1 starts (nothing to archive)
+OK     c7579ff53687 firmware: leds1, the keys' LEDs show what is held and which steps are taken (BR-17)
+EXEMPT d77793fa8882 (merge) merge: clean's #221 (leds1) into the K and J rulings change
+EXEMPT 19d264481ca1 (merge) Merge pull request #220 from japes98/spec/audio5-rulings
+5 commit(s) checked: PASS
+
+exit status 0
