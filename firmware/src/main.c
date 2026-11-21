@@ -518,6 +518,27 @@ static void hw_serve(void)
             hw_guide_show();
             continue;
         }
+#if defined(SB_HW_AUDIO8)
+        /* audio8 (the spec side's clean-br17-audio8): KEY3 R2 (port C's
+         * four pins), KEY4 step 1, KEY5 the CON5 sweep, KEY6 the sense
+         * scan; a second KEY3, KEY4 or KEY5 undoes its own. */
+        if (e.control >= INPUT_KEY(3) && e.control <= INPUT_KEY(6) && e.kind == INPUT_PRESS
+                && sb_beacon.screen == SB_SCREEN_TEST) {
+            if (e.control == INPUT_KEY(3))
+                hw_a8_r2();
+            else if (e.control == INPUT_KEY(4))
+                hw_a8_step1();
+            else if (e.control == INPUT_KEY(5))
+                hw_a8_sweep();
+            else
+                hw_a8_sense();
+            hw_audio_leds(e.control);
+            hw_audio_keypage_a8();
+            hw_test_screen();
+            hw_guide_show();
+            continue;
+        }
+#endif
         /* audio3: SEQ stops ALNK0 (CON0 bit 11 cleared alone), or puts
          * back the CON0 read before; then the page, then the test screen. */
         if (e.control == INPUT_SEQ && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
@@ -813,6 +834,10 @@ int main(void)
      * test screen again (hw_audio.c). */
     hw_step("audio: starting ALNK0");
     hw_audio_start();
+#if defined(SB_HW_AUDIO8)
+    /* audio8 (R0): L2, the running state, once the test screen is up. */
+    hw_audio_boot_l2();
+#endif
     hw_step("audio: page");
     hw_audio_page();
     hw_test_screen();

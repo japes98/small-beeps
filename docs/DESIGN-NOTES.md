@@ -5278,3 +5278,100 @@ audio5, one file (docs/prompts/clean-br17-audio7-owner.md).
   check: the firmware puts it back and refuses the next set-up. The
   identity is 0.10.0-hw3q.
 
+
+### 2026-11-21 clean-br17-audio8: L2 at start-up, port C's routing, the sense scan (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio8.md; HW-159, HW-160
+and the entries it names), with the owner's rulings: R0, R2, R3 step 1 and
+R5 allowed; step 2 only if step 1 leaves port C still; R4 drives no pin.
+Everything new is behind `SB_HW_AUDIO8` (refused without `SB_HW_AUDIO1`;
+`SB_HW_PCM16` is refused without `SB_HW_AUDIO8`), so audio1 to audio7's builds and cases are as they were;
+the unit's candidate adds it and `SB_HW_PCM16`.
+
+- **L2 at start-up (R0).** Once the test screen is up and audio1's output
+  has started, `hw_audio_boot_l2` runs audio7's KEY2 set-up with no key
+  to wait for: the same writes, order, records ("L2 before", "L2 kept")
+  and matrix check. If `CLK_CON2` bit 9 reads set, L2 isn't tried (the
+  link wouldn't run, HW-160). audio8's keys run only while an L set-up is
+  kept and no check after an undo has failed. With L2 kept, the guide no
+  longer puts its undo first; KEY1 and KEY2 still work as in audio7, but
+  are refused while R2 is in place (a route needs R2), and D and J are
+  refused while an L set-up runs (their watches would see the link move
+  at once). SEQ's stop and A are refused while R2 is in place.
+- **The tone's format, by target.** `SB_HW_PCM16`, in the unit's
+  candidate only, fills a half as the unit plays it (HW-160): `LEN` (128)
+  frames, a 32-bit word each, the 16-bit sample (the tone's value >> 8,
+  so the same -20 dB at MASTER's top) in both halves of the word, since
+  which half is left isn't given. The block's frames are twice audio.c's
+  `AUDIO_FRAMES`; the probe's frames a second count the same. Without it
+  (every fwtest case but one) the tone keeps fwtest's layout (HW-44).
+  audio.c is unchanged.
+- **REC's watch.** After REC's write the link is watched for 200 ms (bit
+  15's changes, source 11's interrupts) and the step row says whether it
+  runs; with bit 9 set it should stop (HW-160). Step 1 and the sweep are
+  refused while bit 9 is taken.
+- **Pin sampling.** Port C's and port A's `IN` read in a tight loop for
+  10 ms; each pin's changes counted for PC0, PC1, PC2, PC6 and PA4 to
+  PA10, with the loop's passes and its `sb_now()` span logged, so a rate
+  can be read and aliasing judged. Interrupts stay on (a pass they delay
+  may miss changes, so a fast pin is undercounted, never invented). Every
+  sample is taken with the scan held: paused, the LED lines low and
+  `0xFFFF` latched (`hw_scan_hold`), so nothing of the scan's moves PA4,
+  PA9 or PA10. "Port C moved" means any of its four pins counted a
+  change; "port A moved", any of PA4 to PA10.
+- **R2 (KEY3).** First a control sample, nothing routed and R2 not yet
+  in place. Then port C read, and PC0, PC1, PC2 and PC6 set as the
+  AW30N's driver sets a master's pins: `OUT` high, then `DIR` 0, then
+  `DIE` on, each a read-modify-write of those four bits alone, the pulls
+  and drive as read; checked against the read (pulls and drive, other
+  pins' bits; PC7 and PC8 in `OUT` excepted, which the panel's driver
+  moves). Again: the routes first, then `DIE`, `DIR` and `OUT`'s four
+  bits back as read, each by read-modify-write of those bits alone
+  (writing whole words back could undo the panel's chip select and
+  data/command lines), and every port C register checked against the
+  read.
+- **Step 1 (KEY4).** (a) a sample with R2 in place and `CON0` bits 7 and
+  8 clear; (b) a routed try. **A routed try**, D's machinery: a record
+  before; "TOUCH NO KEY" on the step row; the scan held, the matrix's
+  baseline, and the rows with no column checked idle (else nothing is
+  written); the writes, each read back; a sample at once; for (b) the
+  rest of the 100 ms watch and a second sample. If port A moved, the
+  write is undone at once, before the matrix check, since the check
+  drives columns low against rows the link may be driving (this
+  build's reading of "its own undo if port A moved"); else D's check,
+  kept if port C moved with the check passing, else undone; the check
+  after an undo (cells, idle rows, port A's registers, `CON0` and `CON5`
+  back, the other `JL_IOMAP` words unchanged); a record. A failed check
+  after an undo turns audio8's keys off.
+- **The sweep (KEY5),** refused unless step 1 ran and port C didn't move
+  (a step 1 stopped by port A's movement alone counts as still). One
+  press: CON5's bits 0 to 31, each a routed try that sets the bit and
+  then `CON0` bits 7 and 8, and undoes them in the other order, so
+  between tries nothing is routed (this build's reading of "bits 7 and 8
+  set for each try"). It stops at the first try that keeps, moves port A
+  (that bit undone and logged), finds a key held, or fails a check.
+- **The sense scan (KEY6),** read-only: each port's `DIR`, `DIE` and `IN`
+  (A to H) read once, the scan held once (its single latch, then no
+  write for 20 s), then every port's `IN` each millisecond. Each bit's
+  changes are counted, and its first 12 kept with their times (ms,
+  port, bit, level) in a list of 120, so a busy pin (the flash's on port
+  D, the panel's on port C, which the countdown's drawing moves once a
+  second) can't fill it. The step row counts down and the page shows the
+  bits that changed beside each port's `DIE`.
+- **Keys and guide.** KEY3 R2, KEY4 step 1, KEY5 the sweep, KEY6 the sense
+  scan; a second KEY3, KEY4 or KEY5 undoes its own (KEY3 also any route).
+  Their LEDs are lit while R2, step 1's route or a sweep's bit are kept.
+  The guide: KEY3, KEY4, KEY5 (skipped unless the sweep may run), KEY6,
+  EDIT. D, J, K and L1 are out of it.
+- **The log.** Layout 7 adds audio8's fields (933 of a record's 1011);
+  audio8's key pages write no "page" record, so a run (boot, L2, R2, step
+  1, a full sweep of 66 records, the sense scan, a save) is about 82 of
+  the ring's 96. A ninth page view shows audio8; HOME shows it first.
+- **fwtest** (case audio8): port C's `OUT`, `DIR` and `DIE` are stored,
+  but its `IN` reads 0 whatever they hold, so no pin's `IN` follows the
+  link and every sample counts 0: step 1 leaves port C still and the
+  sweep runs all 32 bits. `JL_IOMAP->CON5` is stored and read back as
+  written, with no other effect. Bit 9 doesn't stop fwtest's link. The
+  test seams: `SB_TEST_A8_CHECK_FAIL` (the sweep's bit 1 fails its
+  check), `SB_TEST_A8_PA_MOVE` (its bit 3 moves port A) and
+  `SB_TEST_A8_PC_MOVE` (step 1 moves port C: kept, the sweep refused,
+  both put back by KEY3). The identity is 0.10.0-hw3r.

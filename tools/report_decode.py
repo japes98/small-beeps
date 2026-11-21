@@ -29,7 +29,7 @@ import zlib
 
 MAGIC = 0x4C524253          # "SBRL" (hw_fm1.h, HW_LOG_MAGIC)
 REC = 4096                  # HW_LOG_REC, since layout 6 (audio7); 2048 for layouts 3 to 5, 1024 before
-REC_OF = {1: 1024, 2: 1024, 3: 2048, 4: 2048, 5: 2048, 6: 4096}   # a record's size by its layout
+REC_OF = {1: 1024, 2: 1024, 3: 2048, 4: 2048, 5: 2048, 6: 4096, 7: 4096}   # a record's size by its layout
 HEAD = 12                   # HW_LOG_HEAD
 LOG_END = 0x94000           # HW_LOG_END
 LOG_SECTORS = 96            # HW_LOG_SECTORS, since audio6 (64 in audio5, 32 before)
@@ -172,7 +172,81 @@ def _layout6():
     return l5[:len(l5) - health] + f + l5[len(l5) - health:]
 
 
-FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6()}
+A8_PINS = ("PC0", "PC1", "PC2", "PC6", "PA4", "PA5", "PA6", "PA7", "PA8", "PA9", "PA10")
+PORTS = "ABCDEFGH"
+A8_EVENTS = 120
+
+
+def _layout7():
+    """Layout 7 (clean-br17-audio8): layout 6 with audio8's fields after
+    L's, before layout 4's log health. Pin counts are each pin's changes of
+    IN over a sample (A8_PINS), then the sample loop's passes and its
+    sb_now() span (24 MHz units)."""
+    l6 = _layout6()
+    health = len(_layout4()) - len(_layout3())
+    cnt = lambda pre: ["%s_%s" % (pre, n) for n in A8_PINS] + ["%s_passes" % pre, "%s_span_units" % pre]
+    f = ["a8_boot", "a8_off", "a8_pcm16", "rec_watch_b15_flips", "rec_watch_irq", "rec_watch_clk2"]
+    f += cnt("ctl")
+    f += ["r2_state", "r2_presses", "r2_check"]
+    for w in ("before", "set", "after"):
+        f += ["r2_pc_%s_%s" % (w, r) for r in PA_REGS]
+    f += ["s1_state", "s1_runs"] + cnt("s1a")
+    f += ["rt_kind", "rt_bit", "rt_phase", "rt_stop"]
+    f += ["rt_con0_%s" % w for w in ("before", "written", "read", "back")]
+    f += ["rt_con5_%s" % w for w in ("before", "written", "read", "back")]
+    f += ["rt_iomap_before_CON%d" % i for i in range(9)] + ["rt_iomap_after_CON%d" % i for i in range(9)]
+    for w in ("base", "set", "after"):
+        f += ["rt_rows_idle_%s" % w] + ["rt_cells_%s_%d" % (w, i) for i in range(3)]
+    for w in ("before", "set", "after"):
+        f += ["rt_pa_%s_%s" % (w, r) for r in PA_REGS]
+    f += ["rt_pc_set_%s" % r for r in PA_REGS]
+    f += ["rt_check_set", "rt_check_after"] + cnt("rt_s1") + cnt("rt_s2") + ["rt_b15_flips", "rt_irq"]
+    f += ["sw_state", "sw_sweeps", "sw_tries", "sw_stop", "sw_pa_bits", "sw_nohold"]
+    f += ["se_state", "se_runs", "se_readings"]
+    for w in ("dir", "die", "in_start", "changed"):
+        f += ["se_%s_P%s" % (w, c) for c in PORTS]
+    f += ["se_count_%d" % i for i in range(64)] + ["se_events", "se_events_lost"]
+    f += ["se_ev_%d" % i for i in range(A8_EVENTS)]
+    return l6[:len(l6) - health] + f + l6[len(l6) - health:]
+
+
+FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7()}
+A8_OFF = ("on", "not an audio8 build", "L2 not running", "OFF: a check after an undo failed")
+S1_STATES = ("not run", "KEPT: port C moves", "port C still, undone", "STOPPED, undone", "undone by key")
+SW_STATES = ("not run", "done: port C never moved", "KEPT: port C moves", "STOPPED, undone", "undone by key")
+A8_STOPS = ("none", "port C moved, port A still, check passed: kept", "PORT A MOVED: undone before the check",
+            "the matrix check failed: undone", "the check after the undo failed", "a key held (rows not idle): not run")
+
+
+def _counts(f, pre):
+    """A sample's counts as text: each pin's changes, and the changes a
+    second they mean over the sample's span."""
+    span = f.get("%s_span_units" % pre, 0)
+    cs = [f.get("%s_%s" % (pre, n), 0) for n in A8_PINS]
+    per = (lambda c: " (%d/s)" % (c * 24000000 // span)) if span else (lambda c: "")
+    return ("%s: " % pre + ", ".join("%s %d%s" % (n, c, per(c) if c else "") for n, c in zip(A8_PINS, cs))
+            + "; %d passes in %.2f ms" % (f.get("%s_passes" % pre, 0), span / 24000.0))
+
+
+def sense_events(f):
+    """The sense scan's kept events as (ms, port letter, bit, level)."""
+    out = []
+    for i in range(min(f.get("se_events", 0), A8_EVENTS)):
+        e = f["se_ev_%d" % i]
+        out.append((e >> 16, PORTS[e >> 4 & 7], e & 15, e >> 8 & 1))
+    return out
+
+
+def sense_counts(f):
+    """Each changed bit's change count: {"PC7": n, ...}."""
+    out = {}
+    for p in range(8):
+        for b in range(16):
+            i = 16 * p + b
+            n = f.get("se_count_%d" % (i // 2), 0) >> (16 * (i & 1)) & 0xFFFF
+            if n:
+                out["P%s%d" % (PORTS[p], b)] = n
+    return out
 LOG_ERRORS = {0: "none", 1: "no flash (no round trip)", 2: "image too long", 3: "erase", 4: "program", 5: "verify",
               6: "chip busy at the take"}
 
@@ -201,6 +275,51 @@ def derived(fields):
     expected, HW-119 over HW-54) and the audio clock in MHz (the gate is
     the 24 MHz crystal)."""
     out = []
+    f = fields
+    if f.get("a8_boot"):
+        out.append("audio8: %s; tone %s" % (A8_OFF[min(f["a8_off"], 3)], "16-bit (a word a frame)" if f["a8_pcm16"]
+                                             else "fwtest's layout"))
+        if f.get("rec_watch_clk2"):
+            out.append("REC watch: CLK_CON2 %08X; b15 %d, irq %d in the watch: %s" % (
+                f["rec_watch_clk2"], f["rec_watch_b15_flips"], f["rec_watch_irq"],
+                "the link runs" if f["rec_watch_b15_flips"] or f["rec_watch_irq"] else "THE LINK STOPPED"))
+        if f.get("r2_presses"):
+            out.append("R2: %s, check %d; port C OUT %04X>%04X>%04X DIR %04X>%04X>%04X DIE %04X>%04X>%04X"
+                       " (before>set>after)" % (("not run", "SET", "undone")[min(f["r2_state"], 2)], f["r2_check"],
+                                                f["r2_pc_before_OUT"], f["r2_pc_set_OUT"], f["r2_pc_after_OUT"],
+                                                f["r2_pc_before_DIR"], f["r2_pc_set_DIR"], f["r2_pc_after_DIR"],
+                                                f["r2_pc_before_DIE"], f["r2_pc_set_DIE"], f["r2_pc_after_DIE"]))
+            out.append("    " + _counts(f, "ctl"))
+        if f.get("s1_runs"):
+            out.append("step 1: %s; " % S1_STATES[min(f["s1_state"], 4)] + _counts(f, "s1a"))
+        if f.get("sw_sweeps"):
+            out.append("sweep: %s, %d tries; port A moved at bits %08X; bits not read back set %08X"
+                       % (SW_STATES[min(f["sw_state"], 4)], f["sw_tries"], f["sw_pa_bits"], f["sw_nohold"]))
+        if f.get("rt_kind"):
+            bad = lambda b: "ok" if not b else "BAD (" + ", ".join(n for i, n in enumerate(
+                ("idle rows", "cells", "port A regs", "not back", "JL_IOMAP not back", "port A moved")) if b >> i & 1) + ")"
+            out.append("last routed try: %s (step %d): %s; CON0 %04X>%04X>%04X back %04X; CON5 %08X>%08X>%08X back %08X;"
+                       " check %s, after %s; b15 %d, irq %d" % (
+                           "step 1 (b)" if f["rt_kind"] == 1 else "sweep bit %d" % f["rt_bit"], f["rt_phase"],
+                           A8_STOPS[min(f["rt_stop"], 5)], f["rt_con0_before"], f["rt_con0_written"], f["rt_con0_read"],
+                           f["rt_con0_back"], f["rt_con5_before"], f["rt_con5_written"], f["rt_con5_read"],
+                           f["rt_con5_back"], bad(f["rt_check_set"]), bad(f["rt_check_after"]), f["rt_b15_flips"],
+                           f["rt_irq"]))
+            out.append("    " + _counts(f, "rt_s1"))
+            if f.get("rt_s2_passes"):
+                out.append("    " + _counts(f, "rt_s2"))
+        if f.get("se_runs"):
+            out.append("sense: %d readings; changed: %s; DIE: %s" % (
+                f["se_readings"], " ".join("P%s %04X" % (c, f["se_changed_P%s" % c]) for c in PORTS
+                                           if f["se_changed_P%s" % c]) or "nothing",
+                " ".join("P%s %04X" % (c, f["se_die_P%s" % c] & 0xFFFF) for c in PORTS)))
+            cn = sense_counts(f)
+            if cn:
+                out.append("    changes by bit: " + ", ".join("%s %d" % kv for kv in cn.items()))
+            ev = sense_events(f)
+            if ev:
+                out.append("    events (ms port bit level): " + ", ".join("%d P%s%d=%d" % e for e in ev)
+                           + ("; %d not kept" % f["se_events_lost"] if f.get("se_events_lost") else ""))
     if fields.get("l_runs"):
         out.append("L%d: %s; wrote CON3 %02X CON1 %04X CON0 %04X, read back %02X %04X %04X; b15 %d, irq %d; %.1f halves"
                    " a second: %.1f frames a second if a half is LEN frames (a), %.1f if LEN/2 (b); expected %.1f (LEN %d:"
@@ -237,7 +356,9 @@ def derived(fields):
     return out
 
 # Shown in decimal; every other field in hex.
-DECIMAL = {"l_state", "l_which", "l_runs", "l_stop", "l_phase", "l_stopped", "l_len_read", "l_len_used", "l_irq_before",
+DECIMAL = {"a8_off", "rec_watch_b15_flips", "rec_watch_irq", "r2_state", "r2_presses", "s1_state", "s1_runs", "rt_kind",
+           "rt_bit", "rt_phase", "rt_stop", "rt_b15_flips", "rt_irq", "sw_state", "sw_sweeps", "sw_tries", "sw_stop",
+           "se_state", "se_runs", "se_readings", "se_events", "se_events_lost", "l_state", "l_which", "l_runs", "l_stop", "l_phase", "l_stopped", "l_len_read", "l_len_used", "l_irq_before",
            "l_core1_before", "l_expect_fps_x10", "l_expect_hps_x10_a", "l_expect_hps_x10_b", "l_b15_flips", "l_pend",
            "l_irq", "l_span_units", "l_hps_x10", "l_fps_x10_a", "l_fps_x10_b", "l_core1_end", "d_state", "d_sweeps", "d_tries", "d_bit", "d_stop", "d_phase", "d_b15_flips", "d_pend", "d_irq", "d_irq_now",
            "d_core1", "log_last_err", "log_busy_waits", "log_glitches", "log_retries", "log_page_rewaits", "log_fail_count", "k_state", "k_presses", "j_state", "j_sweeps", "j_tries", "j_reg", "j_bit", "j_b15_flips", "j_pend", "j_irq",
@@ -253,7 +374,8 @@ STATES = {"rec_state": ("not taken", "taken", "undone"), "a_state": ("not taken"
 
 
 def _decimal(name):
-    return name in DECIMAL or name.startswith(("mark_", "flash_status")) or name.endswith(
+    return name in DECIMAL or name.startswith(("mark_", "flash_status")) or name.endswith(tuple(
+        "_" + n for n in A8_PINS) + ("_passes", "_span_units")) or name.endswith(
         ("_irq", "_core1", "_num1", "_num2", "_timeouts", "_seq", "_slot", "_err", "_first_byte", "_bytes_read_ff"))
 
 
