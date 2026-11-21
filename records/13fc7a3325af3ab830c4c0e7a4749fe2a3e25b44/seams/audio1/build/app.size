@@ -1,0 +1,7 @@
+code 88504
+data 68
+bss 168960
+image 88572
+stack 4096
+irq_stack 2048
+ram_code 87792

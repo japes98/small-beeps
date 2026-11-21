@@ -1,0 +1,15 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 48945c0dd22650dda20f0e937426383149d7199f..13fc7a3325af3ab830c4c0e7a4749fe2a3e25b44
+OK     efb8ea3371c8 sessions: clean-br17-audio5-result (nothing to archive)
+OK     70e2324879d7 firmware: sb_now() never goes back; the log finishes every page; the next key (BR-17)
+EXEMPT be3c453a38b6 (merge) merge: main (#223, #224: audio5's unit facts, D's rulings) into the next build
+OK     ca474776f213 sessions: clean-br17-audio6 and audio7's prompts saved (nothing to archive)
+OK     5909d1df9c0b firmware: audio6, step D, the IOMAP word's bits each checked and undone by the firmware (BR-17)
+EXEMPT a3bed59bd658 (merge) merge: main (#225, #226: JieLi's audio link source, L1 and L2's rulings) into the next build
+OK     ec1a58420c2d firmware: audio7, set-ups L1 and L2 with D held, in the build after audio5 (BR-17)
+OK     18afff44d364 sessions: the owner's rules for faster rounds saved (spec-round-rules)
+EXEMPT e4690d2961b8 (merge) merge: clean's #227 (audio7) into the round-rules branch
+OK     d84fed0043c2 spec: audio7's log, ALNK0 runs, LEN is frames a half, bit 9 stops it (HW-159, HW-160)
+EXEMPT 13fc7a3325af (merge) Merge pull request #228 from japes98/spec/audio7-unit
+11 commit(s) checked: PASS
+
+exit status 0
