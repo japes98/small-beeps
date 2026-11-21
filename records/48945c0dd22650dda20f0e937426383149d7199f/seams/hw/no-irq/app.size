@@ -1,0 +1,7 @@
+code 61168
+data 64
+bss 165312
+image 61232
+stack 4096
+irq_stack 2048
+ram_code 60456

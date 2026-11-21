@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range c0222ec5dbed344128fd4bcfcc0d5e4eb570d4dd..48945c0dd22650dda20f0e937426383149d7199f
+OK     664711dd6fae sessions: the owner's rulings on L1, L2 and D saved (spec-audio7-rulings)
+EXEMPT 48945c0dd226 (merge) Merge pull request #226 from japes98/spec/audio7-rulings
+2 commit(s) checked: PASS
+
+exit status 0
