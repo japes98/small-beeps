@@ -29,7 +29,7 @@ import zlib
 
 MAGIC = 0x4C524253          # "SBRL" (hw_fm1.h, HW_LOG_MAGIC)
 REC = 4096                  # HW_LOG_REC, since layout 6 (audio7); 2048 for layouts 3 to 5, 1024 before
-REC_OF = {1: 1024, 2: 1024, 3: 2048, 4: 2048, 5: 2048, 6: 4096, 7: 4096}   # a record's size by its layout
+REC_OF = {1: 1024, 2: 1024, 3: 2048, 4: 2048, 5: 2048, 6: 4096, 7: 4096, 8: 4096}   # a record's size by its layout
 HEAD = 12                   # HW_LOG_HEAD
 LOG_END = 0x94000           # HW_LOG_END
 LOG_SECTORS = 96            # HW_LOG_SECTORS, since audio6 (64 in audio5, 32 before)
@@ -210,7 +210,25 @@ def _layout7():
     return l6[:len(l6) - health] + f + l6[len(l6) - health:]
 
 
-FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7()}
+def _layout8():
+    """Layout 8 (clean-br17-audio9): layout 7 with audio9's fields after
+    audio8's, before layout 4's log health."""
+    l7 = _layout7()
+    health = len(_layout4()) - len(_layout3())
+    f = ["a9_route", "a9_route_ups", "a9_route_downs", "a9_synth", "a9_synth_ons", "a9_s2", "a9_underruns_at_synth_on",
+         "a9_late_halves", "a9_fill_max_units", "a9_fill_last_units", "a9_fallback_beat", "a9_engine_blocks",
+         "audio_underruns", "audio_fill_max_units", "pb5_now", "pb5_raw_changes", "pb5_settled", "pb5_logged"]
+    f += ["pb5_t_%d" % i for i in range(16)]
+    f += ["daa7_boot", "daa7_route", "daa7_last", "daa7_reads", "daa7_changes"]
+    f += ["a9_words_%s_%d" % (st, i) for st in ("both", "upper", "lower") for i in range(4)]
+    f += ["midi_out_bytes"]
+    return l7[:len(l7) - health] + f + l7[len(l7) - health:]
+
+
+FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7(),
+          8: _layout8()}
+A9_ROUTE = ("not up", "UP", "down (key)", "UNDONE by the firmware", "no L2: not tried")
+A9_S2 = ("both halves", "upper half only", "lower half only")
 A8_OFF = ("on", "not an audio8 build", "L2 not running", "OFF: a check after an undo failed")
 S1_STATES = ("not run", "KEPT: port C moves", "port C still, undone", "STOPPED, undone", "undone by key")
 SW_STATES = ("not run", "done: port C never moved", "KEPT: port C moves", "STOPPED, undone", "undone by key")
@@ -276,6 +294,19 @@ def derived(fields):
     the 24 MHz crystal)."""
     out = []
     f = fields
+    if "a9_route" in f and (f.get("a9_route") or f.get("daa7_reads")):
+        out.append("audio9: route %s (up %d, down %d); %s, S2 %s; late halves %d since the synth came on, longest fill"
+                   " %.1f us (a half is 2902 us), fallback %s; engine blocks %d; underruns %d" % (
+                       A9_ROUTE[min(f["a9_route"], 4)], f["a9_route_ups"], f["a9_route_downs"],
+                       "SYNTH" if f["a9_synth"] else "tone", A9_S2[min(f["a9_s2"], 2)], f["a9_late_halves"],
+                       f["a9_fill_max_units"] / 24.0, "at beat %d" % f["a9_fallback_beat"] if f["a9_fallback_beat"]
+                       else "no", f["a9_engine_blocks"], f["audio_underruns"]))
+        n = f["pb5_raw_changes"]
+        times = [f["pb5_t_%d" % (i % 16)] for i in range(max(0, n - 16), n)]
+        out.append("PB5 %d (settled %d), %d changes, %d written; last change beats %s; DAA_CON7 %08X at start-up,"
+                   " %08X after the route, %08X last, %d reads, %d changes; MIDI out bytes %d" % (
+                       f["pb5_now"], f["pb5_settled"], n, f["pb5_logged"], times, f["daa7_boot"], f["daa7_route"],
+                       f["daa7_last"], f["daa7_reads"], f["daa7_changes"], f["midi_out_bytes"]))
     if f.get("a8_boot"):
         out.append("audio8: %s; tone %s" % (A8_OFF[min(f["a8_off"], 3)], "16-bit (a word a frame)" if f["a8_pcm16"]
                                              else "fwtest's layout"))
@@ -356,7 +387,10 @@ def derived(fields):
     return out
 
 # Shown in decimal; every other field in hex.
-DECIMAL = {"a8_off", "rec_watch_b15_flips", "rec_watch_irq", "r2_state", "r2_presses", "s1_state", "s1_runs", "rt_kind",
+DECIMAL = {"a9_route", "a9_route_ups", "a9_route_downs", "a9_synth", "a9_synth_ons", "a9_s2", "a9_underruns_at_synth_on",
+           "a9_late_halves", "a9_fill_max_units", "a9_fill_last_units", "a9_fallback_beat", "a9_engine_blocks",
+           "audio_underruns", "audio_fill_max_units", "pb5_now", "pb5_raw_changes", "pb5_settled", "pb5_logged",
+           "daa7_reads", "daa7_changes", "midi_out_bytes", "a8_off", "rec_watch_b15_flips", "rec_watch_irq", "r2_state", "r2_presses", "s1_state", "s1_runs", "rt_kind",
            "rt_bit", "rt_phase", "rt_stop", "rt_b15_flips", "rt_irq", "sw_state", "sw_sweeps", "sw_tries", "sw_stop",
            "se_state", "se_runs", "se_readings", "se_events", "se_events_lost", "l_state", "l_which", "l_runs", "l_stop", "l_phase", "l_stopped", "l_len_read", "l_len_used", "l_irq_before",
            "l_core1_before", "l_expect_fps_x10", "l_expect_hps_x10_a", "l_expect_hps_x10_b", "l_b15_flips", "l_pend",
