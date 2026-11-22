@@ -1,0 +1,194 @@
+{
+  "fwtest": {
+    "version": "0.12.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 102244,
+    "sha256": "69ab8c25882e748bf621c16dda4322ab84bffb23f604df4d4ad5e9f0ffaab495"
+  },
+  "script_sha256": "ae5d661cb39365e3d176ee3eab34ab2d320fe9b2e6155c66c1b5b02bcec33b73",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "24000.115",
+    "instructions": {
+      "core0": 2916368962,
+      "core1": 5359889065
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00011100",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x00011104",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x00012f00",
+        "access": "read",
+        "count": 20
+      },
+      {
+        "address": "0x00013000",
+        "access": "write",
+        "count": 40
+      },
+      {
+        "address": "0x00015100",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x00015104",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x00015108",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x0001510c",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "write",
+        "count": 80
+      },
+      {
+        "address": "0x00040204",
+        "access": "write",
+        "count": 20
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "write",
+        "count": 20
+      },
+      {
+        "address": "0x00040300",
+        "access": "write",
+        "count": 40
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "write",
+        "count": 20
+      },
+      {
+        "address": "0x01eee200",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee204",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee208",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee20c",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee210",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee214",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee218",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee21c",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee220",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee224",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee228",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee22c",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee230",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee234",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee238",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee23c",
+        "access": "read",
+        "count": 29
+      }
+    ],
+    "outputs": [
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "45ca4ec5a73a1196a6fa508601886949681d37bbb2c1ed845ab7aeaf3e23fd42"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

@@ -1,0 +1,7 @@
+code 102208
+data 68
+bss 179072
+image 102276
+stack 4096
+irq_stack 2048
+ram_code 101496

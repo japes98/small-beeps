@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 13fc7a3325af3ab830c4c0e7a4749fe2a3e25b44..c87eb9943e1c5dec79f903b6a5f67221e8f906f3
+OK     85d0766357e2 sessions: the owner's rulings for audio8 saved (spec-audio8-rulings)
+OK     89fb6ddd02b4 firmware: audio8, L2 at start-up, port C's routing steps and the sense scan (BR-17)
+OK     4a86c6957a12 spec: audio8's log, the speaker plays ALNK0 through port C, PB5 senses headphones (HW-161, HW-162)
+EXEMPT b9cdeeb8c60f (merge) merge: clean's #229 (audio8) into the audio8-unit branch
+OK     0eabb00330f7 spec: HW-161/162 wording held to the relayed log; DAA_CON7 notes on HW-144, HW-147, HW-153
+EXEMPT c87eb9943e1c (merge) Merge pull request #230 from japes98/spec/audio8-unit
+6 commit(s) checked: PASS
+
+exit status 0

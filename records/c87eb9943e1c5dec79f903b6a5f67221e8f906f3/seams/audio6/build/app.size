@@ -1,0 +1,7 @@
+code 93556
+data 68
+bss 178944
+image 93624
+stack 4096
+irq_stack 2048
+ram_code 92844
