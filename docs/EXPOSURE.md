@@ -3672,6 +3672,26 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing new.
 - Disk: about 3 GB free.
 
+
+### Session spec-usb-facts (USB MIDI's facts, U0; the audio12 rulings)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio11-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/usb-facts` from `spec/audio11-unit` (#237), as its
+  own PR by the owner's ruling.
+- The owner's rulings for audio12 and USB MIDI, saved unedited as
+  docs/prompts/spec-audio12-rulings.md.
+- Recorded: HW-171 to HW-173 (section 49), Q-36, R-USB-1.
+- Read: the SDK's USB headers and its non-prebuilt USB device sources
+  (P-511); m-bootloader's `docs/SPEC.md`, `src/boot.c` and
+  `src/platform.c` (P-511; `src/usb_midi.c` not opened); pid.codes' pages,
+  through a fetch agent (P-512); FM-1-RE's `docs/io/06-usb.md`, read whole,
+  nothing taken (P-513). **Exposure:** that document describes the stock
+  firmware's USB stack (its identities, strings, register uses and code
+  addresses). None of it is in the spec, and the spec side keeps it out of
+  every prompt it writes.
+- Disk: about 3 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).

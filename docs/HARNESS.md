@@ -836,7 +836,9 @@ digest, so a firmware test always names the exact runner it used.
 - 0.13.0: the chip's 16-bit audio layout behind `--audio-chip` ("Audio"):
   `LEN` frames a half, one word a frame, when `CON1` sets data 3 to
   16-bit I2S (HW-160, HW-168). Without the flag, outputs are as in
-  0.12.0.
+  0.12.0. Published from main at `bb0a8815` (#235's merge, 2026-11-22) as
+  `ghcr.io/japes98/small-beeps@sha256:b2a1e76379509f13ef7c43b12442b4c48ad349248f7ef0b2ad3053e0e74e936b`;
+  its pin is the clean side's next pull request.
 - 0.12.0: block protection ("The flash chip"): a flash file 1 MiB and
   two bytes long sets the status registers, and the chip ignores an erase
   or program the block-protect bits cover (HW-131). Published from main
