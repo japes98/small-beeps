@@ -2764,8 +2764,10 @@ def case_audio8(a, work, log):
     by = {}
     for x in rs:
         by.setdefault(x["label"], x["fields"])
-    if bad or any(x["layout"] != max(rd.FIELDS) or not x["known"] or x["count"] != len(rd.FIELDS[7]) for x in rs):
-        problems.append("audio8: %d bad records, or one not layout 7 with %d fields" % (len(bad), len(rd.FIELDS[7])))
+    top = max(rd.FIELDS)
+    if bad or any(x["layout"] != top or not x["known"] or x["count"] != len(rd.FIELDS[top]) for x in rs):
+        problems.append("audio8: %d bad records, or one not layout %d with %d fields" % (len(bad), top,
+                                                                                       len(rd.FIELDS[top])))
     want = ["L2 before", "L2 kept", "REC taken", "REC undone", "R2 before", "R2 set", "S1a", "S1b before", "S1b"] \
         + sum((["SW b%d before" % i, "SW b%d" % i] for i in range(32)), []) + ["SW done", "SE before", "SE done",
                                                                                "R2 undone", "save key"]
