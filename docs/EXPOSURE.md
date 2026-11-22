@@ -3727,6 +3727,23 @@ SR-3 wrote only its barrier-log row.*
   unedited as docs/prompts/spec-usb-u2-rulings2.md; the section updated
   and renamed drop/prompts/clean-br17-usb-u2.md, to fold into audio13.
 - Read: nothing new.
+
+### Session spec-audio12-unit (audio12b on the unit; audio13 drafted)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-usb-u2-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on `spec/usb-u2`, which carries the round's saved rulings.
+- The owner's message (audio12b's results, audio13's items), saved
+  unedited as docs/prompts/spec-audio12-unit.md; HARDWARE-SPEC section 50
+  (HW-174, HW-175) and a note on Q-9.
+- Merged clean's open branch `hw/audio12b` (#241, with #240) into this
+  one, with no conflicts.
+- Drafted drop/prompts/clean-br17-audio13.md outside the repository
+  (D5, U2 as ruled, the ARP check), marked as awaiting the owner's ruling.
+- Read: #241's description and DESIGN-NOTES' audio12 and audio12b entries
+  (this repository's own firmware notes).
+- Disk: about 2.7 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
