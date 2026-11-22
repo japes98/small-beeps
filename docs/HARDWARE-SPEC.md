@@ -4659,8 +4659,9 @@ the results; HW-164 says what they settle and what stays open.
     steps and of the clicks; the headphone output's level once the
     format is right; which half, if either, is left.
 - Sources: UNIT (HW-163); HW-141, HW-160, HW-162.
-- Standing: confirmed (UNIT; the difference reading is untested; on the
-  headphones it holds and the speaker takes the lower half alone, HW-165)
+- Standing: confirmed (UNIT; the difference reading is untested; the
+  headphones fit it, its 6 dB not clearly heard, and the speaker takes
+  the lower half alone, HW-165, HW-166)
 - Needed by: M4, BR-17 (Phase B)
 
 ## 47. audio10 on the unit: two outputs, two readings of a word; the SARADC's set-up
@@ -4702,23 +4703,24 @@ fields.
 - Fact:
   - **The speaker plays the lower half of each word;** the upper half
     doesn't reach it.
-  - **The headphones play the difference of the two halves**, the same
-    in both ears (HW-163): the same sample in both is silent, either
-    half alone is heard, and a sample with its negative is the loudest.
-    This settles HW-164's reading for the headphones. Why the outside
-    part or the board does this is not given.
-  - **The output is mono.** N, the sample in the upper half and its
-    negative in the lower, is the one format heard at full level on
-    both: the speaker gets the negative (its polarity can't be heard),
-    the headphones twice the swing of one half. N' is the same with
-    both outputs inverted.
+  - **The headphones fit the difference of the two halves**, the same
+    in both ears (HW-163): the same sample in both is silent, and either
+    half alone is heard. N was heard slightly louder than the others; N'
+    was not compared for loudness, and the about 6 dB more that the
+    difference reading predicts for both was not clearly heard. Why the
+    outside part or the board behaves so is not given.
+  - **N plays on both outputs** with nothing cancelled: the speaker gets
+    the negative of the sample (polarity can't be heard), the headphones
+    both halves working together. U is silent on the speaker and P on
+    the headphones; L and N' are heard on both too.
   - **The SARADC's conversion doesn't settle, as set up so far.** Each
     raw value is a run of bits equal to the first decision followed by
     bits all equal to the opposite (below 512: `2^k − 1`; from 512:
     `1024 − 2^k`), so after the first bit that differs from the most
-    significant, every later bit repeats that bit's value. That is what
-    a successive-approximation converter gives when each step is too
-    short. The build wrote `CON`'s clock and delay fields as 0 (HW-167).
+    significant, every later bit repeats that bit's value. A reading,
+    not a fact: that fits a successive-approximation converter whose
+    steps are too short to settle. The build wrote `CON`'s clock and
+    delay fields as 0 (HW-167).
   - **8 voices fit:** the longest fill is about a ninth of a half.
   - **Still open:** the half-second clicks (zero samples were silent,
     so they may come with the samples); the SARADC's fix on the unit.
@@ -4733,9 +4735,12 @@ fields.
     conversion as: bits 0-2 = `0b110`, which it names a clock divide by
     96; bits 12-15 = `0xF`, a start delay of that value times 8 of the
     converter's clocks; bit 3 set (its meaning not given); bit 5 the
-    interrupt enable; bits 8-11 the channel; then, in separate writes,
-    bit 4 (enable) and bit 6 (start). The other divider codes, and which
-    clock the divider divides, are not given there.
+    interrupt enable; bits 8-11 the channel. It writes `CON` three
+    times: first that whole value with bit 6 also set and bit 4 clear
+    (in fwtest such a write clears the pending flag, HW-60); then the
+    same with bit 4 added (enable); then with bit 6 set again (start).
+    The other divider codes, and which clock the divider divides, are
+    not given there.
   - **Its set-up** also writes analogue bias and test-path fields
     (`WLA_CON0`, `PLL_CON1` bit 16) for its internal channels (the
     battery and reference voltage); whether a pin's channel needs them
@@ -4855,6 +4860,10 @@ spec request can turn one into a fact.
   finder1 gave no clear ADC reading for PRESETS.
   *Session spec-core1-unit:* a note: PRESETS was not found on ADC
   channels 0 to 11 either (relayed).
+  *Session spec-audio10-unit (HW-165 to HW-167):* `MASTER`'s raw readings
+  on the unit don't settle with `JL_ADC->CON`'s clock and delay fields at
+  0; the chip's SDK sets a divide by 96, a start delay and bit 3. Earlier
+  ADC readings here (finder1's included) were taken that way.
 - **Q-9. Audio on the chip.** How `JL_ALNK0`'s output reaches the DAC or
   codec on real hardware, which bits of each word it uses, its clock set-up
   and true rate, and the analog set-up (FM-1-RE's audio document names DAC
