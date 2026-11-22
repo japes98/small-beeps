@@ -302,6 +302,28 @@ static void fresh_base(void)
  * low byte, bit 8 and bits 10 and 11 stay as read), and nothing else is
  * written. The step row names each write before it is made, so a hang
  * shows which; then the registers are read again. */
+#if defined(SB_HW_AUDIO8)
+/* audio8: after REC's write, the link watched for HW_A8_R9_MS: with bit 9
+ * set the PLL's audio clock stops reaching it (HW-160). */
+static void r9_watch(void)
+{
+    u32 start = sb_beacon.beats, irq0 = sb_audio.blocks, last = JL_ALNK0->CON0 & (1u << 15);
+
+    hw_aud.r9_flips = 0;
+    hw_aud.r9_clk2 = JL_CLOCK->CLK_CON2;
+    while (sb_beacon.beats - start < HW_A8_R9_MS) {
+        u32 now = JL_ALNK0->CON0 & (1u << 15);
+
+        if (now != last) {
+            hw_aud.r9_flips++;
+            last = now;
+        }
+        c1_poll();
+    }
+    hw_aud.r9_irq = sb_audio.blocks - irq0;
+}
+#endif
+
 void hw_audio_step(void)
 {
     char *p;
@@ -337,6 +359,10 @@ void hw_audio_step(void)
     p = put_hex(p, JL_CLOCK->CLK_CON2, 8);
     *p = 0;
     hw_step(step_text);
+#if defined(SB_HW_AUDIO8)
+    r9_watch();
+    hw_step(hw_aud.r9_flips || hw_aud.r9_irq ? "audio8: REC: the link runs" : "audio8: REC: THE LINK STOPPED");
+#endif
     hw_aud.steps++;
     fresh_base();
     c1_key_marks();
@@ -358,6 +384,12 @@ void hw_audio_alnk(void)
     char *p;
 
     snap(HW_K_SEQ, 0);
+#if defined(SB_HW_AUDIO8)
+    if (hw_aud.al_state != HW_AL_STOPPED && hw_aud.r2_state == HW_A8_R2_SET) {
+        refuse(HW_K_SEQ, "audio8: SEQ refused while R2 is in place");
+        return;
+    }
+#endif
     if (hw_aud.al_state != HW_AL_STOPPED) {
         u32 v = JL_ALNK0->CON0;
 
@@ -410,6 +442,12 @@ void hw_audio_a(void)
             refuse(HW_K_A, "audio3: A refused: bit 9 not set (REC)");
             return;
         }
+#if defined(SB_HW_AUDIO8)
+        if (hw_aud.r2_state == HW_A8_R2_SET) {
+            refuse(HW_K_A, "audio8: A refused while R2 is in place");
+            return;
+        }
+#endif
         v = JL_ALNK0->CON0;
         hw_aud.a_before = v;
         p = put_s(step_text, "audio3: A: CON0 ");
@@ -963,6 +1001,12 @@ void hw_audio_j(void)
         report("J undone");
         return;
     }
+    /* With an L set-up running, J's and D's watches would see the link
+     * move at once (audio8's L2 runs from start-up): refused. */
+    if (hw_aud.l_state == HW_L_KEPT) {
+        refuse(HW_K_J, "audio8: J refused while an L set-up runs");
+        return;
+    }
     hw_aud.j_sweeps++;
     hw_aud.j_tries = 0;
     hw_aud.j_nohold = 0;
@@ -1167,6 +1211,9 @@ static u32 d_try(u32 bit)
 #define L_CON1 0x1000u              /* data 3 an I2S output, 16-bit (HW-157) */
 static const u8 l_con3[3] = { 0, 0xC2u, 0x83u };    /* L1: the oscillator, /1, 512 a frame; L2: the PLL's audio clock, /1, 256 */
 static const u32 l_fps10[3] = { 0, 468750u, 441176u };
+#if defined(SB_HW_AUDIO8)
+static u32 l_boot;          /* audio8: start-up's L2, with no key to wait for */
+#endif
 
 /* CON0, CON1 and CON3 back as read before the set-up, in that order, each
  * read back. */
@@ -1202,6 +1249,16 @@ void hw_audio_l(u32 which)
     char label[16], *p;
     u32 start, last, irq0, t_first = 0, t_last = 0, moved, i;
 
+#if defined(SB_HW_AUDIO8)
+    /* audio8: the L keys don't touch the link under R2's pins and routes
+     * (a route needs R2). */
+    if (hw_aud.r2_state == HW_A8_R2_SET) {
+        hw_step("audio8: L refused while R2 is in place (KEY3)");
+        hw_aud.refused++;
+        report("L refused");
+        return;
+    }
+#endif
     if (hw_aud.l_state == HW_L_KEPT) {
         p = put_bit(step_text, "audio7: L", hw_aud.l_which);
         p = put_s(p, " undo: CON0, CON1, CON3 back");
@@ -1231,6 +1288,9 @@ void hw_audio_l(u32 which)
     *p = 0;
     hw_step(step_text);
     start = sb_beacon.beats;
+#if defined(SB_HW_AUDIO8)
+    if (!l_boot)
+#endif
     while (input_value(INPUT_KEY(which)) > 0 && sb_beacon.beats - start < HW_D_RELEASE_MS)
         hw_guide_tick();
     /* 1: what is there, logged before the writes. */
@@ -1404,6 +1464,12 @@ void hw_audio_d(void)
         report("D undone");
         return;
     }
+    if (hw_aud.l_state == HW_L_KEPT) {
+        hw_step("audio8: D refused while an L set-up runs");
+        hw_aud.refused++;
+        report("D refused");
+        return;
+    }
     hw_aud.d_j_putback = 0;
     if (hw_aud.j_state == HW_J_MOVED) {
         j_set(hw_aud.j_reg, hw_aud.j_before);
@@ -1456,6 +1522,578 @@ void hw_audio_d(void)
     d_snap_end();
     report(stop == HW_D_STOP_MOVED ? "D kept" : stop ? "D stopped" : "D done");
 }
+
+/* --- audio8 (the spec side's clean-br17-audio8; the owner's rulings) ---- */
+
+#if defined(SB_HW_AUDIO8)
+/* Ports at 0x00050000 + 0x40 x port (A = 0 to H = 7), registers OUT, IN,
+ * DIR, DIE, PU, PD, HD0, HD at +0 to +28 (HW-56, the port rule above
+ * HW-115). ALNK0's port C pins: PC0, PC1, PC2 and PC6 (HW-141); its group
+ * B1 on PA4 to PA10 (HW-156). */
+#define PORT_W(port, i) REG(0x00050000u + 0x40u * (port) + 4u * (i))
+#define P_A 0u
+#define P_C 2u
+#define R_OUT 0u
+#define R_IN  1u
+#define R_DIR 2u
+#define R_DIE 3u
+#define A8_PC_PINS 0x0047u          /* PC0, PC1, PC2, PC6 */
+#define A8_PA_PINS 0x07F0u          /* PA4 to PA10 */
+#define A8_PC_LCD  0x0180u          /* PC7 and PC8, which the panel's driver moves */
+
+static const u8 a8_pin[HW_A8_PINS] = { 0, 1, 2, 6, 4, 5, 6, 7, 8, 9, 10 };
+static u32 s1_pc_moved, s1_stop;   /* step 1's (b) moved port C (the sweep's condition) */
+
+static void a8_port(u32 port, u32 *w)
+{
+    u32 i;
+
+    for (i = 0; i < 8; i++)
+        w[i] = PORT_W(port, i);
+}
+
+/* Port C's and port A's IN read in a tight loop for ms milliseconds: each
+ * counted pin's changes into c (PC0, PC1, PC2, PC6, PA4 to PA10), the
+ * loop's passes into *n, the sb_now() units it took into *span. The time
+ * is checked every 64 passes. Interrupts stay on: a pass they delay
+ * misses changes, so a fast pin may be undercounted, never counted when
+ * it doesn't move. */
+static void a8_sample(u32 *c, u32 *n, u32 *span, u32 ms)
+{
+    u32 pc0 = PORT_W(P_C, R_IN), pa0 = PORT_W(P_A, R_IN), t0 = sb_now(), it = 0, t = 0, i;
+
+    for (i = 0; i < HW_A8_PINS; i++)
+        c[i] = 0;
+    for (;;) {
+        u32 pc = PORT_W(P_C, R_IN), pa = PORT_W(P_A, R_IN);
+        u32 dc = (pc ^ pc0) & A8_PC_PINS, da = (pa ^ pa0) & A8_PA_PINS;
+
+        if (dc | da) {
+            for (i = 0; i < 4; i++)
+                c[i] += dc >> a8_pin[i] & 1u;
+            for (i = 4; i < HW_A8_PINS; i++)
+                c[i] += da >> a8_pin[i] & 1u;
+            pc0 = pc;
+            pa0 = pa;
+        }
+        it++;
+        if (!(it & 63u)) {
+            t = sb_now() - t0;
+            if (t >= ms * 24000u)
+                break;
+        }
+    }
+    *n = it;
+    *span = t;
+}
+
+static u32 a8_pc_moved(const u32 *c)
+{
+    return c[0] | c[1] | c[2] | c[3];
+}
+
+static u32 a8_pa_moved(const u32 *c)
+{
+    u32 i, m = 0;
+
+    for (i = 4; i < HW_A8_PINS; i++)
+        m |= c[i];
+    return m;
+}
+
+static void a8_refuse(const char *why, const char *label)
+{
+    hw_step(why);
+    hw_aud.refused++;
+    report(label);
+}
+
+/* 1 (and the press refused) if audio8's keys may not run: start-up's L2
+ * isn't running, or a check after an undo failed. */
+static int a8_off(const char *label)
+{
+    if (hw_aud.a8_off != HW_A8_OFF_CHECK && hw_aud.l_state == HW_L_KEPT)
+        return 0;
+    a8_refuse(hw_aud.a8_off == HW_A8_OFF_CHECK ? "audio8: refused: a check after an undo failed" :
+              "audio8: refused: L2 isn't running", label);
+    return 1;
+}
+
+/* 1 (and refused) if the link is stopped by REC's bit 9 (HW-160). */
+static int a8_no_link(const char *label)
+{
+    if (hw_aud.step_state != HW_STEP_TAKEN)
+        return 0;
+    a8_refuse("audio8: refused: bit 9 set, the link stopped (REC first)", label);
+    return 1;
+}
+
+/* As L does: the key that started a step is waited for until released. */
+static void a8_release(u32 key, const char *text)
+{
+    u32 start = sb_beacon.beats;
+
+    hw_step(text);
+    while (input_value(key) > 0 && sb_beacon.beats - start < HW_D_RELEASE_MS)
+        hw_guide_tick();
+}
+
+/* CON0 bits 7 and 8 back clear; for a sweep's try CON5 back as read after
+ * them. Each read back. */
+static void a8_try_undo(u32 kind)
+{
+    u32 v = JL_ALNK0->CON0;
+
+    JL_ALNK0->CON0 = v & ~L_PINS;
+    hw_aud.rt_con0[3] = JL_ALNK0->CON0;
+    if (kind == 2u) {
+        IOMAP_CON5 = hw_aud.rt_con5[0];
+        hw_aud.rt_con5[3] = IOMAP_CON5;
+    }
+}
+
+static void a8_label(char *label, u32 kind, const char *what)
+{
+    char *p = kind == 1u ? put_s(label, "S1b") : put_bit(label, "SW b", hw_aud.rt_bit);
+
+    p = put_s(p, what);
+    *p = 0;
+}
+
+/* One routed try with D's safety machinery: kind 1, step 1's (b), CON0
+ * bits 7 and 8 set; kind 2, a sweep's try, CON5's bit set, then CON0 bits
+ * 7 and 8. Logged before the write; the scan held (0xFFFF latched, the
+ * LED lines low), the matrix's baseline and the idle rows checked; the
+ * writes, each read back; the watch (the samples); then, if port A moved,
+ * the undo at once, before the matrix check (which drives columns against
+ * rows the link may be driving); else the check, kept if port C moved
+ * with the check passed, else undone; the check after an undo; a record.
+ * Returns HW_A8_STOP_*. */
+static u32 a8_try(u32 kind, u32 bit)
+{
+    char label[16];
+    u32 irq0, last, start, i, moved_a, moved_c;
+
+    hw_aud.rt_kind = kind;
+    hw_aud.rt_bit = bit;
+    hw_aud.rt_phase = 1;
+    hw_aud.rt_stop = HW_A8_STOP_NONE;
+    for (i = 0; i < 4; i++)
+        hw_aud.rt_con0[i] = hw_aud.rt_con5[i] = 0;
+    for (i = 0; i < HW_A8_PINS; i++)
+        hw_aud.rt_c1[i] = hw_aud.rt_c2[i] = 0;
+    for (i = 0; i < 8; i++)
+        hw_aud.rt_pa_set[i] = hw_aud.rt_pa_after[i] = hw_aud.rt_pc_set[i] = 0;
+    hw_aud.rt_n1 = hw_aud.rt_span1 = hw_aud.rt_n2 = hw_aud.rt_span2 = 0;
+    hw_aud.rt_flips = hw_aud.rt_irq = hw_aud.rt_check_set = hw_aud.rt_check_after = 0;
+    hw_aud.rt_con0[0] = JL_ALNK0->CON0;
+    hw_aud.rt_con5[0] = IOMAP_CON5;
+    d_iomap(hw_aud.rt_iomap_before);
+    hw_port_a(hw_aud.rt_pa_before);
+    a8_label(label, kind, " before");
+    report(label);
+    /* 2: held, the baseline, the idle rows, then the writes. */
+    hw_aud.rt_phase = 2;
+    hw_step(kind == 1u ? "audio8: step 1 (b): TOUCH NO KEY" : "audio8: sweep: TOUCH NO KEY");
+    hw_scan_hold();
+    hw_matrix_check(&hw_aud.rt_idle_base, hw_aud.rt_map_base);
+    if (hw_aud.rt_idle_base != 0x3Fu) {
+        hw_scan_resume();
+        hw_aud.rt_stop = HW_A8_STOP_ROWS;
+        hw_aud.rt_phase = 7;
+        a8_label(label, kind, " rows BAD");
+        report(label);
+        return HW_A8_STOP_ROWS;
+    }
+    irq0 = sb_audio.blocks;
+    if (kind == 2u) {
+        hw_aud.rt_con5[1] = hw_aud.rt_con5[0] | 1u << bit;
+        IOMAP_CON5 = hw_aud.rt_con5[1];
+        hw_aud.rt_con5[2] = IOMAP_CON5;
+    }
+    hw_aud.rt_con0[1] = JL_ALNK0->CON0 | L_PINS;
+    JL_ALNK0->CON0 = hw_aud.rt_con0[1];
+    hw_aud.rt_con0[2] = JL_ALNK0->CON0;
+    /* 3: the watch: a sample at once; for (b), the rest of HW_A8_WATCH_MS
+     * and a second sample, unless port A moved in the first. */
+    hw_aud.rt_phase = 3;
+    a8_sample(hw_aud.rt_c1, &hw_aud.rt_n1, &hw_aud.rt_span1, HW_A8_SAMPLE_MS);
+    if (kind == 1u && !a8_pa_moved(hw_aud.rt_c1)) {
+        last = JL_ALNK0->CON0 & AL_HALF;
+        start = sb_beacon.beats;
+        while (sb_beacon.beats - start < HW_A8_WATCH_MS - 2u * HW_A8_SAMPLE_MS) {
+            u32 now = JL_ALNK0->CON0 & AL_HALF;
+
+            if (now != last) {
+                hw_aud.rt_flips++;
+                last = now;
+            }
+            c1_poll();
+        }
+        a8_sample(hw_aud.rt_c2, &hw_aud.rt_n2, &hw_aud.rt_span2, HW_A8_SAMPLE_MS);
+    }
+    hw_aud.rt_irq = sb_audio.blocks - irq0;
+    a8_port(P_C, hw_aud.rt_pc_set);
+#if defined(SB_TEST_A8_PA_MOVE)
+    /* The test build: the sweep's bit 3 made to move port A (PA5). */
+    if (kind == 2u && bit == 3u)
+        hw_aud.rt_c1[5] = 7;
+#endif
+#if defined(SB_TEST_A8_PC_MOVE)
+    /* The test build: step 1's (b) made to move port C (PC2). */
+    if (kind == 1u)
+        hw_aud.rt_c1[2] = 880;
+#endif
+    moved_a = a8_pa_moved(hw_aud.rt_c1) | a8_pa_moved(hw_aud.rt_c2);
+    moved_c = a8_pc_moved(hw_aud.rt_c1) | a8_pc_moved(hw_aud.rt_c2);
+    /* 4 and 5: port A moved: undone at once; else the check, then kept or
+     * undone. */
+    hw_aud.rt_phase = 4;
+    if (moved_a) {
+        a8_try_undo(kind);
+        hw_aud.rt_check_set = 32u;
+        hw_aud.rt_stop = HW_A8_STOP_PA;
+    } else {
+        hw_aud.rt_check_set = matrix_check_vs(&hw_aud.rt_idle_set, hw_aud.rt_map_set, hw_aud.rt_pa_set,
+                                              hw_aud.rt_map_base, hw_aud.rt_pa_before);
+#if defined(SB_TEST_A8_CHECK_FAIL)
+        /* The test build: the check at the sweep's bit 1 made to fail. */
+        if (kind == 2u && bit == 1u) {
+            hw_aud.rt_idle_set &= ~1u;
+            hw_aud.rt_check_set |= 1u;
+        }
+#endif
+        hw_aud.rt_phase = 5;
+        if (!hw_aud.rt_check_set && moved_c) {
+            hw_scan_resume();
+            hw_aud.rt_stop = HW_A8_STOP_PC;
+            hw_aud.rt_phase = 7;
+            a8_label(label, kind, " kept");
+            report(label);
+            return HW_A8_STOP_PC;
+        }
+        a8_try_undo(kind);
+        if (hw_aud.rt_check_set)
+            hw_aud.rt_stop = HW_A8_STOP_CHECK;
+    }
+    /* 6: the check after the undo, and the registers against step 1's. */
+    hw_aud.rt_phase = 6;
+    d_iomap(hw_aud.rt_iomap_after);
+    hw_aud.rt_check_after = matrix_check_vs(&hw_aud.rt_idle_after, hw_aud.rt_map_after, hw_aud.rt_pa_after,
+                                            hw_aud.rt_map_base, hw_aud.rt_pa_before);
+    if ((hw_aud.rt_con0[3] ^ hw_aud.rt_con0[0]) & ~AL_HALF || hw_aud.rt_iomap_after[5] != hw_aud.rt_con5[0])
+        hw_aud.rt_check_after |= 8u;
+    for (i = 0; i < 9; i++)
+        if (i != 5u && hw_aud.rt_iomap_after[i] != hw_aud.rt_iomap_before[i])
+            hw_aud.rt_check_after |= 16u;
+    hw_scan_resume();
+    hw_aud.rt_phase = 7;
+    if (hw_aud.rt_check_after) {
+        hw_aud.rt_stop = HW_A8_STOP_AFTER;
+        hw_aud.a8_off = HW_A8_OFF_CHECK;
+    }
+    a8_label(label, kind, hw_aud.rt_check_after ? " after BAD" : moved_a ? " PA moved" :
+                          hw_aud.rt_check_set ? " check BAD" : "");
+    report(label);
+    return hw_aud.rt_stop;
+}
+
+/* The routes kept (step 1's bits, a sweep's bit) put back. */
+static void a8_unroute(void)
+{
+    char label[16];
+
+    if (hw_aud.sw_state == HW_A8_SW_KEPT) {
+        hw_step("audio8: sweep undo: CON0 bits 7 8, CON5 back");
+        a8_try_undo(2);
+        hw_aud.sw_state = HW_A8_SW_UNDONE;
+        a8_label(label, 2, " undone");
+        report(label);
+    }
+    if (hw_aud.s1_state == HW_A8_S1_KEPT) {
+        hw_step("audio8: step 1 undo: CON0 bits 7 8 back");
+        a8_try_undo(1);
+        hw_aud.s1_state = HW_A8_S1_UNDONE;
+        report("S1 undone");
+    }
+}
+
+/* R2's undo: the routes first, then the four pins' bits in DIE, DIR and
+ * OUT back as read, each by read-modify-write of those bits alone (the
+ * panel's driver moves PC7 and PC8 in OUT meanwhile); then every port C
+ * register checked against the read before. */
+static void a8_r2_undo(void)
+{
+    const u32 *b = hw_aud.r2_pc_before;
+    u32 i;
+
+    a8_unroute();
+    hw_step("audio8: R2 undo: PC0 PC1 PC2 PC6 as read");
+    lcd_wait();
+    PORT_W(P_C, R_DIE) = (PORT_W(P_C, R_DIE) & ~A8_PC_PINS) | (b[R_DIE] & A8_PC_PINS);
+    PORT_W(P_C, R_DIR) = (PORT_W(P_C, R_DIR) & ~A8_PC_PINS) | (b[R_DIR] & A8_PC_PINS);
+    PORT_W(P_C, R_OUT) = (PORT_W(P_C, R_OUT) & ~A8_PC_PINS) | (b[R_OUT] & A8_PC_PINS);
+    a8_port(P_C, hw_aud.r2_pc_after);
+    for (i = 0; i < 8; i++) {
+        u32 d = hw_aud.r2_pc_after[i] ^ b[i];
+
+        if (i == R_IN)
+            continue;
+        if (d & ~(i == R_OUT ? A8_PC_LCD : 0u))
+            hw_aud.r2_check |= 4u;
+    }
+    hw_aud.r2_state = HW_A8_R2_UNDONE;
+    report(hw_aud.r2_check & 4u ? "R2 undone BAD" : "R2 undone");
+    hw_step(hw_aud.r2_check & 4u ? "audio8: R2 undone, port C NOT as read" : "audio8: R2 undone, port C as read");
+}
+
+/* KEY3: R2. The control sample (held, nothing routed), port C read, then
+ * PC0, PC1, PC2 and PC6 set as the AW30N's driver sets a master's pins
+ * (HW-158): OUT high, then DIR 0, then DIE on, each a read-modify-write
+ * of those four bits alone; the pulls and drive as read. Again: undone. */
+void hw_a8_r2(void)
+{
+    const u32 *b = hw_aud.r2_pc_before;
+    u32 i;
+
+    if (hw_aud.r2_state == HW_A8_R2_SET) {
+        a8_r2_undo();
+        c1_key_marks();
+        return;
+    }
+    if (a8_off("R2 refused"))
+        return;
+    hw_aud.r2_presses++;
+    hw_aud.r2_check = 0;
+    for (i = 0; i < 8; i++)
+        hw_aud.r2_pc_set[i] = hw_aud.r2_pc_after[i] = 0;
+    hw_step("audio8: R2: control sample, nothing routed");
+    hw_scan_hold();
+    a8_sample(hw_aud.ctl, &hw_aud.ctl_n, &hw_aud.ctl_span, HW_A8_SAMPLE_MS);
+    hw_scan_resume();
+    a8_port(P_C, hw_aud.r2_pc_before);
+    report("R2 before");
+    hw_step("audio8: R2: PC0 PC1 PC2 PC6: OUT 1, DIR 0, DIE 1");
+    lcd_wait();
+    PORT_W(P_C, R_OUT) |= A8_PC_PINS;
+    PORT_W(P_C, R_DIR) &= ~A8_PC_PINS;
+    PORT_W(P_C, R_DIE) |= A8_PC_PINS;
+    a8_port(P_C, hw_aud.r2_pc_set);
+    for (i = 4; i < 8; i++)
+        if (hw_aud.r2_pc_set[i] != b[i])
+            hw_aud.r2_check |= 1u;
+    if ((hw_aud.r2_pc_set[R_OUT] ^ b[R_OUT]) & ~(A8_PC_PINS | A8_PC_LCD)
+            || (hw_aud.r2_pc_set[R_DIR] ^ b[R_DIR]) & ~A8_PC_PINS || (hw_aud.r2_pc_set[R_DIE] ^ b[R_DIE]) & ~A8_PC_PINS)
+        hw_aud.r2_check |= 2u;
+    if ((hw_aud.r2_pc_set[R_OUT] & A8_PC_PINS) != A8_PC_PINS || hw_aud.r2_pc_set[R_DIR] & A8_PC_PINS
+            || (hw_aud.r2_pc_set[R_DIE] & A8_PC_PINS) != A8_PC_PINS)
+        hw_aud.r2_check |= 8u;
+    hw_aud.r2_state = HW_A8_R2_SET;
+    report(hw_aud.r2_check ? "R2 set BAD" : "R2 set");
+    hw_step(hw_aud.r2_check ? "audio8: R2 set, port C NOT as expected" : "audio8: R2 set: KEY4 next");
+    c1_key_marks();
+}
+
+/* KEY4: step 1. (a) a sample with R2 in place and CON0 bits 7 and 8
+ * clear, the scan held; (b) the routed try with bits 7 and 8. Kept if
+ * port C moved and port A didn't; again: undone. */
+void hw_a8_step1(void)
+{
+    u32 stop;
+
+    if (hw_aud.s1_state == HW_A8_S1_KEPT) {
+        a8_unroute();
+        c1_key_marks();
+        return;
+    }
+    if (a8_off("S1 refused") || a8_no_link("S1 refused"))
+        return;
+    if (hw_aud.r2_state != HW_A8_R2_SET) {
+        a8_refuse("audio8: step 1 refused: R2 first (KEY3)", "S1 refused");
+        return;
+    }
+    if (hw_aud.sw_state == HW_A8_SW_KEPT) {
+        a8_refuse("audio8: step 1 refused: a sweep bit kept (KEY5)", "S1 refused");
+        return;
+    }
+    a8_release(INPUT_KEY(4), "audio8: step 1: let go of KEY4");
+    hw_aud.s1_runs++;
+    hw_step("audio8: step 1 (a): sampling, bits 7 8 clear");
+    hw_scan_hold();
+    a8_sample(hw_aud.s1a, &hw_aud.s1a_n, &hw_aud.s1a_span, HW_A8_SAMPLE_MS);
+    hw_scan_resume();
+    report("S1a");
+    stop = a8_try(1, 0);
+    s1_pc_moved = a8_pc_moved(hw_aud.rt_c1) || a8_pc_moved(hw_aud.rt_c2);
+    s1_stop = stop;
+    hw_aud.s1_state = stop == HW_A8_STOP_PC ? HW_A8_S1_KEPT : stop == HW_A8_STOP_NONE ? HW_A8_S1_NONE_MOVED :
+                      HW_A8_S1_STOPPED;
+    hw_step(stop == HW_A8_STOP_PC ? "audio8: PORT C MOVES, kept: LISTEN" :
+            stop == HW_A8_STOP_NONE ? "audio8: step 1: port C didn't move" :
+            stop == HW_A8_STOP_PA ? "audio8: step 1: PORT A MOVED, undone" :
+            stop == HW_A8_STOP_ROWS ? "audio8: step 1: a key held, not run" : "audio8: step 1: CHECK FAILED, undone");
+    c1_key_marks();
+}
+
+/* 1 if the sweep may run: step 1 ran and port C didn't move (the owner's
+ * ruling), nor did a check fail. */
+static int a8_sweep_allowed(void)
+{
+    return hw_aud.s1_state == HW_A8_S1_NONE_MOVED || (hw_aud.s1_state == HW_A8_S1_STOPPED && !s1_pc_moved
+                                                      && hw_aud.a8_off != HW_A8_OFF_CHECK && s1_stop == HW_A8_STOP_PA);
+}
+
+/* KEY5: step 2, the sweep of CON5's bits 0 to 31, one press. Each try is
+ * a routed try (a8_try); it stops at the first try that keeps (port C
+ * moved, port A didn't), moves port A, or fails a check. Again with a bit
+ * kept: undone. */
+void hw_a8_sweep(void)
+{
+    u32 bit, stop = HW_A8_STOP_NONE;
+
+    if (hw_aud.sw_state == HW_A8_SW_KEPT) {
+        a8_unroute();
+        c1_key_marks();
+        return;
+    }
+    if (a8_off("SW refused") || a8_no_link("SW refused"))
+        return;
+    if (hw_aud.r2_state != HW_A8_R2_SET || !a8_sweep_allowed()) {
+        a8_refuse(hw_aud.r2_state != HW_A8_R2_SET ? "audio8: sweep refused: R2 first (KEY3)" :
+                  hw_aud.s1_state == HW_A8_S1_NONE ? "audio8: sweep refused: step 1 first (KEY4)" :
+                  "audio8: sweep refused: step 1 moved port C", "SW refused");
+        return;
+    }
+    a8_release(INPUT_KEY(5), "audio8: sweep: let go of KEY5");
+    hw_aud.sw_sweeps++;
+    hw_aud.sw_tries = hw_aud.sw_pa_bits = hw_aud.sw_nohold = 0;
+    for (bit = 0; bit < 32u; bit++) {
+        hw_aud.sw_tries++;
+        stop = a8_try(2, bit);
+        if (stop != HW_A8_STOP_ROWS && hw_aud.rt_con5[2] != hw_aud.rt_con5[1])
+            hw_aud.sw_nohold |= 1u << bit;
+        if (stop == HW_A8_STOP_PA)
+            hw_aud.sw_pa_bits |= 1u << bit;
+        if (stop != HW_A8_STOP_NONE)
+            break;
+    }
+    hw_aud.sw_stop = stop;
+    hw_aud.sw_state = stop == HW_A8_STOP_PC ? HW_A8_SW_KEPT : stop ? HW_A8_SW_STOPPED : HW_A8_SW_DONE;
+    report(stop == HW_A8_STOP_PC ? "SW kept" : stop ? "SW stopped" : "SW done");
+    hw_step(stop == HW_A8_STOP_PC ? "audio8: sweep: PORT C MOVES, kept: LISTEN" :
+            stop == HW_A8_STOP_PA ? "audio8: sweep: PORT A MOVED, undone" :
+            stop ? "audio8: sweep stopped, undone" : "audio8: sweep: port C never moved");
+    c1_key_marks();
+}
+
+static u32 se_get(u32 i)
+{
+    return hw_aud.se_count[i / 2u] >> 16u * (i & 1u) & 0xFFFFu;
+}
+
+static void se_bump(u32 i)
+{
+    u32 v = se_get(i);
+
+    if (v < 0xFFFFu)
+        hw_aud.se_count[i / 2u] += 1u << 16u * (i & 1u);
+}
+
+/* KEY6: the sense scan, read-only (R5): every port's IN (A to H) read
+ * each millisecond for HW_A8_SENSE_MS, each bit's changes counted, and
+ * its first HW_A8_EV_PER changes kept with their times. No port is
+ * written: the scan held once before (its latch and LED lines), and the
+ * panel's countdown, once a second, moves PC7 to PC10 as any drawing does. */
+void hw_a8_sense(void)
+{
+    static char t[48];
+    u32 prev[8], i, p, start, last, now, next, left, bits;
+    char *q;
+
+    if (a8_off("SE refused"))
+        return;
+    a8_release(INPUT_KEY(6), "audio8: sense: let go of KEY6");
+    hw_aud.se_runs++;
+    hw_aud.se_ms = hw_aud.se_ev_n = hw_aud.se_ev_lost = 0;
+    for (i = 0; i < 64u; i++)
+        hw_aud.se_count[i] = 0;
+    for (p = 0; p < 8u; p++) {
+        hw_aud.se_dir[p] = PORT_W(p, R_DIR);
+        hw_aud.se_die[p] = PORT_W(p, R_DIE);
+        hw_aud.se_in0[p] = prev[p] = PORT_W(p, R_IN);
+        hw_aud.se_changed[p] = 0;
+    }
+    report("SE before");
+    hw_scan_hold();
+    start = last = sb_beacon.beats;
+    next = 0;
+    while ((now = sb_beacon.beats - start) < HW_A8_SENSE_MS) {
+        if (sb_beacon.beats == last) {
+            c1_poll();
+            continue;
+        }
+        last = sb_beacon.beats;
+        hw_aud.se_ms++;
+        for (p = 0; p < 8u; p++) {
+            u32 v = PORT_W(p, R_IN), d = (v ^ prev[p]) & 0xFFFFu;
+
+            prev[p] = v;
+            if (!d)
+                continue;
+            hw_aud.se_changed[p] |= d;
+            for (i = 0; i < 16u; i++) {
+                if (!(d >> i & 1u))
+                    continue;
+                se_bump(16u * p + i);
+                if (se_get(16u * p + i) > HW_A8_EV_PER)
+                    continue;
+                if (hw_aud.se_ev_n < HW_A8_EVENTS)
+                    hw_aud.se_ev[hw_aud.se_ev_n++] = now << 16 | (v >> i & 1u) << 8 | p << 4 | i;
+                else
+                    hw_aud.se_ev_lost++;
+            }
+        }
+        if (now >= next) {
+            next += 1000u;
+            left = (HW_A8_SENSE_MS - now + 999u) / 1000u;
+            for (p = bits = 0; p < 8u; p++)
+                for (i = 0; i < 16u; i++)
+                    bits += hw_aud.se_changed[p] >> i & 1u;
+            q = put_s(t, "audio8: SENSE: plug in/out ");
+            q = put_dec(q, left);
+            q = put_s(q, "s, ");
+            q = put_dec(q, bits);
+            q = put_s(q, " bits");
+            *q = 0;
+            hw_step(t);
+        }
+    }
+    hw_scan_resume();
+    hw_aud.se_state = HW_A8_SE_DONE;
+    report("SE done");
+    hw_step("audio8: sense done (its page next)");
+}
+
+/* Start-up (R0): L2 as audio7's KEY2 sets it up, with no key to wait
+ * for, once the test screen is up; CLK_CON2 bit 9 is left as read (if it
+ * reads set, L2 isn't tried: the link wouldn't run, HW-160). audio8's
+ * keys run only while it is kept. */
+void hw_audio_boot_l2(void)
+{
+    hw_aud.a8_boot = 1;
+    if (JL_CLOCK->CLK_CON2 & CLK2_ALNK0_EN) {
+        hw_aud.a8_off = HW_A8_OFF_L2;
+        hw_step("audio8: L2 not run: CLK_CON2 bit 9 reads set");
+        report("L2 boot bit 9");
+        return;
+    }
+    l_boot = 1;
+    hw_audio_l(2);
+    l_boot = 0;
+    hw_aud.a8_off = hw_aud.l_state == HW_L_KEPT ? HW_A8_OFF_NONE : HW_A8_OFF_L2;
+    hw_step(hw_aud.a8_off ? "audio8: L2 FAILED at start-up, put back: audio8 off" : "audio8: L2 running");
+}
+#endif
 
 /* --- The tone ------------------------------------------------------------- */
 
@@ -1512,6 +2150,11 @@ static void tone_block(s32 *out, u32 frames)
 {
     u32 n, b = sb_beacon.beats, t = sb_now(), want;
 
+#if defined(SB_HW_PCM16)
+    /* On the unit a half is LEN frames of one word (HW-160): the block's
+     * words are twice its frames in fwtest's layout. */
+    frames *= 2u;
+#endif
     if (b != storm_beat) {
         storm_beat = b;
         storm_n = 0;
@@ -1548,8 +2191,16 @@ static void tone_block(s32 *out, u32 frames)
             gain = want;
         s = (s32)((sine(phase) * (s32)gain) >> 11);
         phase += TONE_STEP;
+#if defined(SB_HW_PCM16)
+        /* The unit (audio8): a word a frame, 16-bit, the sample in both
+         * halves (which is left isn't given, HW-160); >> 8 keeps the
+         * level: -20 dB of 16-bit full scale at the top. */
+        s >>= 8;
+        out[n] = (s32)((u32)(u16)s << 16 | (u16)s);
+#else
         out[2 * n] = s;
         out[2 * n + 1] = s;
+#endif
     }
     hw_aud.gain = gain;
 }
@@ -1557,6 +2208,9 @@ static void tone_block(s32 *out, u32 frames)
 void hw_audio_start(void)
 {
     hw_aud.tone_on = 1;
+#if defined(SB_HW_PCM16)
+    hw_aud.a8_pcm16 = 1;
+#endif
     hw_c1_mark(HW_C1_PRE);
     audio_start(tone_block);
     hw_c1_mark(HW_C1_POST);
@@ -1591,6 +2245,13 @@ static u32 div64(u64 a, u32 b)
     return (u32)q;
 }
 
+/* Frames a half: the unit's 16-bit layout plays twice fwtest's (HW-160). */
+#if defined(SB_HW_PCM16)
+#define A8_FRAMES (2u * AUDIO_FRAMES)
+#else
+#define A8_FRAMES AUDIO_FRAMES
+#endif
+
 /* Frames a second, times ten, over the span since the base: 0 until it
  * is a second long (sb_now's 24 MHz units). */
 static void measure(void)
@@ -1607,7 +2268,7 @@ static void measure(void)
     hw_aud.halves = n1 - n0;
     hw_aud.units = t1 - t0;
     if (hw_aud.units >= 24000000u && n1 != n0)
-        hw_aud.fps10 = div64((u64)(n1 - n0) * AUDIO_FRAMES * 240000000ull, t1 - t0);
+        hw_aud.fps10 = div64((u64)(n1 - n0) * A8_FRAMES * 240000000ull, t1 - t0);
 }
 
 /* --- Text ----------------------------------------------------------------- */
@@ -2200,7 +2861,8 @@ static char *put_check(char *p, u32 bad)
     p = put_s(p, bad & 2u ? " cells" : "");
     p = put_s(p, bad & 4u ? " portA" : "");
     p = put_s(p, bad & 8u ? " CON5" : "");
-    return put_s(p, bad & 16u ? " map" : "");
+    p = put_s(p, bad & 16u ? " map" : "");
+    return put_s(p, bad & 32u ? " PA moved" : "");
 }
 
 static void page_d(void)
@@ -2412,6 +3074,127 @@ static void page_l(void)
     lcd_wait();
 }
 
+#if defined(SB_HW_AUDIO8)
+static const char *const s1_word[5] = { "not run", "KEPT, port C moves", "port C still", "STOPPED", "undone" };
+static const char *const sw_word[5] = { "not run", "done, port C still", "KEPT", "STOPPED", "undone" };
+static const char *const stop_word[6] = { "-", "port C moved", "PORT A MOVED", "CHECK BAD", "AFTER BAD", "key held" };
+
+static char *put_counts(char *p, const char *label, const u32 *c)
+{
+    u32 i, a = 0;
+
+    p = put_s(p, label);
+    p = put_s(p, " C");
+    for (i = 0; i < 4; i++) {
+        *p++ = ' ';
+        p = put_dec(p, c[i]);
+    }
+    for (i = 4; i < HW_A8_PINS; i++)
+        a += c[i];
+    p = put_s(p, " A ");
+    return put_dec(p, a);
+}
+
+static void page_a8(void)
+{
+    char t[80], *p;
+    u32 y = PAGE_REGS_Y, i;
+
+    gfx_fill(0, PAGE_REGS_Y, SCREEN_W, SCREEN_H - PAGE_REGS_Y, BLACK);
+    row_at(&y, "9/9 K3 R2  K4 step 1  K5 sweep  K6 sense", YELLOW);
+    p = put_s(t, "L2 ");
+    p = put_s(p, l_state_word[hw_aud.l_state < 5u ? hw_aud.l_state : 0]);
+    p = put_s(p, hw_aud.a8_off == HW_A8_OFF_CHECK ? ", OFF: check" : hw_aud.l_state != HW_L_KEPT ? ", audio8 OFF" : "");
+    *p = 0;
+    row_at(&y, t, hw_aud.l_state == HW_L_KEPT && hw_aud.a8_off != HW_A8_OFF_CHECK ? GREEN : RED);
+    p = put_s(t, "tone ");
+    p = put_s(p, hw_aud.a8_pcm16 ? "16-bit" : "fwtest's");
+    p = put_s(p, " f/s ");
+    p = put_x10(p, hw_aud.fps10);
+    p = put_s(p, " REC b15 ");
+    p = put_dec(p, hw_aud.r9_flips);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    p = put_s(t, "R2 ");
+    p = put_s(p, hw_aud.r2_state == HW_A8_R2_SET ? "set" : hw_aud.r2_state ? "undone" : "-");
+    p = put_s(p, " chk ");
+    p = put_dec(p, hw_aud.r2_check);
+    p = put_s(p, " PC ");
+    for (i = 0; i < 4; i++) {
+        p = put_hex(p, hw_aud.r2_state == HW_A8_R2_SET ? hw_aud.r2_pc_set[i == 1u ? 3u : i == 3u ? 4u : i] :
+                    hw_aud.r2_pc_after[i == 1u ? 3u : i == 3u ? 4u : i], 4);
+        *p++ = ' ';
+    }
+    *p = 0;
+    row_at(&y, t, hw_aud.r2_check ? RED : WHITE);
+    row_at(&y, "   (OUT DIE DIR PU)  counts: PC0 1 2 6, PA", DIM);
+    p = put_counts(t, "ctl", hw_aud.ctl);
+    *p = 0;
+    row_at(&y, t, a8_pc_moved(hw_aud.ctl) || a8_pa_moved(hw_aud.ctl) ? YELLOW : WHITE);
+    p = put_counts(t, "1a ", hw_aud.s1a);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    p = put_s(t, "1: ");
+    p = put_s(p, s1_word[hw_aud.s1_state < 5u ? hw_aud.s1_state : 0]);
+    *p = 0;
+    row_at(&y, t, hw_aud.s1_state == HW_A8_S1_KEPT ? GREEN : hw_aud.s1_state == HW_A8_S1_STOPPED ? RED : WHITE);
+    p = put_s(t, "sweep: ");
+    p = put_s(p, sw_word[hw_aud.sw_state < 5u ? hw_aud.sw_state : 0]);
+    p = put_s(p, ", tries ");
+    p = put_dec(p, hw_aud.sw_tries);
+    *p = 0;
+    row_at(&y, t, hw_aud.sw_state == HW_A8_SW_KEPT ? GREEN : hw_aud.sw_state == HW_A8_SW_STOPPED ? RED : WHITE);
+    p = put_s(t, hw_aud.rt_kind == 2u ? "last: SW bit " : hw_aud.rt_kind ? "last: 1(b)" : "last: -");
+    if (hw_aud.rt_kind == 2u)
+        p = put_dec(p, hw_aud.rt_bit);
+    p = put_s(p, " ");
+    p = put_s(p, stop_word[hw_aud.rt_stop < 6u ? hw_aud.rt_stop : 0]);
+    p = put_s(p, " C5 ");
+    p = put_hex(p, hw_aud.rt_con5[2], 8);
+    *p = 0;
+    row_at(&y, t, hw_aud.rt_stop >= HW_A8_STOP_PA && hw_aud.rt_stop <= HW_A8_STOP_AFTER ? RED : WHITE);
+    p = put_counts(t, "t1 ", hw_aud.rt_c1);
+    *p = 0;
+    row_at(&y, t, a8_pc_moved(hw_aud.rt_c1) ? GREEN : WHITE);
+    p = put_counts(t, "t2 ", hw_aud.rt_c2);
+    *p = 0;
+    row_at(&y, t, a8_pc_moved(hw_aud.rt_c2) ? GREEN : WHITE);
+    p = put_s(t, "chk ");
+    p = put_check(p, hw_aud.rt_check_set);
+    p = put_s(p, " after ");
+    p = put_check(p, hw_aud.rt_check_after);
+    *p = 0;
+    row_at(&y, t, hw_aud.rt_check_set || hw_aud.rt_check_after ? RED : WHITE);
+    p = put_s(t, "sense ");
+    p = put_s(p, hw_aud.se_state ? "done" : "-");
+    p = put_s(p, " reads ");
+    p = put_dec(p, hw_aud.se_ms);
+    p = put_s(p, " ev ");
+    p = put_dec(p, hw_aud.se_ev_n);
+    p = put_s(p, " lost ");
+    p = put_dec(p, hw_aud.se_ev_lost);
+    *p = 0;
+    row_at(&y, t, WHITE);
+    for (i = 0; i < 8u; i += 4u) {
+        u32 j;
+
+        p = t;
+        for (j = i; j < i + 4u; j++) {
+            *p++ = (char)('A' + j);
+            p = put_hex(p, hw_aud.se_changed[j], 4);
+            *p++ = j & 1u ? ' ' : '/';
+            p = put_hex(p, hw_aud.se_die[j] & 0xFFFFu, 4);
+            *p++ = ' ';
+        }
+        *p = 0;
+        row_at(&y, t, WHITE);
+    }
+    row_at(&y, "  (port: bits changed / DIE)", DIM);
+    lcd_send_rows(PAGE_REGS_Y, SCREEN_H - PAGE_REGS_Y);
+    lcd_wait();
+}
+#endif
+
 static void draw_view(u32 v)
 {
     if (v < 2)
@@ -2426,9 +3209,17 @@ static void draw_view(u32 v)
         page_kj();
     else if (v == 6)
         page_d();
+#if defined(SB_HW_AUDIO8)
+    else if (v == 8)
+        page_a8();
+#endif
     else
         page_l();
 }
+
+/* audio8: its key pages write no "page" record (the sweep alone takes
+ * about 66 of the ring's 96). */
+static u32 page_quiet;
 
 static void page_views(const u8 *order, u32 n)
 {
@@ -2447,7 +3238,8 @@ static void page_views(const u8 *order, u32 n)
     hw_c1_mark(HW_C1_NOW);
     read_x2(hw_aud.x2[0]);
     read_x2(hw_aud.x2[1]);
-    report("page");
+    if (!page_quiet)
+        report("page");
     lcd_wait();
     gfx_fill(0, 0, SCREEN_W, SCREEN_H, BLACK);
     draw_view(order[0]);
@@ -2488,13 +3280,32 @@ static void page_views(const u8 *order, u32 n)
     }
 }
 
-/* The first page: the first four views; HOME: all eight. */
+/* The first page: the first four views; HOME: all eight (audio8: and
+ * its own, first). */
 void hw_audio_page(void)
 {
+#if defined(SB_HW_AUDIO8)
+    static const u8 all[9] = { 8, 0, 1, 2, 3, 4, 5, 6, 7 };
+
+    page_views(all, hw_aud.regs_read ? 9 : 4);
+#else
     static const u8 all[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
     page_views(all, hw_aud.regs_read ? 8 : 4);
+#endif
 }
+
+#if defined(SB_HW_AUDIO8)
+/* After audio8's keys: its view alone. */
+void hw_audio_keypage_a8(void)
+{
+    static const u8 keys[1] = { 8 };
+
+    page_quiet = 1;
+    page_views(keys, 1);
+    page_quiet = 0;
+}
+#endif
 
 /* After L's keys: the L view, then core 1's. */
 void hw_audio_keypage_l(void)
@@ -2548,6 +3359,18 @@ struct guide_step {
     u8 key;
     char what[13];
 };
+#if defined(SB_HW_AUDIO8)
+/* audio8's order: L2 runs from start-up; R2, step 1, the sweep (skipped
+ * unless step 1 left port C still), the sense scan, a save. D, J, K and
+ * L1 are out of it. */
+static const struct guide_step guide[] = {
+    { INPUT_KEY(3), "R2 pins" },
+    { INPUT_KEY(4), "step 1" },
+    { INPUT_KEY(5), "sweep" },
+    { INPUT_KEY(6), "sense" },
+    { INPUT_EDIT, "save" },
+};
+#else
 static const struct guide_step guide[] = {
     { INPUT_KEY(1), "L1" },
     { INPUT_REC, "bit 9" },
@@ -2556,6 +3379,7 @@ static const struct guide_step guide[] = {
     { INPUT_KEY(2), "L2" },
     { INPUT_EDIT, "save" },
 };
+#endif
 #define GUIDE_N (sizeof guide / sizeof guide[0])
 #define GUIDE_BLINK_MS 500u
 
@@ -2580,15 +3404,42 @@ static const char *key_name(u32 c)
     case INPUT_REC:      return "REC";
     case INPUT_KEY(1):   return "KEY1";
     case INPUT_KEY(2):   return "KEY2";
+    case INPUT_KEY(3):   return "KEY3";
+    case INPUT_KEY(4):   return "KEY4";
+    case INPUT_KEY(5):   return "KEY5";
+    case INPUT_KEY(6):   return "KEY6";
     default:             return "?";
     }
 }
 
 /* The next key and what it does: D's undo while a bit is kept, else the
  * table's entry; 0 when the order is done. */
+/* The table's entry now: audio8 skips the sweep unless it may run. */
+static u32 guide_at(void)
+{
+#if defined(SB_HW_AUDIO8)
+    if (hw_guide_at < GUIDE_N && guide[hw_guide_at].key == INPUT_KEY(5) && !a8_sweep_allowed())
+        return hw_guide_at + 1u;
+#endif
+    return hw_guide_at;
+}
+
+/* 1 while a kept set-up's undo comes before the table (audio7's L; in
+ * audio8, L2 is the running state and not undone). */
+static int guide_l_undo(void)
+{
+#if defined(SB_HW_AUDIO8)
+    return 0;
+#else
+    return hw_aud.l_state == HW_L_KEPT;
+#endif
+}
+
 static u32 guide_next(const char **what)
 {
-    if (hw_aud.l_state == HW_L_KEPT) {
+    u32 at = guide_at();
+
+    if (guide_l_undo()) {
         *what = hw_aud.l_which == 1u ? "L1 undo" : "L2 undo";
         return INPUT_KEY(hw_aud.l_which) + 1u;
     }
@@ -2596,19 +3447,20 @@ static u32 guide_next(const char **what)
         *what = "D undo";
         return INPUT_OCT_DOWN + 1u;
     }
-    if (hw_guide_at >= GUIDE_N)
+    if (at >= GUIDE_N)
         return 0;
-    *what = guide[hw_guide_at].what;
-    return guide[hw_guide_at].key + 1u;
+    *what = guide[at].what;
+    return guide[at].key + 1u;
 }
 
 /* A key pressed on the test screen: the guide moves on if it was the
  * table's next (D's undo of a kept bit isn't in the table). */
 void hw_guide_key(u32 control)
 {
-    if (hw_aud.l_state != HW_L_KEPT && hw_aud.d_state != HW_D_KEPT && hw_guide_at < GUIDE_N
-            && control == guide[hw_guide_at].key)
-        hw_guide_at++;
+    u32 at = guide_at();
+
+    if (!guide_l_undo() && hw_aud.d_state != HW_D_KEPT && at < GUIDE_N && control == guide[at].key)
+        hw_guide_at = at + 1u;
 }
 
 /* "next: KEY (what)" on the step row, or that the order is done. */
@@ -2666,6 +3518,11 @@ u32 hw_audio_key_lit(u32 control)
     case INPUT_OCT_DOWN: return hw_aud.d_state == HW_D_KEPT;
     case INPUT_KEY(1): return hw_aud.l_state == HW_L_KEPT && hw_aud.l_which == 1u;
     case INPUT_KEY(2): return hw_aud.l_state == HW_L_KEPT && hw_aud.l_which == 2u;
+#if defined(SB_HW_AUDIO8)
+    case INPUT_KEY(3): return hw_aud.r2_state == HW_A8_R2_SET;
+    case INPUT_KEY(4): return hw_aud.s1_state == HW_A8_S1_KEPT;
+    case INPUT_KEY(5): return hw_aud.sw_state == HW_A8_SW_KEPT;
+#endif
     default:         return 0;
     }
 }
@@ -2675,11 +3532,15 @@ u32 hw_audio_key_lit(u32 control)
  * pressed, still held, lit. */
 void hw_audio_leds(u32 held)
 {
-    static const u8 keys[13] = { INPUT_REC, INPUT_SEQ, INPUT_ARP, INPUT_SAVE, INPUT_ENV, INPUT_FX, INPUT_LFO, INPUT_SEL,
-                                 INPUT_GLO, INPUT_OCT_UP, INPUT_OCT_DOWN, INPUT_KEY(1), INPUT_KEY(2) };
+    static const u8 keys[] = { INPUT_REC, INPUT_SEQ, INPUT_ARP, INPUT_SAVE, INPUT_ENV, INPUT_FX, INPUT_LFO, INPUT_SEL,
+                               INPUT_GLO, INPUT_OCT_UP, INPUT_OCT_DOWN, INPUT_KEY(1), INPUT_KEY(2),
+#if defined(SB_HW_AUDIO8)
+                               INPUT_KEY(3), INPUT_KEY(4), INPUT_KEY(5),
+#endif
+                             };
     u32 i;
 
-    for (i = 0; i < 13; i++)
+    for (i = 0; i < sizeof keys; i++)
         input_led(keys[i], keys[i] == held || hw_audio_key_lit(keys[i]) ? INPUT_LED_FULL : 0);
 }
 
@@ -2688,6 +3549,15 @@ void hw_audio_leds(u32 held)
  * FIELDS[5] order after the common ones (layout 4's log fields come after these): audio1's registers and audio2's,
  * read now; the counts and measures; each step's state and readbacks;
  * core 1's marks; the corex2 words now; each step's snapshots. */
+static u32 put_words(u32 *w, u32 n, const u32 *v, u32 k)
+{
+    u32 i;
+
+    for (i = 0; i < k; i++)
+        w[n++] = v[i];
+    return n;
+}
+
 u32 hw_audio_report(u32 *w)
 {
     u32 n = 0, i, j, k;
@@ -2913,6 +3783,72 @@ u32 hw_audio_report(u32 *w)
         w[n++] = hw_aud.l_back[i];
     w[n++] = hw_aud.l_clk2_end;
     w[n++] = hw_aud.l_core1_end;
+    /* Layout 7: audio8 (0 in a build without it). */
+    w[n++] = hw_aud.a8_boot;
+    w[n++] = hw_aud.a8_off;
+    w[n++] = hw_aud.a8_pcm16;
+    w[n++] = hw_aud.r9_flips;
+    w[n++] = hw_aud.r9_irq;
+    w[n++] = hw_aud.r9_clk2;
+    n = put_words(w, n, hw_aud.ctl, HW_A8_PINS);
+    w[n++] = hw_aud.ctl_n;
+    w[n++] = hw_aud.ctl_span;
+    w[n++] = hw_aud.r2_state;
+    w[n++] = hw_aud.r2_presses;
+    w[n++] = hw_aud.r2_check;
+    n = put_words(w, n, hw_aud.r2_pc_before, 8);
+    n = put_words(w, n, hw_aud.r2_pc_set, 8);
+    n = put_words(w, n, hw_aud.r2_pc_after, 8);
+    w[n++] = hw_aud.s1_state;
+    w[n++] = hw_aud.s1_runs;
+    n = put_words(w, n, hw_aud.s1a, HW_A8_PINS);
+    w[n++] = hw_aud.s1a_n;
+    w[n++] = hw_aud.s1a_span;
+    w[n++] = hw_aud.rt_kind;
+    w[n++] = hw_aud.rt_bit;
+    w[n++] = hw_aud.rt_phase;
+    w[n++] = hw_aud.rt_stop;
+    n = put_words(w, n, hw_aud.rt_con0, 4);
+    n = put_words(w, n, hw_aud.rt_con5, 4);
+    n = put_words(w, n, hw_aud.rt_iomap_before, 9);
+    n = put_words(w, n, hw_aud.rt_iomap_after, 9);
+    w[n++] = hw_aud.rt_idle_base;
+    n = put_words(w, n, hw_aud.rt_map_base, 3);
+    w[n++] = hw_aud.rt_idle_set;
+    n = put_words(w, n, hw_aud.rt_map_set, 3);
+    w[n++] = hw_aud.rt_idle_after;
+    n = put_words(w, n, hw_aud.rt_map_after, 3);
+    n = put_words(w, n, hw_aud.rt_pa_before, 8);
+    n = put_words(w, n, hw_aud.rt_pa_set, 8);
+    n = put_words(w, n, hw_aud.rt_pa_after, 8);
+    n = put_words(w, n, hw_aud.rt_pc_set, 8);
+    w[n++] = hw_aud.rt_check_set;
+    w[n++] = hw_aud.rt_check_after;
+    n = put_words(w, n, hw_aud.rt_c1, HW_A8_PINS);
+    w[n++] = hw_aud.rt_n1;
+    w[n++] = hw_aud.rt_span1;
+    n = put_words(w, n, hw_aud.rt_c2, HW_A8_PINS);
+    w[n++] = hw_aud.rt_n2;
+    w[n++] = hw_aud.rt_span2;
+    w[n++] = hw_aud.rt_flips;
+    w[n++] = hw_aud.rt_irq;
+    w[n++] = hw_aud.sw_state;
+    w[n++] = hw_aud.sw_sweeps;
+    w[n++] = hw_aud.sw_tries;
+    w[n++] = hw_aud.sw_stop;
+    w[n++] = hw_aud.sw_pa_bits;
+    w[n++] = hw_aud.sw_nohold;
+    w[n++] = hw_aud.se_state;
+    w[n++] = hw_aud.se_runs;
+    w[n++] = hw_aud.se_ms;
+    n = put_words(w, n, hw_aud.se_dir, 8);
+    n = put_words(w, n, hw_aud.se_die, 8);
+    n = put_words(w, n, hw_aud.se_in0, 8);
+    n = put_words(w, n, hw_aud.se_changed, 8);
+    n = put_words(w, n, hw_aud.se_count, 64);
+    w[n++] = hw_aud.se_ev_n;
+    w[n++] = hw_aud.se_ev_lost;
+    n = put_words(w, n, hw_aud.se_ev, HW_A8_EVENTS);
     return n;
 }
 #endif

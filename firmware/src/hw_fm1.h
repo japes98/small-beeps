@@ -20,6 +20,12 @@
 #if defined(SB_PROBE_RETURN) || defined(SB_PROBE_LIGHT) || defined(SB_PROBE_PANEL)
 #error "SB_HW_FM1 is not a probe: build it without SB_PROBE_*"
 #endif
+#if defined(SB_HW_AUDIO8) && !defined(SB_HW_AUDIO1)
+#error "SB_HW_AUDIO8 builds on audio1's probe: build it with SB_HW_AUDIO1"
+#endif
+#if defined(SB_HW_PCM16) && !defined(SB_HW_AUDIO8)
+#error "SB_HW_PCM16 is audio8's unit tone: build it with SB_HW_AUDIO8"
+#endif
 
 void hw_early(void);
 /* The block r0 pointed at when m-bootloader called the entry, and the
@@ -136,12 +142,12 @@ void hw_rows_start(void);
 #define HW_LOG_REC     4096u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
-#define HW_LOG_LAYOUT  6u                   /* tools/report_decode.py's FIELDS[6] */
+#define HW_LOG_LAYOUT  7u                   /* tools/report_decode.py's FIELDS[7] */
 #define HW_LOG_HEAD    12u                  /* header words before the fields */
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
 /* The build's identity in each record: the package's version, which the
  * candidate's pack must match (tools/report-decode.py prints it). */
-#define HW_BUILD_ID    "0.10.0-hw3q"
+#define HW_BUILD_ID    "0.10.0-hw3r"
 struct hw_report {
     u32 scanned;                /* the ring read once */
     u32 found;                  /* valid records found then */
@@ -236,6 +242,42 @@ void hw_finder(void) __attribute__((noreturn));
 #endif
 /* A snapshot: CON0, CLK_CON2, source 11's interrupts, core 1's count. */
 #define HW_SNAP   4u
+#define HW_A8_PINS   11u    /* PC0, PC1, PC2, PC6, PA4 to PA10 */
+#define HW_A8_EVENTS 120u
+#define HW_A8_EV_PER 12u
+#define HW_A8_SAMPLE_MS 10u
+#define HW_A8_WATCH_MS  100u
+#define HW_A8_R9_MS     200u
+#if defined(SB_TEST_SHORT_HOLD)
+#define HW_A8_SENSE_MS  2000u
+#else
+#define HW_A8_SENSE_MS  20000u
+#endif
+#define HW_A8_OFF_NONE   0u
+#define HW_A8_OFF_NOBOOT 1u  /* not an audio8 build, or start-up's L2 not run yet */
+#define HW_A8_OFF_L2     2u  /* start-up's L2 didn't run or failed its check: put back */
+#define HW_A8_OFF_CHECK  3u  /* a check after an undo failed: nothing more is written */
+#define HW_A8_R2_NONE    0u
+#define HW_A8_R2_SET     1u
+#define HW_A8_R2_UNDONE  2u
+#define HW_A8_S1_NONE    0u
+#define HW_A8_S1_KEPT    1u  /* port C moved, port A didn't, the check passed: CON0 bits 7 and 8 kept */
+#define HW_A8_S1_NONE_MOVED 2u /* port C didn't move: bits 7 and 8 undone */
+#define HW_A8_S1_STOPPED 3u  /* port A moved or a check failed: undone (rt_stop says which) */
+#define HW_A8_S1_UNDONE  4u  /* kept, then put back by a key */
+#define HW_A8_SW_NONE    0u
+#define HW_A8_SW_DONE    1u  /* every bit tried, port C never moved */
+#define HW_A8_SW_KEPT    2u  /* port C moved at rt_bit, port A didn't: kept */
+#define HW_A8_SW_STOPPED 3u  /* stopped at rt_bit: port A moved or a check failed (sw_stop) */
+#define HW_A8_SW_UNDONE  4u  /* the kept bit put back by a key */
+#define HW_A8_STOP_NONE  0u
+#define HW_A8_STOP_PC    1u  /* port C moved, port A didn't, the check passed: kept */
+#define HW_A8_STOP_PA    2u  /* port A moved: undone at once, before the check */
+#define HW_A8_STOP_CHECK 3u  /* the matrix check failed: undone */
+#define HW_A8_STOP_AFTER 4u  /* the check after the undo failed */
+#define HW_A8_STOP_ROWS  5u  /* the rows weren't idle before the write (a key held): nothing written */
+#define HW_A8_SE_NONE    0u
+#define HW_A8_SE_DONE    1u
 struct hw_audio {
     u32 regs[2][HW_AUD_REGS];   /* read at main's start, and with the tone on */
     u32 regs_read;              /* the second set read */
@@ -320,6 +362,34 @@ struct hw_audio {
     u32 l_idle_after, l_map_after[3], l_pa_after[8], l_check_after; /* after the undo */
     u32 l_back[3];              /* CON0, CON1 and CON3 read back after they were put back */
     u32 l_clk2_end, l_core1_end;
+    /* audio8 (clean-br17-audio8), after audio7's. Pin counts (a sample):
+     * PC0, PC1, PC2, PC6, then PA4 to PA10, each pin's changes of IN over
+     * the sample; its loop's passes; its sb_now() span. */
+    u32 a8_boot, a8_off;        /* 1 once L2 was set up at start-up (SB_HW_AUDIO8); HW_A8_OFF_*: why audio8's keys are refused (0: they aren't) */
+    u32 a8_pcm16;               /* 1: the 16-bit tone (SB_HW_PCM16), a word a frame */
+    u32 r9_flips, r9_irq, r9_clk2; /* REC: over HW_A8_R9_MS after its write, CON0 bit 15's changes and source 11's interrupts; CLK_CON2 read back */
+    u32 ctl[HW_A8_PINS], ctl_n, ctl_span; /* the control sample: before R2's writes, nothing routed */
+    u32 r2_state, r2_presses, r2_check; /* HW_A8_R2_*; presses; 0 or bits: 0 the pulls or drive changed, 1 another pin's bits changed, 2 the undo didn't read back as read */
+    u32 r2_pc_before[8], r2_pc_set[8], r2_pc_after[8]; /* port C's OUT, IN, DIR, DIE, PU, PD, HD0, HD: before, set, after the undo */
+    u32 s1_state, s1_runs;      /* step 1: HW_A8_S1_*; runs */
+    u32 s1a[HW_A8_PINS], s1a_n, s1a_span; /* (a): R2 in place, CON0 bits 7 and 8 clear */
+    /* The last routed try: step 1's (b) or one of the sweep's tries. */
+    u32 rt_kind, rt_bit, rt_phase, rt_stop; /* 1 (b), 2 the sweep; the CON5 bit (sweep); its step (1 to 7); HW_A8_STOP_* */
+    u32 rt_con0[4], rt_con5[4]; /* CON0 and CON5: read before, written, read back, read back after the undo */
+    u32 rt_iomap_before[9], rt_iomap_after[9];
+    u32 rt_idle_base, rt_map_base[3], rt_idle_set, rt_map_set[3], rt_idle_after, rt_map_after[3];
+    u32 rt_pa_before[8], rt_pa_set[8], rt_pa_after[8], rt_pc_set[8];
+    u32 rt_check_set, rt_check_after; /* as D's, bit 5: port A moved (its pins counted changes) */
+    u32 rt_c1[HW_A8_PINS], rt_n1, rt_span1; /* the first sample, just after the write */
+    u32 rt_c2[HW_A8_PINS], rt_n2, rt_span2; /* (b) only: the second, at the watch's end */
+    u32 rt_flips, rt_irq;       /* over the watch: CON0 bit 15's changes, source 11's interrupts */
+    u32 sw_state, sw_sweeps, sw_tries, sw_stop; /* the sweep: HW_A8_SW_*; sweeps; tries; HW_A8_STOP_* of its last try */
+    u32 sw_pa_bits, sw_nohold; /* bits whose try moved port A; bits that didn't read back set */
+    u32 se_state, se_runs, se_ms; /* the sense scan: HW_A8_SE_*; runs; milliseconds read */
+    u32 se_dir[8], se_die[8], se_in0[8], se_changed[8]; /* ports A to H: DIR, DIE, IN at the start; the bits that changed */
+    u32 se_count[64];           /* each bit's changes, 16 bits each: port p bit b at half (16p + b) */
+    u32 se_ev_n, se_ev_lost;    /* events kept, events not kept (the list full) */
+    u32 se_ev[HW_A8_EVENTS];    /* ms << 16 | level << 8 | port << 4 | bit, while the bit has changed at most HW_A8_EV_PER times */
 };
 #define HW_L_NONE    0u
 #define HW_L_KEPT    1u     /* the link moved with the matrix right: the set-up running */
@@ -361,6 +431,13 @@ void hw_audio_d(void);
 void hw_audio_keypage_d(void);
 void hw_audio_l(u32 which);
 void hw_audio_keypage_l(void);
+void hw_audio_boot_l2(void);
+void hw_a8_r2(void);
+void hw_a8_step1(void);
+void hw_a8_sweep(void);
+void hw_a8_sense(void);
+void hw_audio_keypage_a8(void);
+void hw_scan_hold(void);
 void hw_matrix_check(u32 *idle, u32 *map);
 void hw_port_a(u32 *w);
 void hw_scan_pause(void);

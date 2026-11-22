@@ -3778,7 +3778,8 @@ datasheet's group letters ("(A)") are not port letters.
   §6 (the codec's register tables exist; not taken); HW-44, HW-56,
   HW-117, HW-129.
 - Standing: confirmed (MAN, JL7911B, SDK, RE; which path the FM-1 uses,
-  the amplifier's pins and the internal DAC's analogue values open)
+  the amplifier's pins and the internal DAC's analogue values open; on
+  the unit path 2 drives the speaker with no enable, HW-161)
 - Needed by: M4, BR-17 (Phase B)
 
 ### HW-142: Clocks, rate, DMA and the analogue side: known and open (Q-9)
@@ -3879,7 +3880,7 @@ AC7911B datasheet. HW-144 to HW-146 add to HW-140 to HW-142, which stand.
   steps 2 to 4 (the PLL words, the 360 MHz case's source 6 and its final
   `PLL2_CON0`), `src/platform.c` (`hal_clock_a`: only `CLK_CON2`'s low
   byte written); HW-44, HW-45, HW-119, HW-140, HW-142.
-- Standing: confirmed (UNIT, MB; one unit; `DAA_CON7` read from a photo, corrected by HW-153)
+- Standing: confirmed (UNIT, MB; one unit; `DAA_CON7` read from a photo, corrected by HW-153; `DAA_CON7` varies between runs and after the route, so the photo's `0x0000C901` may have been read right, HW-161)
 - Needed by: M4, BR-17 (Phase B)
 
 ### HW-145: What ALNK0's clock needs: known and open (Q-9, Q-2)
@@ -3985,7 +3986,8 @@ AC7911B datasheet. HW-144 to HW-146 add to HW-140 to HW-142, which stand.
   `docs/reversing/01-hardware-map.md`; JL7911B pp. 7-9 (Table 1-1);
   HW-45, HW-56, HW-85, HW-141, HW-144, HW-145.
 - Standing: confirmed (SDK, RE, JL7911B; the group register's value,
-  the pins' needs and the mode bits open)
+  the pins' needs and the mode bits open; `CON5` at 0 routes to port C
+  on the unit, HW-161)
 - Needed by: M4, BR-17 (Phase B)
 
 ## 39. audio2 on the unit: CLK_CON2 bit 9, and the clocks and port map as read
@@ -4020,7 +4022,7 @@ HW-146, which stand.
 - Sources: UNIT: audio2 on the owner's unit, relayed by the owner on
   2026-11-20 (docs/prompts/spec-audio2-unit.md); HW-139, HW-143,
   HW-144, HW-145.
-- Standing: confirmed (UNIT; one unit; the core 1 cause open; `DAA_CON7` read from a photo, corrected by HW-153)
+- Standing: confirmed (UNIT; one unit; the core 1 cause open; `DAA_CON7` read from a photo, corrected by HW-153; `DAA_CON7` varies between runs and after the route, so the photo's `0x0000C901` may have been read right, HW-161)
 - Needed by: M4, BR-17 (Phase B)
 
 ### HW-148: What audio2's values say, and what they don't (Q-9, Q-2)
@@ -4227,7 +4229,7 @@ HW-153 adds to HW-150 and HW-151; HW-154 says what it means.
 - Sources: UNIT: report1's flash log, read back by the owner and relayed
   on 2026-11-21 (docs/prompts/spec-report1-unit.md); HW-140, HW-144,
   HW-145, HW-147, HW-151.
-- Standing: confirmed (UNIT; one unit)
+- Standing: confirmed (UNIT; one unit; `DAA_CON7` varies between runs, HW-161, so item 1 does not show the photo misread)
 - Needed by: M4, BR-17 (Phase B)
 
 ### HW-154: What the 48 MHz says, and what it doesn't (Q-9)
@@ -4510,6 +4512,83 @@ says what they settle and what stays open.
   layout in a word and the routing open)
 - Needed by: M4, BR-17 (Phase B)
 
+## 45. audio8 on the unit: the speaker plays ALNK0 through port C
+
+Read back from the flash log of this repository's build audio8 (hw3r,
+clean's #229) on the owner's unit, and heard by the owner, relayed on
+2026-11-21 (source UNIT, docs/prompts/spec-audio8-unit.md). HW-161 gives
+the results; HW-162 says what they settle and what stays open.
+
+### HW-161: audio8: a tone on the speaker with port C routed, and PB5 follows the headphone plug (Q-9)
+- Fact: On the owner's unit, started by m-bootloader, with ALNK0 running
+  as L2 (HW-159: `CON3` `0x83`, `CON1` `0x1000`, `CLK_CON2` bit 9 clear)
+  and the tone in 16-bit form (the same sample in both halves of each
+  word):
+  1. **Step 1, the route.** With PC0, PC1, PC2 and PC6 made outputs (`OUT`
+     high, `DIR` 0, `DIE` on), `JL_IOMAP->CON5` left at 0, and ALNK0's
+     `CON0` taken from `0x0800` or `0x8800` (bit 15 is the current half)
+     to `0x0980` or `0x8980` (bits 7 and 8 set), read back the same: the
+     owner heard a beep on the built-in speaker, in two runs, lasting the
+     100 ms watch and ending at the firmware's own undo. With `MASTER` at
+     1023 it was heard; in an earlier run, with `MASTER` at 0, nothing was
+     heard.
+  2. **Port C's `IN` showed no change** on the four pins during the
+     watch, though the link was driving them; that is why the firmware
+     undid the route.
+  3. **The `CON5` sweep** (each of bits 0 to 31 alone, with the route
+     above and `CON0` bits 7 and 8 set for the try): the speaker clicked;
+     no tone was heard. `MASTER`'s level during the sweep is not given.
+     The sweep reached bit 31; by its stop rules (a try that moves port A
+     or fails the matrix check ends it) that implies no try did either,
+     which the relayed log does not state directly.
+  4. **The sense scan:** 19 980 readings of every port's `IN`, one a
+     millisecond, while the owner plugged headphones in and out three
+     times. Only port B bit 5 (PB5) changed: 12 changes, with contact
+     bounce. Port B's `DIE` read `0xFFBD` (PB5's input on).
+  5. **`DAA_CON7`** (not written by the build) read `0x00004901` at
+     start-up and `0x0000C901` after step 1, staying so; in the earlier
+     run it read `0x00006901` from start-up.
+  6. Headphones were not listened to with the route on.
+- Sources: UNIT: audio8's flash log (hw3r) and the owner's listening,
+  relayed on 2026-11-21 (docs/prompts/spec-audio8-unit.md); HW-141,
+  HW-156, HW-159.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-162: What audio8 settles: the output path, the route and the headphone sense (Q-9)
+- Fact:
+  - **The FM-1's sound path here is path 2** (HW-141): ALNK0's data 3
+    as I2S on port C's group (PC0 master clock, PC1 bit clock, PC2 word
+    select, PC6 data 3) to a part outside the chip that drives the
+    speaker. The sound's level followed the samples (`MASTER` 0 silent,
+    1023 heard), so the speaker plays the link's data, not a clock
+    leaking through. Which of `CON0` bits 7 and 8 the part needs is not
+    known: both were set together.
+  - **`JL_IOMAP->CON5` at 0 routes ALNK0 to port C** (the AC7911B's
+    group "A"); no `CON5` write is needed. With each single `CON5` bit
+    set, the speaker gave clicks and no tone (`MASTER`'s level then not
+    given); what each bit does is not known, and no bit was seen to
+    pick group B1 (inferred from the sweep reaching bit 31).
+  - **The speaker needs no enable from the firmware**, with the pins as
+    m-bootloader leaves them. Whether the headphone output plays, and
+    whether plugging in mutes the speaker with the route on, is open.
+  - **PB5 follows the headphone plug**: it is the only pin of ports A to
+    H whose `IN` changed with it. Which level means "plugged" is not
+    given by the log. PB5 is SPI1's group A data in (HW-56), a group the
+    panel probably does not use.
+  - **Port C's `IN` can't show a pin the link drives**: with no
+    instrument, the ear is the check.
+  - **`DAA_CON7`'s bits 13 and 15** change with no write by the build
+    (bit 15 set after the route); their meaning is not given.
+  - **Still open:** the headphone path and mute; which half of each
+    16-bit word is left; whether the outside part needs set-up for
+    anything beyond this (its name and bus are not known; HW-141).
+- Sources: UNIT (HW-161); HW-56, HW-141, HW-146, HW-156, HW-157, HW-160.
+- Standing: confirmed (UNIT; the headphone path, the sample order and
+  the outside part open; `MASTER` 0 and 1023 were heard in different
+  runs, with `DAA_CON7` differing between them)
+- Needed by: M4, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -4660,6 +4739,10 @@ spec request can turn one into a fact.
   clock with `CLK_CON2` bit 9 clear (44 121.6), not with bit 9 set; `LEN`
   is frames a half. Still open: routing data 3 to the pins, the part
   outside the chip, the amplifier and headphone sensing.
+  *Session spec-audio8-unit (HW-161, HW-162):* the speaker plays ALNK0
+  through port C with `JL_IOMAP->CON5` at 0 and no amplifier enable; PB5
+  follows the headphone plug. Still open: the headphone path and mute,
+  the left sample's half and the outside part's needs, if any.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores

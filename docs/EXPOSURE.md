@@ -3513,6 +3513,38 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing new.
 - Disk: about 3.6 GB free.
 
+### Session spec-audio8-rulings (audio8 finalised and sent to clean)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio7-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  a new branch `spec/audio8-unit` from main; by the owner's rule it goes up
+  as one PR with audio8's unit results.
+- The owner's rulings, saved unedited as docs/prompts/spec-audio8-rulings.md.
+- Finalised drop/prompts/clean-br17-audio8.md (the draft line removed, the
+  rulings stated) and sent it to the clean session by a cross-session
+  message, at the owner's request.
+- Read: nothing new. No spec entries changed.
+- Disk: about 3.6 GB free.
+
+### Session spec-audio8-unit (audio8: the speaker plays ALNK0; the audio9 draft)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio8-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  continuing on `spec/audio8-unit`, the round's one PR.
+- The owner's message, saved unedited as docs/prompts/spec-audio8-unit.md.
+- Recorded: HW-161 (UNIT: a tone on the speaker with port C routed and
+  `CON5` at 0; PB5 follows the headphone plug; `DAA_CON7` as read),
+  HW-162 (what it settles: path 2, the route, no speaker enable, port C's
+  `IN`); standing notes on HW-141 and HW-146; note on Q-9.
+- Read: clean's #229 description (no hardware facts), to merge it.
+- Wrote the draft clean prompt drop/prompts/clean-br17-audio9.md (S0 the
+  route at start-up with PB5 shown; S1 the synth on the path; S2 the
+  left half), outside the repository, marked as awaiting the owner's
+  rulings.
+- Disk: about 3 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
@@ -3742,6 +3774,25 @@ SR-3 wrote only its barrier-log row.*
   spec side's reading of another chip's open SDK; nothing of that SDK
   read here).
 - Disk: about 4 GB free.
+
+### Session clean-br17-audio8 (BR-17: L2 at start-up, port C routing, the sense scan)
+- Date: 2026-11-21 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.330, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio7's, continued. The spec side's prompt, relayed by the
+  spec session at the owner's request, saved unedited as
+  docs/prompts/clean-br17-audio8.md.
+- Start: #227 and #228 found merged; a new branch `hw/audio8` from main
+  (`13fc7a33`), main's four changed blobs (all outside the spec side's
+  folders) fetched alone. Nothing to archive (the last clean session is
+  this one, live); `tools/check-transcripts.py` PASS.
+- Reads: this side's own code; HARDWARE-SPEC HW-56, HW-85, the port
+  rule above HW-115, HW-117 to HW-119, HW-141, HW-146, HW-156 to HW-160 and Q-9's notes.
+- Disk: about 3.6 GB free.
 
 ## Corrections
 

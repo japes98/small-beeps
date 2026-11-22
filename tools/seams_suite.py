@@ -2711,6 +2711,175 @@ def case_audio7(a, work, log):
     return problems
 
 
+HW_KEY3, HW_KEY4, HW_KEY5, HW_KEY6 = 16, 17, 18, 19   # fwtest's keys of KEY3 to KEY6 (audio8: R2, step 1, sweep, sense)
+A8_DEFINES = ("--define", "SB_HW_FM1", "--define", "SB_TEST_HW_WINDOW", "--define", "SB_HW_HOLD", "--define",
+              "SB_TEST_SHORT_HOLD", "--define", "SB_HW_AUDIO1", "--define", "SB_HW_REPORT", "--define", "SB_HW_AUDIO8")
+
+
+def a8_script(work, name, keys):
+    path = os.path.join(work, name + ".script")
+    with open(path, "w") as f:
+        for t, k in keys:
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + 100, k))
+    return os.path.relpath(path, ROOT)
+
+
+def a8_run(work, log, b, name, keys, ms, *extra):
+    out = os.path.join(work, name)
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", str(ms), "--flash-out",
+               "--script", a8_script(work, name, keys), *extra)
+    with open(os.path.join(out, "flash.bin"), "rb") as f:
+        rs, bad = report_decoder().records(f.read())
+    return r, out, rs, bad
+
+
+def case_audio8(a, work, log):
+    """audio8 (clean-br17-audio8): L2 set up at start-up and kept; REC's
+    watch; R2's set and undo of PC0, PC1, PC2 and PC6 alone; step 1 and
+    the CON5 sweep (in fwtest no pin's IN follows the link, so step 1 finds
+    port C still and the sweep runs all 32 bits); the sense scan; then the
+    test seams: a forced failed check and a forced port A movement in the
+    sweep, a forced port C movement in step 1 (kept, the sweep refused,
+    put back by R2's undo); and the 16-bit tone's build."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    b = os.path.join(work, "build")
+    build(b, log, *A8_DEFINES)
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    h, ga = sy["hw_aud"], sy["hw_guide_at"]
+    # The sense scan's 2000 beats are 5 s in fwtest (its TIMER0 counts 24 MHz, HW_RATIO).
+    keys = ((9000, HW_REC), (11000, HW_REC), (13000, HW_KEY3), (16000, HW_KEY4), (20000, HW_KEY5), (34000, HW_KEY6),
+            (42000, HW_KEY3), (45000, HW_EDIT))
+    r, out, rs, bad = a8_run(work, log, b, "run", keys, 48000, "--wav", "--ram", "0x%08x:4@end" % ga,
+                             "--ram", "0x%08x:%d@end" % (h, AUD_LEN))
+    if r["run"]["outcome"] != "completed":
+        problems.append("audio8: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    acc = {u["address"] for u in r["run"]["unmodelled_accesses"]}
+    odd = sorted(acc - HW_WINDOW_REGS - {"0x00012f00"} - GPCNT_REGS - ALNK1_REGS)
+    if odd:
+        problems.append("audio8: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1: %s"
+                        % odd[:8])
+    labels = [x["label"] for x in rs]
+    by = {}
+    for x in rs:
+        by.setdefault(x["label"], x["fields"])
+    if bad or any(x["layout"] != max(rd.FIELDS) or not x["known"] or x["count"] != len(rd.FIELDS[7]) for x in rs):
+        problems.append("audio8: %d bad records, or one not layout 7 with %d fields" % (len(bad), len(rd.FIELDS[7])))
+    want = ["L2 before", "L2 kept", "REC taken", "REC undone", "R2 before", "R2 set", "S1a", "S1b before", "S1b"] \
+        + sum((["SW b%d before" % i, "SW b%d" % i] for i in range(32)), []) + ["SW done", "SE before", "SE done",
+                                                                               "R2 undone", "save key"]
+    got = [x for x in labels if x != "page" and x != "boot"]
+    if got[-len(want):] != want:
+        problems.append("audio8: records %s, want %s" % (got[:12], want[:12]))
+    kp = by.get("L2 kept", {})
+    if kp.get("l_which") != 2 or kp.get("l_readback_CON3") != 0x83 or kp.get("l_readback_CON1") != 0x1000 \
+            or kp.get("l_check_set") or kp.get("l_clk2", 0) & 0x200:
+        problems.append("audio8: start-up's L2: %s" % {k: kp.get(k) for k in ("l_which", "l_readback_CON3",
+                                                                              "l_readback_CON1", "l_check_set", "l_clk2")})
+    last = rs[-1]["fields"] if rs else {}
+    if last.get("a8_boot") != 1 or last.get("a8_off") != 0 or last.get("a8_pcm16") != 0:
+        problems.append("audio8: boot %s, off %s, pcm16 %s (1, 0, 0)" % (last.get("a8_boot"), last.get("a8_off"),
+                                                                      last.get("a8_pcm16")))
+    rt = by.get("REC taken", {})
+    if rt.get("rec_watch_clk2", 0) & 0x200 != 0x200:
+        problems.append("audio8: REC's watch: CLK_CON2 %08x (bit 9 set)" % rt.get("rec_watch_clk2", 0))
+    st, bf, ud = by.get("R2 set", {}), by.get("R2 before", {}), by.get("R2 undone", {})
+    pins, lcd = 0x47, 0x180
+    if st.get("r2_check") or st.get("r2_pc_set_OUT", 0) & pins != pins or st.get("r2_pc_set_DIR", pins) & pins \
+            or st.get("r2_pc_set_DIE", 0) & pins != pins \
+            or any(st.get("r2_pc_set_%s" % k) != st.get("r2_pc_before_%s" % k) for k in ("PU", "PD", "HD0", "HD")) \
+            or (st.get("r2_pc_set_DIR", 0) ^ st.get("r2_pc_before_DIR", 0)) & ~pins:
+        problems.append("audio8: R2 set: %s" % {k: st.get(k) for k in st if k.startswith("r2_")})
+    if ud.get("r2_check") or ud.get("r2_state") != 2 \
+            or any((ud.get("r2_pc_after_%s" % k, 0) ^ ud.get("r2_pc_before_%s" % k, 0)) & ~(lcd if k == "OUT" else 0)
+                   for k in ("OUT", "DIR", "DIE", "PU", "PD", "HD0", "HD")):
+        problems.append("audio8: R2 undone: %s" % {k: ud.get(k) for k in ud if k.startswith("r2_")})
+    s1 = by.get("S1b", {})
+    pc = ("PC0", "PC1", "PC2", "PC6")
+    # S1b is written inside the try, before step 1's state is set: the state from the next record.
+    if by.get("SW b0 before", {}).get("s1_state") != 2 or s1.get("rt_kind") != 1 or s1.get("rt_check_set") or s1.get("rt_check_after") \
+            or s1.get("rt_con0_written", 0) & 0x180 != 0x180 or s1.get("rt_con0_back", 0x180) & 0x180 \
+            or not s1.get("rt_s1_passes") or not s1.get("rt_s2_passes"):
+        problems.append("audio8: step 1: %s" % {k: s1.get(k) for k in ("rt_kind", "rt_check_set",
+                                                                       "rt_check_after", "rt_con0_written",
+                                                                       "rt_con0_back", "rt_s1_passes", "rt_s2_passes")})
+    sw = by.get("SW done", {})
+    if sw.get("sw_state") != 1 or sw.get("sw_tries") != 32 or sw.get("rt_bit") != 31 or sw.get("rt_check_after") \
+            or sw.get("rt_con5_back") != sw.get("rt_con5_before") or sw.get("rt_con0_back", 0x180) & 0x180:
+        problems.append("audio8: sweep: %s" % {k: sw.get(k) for k in ("sw_state", "sw_tries", "rt_bit", "rt_check_after",
+                                                                      "rt_con5_before", "rt_con5_back", "rt_con0_back")})
+    moved = sum(x["fields"].get("rt_s1_%s" % n, 0) + x["fields"].get("rt_s2_%s" % n, 0)
+                for x in rs if x["label"].startswith(("S1b", "SW b")) for n in pc)
+    se = by.get("SE done", {})
+    if se.get("se_state") != 1 or not 1500 <= se.get("se_readings", 0) <= 2100:
+        problems.append("audio8: sense: state %s, %s readings (about 2000)" % (se.get("se_state"), se.get("se_readings")))
+    at = struct.unpack("<I", ram(out, ga, 4))[0]
+    if at != 5:
+        problems.append("audio8: the guide at %d (5: R2, step 1, sweep, sense, save)" % at)
+    e = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), ram(out, h, AUD_LEN), 8 * AUD_REGS)))
+    fps = e["fps10"] / 10.0 / HW_RATIO
+    if not e["fps10"] or abs(fps / AUD_FPS - 1) > 200e-6 or e["storm"]:
+        problems.append("audio8: %.1f frames a second in fwtest's time (%.1f), storm %d" % (fps, AUD_FPS, e["storm"]))
+    _, left, right = aa.read_wav(os.path.join(out, "audio.wav"))
+    tail = left[-2 * 44100:]
+    if left != right or min(max(abs(v) for v in tail[w:w + 441]) for w in range(0, len(tail) - 441, 441)) < 2000:
+        problems.append("audio8: the tone doesn't play at the end in both channels")
+    summary = ("audio8: L2 kept at start-up; REC's watch (CLK_CON2 %08x: b15 %d, irq %d); R2 set and undone, port C's"
+               " other bits as read; step 1 (b) and %d sweep tries: port C's and port A's IN changed %d times in"
+               " fwtest; CON5 read back %08x for bit 31; sense %d readings, changed %s; guide %d; %d records"
+               % (rt.get("rec_watch_clk2", 0), rt.get("rec_watch_b15_flips", 0), rt.get("rec_watch_irq", 0),
+                  sw.get("sw_tries", 0), moved, sw.get("rt_con5_read", 0), se.get("se_readings", 0),
+                  {c: "%04x" % se.get("se_changed_P%s" % c, 0) for c in "ABCDEFGH" if se.get("se_changed_P%s" % c)},
+                  at, len(rs)))
+    # The test seams. A failed check at the sweep's bit 1; port A moving at its bit 3.
+    seam_keys = ((9000, HW_KEY3), (12000, HW_KEY4), (16000, HW_KEY5))
+    for define, bit, stop, label in (("SB_TEST_A8_CHECK_FAIL", 1, 3, "SW b1 check BAD"),
+                                     ("SB_TEST_A8_PA_MOVE", 3, 2, "SW b3 PA moved")):
+        fb = os.path.join(work, "build-" + define.lower())
+        build(fb, log, *A8_DEFINES, "--define", define)
+        r, _, frs, _ = a8_run(work, log, fb, "run-" + define.lower(), seam_keys, 24000)
+        fl = [x["label"] for x in frs if x["label"].startswith("SW")]
+        f = frs[-1]["fields"] if frs else {}
+        if r["run"]["outcome"] != "completed" or fl[-2:] != [label, "SW stopped"] or f.get("sw_state") != 3 \
+                or f.get("rt_stop") != stop or f.get("rt_bit") != bit or f.get("rt_check_after") \
+                or f.get("rt_con5_back") != f.get("rt_con5_before") or f.get("rt_con0_back", 0x180) & 0x180 \
+                or (stop == 2 and (f.get("sw_pa_bits") != 1 << bit or f.get("rt_check_set") != 32)):
+            problems.append("audio8 %s: %s, records %s, %s" % (define, r["run"]["outcome"], fl[-3:],
+                                                               {k: f.get(k) for k in ("sw_state", "rt_stop", "rt_bit",
+                                                                                      "rt_check_set", "rt_check_after",
+                                                                                      "sw_pa_bits")}))
+    # Port C moving in step 1: kept, the sweep refused, put back by R2's undo.
+    fb = os.path.join(work, "build-pc")
+    build(fb, log, *A8_DEFINES, "--define", "SB_TEST_A8_PC_MOVE")
+    r, _, frs, _ = a8_run(work, log, fb, "run-pc", seam_keys + ((20000, HW_KEY3),), 26000)
+    fl = [x["label"] for x in frs if x["label"].split(" ")[0] in ("S1a", "S1b", "S1", "SW", "R2")]
+    f = frs[-1]["fields"] if frs else {}
+    if r["run"]["outcome"] != "completed" \
+            or fl != ["R2 before", "R2 set", "S1a", "S1b before", "S1b kept", "SW refused", "S1 undone", "R2 undone"] \
+            or f.get("s1_state") != 4 or f.get("rt_con0_back", 0x180) & 0x180 or f.get("r2_check"):
+        problems.append("audio8 port C seam: %s, records %s, %s" % (r["run"]["outcome"], fl,
+                                                                    {k: f.get(k) for k in ("s1_state", "rt_con0_back",
+                                                                                           "r2_check")}))
+    # The unit's 16-bit tone: the image builds and runs; fwtest plays the words in its own layout, so its
+    # frames a second, counted as the unit counts them (a word a frame), read twice fwtest's rate.
+    pb = os.path.join(work, "build-pcm16")
+    build(pb, log, *A8_DEFINES, "--define", "SB_HW_PCM16")
+    py = fws.elf_symbols(os.path.join(pb, "app.elf"))["hw_aud"]
+    r, pout, prs, _ = a8_run(work, log, pb, "run-pcm16", (), 12000, "--ram", "0x%08x:%d@end" % (py, AUD_LEN))
+    e = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), ram(pout, py, AUD_LEN), 8 * AUD_REGS)))
+    f = prs[-1]["fields"] if prs else {}
+    pfps = e["fps10"] / 10.0 / HW_RATIO
+    if r["run"]["outcome"] != "completed" or f.get("a8_pcm16") != 1 or f.get("a8_off") != 0 or e["storm"] \
+            or abs(pfps / (2 * AUD_FPS) - 1) > 200e-6:
+        problems.append("audio8 16-bit: %s, pcm16 %s, off %s, storm %d, %.1f frames a second (%.1f)"
+                        % (r["run"]["outcome"], f.get("a8_pcm16"), f.get("a8_off"), e["storm"], pfps, 2 * AUD_FPS))
+    print(summary + "; the forced failed check and port A movement stopped the sweep, undone; the forced port C"
+          " movement kept step 1, refused the sweep, and R2's undo put both back; the 16-bit build runs (%.1f frames"
+          " a second counted a word a frame)" % pfps)
+    return problems
+
+
 def case_nowrace(a, work, log):
     """sb_now() never goes back: the slot interrupt's time-keeping forced
     at each point between its reads, just after TIMER0 wraps (main.c,
@@ -2766,6 +2935,7 @@ CASES = [
     ("nowrace", case_nowrace),
     ("audio6", case_audio6),
     ("audio7", case_audio7),
+    ("audio8", case_audio8),
 ]
 
 
