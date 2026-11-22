@@ -23,6 +23,9 @@
 #if defined(SB_HW_AUDIO8) && !defined(SB_HW_AUDIO1)
 #error "SB_HW_AUDIO8 builds on audio1's probe: build it with SB_HW_AUDIO1"
 #endif
+#if defined(SB_HW_AUDIO9) && !defined(SB_HW_AUDIO8)
+#error "SB_HW_AUDIO9 builds on audio8: build it with SB_HW_AUDIO8"
+#endif
 #if defined(SB_HW_PCM16) && !defined(SB_HW_AUDIO8)
 #error "SB_HW_PCM16 is audio8's unit tone: build it with SB_HW_AUDIO8"
 #endif
@@ -142,12 +145,12 @@ void hw_rows_start(void);
 #define HW_LOG_REC     4096u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
-#define HW_LOG_LAYOUT  7u                   /* tools/report_decode.py's FIELDS[7] */
+#define HW_LOG_LAYOUT  8u                   /* tools/report_decode.py's FIELDS[8] */
 #define HW_LOG_HEAD    12u                  /* header words before the fields */
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
 /* The build's identity in each record: the package's version, which the
  * candidate's pack must match (tools/report-decode.py prints it). */
-#define HW_BUILD_ID    "0.10.0-hw3r"
+#define HW_BUILD_ID    "0.10.0-hw3s"
 struct hw_report {
     u32 scanned;                /* the ring read once */
     u32 found;                  /* valid records found then */
@@ -242,6 +245,19 @@ void hw_finder(void) __attribute__((noreturn));
 #endif
 /* A snapshot: CON0, CLK_CON2, source 11's interrupts, core 1's count. */
 #define HW_SNAP   4u
+#define HW_A9_PB5_TIMES 16u
+#define HW_A9_ROUTE_NONE 0u
+#define HW_A9_ROUTE_UP   1u  /* bits 7 and 8 set, R2 in place, the check passed */
+#define HW_A9_ROUTE_DOWN 2u  /* taken down by its key */
+#define HW_A9_ROUTE_UNDONE 3u /* the firmware's own undo: port A moved or a check failed */
+#define HW_A9_ROUTE_NOL2 4u  /* L2 didn't run: nothing further at start-up */
+#define HW_A9_S2_BOTH  0u
+#define HW_A9_S2_UPPER 1u    /* the sample in the word's upper half, the lower 0 */
+#define HW_A9_S2_LOWER 2u    /* the lower half, the upper 0 */
+#define HW_A9_S2_N     3u
+#define HW_A9_LATE_MAX 50u   /* late halves after which the interrupt goes back to the tone */
+#define HW_A9_PB5_SETTLE_MS 50u
+#define HW_A9_DAA7_MS 60000u
 #define HW_A8_PINS   11u    /* PC0, PC1, PC2, PC6, PA4 to PA10 */
 #define HW_A8_EVENTS 120u
 #define HW_A8_EV_PER 12u
@@ -390,6 +406,16 @@ struct hw_audio {
     u32 se_count[64];           /* each bit's changes, 16 bits each: port p bit b at half (16p + b) */
     u32 se_ev_n, se_ev_lost;    /* events kept, events not kept (the list full) */
     u32 se_ev[HW_A8_EVENTS];    /* ms << 16 | level << 8 | port << 4 | bit, while the bit has changed at most HW_A8_EV_PER times */
+    /* audio9 (clean-br17-audio9), after audio8's. */
+    u32 a9_route, a9_ups, a9_downs; /* HW_A9_ROUTE_*; the route put up (start-up included) and taken down */
+    u32 a9_synth, a9_synth_ons, a9_s2; /* 1 while the synth fills the halves; times switched on; HW_A9_S2_* */
+    u32 a9_late0, a9_late, a9_fill_max, a9_fill_last; /* underruns when the synth came on; late halves since; the longest fill since and the last (sb_now units) */
+    u32 a9_fallback;            /* the beat the interrupt went back to the tone after HW_A9_LATE_MAX late halves (0: never) */
+    u32 a9_engine_blocks;       /* fm_block calls */
+    u32 pb5_now, pb5_raw_changes, pb5_settled, pb5_logged; /* PB5 now; its changes as the scan saw them; the settled level; settled changes written to the log */
+    u32 pb5_t[HW_A9_PB5_TIMES]; /* the beats of its last raw changes, newest at (pb5_raw_changes - 1) % HW_A9_PB5_TIMES */
+    u32 daa7_boot, daa7_route, daa7_last, daa7_reads, daa7_changes; /* DAA_CON7 at start-up, after the route, last read (each minute); reads; changes seen */
+    u32 a9_words[HW_A9_S2_N][4]; /* the first words of a half filled in each S2 state (the 16-bit build) */
 };
 #define HW_L_NONE    0u
 #define HW_L_KEPT    1u     /* the link moved with the matrix right: the set-up running */
@@ -438,6 +464,12 @@ void hw_a8_sweep(void);
 void hw_a8_sense(void);
 void hw_audio_keypage_a8(void);
 void hw_scan_hold(void);
+void hw_audio9_boot(void);
+void hw_a9_route_key(void);
+void hw_a9_synth_key(void);
+void hw_a9_s2_key(void);
+void hw_a9_pb5_poll(void);
+void hw_a9_tick(void);
 void hw_matrix_check(u32 *idle, u32 *map);
 void hw_port_a(u32 *w);
 void hw_scan_pause(void);

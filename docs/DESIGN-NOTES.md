@@ -5375,3 +5375,84 @@ the unit's candidate adds it and `SB_HW_PCM16`.
   check), `SB_TEST_A8_PA_MOVE` (its bit 3 moves port A) and
   `SB_TEST_A8_PC_MOVE` (step 1 moves port C: kept, the sweep refused,
   both put back by KEY3). The identity is 0.10.0-hw3r.
+
+### 2026-11-21 clean-br17-audio9: the route at start-up, the synth on it, S2 (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio9.md; HW-161, HW-162), with the
+owner's rulings: S0 and S2 allowed; S1 allowed, off at start-up and
+switched by a key; each half's fill sized per target. Behind
+`SB_HW_AUDIO9` (refused without `SB_HW_AUDIO8`); the unit's candidate adds
+it to audio8's defines.
+
+- **Start-up (S0):** `DAA_CON7` read (never written); L2 as audio8 sets it
+  up; only if it is kept, R2 as audio8 sets it (its control sample
+  included); then **the route**, a routed try of a new kind: a record
+  before, the scan held with `0xFFFF` latched, the idle rows checked,
+  `CON0` bits 7 and 8 set and read back, port A sampled over the whole
+  100 ms watch, then (if port A stayed still) D's matrix check. It is
+  kept when port A stayed still and the check passed: there is no port C
+  test, since port C's `IN` can't show the link's pins. Otherwise the try
+  undoes bits 7 and 8 itself and checks again, and then R2 is put back
+  as read. `CON5` is never written. If R2's own check flags anything, R2
+  is put back and no route is tried.
+- **SEQ** takes the route down (bits 7 and 8 clear, then port C's four
+  pins back as read, checked) and up again. Up redoes R2 first, since
+  the way down put port C back: "steps 3 and 4" read as R2, then the
+  route.
+- **FX** switches the halves between the tone and the synth; the synth is
+  off at start-up. **LFO** steps S2: both halves, the upper alone (the
+  lower 0), the lower alone (the upper 0). It applies to whatever plays,
+  the tone or the synth. **REC** (bit 9), **PLAY** (the probe's tone on
+  and off), **EDIT** (a save) and **HOME** (audio8's and audio9's view,
+  5 s) stay. The other old steps' buttons and keys (ARP, SAVE, ENV, SEL,
+  GLO, OCT+, OCT-, KEY1 to KEY6) start no step: they are the engine's.
+  The CON5 sweep, step 1's two-part sampling, the sense scan and the L
+  keys are no longer on any key in this build; their code stays for the
+  audio8 build.
+- **The synth (S1):** `fm_init` runs once at start-up, before audio1's
+  output starts. On a unit it releases no core (core 1 runs the hardware
+  build's own loop, and fm_play's shared words aren't yet in cache lines
+  of their own), so core 0 renders the even voices alone: 8 voices, half
+  the polyphony. MIDI is off on a unit: `midi_start` and `midi_poll` do
+  nothing and `midi_out_poll` drops what waits, so UART1 is never
+  touched. PLAY doesn't reach the engine's M4 test tone, whose level is
+  past MASTER. The engine assumes 24 MHz / 544 = 44 117.6 frames a second
+  (audio.h), which is L2's rate (HW-160), so pitch is exact. Its
+  arpeggiator times itself by audio interrupts, which on the unit come a
+  half (two engine blocks) apart: ARP runs at half speed this round.
+- **The fill, per target.** fm_block renders 64-frame blocks. On the unit
+  (`SB_HW_PCM16`) a half is `LEN` (128) frames of one word: two engine
+  blocks, each frame's left sample >> 10 (the engine's 24-bit full scale
+  to 16 bits, then -12 dB until levels are set), packed as S2 says. In
+  fwtest a half is `LEN` words of its own layout (HW-44): one engine
+  block of 64 frames, as build A plays. fwtest's `LEN` change is a later
+  spec PR's.
+- **Late halves:** audio.c's own test (the half filled was already
+  playing, or the next half finished before the fill did) counted from
+  the moment FX turns the synth on, with the longest fill (`sb_now()`'s
+  24 MHz units, the timer audio1 uses), on the screen and in the log.
+  After 50 late halves the interrupt goes back to the tone, so main, the
+  screen and the keys keep running, and main logs it. While the tone
+  plays, the engine's queue of the panel's events is emptied each block,
+  so the synth starts with none stale.
+- **PB5:** read from the scan's slot, read only (`JL_PORTB->IN` bit 5),
+  each change counted with its beat (the last 16 kept); main writes a
+  record when the level has stood 50 ms, so a bouncing contact takes one
+  slot. The test screen shows the raw bit and the count; which level
+  means plugged is the owner's to say. The existing port B set-up (PB1
+  and PB6 analogue, PB7 the scan's row) is unchanged and never touches
+  bit 5.
+- **`DAA_CON7`** is read at start-up, after the route and each minute,
+  carried in every record with its change count; a record is written
+  only when it changes.
+- **Screen and log.** The test screen's audio line shows TONE or SYN with
+  the late halves, PB5 and its changes, the route's state, S2 and the
+  frames a second. audio8's view gains three rows. Layout 8 (985 of a
+  record's 1011 words) adds audio9's fields, the first words of a half
+  in each S2 state, and MIDI out's byte count.
+- **fwtest** (case audio9): the synth plays KEY1, KEY3 and KEY5 into
+  `audio.wav` at fwtest's 44 117.6 with no late half and no MIDI byte; the
+  old steps' buttons write no step and leave `CLK_CON1` and `CON5` as
+  read; SEQ takes the route down and up with port C back as read; PB5
+  changes with `SB_TEST_A9_PB5`; `SB_TEST_A9_PA_MOVE` and
+  `SB_TEST_A9_CHECK_FAIL` make the route undo itself and R2; the 16-bit
+  build's words match each S2 state. The identity is 0.10.0-hw3s.

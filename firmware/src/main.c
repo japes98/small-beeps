@@ -271,6 +271,9 @@ void hw_slot(void)
     /* Not while main sweeps the matrix (hw_start3.c). */
     if (!hw_scan_paused)
         input_scan();
+#if defined(SB_HW_AUDIO9)
+    hw_a9_pb5_poll();
+#endif
     if (++n == HW_SLOTS_TICK) {
         n = 0;
         sb_tick();
@@ -444,6 +447,29 @@ static void hw_serve(void)
             hw_guide_show();
             continue;
         }
+#if defined(SB_HW_AUDIO9)
+        /* audio9 (the spec side's clean-br17-audio9): SEQ takes the route
+         * down or up, FX switches the tone and the synth, LFO steps S2;
+         * HOME shows audio8's and audio9's view. The old steps' keys
+         * (ARP, SAVE, ENV, FX, LFO, SEL, GLO, OCT+, OCT-, KEY1 to KEY6) are
+         * the engine's alone: main gives them no step. */
+        if ((e.control == INPUT_SEQ || e.control == INPUT_FX || e.control == INPUT_LFO || e.control == INPUT_HOME)
+                && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            if (e.control == INPUT_SEQ)
+                hw_a9_route_key();
+            else if (e.control == INPUT_FX)
+                hw_a9_synth_key();
+            else if (e.control == INPUT_LFO)
+                hw_a9_s2_key();
+            hw_audio_leds(e.control);
+            if (e.control == INPUT_SEQ || e.control == INPUT_HOME) {
+                hw_audio_keypage_a8();
+                hw_test_screen();
+            }
+            hw_guide_show();
+            continue;
+        }
+#else
         /* audio3 (the spec side's clean-br17-audio3): ARP takes step A
          * (CON0 bit 11 cleared and set again, with bit 9 set), SAVE step B
          * (CLK_CON2 bit 8, with bit 9 set); a second press undoes each. */
@@ -539,6 +565,7 @@ static void hw_serve(void)
             continue;
         }
 #endif
+#endif
         /* audio3: SEQ stops ALNK0 (CON0 bit 11 cleared alone), or puts
          * back the CON0 read before; then the page, then the test screen. */
         if (e.control == INPUT_SEQ && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
@@ -571,6 +598,9 @@ static void hw_serve(void)
         if ((int)(now - next) >= 0) {
 #if defined(SB_HW_AUDIO1)
             hw_guide_tick();
+#endif
+#if defined(SB_HW_AUDIO9)
+            hw_a9_tick();
 #endif
             hw_refresh(sb_seconds != seconds);
             seconds = sb_seconds;
@@ -832,9 +862,18 @@ int main(void)
 #if defined(SB_HW_AUDIO1)
     /* audio1: the tone, once the test screen is up; its page, then the
      * test screen again (hw_audio.c). */
+#if defined(SB_HW_AUDIO9)
+    /* audio9 (S1): the FM engine, core 0 alone and MIDI off on a unit
+     * (fm_play.c, midi.c); it fills nothing until FX turns the synth on. */
+    hw_step("audio9: the engine's start");
+    fm_init();
+#endif
     hw_step("audio: starting ALNK0");
     hw_audio_start();
-#if defined(SB_HW_AUDIO8)
+#if defined(SB_HW_AUDIO9)
+    /* audio9 (S0): L2, R2 and the route, once the test screen is up. */
+    hw_audio9_boot();
+#elif defined(SB_HW_AUDIO8)
     /* audio8 (R0): L2, the running state, once the test screen is up. */
     hw_audio_boot_l2();
 #endif
