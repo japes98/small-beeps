@@ -1,0 +1,7 @@
+code 87752
+data 68
+bss 169376
+image 87820
+stack 4096
+irq_stack 2048
+ram_code 87040

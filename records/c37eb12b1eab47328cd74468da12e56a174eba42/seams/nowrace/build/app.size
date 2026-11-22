@@ -1,0 +1,7 @@
+code 60580
+data 64
+bss 164048
+image 60644
+stack 4096
+irq_stack 2048
+ram_code 59868

@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 5865dcf8329f51268892f09426cb7c20bed9a4da..c37eb12b1eab47328cd74468da12e56a174eba42
+OK     fc9e1c3e095b spec: USB MIDI's facts, U0 (HW-171 to HW-173, Q-36, R-USB-1)
+OK     b5e1a482656f spec: HW-171 and HW-172 state FUSB_MODE's value, not a speed; 0.13.0's digest
+EXEMPT c37eb12b1eab (merge) Merge pull request #238 from japes98/spec/usb-facts
+3 commit(s) checked: PASS
+
+exit status 0
