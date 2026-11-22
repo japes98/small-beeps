@@ -3880,7 +3880,7 @@ AC7911B datasheet. HW-144 to HW-146 add to HW-140 to HW-142, which stand.
   steps 2 to 4 (the PLL words, the 360 MHz case's source 6 and its final
   `PLL2_CON0`), `src/platform.c` (`hal_clock_a`: only `CLK_CON2`'s low
   byte written); HW-44, HW-45, HW-119, HW-140, HW-142.
-- Standing: confirmed (UNIT, MB; one unit; `DAA_CON7` read from a photo, corrected by HW-153)
+- Standing: confirmed (UNIT, MB; one unit; `DAA_CON7` read from a photo, corrected by HW-153; `DAA_CON7` varies between runs and after the route, so the photo's `0x0000C901` may have been read right, HW-161)
 - Needed by: M4, BR-17 (Phase B)
 
 ### HW-145: What ALNK0's clock needs: known and open (Q-9, Q-2)
@@ -4022,7 +4022,7 @@ HW-146, which stand.
 - Sources: UNIT: audio2 on the owner's unit, relayed by the owner on
   2026-11-20 (docs/prompts/spec-audio2-unit.md); HW-139, HW-143,
   HW-144, HW-145.
-- Standing: confirmed (UNIT; one unit; the core 1 cause open; `DAA_CON7` read from a photo, corrected by HW-153)
+- Standing: confirmed (UNIT; one unit; the core 1 cause open; `DAA_CON7` read from a photo, corrected by HW-153; `DAA_CON7` varies between runs and after the route, so the photo's `0x0000C901` may have been read right, HW-161)
 - Needed by: M4, BR-17 (Phase B)
 
 ### HW-148: What audio2's values say, and what they don't (Q-9, Q-2)
@@ -4229,7 +4229,7 @@ HW-153 adds to HW-150 and HW-151; HW-154 says what it means.
 - Sources: UNIT: report1's flash log, read back by the owner and relayed
   on 2026-11-21 (docs/prompts/spec-report1-unit.md); HW-140, HW-144,
   HW-145, HW-147, HW-151.
-- Standing: confirmed (UNIT; one unit)
+- Standing: confirmed (UNIT; one unit; `DAA_CON7` varies between runs, HW-161, so item 1 does not show the photo misread)
 - Needed by: M4, BR-17 (Phase B)
 
 ### HW-154: What the 48 MHz says, and what it doesn't (Q-9)
@@ -4537,8 +4537,10 @@ the results; HW-162 says what they settle and what stays open.
      undid the route.
   3. **The `CON5` sweep** (each of bits 0 to 31 alone, with the route
      above and `CON0` bits 7 and 8 set for the try): the speaker clicked;
-     no tone was heard. The sweep ran through all 32 bits, so no try
-     moved port A or failed the matrix check.
+     no tone was heard. `MASTER`'s level during the sweep is not given.
+     The sweep reached bit 31; by its stop rules (a try that moves port A
+     or fails the matrix check ends it) that implies no try did either,
+     which the relayed log does not state directly.
   4. **The sense scan:** 19 980 readings of every port's `IN`, one a
      millisecond, while the owner plugged headphones in and out three
      times. Only port B bit 5 (PB5) changed: 12 changes, with contact
@@ -4563,9 +4565,10 @@ the results; HW-162 says what they settle and what stays open.
     leaking through. Which of `CON0` bits 7 and 8 the part needs is not
     known: both were set together.
   - **`JL_IOMAP->CON5` at 0 routes ALNK0 to port C** (the AC7911B's
-    group "A"); no `CON5` write is needed. The sweep's tries were too
-    short to tell whether any single bit also routes there, and none
-    moved port A, so no bit was seen to pick group B1.
+    group "A"); no `CON5` write is needed. With each single `CON5` bit
+    set, the speaker gave clicks and no tone (`MASTER`'s level then not
+    given); what each bit does is not known, and no bit was seen to
+    pick group B1 (inferred from the sweep reaching bit 31).
   - **The speaker needs no enable from the firmware**, with the pins as
     m-bootloader leaves them. Whether the headphone output plays, and
     whether plugging in mutes the speaker with the route on, is open.
@@ -4582,7 +4585,8 @@ the results; HW-162 says what they settle and what stays open.
     anything beyond this (its name and bus are not known; HW-141).
 - Sources: UNIT (HW-161); HW-56, HW-141, HW-146, HW-156, HW-157, HW-160.
 - Standing: confirmed (UNIT; the headphone path, the sample order and
-  the outside part open)
+  the outside part open; `MASTER` 0 and 1023 were heard in different
+  runs, with `DAA_CON7` differing between them)
 - Needed by: M4, BR-17 (Phase B)
 
 ## Open questions
