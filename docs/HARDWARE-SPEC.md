@@ -4859,8 +4859,8 @@ firmware (PROVENANCE P-513).
     at `0x12700` (group `0x27`), both of the same 16-word layout; and
     `JL_USB_IO` at `0x51000` (`psfr_base` group `0x10`), three words
     `CON0` to `CON2`. The SDK's `HUSB_*` bit names (a SIE control word,
-    two PHY words) belong to the second core; which words carry them is
-    not given.
+    two PHY words) belong to the second core, as a reading from the
+    names; which words carry them is not given.
   - **`JL_USB`'s words,** by offset: `CON0` 0x00, `CON1` 0x04 (the
     MUSB port, HW-86), then the endpoint DMA words, all write-only by
     the SDK's marking: `EP0_CNT` 0x08, `EP1_CNT` 0x0C, `EP2_CNT` 0x10,
@@ -4883,8 +4883,11 @@ firmware (PROVENANCE P-513).
     for each of D+ and D−, as the names read.
   - **Interrupts:** the first core's SOF on index 8 and its controller
     (SIE) on index 9; the second core's on 53 and 54.
-  - **Speed:** the SDK's device set-up is the full-speed one
-    (`FUSB_MODE` 0); endpoint 0's packet is 64 bytes (`EP0_SETUP_LEN`).
+  - **`FUSB_MODE` and `EP0_SETUP_LEN`:** the SDK sets `FUSB_MODE` to 0
+    (what the mode selects is not given; HW-172 gives the `POWER` value
+    that goes with each setting) and `EP0_SETUP_LEN` to 64, which sizes
+    endpoint 0's DMA buffer (that it is endpoint 0's packet size is a
+    reading).
 - Sources: SDK `include_lib/driver/cpu/wl82/asm/WL82.h` lines 12-16
   (`psfr_base`, `lsfr_base`, `map_adr`), 288-295 (`JL_USB_IO`), 465-485
   (`JL_USB`), 604-606 (`JL_USB1`); SDK
@@ -4894,8 +4897,8 @@ firmware (PROVENANCE P-513).
   `include_lib/driver/cpu/wl82/asm/hwi.h` lines 47-48 and 97-98
   (`IRQ_USB_SOF_IDX` 8, `IRQ_USB_CTRL_IDX` 9, `IRQ_USB1_SOF_IDX` 53,
   `IRQ_USB1_CTRL_IDX` 54); HW-86.
-- Standing: confirmed (SDK; the bits' meanings beyond their names, and
-  the pins' word's place, not given)
+- Standing: confirmed (SDK; the bits' meanings beyond their names, the
+  pins' word's place and what `FUSB_MODE` selects not given)
 - Needed by: USB MIDI (U1, U2, U3)
 
 ### HW-172: The device core's registers and the SDK's device set-up, as calls
@@ -4922,19 +4925,22 @@ firmware (PROVENANCE P-513).
   - **The SDK's device start, in order, as calls** (their bodies are in
     the prebuilt library): the core's configuration (`usb_config`); the
     SIE's start as a device (`usb_g_sie_init`); `POWER` (index 1) written
-    `0x60` in the full-speed set-up (`0x40` in the other); the class
+    `0x60` with `FUSB_MODE` 0, the SDK's setting (`0x40` with it
+    nonzero); the class
     set-up; one 64-byte DMA buffer for endpoint 0, set as the receive
     address of endpoints 0 to 4; `INTRUSBE` set to reset and suspend;
     every transmit and receive interrupt enable cleared, then endpoint
     0's set; the controller's interrupt registered at priority 3 on core
-    0. What `POWER`'s bits mean is not given.
+    0. What `POWER`'s bits mean, and which speed `FUSB_MODE` selects, are
+    not given.
   - **DMA buffers:** the first core's receive buffers need 4 bytes past
     the packet, where the controller stores the packet's CRC (8 for a
     double buffer); m-bootloader found the same on the unit: the DMA
     writes past a full packet. The SDK keeps its USB buffers in their own
     linker section (`.usb_fifo`, inside its USB data area), 64-byte
-    aligned; for the second core, its endpoints 1, 2, 5 and 6 need 64-byte
-    alignment and 3 and 4 8-byte.
+    aligned; the SDK's comment names the high-speed core's endpoints 1, 2,
+    5 and 6 as needing 64-byte alignment and 3 and 4 8-byte (that this is
+    the second core is a reading).
   - **Spacing of accesses:** m-bootloader found on the unit that
     accesses through `CON1`'s port (HW-86) must be spaced apart: a few
     cycles between them made the core babble on IN, and the host then
@@ -4947,8 +4953,8 @@ firmware (PROVENANCE P-513).
   for the first core's receive, the alignments); SDK
   `include_lib/driver/device/usb/usb_data.ld`; MB `docs/SPEC.md` §11.6
   (the DMA writing past a full packet, the spacing); HW-86.
-- Standing: confirmed (SDK, MB; the writes behind the SDK's calls, and
-  what `POWER`'s bits mean, not given)
+- Standing: confirmed (SDK, MB; the writes behind the SDK's calls, what
+  `POWER`'s bits mean and what `FUSB_MODE` selects not given)
 - Needed by: USB MIDI (U1, U3)
 
 ### HW-173: The FM-1's USB port is the first core; what m-bootloader leaves; recovery stays open
