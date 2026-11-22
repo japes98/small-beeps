@@ -416,6 +416,10 @@ hold.
   channel and its lower 16 bits as the second. Which of the two is the
   left on the unit is not known, and one is inverted on the board
   (HW-168); `audio.wav` gives the chip's output, before the board.
+  Under N (the sample in the upper half, its negative in the lower) the
+  two channels are exact opposites, so a check that mixes them to mono
+  hears silence: read one channel. The second (the lower half) is what
+  the speaker plays (HW-165).
   With any other `CON1`, the default layout plays.
 
 The flag is off by default so that tests written for fwtest's own layout
