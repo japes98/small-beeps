@@ -3709,6 +3709,20 @@ SR-3 wrote only its barrier-log row.*
   HW-86 and HW-171 to HW-173; nothing in it comes from FM-1-RE's USB
   document (P-513), read earlier in this session.
 - Disk: about 3 GB free.
+
+### Session spec-usb-u2-rulings (USB in published builds; the U2 draft)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-fwtest-usb (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  a new branch `spec/usb-u2` from main; by the round rules, no PR until
+  the next round's.
+- The owner's rulings, saved unedited as docs/prompts/spec-usb-u2-rulings.md;
+  R-USB-1 now says USB stays off in published builds until our own
+  product ID is granted.
+- Wrote the draft drop/prompts/clean-br17-usb-u2-draft.md, outside the
+  repository, marked as awaiting the owner's rulings, to go into audio13.
+- Read: nothing new.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
