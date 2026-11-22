@@ -906,3 +906,15 @@ fn power_cut_command_line() {
     assert_eq!(code, 2, "{text}");
     assert!(text.contains("--ms given twice"), "{text}");
 }
+
+#[test]
+fn audio_chip_is_an_option_off_by_default() {
+    let base = std::path::Path::new(".");
+    let args = |extra: &[&str]| -> Vec<String> {
+        let mut v: Vec<String> = ["x.bin", "--out", "o", "--ms", "10"].iter().map(|s| s.to_string()).collect();
+        v.extend(extra.iter().map(|s| s.to_string()));
+        v
+    };
+    assert!(!fwtest::parse_run(&args(&[]), base).unwrap().opt.audio_chip);
+    assert!(fwtest::parse_run(&args(&["--audio-chip"]), base).unwrap().opt.audio_chip);
+}

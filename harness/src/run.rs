@@ -41,6 +41,9 @@ pub struct Options {
     pub flash_out: bool,
     pub wav: bool,
     pub ipb: bool,
+    /// `--audio-chip`: ALNK0 plays the chip's 16-bit layout when CON1 sets it (HARNESS.md,
+    /// "Audio").
+    pub audio_chip: bool,
     pub console: bool,
     pub midi_out: bool,
     pub watchdog: Option<(u32, u64)>,
@@ -135,6 +138,7 @@ pub fn run(image: &[u8], opt: &Options) -> Result<Report, String> {
     } else {
         (Board::boot(image, opt.flash_in.as_deref())?, None)
     };
+    board.soc.periph.audio_chip16 = opt.audio_chip;
     for e in &opt.script {
         board.soc.periph.script.push_back((e.cycle, e.action.clone()));
     }

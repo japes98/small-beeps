@@ -12,9 +12,9 @@ SPDX-FileCopyrightText: 2026 japes98
 - Licence: MIT, copyright 2026 Joakim Eriksson (`LICENSE` here, copied
   unmodified).
 - What: `crates/fm1-isa`, `crates/fm1-core` and `crates/fm1-soc`, at the
-  same paths, unmodified but for the patches below (0002 to 0019: bug
-  fixes, two speed-only changes, MIDI out, the panel's chip select and the
-  flash chip's block protection) and the workspace manifest
+  same paths, unmodified but for the patches below (0002 to 0020: bug
+  fixes, two speed-only changes, MIDI out, the panel's chip select, the
+  flash chip's block protection and the chip's 16-bit audio layout) and the workspace manifest
   `Cargo.toml` (patched, 0001). docs/EMULATOR-PARITY.md compares them with
   the F-Emulator app's.
   Nothing else from that repository: no other crates, no `fm1-sid/`, no
@@ -198,6 +198,14 @@ Applied in file-name order by the fetch script, after checkout:
   `a_protected_erase_or_program_is_ignored`, and the harness test
   `flash_protection_from_the_flash_file` (image
   `tests/images/flashprot.c`), fail without it (fwtest 0.12.0).
+- `patches/0020-audio-chip16.patch` (the owner's ruling of 2026-11-22,
+  audio11's D item 7): `crates/fm1-soc/src/periph.rs` and `lib.rs`, the
+  audio link, when `audio_chip16` is on (fwtest's `--audio-chip`) and
+  `CON1`'s data 3 nibble is `0x1`, plays `LEN` frames a half, one word a
+  frame, its upper then lower 16 bits as the two samples (HW-160,
+  HW-168); otherwise as before. The crate test
+  `audio_chip16_plays_len_frames_a_half` fails without it (fwtest
+  0.13.0).
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
 and the harness suite gave byte-identical outputs (284 files) from fwtest

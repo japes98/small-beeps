@@ -1,0 +1,139 @@
+On the FM-1's chip, while ALNK0's CON1 sets data 3 as a 16-bit I2S
+output (nibble 0x1), a half of the buffer is LEN frames of one word
+each, the word's two 16-bit halves the frame's two samples (HARDWARE-SPEC
+HW-160, HW-168). Upstream plays LEN words a half as LEN / 2 frames of
+two words, a 24-bit sample in each word's low bits. The patch adds
+`audio_chip16` to the peripheral block, off by default: when it is on
+and CON1's data 3 nibble is 0x1, a half lasts LEN frames and each word
+gives two samples, the upper 16 bits first. Otherwise nothing changes.
+The crate test audio_chip16_plays_len_frames_a_half fails without it.
+
+diff --git a/crates/fm1-soc/src/lib.rs b/crates/fm1-soc/src/lib.rs
+index 667ce7b2b..3fa137d32 100644
+--- a/crates/fm1-soc/src/lib.rs
++++ b/crates/fm1-soc/src/lib.rs
+@@ -324,13 +324,19 @@ impl Soc {
+         if let Some((at, b)) = due.uart_rx {
+             self.write8(at, b);
+         }
+-        if let Some((adr, words)) = due.audio_half {
++        if let Some((adr, words, chip16)) = due.audio_half {
+             if self.audio_trace {
+                 eprintln!("half {} ms {}", self.periph.ms(), self.periph.cycles);
+             }
+             for i in 0..words {
+-                let w = self.read32(adr.wrapping_add(i * 4)) as i32;
+-                self.periph.audio.push((w >> 8).clamp(-32768, 32767) as i16);
++                let w = self.read32(adr.wrapping_add(i * 4));
++                if chip16 {
++                    // the chip's 16-bit layout: one frame a word, upper half first
++                    self.periph.audio.push((w >> 16) as u16 as i16);
++                    self.periph.audio.push(w as u16 as i16);
++                } else {
++                    self.periph.audio.push(((w as i32) >> 8).clamp(-32768, 32767) as i16);
++                }
+             }
+         }
+     }
+@@ -1069,6 +1075,37 @@ mod tests {
+         fill(&mut soc);
+         assert_eq!(&soc.lcd.fb[..2], &[0xf8 << 8, 0x07 << 8 | 0xe0], "PC7 an input: the panel takes the bytes");
+     }
++    #[test]
++    fn audio_chip16_plays_len_frames_a_half() {
++        // LEN 4 at 0x01C00000 (RAM), words 0x1234_8000 ..: with the chip's layout and CON1
++        // 0x1000 a half is 4 frames, each word two samples, upper first, and lasts 4 frames;
++        // without it (or with CON1 0) a half is 4 words, 2 frames, as before.
++        fn run(chip16: bool, con1: u32) -> (Vec<i16>, u64) {
++            let mut soc = Soc::new(0x8000, vec![]);
++            soc.periph.audio_chip16 = chip16;
++            for i in 0..8u32 {
++                soc.write32(0x01C0_0000 + i * 4, 0x1234_8000 + i);
++            }
++            soc.write32(0x12e1c, 0x01C0_0000);
++            soc.write32(0x12e20, 4);
++            soc.write32(0x12e04, con1);
++            soc.write32(0x12e00, 0x800);
++            let c0 = soc.periph.cycles;
++            while soc.periph.audio_halves == 0 {
++                soc.advance(1);
++            }
++            (soc.periph.audio.clone(), soc.periph.cycles - c0)
++        }
++        let (a, t16) = run(true, 0x1000);
++        assert_eq!(a, vec![0x1234, -0x8000, 0x1234, -0x7fff, 0x1234, -0x7ffe, 0x1234, -0x7ffd]);
++        let (b, t) = run(false, 0x1000);
++        assert_eq!(b.len(), 4);
++        assert_eq!(t16, 2 * t);
++        let (c, t0) = run(true, 0);
++        assert_eq!(c, b);
++        assert_eq!(t0, t);
++    }
++
+     #[test]
+     fn usb_port_answers() {
+         let mut soc = Soc::new(0x8000, vec![]);
+diff --git a/crates/fm1-soc/src/periph.rs b/crates/fm1-soc/src/periph.rs
+index 71d042083..0dac260a1 100644
+--- a/crates/fm1-soc/src/periph.rs
++++ b/crates/fm1-soc/src/periph.rs
+@@ -176,6 +176,10 @@ pub struct Periph {
+     /// Interleaved L/R 16-bit samples played so far.
+     pub audio: Vec<i16>,
+     pub audio_halves: u64,
++    /// The chip's 16-bit layout (the host's `--audio-chip`): while CON1 sets data 3 as a
++    /// 16-bit I2S output (its nibble 0x1), a half is LEN frames of one word each, the
++    /// word's upper and lower 16 bits the frame's two samples. Off: the layout above.
++    pub audio_chip16: bool,
+     // SARADC
+     adc_con: u32,
+     pub adc_value: [u16; 16],
+@@ -283,6 +287,7 @@ impl Default for Periph {
+             alnk_next: u64::MAX,
+             audio: Vec::new(),
+             audio_halves: 0,
++            audio_chip16: false,
+             adc_con: 0,
+             adc_value,
+             ilat: 0,
+@@ -328,8 +333,8 @@ impl Default for Periph {
+ /// of RAM (and a received UART byte into it) because the peripheral block has no bus of its own.
+ #[derive(Debug, Default)]
+ pub struct Due {
+-    /// A half buffer finished playing: (RAM address, words).
+-    pub audio_half: Option<(u32, u32)>,
++    /// A half buffer finished playing: (RAM address, words, the chip's 16-bit layout).
++    pub audio_half: Option<(u32, u32, bool)>,
+     /// A UART byte the RX DMA wrote: (address, byte).
+     pub uart_rx: Option<(u32, u8)>,
+     pub actions: Vec<Action>,
+@@ -370,9 +375,17 @@ impl Periph {
+     }
+ 
+     fn half_period(&self) -> u64 {
++        if self.alnk_chip16() {
++            return (self.alnk_len.max(1) as u64 * FRAME_T4 * self.hz / T4_HZ).max(1);
++        }
+         (self.alnk_len.max(2) as u64 / 2 * FRAME_T4 * self.hz / T4_HZ).max(1)
+     }
+ 
++    /// The chip's 16-bit layout is on and CON1's data 3 nibble is 0x1 (I2S out, 16-bit).
++    fn alnk_chip16(&self) -> bool {
++        self.audio_chip16 && (self.alnk_con1 >> 12) & 0xf == 1
++    }
++
+     fn enc_step(&self) -> u64 {
+         // contacts move one quadrature state every 2 ms (SMK-37: 4 ms, the port's decoder takes a
+         // state once it has held for two 1.6 ms scan frames)
+@@ -446,8 +459,9 @@ impl Periph {
+             }
+         }
+         if self.cycles >= self.alnk_next {
+-            let words = self.alnk_len.max(2);
+-            due.audio_half = Some((self.alnk_adr.wrapping_add(self.alnk_half * words * 4), words));
++            let chip16 = self.alnk_chip16();
++            let words = if chip16 { self.alnk_len.max(1) } else { self.alnk_len.max(2) };
++            due.audio_half = Some((self.alnk_adr.wrapping_add(self.alnk_half * words * 4), words, chip16));
+             self.alnk_half ^= 1;
+             // every channel CON1 sets up pends with the block: FM1 Open's driver takes its
+             // interrupt from the receive channel 0 (pending bit 4), the stock one from transmit

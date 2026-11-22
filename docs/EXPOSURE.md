@@ -3576,6 +3576,22 @@ SR-3 wrote only its barrier-log row.*
   outside the repository, marked as awaiting the owner's rulings.
 - Disk: about 3 GB free.
 
+### Session spec-fwtest-audio-chip (fwtest 0.13.0: the chip's 16-bit audio layout)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio11-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/fwtest-alnk16` from main: audio11's D item 7, by
+  the owner's ruling, as its own PR in parallel with #234.
+- The owner's rulings, saved unedited as docs/prompts/spec-audio11-rulings.md
+  (the same file as on `spec/audio11-unit`).
+- Changed: the vendored emulator (patch 0020, `fm1-soc`'s audio link),
+  fwtest's `--audio-chip`, HARNESS.md ("Audio", the options, "Versions"),
+  UPSTREAM.md, the tree hash; a standing note on HW-44.
+- Read: the vendored emulator's audio link and the harness's option code.
+  No new outside source.
+- Disk: about 3 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
