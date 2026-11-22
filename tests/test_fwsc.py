@@ -273,6 +273,25 @@ class HardwareTest(unittest.TestCase):
                                     capture_output=True, text=True) for k in ("0x980F", "0xFFFF")]
             return r, c
 
+    def test_the_raw_link_refused(self):
+        """clean-br17-audio12b: an app whose ELF beside it starts at
+        0x02000000 (the raw link, app.bin) is refused; at 0x02000120 (the
+        package link, HW-91) it is packed."""
+        for entry, code in ((0x02000000, 2), (0x02000120, 0)):
+            with tempfile.TemporaryDirectory() as d:
+                path, out = os.path.join(d, "app.bin"), os.path.join(d, "o.fwsc")
+                with open(path, "wb") as f:
+                    f.write(APP)
+                with open(os.path.join(d, "app.elf"), "wb") as f:
+                    f.write(b"\x7fELF" + b"\0" * 20 + struct.pack("<I", entry))
+                r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "fwsc.py"), "pack", path, "--version",
+                                    "0.10.0", "--out", out, "--hardware", "--key", "0x980F", "--store-base", "0xFC000"],
+                                   capture_output=True, text=True)
+                self.assertEqual(r.returncode, code, r.stderr)
+                self.assertEqual(os.path.exists(out), code == 0)
+                if code:
+                    self.assertIn("not 0x02000120", r.stderr)
+
     def test_the_command_line(self):
         r, c = self.run_tool("--hardware", "--key", "0x980F", "--store-base", "0xFC000")
         self.assertEqual(r.returncode, 0, r.stderr)
