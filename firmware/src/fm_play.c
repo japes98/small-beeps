@@ -2031,6 +2031,14 @@ void fm_init(void)
      * carrier in every algorithm, so all ten sound the same in it. */
     select_patch(FM_A12_PATCH);
     panel_program = FM_A12_PATCH;
+#if defined(SB_HW_AUDIO13)
+    /* audio13: ARP as fwtest's ARP suite runs it (UP, 1/16, 2 octaves,
+     * gate 50 %, at the settings' 120 beats a minute); Bell gives all but
+     * the octaves. Off until ARP is pressed. */
+    edit_raw[FMP_ARP] = (u8)((2u - 1u) << 5 | ARP_UP << 2);
+    edit_raw[FMP_ARP_RATE] = 7u;
+    edit_raw[FMP_ARP_GATE] = ARP_GATE_DEFAULT;
+#endif
 #endif
     midi_settings_default(&midi_settings);
 #if defined(SB_TEST_MIDI_CHANNEL)

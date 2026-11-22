@@ -1627,6 +1627,16 @@ void view_serve(void)
             arp_toggles++;
         if (e.control < INPUT_LEDS)
             led_update(e.control);
+#if defined(SB_HW_AUDIO13)
+        /* audio13 on a unit: REC saves the report log (hw_audio.c), not
+         * the store, so ARP's steps reach the flash before power-off. */
+        if (e.kind == INPUT_PRESS && e.control == INPUT_REC) {
+            void hw_a13_panel_save(void);
+
+            hw_a13_panel_save();
+            continue;
+        }
+#endif
         /* The buttons later milestones take (docs/M8-PROPOSAL.md). */
         if (e.kind == INPUT_PRESS && (e.control == INPUT_FX || e.control == INPUT_LFO
                                       || e.control == INPUT_SEQ || e.control == INPUT_REC)) {

@@ -4096,6 +4096,27 @@ SR-3 wrote only its barrier-log row.*
   file, outside this folder.
 - Disk: about 2.8 GB free.
 
+### Session clean-br17-audio13 (BR-17: power-on to the instrument; U2's USB reads; ARP's steps timed)
+- Date: 2026-11-22 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.330, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio12b's, continued. The prompt came from the spec session
+  through the owner's cross-session relay, saved unedited as
+  docs/prompts/clean-br17-audio13.md.
+- Start: branch `hw/audio13` from main at `e59f3dca` (#241 and #242
+  merged), brought in by tools/clean-update.sh. Nothing to archive (the
+  last clean session is this one, live); tools/check-transcripts.py PASS.
+- Reads: this side's own code and builds; HARDWARE-SPEC sections 49 and 50
+  (HW-171 to HW-175, Q-36) and HW-86, HW-91, HW-117 and HW-129, and
+  docs/prompts/spec-usb-u2-rulings.md and spec-usb-u2-rulings2.md, as on
+  main at `e59f3dca`; the vendored SDK header `WL82.h`'s `JL_USB` and
+  `JL_USB_IO` blocks, which HW-171 cites and the build already includes.
+- Disk: about 2.5 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
