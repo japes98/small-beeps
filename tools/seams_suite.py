@@ -2880,6 +2880,154 @@ def case_audio8(a, work, log):
     return problems
 
 
+A9_DEFINES = A8_DEFINES + ("--define", "SB_HW_AUDIO9")
+# Labels the old probe steps write: none may appear once their keys are the engine's (audio9).
+A9_STEP_LABELS = ("REC", "SEQ", "A ", "B ", "H ", "I ", "K ", "J ", "D ", "L1", "L2 undone", "L refused", "S1", "SW", "SE",
+                  "R2 refused")
+
+
+def a9_run(work, log, b, name, keys, ms, *extra):
+    """keys: (time, key, held for) each."""
+    path = os.path.join(work, name + ".script")
+    with open(path, "w") as f:
+        for t, k, d in keys:
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + d, k))
+    out = os.path.join(work, name)
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", str(ms), "--flash-out",
+               "--script", os.path.relpath(path, ROOT), *extra)
+    with open(os.path.join(out, "flash.bin"), "rb") as f:
+        rs, bad = report_decoder().records(f.read())
+    return r, out, rs, bad
+
+
+def case_audio9(a, work, log):
+    """audio9 (clean-br17-audio9): at start-up L2, R2 and the route (CON0
+    bits 7 and 8, kept on port A's stillness and the matrix check); S2's
+    three states; the synth (fm_play, core 0 alone, MIDI off) playing the
+    keys into audio.wav with no late half; the old steps' buttons left to
+    the engine (no step record, the clock words and JL_IOMAP as read); the
+    route down and up by SEQ, port C back as read; PB5 counted, with the
+    test seam changing it; the route's self-undo forced by a port A
+    movement and by a failed check; and in the 16-bit build each S2
+    state's words."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    b = os.path.join(work, "build")
+    build(b, log, *A9_DEFINES, "--define", "SB_TEST_A9_PB5")
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    h, ga = sy["hw_aud"], sy["hw_guide_at"]
+    keys = [(9000, HW_LFO, 100), (10500, HW_LFO, 100), (12000, HW_LFO, 100), (13500, HW_FX, 100),
+            (15000, HW_KEY1, 1500), (17000, HW_KEY5, 1500), (17500, HW_KEY3, 1000)]
+    # The old steps' buttons and keys: the engine's now (KEY2, KEY4 and KEY6 play notes too).
+    keys += [(19000 + 400 * i, k, 100) for i, k in enumerate((HW_OCTUP, HW_OCTDOWN, HW_GLO, HW_ENV, HW_SEL,
+                                                              HW_KEY2, HW_KEY4, HW_KEY6))]
+    keys += [(24000, HW_SEQ, 100), (29000, HW_SEQ, 100), (34000, HW_FX, 100), (35000, HW_EDIT, 100)]
+    r, out, rs, bad = a9_run(work, log, b, "run", keys, 38000, "--wav", "--ram", "0x%08x:4@end" % ga,
+                             "--ram", "0x%08x:%d@end" % (h, AUD_LEN))
+    if r["run"]["outcome"] != "completed":
+        problems.append("audio9: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    acc = {u["address"] for u in r["run"]["unmodelled_accesses"]}
+    odd = sorted(acc - HW_WINDOW_REGS - {"0x00012f00"} - GPCNT_REGS - ALNK1_REGS)
+    if odd:
+        problems.append("audio9: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1: %s"
+                        % odd[:8])
+    if bad or any(x["layout"] != max(rd.FIELDS) or not x["known"] or x["count"] != len(rd.FIELDS[8]) for x in rs):
+        problems.append("audio9: %d bad records, or one not layout 8 with %d fields" % (len(bad), len(rd.FIELDS[8])))
+    labels = [x["label"] for x in rs if x["label"] not in ("page", "boot") and not x["label"].startswith("PB5")]
+    want = ["L2 before", "L2 kept", "R2 before", "R2 set", "Route before", "Route kept", "S2 upper", "S2 lower",
+            "S2 both", "Synth on", "Route down", "R2 undone", "R2 before", "R2 set", "Route before", "Route kept",
+            "Synth off", "save key"]
+    if labels != want:
+        problems.append("audio9: records %s, want %s" % (labels, want))
+    steps = [x["label"] for x in rs if x["label"].startswith(A9_STEP_LABELS)]
+    if steps:
+        problems.append("audio9: old steps' records %s" % steps)
+    first, last = (rs[0]["fields"], rs[-1]["fields"]) if rs else ({}, {})
+    by = {}
+    for x in rs:
+        by.setdefault(x["label"], x["fields"])
+    if last.get("a9_route") != 1 or last.get("a9_route_ups") != 2 or last.get("a9_route_downs") != 1 \
+            or last.get("a9_late_halves") or last.get("a9_fallback_beat") or not last.get("a9_engine_blocks") \
+            or last.get("midi_out_bytes") or last.get("a9_synth") or last.get("a9_synth_ons") != 1:
+        problems.append("audio9: %s" % {k: last.get(k) for k in ("a9_route", "a9_route_ups", "a9_route_downs",
+                                                                 "a9_late_halves", "a9_fallback_beat",
+                                                                 "a9_engine_blocks", "midi_out_bytes", "a9_synth",
+                                                                 "a9_synth_ons")})
+    for k in ("CLK_CON1_now", "d_con5_now"):
+        if first.get(k) != last.get(k):
+            problems.append("audio9: %s %08x at the start, %08x at the end" % (k, first.get(k, 0), last.get(k, 0)))
+    rt = by.get("Route kept", {})
+    if rt.get("rt_kind") != 3 or rt.get("rt_check_set") or rt.get("rt_con0_read", 0) & 0x180 != 0x180 \
+            or rt.get("rt_con5_before") or rt.get("rt_s1_span_units", 0) < 0.099 * 24000000 \
+            or any(rt.get("rt_iomap_before_CON%d" % i) != first.get("MAP%d" % i, rt.get("rt_iomap_before_CON%d" % i))
+                   for i in range(2, 9)):
+        problems.append("audio9: the route: %s" % {k: rt.get(k) for k in ("rt_kind", "rt_check_set", "rt_con0_read",
+                                                                          "rt_con5_before", "rt_s1_span_units")})
+    ud = by.get("R2 undone", {})
+    if ud.get("r2_check") or any((ud.get("r2_pc_after_%s" % k, 0) ^ ud.get("r2_pc_before_%s" % k, 0))
+                                 & ~(0x180 if k == "OUT" else 0) for k in ("OUT", "DIR", "DIE", "PU", "PD", "HD0", "HD")) \
+            or ud.get("rt_con0_back", 0x180) & 0x180:
+        problems.append("audio9: the route down: %s" % {k: ud.get(k) for k in ud if k.startswith(("r2_pc", "r2_check"))})
+    # Main writes a settled level only while it isn't on a page, so fewer are written than seen.
+    if last.get("pb5_raw_changes", 0) < 8 or last.get("pb5_logged", 0) < 5:
+        problems.append("audio9: PB5 changes %s, written %s (the seam changes it every 1500 beats)"
+                        % (last.get("pb5_raw_changes"), last.get("pb5_logged")))
+    if last.get("daa7_reads", 0) < 1:
+        problems.append("audio9: DAA_CON7 never read")
+    gat = struct.unpack("<I", ram(out, ga, 4))[0]
+    if gat != 5:
+        problems.append("audio9: the guide at %d (5: S2 three times, the synth, a save)" % gat)
+    e = dict(zip(AUD_FIELDS, struct.unpack_from("<%dI" % len(AUD_FIELDS), ram(out, h, AUD_LEN), 8 * AUD_REGS)))
+    fps = e["fps10"] / 10.0 / HW_RATIO
+    if not e["fps10"] or abs(fps / AUD_FPS - 1) > 200e-6 or e["storm"]:
+        problems.append("audio9: %.1f frames a second in fwtest's time (%.1f), storm %d" % (fps, AUD_FPS, e["storm"]))
+    rate, left, right = aa.read_wav(os.path.join(out, "audio.wav"))
+    # The WAV starts with the output, not at the script's 0: it ends at the run's end (38 s). KEY1 is held
+    # from 15 s to 16.5 s with the synth on; from 22.5 s to 24 s no note is held; the tone is back after 34 s.
+    at = lambda t0, t1: max([abs(v) for v in left[len(left) - int((38 - t0) * rate):len(left) - int((38 - t1) * rate)]]
+                            or [0])
+    during, rest, tone = at(15.3, 16.3), at(22.5, 23.9), at(35, 37.5)
+    if left != right or during < 500 or rest or tone < 2000:
+        problems.append("audio9: audio.wav: peak %d while KEY1 is held (more than 500), %d with no note held (0), %d"
+                        " with the tone back (more than 2000), channels %s"
+                        % (during, rest, tone, "alike" if left == right else "differ"))
+    summary = ("audio9: L2, R2 and the route at start-up; S2's three states; the synth played KEY1, KEY3 and KEY5"
+               " (peak %d in audio.wav), %d engine blocks, %d late halves, MIDI out bytes %d; the old steps' buttons"
+               " wrote no step; the route down and up by SEQ; PB5 %d changes, %d written; %d records"
+               % (during, last.get("a9_engine_blocks", 0), last.get("a9_late_halves", 0), last.get("midi_out_bytes", 0),
+                  last.get("pb5_raw_changes", 0), last.get("pb5_logged", 0), len(rs)))
+    # The route's self-undo.
+    for define, label, stop in (("SB_TEST_A9_PA_MOVE", "Route PA moved", 2), ("SB_TEST_A9_CHECK_FAIL", "Route check BAD", 3)):
+        fb = os.path.join(work, "build-" + define.lower())
+        build(fb, log, *A9_DEFINES, "--define", define)
+        r, _, frs, _ = a9_run(work, log, fb, "run-" + define.lower(), [], 12000)
+        fl = [x["label"] for x in frs if x["label"].startswith(("Route", "R2"))]
+        f = frs[-1]["fields"] if frs else {}
+        if r["run"]["outcome"] != "completed" or fl != ["R2 before", "R2 set", "Route before", label, "R2 undone"] \
+                or f.get("a9_route") != 3 or f.get("rt_stop") != stop or f.get("rt_check_after") \
+                or f.get("rt_con0_back", 0x180) & 0x180 or f.get("r2_check"):
+            problems.append("audio9 %s: %s, records %s, %s" % (define, r["run"]["outcome"], fl,
+                                                               {k: f.get(k) for k in ("a9_route", "rt_stop",
+                                                                                      "rt_check_after", "r2_check")}))
+    # The 16-bit build: each S2 state's words.
+    pb = os.path.join(work, "build-pcm16")
+    build(pb, log, *A9_DEFINES, "--define", "SB_HW_PCM16")
+    r, _, prs, _ = a9_run(work, log, pb, "run-pcm16", [(9000, HW_LFO, 100), (10500, HW_LFO, 100),
+                                                       (12000, HW_LFO, 100)], 14000)
+    f = prs[-1]["fields"] if prs else {}
+    words = {st: [f.get("a9_words_%s_%d" % (st, i), 0) for i in range(4)] for st in ("both", "upper", "lower")}
+    ok = (all(w >> 16 == w & 0xFFFF for w in words["both"]) and any(words["both"])
+          and all(not w & 0xFFFF for w in words["upper"]) and any(words["upper"])
+          and all(not w >> 16 for w in words["lower"]) and any(words["lower"]))
+    if r["run"]["outcome"] != "completed" or not ok or f.get("a8_pcm16") != 1:
+        problems.append("audio9 16-bit: %s, pcm16 %s, words %s" % (r["run"]["outcome"], f.get("a8_pcm16"),
+                                                                   {k: ["%08x" % w for w in v] for k, v in words.items()}))
+    print(summary + "; the forced port A movement and failed check undid the route and R2; the 16-bit words: both"
+          " %08x, upper %08x, lower %08x" % (words["both"][0], words["upper"][0], words["lower"][0]))
+    return problems
+
+
 def case_nowrace(a, work, log):
     """sb_now() never goes back: the slot interrupt's time-keeping forced
     at each point between its reads, just after TIMER0 wraps (main.c,
@@ -2936,6 +3084,7 @@ CASES = [
     ("audio6", case_audio6),
     ("audio7", case_audio7),
     ("audio8", case_audio8),
+    ("audio9", case_audio9),
 ]
 
 

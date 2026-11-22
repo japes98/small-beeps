@@ -1666,7 +1666,11 @@ static void events(void)
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_OCT_UP) {
             octave += octave < OCTAVES;
         } else if (e.kind == INPUT_PRESS && e.control == INPUT_PLAY) {
+#if !defined(SB_HW_FM1)
+            /* On a unit (audio9) PLAY is the probe's: M4's test tone is
+             * fixed in level, past MASTER. */
             tone_state = tone_state == TONE_OFF || tone_state == TONE_RELEASE ? TONE_ATTACK : TONE_RELEASE;
+#endif
         } else if (e.kind == INPUT_TURN && e.control == INPUT_PRESETS) {
             u32 from = local ? patch_now : panel_program;
             /* A turn on past an end does nothing: no notes cut, no
@@ -2009,7 +2013,15 @@ void fm_init(void)
     sb_midi_out.marker = MIDI_OUT_MARKER;
     /* Core 1 (core1.h). If it never says it runs, core 0 renders every
      * voice. */
+#if defined(SB_HW_FM1)
+    /* On a unit (audio9) core 1 runs the hardware build's own loop, and
+     * the shared words above aren't yet in cache lines of their own: core
+     * 0 renders alone, the even voices (8). */
+    (void)core1_stack;
+    two_cores = 0;
+#else
     two_cores = (u32)sb_core1_start(fm_core1_main, core1_stack + sizeof core1_stack / sizeof core1_stack[0]);
+#endif
 }
 /* Without core 1 the odd voices are never given a note: core 0 plays the
  * even ones, half the polyphony. */

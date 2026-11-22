@@ -52,6 +52,11 @@ static u32 dma_at;
 
 void midi_start(void)
 {
+#if defined(SB_HW_FM1)
+    /* On a unit MIDI's UART, clock and pins are open (Q-12): UART1 is
+     * never touched (audio9 runs the engine with MIDI off). */
+    return;
+#endif
     JL_UART1->RXCNT = 0;                         /* no receive pending (HW-70) */
     JL_UART1->RXEADR = (u32)(dma_ring + MIDI_DMA);
     JL_UART1->RXSADR = (u32)dma_ring;            /* starts the DMA at the ring's start */
@@ -61,6 +66,11 @@ void midi_start(void)
 void midi_poll(void)
 {
     u32 n;
+
+#if defined(SB_HW_FM1)
+    (void)n;
+    return;
+#endif
 
     JL_UART1->CON0 = UART_ON | UART_RX_DMA | UART_LATCH;
     n = JL_UART1->HRXCNT;

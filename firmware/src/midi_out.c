@@ -238,6 +238,14 @@ void midi_out_poll(void)
 {
     u32 n = 0;
 
+#if defined(SB_HW_FM1)
+    /* On a unit UART1 is never touched (Q-12): what waits is dropped. */
+    tail = head;
+    raw_ack = raw_req;
+    (void)n;
+    return;
+#endif
+
     if (busy) {
         if (!(JL_UART1->CON0 & UART_TX_PENDING)) {
             sb_midi_out.polls_busy++;
