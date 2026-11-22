@@ -3722,6 +3722,10 @@ SR-3 wrote only its barrier-log row.*
   product ID is granted.
 - Wrote the draft drop/prompts/clean-br17-usb-u2-draft.md, outside the
   repository, marked as awaiting the owner's rulings, to go into audio13.
+- The owner's second rulings (U2-A and U2-B with a state key and U2-A
+  before the audio path; U2-C on its own key, off at start-up), saved
+  unedited as docs/prompts/spec-usb-u2-rulings2.md; the section updated
+  and renamed drop/prompts/clean-br17-usb-u2.md, to fold into audio13.
 - Read: nothing new.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
