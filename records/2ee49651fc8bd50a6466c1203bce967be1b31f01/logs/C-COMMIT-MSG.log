@@ -1,0 +1,13 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range c87eb9943e1c5dec79f903b6a5f67221e8f906f3..2ee49651fc8bd50a6466c1203bce967be1b31f01
+OK     def70bf28ecb sessions: the owner's rulings for audio9 saved (spec-audio9-rulings)
+OK     e75096fb3989 firmware: audio9, the route at start-up, the synth on it, S2 and PB5 (BR-17)
+EXEMPT 5aadb4b2f6e5 (merge) merge: main (#230: audio8 on the unit, HW-161 and HW-162) into audio9
+OK     91483862ec06 seams: audio8's record check takes the newest layout (audio9's layout 8)
+EXEMPT 99fa2656c948 (merge) merge: main (#230) into spec/audio9-unit
+OK     735b1c45893e spec: audio9's log, the headphone mute, PB5's levels, the halves of a word (HW-163, HW-164)
+EXEMPT f0e414aca0cf (merge) merge: clean's #231 (audio9) into the audio9-unit branch
+OK     7ec846ab7add spec: HW-164 held to the log: MASTER's jump, the fill's voices
+EXEMPT 2ee49651fc8b (merge) Merge pull request #232 from japes98/spec/audio9-unit
+9 commit(s) checked: PASS
+
+exit status 0

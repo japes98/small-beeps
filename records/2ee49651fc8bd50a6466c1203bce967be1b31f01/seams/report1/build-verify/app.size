@@ -1,0 +1,7 @@
+code 92868
+data 68
+bss 177824
+image 92936
+stack 4096
+irq_stack 2048
+ram_code 92156
