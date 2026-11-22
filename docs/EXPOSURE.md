@@ -3744,6 +3744,21 @@ SR-3 wrote only its barrier-log row.*
 - Read: #241's description and DESIGN-NOTES' audio12 and audio12b entries
   (this repository's own firmware notes).
 - Disk: about 2.7 GB free.
+
+### Session spec-audio13-rulings (audio13 ruled and sent)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio12-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/audio13-rulings` from main after #242; by the
+  round rules, no PR until the next round's.
+- The owner's rulings for audio13, saved unedited as
+  docs/prompts/spec-audio13-rulings.md. #242's first CI run failed at
+  checkout (the runner couldn't reach the host); the failed jobs were run
+  again, passed, and #242 was merged as the owner asked.
+- audio13 (drop/prompts/clean-br17-audio13.md, outside the repository)
+  marked ruled and sent to the clean session once #242 was on main.
+- Read: nothing new.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
