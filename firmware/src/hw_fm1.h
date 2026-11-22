@@ -166,7 +166,7 @@ void hw_rows_start(void);
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
 /* The build's identity in each record: the package's version, which the
  * candidate's pack must match (tools/report-decode.py prints it). */
-#define HW_BUILD_ID    "0.12.0-hw3v"
+#define HW_BUILD_ID    "0.12.1-hw3w"
 struct hw_report {
     u32 scanned;                /* the ring read once */
     u32 found;                  /* valid records found then */
@@ -298,9 +298,9 @@ void hw_finder(void) __attribute__((noreturn));
 #define HW_A11_SET_LOG 8u
 #define HW_A11_JUMPS  8u
 #define HW_A11_ALGS   10u    /* FM_ALGORITHMS */
-/* audio12 (clean-br17-audio12). The start: the instrument's own (sound,
- * no test screen), or the test screen when HOME is held at power-on (PLAY
- * and REC are m-bootloader's, HW-117). */
+/* audio12 (clean-br17-audio12, audio12b): power-on gives the test screen
+ * (HW_A12_TEST); SEL there runs the instrument's start (HW_A12_INSTRUMENT
+ * once the panel is up). */
 #define HW_A12_INSTRUMENT 1u
 #define HW_A12_TEST       2u
 /* S: the sweep's states; a chord of HW_A12_NOTES_CHORD notes held
@@ -512,7 +512,7 @@ struct hw_audio {
 #endif
 #if defined(SB_HW_AUDIO12)
     /* audio12 (clean-br17-audio12). */
-    u32 start_mode;             /* HW_A12_INSTRUMENT or HW_A12_TEST */
+    u32 start_mode;             /* HW_A12_TEST from power-on; HW_A12_INSTRUMENT once SEL's start has put the panel up */
     u32 as_state, as_alg, as_runs, as_stop, as_chords; /* S: HW_A12_SW_*; the algorithm playing (1 to 10); sweeps started; a stop asked; chords played */
     u32 as_frames;              /* frames into the chord or release now */
     u32 as_fill[HW_A11_ALGS];   /* each algorithm's longest fill (sb_now units) */
@@ -588,7 +588,6 @@ u32 hw_a11_pot_first(void);
 void hw_a11_big(u32 force);
 void hw_a12_sweep_key(void);
 void hw_a12_instrument(void);
-void hw_a12_test_release(void);
 const char *hw_step_now(void);
 void hw_matrix_check(u32 *idle, u32 *map);
 void hw_port_a(u32 *w);

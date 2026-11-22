@@ -3377,13 +3377,13 @@ def nonzero_runs(x, gap=32, least=4410):
 
 
 def a12_arp(work, log, b, name):
-    """The instrument's start in build b, ARP on and two keys held 4 s:
+    """The instrument's start (SEL) in build b, ARP on and two keys held 4 s:
     the steps' times in frames (sb_arp's log), and the record's fields."""
     fws = fw_suite()
     sy = fws.elf_symbols(os.path.join(b, "app.elf"))
     path = os.path.join(work, name + ".script")
     with open(path, "w") as f:
-        f.write("11000 key %d tap 100\n" % HW_ARP_KEY)
+        f.write("9000 key %d tap 100\n11000 key %d tap 100\n" % (HW_SEL, HW_ARP_KEY))
         for k in (HW_KEY1, HW_KEY5):
             f.write("11500 key %d down\n15500 key %d up\n" % (k, k))
     out = os.path.join(work, name)
@@ -3416,8 +3416,8 @@ def case_audio12(a, work, log):
     glyphs = font_glyphs()
     b = os.path.join(work, "build")
     build(b, log, *A12_DEFINES, "--define", "SB_TEST_A12_SHORT")
-    # The test screen: HOME held at power-on; a sweep; ALGORITHM turned and a note; a sweep stopped by LFO.
-    keys = [(0, HW_HOME, 5000), (12000, HW_LFO, 100), (24000, HW_EDIT, 100), (25000, HW_KEY1, 300),
+    # The test screen (power-on, audio12b); a sweep; ALGORITHM turned and a note; a sweep stopped by LFO.
+    keys = [(12000, HW_LFO, 100), (24000, HW_EDIT, 100), (25000, HW_KEY1, 300),
             (26000, HW_LFO, 100), (26300, HW_LFO, 100), (32000, HW_EDIT, 100)]
     path = os.path.join(work, "test.script")
     with open(path, "w") as f:
@@ -3478,7 +3478,7 @@ def case_audio12(a, work, log):
     build(zb, log, *A12_DEFINES, "--define", "SB_TEST_A12_SHORT", "--define", "SB_TEST_A12_SINE")
     zpath = os.path.join(work, "sine.script")
     with open(zpath, "w") as f:
-        f.write("0 key %d down\n5000 key %d up\n12000 key %d down\n12100 key %d up\n" % (HW_HOME, HW_HOME, HW_LFO, HW_LFO))
+        f.write("12000 key %d down\n12100 key %d up\n" % (HW_LFO, HW_LFO))
     zout = os.path.join(work, "sine")
     zr = fwtest(os.path.join(zb, "app.bin"), zout, log, "--ms", "22000", "--wav", "--script", os.path.relpath(zpath, ROOT))
     _, zl, _ = aa.read_wav(os.path.join(zout, "audio.wav"))
@@ -3487,43 +3487,49 @@ def case_audio12(a, work, log):
     if zr["run"]["outcome"] != "completed" or len(zfirst) != 10 or len(set(zfirst)) != 1:
         problems.append("audio12 G: Sine's sweep: %d runs, %d distinct of the first ten (want 1)" % (
             len(zruns), len(set(zfirst))))
-    # D5: the instrument's start: no key at power-on; KEY1 plays; FX and SEQ (the test screen's) do nothing.
+    # D5 (audio12b): SEL on the test screen runs the instrument's start, a record before each stage; KEY1 plays;
+    # FX, SEQ and EDIT (the test screen's) do nothing then.
     sy = fws.elf_symbols(os.path.join(b, "app.elf"))
     ipath = os.path.join(work, "inst.script")
     with open(ipath, "w") as f:
-        for t, key in ((9000, HW_KEY1), (10000, HW_FX), (10500, HW_SEQ), (11000, HW_EDIT)):
-            f.write("%d key %d down\n%d key %d up\n" % (t, key, t + 300, key))
+        for t, key in ((9000, HW_SEL), (12000, HW_KEY1), (13000, HW_FX), (13500, HW_SEQ), (14000, HW_EDIT)):
+            f.write("%d key %d down\n%d key %d up\n" % (t, key, t + (100 if key == HW_SEL else 300), key))
     iout = os.path.join(work, "inst")
-    ir = fwtest(os.path.join(b, "app.bin"), iout, log, "--ms", "12000", "--flash-out", "--wav", "--lcd", "11900",
+    ir = fwtest(os.path.join(b, "app.bin"), iout, log, "--ms", "15000", "--flash-out", "--wav", "--lcd", "14900",
                 "--script", os.path.relpath(ipath, ROOT), "--ram", "0x%08x:8@end" % sy["sb_ui"])
     with open(os.path.join(iout, "flash.bin"), "rb") as f:
         irs, ibad = rd.records(f.read())
-    ilabels = [x["label"] for x in irs if not x["label"].startswith("PB5")]
+    ilabels = [x["label"] for x in irs if x["label"] != "MASTER still" and not x["label"].startswith("PB5")]
     ib = irs[-1]["fields"] if irs else {}
     ui_marker, ui_screen = struct.unpack("<2I", ram(iout, sy["sb_ui"], 8))
     _, il, _ = aa.read_wav(os.path.join(iout, "audio.wav"))
     played = il[len(il) - int(2.9 * rate):len(il) - int(2.5 * rate)]
-    if ir["run"]["outcome"] != "completed" or ibad or ilabels != ["Synth on", "L2 before", "L2 kept", "R2 before",
-                                                                   "R2 set", "Route before", "Route kept", "boot"] \
+    if ir["run"]["outcome"] != "completed" or ibad or ilabels != [
+            "boot", "L2 before", "L2 kept", "R2 before", "R2 set", "Route before", "Route kept", "page", "Inst synth",
+            "Synth on", "Inst ALNK0", "Inst L2", "Inst R2", "Inst route", "Inst panel"] \
             or g(ib, "start_mode") != 1 or g(ib, "a9_route") != 1 or g(ib, "a9_synth") != 1 \
             or rd.big_text(ib)[0] != "audio12: sound o" or ui_marker != 0x38495553 or not played \
             or max(abs(v) for v in played) < 100:
         problems.append("audio12 D5: %s, records %s, mode %d route %d synth %d, line %s, panel marker %x, KEY1 peak %d"
                         % (ir["run"]["outcome"], ilabels, g(ib, "start_mode"), g(ib, "a9_route"), g(ib, "a9_synth"),
                            rd.big_text(ib), ui_marker, max([abs(v) for v in played] or [0])))
-    # D5's self-undo, forced: the route's check fails; the instrument runs, silent, and says why.
+    # D5's self-undo, forced: the route's check fails (at power-on and again at SEL's start); the instrument runs,
+    # silent, and says why.
     ub = os.path.join(work, "build-undo")
     build(ub, log, *A12_DEFINES, "--define", "SB_TEST_A9_CHECK_FAIL")
     usy = fws.elf_symbols(os.path.join(ub, "app.elf"))
     uout = os.path.join(work, "undo")
-    ur = fwtest(os.path.join(ub, "app.bin"), uout, log, "--ms", "9000", "--flash-out", "--lcd", "8900",
-                "--ram", "0x%08x:8@end" % usy["sb_ui"])
+    upath = os.path.join(work, "undo.script")
+    with open(upath, "w") as f:
+        f.write("9000 key %d down\n9100 key %d up\n" % (HW_SEL, HW_SEL))
+    ur = fwtest(os.path.join(ub, "app.bin"), uout, log, "--ms", "13000", "--flash-out", "--lcd", "12900",
+                "--script", os.path.relpath(upath, ROOT), "--ram", "0x%08x:8@end" % usy["sb_ui"])
     with open(os.path.join(uout, "flash.bin"), "rb") as f:
         urs, _ = rd.records(f.read())
     ubf = urs[-1]["fields"] if urs else {}
     uline = "".join(rd.big_text(ubf))
     umarker = struct.unpack("<2I", ram(uout, usy["sb_ui"], 8))[0]
-    if ur["run"]["outcome"] != "completed" or not urs or urs[-1]["label"] != "boot" or g(ubf, "a9_route") != 3 \
+    if ur["run"]["outcome"] != "completed" or not urs or urs[-1]["label"] != "Inst panel" or g(ubf, "a9_route") != 3 \
             or not uline.startswith("NO SOUND: ") or umarker != 0x38495553:
         problems.append("audio12 D5 undo: %s, last %s, route %d, line %r, panel marker %x" % (
             ur["run"]["outcome"], urs[-1]["label"] if urs else None, g(ubf, "a9_route"), uline, umarker))
@@ -3538,10 +3544,39 @@ def case_audio12(a, work, log):
         if ar["run"]["outcome"] != "completed" or len(diffs) < 8 or any(abs(d - 5514) > 2 for d in diffs):
             problems.append("audio12 D6 %s: %s, %d steps, frames between %s (5514 +-2)" % (
                 name, ar["run"]["outcome"], steps, diffs[:12]))
-    print("audio12: test screen with HOME held; the sweep in Bell: longest fills (us) %s with 8 voices, releases %s"
+    # The unit's file (audio12b): the candidate's build (the 16-bit layout, no test seams, the full hold), packed
+    # from the package link as the unit runs it (0x02000120, HW-91), through fwtest's package path past the start's
+    # bands (to the audio page, at fwtest's slower slots); the raw link (0x02000000) packed the same way stops at
+    # the first two bands, blue and green, as audio12's file did on the unit (#240).
+    cb = os.path.join(work, "build-unit")
+    build(cb, log, "--define", "SB_HW_FM1", "--define", "SB_HW_HOLD", "--define", "SB_HW_AUDIO1", "--define",
+          "SB_HW_REPORT", "--define", "SB_HW_AUDIO8", "--define", "SB_HW_PCM16", "--define", "SB_HW_AUDIO9",
+          "--define", "SB_HW_AUDIO10", "--define", "SB_HW_AUDIO11", "--define", "SB_HW_AUDIO12")
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import fwsc
+    pk = {}
+    for link in ("app-pkg", "app"):
+        path = os.path.join(work, "unit-%s.fwsc" % link)
+        with open(path, "wb") as f:
+            f.write(fwsc.pack(read_bytes(os.path.join(cb, link + ".bin")), "FM-1_0.12.1-hw3w"))
+        pout = os.path.join(work, "unit-" + link)
+        pr = fwtest(path, pout, log, "--package", "--ms", "40000", "--lcd", "39900")
+        png = os.path.join(pout, "lcd-39900ms.png")
+        bands = None
+        if os.path.exists(png):
+            _, _, rows = fws.read_png(png)
+            # The bands as the raw link leaves them: blue across row 72, green across row 96.
+            bands = all(rows[72][x][:3] == (0, 0, 255) and rows[96][x][:3] == (0, 255, 0) for x in range(0, 240, 16))
+        pk[link] = (pr["run"]["outcome"], bands)
+    if pk["app-pkg"][0] != "completed" or pk["app-pkg"][1] is not False or pk["app"][1] is not True:
+        problems.append("audio12 unit file: the package link %s, the raw link %s (outcome, still at the two bands)"
+                        % (pk["app-pkg"], pk["app"]))
+    print("audio12: the unit's build packed: the package link past the bands: %s; the raw link stopped at them: %s"
+          % (pk["app-pkg"][1] is False, pk["app"][1]))
+    print("audio12: test screen; the sweep in Bell: longest fills (us) %s with 8 voices, releases %s"
           " frames, no clip or late half; stopped after chord %d of the second; G: %d note ons, read = voice's, a turn"
-          " taken; Bell's ten chords distinct, Sine's identical (%d distinct); the large area %s; D5: the instrument"
-          " (panel, route up, KEY1 peak %d), its self-undo: %r; D6: ARP steps %s frames apart (fwtest's layout), %s"
+          " taken; Bell's ten chords distinct, Sine's identical (%d distinct); the large area %s; D5: SEL's start"
+          " (records before each stage, panel, route up, KEY1 peak %d), its self-undo: %r; D6: ARP steps %s frames apart (fwtest's layout), %s"
           " (the unit's)" % (
               [(w & 0xFFFF) / 10.0 for w in fills], sorted({g(done, "as_rel_frames_%d" % k) for k in range(1, 11)}),
               k, g(last, "g_note_n"), len(set(zfirst)), big, max([abs(v) for v in played] or [0]), uline,

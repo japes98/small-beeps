@@ -4042,6 +4042,25 @@ SR-3 wrote only its barrier-log row.*
   `F45E`), so audio11's pending check against section 47 is closed.
 - Disk: about 2.7 GB free.
 
+### Session clean-br17-audio12b (BR-17: audio12's file stopped on the unit; the instrument's start behind SEL)
+- Date: 2026-11-22 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.330, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio12's, continued. The owner's report and rulings, pasted
+  into this session, saved unedited as docs/prompts/clean-br17-audio12b.md.
+- Start: branch `hw/audio12b` on top of `hw/audio12` (#240, not merged).
+  Nothing to archive (the last clean session is this one, live).
+- Reads: this side's own code and builds; HARDWARE-SPEC HW-5, HW-90,
+  HW-91, HW-110, HW-114 (the app area, the code window, the app's link at
+  `0x02000120`) and docs/HARNESS.md ("Packages"), as on main at
+  `f124a6b4`. The backup the owner names was not opened: it is the owner's
+  file, outside this folder.
+- Disk: about 2.8 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

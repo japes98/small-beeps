@@ -5694,3 +5694,45 @@ USB register, no store write.
   MASTER's raw ring and jump list, the fill per algorithm), with the start,
   the sweep's fields and G's after the large area: 996 words.
 
+### 2026-11-22 clean-br17-audio12b: audio12's file stopped at the first bands; the instrument's start behind SEL (BR-17, R-HW-1)
+The owner's report (docs/prompts/clean-br17-audio12b.md): audio12's file
+stopped on the unit at the blue and green bands, with or without HOME, no
+record written. The owner's rulings: power-on to the test screen; the
+instrument's start behind a test-screen key, with a record before each
+stage; the hang found; a seams case that would have caught it; S, G, G2 and
+D6 kept.
+
+- **The hang was the file, not the code.** audio12's `.fwsc` was packed
+  from `app.bin`, the raw image linked at `0x02000000` (fwtest's raw
+  path), instead of `app-pkg.bin`, the package link at `0x02000120`, where
+  a package's app runs (HW-91). Every earlier candidate was packed from
+  `app-pkg.bin`: re-packing audio11's gives its file's SHA-256 exactly,
+  and re-packing it from `app.bin` doesn't. With the raw link the start
+  code (in the window, position-independent enough) draws bands 1 and 2,
+  then copies the RAM image from the wrong place (`__data_load` is 0x120
+  short), so main runs garbage: in fwtest's package path that package stops
+  at the two bands with garbled rows, and the same build packed from
+  `app-pkg.bin` runs to the panel. The report's own reading (a hang after
+  core 1's screen) doesn't fit the screen: with HOME held the step row
+  would have asked for HOME to be let go, and before that come band 3, the
+  pattern and the rows.
+- **How fwtest passed it:** every seams case runs `app.bin`, the raw link,
+  through fwtest's raw path, which is right for that link; none ran the
+  file that went to the unit. The pack was a manual step, and `fwsc check`
+  checks the package's structure and key, not the app's link.
+- **What catches it now:** `tools/fwsc.py pack` reads the ELF beside the
+  app and refuses one not linked at `0x02000120` (or with no ELF beside
+  it). Case audio12 builds the unit's own defines (the 16-bit layout, no
+  test seams, the full hold), packs both links and runs them through
+  fwtest's package path for 40 s: the package link must get past the
+  start's blue and green bands (to the audio page, at fwtest's slower
+  slots), and the raw link must still show them (the negative control).
+- **The instrument's start behind SEL** (SEL pressed alone is nothing to
+  the engine, and audio11's set-up comparison is settled, HW-170): a
+  record ("Inst synth", "Inst ALNK0", "Inst L2", "Inst R2", "Inst route",
+  "Inst panel") and a step row before each stage. ALNK0, L2, R2 and the
+  route are up already from the test screen's start, so those stages
+  record it and leave them as they are; the route is tried again only if
+  it is down (SEL let go first: the check stops on a key held). Then the
+  panel, as audio12's. Identity hw3w.
+

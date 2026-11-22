@@ -2982,25 +2982,53 @@ static u32 a12_big(char (*t)[16])
     return 1;
 }
 
-/* D5 (the owner's ruling): the instrument's own start. The engine, ALNK0
- * in N, L2, port C's four pins and the route with the matrix check and its
- * self-undo (audio9's start, unchanged), the synth filling the halves;
- * then the panel (views.c) in place of the test screen, with a line that
- * says whether the route came up and, if not, why (the step row's text:
- * the instrument runs on, silent). The test screen's keys do nothing:
- * main gives the events to the panel. The boot's record is saved after. */
+/* D5, as audio12b (the owner's ruling after #240 stopped on the unit):
+ * power-on gives the test screen, as audio11's, and SEL there runs the
+ * instrument's start, until it has worked on the unit. Each stage writes a
+ * record before it runs and shows itself on the step row, so a stage that
+ * hangs names itself: the synth, ALNK0, L2, R2, the route, the panel. A
+ * stage the test screen's own start already brought up is recorded and
+ * left as it is (ALNK0 isn't started twice). Then the panel (views.c) in
+ * place of the test screen, with a line that says whether the route is
+ * up and, if not, why (the step row's text; the instrument runs on,
+ * silent); main gives the events to the panel, so the test screen's keys
+ * do nothing more. */
+static void a12_stage(const char *label, const char *step)
+{
+    report(label);
+    hw_step(step);
+}
+
 void hw_a12_instrument(void)
 {
     static char t[40];
     const char *s;
     char *p;
 
-    hw_step("audio12: the instrument's start");
-    fm_init();
-    /* The synth from the first half (no tone at power-on). */
-    hw_a9_synth_key();
-    hw_audio_start();
-    hw_audio9_boot();
+    a8_release(INPUT_SEL, "audio12: instrument: let go of SEL");
+    a12_stage("Inst synth", "audio12: instrument: the synth");
+    if (!hw_aud.a9_synth)
+        hw_a9_synth_key();
+    a12_stage("Inst ALNK0", hw_aud.started ? "audio12: instrument: ALNK0 already running"
+                                           : "audio12: instrument: ALNK0");
+    if (!hw_aud.started)
+        hw_audio_start();
+    a12_stage("Inst L2", hw_aud.l_state == HW_L_KEPT ? "audio12: instrument: L2 already kept"
+                                                     : "audio12: instrument: L2");
+    if (hw_aud.l_state != HW_L_KEPT)
+        hw_audio_boot_l2();
+    a12_stage("Inst R2", hw_aud.r2_state == HW_A8_R2_SET ? "audio12: instrument: R2 already set"
+                                                         : "audio12: instrument: R2");
+    if (hw_aud.l_state == HW_L_KEPT && hw_aud.r2_state != HW_A8_R2_SET && hw_aud.a9_route != HW_A9_ROUTE_UP)
+        hw_a8_r2();
+    a12_stage("Inst route", hw_aud.a9_route == HW_A9_ROUTE_UP ? "audio12: instrument: route already up"
+                                                              : "audio12: instrument: the route");
+    if (hw_aud.l_state != HW_L_KEPT) {
+        hw_aud.a9_route = HW_A9_ROUTE_NOL2;
+        hw_step("audio12: L2 didn't run: no route");
+    } else if (hw_aud.a9_route != HW_A9_ROUTE_UP && !a8_off("Route refused")) {
+        a9_route_up();
+    }
     if (hw_aud.a9_route == HW_A9_ROUTE_UP) {
         p = put_s(t, "audio12: sound on");
     } else {
@@ -3013,35 +3041,18 @@ void hw_a12_instrument(void)
     }
     *p = 0;
     {
-        /* The line in the log too, in the large area's words (unused here). */
+        /* The line in the log too, in the large area's words (unused now). */
         u32 k;
 
         for (k = 0; k < 48u; k++)
             hw_aud.big[k / 16u][k % 16u] = k < (u32)(p - t) ? t[k] : 0;
     }
-    report("boot");
+    hw_aud.start_mode = HW_A12_INSTRUMENT;
+    a12_stage("Inst panel", "audio12: instrument: the panel");
     lcd_wait();
     view_message(t, 0);
-    /* No more of the start's rows over the panel. */
+    /* No more of the test screen's rows over the panel. */
     hw_hold_screen = 1;
-}
-
-/* The test screen's start (HOME held at power-on): HOME let go first (the
- * route's check stops on a key held), at most 10 s, and its events
- * dropped, so the test screen doesn't take the press as its own. */
-void hw_a12_test_release(void)
-{
-    u32 t0 = sb_beacon.beats;
-    struct input_event e;
-
-    hw_step("audio12: test screen: let go of HOME");
-    while (input_value(INPUT_HOME) && sb_beacon.beats - t0 < 10000u)
-        sb_wait_ms(10);
-    sb_wait_ms(50);
-    while (input_read(&e))
-        ;
-    while (input_read_audio(&e))
-        ;
 }
 
 /* G: the engine's reports (fm.h), from its context. */
@@ -4640,15 +4651,16 @@ struct guide_step {
     char what[13];
 };
 #if defined(SB_HW_AUDIO12)
-/* audio12's order (the test screen, HOME held at power-on): the sweep
- * (hands off until "SWEEP DONE"), a save; a second sweep stopped with LFO
- * during a chord, a save. */
+/* audio12's order: the sweep (hands off until "SWEEP DONE"), a save; a
+ * second sweep stopped with LFO during a chord, a save; then SEL, the
+ * instrument's start (the panel: the test screen is gone until power-off). */
 static const struct guide_step guide[] = {
     { INPUT_LFO, "sweep" },
     { INPUT_EDIT, "save" },
     { INPUT_LFO, "sweep again" },
     { INPUT_LFO, "stop it" },
     { INPUT_EDIT, "save" },
+    { INPUT_SEL, "instrument" },
 };
 #elif defined(SB_HW_AUDIO11)
 /* audio11's order: in N with MASTER still, about ten seconds with nothing

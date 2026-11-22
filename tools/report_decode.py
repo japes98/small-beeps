@@ -276,7 +276,7 @@ def _layout10():
     return body + f + l9[len(l9) - health:]
 
 
-A12_MODES = ("?", "the instrument", "the test screen (HOME held at power-on)")
+A12_MODES = ("?", "the test screen, then the instrument (SEL)", "the test screen")
 A12_SWEEP = ("not run", "playing a chord", "waiting for a release", "done (all ten)", "stopped by the key")
 
 
@@ -418,7 +418,7 @@ def audio11_lines(f):
 
 
 def audio12_lines(f):
-    out = ["audio12: started as %s; sweep %s (algorithm %d, %d runs, %d chords%s)" % (
+    out = ["audio12: running %s; sweep %s (algorithm %d, %d runs, %d chords%s)" % (
         A12_MODES[min(f["start_mode"], 2)], A12_SWEEP[min(f["as_state"], 4)], f["as_alg"], f["as_runs"],
         f["as_chords"], ", a stop asked" if f["as_stop"] else "")]
     for k in range(1, 11):

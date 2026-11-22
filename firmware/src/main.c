@@ -458,6 +458,15 @@ static void hw_serve(void)
             continue;
         }
 #endif
+#if defined(SB_HW_AUDIO12)
+        /* audio12b (D5, the owner's ruling): SEL runs the instrument's
+         * start; the panel takes over from the test screen. */
+        if (e.control == INPUT_SEL && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_audio_leds(e.control);
+            hw_a12_instrument();
+            return;
+        }
+#endif
 #if defined(SB_HW_AUDIO10)
         /* audio10 (the spec side's clean-br17-audio10): LFO cycles F's
          * format; PLAY zeros, HOME the LED blink, ENV the screen, GLO the
@@ -919,14 +928,9 @@ int main(void)
     /* start3c: core 1's screen, held (SB_HW_HOLD). */
     hw_core1_screen();
 #if defined(SB_HW_AUDIO12)
-    /* audio12 (D5, the owner's ruling): the instrument's own start (the
-     * audio path, then the panel, hw_audio.c), unless HOME is held now:
-     * then the test screen, as audio11's, once HOME is let go. */
-    hw_aud.start_mode = input_value(INPUT_HOME) ? HW_A12_TEST : HW_A12_INSTRUMENT;
-    if (hw_aud.start_mode == HW_A12_INSTRUMENT) {
-        hw_a12_instrument();
-    } else {
-        hw_a12_test_release();
+    /* audio12b (the owner's ruling): the test screen, as audio11's; SEL
+     * there runs the instrument's start (hw_audio.c). */
+    hw_aud.start_mode = HW_A12_TEST;
 #endif
     hw_step("test screen: drawing");
 #else
@@ -970,9 +974,6 @@ int main(void)
     hw_audio_page();
     hw_test_screen();
     hw_guide_show();
-#endif
-#if defined(SB_HW_AUDIO12)
-    }
 #endif
 #endif
 #endif
@@ -1023,9 +1024,9 @@ int main(void)
                 sb_beacon.wakes = wakes;
                 sb_beacon.wakes_ticks = sb_beacon.tick_count;
 #if defined(SB_HW_AUDIO12)
-                /* The instrument's start: its panel serves the events
-                 * (the test screen's keys do nothing); no store (its
-                 * flash writes aren't part of audio12). */
+                /* Once SEL's start has put the panel up, the panel
+                 * serves the events (the test screen's keys do nothing);
+                 * no store (its flash writes aren't part of audio12). */
                 if (hw_aud.start_mode == HW_A12_INSTRUMENT)
                     view_serve();
                 else
