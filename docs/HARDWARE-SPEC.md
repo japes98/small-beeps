@@ -5002,8 +5002,9 @@ the results; HW-175 says what they settle.
   screen:
   1. **The instrument's start, behind SEL:** every stage was logged in
      order (synth, ALNK0, L2, R2, route, panel), and the panel came up with
-     sound. The test screen's own start had already brought up ALNK0, L2,
-     R2 and the route, so those stages found them up and left them.
+     sound. By clean's #241 report, the test screen's own start had
+     already brought up ALNK0, L2, R2 and the route, and those stages leave
+     them as they are.
   2. **The sweep, in the patch Bell (all six operators sounding):** in
      each of algorithms 1 to 10 the longest fill with 8 voices was 982 to
      1 018 µs, of a half's 2 902 µs (128 frames). Nothing soft clipped or
