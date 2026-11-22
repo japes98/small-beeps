@@ -3622,13 +3622,15 @@ SR-3 wrote only its barrier-log row.*
 - Updated the draft drop/prompts/clean-br17-audio11.md: A as the owner
   ruled, E the key status in large text; B and D still await rulings.
 - Read: nothing new.
+- Disk: about 3 GB free.
+
 ### Session spec-fwtest-audio-chip (fwtest 0.13.0: the chip's 16-bit audio layout)
 - Date: 2026-11-22 (UTC)
 - Role: **spec side (exposed).** Never writes firmware.
 - Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
   session as spec-audio11-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
   on a new branch `spec/fwtest-alnk16` from main: audio11's D item 7, by
-  the owner's ruling, as its own PR in parallel with #234.
+  the owner's ruling, as its own PR (cumulative on #234).
 - The owner's rulings, saved unedited as docs/prompts/spec-audio11-rulings.md
   (the same file as on `spec/audio11-unit`).
 - Changed: the vendored emulator (patch 0020, `fm1-soc`'s audio link),

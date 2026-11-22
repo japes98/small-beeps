@@ -199,7 +199,7 @@ Applied in file-name order by the fetch script, after checkout:
   `flash_protection_from_the_flash_file` (image
   `tests/images/flashprot.c`), fail without it (fwtest 0.12.0).
 - `patches/0020-audio-chip16.patch` (the owner's ruling of 2026-11-22,
-  audio11's D item 7): `crates/fm1-soc/src/periph.rs` and `lib.rs`, the
+  the round's item D7): `crates/fm1-soc/src/periph.rs` and `lib.rs`, the
   audio link, when `audio_chip16` is on (fwtest's `--audio-chip`) and
   `CON1`'s data 3 nibble is `0x1`, plays `LEN` frames a half, one word a
   frame, its upper then lower 16 bits as the two samples (HW-160,
