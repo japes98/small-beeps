@@ -2934,8 +2934,10 @@ def case_audio9(a, work, log):
     if odd:
         problems.append("audio9: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1: %s"
                         % odd[:8])
-    if bad or any(x["layout"] != max(rd.FIELDS) or not x["known"] or x["count"] != len(rd.FIELDS[8]) for x in rs):
-        problems.append("audio9: %d bad records, or one not layout 8 with %d fields" % (len(bad), len(rd.FIELDS[8])))
+    top = max(rd.FIELDS)
+    if bad or any(x["layout"] != top or not x["known"] or x["count"] != len(rd.FIELDS[top]) for x in rs):
+        problems.append("audio9: %d bad records, or one not layout %d with %d fields" % (len(bad), top,
+                                                                                       len(rd.FIELDS[top])))
     labels = [x["label"] for x in rs if x["label"] not in ("page", "boot") and not x["label"].startswith("PB5")]
     want = ["L2 before", "L2 kept", "R2 before", "R2 set", "Route before", "Route kept", "S2 upper", "S2 lower",
             "S2 both", "Synth on", "Route down", "R2 undone", "R2 before", "R2 set", "Route before", "Route kept",
@@ -3018,7 +3020,9 @@ def case_audio9(a, work, log):
     r, _, prs, _ = a9_run(work, log, pb, "run-pcm16", [(9000, HW_LFO, 100), (10500, HW_LFO, 100),
                                                        (12000, HW_LFO, 100)], 14000)
     f = prs[-1]["fields"] if prs else {}
-    words = {st: [f.get("a9_words_%s_%d" % (st, i), 0) for i in range(4)] for st in ("both", "upper", "lower")}
+    # Since layout 9 the words are kept by format: P (both), U (upper), L (lower).
+    words = {st: [f.get("a9_words_%s_%d" % (n, i), 0) for i in range(4)]
+             for st, n in (("both", "P"), ("upper", "U"), ("lower", "L"))}
     ok = (all(w >> 16 == w & 0xFFFF for w in words["both"]) and any(words["both"])
           and all(not w & 0xFFFF for w in words["upper"]) and any(words["upper"])
           and all(not w >> 16 for w in words["lower"]) and any(words["lower"]))
@@ -3027,6 +3031,133 @@ def case_audio9(a, work, log):
                                                                    {k: ["%08x" % w for w in v] for k, v in words.items()}))
     print(summary + "; the forced port A movement and failed check undid the route and R2; the 16-bit words: both"
           " %08x, upper %08x, lower %08x" % (words["both"][0], words["upper"][0], words["lower"][0]))
+    return problems
+
+
+A10_DEFINES = A9_DEFINES + ("--define", "SB_HW_AUDIO10")
+HW_PLAY, HW_HOME = 12, 8   # fwtest's keys of PLAY and HOME (input.h)
+HW_CHORD = (14, 16, 18, 19, 21, 23, 25, 26)   # KEY1, 3, 5, 6, 8, 10, 12, 13: eight keys (fwtest's key numbers)
+
+
+def case_audio10(a, work, log):
+    """audio10 (clean-br17-audio10): F's five formats cycled by LFO, each
+    logged; the synth with an 8-key chord (M2's soft clip and M3's
+    saturation: the sum never wraps), its fill timed with 8 voices; MASTER
+    moved by the script's pot, its value, raw reading and applied levels
+    logged; C's holds (zeros, the LED blink, the screen, the log) each on
+    and back by its key, and the scan hold ending by itself; the zero key's
+    zeros in audio.wav; the tone looked at for a step at any period. Then
+    the test builds: 18 dB more into the soft clip; and in the 16-bit build
+    each format's words, the clamp of the most negative sample included."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    b = os.path.join(work, "build")
+    build(b, log, *A10_DEFINES)
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    h, ga = sy["hw_aud"], sy["hw_guide_at"]
+    keys = [(9000 + 1000 * i, HW_LFO, 100) for i in range(5)] + [(14000, HW_FX, 100)]
+    keys += [(15000 + 20 * i, k, 3000) for i, k in enumerate(HW_CHORD)] + [(19000, HW_FX, 100)]
+    # MASTER's record comes after 1000 still beats, 2.5 s of fwtest's time (HW_RATIO): the pot's moves 3 s apart.
+    keys += [(35000, HW_PLAY, 100), (37000, HW_PLAY, 100), (38000, HW_HOME, 100), (39000, HW_HOME, 100),
+             (40000, HW_ENV, 100), (41000, HW_ENV, 100), (42000, HW_GLO, 100), (43000, HW_GLO, 100),
+             (44000, HW_REC, 100), (58000, HW_EDIT, 100)]
+    path = os.path.join(work, "run.script")
+    with open(path, "w") as f:
+        for t, k, d in keys:
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + d, k))
+        for t, v in ((20000, 900), (23000, 600), (26000, 300), (29000, 100), (32000, 1000)):
+            f.write("%d pot %d\n" % (t, v))
+    out = os.path.join(work, "run")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "61000", "--flash-out", "--wav",
+               "--script", os.path.relpath(path, ROOT), "--ram", "0x%08x:4@end" % ga,
+               "--ram", "0x%08x:%d@end" % (h, AUD_LEN))
+    with open(os.path.join(out, "flash.bin"), "rb") as f:
+        rs, bad = rd.records(f.read())
+    if r["run"]["outcome"] != "completed":
+        problems.append("audio10: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    acc = {u["address"] for u in r["run"]["unmodelled_accesses"]}
+    odd = sorted(acc - HW_WINDOW_REGS - {"0x00012f00"} - GPCNT_REGS - ALNK1_REGS)
+    if odd:
+        problems.append("audio10: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1: %s"
+                        % odd[:8])
+    top = max(rd.FIELDS)
+    if bad or any(x["layout"] != top or not x["known"] or x["count"] != len(rd.FIELDS[top]) for x in rs):
+        problems.append("audio10: %d bad records, or one not layout %d with %d fields" % (len(bad), top,
+                                                                                         len(rd.FIELDS[top])))
+    labels = [x["label"] for x in rs if x["label"] not in ("page", "boot", "MASTER still")
+              and not x["label"].startswith("PB5")]
+    want = ["L2 before", "L2 kept", "R2 before", "R2 set", "Route before", "Route kept", "F L", "F N", "F N'", "F P",
+            "F U", "Synth on", "Synth off", "ZERO on", "zero off", "LED HELD", "LED blink on", "SCREEN HELD",
+            "screen on", "LOG HELD", "log on", "SCAN HELD", "scan hold end", "save key"]
+    if labels != want:
+        problems.append("audio10: records %s, want %s" % (labels, want))
+    last = rs[-1]["fields"] if rs else {}
+    stills = [x["fields"]["m_value"] for x in rs if x["label"] == "MASTER still"]
+    ring = [last.get("m_ring_%d" % (k % 40), 0) & 0x3FF for k in range(max(0, last.get("m_ring_n", 0) - 40),
+                                                                      last.get("m_ring_n", 0))]
+    if last.get("a10_fmt_changes") != 5 or last.get("a9_s2") != 1 or last.get("holds") or last.get("hold_n") != 10 \
+            or last.get("a10_voices_max") != 8 or not last.get("a10_fill_max8_units") or last.get("a9_late_halves") \
+            or last.get("a10_saturated") or last.get("log_dropped"):
+        problems.append("audio10: %s" % {k: last.get(k) for k in ("a10_fmt_changes", "a9_s2", "holds", "hold_n",
+                                                                  "a10_voices_max", "a10_fill_max8_units",
+                                                                  "a9_late_halves", "a10_saturated", "log_dropped")})
+    # fwtest moves the pot in steps the scan sees on the way; each pause leaves a record at its value.
+    if any(not any(abs(v - p) <= 8 for v in stills) for p in (600, 300, 100, 1000)) or len(ring) < 8:
+        problems.append("audio10: MASTER's still records %s (600, 300, 100, 1000), changes %s" % (stills, ring))
+    gat = struct.unpack("<I", ram(out, ga, 4))[0]
+    if gat != 16:
+        problems.append("audio10: the guide at %d (16)" % gat)
+    rate, left, right = aa.read_wav(os.path.join(out, "audio.wav"))
+    at = lambda t0, t1: left[len(left) - int((61 - t0) * rate):len(left) - int((61 - t1) * rate)]
+    chord, zero, tone = at(15.5, 17.9), at(35.4, 36.8), at(5, 8.5)
+    jump = max(abs(chord[i + 1] - chord[i]) for i in range(len(chord) - 1)) if chord else 0
+    d2 = max(abs(tone[i + 1] - 2 * tone[i] + tone[i - 1]) for i in range(1, len(tone) - 1)) if tone else 0
+    if left != right or not chord or max(abs(v) for v in chord) < 500 or jump > 16000 or any(zero) or d2 > 100:
+        problems.append("audio10: audio.wav: chord peak %d, largest step %d (a wrap is near 65535); %d non-zero"
+                        " samples while zeros held; the tone's largest second difference %d (a 440 Hz sine at its"
+                        " level about 13)" % (max([abs(v) for v in chord] or [0]), jump, sum(1 for v in zero if v),
+                                              d2))
+    summary = ("audio10: F's five formats cycled and logged; the 8-key chord with %d voices, peak %d, largest step %d,"
+               " longest fill with 8 voices %.1f us; MASTER %s logged, %d raw jumps; the holds on and back, the scan"
+               " hold ended by itself; zeros while held; the tone's largest second difference %d (no step at any"
+               " period)" % (last.get("a10_voices_max", 0), max([abs(v) for v in chord] or [0]), jump,
+                             last.get("a10_fill_max8_units", 0) / 24.0, stills, last.get("m_raw_jumps", 0), d2))
+    # 18 dB more into M2: the soft clip bends the chord, nothing saturates or wraps.
+    gb = os.path.join(work, "build-gain")
+    build(gb, log, *A10_DEFINES, "--define", "SB_TEST_A10_GAIN")
+    gkeys = [(9000, HW_FX, 100)] + [(10000 + 20 * i, k, 3000) for i, k in enumerate(HW_CHORD)] + [(14000, HW_EDIT, 100)]
+    r, gout, grs, _ = a9_run(work, log, gb, "run-gain", gkeys, 16000, "--wav")
+    gl = aa.read_wav(os.path.join(gout, "audio.wav"))[1]
+    gc = gl[len(gl) - int(5.5 * rate):len(gl) - int(3.2 * rate)]
+    gjump = max(abs(gc[i + 1] - gc[i]) for i in range(len(gc) - 1)) if gc else 0
+    gf = grs[-1]["fields"] if grs else {}
+    if r["run"]["outcome"] != "completed" or not gf.get("a10_soft_clipped") or gf.get("a10_saturated") \
+            or max([abs(v) for v in gc] or [0]) >= 32767 or gjump > 16000:
+        problems.append("audio10 gain: %s, soft %s, saturated %s, peak %d, largest step %d" % (
+            r["run"]["outcome"], gf.get("a10_soft_clipped"), gf.get("a10_saturated"),
+            max([abs(v) for v in gc] or [0]), gjump))
+    # The 16-bit build: each format's words, each half's first sample forced to the most negative.
+    pb = os.path.join(work, "build-pcm16")
+    build(pb, log, *A10_DEFINES, "--define", "SB_HW_PCM16", "--define", "SB_TEST_A10_CLAMP")
+    # The words of each format are those of its halves after the switch: a save at the end carries P's.
+    r, _, prs, _ = a9_run(work, log, pb, "run-pcm16", [(9000 + 1500 * i, HW_LFO, 100) for i in range(4)]
+                          + [(15500, HW_EDIT, 100)], 17000)
+    f = prs[-1]["fields"] if prs else {}
+    words = {fm: [f.get("a9_words_%s_%d" % (fm, i), 0) for i in range(4)] for fm in ("P", "U", "L", "N", "N'")}
+    first = {"P": 0x80008000, "U": 0x80000000, "L": 0x00008000, "N": 0x80007FFF, "N'": 0x7FFF8000}
+    neg = lambda x: (-((x ^ 0x8000) - 0x8000)) & 0xFFFF
+    rule = {"P": lambda w: w >> 16 == w & 0xFFFF, "U": lambda w: not w & 0xFFFF, "L": lambda w: not w >> 16,
+            "N": lambda w: w & 0xFFFF == neg(w >> 16), "N'": lambda w: w >> 16 == neg(w & 0xFFFF)}
+    bad_fmt = [fm for fm, ws in words.items() if ws[0] != first[fm] or not all(rule[fm](w) for w in ws[1:])
+               or not any(ws[1:])]
+    if r["run"]["outcome"] != "completed" or bad_fmt or f.get("a8_pcm16") != 1:
+        problems.append("audio10 16-bit: %s, formats wrong %s: %s" % (r["run"]["outcome"], bad_fmt,
+                                                                      {k: ["%08x" % w for w in v]
+                                                                       for k, v in words.items()}))
+    print(summary + "; with 18 dB more the soft clip bent %d samples, none saturated, peak %d; the 16-bit words: %s"
+          % (gf.get("a10_soft_clipped", 0), max([abs(v) for v in gc] or [0]),
+             ", ".join("%s %08x %08x" % (k, v[0], v[1]) for k, v in words.items())))
     return problems
 
 
@@ -3087,6 +3218,7 @@ CASES = [
     ("audio7", case_audio7),
     ("audio8", case_audio8),
     ("audio9", case_audio9),
+    ("audio10", case_audio10),
 ]
 
 

@@ -95,6 +95,10 @@ struct hw_core1_blk hw_core1_blk __attribute__((aligned(64)));
 volatile u32 hw_core1_count, hw_core1_flag;
 #endif
 volatile u32 hw_scan_paused;
+/* audio10's holds: the screen's redraws (drawing skipped, the text kept)
+ * and main's sweeps of the matrix and the SARADC (skipped while the scan
+ * is held with 0xFFFF latched). 0 in every other build. */
+volatile u32 hw_hold_screen, hw_hold_sweeps;
 void hw_core1_loop(void);
 static void draw_store(void);
 static void draw_win(void);
@@ -787,7 +791,8 @@ void hw_step(const char *text)
 {
     step_n++;
     step_text = text;
-    draw_step();
+    if (!hw_hold_screen)
+        draw_step();
 }
 
 /* The tick's row: the beats, TIMER0's slots (its interrupt) and count,
@@ -918,15 +923,19 @@ void hw_rows_all(void)
  * once a second, core 1's counter. */
 void hw_refresh(u32 second)
 {
-    sweep();
+    if (!hw_hold_sweeps) {
+        sweep();
+        /* The scan reads the pot (input.c) from the conversion it started:
+         * paused meanwhile, and channel 4's conversion started again after. */
+        hw_scan_paused = 1;
+        adc_all();
+        JL_ADC->CON = 4u << 8 | 1u << 4 | 1u << 6;
+        hw_scan_paused = 0;
+    }
+    if (hw_hold_screen)
+        return;
     draw_grid();
     draw_ports();
-    /* The scan reads the pot (input.c) from the conversion it started:
-     * paused meanwhile, and channel 4's conversion started again after. */
-    hw_scan_paused = 1;
-    adc_all();
-    JL_ADC->CON = 4u << 8 | 1u << 4 | 1u << 6;
-    hw_scan_paused = 0;
     draw_adc();
     if (second) {
         draw_core1();
