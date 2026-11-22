@@ -6,7 +6,7 @@ two words, a 24-bit sample in each word's low bits. The patch adds
 `audio_chip16` to the peripheral block, off by default: when it is on
 and CON1's data 3 nibble is 0x1, a half lasts LEN frames and each word
 gives two samples, the upper 16 bits first. Otherwise nothing changes.
-The crate test audio_chip16_plays_len_frames_a_half fails without it.
+The crate test plays_the_chips_own_layout_when_asked fails without it.
 
 diff --git a/crates/fm1-soc/src/lib.rs b/crates/fm1-soc/src/lib.rs
 index 667ce7b2b..3fa137d32 100644
@@ -40,7 +40,7 @@ index 667ce7b2b..3fa137d32 100644
          assert_eq!(&soc.lcd.fb[..2], &[0xf8 << 8, 0x07 << 8 | 0xe0], "PC7 an input: the panel takes the bytes");
      }
 +    #[test]
-+    fn audio_chip16_plays_len_frames_a_half() {
++    fn plays_the_chips_own_layout_when_asked() {
 +        // LEN 4 at 0x01C00000 (RAM), words 0x1234_8000 ..: with the chip's layout and CON1
 +        // 0x1000 a half is 4 frames, each word two samples, upper first, and lasts 4 frames;
 +        // without it (or with CON1 0) a half is 4 words, 2 frames, as before.

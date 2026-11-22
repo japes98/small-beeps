@@ -1076,7 +1076,7 @@ mod tests {
         assert_eq!(&soc.lcd.fb[..2], &[0xf8 << 8, 0x07 << 8 | 0xe0], "PC7 an input: the panel takes the bytes");
     }
     #[test]
-    fn audio_chip16_plays_len_frames_a_half() {
+    fn plays_the_chips_own_layout_when_asked() {
         // LEN 4 at 0x01C00000 (RAM), words 0x1234_8000 ..: with the chip's layout and CON1
         // 0x1000 a half is 4 frames, each word two samples, upper first, and lasts 4 frames;
         // without it (or with CON1 0) a half is 4 words, 2 frames, as before.

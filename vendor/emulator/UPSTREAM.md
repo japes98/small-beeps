@@ -204,7 +204,7 @@ Applied in file-name order by the fetch script, after checkout:
   `CON1`'s data 3 nibble is `0x1`, plays `LEN` frames a half, one word a
   frame, its upper then lower 16 bits as the two samples (HW-160,
   HW-168); otherwise as before. The crate test
-  `audio_chip16_plays_len_frames_a_half` fails without it (fwtest
+  `plays_the_chips_own_layout_when_asked` fails without it (fwtest
   0.13.0).
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
