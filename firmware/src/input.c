@@ -17,6 +17,9 @@
 #include "input.h"
 #include "audio.h"
 #include "WL82.h"
+#if defined(SB_HW_AUDIO11)
+#include "hw_fm1.h"
+#endif
 
 #if defined(SB_HW_FM1)
 /* The FM-1 hardware build (R-HW-1): the pins set up as HW-117 and HW-118
@@ -270,8 +273,17 @@ static inline __attribute__((always_inline)) void turns(u32 c, u32 a_rows, u32 b
  * and the next one started. */
 static void pot(void)
 {
+#if defined(SB_HW_AUDIO11)
+    /* audio11: the SARADC's service (hw_audio.c) starts every conversion;
+     * the newest of MASTER's readings, if one came since. */
+    u32 v;
+
+    if (hw_a11_pot_take(&v)) {
+        u32 i = pot_next, mean, shown = pot_shown;
+#else
     if (JL_ADC->CON & ADC_DONE) {
         u32 v = JL_ADC->RES & POT_MAX, i = pot_next, mean, shown = pot_shown;
+#endif
 
         sb_input.pot_raw = v;
         pot_sum += v - pot_last[i];
@@ -285,7 +297,9 @@ static void pot(void)
             emit(INPUT_MASTER, INPUT_MOVE, (int)mean);
         }
     }
+#if !defined(SB_HW_AUDIO11)
     JL_ADC->CON = ADC_START;
+#endif
 }
 
 #if defined(SB_HW_FM1)
@@ -530,16 +544,22 @@ void input_start(void)
 
     /* The pot's first reading, waited for, so input_value() has it from
      * the start. */
+#if defined(SB_HW_AUDIO11)
+    v = hw_a11_pot_first();
+#else
     JL_ADC->CON = ADC_START;
     for (i = 0; i < 1000 && !(JL_ADC->CON & ADC_DONE); i++)
         ;
     v = JL_ADC->RES & POT_MAX;
+#endif
     for (i = 0; i < 4; i++)
         pot_last[i] = (u16)v;
     pot_sum = 4 * v;
     pot_shown = v;
     sb_input.values[INPUT_MASTER] = (int)v;
+#if !defined(SB_HW_AUDIO11)
     JL_ADC->CON = ADC_START;
+#endif
 
 #if defined(SB_COST_NO_SCAN) || defined(SB_HW_FM1)
     /* The hardware build's scan runs from TIMER0's interrupt (main.c). */

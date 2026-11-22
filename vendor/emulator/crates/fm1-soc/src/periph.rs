@@ -176,6 +176,10 @@ pub struct Periph {
     /// Interleaved L/R 16-bit samples played so far.
     pub audio: Vec<i16>,
     pub audio_halves: u64,
+    /// The chip's 16-bit layout (the host's `--audio-chip`): while CON1 sets data 3 as a
+    /// 16-bit I2S output (its nibble 0x1), a half is LEN frames of one word each, the
+    /// word's upper and lower 16 bits the frame's two samples. Off: the layout above.
+    pub audio_chip16: bool,
     // SARADC
     adc_con: u32,
     pub adc_value: [u16; 16],
@@ -283,6 +287,7 @@ impl Default for Periph {
             alnk_next: u64::MAX,
             audio: Vec::new(),
             audio_halves: 0,
+            audio_chip16: false,
             adc_con: 0,
             adc_value,
             ilat: 0,
@@ -328,8 +333,8 @@ impl Default for Periph {
 /// of RAM (and a received UART byte into it) because the peripheral block has no bus of its own.
 #[derive(Debug, Default)]
 pub struct Due {
-    /// A half buffer finished playing: (RAM address, words).
-    pub audio_half: Option<(u32, u32)>,
+    /// A half buffer finished playing: (RAM address, words, the chip's 16-bit layout).
+    pub audio_half: Option<(u32, u32, bool)>,
     /// A UART byte the RX DMA wrote: (address, byte).
     pub uart_rx: Option<(u32, u8)>,
     pub actions: Vec<Action>,
@@ -370,7 +375,15 @@ impl Periph {
     }
 
     fn half_period(&self) -> u64 {
+        if self.alnk_chip16() {
+            return (self.alnk_len.max(1) as u64 * FRAME_T4 * self.hz / T4_HZ).max(1);
+        }
         (self.alnk_len.max(2) as u64 / 2 * FRAME_T4 * self.hz / T4_HZ).max(1)
+    }
+
+    /// The chip's 16-bit layout is on and CON1's data 3 nibble is 0x1 (I2S out, 16-bit).
+    fn alnk_chip16(&self) -> bool {
+        self.audio_chip16 && (self.alnk_con1 >> 12) & 0xf == 1
     }
 
     fn enc_step(&self) -> u64 {
@@ -446,8 +459,9 @@ impl Periph {
             }
         }
         if self.cycles >= self.alnk_next {
-            let words = self.alnk_len.max(2);
-            due.audio_half = Some((self.alnk_adr.wrapping_add(self.alnk_half * words * 4), words));
+            let chip16 = self.alnk_chip16();
+            let words = if chip16 { self.alnk_len.max(1) } else { self.alnk_len.max(2) };
+            due.audio_half = Some((self.alnk_adr.wrapping_add(self.alnk_half * words * 4), words, chip16));
             self.alnk_half ^= 1;
             // every channel CON1 sets up pends with the block: FM1 Open's driver takes its
             // interrupt from the receive channel 0 (pending bit 4), the stock one from transmit

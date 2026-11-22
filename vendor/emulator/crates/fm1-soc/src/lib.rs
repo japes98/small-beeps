@@ -324,13 +324,19 @@ impl Soc {
         if let Some((at, b)) = due.uart_rx {
             self.write8(at, b);
         }
-        if let Some((adr, words)) = due.audio_half {
+        if let Some((adr, words, chip16)) = due.audio_half {
             if self.audio_trace {
                 eprintln!("half {} ms {}", self.periph.ms(), self.periph.cycles);
             }
             for i in 0..words {
-                let w = self.read32(adr.wrapping_add(i * 4)) as i32;
-                self.periph.audio.push((w >> 8).clamp(-32768, 32767) as i16);
+                let w = self.read32(adr.wrapping_add(i * 4));
+                if chip16 {
+                    // the chip's 16-bit layout: one frame a word, upper half first
+                    self.periph.audio.push((w >> 16) as u16 as i16);
+                    self.periph.audio.push(w as u16 as i16);
+                } else {
+                    self.periph.audio.push(((w as i32) >> 8).clamp(-32768, 32767) as i16);
+                }
             }
         }
     }
@@ -1069,6 +1075,37 @@ mod tests {
         fill(&mut soc);
         assert_eq!(&soc.lcd.fb[..2], &[0xf8 << 8, 0x07 << 8 | 0xe0], "PC7 an input: the panel takes the bytes");
     }
+    #[test]
+    fn plays_the_chips_own_layout_when_asked() {
+        // LEN 4 at 0x01C00000 (RAM), words 0x1234_8000 ..: with the chip's layout and CON1
+        // 0x1000 a half is 4 frames, each word two samples, upper first, and lasts 4 frames;
+        // without it (or with CON1 0) a half is 4 words, 2 frames, as before.
+        fn run(chip16: bool, con1: u32) -> (Vec<i16>, u64) {
+            let mut soc = Soc::new(0x8000, vec![]);
+            soc.periph.audio_chip16 = chip16;
+            for i in 0..8u32 {
+                soc.write32(0x01C0_0000 + i * 4, 0x1234_8000 + i);
+            }
+            soc.write32(0x12e1c, 0x01C0_0000);
+            soc.write32(0x12e20, 4);
+            soc.write32(0x12e04, con1);
+            soc.write32(0x12e00, 0x800);
+            let c0 = soc.periph.cycles;
+            while soc.periph.audio_halves == 0 {
+                soc.advance(1);
+            }
+            (soc.periph.audio.clone(), soc.periph.cycles - c0)
+        }
+        let (a, t16) = run(true, 0x1000);
+        assert_eq!(a, vec![0x1234, -0x8000, 0x1234, -0x7fff, 0x1234, -0x7ffe, 0x1234, -0x7ffd]);
+        let (b, t) = run(false, 0x1000);
+        assert_eq!(b.len(), 4);
+        assert_eq!(t16, 2 * t);
+        let (c, t0) = run(true, 0);
+        assert_eq!(c, b);
+        assert_eq!(t0, t);
+    }
+
     #[test]
     fn usb_port_answers() {
         let mut soc = Soc::new(0x8000, vec![]);

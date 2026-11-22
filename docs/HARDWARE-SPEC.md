@@ -664,7 +664,7 @@ least significant. Register names are the JieLi SDK's.
   `0x007FFFFF`, `0xFF800000`, `0x01000000` and `0x00000080` came out as
   32767, -32768, 32767 and 0, and a left ramp written as value × 256 came
   out as the values; HARNESS ("audio.wav").
-- Standing: confirmed (E-9; fwtest only: on the unit a half is `LEN` frames, HW-159)
+- Standing: confirmed (E-9; fwtest only: on the unit a half is `LEN` frames, HW-159; fwtest 0.13.0 plays the unit's 16-bit layout behind `--audio-chip`, HARNESS.md "Audio")
 - Needed by: M4
 
 ### HW-45: The output's rate and halves

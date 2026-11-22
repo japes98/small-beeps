@@ -274,6 +274,9 @@ void hw_slot(void)
 #if defined(SB_HW_AUDIO9)
     hw_a9_pb5_poll();
 #endif
+#if defined(SB_HW_AUDIO11)
+    hw_a11_adc_poll();
+#endif
 #if defined(SB_HW_AUDIO10)
     hw_a10_pot_poll();
 #endif
@@ -290,6 +293,12 @@ void hw_slot(void)
 #define HW_EVENT_X 26u
 #define HW_EVENT_Y 104u
 #define HW_EVENT_W 188u
+#if defined(SB_HW_AUDIO11)
+/* audio11's E: the large area (hw_audio.c) covers the event box's rows. */
+#define HW_NO_EVENT_BOX 1
+#else
+#define HW_NO_EVENT_BOX 0
+#endif
 static void hw_show(const struct input_event *e)
 {
     static const char names[14][5] = {
@@ -300,7 +309,7 @@ static void hw_show(const struct input_event *e)
     u32 i = 0, c = e->control, k;
     const char *name, *what = e->kind == INPUT_PRESS ? " down" : " up";
 
-    if (hw_hold_screen)
+    if (hw_hold_screen || HW_NO_EVENT_BOX)
         return;
     text[i++] = (char)('0' + c / 10);
     text[i++] = (char)('0' + c % 10);
@@ -330,6 +339,8 @@ static void hw_show_master(int v)
     char text[16] = "MASTER ";
     u32 i = 7, d;
 
+    if (HW_NO_EVENT_BOX)
+        return;
     for (d = 1000; d; d /= 10)
         if ((u32)v >= d || d == 1)
             text[i++] = (char)('0' + (u32)v / d % 10);
@@ -351,7 +362,7 @@ static void hw_show_turn(u32 control, int d)
     const char *n = names[control - INPUT_SELECT];
     u32 i = 0, lead = input_lead(control);
 
-    if (hw_hold_screen)
+    if (hw_hold_screen || HW_NO_EVENT_BOX)
         return;
     while (*n)
         text[i++] = *n++;
@@ -384,6 +395,9 @@ static void hw_test_screen(void)
     lcd_send_rows(0, SCREEN_H);
     lcd_wait();
     hw_rows_all();
+#if defined(SB_HW_AUDIO11)
+    hw_a11_big(1);
+#endif
 }
 #endif
 
@@ -449,13 +463,26 @@ static void hw_serve(void)
          * format; PLAY zeros, HOME the LED blink, ENV the screen, GLO the
          * log, each held and back by the same key; REC holds the scan for
          * 5 s, ending by itself. */
-        if ((e.control == INPUT_LFO || e.control == INPUT_PLAY || e.control == INPUT_HOME || e.control == INPUT_ENV
+#if defined(SB_HW_AUDIO11)
+        /* audio11 (the spec side's clean-br17-audio11): N is the only
+         * format, so LFO is the engine's again (main gives it nothing);
+         * SEL cycles the SARADC's set-up, the SDK's and the old. */
+#define HW_A10_KEY1 INPUT_SEL
+#else
+#define HW_A10_KEY1 INPUT_LFO
+#endif
+        if ((e.control == HW_A10_KEY1 || e.control == INPUT_PLAY || e.control == INPUT_HOME || e.control == INPUT_ENV
                 || e.control == INPUT_GLO || e.control == INPUT_REC) && e.kind == INPUT_PRESS
                 && sb_beacon.screen == SB_SCREEN_TEST) {
             u32 held_screen = hw_hold_screen;
 
+#if defined(SB_HW_AUDIO11)
+            if (e.control == INPUT_SEL)
+                hw_a11_setup_key();
+#else
             if (e.control == INPUT_LFO)
                 hw_a10_fmt_key();
+#endif
             else
                 hw_a10_hold_key(e.control == INPUT_PLAY ? HW_A10_ZERO : e.control == INPUT_HOME ? HW_A10_LED :
                                 e.control == INPUT_ENV ? HW_A10_SCREEN : e.control == INPUT_GLO ? HW_A10_LOG :
@@ -490,7 +517,12 @@ static void hw_serve(void)
          * HOME shows audio8's and audio9's view. The old steps' keys
          * (ARP, SAVE, ENV, FX, LFO, SEL, GLO, OCT+, OCT-, KEY1 to KEY6) are
          * the engine's alone: main gives them no step. */
-        if ((e.control == INPUT_SEQ || e.control == INPUT_FX || e.control == INPUT_LFO || e.control == INPUT_HOME)
+#if defined(SB_HW_AUDIO11)
+#define HW_A9_LFO 0xFFu      /* LFO is the engine's (audio11) */
+#else
+#define HW_A9_LFO INPUT_LFO
+#endif
+        if ((e.control == INPUT_SEQ || e.control == INPUT_FX || e.control == HW_A9_LFO || e.control == INPUT_HOME)
                 && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
             if (e.control == INPUT_SEQ)
                 hw_a9_route_key();

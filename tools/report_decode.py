@@ -247,8 +247,37 @@ def _layout9():
     return body[:i] + words + ["midi_out_bytes"] + f + body[i + 1:] + l8[len(l8) - health:]
 
 
+A11_SETUPS = ("SDK", "old")
+A11_CHANS = (0, 1, 3, 4, 5, 6, 7, 10, 11)
+
+
+def _layout10():
+    """Layout 10 (clean-br17-audio11): layout 9 without the sense scan's
+    fields and F's change list (N is fixed), with audio11's after the scan
+    hold's end, before layout 4's log health: the SARADC's set-up and its
+    changes, each set-up's CON writes and conversion times, each kept
+    channel's readings in each set-up (least << 16 | greatest, the count,
+    the two values with the most readings as value << 22 | count, the
+    rest), MASTER's raw reading at each ring entry, its jumps, the fill per
+    algorithm, the level, and the large area's three lines."""
+    l9 = _layout9()
+    health = len(_layout4()) - len(_layout3())
+    body = [n for n in l9[:len(l9) - health] if not n.startswith("se_") and not n.startswith("a10_fmt_t_")]
+    f = ["adc_setup", "adc_set_n"] + ["adc_set_t_%d" % k for k in range(8)]
+    f += ["sar_con_%s_%s" % (st, w) for st in A11_SETUPS for w in ("w1", "w2", "w3", "read")]
+    for w in ("conv_n", "conv_timeouts", "conv_min_units", "conv_max_units", "conv_tight_units"):
+        f += ["adc_%s_%s" % (w, st) for st in A11_SETUPS]
+    f += ["adc_slot_max_units", "adc_passes"]
+    for st in A11_SETUPS:
+        for c in A11_CHANS:
+            f += ["adc_%s_ch%d_%s" % (st, c, w) for w in ("minmax", "n", "v0", "v1", "rest")]
+    f += ["m_raw_ring_%d" % k for k in range(20)] + ["m_jump_n"] + ["m_jump_t_%d" % k for k in range(8)]
+    f += ["fill_alg_%d" % k for k in range(1, 11)] + ["m_level"] + ["big_%d" % k for k in range(12)]
+    return body + f + l9[len(l9) - health:]
+
+
 FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7(),
-          8: _layout8(), 9: _layout9()}
+          8: _layout8(), 9: _layout9(), 10: _layout10()}
 HOLDS = ("zero", "LED", "screen", "log", "scan")
 A9_ROUTE = ("not up", "UP", "down (key)", "UNDONE by the firmware", "no L2: not tried")
 A9_S2 = ("both halves", "upper half only", "lower half only")
@@ -311,15 +340,66 @@ def bad_record(image, off):
             "crc_now": zlib.crc32(r[:size - 4]) & 0xFFFFFFFF, "pages": "".join(pages)}
 
 
+def raw_at(f, k):
+    """Layout 10: the raw reading at MASTER's ring entry k, as "/raw"."""
+    if "m_raw_ring_0" not in f:
+        return ""
+    return "/r%d" % (f["m_raw_ring_%d" % (k % 40 // 2)] >> (16 * (k % 2)) & 0xFFFF)
+
+
+def big_text(f):
+    """The large area's three lines (E)."""
+    b = b"".join(struct.pack("<I", f.get("big_%d" % k, 0)) for k in range(12))
+    return [b[16 * i:16 * i + 16].split(b"\0")[0].decode("ascii", "replace") for i in range(3)]
+
+
+def audio11_lines(f):
+    us = lambda u: u / 24.0
+    out = []
+    n = f["adc_set_n"]
+    sets = [f["adc_set_t_%d" % (k % 8)] for k in range(max(0, n - 8), n)]
+    out.append("audio11: SARADC set-up %s (%d changes: %s); the slot's longest service %.1f us, %d sweep passes"
+               % (A11_SETUPS[min(f["adc_setup"], 1)], n,
+                  ", ".join("beat %d %s" % (w >> 1, A11_SETUPS[w & 1]) for w in sets) or "none",
+                  us(f["adc_slot_max_units"]), f["adc_passes"]))
+    for st in A11_SETUPS:
+        out.append("  %s: CON %04X %04X %04X, read after %04X; %d conversions, %d timed out; start to bit 7 seen"
+                   " %.1f to %.1f us (the slot's 83 us steps), by a tight poll %.1f us"
+                   % (st, f["sar_con_%s_w1" % st], f["sar_con_%s_w2" % st], f["sar_con_%s_w3" % st],
+                      f["sar_con_%s_read" % st], f["adc_conv_n_%s" % st], f["adc_conv_timeouts_%s" % st],
+                      us(f["adc_conv_min_units_%s" % st]), us(f["adc_conv_max_units_%s" % st]),
+                      us(f["adc_conv_tight_units_%s" % st])))
+        for c in A11_CHANS:
+            k = "adc_%s_ch%d_" % (st, c)
+            if not f[k + "n"]:
+                continue
+            vs = [f[k + w] for w in ("v0", "v1") if f[k + w] & 0x3FFFFF]
+            out.append("    ch%-2d %d readings, %d to %d: %s%s" % (
+                c, f[k + "n"], f[k + "minmax"] >> 16, f[k + "minmax"] & 0xFFFF,
+                ", ".join("%d x%d" % (v >> 22, v & 0x3FFFFF) for v in vs),
+                ", other values x%d" % f[k + "rest"] if f[k + "rest"] else ""))
+    n = f["m_jump_n"]
+    js = [f["m_jump_t_%d" % (k % 8)] for k in range(max(0, n - 8), n)]
+    out.append("  MASTER's raw jumps (over 32): %d%s" % (n, ": " + ", ".join(
+        "beat ~%d (mod 16384) %d->%d" % ((w >> 20) * 4, w >> 10 & 0x3FF, w & 0x3FF) for w in js) if js else ""))
+    fa = [(k, f["fill_alg_%d" % k]) for k in range(1, 11)]
+    out.append("  fill per algorithm (us, any / with 8 voices): " + ", ".join(
+        "A%d %.1f/%.1f" % (k, (w & 0xFFFF) / 10.0, (w >> 16) / 10.0) for k, w in fa if w))
+    out.append("  level %.2f%% of full; large area: %s" % (f["m_level"] / 100.0, " | ".join(big_text(f))))
+    return out
+
+
 def derived(fields):
     """What step H's counts say: the bus count per gate cycle (7.5
     expected, HW-119 over HW-54) and the audio clock in MHz (the gate is
     the 24 MHz crystal)."""
     out = []
     f = fields
+    if "adc_setup" in f:
+        out += audio11_lines(f)
     if "a10_fmt_changes" in f and (f.get("daa7_reads") or f.get("m_value")):
         n = f["a10_fmt_changes"]
-        fl = [f["a10_fmt_t_%d" % (k % 8)] for k in range(max(0, n - 8), n)]
+        fl = [f.get("a10_fmt_t_%d" % (k % 8), 0) for k in range(max(0, n - 8), n)]
         out.append("audio10: F %s (%d changes: %s); synth fill longest %.1f us, with 8 voices %.1f us, most voices %d;"
                    " soft clipped %d, saturated %d" % (
                        A10_FMTS[min(f["a9_s2"], 4)] if "a9_s2" in f else "?", n,
@@ -332,7 +412,8 @@ def derived(fields):
                    " raw jumps %d, largest raw step %d; last changes (beat value): %s" % (
                        f["m_value"], f["m_raw_at_change"], f["m_raw_now"], f["m_tone_gain"], f["m_synth_level"],
                        f["m_changes"], f["m_raw_jumps"], f["m_raw_max_step"],
-                       " ".join("%d:%d" % ((w >> 10) * 4, w & 0x3FF) for w in ring)))
+                       " ".join("%d:%d%s" % ((w >> 10) * 4, w & 0x3FF, raw_at(f, k)) for k, w in
+                                zip(range(max(0, n - 40), n), ring))))
         n = f["hold_n"]
         ht = [f["hold_t_%d" % (k % 8)] for k in range(max(0, n - 8), n)]
         out.append("holds now: %s; changes: %s; log records dropped %d" % (
@@ -449,6 +530,9 @@ DECIMAL = {"a10_fmt_changes", "a10_fill_max_units", "a10_fill_max8_units", "a10_
            "b15_flips", "pend", "fps_x10", "halves", "master", "gain", "tone_on", "storm_beat",
            "audio_started_beat", "rec_state", "rec_presses", "seq_state", "seq_presses", "seq_irq_at_stop",
            "seq_irq_at_back", "a_state", "a_presses", "b_state", "b_presses", "refused", "core1_last_moved_beat"}
+DECIMAL |= {n for n in FIELDS[10] if n.startswith(("adc_conv", "adc_passes", "adc_slot", "adc_setup", "adc_set_n",
+                                                     "m_jump_n", "m_level"))
+            or (n.startswith("adc_") and n.endswith(("_n", "_rest")))}
 STATES = {"rec_state": ("not taken", "taken", "undone"), "a_state": ("not taken", "taken", "undone"),
           "h_state": ("not taken", "taken", "undone"), "i_state": ("not taken", "taken", "undone"),
           "b_state": ("not taken", "taken", "undone"), "seq_state": ("running", "stopped", "put back")}
