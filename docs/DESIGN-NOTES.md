@@ -5535,3 +5535,88 @@ audio9's.
   ending by itself; zeros in `audio.wav` while held; in the 16-bit build
   each format's words, with `SB_TEST_A10_CLAMP` forcing each half's first
   sample to the most negative. The identity is 0.10.0-hw3t.
+
+### 2026-11-22 clean-br17-audio11: N fixed, the SARADC's set-up, the clicks in N, the key status (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio11.md), with the
+owner's rulings: A, N the only format from start-up; B2, `CON` bit 3 set as
+the SDK does; B3, MASTER by a curve with ramped changes; C as written; D
+items 1 to 4; E, the key status in large text. Behind `SB_HW_AUDIO11`
+(refused without `SB_HW_AUDIO10`). No register is written beyond audio10's
+but the SARADC's `CON`.
+
+- **A.** Everything the link plays, the tone and the synth, goes out as N
+  (the sample upper, its negative lower, the most negative's negative
+  clamped) from start-up. LFO, the format key, is the engine's again: main
+  gives it nothing (the engine sees every key, as before).
+- **B, one service for the converter.** Every conversion the build starts
+  goes through `hw_a11_adc_poll`, run from TIMER0's slot (every 83 us). It
+  never waits: a slot finds the conversion in flight done (bit 7) or not;
+  done, it keeps the reading and starts the next; not done, it returns,
+  until 5 ms (counted as a time-out). Conversions alternate MASTER (channel
+  4) and one channel of the sweep, so main's 10 Hz sweep of 12 blocking
+  conversions is gone, and no conversion can delay a half's fill (the fill
+  is the audio interrupt's; the service's own time in a slot is logged).
+  input.c's pot() takes MASTER's newest reading from it, once a scan, and
+  never writes `CON`. The sweep leaves out channel 2 (PA10, an LED line), 8
+  and 9 (PC9, PC10, the panel) always, and 6 and 7 (PC0, PC1, the link's
+  clocks) unless the route is down (HW-129).
+- **B, the set-ups.** The SDK's (at start-up): three writes, the channel in
+  bits 8-11, bits 0-2 `0b110` (the divide by 96), bits 12-15 `0xF` (the
+  start delay), bit 3, bit 6 with bit 4 clear; then the same with bit 4; then
+  the same again (bit 6, the start, set again). For channel 4: `F44E`,
+  `F45E`, `F45E`. The old: one write, the channel with bits 4 and 6 (`0450`).
+  Bit 5, the interrupt enable, is set in neither: the build polls bit 7 (the
+  SDK sets it). SEL cycles them, named on the step row and in the large
+  area, logged with the beat.
+- **B, timing.** Each conversion's time from its start to bit 7 seen by a
+  slot (83 us steps), least and greatest per set-up; one conversion of
+  channel 4 timed by a tight poll in main once the start is over and at
+  each change of set-up. MASTER's first reading, in input_start, comes
+  before TIMER0 runs, when `sb_now()` stands still: its wait is counted in
+  passes (2 000 000 at most), not timed. Every wait is also bounded by
+  passes, so none can hang whatever the clock does. In fwtest a conversion
+  finishes at once (HW-40); `CON` reads back as written with bit 7 set
+  (`F4DE`, `04D0`): bits 0-3 and 12-15 are stored, and change nothing in the
+  conversion's time. The test build `SB_TEST_A11_SLOW` holds bit 7 back
+  300 us: no wait ends early and none times out.
+- **B, the log.** For each set-up and each kept channel: the least and
+  greatest reading, the count, and the values with counts (exact while a
+  channel has shown 4 distinct values or fewer; past that, the slot with
+  the fewest goes to the newer value and its count to "other"); the log
+  keeps the two with most and the rest. MASTER's raw reading is kept beside
+  each of its value changes (audio10's ring), and its raw jumps (over 32)
+  with their beats.
+- **B3, MASTER's curve.** The tone's level is MASTER's square, value² /
+  1023² of its top, 0 silent; a change ramps evenly over the half (the
+  level steps once a sample from the last half's to the new). The synth's
+  level was already the square (pot² × 16 of 2^24) ramped over each of the
+  engine's 64-frame blocks (half the unit's half, all of fwtest's).
+  input.c's mean of 4 with its dead band of 3 is kept: the value moves in
+  steps of 4 or more as the knob turns slowly.
+- **C.** audio10's holds kept (PLAY zeros, HOME the LED blink, ENV the
+  screen, GLO the log, REC the scan for 5 s). What now comes about twice a
+  second: the LED guide's blink alone, as before; the old 100 ms SARADC
+  sweep is replaced by the continuous service; the large area redraws only
+  when its text changes. MASTER's raw reading and level are logged over
+  each hold (the ring with raw readings, the jumps, the holds' beats).
+- **D item 4.** The synth's longest fill per algorithm (`sb_fm`'s), any and
+  with 8 voices, logged in 0.1 us.
+- **E.** The key status in its own area, y 40 to 112, in place of the
+  matrix grid, the ports and the event box: three lines of up to 12
+  characters at three times the font, each glyph 15 x 21 pixels on an
+  18 x 24 cell: "N TONE SDK" (the format, the tone or the synth, the
+  set-up; green with the route up, red without), "M300 r300" (MASTER's
+  value and raw reading), "L8% -" (the level applied, in whole per cent of
+  full, and the hold: ZERO, LED, SCRN, LOG, or SCAN with its seconds left;
+  yellow while one is on). The rest of the screen is as it was; the lines
+  are in each record too.
+- **The log:** layout 10, audio11's builds only: layout 9 without the sense
+  scan's fields and F's change list, with audio11's (1011 of 1011 words).
+  Every other build still writes layout 9.
+- **fwtest** (case audio11): N's words from start-up in the 16-bit build,
+  the clamp included; each set-up's writes, read-back and conversion times
+  with the slow seam; channels 6 and 7 never read with the route up;
+  MASTER turned in each set-up, a record at each pause; the tone's largest
+  second difference with MASTER moving (no step); the holds; zeros in
+  `audio.wav`; an 8-key chord and the fill per algorithm; the large area
+  read off the screen in each state. The identity is 0.11.0-hw3u.

@@ -29,6 +29,9 @@
 #if defined(SB_HW_AUDIO10) && !defined(SB_HW_AUDIO9)
 #error "SB_HW_AUDIO10 builds on audio9: build it with SB_HW_AUDIO9"
 #endif
+#if defined(SB_HW_AUDIO11) && !defined(SB_HW_AUDIO10)
+#error "SB_HW_AUDIO11 builds on audio10: build it with SB_HW_AUDIO10"
+#endif
 #if defined(SB_HW_PCM16) && !defined(SB_HW_AUDIO8)
 #error "SB_HW_PCM16 is audio8's unit tone: build it with SB_HW_AUDIO8"
 #endif
@@ -149,12 +152,16 @@ void hw_rows_start(void);
 #define HW_LOG_REC     4096u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
+#if defined(SB_HW_AUDIO11)
+#define HW_LOG_LAYOUT  10u                  /* tools/report_decode.py's FIELDS[10] */
+#else
 #define HW_LOG_LAYOUT  9u                   /* tools/report_decode.py's FIELDS[9] */
+#endif
 #define HW_LOG_HEAD    12u                  /* header words before the fields */
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
 /* The build's identity in each record: the package's version, which the
  * candidate's pack must match (tools/report-decode.py prints it). */
-#define HW_BUILD_ID    "0.10.0-hw3t"
+#define HW_BUILD_ID    "0.11.0-hw3u"
 struct hw_report {
     u32 scanned;                /* the ring read once */
     u32 found;                  /* valid records found then */
@@ -276,6 +283,16 @@ void hw_finder(void) __attribute__((noreturn));
 #define HW_A10_SCREEN 2u     /* the screen's redraws held */
 #define HW_A10_LOG    3u     /* the log's writes held (dropped and counted) */
 #define HW_A10_SCAN   4u     /* the matrix scan and main's sweeps held, 0xFFFF latched */
+/* audio11 (clean-br17-audio11): the SARADC's set-ups, its channels, the
+ * fill per algorithm. */
+#define HW_A11_SDK    0u     /* the SDK's three CON writes (HW-167) */
+#define HW_A11_OLD    1u     /* the old single write (the new fields 0) */
+#define HW_A11_SETUPS 2u
+#define HW_A11_CHANS  9u     /* the channels kept: 0, 1, 3, 4, 5, 6, 7, 10, 11 */
+#define HW_A11_SLOTS  4u     /* values counted exactly per channel and set-up */
+#define HW_A11_SET_LOG 8u
+#define HW_A11_JUMPS  8u
+#define HW_A11_ALGS   10u    /* FM_ALGORITHMS */
 #define HW_A9_LATE_MAX 50u   /* late halves after which the interrupt goes back to the tone */
 #define HW_A9_PB5_SETTLE_MS 50u
 #define HW_A9_DAA7_MS 60000u
@@ -446,6 +463,25 @@ struct hw_audio {
     u32 m_ring[HW_A10_MRING];   /* beats << 10 (the low 22 bits of beats / 4) | value; the last HW_A10_MRING changes */
     u32 holds, hold_n, hold_t[HW_A10_HOLD_LOG]; /* the holds on now (bits HW_A10_*); changes; beats << 8 | hold << 1 | on */
     u32 log_dropped, scan_until; /* records not written while the log was held; the beat the scan hold ends */
+#if defined(SB_HW_AUDIO11)
+    /* audio11 (clean-br17-audio11): the SARADC's service (hw_audio.c). */
+    u32 adc_setup, adc_set_n, adc_set_t[HW_A11_SET_LOG]; /* HW_A11_*; changes; beats << 1 | set-up */
+    u32 adc_con[HW_A11_SETUPS][4]; /* each set-up's CON writes (up to three) and CON read after the last */
+    u32 adc_conv_n[HW_A11_SETUPS], adc_conv_to[HW_A11_SETUPS]; /* conversions done; waits ended by the time-out */
+    u32 adc_conv_min[HW_A11_SETUPS], adc_conv_max[HW_A11_SETUPS]; /* start to bit 7 seen, sb_now units, by the slot's poll (83 us steps) */
+    u32 adc_conv_tight[HW_A11_SETUPS]; /* one conversion timed by a tight poll at each change of set-up (sb_now units) */
+    u32 adc_pass_max, adc_passes; /* the longest slot's service time (sb_now units); sweep passes (all channels once) */
+    u32 adc_mm[HW_A11_SETUPS][HW_A11_CHANS]; /* min << 16 | max */
+    u32 adc_n[HW_A11_SETUPS][HW_A11_CHANS]; /* readings */
+    u32 adc_v[HW_A11_SETUPS][HW_A11_CHANS][HW_A11_SLOTS]; /* value << 22 | count (exact while 4 distinct values or fewer) */
+    u32 adc_other[HW_A11_SETUPS][HW_A11_CHANS]; /* readings no longer in a slot (a slot given to a newer value) */
+    u32 adc_last[12];           /* each channel's last reading (0xFFFF: not converted) */
+    u32 m_raw_ring[HW_A10_MRING / 2]; /* the raw reading at each m_ring entry, two 16-bit halves a word */
+    u32 m_jump_n, m_jump_t[HW_A11_JUMPS]; /* raw jumps (> 32): beats / 4 << 20 | from << 10 | to, the last HW_A11_JUMPS */
+    u32 fill_alg[HW_A11_ALGS], fill_alg8[HW_A11_ALGS]; /* the synth's longest fill per algorithm, and with 8 voices (sb_now units) */
+    u32 m_level;                /* the level applied now, of 65536 (MASTER's curve) */
+    char big[3][16];            /* E: the large area's three lines */
+#endif
 };
 #define HW_L_NONE    0u
 #define HW_L_KEPT    1u     /* the link moved with the matrix right: the set-up running */
@@ -504,6 +540,11 @@ void hw_a10_fmt_key(void);
 void hw_a10_hold_key(u32 hold);
 void hw_a10_master(u32 value);
 void hw_a10_pot_poll(void);
+void hw_a11_adc_poll(void);
+void hw_a11_setup_key(void);
+int hw_a11_pot_take(u32 *v);
+u32 hw_a11_pot_first(void);
+void hw_a11_big(u32 force);
 void hw_matrix_check(u32 *idle, u32 *map);
 void hw_port_a(u32 *w);
 void hw_scan_pause(void);
