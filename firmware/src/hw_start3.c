@@ -398,6 +398,9 @@ void hw_adc_start(void)
     PORT(PB, PDN) &= ~MASK_B;
 }
 
+#if defined(SB_HW_AUDIO11)
+__attribute__((unused))   /* audio11: the SARADC's service and the large area instead */
+#endif
 static void adc_all(void)
 {
     u32 ch, n;
@@ -675,6 +678,9 @@ void hw_core1_screen(void)
 
 /* --- The rows ------------------------------------------------------------- */
 
+#if defined(SB_HW_AUDIO11)
+__attribute__((unused))   /* audio11: the SARADC's service and the large area instead */
+#endif
 static void draw_grid(void)
 {
     char t[40], *p;
@@ -692,6 +698,9 @@ static void draw_grid(void)
     }
 }
 
+#if defined(SB_HW_AUDIO11)
+__attribute__((unused))   /* audio11: the SARADC's service and the large area instead */
+#endif
 static void draw_ports(void)
 {
     char t[40], *p = t;
@@ -925,17 +934,26 @@ void hw_refresh(u32 second)
 {
     if (!hw_hold_sweeps) {
         sweep();
+#if !defined(SB_HW_AUDIO11)
         /* The scan reads the pot (input.c) from the conversion it started:
          * paused meanwhile, and channel 4's conversion started again after. */
         hw_scan_paused = 1;
         adc_all();
         JL_ADC->CON = 4u << 8 | 1u << 4 | 1u << 6;
         hw_scan_paused = 0;
+#endif
+        /* audio11: the SARADC's service (hw_audio.c) converts the sweep's
+         * channels one a conversion from TIMER0's slot; the rows show its
+         * last readings. */
     }
     if (hw_hold_screen)
         return;
+#if !defined(SB_HW_AUDIO11)
+    /* audio11's large area (hw_audio.c) takes the grid's and the ports'
+     * rows. */
     draw_grid();
     draw_ports();
+#endif
     draw_adc();
     if (second) {
         draw_core1();
