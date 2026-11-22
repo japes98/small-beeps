@@ -4839,6 +4839,151 @@ the results; HW-170 says what they settle.
 - Standing: confirmed (UNIT; the clock reading inferred)
 - Needed by: M3, M4, BR-17 (Phase B)
 
+## 49. The USB device core, for USB MIDI (U0)
+
+The facts the USB MIDI plan needs before fwtest's host model (U1) and the
+unit's read-only checks (U2), by the owner's rulings of 2026-11-22
+(docs/prompts/spec-audio12-rulings.md): the SDK's USB headers and the
+parts of its USB device sources that are not prebuilt, and m-bootloader's
+`docs/SPEC.md` and `src/boot.c` (its `src/usb_midi.c` not opened). The
+SDK's USB driver itself (the register writes behind its calls) is a
+prebuilt library and was not opened, so the order of the set-up is known
+only as calls, not as writes. FM-1-RE's `docs/io/06-usb.md` was read and
+nothing was taken from it: every fact it gives is drawn from the stock
+firmware (PROVENANCE P-513).
+
+### HW-171: The USB blocks: two cores, their registers, their interrupts (Q-36)
+- Fact:
+  - **Two USB cores.** The SDK counts two (`USB0` and `USB1`). Their
+    blocks: `JL_USB` at `0x11800` (`lsfr_base` group `0x18`), `JL_USB1`
+    at `0x12700` (group `0x27`), both of the same 16-word layout; and
+    `JL_USB_IO` at `0x51000` (`psfr_base` group `0x10`), three words
+    `CON0` to `CON2`. The SDK's `HUSB_*` bit names (a SIE control word,
+    two PHY words) belong to the second core; which words carry them is
+    not given.
+  - **`JL_USB`'s words,** by offset: `CON0` 0x00, `CON1` 0x04 (the
+    MUSB port, HW-86), then the endpoint DMA words, all write-only by
+    the SDK's marking: `EP0_CNT` 0x08, `EP1_CNT` 0x0C, `EP2_CNT` 0x10,
+    `EP3_CNT` 0x14, `EP0_ADR` 0x18, `EP1_TADR` 0x1C, `EP1_RADR` 0x20,
+    `EP2_TADR` 0x24, `EP2_RADR` 0x28, `EP3_TADR` 0x2C, `EP3_RADR` 0x30,
+    `EP4_CNT` 0x34, `EP4_TADR` 0x38, `EP4_RADR` 0x3C. Endpoint 0 has
+    one address for both directions; endpoints 1 to 4 a transmit and a
+    receive address each. The SDK's limit is 5 hardware endpoints (0 to
+    4).
+  - **`CON0`'s bits,** by the SDK's names (what each does is not
+    given beyond its name): 0 `PHY_ON`, 1 `LOW_SPEED`, 2 `USB_NRST`, 3
+    `TM1`, 4 `CID`, 5 `VBUS`, 6 `USB_TEST`, 9 `PDCHKDP`, 10 `SOFIE`, 11
+    `SIEIE`, 12 `CLR_SOF_PND`, 13 `SOF_PND`, 14 `SIE_PND`, 15 `CHKDPO`,
+    16 `DM_SE`, 17 `DP_SE`.
+  - **The pins' word** (`USB_IO_CON0` in the SDK; that it is
+    `JL_USB_IO->CON0` is a reading from the name): 0 `DPOUT`, 1 `DMOUT`,
+    2 `DPIE`, 3 `DMIE`, 4 `DPPD`, 5 `DMPD`, 6 `DPPU`, 7 `DMPU`, 8
+    `IO_PU_MODE`, 9 `DPDIE`, 10 `DMDIE`, 11 `IO_MODE`, 12 `SR`, 13
+    `DPDIEH`, 14 `DMDIEH`: an output, input enable, pull-down and pull-up
+    for each of D+ and D−, as the names read.
+  - **Interrupts:** the first core's SOF on index 8 and its controller
+    (SIE) on index 9; the second core's on 53 and 54.
+  - **Speed:** the SDK's device set-up is the full-speed one
+    (`FUSB_MODE` 0); endpoint 0's packet is 64 bytes (`EP0_SETUP_LEN`).
+- Sources: SDK `include_lib/driver/cpu/wl82/asm/WL82.h` lines 12-16
+  (`psfr_base`, `lsfr_base`, `map_adr`), 288-295 (`JL_USB_IO`), 465-485
+  (`JL_USB`), 604-606 (`JL_USB1`); SDK
+  `include_lib/driver/cpu/wl82/asm/usb.h` (`USB_MAX_HW_EPNUM` 5,
+  `USB_MAX_HW_NUM` 2, `FUSB_MODE` 0, `EP0_SETUP_LEN` 0x40, the `USB_CON0`,
+  `USB_IO_CON0` and `HUSB_*` bit lists); SDK
+  `include_lib/driver/cpu/wl82/asm/hwi.h` lines 47-48 and 97-98
+  (`IRQ_USB_SOF_IDX` 8, `IRQ_USB_CTRL_IDX` 9, `IRQ_USB1_SOF_IDX` 53,
+  `IRQ_USB1_CTRL_IDX` 54); HW-86.
+- Standing: confirmed (SDK; the bits' meanings beyond their names, and
+  the pins' word's place, not given)
+- Needed by: USB MIDI (U1, U2, U3)
+
+### HW-172: The device core's registers and the SDK's device set-up, as calls
+- Fact:
+  - **The MUSB indexes beyond HW-86's:** 16 `TXMAXP`, 17 `CSR0` (endpoint
+    0) or `TXCSR1`, 18 `TXCSR2`, 19 `RXMAXP`, 20 `RXCSR1`, 21 `RXCSR2`,
+    22 `COUNT0` or `RXCOUNT1`, 23 `RXCOUNT2`, 24 `TXTYPE`, 25
+    `TXINTERVAL`, 26 `RXTYPE`, 27 `RXINTERVAL`; the endpoint ones apply to
+    the endpoint `INDEX` (14) selects.
+  - **`INTRUSB`'s bits:** 0 suspend, 1 resume, 2 reset (babble as a
+    host), 3 SOF, 4 connect, 5 disconnect, 6 session request, 7 VBUS
+    error.
+  - **Endpoint 0's `CSR0` as a device:** 0x01 `RxPktRdy`, 0x02
+    `TxPktRdy`, 0x04 `SentStall`, 0x08 `DataEnd`, 0x10 `SetupEnd`, 0x20
+    `SendStall`, 0x40 `ClrRxPktRdy`, 0x80 `ClrSetupEnd`.
+  - **A transmit endpoint's `TXCSR` as a device:** 0x01 `TxPktRdy`, 0x02
+    `FIFONotEmpty`, 0x04 `UnderRun`, 0x08 `FlushFIFO`, 0x10 `SendStall`,
+    0x20 `SentStall`, 0x40 `ClrDataTog`, 0x80 `IncompTx`, bit 13 the
+    direction, bit 14 isochronous.
+  - **A receive endpoint's `RXCSR` as a device:** 0x01 `RxPktRdy`, 0x02
+    `FIFOFull`, 0x04 `OverRun`, 0x08 `DataError`, 0x10 `FlushFIFO`, 0x20
+    `SendStall`, 0x40 `SentStall`, 0x80 `ClrDataTog`, bit 8 `IncompRx`,
+    bit 14 isochronous.
+  - **The SDK's device start, in order, as calls** (their bodies are in
+    the prebuilt library): the core's configuration (`usb_config`); the
+    SIE's start as a device (`usb_g_sie_init`); `POWER` (index 1) written
+    `0x60` in the full-speed set-up (`0x40` in the other); the class
+    set-up; one 64-byte DMA buffer for endpoint 0, set as the receive
+    address of endpoints 0 to 4; `INTRUSBE` set to reset and suspend;
+    every transmit and receive interrupt enable cleared, then endpoint
+    0's set; the controller's interrupt registered at priority 3 on core
+    0. What `POWER`'s bits mean is not given.
+  - **DMA buffers:** the first core's receive buffers need 4 bytes past
+    the packet, where the controller stores the packet's CRC (8 for a
+    double buffer); m-bootloader found the same on the unit: the DMA
+    writes past a full packet. The SDK keeps its USB buffers in their own
+    linker section (`.usb_fifo`, inside its USB data area), 64-byte
+    aligned; for the second core, its endpoints 1, 2, 5 and 6 need 64-byte
+    alignment and 3 and 4 8-byte.
+  - **Spacing of accesses:** m-bootloader found on the unit that
+    accesses through `CON1`'s port (HW-86) must be spaced apart: a few
+    cycles between them made the core babble on IN, and the host then
+    disabled the port, on about a third of transmits. How far apart is
+    enough is not given.
+- Sources: SDK `include_lib/driver/device/usb/usb_phy.h` (the `MUSB_*`
+  indexes, `INTRUSB_*`, `CSR0P_*`, `TXCSRP_*`, `RXCSRP_*`); SDK
+  `apps/common/usb/device/usb_device.c` (`usb_device_init`'s calls in
+  order); SDK `apps/common/usb/usb_epbuf_manager.c` (the 4 extra bytes
+  for the first core's receive, the alignments); SDK
+  `include_lib/driver/device/usb/usb_data.ld`; MB `docs/SPEC.md` §11.6
+  (the DMA writing past a full packet, the spacing); HW-86.
+- Standing: confirmed (SDK, MB; the writes behind the SDK's calls, and
+  what `POWER`'s bits mean, not given)
+- Needed by: USB MIDI (U1, U3)
+
+### HW-173: The FM-1's USB port is the first core; what m-bootloader leaves; recovery stays open
+- Fact:
+  - **The connector is the first core (`USB0`):** m-bootloader's MIDI
+    mode, a class-compliant USB MIDI device that installs firmware on
+    the FM-1 from a browser, runs on `USB0`, polled with its interrupts
+    off. The first core's D− and D+ are SARADC channels 12 and 13
+    (HW-129), so they are its own pads, not a port's pins.
+  - **m-bootloader starts USB only in its own MIDI mode** (its menu,
+    entered by a key at power-on or when the app can't start), and stops
+    it before it calls an app from there and when it leaves MIDI mode. On
+    a normal start it calls the app without starting USB (a reading from
+    `src/boot.c`'s calls). What `usb_midi_stop` leaves in the core's
+    registers is not given (`src/usb_midi.c` is not opened); U2's
+    read-only checks read it.
+  - **A firmware's USB can't block recovery:** m-bootloader reads its
+    keys at power-on and opens its menu, with download mode and MIDI
+    mode, before any app runs; the USB_KEY dongle forces the mask ROM's
+    download mode even with no valid bootloader. A firmware can also ask
+    for the ROM's download mode itself (a marker in RAM, then a software
+    reset), which a U3 firmware may offer; nothing in U0 to U2 writes it.
+  - **Identities already in use, to avoid:** m-bootloader's MIDI mode
+    answers as `1209:0002` (pid.codes's test PID 2), the ROM's download
+    mode as `4C4A:8057`. small-beeps uses `1209:0001` during development
+    (R-USB-1), so a host can tell the three apart.
+- Sources: MB `docs/SPEC.md` §4.2 (the marker, the ROM's identity),
+  §4.3 (USB_KEY), §7 and §9 (the menu before the app), §11.6 (MIDI mode
+  on `USB0`, `1209:0002`, polled); MB `src/boot.c` (`usb_midi_start` and
+  `usb_midi_stop` only in MIDI mode and before an app called from it);
+  HW-129 (channels 12 and 13).
+- Standing: confirmed (MB; the normal start's untouched USB inferred
+  from the calls)
+- Needed by: USB MIDI (U2, U3)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -5293,3 +5438,10 @@ spec request can turn one into a fact.
   the registers and what pushing or popping `sp` itself gives (fwtest: the
   highest number at the highest address, as the 2-byte forms; `sp` as it
   is when its turn comes). HW-101.
+- **Q-36. The USB core's clock and PHY set-up.** Which clock the first
+  USB core runs from and how a firmware brings it up (the PHY's power,
+  its clock, the pins' word): the SDK does it in its prebuilt
+  library (HW-172), and m-bootloader's own code for it is in the file
+  not opened. U2's read-only checks read what the unit's registers hold
+  at the app's start; no clock or PLL is touched without the owner's
+  ruling. HW-171, HW-172, HW-173.
