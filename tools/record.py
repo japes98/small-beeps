@@ -206,7 +206,7 @@ CHECKS = [
     {"id": "C-HARNESS-IMAGE-REPRO", "title": "The fwtest container rebuilds to the same image ID (from scratch, later, from a context with other file times and owners)",
      "reqs": ["R-HARN-8"], "needs": "harness", "cmd": ["sh", "harness/ci.sh", "repro"]},
     {"id": "C-HARNESS-TEST", "title": "The harness's own tests (cargo test in the container)",
-     "reqs": ["R-HARN-1", "R-HARN-2", "R-HARN-3", "R-HARN-4", "R-HARN-5", "R-HARN-6", "R-HARN-7"],
+     "reqs": ["R-HARN-1", "R-HARN-2", "R-HARN-3", "R-HARN-4", "R-HARN-5", "R-HARN-6", "R-HARN-7", "R-HARN-15"],
      "needs": "harness", "cmd": ["sh", "harness/ci.sh", "test"]},
     {"id": "C-HARNESS-ISA", "title": "fwtest runs every instruction form the pinned toolchain knows for the firmware's CPU flags, or the form is a documented gap (harness/isa/known-gaps.txt)",
      "reqs": ["R-HARN-14"], "needs": "harness", "pr_gate": "isa",

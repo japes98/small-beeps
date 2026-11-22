@@ -53,6 +53,9 @@ run options:
   --ipb                  instructions per audio block (ipb.csv)
   --audio-chip           the audio link plays the chip's 16-bit layout when its CON1 sets
                          it: LEN frames a half, one word a frame (HARNESS.md, Audio)
+  --usb                  a USB host on the cable: it enumerates the device, sends the
+                         script's usbmidi packets and logs the device's (usb.csv,
+                         usb-midi-out.csv, result.json's usb; HARNESS.md, USB)
   --console              save the debug console bytes (console.txt)
   --midi-out             save the MIDI output (midi-out.csv, midi-out.txt)
   --watchdog ADDR:MS     a hang if the word at ADDR stays the same for MS
@@ -154,6 +157,7 @@ pub fn parse_run(args: &[String], base: &Path) -> Result<RunArgs, String> {
             "--wav" => opt.wav = true,
             "--ipb" => opt.ipb = true,
             "--audio-chip" => opt.audio_chip = true,
+            "--usb" => opt.usb = true,
             "--console" => opt.console = true,
             "--midi-out" => opt.midi_out = true,
             "--halt-ok" => opt.halt_ok = true,

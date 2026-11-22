@@ -3692,6 +3692,23 @@ SR-3 wrote only its barrier-log row.*
   addresses). None of it is in the spec, and the spec side keeps it out of
   every prompt it writes.
 - Disk: about 3 GB free.
+
+### Session spec-fwtest-usb (fwtest 0.14.0: a USB host, U1)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-usb-facts (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on a
+  new branch `spec/fwtest-usb` from `spec/usb-facts` (#238), as its own PR
+  by the owner's ruling.
+- Changed: the vendored emulator (patch 0021, `fm1-soc`'s new `cable.rs`
+  and its wiring), fwtest's `--usb` and `usbmidi` event, its outputs,
+  HARNESS.md ("USB", the options, the script events, the outputs,
+  "Versions"), UPSTREAM.md, the tree hash, R-HARN-15 and its check.
+- Read: the vendored emulator's USB port and peripheral code; the USB-MIDI
+  1.0 specification's title page (P-514). The model's device side keeps to
+  HW-86 and HW-171 to HW-173; nothing in it comes from FM-1-RE's USB
+  document (P-513), read earlier in this session.
+- Disk: about 3 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).

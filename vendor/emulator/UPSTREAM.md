@@ -206,6 +206,15 @@ Applied in file-name order by the fetch script, after checkout:
   HW-168); otherwise as before. The crate test
   `plays_the_chips_own_layout_when_asked` fails without it (fwtest
   0.13.0).
+- `patches/0021-usb-host.patch` (the owner's ruling of 2026-11-22, the
+  USB plan's step U1): a new `crates/fm1-soc/src/cable.rs`, and
+  `lib.rs` and `periph.rs` to wire it in: a USB host on the first USB
+  core's cable when `cable.on` is set (fwtest's `--usb`), off by default.
+  It resets the bus once the device connects, enumerates and configures
+  it over endpoint 0, and moves USB MIDI event packets both ways through
+  the endpoints' DMA words (HW-86, HW-171 to HW-173; the rest is the
+  model's own, docs/HARNESS.md "USB"). The crate tests in `cable.rs`
+  fail without it (fwtest 0.14.0).
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
 and the harness suite gave byte-identical outputs (284 files) from fwtest

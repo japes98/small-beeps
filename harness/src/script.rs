@@ -11,6 +11,8 @@
 //!   <t> enc <n> <+clicks | -clicks>              encoder n (0..6), + is clockwise
 //!   <t> pot <value>                              the pot's reading, 0..1023
 //!   <t> midi <hex byte> [<hex byte> ...]         bytes into the MIDI input
+//!   <t> usbmidi <hex byte> ...                   USB MIDI event packets (4 bytes each) for
+//!                                                `--usb`'s host to send to the device
 //!
 //! Key ids are `fm1_soc::periph`'s matrix ids (`Action::Key`), encoder ids
 //! its `ENC` index, and the pot is ADC channel 4 (`adc_value[4]`).
@@ -112,7 +114,19 @@ fn parse_line(line: &str, events: &mut Vec<Event>) -> Result<(), String> {
                 push(cycle, Action::Midi { b: v });
             }
         }
-        (other, _) => return Err(format!("unknown or malformed event {other:?} (key, enc, pot, midi)")),
+        ("usbmidi", bytes) if !bytes.is_empty() => {
+            if bytes.len() % 4 != 0 {
+                return Err(format!("usbmidi takes whole event packets, 4 bytes each; {} given", bytes.len()));
+            }
+            let mut v = Vec::new();
+            for b in bytes {
+                v.push(u8::from_str_radix(b, 16).ok().filter(|_| b.len() == 2).ok_or_else(|| format!("bad USB MIDI byte {b:?} (two hex digits)"))?);
+            }
+            for p in v.chunks_exact(4) {
+                push(cycle, Action::UsbMidi { p: [p[0], p[1], p[2], p[3]] });
+            }
+        }
+        (other, _) => return Err(format!("unknown or malformed event {other:?} (key, enc, pot, midi, usbmidi)")),
     }
     Ok(())
 }

@@ -322,6 +322,7 @@ fwtest version
 | `--wav` | Save the audio output (`audio.wav`). |
 | `--ipb` | Save instructions per audio block (`ipb.csv`). |
 | `--audio-chip` | The audio link plays the chip's 16-bit layout when its `CON1` sets it ("Audio" below). Off by default. |
+| `--usb` | A USB host on the cable: it enumerates the device, sends the script's `usbmidi` packets and logs the device's ("USB" below; `usb.csv`, `usb-midi-out.csv`, `result.json`'s `usb`). Off by default. |
 | `--console` | Save the bytes written to the chip's debug message register (`console.txt`; `HARDWARE-SPEC.md` names it). |
 | `--midi-out` | Save the MIDI output: the bytes with their times (`midi-out.csv`) and the messages they make (`midi-out.txt`). See "MIDI output". |
 | `--watchdog ADDR:MS` | A hang if the 32-bit word at RAM address ADDR stays the same for more than MS ms. |
@@ -354,7 +355,8 @@ the order written.
 | `key N tap [HOLD]` | Pressed, then released HOLD ms later (default 50). |
 | `enc N +C`, `enc N -C` | Encoder N (0 to 6) turned C detents (1 to 1000); `+` is clockwise. Each detent is four contact changes, 2 ms apart, the first at the event's time. |
 | `pot V` | The pot's reading becomes V (0 to 1023). It reads 900 until a script sets it. |
-| `midi HH ...` | Bytes (two hex digits each) arrive at the MIDI input one after another, at the wire's pace: one byte every 320 µs, the first 320 µs after the event's time. Bytes still waiting from an earlier event go first ("MIDI clock in and timing"). The MIDI input is the FM-1's MIDI IN jack, received by UART1 (`HARDWARE-SPEC.md`, HW-67, HW-71); fwtest has no USB or Bluetooth MIDI. |
+| `midi HH ...` | Bytes (two hex digits each) arrive at the MIDI input one after another, at the wire's pace: one byte every 320 µs, the first 320 µs after the event's time. Bytes still waiting from an earlier event go first ("MIDI clock in and timing"). The MIDI input is the FM-1's MIDI IN jack, received by UART1 (`HARDWARE-SPEC.md`, HW-67, HW-71); fwtest has no Bluetooth MIDI. |
+| `usbmidi HH ...` | USB MIDI event packets, four bytes each (the cable number and code index, then three MIDI bytes), for `--usb`'s host to send to the device. They wait until the device is configured; then each frame takes those due, as many as fit in one packet to the MIDI streaming interface's bulk OUT endpoint ("USB"). Without `--usb` they are ignored. |
 
 Key, LED and encoder numbers are fwtest's own. `HARDWARE-SPEC.md` maps them
 to the panel and to the key matrix.
@@ -376,6 +378,8 @@ All in `--out`. A run writes only what it was asked for, plus
 | `console.txt` | The debug console bytes, as written. |
 | `midi-out.csv` | Header `ms,byte`, then one row per byte the MIDI output sent: the time its stop bit ended (ms, three decimals) and the byte as two hex digits. Empty but for the header if nothing was sent. |
 | `midi-out.txt` | The same bytes as MIDI messages, one a line: the time of the message's last byte, then the message ("MIDI output"). |
+| `usb.csv` | With `--usb`: header `ms,event`, then the USB host's steps in order ("USB"). |
+| `usb-midi-out.csv` | With `--usb`: header `ms,cable,cin,bytes`, then one row per USB MIDI event packet the device sent: the frame's time (ms, three decimals), the cable number and the code index (hex digits) and the three MIDI bytes. |
 | `result.json` | What happened (below). |
 | `junit.xml` | JUnit XML: a test case `run` (fails on a fault or hang, and on a halt without `--halt-ok`), and one `golden NAME` per golden file. |
 
@@ -504,19 +508,92 @@ from the two sections above, in one place.
 
 ## USB
 
-fwtest has no USB bus: no host, no cable, no bus events (reset, connect,
-suspend, start of frame) and no endpoint data, so USB MIDI and USB audio
-do nothing in it. The USB core's register access port answers at once:
+Without `--usb`, fwtest has no USB bus: no host, no cable, no bus events
+(reset, connect, suspend, start of frame) and no endpoint data, so USB MIDI
+does nothing in it. The USB core's register access port answers at once:
 an access written to it (`index << 8 | byte`, bit 14 set for a read) reads
 back with bit 15 (done) set, and a read gives in bits 0-7 the byte last
 written to that index (0 before any write), except the interrupt flags
 (indexes 2 to 6), which read 0: nothing is pending (`HARDWARE-SPEC.md`,
 HW-86). No interrupt is raised. A firmware that sets up its USB device
 gets through the setup, and one that waits for a bus event waits forever,
-as on a unit with no cable.
+as on a unit with no cable. (From fwtest 0.7.0; before it, bit 15 never
+set, so every access waited out the firmware's own poll limit.)
 
-From fwtest 0.7.0. Before it, bit 15 never set, so every access waited
-out the firmware's own poll limit.
+With `--usb` (since 0.14.0) a host is on the first USB core's cable, the
+FM-1's port (HW-173). It is a model for testing a USB MIDI device's
+firmware, not a copy of the chip: what the sources give it keeps to, and
+the rest is fwtest's own, marked so below. A firmware that passes here
+still has to be tried on a unit.
+
+**From the sources** (HW-86, HW-171, HW-172):
+- the access port at `0x11804` and the core's byte registers by index,
+  endpoint registers (indexes 16 to 27) for the endpoint index 14 selects;
+- `CON0` at `0x11800`: bit 0 the PHY, bit 10 the SOF interrupt's enable,
+  bit 11 the controller's, bit 13 the SOF pending and bit 14 the
+  controller's pending as read;
+- the endpoints' DMA words: endpoint 0's one address (`0x11818`) and
+  count (`0x11808`); for endpoints 1 to 4 their transmit and receive
+  addresses and counts (HW-171's offsets);
+- the interrupts: 8 at each frame's start while `CON0` bit 10 is set; 9
+  while `CON0` bit 11 is set and a flag is up whose enable is set
+  (`INTRUSB` with index 11, the transmit flags with 7 and 8, the receive
+  flags with 9 and 10);
+- a received packet's DMA writes 4 bytes past it (fwtest writes zeros).
+
+**fwtest's own (emulator-only):**
+- **Connect:** the device is connected while `CON0` bit 0 is set and the
+  `POWER` byte (index 1) has bit 6 set. 10 ms later the host resets the
+  bus (`INTRUSB` bit 2, `FADDR` and the endpoint registers cleared), and
+  10 ms after that it starts asking. Clearing either bit disconnects.
+- **Frames:** one a millisecond while connected: the frame number
+  (indexes 12 and 13) counts, `INTRUSB` bit 3 rises, and so does the SOF
+  pending, which a write to `CON0` with bit 12 set clears.
+- **The flags** (indexes 2 to 6) clear when read.
+- **A control transfer:** the host writes the 8-byte setup packet at
+  endpoint 0's DMA address, sets endpoint 0's count (index 22) to 8 and
+  `CSR0` bit 0, and raises transmit flag 0. The device takes it by writing
+  `CSR0` with bit 6 set, which clears bit 0. For a request with an IN data
+  stage, the device puts the bytes at the same address, writes their count
+  to endpoint 0's count word, and sets `CSR0` bit 1; at the next frame the
+  host reads them, clears bit 1 and raises flag 0 again, until a packet
+  shorter than 64 bytes, the length asked for, or a write with bit 3 has
+  ended the stage. A request with no data stage is done once the setup is
+  taken. A write with bit 5 is a stall: the host sets bit 2 and stops.
+  `CSR0` bit 7 clears bit 4.
+- **Enumeration, in order:** the device descriptor (64 bytes asked), the
+  address (1; the host checks `FADDR` afterwards), the device descriptor,
+  the configuration descriptor's 9 bytes and then all of it, string 0,
+  the manufacturer, product and serial strings the device descriptor
+  names, and the configuration. The host then looks for an interface of
+  class 1, subclass 3 (MIDI streaming) and its bulk endpoints.
+- **USB MIDI out of the device:** each frame, if the bulk IN endpoint's
+  `TXCSR` bit 0 is set, the host reads the endpoint's count word's bytes
+  from its transmit address, clears bit 0 and raises its transmit flag.
+  Every 4 bytes not all zero are an event packet in `usb-midi-out.csv`.
+- **USB MIDI into the device:** each frame, if the bulk OUT endpoint's
+  `RXCSR` bit 0 is clear, the host writes the due script packets (up to
+  `RXMAXP`, or 64 bytes) at the endpoint's receive address, sets its
+  count (indexes 22 and 23) and `RXCSR` bit 0, and raises its receive
+  flag. The device frees the buffer by writing `RXCSR` with bit 0 clear
+  (or bit 4).
+- **Not modelled:** speeds and their signalling, suspend and resume,
+  isochronous and interrupt endpoints, the second core, the pins' word
+  (`JL_USB_IO`), what `CON0`'s other bits do, timing within a frame.
+- **Problems** (a stall, a request not finished within 200 ms, a
+  descriptor the host can't use, `FADDR` not set, an IN packet that isn't
+  whole event packets) are logged and listed in `result.json`; the run
+  goes on.
+
+**Outputs with `--usb`:**
+- `usb.csv`: `ms,event`, every step: connect, reset, each setup packet and
+  the address it went to, each data packet, configured, each bulk packet,
+  problems.
+- `usb-midi-out.csv`: `ms,cable,cin,bytes`, the device's event packets.
+- `result.json`'s `usb`: `vendor`, `product` (hex), `manufacturer`,
+  `product_name`, `serial`, `address`, `configuration`,
+  `midi_out_endpoint`, `midi_in_endpoint` (null when not found),
+  `packets_sent`, `events_sent`, `events_received` and `problems`.
 
 ## Outcomes and exit codes
 
@@ -833,6 +910,10 @@ pushing Docker compresses the layers; the image ID does not.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.14.0: a USB host behind `--usb` ("USB"): it enumerates the device on
+  the first core, configures it, sends the script's `usbmidi` packets to
+  its MIDI streaming interface and logs the device's. Without the flag,
+  outputs are as in 0.13.0.
 - 0.13.0: the chip's 16-bit audio layout behind `--audio-chip` ("Audio"):
   `LEN` frames a half, one word a frame, when `CON1` sets data 3 to
   16-bit I2S (HW-160, HW-168). Without the flag, outputs are as in

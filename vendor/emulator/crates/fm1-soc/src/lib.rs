@@ -26,6 +26,7 @@
 use fm1_core::Bus;
 
 pub mod script;
+pub mod cable;
 pub mod flaky;
 pub mod fwsc;
 mod lcd;
@@ -190,6 +191,8 @@ pub struct Soc {
     pub window_read_busy: Option<u32>,
     /// The USB core's registers behind its access port (0x11804), a byte each by index.
     usb_regs: [u8; 64],
+    /// fwtest's `--usb`: a host on the first USB core's cable (cable.rs).
+    pub cable: cable::Cable,
 }
 
 fn dbg_line(addr: u32) -> &'static str {
@@ -279,6 +282,7 @@ impl Soc {
             p33: Default::default(),
             window_read_busy: None,
             usb_regs: [0; 64],
+            cable: cable::Cable::default(),
         }
     }
 
@@ -339,6 +343,29 @@ impl Soc {
                 }
             }
         }
+        if self.cable.on && self.periph.cycles >= self.cable.next_frame {
+            self.usb_frame();
+        }
+    }
+
+    /// fwtest's `--usb` host: its frame, when one is due, and the core's interrupts as they stand.
+    fn usb_frame(&mut self) {
+        while let Some(p) = self.periph.usb_midi_in.pop_front() {
+            self.cable.to_device.push_back(p);
+        }
+        let now = self.periph.cycles;
+        let per_ms = self.periph.hz / 1000;
+        let mut c = std::mem::take(&mut self.cable);
+        c.frame(now, per_ms, self);
+        self.cable = c;
+        self.usb_sync();
+    }
+
+    fn usb_sync(&mut self) {
+        let con0 = self.sfr_get(cable::BLOCK);
+        self.periph.usb_sof_irq = self.cable.sof_irq(con0);
+        self.periph.usb_ctrl_irq = self.cable.controller_irq(con0);
+        self.periph.usb_next = if self.cable.on { self.cable.next_frame } else { u64::MAX };
     }
 
     /// The highest-priority enabled pending interrupt: (irq, prio).
@@ -563,6 +590,18 @@ impl Soc {
     }
 }
 
+impl cable::Wire for Soc {
+    fn word(&mut self, addr: u32) -> u32 {
+        self.sfr_get(addr)
+    }
+    fn peek(&mut self, addr: u32) -> u8 {
+        self.read8(addr)
+    }
+    fn poke(&mut self, addr: u32, b: u8) {
+        self.write8(addr, b)
+    }
+}
+
 impl Bus for Soc {
     fn irq_window(&mut self) {
         if self.periph.any_pending() {
@@ -729,6 +768,20 @@ impl Soc {
             // the USB core's access port: `index << 8 | byte`, bit 14 a read; bit 15 (done) is
             // set as soon as the access is written, and a read's byte is in bits 0-7. With
             // nothing on the bus no interrupt flag (indexes 2-6) is pending.
+            Region::Usb if addr == 0x11804 && self.cable.on => {
+                let v = self.sfr_get(addr);
+                if v & 0x4000 != 0 {
+                    let b = self.cable.port_read(((v >> 8) & 0x3f) as usize);
+                    self.usb_sync();
+                    (v & !0xff) | b as u32 | 0x8000
+                } else {
+                    v | 0x8000
+                }
+            }
+            Region::Usb if addr == 0x11800 && self.cable.on => {
+                let v = self.sfr_get(addr);
+                self.cable.con0_read(v)
+            }
             Region::Usb if addr == 0x11804 => {
                 let v = self.sfr_get(addr);
                 if v & 0x4000 != 0 {
@@ -902,8 +955,19 @@ impl Soc {
                 }
                 if addr == 0x11804 && value & 0x4000 == 0 {
                     self.usb_regs[((value >> 8) & 0x3f) as usize] = value as u8;
+                    if self.cable.on {
+                        let now = self.periph.cycles;
+                        self.cable.port_write(now, ((value >> 8) & 0x3f) as usize, value as u8);
+                    }
                 }
-                self.sfr_set(addr, value)
+                if addr == 0x11800 && self.cable.on {
+                    self.cable.con0_write(value);
+                }
+                let r = self.sfr_set(addr, value);
+                if self.cable.on {
+                    self.usb_sync();
+                }
+                r
             }
             Region::Uart1 => {
                 if !self.periph.write(addr, value) {
