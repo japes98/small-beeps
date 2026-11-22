@@ -3759,6 +3759,27 @@ SR-3 wrote only its barrier-log row.*
 - audio13 (drop/prompts/clean-br17-audio13.md, outside the repository)
   marked ruled and sent to the clean session once #242 was on main.
 - Read: nothing new.
+
+### Session spec-audio13-unit (audio13 on the unit; U3 set out)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio13-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on `spec/audio13-rulings`.
+- The owner's message (audio13's results; U3 and the ARP fix to set
+  out), saved unedited as docs/prompts/spec-audio13-unit.md; HARDWARE-SPEC
+  section 51 (HW-176, HW-177) and notes on Q-36; HARNESS.md "Versions"
+  gains 0.14.0's published digest.
+- Merged clean's open branch `hw/audio13` (#243) into this one, with no
+  conflicts.
+- Read: #243's description; for Q-36, JieLi's fw-Bootloader (Apache-2.0)
+  user boot's USB files for the WL82 and fw-AC63_GP_MCU's AC636N
+  `gpio.c` (PROVENANCE P-515): nothing new taken; the set-up writes are in
+  a prebuilt library there too.
+- Drafted drop/prompts/clean-br17-audio14-draft.md outside the repository
+  (the ARP save fix, U3's device in fwtest only), marked as awaiting the
+  owner's ruling.
+- Disk: about 2.6 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
