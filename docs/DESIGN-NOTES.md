@@ -5736,3 +5736,68 @@ D6 kept.
   it is down (SEL let go first: the check stops on a key held). Then the
   panel, as audio12's. Identity hw3w.
 
+
+### 2026-11-22 clean-br17-audio13: power-on to the instrument; the USB block read; ARP's steps timed (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio13.md), with the
+owner's rulings: D5 (power-on straight to the instrument, HOME held for the
+test screen), U2 (the USB block read, never written: U2-A, U2-B, and U2-C
+on its own key; docs/prompts/spec-usb-u2-rulings.md and -rulings2.md), and
+ARP checked on the unit with each step's timing logged. Facts from
+HARDWARE-SPEC HW-171 to HW-175, HW-86, HW-91, HW-117 and HW-129.
+
+- **D5 from cold** (`SB_HW_AUDIO13`, on audio12): after core 1's screen,
+  HOME is read; not held, the boot's record, then the instrument's start
+  as #240 ran it (the engine, the synth, ALNK0, L2, R2, the route with its
+  matrix check and self-undo), keeping audio12b's record and step row
+  before each stage and adding "Inst engine" first; then the panel, no
+  test screen. Held, the test screen once HOME is let go (#240's wait and
+  drop of its events); SEL there runs the start as audio12b (the engine
+  already up). `main` jumps past the test screen's drawing and start to
+  the loop. The cold stages are audio12b's, so a stage already up is
+  never started twice (`a9_route_up` skips R2 when it is set).
+- **U2-A** reads the five words (`JL_USB->CON0`, `CON1`, `JL_USB_IO->CON0`
+  to `CON2`, by the SDK header's names, HW-171) in `sb_start` right after
+  the panel's band 1, before the copy to RAM: band 1 alone on the screen
+  would mean a read hung. They stay in registers until the copy and the
+  zeroing, then go to RAM. A second reading comes at beat 1000, before
+  either start's audio path (the audio block count then is logged, 0), and
+  OCT- reads them again in the test screen. Each start's boot record
+  carries both readings, and so does every record after it, so each
+  start's reading reaches the flash with no save key, the last 96 records
+  kept. Nothing is ever written to the block, and nothing goes through
+  `CON1`'s port (an access there starts with a write, HW-86).
+- **U2-B** polls the words every 100 ms from the test screen's tick, logs
+  each word's change with its beat (the last 24), and keeps, for each run
+  and cable state, each word's bits ever set and always set. SAVE marks
+  the next state (a to e, then a again); state a takes the words then as
+  the ones the others are compared with. OCT+ turning U2-C on marks state
+  a too: the second run. The large area says the state letter and "SAME AS
+  A", or "CHANGED" with the word (C0, C1, P0 to P2); its second line shows
+  the start's words one every 2 s, its third U2-C.
+- **U2-C** adds channels 12 and 13 to audio11's sweep only while OCT+ has
+  it on (off at start-up). They are converted as the others (the SARADC's
+  `CON` as audio11 writes it, the only write) and kept apart: the count
+  and least and greatest by state, each turn-on's first readings, and a
+  log of readings that move by more than 8 or every 2 s, with the state.
+- **ARP** in the panel: the build starts ARP's settings as the ARP
+  suite's (UP, 1/16, 2 octaves, gate 50 %, 120 beats a minute; Bell gives
+  all but the octaves), off; ARP's short press turns it on and off. After
+  the engine's blocks each fill takes the steps it played from `sb_arp`'s
+  log, their frame counts, timed by the fill's start by `sb_now()`
+  (TIMER0, the fill times' timer; the audio interrupts don't drive it). A
+  chain runs while ARP is on and holds a note; its gaps give the shortest
+  and longest in frames and in units, and the longest chain's ends give
+  the rate. While ARP runs the panel's message line shows the last gap
+  ("ARP gap 5514 fr 125.0 ms"). REC in the panel (a later milestone's
+  button) saves the log, not the store.
+- **Layout 12** leaves out the old steps' snapshots and steps H, I, K, J,
+  D, L1 and L2 (audio2 to audio7, 380 words) for audio13's 371. Identity
+  hw3x.
+- **What fwtest shows of it:** without `--usb` fwtest reads the five words
+  as 0 but `CON1`, which reads `0x8000` (bit 15, `MACK`, set: HW-86's
+  "every access is done at once"). ARP's gaps are 5514 or 5515 frames on
+  both layouts; by `sb_now()` they are 50 ms in fwtest's layout (its
+  TIMER0 2.5 times slow) and 25 ms in the 16-bit layout, where fwtest takes
+  the unit's 128-frame half in the time of one of its own 64-frame halves.
+  On the unit both should be 125 ms. The unit's build writes no log in
+  fwtest (its window `CON` reads 0 there); its package reaches the panel.
