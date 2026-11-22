@@ -44,6 +44,8 @@ pub struct Options {
     /// `--audio-chip`: ALNK0 plays the chip's 16-bit layout when CON1 sets it (HARNESS.md,
     /// "Audio").
     pub audio_chip: bool,
+    /// `--usb`: a USB host on the first core's cable (HARNESS.md, "USB").
+    pub usb: bool,
     pub console: bool,
     pub midi_out: bool,
     pub watchdog: Option<(u32, u64)>,
@@ -113,6 +115,10 @@ pub struct Report {
     pub midi_out_dropped: u64,
     /// What a package run booted (`--package`).
     pub package: Option<Package>,
+    /// What the USB host found (`--usb`).
+    pub usb: Option<fm1_soc::cable::Found>,
+    pub usb_problems: Vec<String>,
+    pub usb_counts: (u64, u64, u64),
 }
 
 const LEDS: usize = script::KEYS as usize;
@@ -139,6 +145,7 @@ pub fn run(image: &[u8], opt: &Options) -> Result<Report, String> {
         (Board::boot(image, opt.flash_in.as_deref())?, None)
     };
     board.soc.periph.audio_chip16 = opt.audio_chip;
+    board.soc.cable.on = opt.usb;
     for e in &opt.script {
         board.soc.periph.script.push_back((e.cycle, e.action.clone()));
     }
@@ -262,6 +269,20 @@ pub fn run(image: &[u8], opt: &Options) -> Result<Report, String> {
         }
         outputs.push(Output { name: "ipb.csv".into(), data: s.into_bytes() });
     }
+    if opt.usb {
+        let us = CYCLES_PER_MS / 1000;
+        let ms = |c: u64| format!("{}.{:03}", c / us / 1000, c / us % 1000);
+        let mut s = String::from("ms,event\n");
+        for (c, e) in &board.soc.cable.log {
+            s.push_str(&format!("{},{}\n", ms(*c), e));
+        }
+        outputs.push(Output { name: "usb.csv".into(), data: s.into_bytes() });
+        let mut s = String::from("ms,cable,cin,bytes\n");
+        for (c, p) in &board.soc.cable.from_device {
+            s.push_str(&format!("{},{},{:x},{:02x} {:02x} {:02x}\n", ms(*c), p[0] >> 4, p[0] & 0xf, p[1], p[2], p[3]));
+        }
+        outputs.push(Output { name: "usb-midi-out.csv".into(), data: s.into_bytes() });
+    }
     if opt.console {
         outputs.push(Output { name: "console.txt".into(), data: board.soc.console.clone() });
     }
@@ -287,6 +308,9 @@ pub fn run(image: &[u8], opt: &Options) -> Result<Report, String> {
         midi_dropped: board.soc.periph.midi_dropped(),
         midi_out_dropped: board.soc.periph.midi_out_dropped(),
         package,
+        usb: opt.usb.then(|| board.soc.cable.found.clone()),
+        usb_problems: board.soc.cable.problems.clone(),
+        usb_counts: (board.soc.cable.sent_packets, board.soc.cable.sent_events, board.soc.cable.from_device.len() as u64),
     })
 }
 
@@ -339,6 +363,26 @@ pub fn report_json(r: &Report) -> Json {
         ("unmodelled_accesses", Json::Arr(unmod)),
         ("outputs", Json::Arr(outs)),
     ];
+    if let Some(u) = &r.usb {
+        let hex16 = |v: Option<u16>| v.map_or(Json::Null, |v| Json::str(format!("{v:04x}")));
+        let text = |v: &Option<String>| v.as_ref().map_or(Json::Null, |s| Json::str(s.clone()));
+        let byte = |v: Option<u8>| v.map_or(Json::Null, |v| Json::Int(v as i64));
+        fields.push(("usb", Json::obj(vec![
+            ("vendor", hex16(u.vendor)),
+            ("product", hex16(u.product)),
+            ("manufacturer", text(&u.manufacturer)),
+            ("product_name", text(&u.prod_str)),
+            ("serial", text(&u.serial)),
+            ("address", byte(u.address)),
+            ("configuration", byte(u.configuration)),
+            ("midi_out_endpoint", byte(u.midi_out_ep)),
+            ("midi_in_endpoint", byte(u.midi_in_ep)),
+            ("packets_sent", Json::Int(r.usb_counts.0 as i64)),
+            ("events_sent", Json::Int(r.usb_counts.1 as i64)),
+            ("events_received", Json::Int(r.usb_counts.2 as i64)),
+            ("problems", Json::Arr(r.usb_problems.iter().map(|p| Json::str(p.clone())).collect())),
+        ])));
+    }
     if let Some(p) = &r.package {
         fields.insert(0, ("package", Json::obj(vec![
             ("identity", Json::str(p.identity.clone())),

@@ -918,3 +918,116 @@ fn audio_chip_is_an_option_off_by_default() {
     assert!(!fwtest::parse_run(&args(&[]), base).unwrap().opt.audio_chip);
     assert!(fwtest::parse_run(&args(&["--audio-chip"]), base).unwrap().opt.audio_chip);
 }
+
+#[test]
+fn usb_is_an_option_off_by_default_and_usbmidi_takes_whole_packets() {
+    let base = std::path::Path::new(".");
+    let args = |extra: &[&str]| -> Vec<String> {
+        let mut v: Vec<String> = ["x.bin", "--out", "o", "--ms", "10"].iter().map(|s| s.to_string()).collect();
+        v.extend(extra.iter().map(|s| s.to_string()));
+        v
+    };
+    assert!(!fwtest::parse_run(&args(&[]), base).unwrap().opt.usb);
+    assert!(fwtest::parse_run(&args(&["--usb"]), base).unwrap().opt.usb);
+    let ev = fwtest::script::parse("1 usbmidi 09 90 3c 64 08 80 3c 00\n").unwrap();
+    assert_eq!(ev.len(), 2);
+    assert_eq!(ev[0].action, fm1_soc::Action::UsbMidi { p: [0x09, 0x90, 0x3c, 0x64] });
+    for bad in ["1 usbmidi 09 90 3c", "1 usbmidi 09 90 3c 6", "1 usbmidi"] {
+        assert!(fwtest::script::parse(bad).is_err(), "{bad}");
+    }
+}
+
+/// `--usb`'s host against a device written here (HARNESS.md, "USB"): it enumerates and
+/// configures it, sends the script's event packets and takes the device's.
+#[test]
+fn usb_host_enumerates_a_device_and_moves_midi_both_ways() {
+    use fm1_soc::cable::{Cable, Wire, BLOCK};
+    use std::collections::HashMap;
+    #[derive(Default)]
+    struct Dev {
+        mem: HashMap<u32, u8>,
+        words: HashMap<u32, u32>,
+    }
+    impl Wire for Dev {
+        fn word(&mut self, a: u32) -> u32 {
+            *self.words.get(&a).unwrap_or(&0)
+        }
+        fn peek(&mut self, a: u32) -> u8 {
+            *self.mem.get(&a).unwrap_or(&0)
+        }
+        fn poke(&mut self, a: u32, b: u8) {
+            self.mem.insert(a, b);
+        }
+    }
+    let (ep0, rx, tx) = (0x01c1_0000u32, 0x01c1_0100u32, 0x01c1_0200u32);
+    let text = |s: &str| {
+        let mut v = vec![2 + 2 * s.len() as u8, 3];
+        for c in s.encode_utf16() {
+            v.extend_from_slice(&c.to_le_bytes());
+        }
+        v
+    };
+    let answer = |setup: &[u8]| -> Vec<u8> {
+        let mut v = match (setup[3], setup[2]) {
+            (1, _) => vec![18, 1, 0, 2, 0, 0, 0, 64, 0x09, 0x12, 0x01, 0x00, 0, 1, 1, 2, 0, 1],
+            (2, _) => vec![9, 2, 32, 0, 1, 1, 0, 0x80, 50, 9, 4, 0, 0, 2, 1, 3, 0, 0, 7, 5, 0x01, 2, 64, 0, 0, 7, 5, 0x82, 2, 64, 0, 0],
+            (3, 0) => vec![4, 3, 0x09, 0x04],
+            (3, 1) => text("small-beeps"),
+            _ => text("small-beeps"),
+        };
+        v.truncate(u16::from_le_bytes([setup[6], setup[7]]) as usize);
+        v
+    };
+    let mut c = Cable::default();
+    c.on = true;
+    let mut d = Dev::default();
+    for (o, a) in [(0, 1), (0x18, ep0), (0x20, rx), (0x24, tx)] {
+        d.words.insert(BLOCK + o, a);
+    }
+    c.port_write(0, 1, 0x60);
+    c.to_device.push_back((0, [0x09, 0x90, 0x3c, 0x64]));
+    let frames = |c: &mut Cable, d: &mut Dev, n: u64| {
+        for f in 0..n {
+            c.frame(f, 1, d);
+            c.port_write(0, 14, 0);
+            if c.port_read(17) & 1 != 0 {
+                let setup: Vec<u8> = (0..8).map(|k| d.peek(ep0 + k)).collect();
+                if setup[1] == 6 {
+                    let v = answer(&setup);
+                    c.port_write(0, 17, 0x40);
+                    for (k, b) in v.iter().enumerate() {
+                        d.poke(ep0 + k as u32, *b);
+                    }
+                    d.words.insert(BLOCK + 0x08, v.len() as u32);
+                    c.port_write(0, 17, 0x0a);
+                } else {
+                    c.port_write(0, 17, 0x48);
+                    if setup[1] == 5 {
+                        c.port_write(0, 0, setup[2]);
+                    }
+                }
+            }
+            c.port_write(0, 14, 1);
+            if c.port_read(20) & 1 != 0 {
+                c.port_write(0, 20, 0);
+            }
+        }
+    };
+    frames(&mut c, &mut d, 200);
+    assert!(c.problems.is_empty(), "{:?}", c.problems);
+    assert_eq!((c.found.vendor, c.found.product), (Some(4617), Some(1)));
+    assert_eq!(c.found.manufacturer.as_deref(), Some("small-beeps"));
+    assert_eq!((c.found.address, c.found.configuration), (Some(1), Some(1)));
+    assert_eq!((c.found.midi_out_ep, c.found.midi_in_ep), (Some(0x01), Some(0x82)));
+    assert_eq!((c.sent_packets, c.sent_events), (1, 1));
+    assert_eq!(d.peek(rx + 2), 0x3c);
+    for (k, b) in [0x08u8, 0x80, 0x3c, 0x00].iter().enumerate() {
+        d.poke(tx + k as u32, *b);
+    }
+    d.words.insert(BLOCK + 0x10, 4);
+    c.port_write(0, 14, 2);
+    c.port_write(0, 17, 0x01);
+    frames(&mut c, &mut d, 2);
+    assert_eq!(c.from_device.len(), 1);
+    assert_eq!(c.from_device[0].1, [0x08, 0x80, 0x3c, 0x00]);
+}

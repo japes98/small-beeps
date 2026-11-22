@@ -180,6 +180,13 @@ pub struct Periph {
     /// 16-bit I2S output (its nibble 0x1), a half is LEN frames of one word each, the
     /// word's upper and lower 16 bits the frame's two samples. Off: the layout above.
     pub audio_chip16: bool,
+    /// fwtest's `--usb` host (cable.rs): its next frame, and the first core's two interrupts
+    /// (8 the SOF, 9 the controller) as the host model last left them.
+    pub usb_next: u64,
+    pub usb_sof_irq: bool,
+    pub usb_ctrl_irq: bool,
+    /// USB MIDI event packets from the script, waiting for the host: (cycle, packet).
+    pub usb_midi_in: std::collections::VecDeque<(u64, [u8; 4])>,
     // SARADC
     adc_con: u32,
     pub adc_value: [u16; 16],
@@ -254,6 +261,8 @@ pub enum Action {
     Midi { b: u8 },
     /// SMK-37: the next keys' velocity, as microseconds between their two contacts.
     Vel { us: u32 },
+    /// One USB MIDI event packet for fwtest's `--usb` host to send to the device.
+    UsbMidi { p: [u8; 4] },
 }
 
 impl Default for Periph {
@@ -309,6 +318,10 @@ impl Default for Periph {
             tmr: [Tmr { next: u64::MAX, ..Default::default() }; 4],
             uart: Uart { next: u64::MAX, ot_next: u64::MAX, tx_next: u64::MAX, ..Default::default() },
             uart_irq: false,
+            usb_next: u64::MAX,
+            usb_sof_irq: false,
+            usb_ctrl_irq: false,
+            usb_midi_in: std::collections::VecDeque::new(),
             sr_shift: 0xffff,
             sr_latched: 0xffff,
             pa_out: 0,
@@ -395,7 +408,7 @@ impl Periph {
     /// The next cycle at which something timed happens.
     fn next_event(&self) -> u64 {
         let mut n = self.t5_next.min(self.alnk_next).min(self.tick_next).min(self.spi2_next).min(self.adc_next).min(self.spi1_irq_at);
-        n = n.min(self.uart.next).min(self.uart.ot_next).min(self.uart.tx_next);
+        n = n.min(self.uart.next).min(self.uart.ot_next).min(self.uart.tx_next).min(self.usb_next);
         for t in &self.tmr {
             n = n.min(t.next);
         }
@@ -535,6 +548,7 @@ impl Periph {
                     self.adc_value[ch as usize] = value.min(1023);
                 }
             }
+            Action::UsbMidi { p } => self.usb_midi_in.push_back((self.cycles, p)),
             Action::Midi { b } => {
                 // a USB keyboard can send faster than the 31250-baud jack takes it: past a
                 // second's worth of backlog the bytes are dropped rather than played late
@@ -660,6 +674,7 @@ impl Periph {
     pub fn any_pending(&self) -> bool {
         self.t5_pending || self.alnk_pend & 0xf0 != 0 || self.ilat != 0 || self.tick_pending || self.spi1_pending
             || self.tmr.iter().any(|t| t.pending) || self.adc_irq || self.spi2_pending || self.uart_irq
+            || self.usb_sof_irq || self.usb_ctrl_irq
     }
 
     /// The highest-priority source cpu0 has enabled and that is pending: (irq, prio).
@@ -701,6 +716,12 @@ impl Periph {
         }
         if self.uart_irq {
             consider(IRQ_UART1);
+        }
+        if self.usb_sof_irq {
+            consider(8);
+        }
+        if self.usb_ctrl_irq {
+            consider(9);
         }
         for i in 0..4 {
             if self.tmr[i].pending {
