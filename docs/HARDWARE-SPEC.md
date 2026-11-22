@@ -4990,6 +4990,59 @@ firmware (PROVENANCE P-513).
   from the calls)
 - Needed by: USB MIDI (U2, U3)
 
+## 50. audio12b on the unit: the engine fits at 8 voices, `ALGORITHM` reaches it
+
+Read back from the flash log of this repository's build audio12b (hw3w,
+clean's #241) on the owner's unit, and heard by the owner, relayed on
+2026-11-22 (source UNIT, docs/prompts/spec-audio12-unit.md). HW-174 gives
+the results; HW-175 says what they settle.
+
+### HW-174: audio12b: the instrument's start, the sweep in every algorithm, the fills (Q-9)
+- Fact: On the owner's unit, started by m-bootloader, power-on to the test
+  screen:
+  1. **The instrument's start, behind SEL:** every stage was logged in
+     order (synth, ALNK0, L2, R2, route, panel), and the panel came up with
+     sound. By clean's #241 report, the test screen's own start had
+     already brought up ALNK0, L2, R2 and the route, and those stages leave
+     them as they are.
+  2. **The sweep, in the patch Bell (all six operators sounding):** in
+     each of algorithms 1 to 10 the longest fill with 8 voices was 982 to
+     1 018 µs, of a half's 2 902 µs (128 frames). Nothing soft clipped or
+     saturated; no half was late.
+  3. **fwtest, the same build and sweep:** 142 to 146.5 µs (clean's #241
+     report).
+  4. **The algorithms** were heard to differ.
+  5. **The sweep's stop** worked; `MASTER` was smooth, with no raw jumps.
+  6. **ARP** was not tried.
+  7. **audio12's file**, which stopped at the first bands, had been packed
+     from the image linked for fwtest's raw path, not at the package
+     address HW-91 gives; audio12b, packed from the package link, ran.
+- Sources: UNIT: audio12b's flash log (hw3w) and the owner's listening,
+  relayed on 2026-11-22 (docs/prompts/spec-audio12-unit.md); clean's #241
+  report (the fwtest fills, the packing); HW-91.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: M3, M4, BR-17 (Phase B)
+
+### HW-175: What audio12b settles: the engine's time on core 0, `ALGORITHM`, fwtest's fill times (Q-9)
+- Fact:
+  - **The engine fits on core 0 at 8 voices** in every algorithm with all
+    six operators sounding: the longest fill is about 35 % of a half.
+  - **`ALGORITHM` reaches the engine on the unit.** audio11's sameness
+    came from its start-up patch, Sine, whose only sounding operator is a
+    carrier in every algorithm (clean's G finding, #240), so each algorithm
+    gave the same sine.
+  - **fwtest's fill times don't predict the unit's:** the unit took about
+    7 times as long. A fill time read in fwtest says nothing about the
+    unit's margin; only the unit's own log does.
+  - **audio11's 318.7 µs at 8 voices** (HW-169) was in Sine, one operator
+    sounding a voice; Bell's six take about three times that. A reading
+    from the two logs, not a measure of the cost per operator.
+  - **Still open:** the power-on instrument start on its own (audio12b ran
+    it after the test screen's start); ARP's rate on the unit.
+- Sources: UNIT (HW-174); HW-169, HW-170; clean's #240 report (G).
+- Standing: confirmed (UNIT; the per-operator reading inferred)
+- Needed by: M3, M4, BR-17 (Phase B)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -5163,6 +5216,10 @@ spec request can turn one into a fact.
   the clicks came with `MASTER`'s unsettled reading; the speaker rolls
   off the bass. Still open: whether `ALGORITHM` reaches the engine. The SARADC's readings don't settle with `CON`'s clock and delay
   fields at 0; the chip's SDK sets a divide by 96 and a start delay.
+  *Session spec-audio12-unit (HW-174, HW-175):* `ALGORITHM` reaches the
+  engine; with all six operators sounding, 8 voices fill in about 35 % of
+  a half on core 0; fwtest's fill times are about 7 times shorter than
+  the unit's.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores
