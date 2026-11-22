@@ -51,6 +51,8 @@ run options:
   --power-cut MS         end the run at MS as a power cut, saving flash.bin
   --wav                  save the audio output (audio.wav)
   --ipb                  instructions per audio block (ipb.csv)
+  --audio-chip           the audio link plays the chip's 16-bit layout when its CON1 sets
+                         it: LEN frames a half, one word a frame (HARNESS.md, Audio)
   --console              save the debug console bytes (console.txt)
   --midi-out             save the MIDI output (midi-out.csv, midi-out.txt)
   --watchdog ADDR:MS     a hang if the word at ADDR stays the same for MS
@@ -151,6 +153,7 @@ pub fn parse_run(args: &[String], base: &Path) -> Result<RunArgs, String> {
             }
             "--wav" => opt.wav = true,
             "--ipb" => opt.ipb = true,
+            "--audio-chip" => opt.audio_chip = true,
             "--console" => opt.console = true,
             "--midi-out" => opt.midi_out = true,
             "--halt-ok" => opt.halt_ok = true,

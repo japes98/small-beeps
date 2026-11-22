@@ -2287,6 +2287,9 @@ void hw_a9_pb5_poll(void)
  * synth's late halves and longest fill, and the fallback's record. */
 #if defined(SB_HW_AUDIO10)
 static void a10_tick(void);
+#if defined(SB_HW_AUDIO11)
+static void a11_time_now(void);
+#endif
 #endif
 
 void hw_a9_tick(void)
@@ -2337,6 +2340,9 @@ static const char *const fmt_word[HW_A10_FMTS] = {
     "P: both halves", "U: upper half, lower 0", "L: lower half, upper 0", "N: upper +, lower -", "N': upper -, lower +",
 };
 static u32 m_prev_raw, m_last_beat, m_logged;
+#if defined(SB_HW_AUDIO11)
+static u32 m_jump_from;
+#endif
 
 /* LFO: F's next format, for everything the link plays. */
 void hw_a10_fmt_key(void)
@@ -2406,6 +2412,13 @@ void hw_a10_master(u32 value)
     hw_aud.m_value = value;
     hw_aud.m_raw = sb_input.pot_raw;
     hw_aud.m_ring[hw_aud.m_ring_n % HW_A10_MRING] = (sb_beacon.beats >> 2 & 0x3FFFFFu) << 10 | (value & 0x3FFu);
+#if defined(SB_HW_AUDIO11)
+    {
+        u32 k = hw_aud.m_ring_n % HW_A10_MRING, sh = 16u * (k & 1u);
+
+        hw_aud.m_raw_ring[k / 2u] = (hw_aud.m_raw_ring[k / 2u] & ~(0xFFFFu << sh)) | (sb_input.pot_raw & 0xFFFFu) << sh;
+    }
+#endif
     hw_aud.m_ring_n++;
     hw_aud.m_changes++;
     m_last_beat = sb_beacon.beats;
@@ -2420,13 +2433,22 @@ void hw_a10_pot_poll(void)
     if (raw == m_prev_raw)
         return;
     d = raw > m_prev_raw ? raw - m_prev_raw : m_prev_raw - raw;
+#if defined(SB_HW_AUDIO11)
+    m_jump_from = m_prev_raw;
+#endif
     m_prev_raw = raw;
     if (!hw_aud.m_raw && !hw_aud.m_changes) {
         hw_aud.m_raw = raw;     /* the first reading: no step */
         return;
     }
-    if (d > 32u)
+    if (d > 32u) {
         hw_aud.m_jumps++;
+#if defined(SB_HW_AUDIO11)
+        hw_aud.m_jump_t[hw_aud.m_jump_n % HW_A11_JUMPS] = (sb_beacon.beats >> 2 & 0xFFFu) << 20
+                                                          | (m_jump_from & 0x3FFu) << 10 | (raw & 0x3FFu);
+        hw_aud.m_jump_n++;
+#endif
+    }
     if (d > hw_aud.m_maxdelta)
         hw_aud.m_maxdelta = d;
 }
@@ -2465,6 +2487,336 @@ static void a10_tick(void)
         m_logged = hw_aud.m_changes;
         report("MASTER still");
     }
+#if defined(SB_HW_AUDIO11)
+    {
+        static u32 timed;
+
+        if (!timed) {
+            timed = 1;
+            a11_time_now(); /* the start's set-up timed once, TIMER0 running */
+        }
+    }
+    hw_aud.m_level = hw_aud.m_value * hw_aud.m_value * 100u / 10465u;
+    hw_a11_big(0);
+#endif
+}
+#endif
+
+#if defined(SB_HW_AUDIO11)
+/* --- audio11 (the spec side's clean-br17-audio11; the owner's rulings) ---
+ * B: the SARADC's service. Every conversion the build starts goes through
+ * it (MASTER's and the test screen's sweep). It runs from TIMER0's slot
+ * (hw_slot, every 83 us) and never waits: a slot finds the conversion in
+ * flight done (bit 7) or not; done, it takes the reading and starts the
+ * next; not done, it returns, until A11_TIMEOUT. Conversions alternate:
+ * MASTER (channel 4), then one channel of the sweep, then MASTER... The
+ * sweep leaves out channel 2 (PA10, an LED line), 8 and 9 (PC9 and PC10,
+ * the panel), always, and 6 and 7 (PC0 and PC1, the link's clocks) unless
+ * the route is down (HW-129). */
+#define A11_DONE    (1u << 7)
+#define A11_TIMEOUT (5u * 24000u)   /* 5 ms of sb_now's 24 MHz */
+#define A11_FIRST_SPINS 2000000u    /* a wait's passes at most, whatever sb_now() does */
+#if defined(SB_TEST_A11_SLOW)
+/* The test build: bit 7 taken as seen only 300 us after the start, for the
+ * waits' sake (fwtest finishes a conversion at once, HW-40). */
+#define A11_SEEN(con, d) (((con) & A11_DONE) && (d) >= 300u * 24u)
+#else
+#define A11_SEEN(con, d) ((con) & A11_DONE)
+#endif
+static const u8 a11_chan[HW_A11_CHANS] = { 0, 1, 3, 4, 5, 6, 7, 10, 11 };
+static const u8 a11_index[12] = { 0, 1, 0xFF, 2, 3, 4, 5, 6, 0xFF, 0xFF, 7, 8 };
+static volatile u32 cv_busy, cv_hold;
+static u32 cv_ch, cv_set, cv_t0, cv_turn, cv_next, cv_pot_new, cv_pot_v, cv_swept;
+
+/* CON's fields but the enable and start: the SDK's (HW-167: the channel
+ * in bits 8-11, bits 0-2 0b110, bits 12-15 0xF, bit 3) or the old (the
+ * channel alone). Bit 5, the interrupt enable, is not set in either: the
+ * build polls bit 7 (the SDK sets it). */
+static u32 a11_fields(u32 ch, u32 set)
+{
+    return set == HW_A11_SDK ? (ch << 8 | 0xFu << 12 | 1u << 3 | 6u) : ch << 8;
+}
+
+/* A conversion started: the SDK's three writes, or the old one. */
+static void cv_start(u32 ch)
+{
+    u32 set = hw_aud.adc_setup, b = a11_fields(ch, set);
+
+    if (set == HW_A11_SDK) {
+        JL_ADC->CON = b | 1u << 6;              /* 1: bit 6 with bit 4 clear (the pending flag) */
+        JL_ADC->CON = b | 1u << 6 | 1u << 4;    /* 2: the enable added */
+        JL_ADC->CON = b | 1u << 6 | 1u << 4;    /* 3: the start, bit 6 set again */
+    } else {
+        JL_ADC->CON = b | 1u << 4 | 1u << 6;
+    }
+    cv_ch = ch;
+    cv_set = set;
+    cv_t0 = sb_now();
+    cv_busy = 1;
+}
+
+/* A reading kept: the channel's last, its least and greatest, and its
+ * values with counts (exact while it has shown 4 distinct values or
+ * fewer; past that the slot with the fewest goes to the newer value, its
+ * count to "other"). */
+static void cv_record(u32 ch, u32 set, u32 v, u32 d)
+{
+    u32 i = a11_index[ch], k, lo = 0xFFFFFFFFu, at = 0, *sl;
+
+    hw_aud.adc_last[ch] = v;
+    hw3.adc[ch] = v;
+    hw_aud.adc_conv_n[set]++;
+    if (!hw_aud.adc_conv_min[set] || d < hw_aud.adc_conv_min[set])
+        hw_aud.adc_conv_min[set] = d ? d : 1u;
+    if (d > hw_aud.adc_conv_max[set])
+        hw_aud.adc_conv_max[set] = d;
+    if (ch == 4) {
+        cv_pot_v = v;
+        cv_pot_new = 1;
+    }
+    if (i == 0xFFu)
+        return;
+    if (!hw_aud.adc_n[set][i]++) {
+        hw_aud.adc_mm[set][i] = v << 16 | v;
+    } else {
+        if (v < hw_aud.adc_mm[set][i] >> 16)
+            hw_aud.adc_mm[set][i] = v << 16 | (hw_aud.adc_mm[set][i] & 0xFFFFu);
+        if (v > (hw_aud.adc_mm[set][i] & 0xFFFFu))
+            hw_aud.adc_mm[set][i] = (hw_aud.adc_mm[set][i] & 0xFFFF0000u) | v;
+    }
+    sl = hw_aud.adc_v[set][i];
+    for (k = 0; k < HW_A11_SLOTS; k++) {
+        u32 c = sl[k] & 0x3FFFFFu;
+
+        if (c && sl[k] >> 22 == v) {
+            if (c < 0x3FFFFFu)
+                sl[k]++;
+            return;
+        }
+        if (c < lo) {
+            lo = c;
+            at = k;
+        }
+    }
+    hw_aud.adc_other[set][i] += lo;
+    sl[at] = v << 22 | 1u;
+}
+
+/* The sweep's next channel: the kept ones but MASTER's, each in turn. */
+static u32 cv_sweep_next(void)
+{
+    u32 n, ch, down = hw_aud.a9_route == HW_A9_ROUTE_DOWN || hw_aud.a9_route == HW_A9_ROUTE_UNDONE
+                      || hw_aud.a9_route == HW_A9_ROUTE_NOL2;
+
+    for (n = 0; n < HW_A11_CHANS; n++) {
+        ch = a11_chan[cv_next];
+        cv_next = (cv_next + 1u) % HW_A11_CHANS;
+        if (!cv_next)
+            hw_aud.adc_passes++;
+        if (ch == 4 || ((ch == 6 || ch == 7) && !down))
+            continue;
+        return ch;
+    }
+    return 4;
+}
+
+/* TIMER0's slot (main.c): the conversion in flight looked at, the next
+ * started. */
+void hw_a11_adc_poll(void)
+{
+    u32 t = sb_now(), d, con;
+
+    if (cv_hold)
+        return;
+    if (cv_busy) {
+        d = t - cv_t0;
+        con = JL_ADC->CON;
+        if (!A11_SEEN(con, d)) {
+            if (d < A11_TIMEOUT)
+                return;
+            hw_aud.adc_conv_to[cv_set]++;
+            if (cv_ch < 12u)
+                hw3.adc[cv_ch] = 0xFFFFu;
+        } else {
+            cv_record(cv_ch, cv_set, JL_ADC->RES & 0x3FFu, d);
+        }
+        cv_busy = 0;
+    }
+    /* MASTER every other conversion; only MASTER while the scan is held. */
+    cv_turn ^= 1u;
+    cv_start(cv_turn || hw_hold_sweeps ? 4u : cv_sweep_next());
+    cv_swept++;
+    d = sb_now() - t;
+    if (d > hw_aud.adc_pass_max)
+        hw_aud.adc_pass_max = d;
+}
+
+/* input.c's pot(), once a scan: MASTER's newest reading, if one came. */
+int hw_a11_pot_take(u32 *v)
+{
+    if (!cv_pot_new)
+        return 0;
+    cv_pot_new = 0;
+    *v = cv_pot_v;
+    return 1;
+}
+
+/* One conversion of channel 4 timed by a tight poll, from main or the
+ * start (the slot's service held meanwhile; main never fills a half, so
+ * the wait never delays one). Its CON writes, and CON read after them,
+ * are kept for the set-up. */
+static u32 cv_tight(void)
+{
+    u32 t0 = sb_now(), d, con, set = hw_aud.adc_setup, b = a11_fields(4, set), v = 0;
+
+    u32 spins = 0;
+
+    cv_hold = 1;
+    while (cv_busy && !A11_SEEN(JL_ADC->CON, sb_now() - cv_t0) && sb_now() - t0 < A11_TIMEOUT
+           && ++spins < A11_FIRST_SPINS)
+        ;
+    spins = 0;
+    cv_busy = 0;
+    cv_start(4);
+    hw_aud.sar_con[set][0] = set == HW_A11_SDK ? b | 1u << 6 : b | 1u << 4 | 1u << 6;
+    hw_aud.sar_con[set][1] = set == HW_A11_SDK ? b | 1u << 6 | 1u << 4 : 0;
+    hw_aud.sar_con[set][2] = hw_aud.sar_con[set][1];
+    hw_aud.sar_con[set][3] = JL_ADC->CON;
+    for (;;) {
+        d = sb_now() - cv_t0;
+        con = JL_ADC->CON;
+        if (A11_SEEN(con, d)) {
+            v = JL_ADC->RES & 0x3FFu;
+            cv_record(4, set, v, d);
+            break;
+        }
+        if (d >= A11_TIMEOUT || ++spins >= A11_FIRST_SPINS) {
+            hw_aud.adc_conv_to[set]++;
+            break;
+        }
+    }
+    hw_aud.adc_conv_tight[set] = d;
+    cv_pot_new = 0;
+    cv_busy = 0;
+    cv_hold = 0;
+    return v;
+}
+
+static void a11_time_now(void)
+{
+    cv_tight();
+}
+
+/* input_start: MASTER's first reading, in the SDK's set-up. It comes
+ * before TIMER0 runs, when sb_now() stands still (main.c), so the wait is
+ * counted in passes (A11_FIRST_SPINS, many milliseconds at any clock the
+ * chip may run) and not timed; the first conversion timed is main's
+ * (a10_tick). */
+u32 hw_a11_pot_first(void)
+{
+    u32 i, k, v = 0;
+
+    hw_aud.adc_setup = HW_A11_SDK;
+    for (k = 0; k < 12u; k++)
+        hw_aud.adc_last[k] = hw3.adc[k] = 0xFFFFu;
+    cv_start(4);
+    for (i = 0; i < A11_FIRST_SPINS && !(JL_ADC->CON & A11_DONE); i++)
+        ;
+    if (i < A11_FIRST_SPINS)
+        v = JL_ADC->RES & 0x3FFu;
+    else
+        hw_aud.adc_conv_to[HW_A11_SDK]++;
+    cv_busy = 0;
+    return v;
+}
+
+/* SEL: the next set-up, the SDK's or the old, named on the step row and
+ * logged; one conversion timed at once. */
+void hw_a11_setup_key(void)
+{
+    hw_aud.adc_setup = hw_aud.adc_setup == HW_A11_SDK ? HW_A11_OLD : HW_A11_SDK;
+    hw_aud.adc_set_t[hw_aud.adc_set_n % HW_A11_SET_LOG] = sb_beacon.beats << 1 | hw_aud.adc_setup;
+    hw_aud.adc_set_n++;
+    cv_tight();
+    report(hw_aud.adc_setup == HW_A11_SDK ? "ADC SDK" : "ADC old");
+    hw_step(hw_aud.adc_setup == HW_A11_SDK ? "audio11: SARADC the SDK's (div 96, delay F, bit 3)"
+                                           : "audio11: SARADC the old (fields 0)");
+}
+
+/* E: the key status in large text, three lines of 12 characters at three
+ * times the font (15 x 21 pixels a glyph on an 18 x 24 cell), from y 40
+ * to 112, in place of the matrix grid, the ports and the event box. Drawn
+ * when it changes (force: after the test screen is drawn again). */
+#define A11_BIG_Y 40u
+static int put_differs(const char *a, const char *b)
+{
+    for (; *a || *b; a++, b++)
+        if (*a != *b)
+            return 1;
+    return 0;
+}
+
+static char *put_level(char *p, u32 l)
+{
+    /* l of 10000: whole per cent, at least 1 when not silent. */
+    return put_dec(p, l && l < 100u ? 1u : l / 100u);
+}
+
+void hw_a11_big(u32 force)
+{
+    static const char *const hold_name[5] = { "ZERO", "LED", "SCRN", "LOG", "SCAN" };
+    char t[3][16], *p;
+    u32 i, h = hw_aud.holds, first = 5, n = 0;
+
+    p = put_s(t[0], "N ");
+    p = put_s(p, hw_aud.a9_synth ? "SYNTH " : "TONE ");
+    p = put_s(p, hw_aud.adc_setup == HW_A11_SDK ? "SDK" : "OLD");
+    *p = 0;
+    p = put_s(t[1], "M");
+    p = put_dec(p, hw_aud.m_value);
+    p = put_s(p, " r");
+    p = put_dec(p, sb_input.pot_raw);
+    *p = 0;
+    p = put_s(t[2], "L");
+    p = put_level(p, hw_aud.m_level);
+    p = put_s(p, "% ");
+    for (i = 0; i < 5u; i++)
+        if (h >> i & 1u) {
+            if (first == 5u)
+                first = i;
+            n++;
+        }
+    if (first == 5u) {
+        p = put_s(p, "-");
+    } else {
+        p = put_s(p, hold_name[first]);
+        if (first == HW_A10_SCAN) {
+            s32 left = (s32)(hw_aud.scan_until - sb_beacon.beats);
+            *p++ = (char)('1' + (left > 0 ? (u32)left / 1000u % 9u : 0u));
+        }
+        if (n > 1u)
+            *p++ = '+';
+    }
+    *p = 0;
+    for (i = 0; i < 3u; i++)
+        if (force || put_differs(t[i], hw_aud.big[i]))
+            break;
+    if (i == 3u)
+        return;
+    for (i = 0; i < 3u; i++) {
+        u32 k;
+        for (k = 0; k < 16u; k++)
+            hw_aud.big[i][k] = t[i][k];
+    }
+    if (hw_hold_screen || sb_beacon.screen != SB_SCREEN_TEST)
+        return;
+    lcd_wait();
+    gfx_fill(4, A11_BIG_Y, SCREEN_W - 8, 72, RGB565(0, 0, 0));
+    gfx_text(6, A11_BIG_Y, t[0], hw_aud.a9_route == HW_A9_ROUTE_UP ? RGB565(0, 63, 0) : RGB565(31, 0, 0), RGB565(0, 0, 0), 3);
+    gfx_text(6, A11_BIG_Y + 24u, t[1], RGB565(31, 63, 31), RGB565(0, 0, 0), 3);
+    gfx_text(6, A11_BIG_Y + 48u, t[2], h ? RGB565(31, 63, 0) : RGB565(31, 63, 31), RGB565(0, 0, 0), 3);
+    lcd_send_rows(A11_BIG_Y, 72);
+    lcd_wait();
 }
 #endif
 
@@ -2651,6 +3003,16 @@ static void synth_fill(s32 *out, u32 frames)
         hw_aud.a10_fill_max8 = d;
     if (v > hw_aud.a10_voices_max)
         hw_aud.a10_voices_max = v;
+#if defined(SB_HW_AUDIO11)
+    /* D item 4: the longest per algorithm (sb_fm's, 1 to 10). */
+    v = sb_fm.algorithm - 1u;
+    if (v < HW_A11_ALGS) {
+        if (d > hw_aud.fill_alg[v])
+            hw_aud.fill_alg[v] = d;
+        if (sb_fm.voices[0] + sb_fm.voices[1] >= 8u && d > hw_aud.fill_alg8[v])
+            hw_aud.fill_alg8[v] = d;
+    }
+#endif
 #endif
 }
 
@@ -2736,16 +3098,29 @@ static void tone_block(s32 *out, u32 frames)
     }
 #endif
     read_master();
+#if defined(SB_HW_AUDIO11)
+    /* B3: MASTER's square (0 silent, 1023 the top), the change ramped
+     * evenly over the half; (m^2 >> 4) * GAIN_TOP stays within 32 bits. */
+    want = tone_on ? (hw_aud.master * hw_aud.master >> 4) * GAIN_TOP / (1023u * 1023u >> 4) : 0;
+    {
+        s32 step = ((s32)want - (s32)gain) / (s32)frames;
+        u32 end = want;
+#else
     want = tone_on ? GAIN_TOP * hw_aud.master / 1023u : 0;
+#endif
     for (n = 0; n < frames; n++) {
         s32 s;
 
+#if defined(SB_HW_AUDIO11)
+        gain = n + 1u == frames ? end : (u32)((s32)gain + step);
+#else
         if (gain + GAIN_STEP <= want)
             gain += GAIN_STEP;
         else if (gain >= want + GAIN_STEP)
             gain -= GAIN_STEP;
         else
             gain = want;
+#endif
         s = (s32)((sine(phase) * (s32)gain) >> 11);
         phase += TONE_STEP;
 #if defined(SB_HW_PCM16)
@@ -2765,6 +3140,9 @@ static void tone_block(s32 *out, u32 frames)
         out[2 * n + 1] = s;
 #endif
     }
+#if defined(SB_HW_AUDIO11)
+    }
+#endif
     hw_aud.gain = gain;
 #if defined(SB_HW_AUDIO9)
     a9_capture(out);
@@ -2778,7 +3156,11 @@ void hw_audio_start(void)
     hw_aud.a8_pcm16 = 1;
 #endif
 #if defined(SB_HW_AUDIO10)
+#if defined(SB_HW_AUDIO11)
+    hw_aud.a9_s2 = HW_A10_N;    /* A: N, the only format (the owner's ruling) */
+#else
     hw_aud.a9_s2 = HW_A10_U;    /* F at start-up: U (the owner's ruling) */
+#endif
 #endif
     hw_c1_mark(HW_C1_PRE);
     audio_start(tone_block);
@@ -3996,7 +4378,22 @@ struct guide_step {
     u8 key;
     char what[13];
 };
-#if defined(SB_HW_AUDIO10)
+#if defined(SB_HW_AUDIO11)
+/* audio11's order: in N with MASTER still, about ten seconds with nothing
+ * held, then each hold alone (the scan hold ends by itself), the zeros;
+ * the old SARADC set-up and back (MASTER turned end to end in each); the
+ * synth (an 8-key chord in each algorithm); a save. */
+static const struct guide_step guide[] = {
+    { INPUT_HOME, "LED hold" }, { INPUT_HOME, "LED back" },
+    { INPUT_ENV, "screen hold" }, { INPUT_ENV, "screen back" },
+    { INPUT_GLO, "log hold" }, { INPUT_GLO, "log back" },
+    { INPUT_REC, "scan hold 5s" },
+    { INPUT_PLAY, "zero" }, { INPUT_PLAY, "zero off" },
+    { INPUT_SEL, "ADC old" }, { INPUT_SEL, "ADC SDK" },
+    { INPUT_FX, "synth" },
+    { INPUT_EDIT, "save" },
+};
+#elif defined(SB_HW_AUDIO10)
 /* audio10's order: F from U through L, N, N', P and back to U (listen at
  * each), the synth (the chord test), the holds each on and off (the scan
  * hold ends by itself), a save. */
@@ -4248,6 +4645,39 @@ static u32 put_words(u32 *w, u32 n, const u32 *v, u32 k)
         w[n++] = v[i];
     return n;
 }
+
+#if defined(SB_HW_AUDIO11)
+/* A channel's two values with the most readings (value << 22 | count), the
+ * greater first; and the readings of its other slots. */
+static const u32 *a11_top2(const u32 *sl)
+{
+    static u32 top[2];
+    u32 k;
+
+    top[0] = top[1] = 0;
+    for (k = 0; k < HW_A11_SLOTS; k++) {
+        u32 c = sl[k] & 0x3FFFFFu;
+
+        if (c > (top[0] & 0x3FFFFFu)) {
+            top[1] = top[0];
+            top[0] = sl[k];
+        } else if (c > (top[1] & 0x3FFFFFu)) {
+            top[1] = sl[k];
+        }
+    }
+    return top;
+}
+
+static u32 a11_rest(const u32 *sl)
+{
+    const u32 *top = a11_top2(sl);
+    u32 k, r = 0;
+
+    for (k = 0; k < HW_A11_SLOTS; k++)
+        r += sl[k] & 0x3FFFFFu;
+    return r - (top[0] & 0x3FFFFFu) - (top[1] & 0x3FFFFFu);
+}
+#endif
 
 u32 hw_audio_report(u32 *w)
 {
@@ -4529,6 +4959,8 @@ u32 hw_audio_report(u32 *w)
     w[n++] = hw_aud.sw_stop;
     w[n++] = hw_aud.sw_pa_bits;
     w[n++] = hw_aud.sw_nohold;
+#if !defined(SB_HW_AUDIO11)
+    /* Layout 10 (audio11) leaves out the sense scan's fields. */
     w[n++] = hw_aud.se_state;
     w[n++] = hw_aud.se_runs;
     w[n++] = hw_aud.se_ms;
@@ -4540,6 +4972,7 @@ u32 hw_audio_report(u32 *w)
     w[n++] = hw_aud.se_ev_n;
     w[n++] = hw_aud.se_ev_lost;
     n = put_words(w, n, hw_aud.se_ev, HW_A8_EVENTS);
+#endif
     /* Layout 8: audio9 (0 in a build without it). */
     w[n++] = hw_aud.a9_route;
     w[n++] = hw_aud.a9_ups;
@@ -4569,7 +5002,9 @@ u32 hw_audio_report(u32 *w)
     w[n++] = sb_midi_out.bytes;
     /* Layout 9: audio10 (0 in a build without it). */
     w[n++] = hw_aud.a10_fmt_changes;
+#if !defined(SB_HW_AUDIO11)
     n = put_words(w, n, hw_aud.a10_fmt_t, HW_A10_FMT_LOG);
+#endif
     w[n++] = hw_aud.a10_fill_max;
     w[n++] = hw_aud.a10_fill_max8;
     w[n++] = hw_aud.a10_voices_max;
@@ -4590,6 +5025,43 @@ u32 hw_audio_report(u32 *w)
     n = put_words(w, n, hw_aud.hold_t, HW_A10_HOLD_LOG);
     w[n++] = hw_aud.log_dropped;
     w[n++] = hw_aud.scan_until;
+#if defined(SB_HW_AUDIO11)
+    /* Layout 10: audio11. */
+    w[n++] = hw_aud.adc_setup;
+    w[n++] = hw_aud.adc_set_n;
+    n = put_words(w, n, hw_aud.adc_set_t, HW_A11_SET_LOG);
+    n = put_words(w, n, hw_aud.sar_con[0], 4u * HW_A11_SETUPS);
+    n = put_words(w, n, hw_aud.adc_conv_n, HW_A11_SETUPS);
+    n = put_words(w, n, hw_aud.adc_conv_to, HW_A11_SETUPS);
+    n = put_words(w, n, hw_aud.adc_conv_min, HW_A11_SETUPS);
+    n = put_words(w, n, hw_aud.adc_conv_max, HW_A11_SETUPS);
+    n = put_words(w, n, hw_aud.adc_conv_tight, HW_A11_SETUPS);
+    w[n++] = hw_aud.adc_pass_max;
+    w[n++] = hw_aud.adc_passes;
+    {
+        u32 st, c;
+
+        for (st = 0; st < HW_A11_SETUPS; st++)
+            for (c = 0; c < HW_A11_CHANS; c++) {
+                w[n++] = hw_aud.adc_mm[st][c];
+                w[n++] = hw_aud.adc_n[st][c];
+                n = put_words(w, n, a11_top2(hw_aud.adc_v[st][c]), 2);
+                w[n++] = hw_aud.adc_other[st][c] + a11_rest(hw_aud.adc_v[st][c]);
+            }
+    }
+    n = put_words(w, n, hw_aud.m_raw_ring, HW_A10_MRING / 2u);
+    w[n++] = hw_aud.m_jump_n;
+    n = put_words(w, n, hw_aud.m_jump_t, HW_A11_JUMPS);
+    {
+        u32 k;
+
+        /* The fill per algorithm, 0.1 us units: with 8 voices << 16 | any. */
+        for (k = 0; k < HW_A11_ALGS; k++)
+            w[n++] = (hw_aud.fill_alg8[k] * 10u / 24u) << 16 | (hw_aud.fill_alg[k] * 10u / 24u & 0xFFFFu);
+    }
+    w[n++] = hw_aud.m_level;
+    n = put_words(w, n, (const u32 *)(const void *)hw_aud.big, 12);
+#endif
     return n;
 }
 #endif

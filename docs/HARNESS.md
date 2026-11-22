@@ -321,6 +321,7 @@ fwtest version
 | `--flash-log` | Save every erase and program the chip started (`flash-ops.csv`). |
 | `--wav` | Save the audio output (`audio.wav`). |
 | `--ipb` | Save instructions per audio block (`ipb.csv`). |
+| `--audio-chip` | The audio link plays the chip's 16-bit layout when its `CON1` sets it ("Audio" below). Off by default. |
 | `--console` | Save the bytes written to the chip's debug message register (`console.txt`; `HARDWARE-SPEC.md` names it). |
 | `--midi-out` | Save the MIDI output: the bytes with their times (`midi-out.csv`) and the messages they make (`midi-out.txt`). See "MIDI output". |
 | `--watchdog ADDR:MS` | A hang if the 32-bit word at RAM address ADDR stays the same for more than MS ms. |
@@ -370,7 +371,7 @@ All in `--out`. A run writes only what it was asked for, plus
 | `leds.csv` | Header `ms,led0,...,led40`, then one row per sample: the sample's time, and for each LED the share of the time since the previous sample (or since the start) that it was lit, in thousandths (0 to 1000, rounded). LED N belongs to key N. |
 | `flash.bin` | The flash chip (1 MiB) at the end of the run (after a power cut, as the cut left it). |
 | `flash-ops.csv` | Header `start_ms,end_ms,command,offset,bytes`, then one row per erase or page program the chip started, in order: when chip select went high and when the chip was no longer busy (ms, three decimals), the command as two hex digits (`02` program, `81`, `20`, `52`, `d8`, `60` or `c7` erase), the first chip offset it covers (hex) and how many bytes (a program: its whole 256-byte page). |
-| `audio.wav` | The audio output: 16-bit PCM, stereo, the header says 44 100 Hz. Every sample the output played, in order. How the firmware feeds the output, and its exact rate: `HARDWARE-SPEC.md`. |
+| `audio.wav` | The audio output: 16-bit PCM, stereo, the header says 44 100 Hz. Every sample the output played, in order. How the firmware feeds the output, and its exact rate: `HARDWARE-SPEC.md`; the two layouts: "Audio" below. |
 | `ipb.csv` | Header `block,end_ms,core0,core1`, then one row per audio block (each time the output finished one half of its buffer): its number, the time it finished, and the instructions core 0 and core 1 executed since the previous block (the first row: since the start). Core 0's count is exact; core 1's is counted at a granularity of 1024 core-0 instructions. |
 | `console.txt` | The debug console bytes, as written. |
 | `midi-out.csv` | Header `ms,byte`, then one row per byte the MIDI output sent: the time its stop bit ended (ms, three decimals) and the byte as two hex digits. Empty but for the header if nothing was sent. |
@@ -397,6 +398,33 @@ All in `--out`. A run writes only what it was asked for, plus
   not model (reads give 0, writes are dropped), with counts, up to 256.
   Usually a sign the image touched something unexpected; if the hardware
   has something there, ask for it in a spec request.
+
+### Audio
+
+The audio link plays one of two layouts. The rate is the same in both,
+44 117.6 frames a second (HARDWARE-SPEC HW-45, HW-160), and a half is
+`LEN` words of RAM in both; they differ in how many frames those words
+hold.
+
+- **fwtest's own** (the default, as before): a half is `LEN` / 2 frames
+  of two words, left then right, each a 24-bit sample in the word's low
+  bits; `audio.wav` takes bits 8 to 23 of each.
+- **The chip's 16-bit layout** (`--audio-chip`, since 0.13.0), used only
+  while ALNK0's `CON1` sets data 3 as a 16-bit I2S output (its bits 12 to
+  15 read `0x1`): a half is `LEN` frames of one word each, as on the unit
+  (HW-160). `audio.wav` takes each word's upper 16 bits as the first
+  channel and its lower 16 bits as the second. Which of the two is the
+  left on the unit is not known, and one is inverted on the board
+  (HW-168); `audio.wav` gives the chip's output, before the board.
+  Under N (the sample in the upper half, its negative in the lower) the
+  two channels are exact opposites, so a check that mixes them to mono
+  hears silence: read one channel. The second (the lower half) is what
+  the speaker plays (HW-165).
+  With any other `CON1`, the default layout plays.
+
+The flag is off by default so that tests written for fwtest's own layout
+keep their results; a firmware test turns it on when its build fills the
+chip's layout in fwtest too.
 
 ## MIDI output
 
@@ -805,6 +833,10 @@ pushing Docker compresses the layers; the image ID does not.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.13.0: the chip's 16-bit audio layout behind `--audio-chip` ("Audio"):
+  `LEN` frames a half, one word a frame, when `CON1` sets data 3 to
+  16-bit I2S (HW-160, HW-168). Without the flag, outputs are as in
+  0.12.0.
 - 0.12.0: block protection ("The flash chip"): a flash file 1 MiB and
   two bytes long sets the status registers, and the chip ignores an erase
   or program the block-protect bits cover (HW-131). Published from main

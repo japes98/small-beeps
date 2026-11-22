@@ -2113,6 +2113,10 @@ def _build_id():
 BUILD_ID = _build_id()
 
 
+# The report log's layout every hardware build writes but audio11's (layout 10, case audio11).
+HW_LAYOUT_OLD = 9
+
+
 def report_decoder():
     spec = importlib.util.spec_from_file_location("report_decode", os.path.join(ROOT, "tools", "report_decode.py"))
     m = importlib.util.module_from_spec(spec)
@@ -2222,7 +2226,7 @@ def case_report1(a, work, log):
     slots = (rd.LOG_END - rd.LOG_BASE) // rd.REC
     for i in range(slots):
         w = [0] * (rd.REC // 4)
-        w[0], w[1], w[2], w[3] = rd.MAGIC, max(rd.FIELDS), 1000 + i, i
+        w[0], w[1], w[2], w[3] = rd.MAGIC, HW_LAYOUT_OLD, 1000 + i, i
         rec = bytearray(struct.pack("<%dI" % (rd.REC // 4), *w))
         rec[32:35] = b"old"
         struct.pack_into("<I", rec, rd.REC - 4, zlib.crc32(bytes(rec[:rd.REC - 4])) & 0xFFFFFFFF)
@@ -2359,7 +2363,7 @@ def case_audio4(a, work, log):
     for lab in ("H taken", "REC taken", "H measured", "I taken", "I bit 10", "REC refused", "I undone", "REC undone",
                 "H undone"):
         want += [lab, "page"]
-    if labels != want or bad or any(x["layout"] != max(rd.FIELDS) or not x["known"] for x in rs):
+    if labels != want or bad or any(x["layout"] != HW_LAYOUT_OLD or not x["known"] for x in rs):
         problems.append("audio4: log records %s (%s), layouts %s, %d bad" % (labels, want,
                         sorted({(x["layout"], x["count"]) for x in rs}), len(bad)))
     elif rs:
@@ -2449,7 +2453,7 @@ def case_audio5(a, work, log):
     for n, i in enumerate(starts):
         end = starts[n + 1] if n + 1 < len(starts) else len(labels)
         sweeps.append([l for l in labels[i + 1:end] if l.startswith("CON") or l.startswith("J ")])
-    if bad or any(x["layout"] != max(rd.FIELDS) or not x["known"] for x in rs) or len(sweeps) != 3:
+    if bad or any(x["layout"] != HW_LAYOUT_OLD or not x["known"] for x in rs) or len(sweeps) != 3:
         problems.append("audio5: log: %d sweeps, %d bad, layouts %s" % (len(sweeps), len(bad),
                                                                         sorted({x["layout"] for x in rs})))
     else:
@@ -2542,7 +2546,7 @@ def case_audio6(a, work, log):
     # writes about 67: the newest stay, so the first sweep has gone by the
     # third's end. The second (bit 9 clear) and the third are checked; the
     # first in RAM below.
-    if bad or any(x["layout"] != max(rd.FIELDS) or not x["known"] for x in rs) or len(sweeps) < 2:
+    if bad or any(x["layout"] != HW_LAYOUT_OLD or not x["known"] for x in rs) or len(sweeps) < 2:
         problems.append("audio6: log: %d sweeps, %d bad, layouts %s" % (len(sweeps), len(bad),
                                                                         sorted({x["layout"] for x in rs})))
     else:
@@ -2645,7 +2649,7 @@ def case_audio7(a, work, log):
         rs, bad = rd.records(f.read())
     ls = [x for x in rs if x["label"].startswith("L")]
     want = ["L1 before", "L1 kept", "L1 undone"] + ["L2 before", "L2 kept", "L2 undone"] * 2
-    if bad or [x["label"] for x in ls] != want or any(x["layout"] != max(rd.FIELDS) or not x["known"] for x in ls):
+    if bad or [x["label"] for x in ls] != want or any(x["layout"] != HW_LAYOUT_OLD or not x["known"] for x in ls):
         problems.append("audio7: L records %s (%s), %d bad" % ([x["label"] for x in ls], want, len(bad)))
     else:
         for i in range(0, 9, 3):
@@ -2764,7 +2768,7 @@ def case_audio8(a, work, log):
     by = {}
     for x in rs:
         by.setdefault(x["label"], x["fields"])
-    top = max(rd.FIELDS)
+    top = HW_LAYOUT_OLD
     if bad or any(x["layout"] != top or not x["known"] or x["count"] != len(rd.FIELDS[top]) for x in rs):
         problems.append("audio8: %d bad records, or one not layout %d with %d fields" % (len(bad), top,
                                                                                        len(rd.FIELDS[top])))
@@ -2934,7 +2938,7 @@ def case_audio9(a, work, log):
     if odd:
         problems.append("audio9: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1: %s"
                         % odd[:8])
-    top = max(rd.FIELDS)
+    top = HW_LAYOUT_OLD
     if bad or any(x["layout"] != top or not x["known"] or x["count"] != len(rd.FIELDS[top]) for x in rs):
         problems.append("audio9: %d bad records, or one not layout %d with %d fields" % (len(bad), top,
                                                                                        len(rd.FIELDS[top])))
@@ -3081,7 +3085,7 @@ def case_audio10(a, work, log):
     if odd:
         problems.append("audio10: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1: %s"
                         % odd[:8])
-    top = max(rd.FIELDS)
+    top = HW_LAYOUT_OLD
     if bad or any(x["layout"] != top or not x["known"] or x["count"] != len(rd.FIELDS[top]) for x in rs):
         problems.append("audio10: %d bad records, or one not layout %d with %d fields" % (len(bad), top,
                                                                                          len(rd.FIELDS[top])))
@@ -3161,6 +3165,186 @@ def case_audio10(a, work, log):
     return problems
 
 
+A11_DEFINES = A10_DEFINES + ("--define", "SB_HW_AUDIO11")
+
+
+def font_glyphs():
+    """firmware/src/font.c's glyphs: {character: 8 rows of 5 bits}."""
+    with open(os.path.join(ROOT, "firmware", "src", "font.c")) as f:
+        text = f.read()
+    out = {}
+    for m in re.finditer(r'/\* (\'.\'|\'\\\\\'|\'\'\') \*/ G\(((?:"[.#]{5}",? ?){8})\)', text):
+        ch = m.group(1)[1:-1].replace("\\\\", "\\")
+        rows = re.findall(r'"([.#]{5})"', m.group(2))
+        out[ch] = tuple(int(r.replace("#", "1").replace(".", "0"), 2) for r in rows)
+    return out
+
+
+def read_big(fws, png, glyphs):
+    """audio11's large area on a screenshot: three lines of 12 cells, each
+    cell 18 x 24 pixels from (6, 40 + 24 line), the glyph at three times
+    the font; a cell is read as the glyph whose pixels match, '?' if none."""
+    _, _, rows = fws.read_png(png)
+    lit = lambda x, y: sum(rows[y][x]) > 60
+    by_bits = {v: k for k, v in glyphs.items()}
+    lines = []
+    for ln in range(3):
+        t = ""
+        for c in range(12):
+            x0, y0 = 6 + 18 * c, 40 + 24 * ln
+            bits = tuple(sum(1 << (4 - i) for i in range(5) if lit(x0 + 3 * i + 1, y0 + 3 * r + 1)) for r in range(8))
+            t += by_bits.get(bits, "?")
+        lines.append(t.rstrip())
+    return lines
+
+
+def case_audio11(a, work, log):
+    """audio11 (clean-br17-audio11): N from start-up, the only format (LFO
+    the engine's); the SARADC through the service: the SDK's three CON
+    writes, the old one by SEL and back, each conversion waited for with
+    bit 7 held back 300 us by the test seam (no time-out, the times
+    logged), the sweep leaving out channels 6 and 7 while the route is up
+    (and 2, 8, 9 always), each channel's values counted; MASTER turned in
+    each set-up, its curve (the square) and the tone's level ramped over a
+    half (no step in audio.wav as it moves); audio10's holds on and back,
+    the scan hold ending by itself, the zeros in audio.wav; an 8-key chord,
+    the fill per algorithm; the large area read off the screen in each
+    state. Then the 16-bit build: N's words from start-up, the clamp
+    included, and fwtest's own conversion time."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    glyphs = font_glyphs()
+    b = os.path.join(work, "build")
+    build(b, log, *A11_DEFINES, "--define", "SB_TEST_A11_SLOW")
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    ga = sy["hw_guide_at"]
+    keys = [(19000, HW_HOME, 100), (20000, HW_HOME, 100), (21000, HW_ENV, 100), (22000, HW_ENV, 100),
+            (23000, HW_GLO, 100), (24000, HW_GLO, 100), (25000, HW_REC, 100), (39000, HW_PLAY, 100),
+            (41000, HW_PLAY, 100), (42000, HW_SEL, 100), (49000, HW_SEL, 100), (50000, HW_FX, 100)]
+    keys += [(51000 + 20 * i, k, 3000) for i, k in enumerate(HW_CHORD)] + [(55000, HW_FX, 100), (56000, HW_EDIT, 100)]
+    pots = ((10000, 900), (13000, 600), (16000, 300), (43000, 800), (46000, 200))
+    path = os.path.join(work, "run.script")
+    with open(path, "w") as f:
+        for t, k, d in keys:
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + d, k))
+        for t, v in pots:
+            f.write("%d pot %d\n" % (t, v))
+    # The large area's level: MASTER's square in whole per cent (300: 8 %, 200: 3 %); the scan hold's line
+    # ends with its countdown, so lines are compared by their start.
+    shots = {18500: ("N TONE SDK", "M300 r300", "L8% -"), 19500: ("N TONE SDK", None, "L8% LED"),
+             30000: ("N TONE SDK", None, "L8% SCAN"), 40000: ("N TONE SDK", None, "L8% ZERO"),
+             48000: ("N TONE OLD", "M200 r200", "L3% -"), 53000: ("N SYNTH SDK", None, "L3% -")}
+    out = os.path.join(work, "run")
+    lcd = [x for t in sorted(shots) for x in ("--lcd", str(t))]
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "58000", "--flash-out", "--wav",
+               "--script", os.path.relpath(path, ROOT), "--ram", "0x%08x:4@end" % ga, *lcd)
+    with open(os.path.join(out, "flash.bin"), "rb") as f:
+        rs, bad = rd.records(f.read())
+    if r["run"]["outcome"] != "completed":
+        problems.append("audio11: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    acc = {u["address"] for u in r["run"]["unmodelled_accesses"]}
+    odd = sorted(acc - HW_WINDOW_REGS - {"0x00012f00"} - GPCNT_REGS - ALNK1_REGS)
+    if odd:
+        problems.append("audio11: unmodelled accesses besides the window's, corex2's, DAC_CON, JL_GPCNT and ALNK1: %s"
+                        % odd[:8])
+    if bad or any(x["layout"] != 10 or not x["known"] or x["count"] != len(rd.FIELDS[10]) for x in rs):
+        problems.append("audio11: %d bad records, or one not layout 10 with %d fields" % (len(bad), len(rd.FIELDS[10])))
+    labels = [x["label"] for x in rs if x["label"] not in ("page", "boot", "MASTER still")
+              and not x["label"].startswith("PB5")]
+    want = ["L2 before", "L2 kept", "R2 before", "R2 set", "Route before", "Route kept", "LED HELD", "LED blink on",
+            "SCREEN HELD", "screen on", "LOG HELD", "log on", "SCAN HELD", "scan hold end", "ZERO on", "zero off",
+            "ADC old", "ADC SDK", "Synth on", "Synth off", "save key"]
+    if labels != want:
+        problems.append("audio11: records %s, want %s" % (labels, want))
+    last = rs[-1]["fields"] if rs else {}
+    g = lambda k: last.get(k, 0)
+    sdk_con = (0xF44E, 0xF45E, 0xF45E)
+    if g("a9_s2") != 3 or g("a10_fmt_changes") or g("adc_setup") or g("adc_set_n") != 2 or g("holds") \
+            or g("hold_n") != 10 or g("log_dropped") or g("a10_saturated") or g("a9_late_halves") \
+            or g("adc_conv_timeouts_SDK") or g("adc_conv_timeouts_old") \
+            or min(g("adc_conv_min_units_SDK"), g("adc_conv_min_units_old")) < 300 * 24 \
+            or min(g("adc_conv_tight_units_SDK"), g("adc_conv_tight_units_old")) < 300 * 24 \
+            or tuple(g("sar_con_SDK_w%d" % i) for i in (1, 2, 3)) != sdk_con or g("sar_con_old_w1") != 0x450 \
+            or g("sar_con_old_w2") or g("m_level") != 200 * 200 * 100 // 10465:
+        problems.append("audio11: %s" % {k: last.get(k) for k in (
+            "a9_s2", "a10_fmt_changes", "adc_setup", "adc_set_n", "holds", "hold_n", "log_dropped", "a10_saturated",
+            "a9_late_halves", "adc_conv_timeouts_SDK", "adc_conv_timeouts_old", "adc_conv_min_units_SDK",
+            "adc_conv_min_units_old", "adc_conv_tight_units_SDK", "adc_conv_tight_units_old", "sar_con_SDK_w1",
+            "sar_con_SDK_w2", "sar_con_SDK_w3", "sar_con_old_w1", "sar_con_old_w2", "m_level")})
+    # The channels: MASTER (4) moved, 3 at fwtest's 640, the others 512; 6 and 7 never (the route up throughout).
+    ch = lambda st, c, w: g("adc_%s_ch%d_%s" % (st, c, w))
+    chans = []
+    for st in ("SDK", "old"):
+        if not ch(st, 4, "n") or ch(st, 3, "v0") >> 22 != 640 or ch(st, 0, "v0") >> 22 != 512 \
+                or ch(st, 6, "n") or ch(st, 7, "n") or not ch(st, 11, "n"):
+            chans.append(st)
+    if chans:
+        problems.append("audio11: the channels in %s: %s" % (chans, {k: v for k, v in last.items()
+                                                                   if k.startswith("adc_") and "_ch" in k and v}))
+    stills = {}
+    for x in rs:
+        if x["label"] == "MASTER still":
+            stills.setdefault(x["fields"]["adc_setup"], []).append(x["fields"]["m_value"])
+    if any(not any(abs(v - p) <= 8 for v in stills.get(st, [])) for st, p in ((0, 600), (0, 300), (1, 800), (1, 200))):
+        problems.append("audio11: MASTER's still records by set-up %s (SDK 600, 300; old 800, 200)" % stills)
+    fills = [(k, g("fill_alg_%d" % k)) for k in range(1, 11) if g("fill_alg_%d" % k)]
+    if not any(w >> 16 for _, w in fills) or g("a10_voices_max") != 8:
+        problems.append("audio11: the fill per algorithm %s, voices %d" % (fills, g("a10_voices_max")))
+    gat = struct.unpack("<I", ram(out, ga, 4))[0]
+    if gat != 13:
+        problems.append("audio11: the guide at %d (13)" % gat)
+    big_bad = {}
+    big_seen = {}
+    for t, want_big in sorted(shots.items()):
+        png = os.path.join(out, "lcd-%dms.png" % t)
+        got = read_big(fws, png, glyphs) if os.path.exists(png) else ["(no screen)"] * 3
+        big_seen[t] = got
+        if any(w is not None and not gl.startswith(w) for gl, w in zip(got, want_big)):
+            big_bad[t] = (got, want_big)
+    if big_bad:
+        problems.append("audio11: the large area %s" % big_bad)
+    # The save's record (the synth off again, MASTER at 200 in the SDK's set-up) carries the area as drawn then.
+    if bad or not rs or [x.rstrip() for x in rd.big_text(last)] != ["N TONE SDK", "M200 r200", "L3% -"]:
+        problems.append("audio11: the large area's log at the save %s" % rd.big_text(last))
+    rate, left, right = aa.read_wav(os.path.join(out, "audio.wav"))
+    at = lambda t0, t1: left[len(left) - int((58 - t0) * rate):len(left) - int((58 - t1) * rate)]
+    tone, zero, chord = at(9.5, 17.5), at(39.5, 40.8), at(51.5, 53.9)
+    d2 = max(abs(tone[i + 1] - 2 * tone[i] + tone[i - 1]) for i in range(1, len(tone) - 1)) if tone else 0
+    if left != right or not tone or d2 > 120 or any(zero) or not chord or max(abs(v) for v in chord) < 500:
+        problems.append("audio11: audio.wav: the tone's largest second difference %d with MASTER moving (a 440 Hz"
+                        " sine at the top about 13); %d non-zero samples while zeros held; chord peak %d"
+                        % (d2, sum(1 for v in zero if v), max([abs(v) for v in chord] or [0])))
+    summary = ("audio11: N from start-up; SDK CON %04X %04X %04X (read back %04X), old %04X (read back %04X); bit 7"
+               " held 300 us by the seam: conversions %d and %d, none timed out, %.1f us at least; channels 6 and 7"
+               " never read with the route up; MASTER's stills %s; level %d of 10000; the tone's largest second"
+               " difference %d with MASTER moving; zeros while held; the large area %s"
+               % (g("sar_con_SDK_w1"), g("sar_con_SDK_w2"), g("sar_con_SDK_w3"), g("sar_con_SDK_read"),
+                  g("sar_con_old_w1"), g("sar_con_old_read"), g("adc_conv_n_SDK"), g("adc_conv_n_old"),
+                  min(g("adc_conv_min_units_SDK"), g("adc_conv_min_units_old")) / 24.0, stills, g("m_level"), d2,
+                  big_seen))
+    # The 16-bit build: N's words from start-up (the clamp: each half's first sample the most negative), no seam.
+    pb = os.path.join(work, "build-pcm16")
+    build(pb, log, *A11_DEFINES, "--define", "SB_HW_PCM16", "--define", "SB_TEST_A10_CLAMP")
+    r, _, prs, _ = a9_run(work, log, pb, "run-pcm16", [(11000, HW_LFO, 100), (12000, HW_EDIT, 100)], 14000)
+    f = prs[-1]["fields"] if prs else {}
+    nw = [f.get("a9_words_N_%d" % i, 0) for i in range(4)]
+    others = [f.get("a9_words_%s_%d" % (fm, i), 0) for fm in ("P", "U", "L", "N'") for i in range(4)]
+    neg = lambda x: (-((x ^ 0x8000) - 0x8000)) & 0xFFFF
+    if r["run"]["outcome"] != "completed" or nw[0] != 0x80007FFF or not all(w & 0xFFFF == neg(w >> 16) for w in nw[1:]) \
+            or not any(nw[1:]) or any(others) or f.get("a9_s2") != 3 or f.get("a8_pcm16") != 1 \
+            or f.get("adc_conv_timeouts_SDK"):
+        problems.append("audio11 16-bit: %s, N %s, others %s, format %s, time-outs %s"
+                        % (r["run"]["outcome"], ["%08x" % w for w in nw], any(others), f.get("a9_s2"),
+                           f.get("adc_conv_timeouts_SDK")))
+    print(summary + "; the 16-bit build: N's words %s (LFO left to the engine), fwtest's own conversion %.1f us by"
+          " the tight poll, %.1f to %.1f us by the slot" % (
+              " ".join("%08x" % w for w in nw), f.get("adc_conv_tight_units_SDK", 0) / 24.0,
+              f.get("adc_conv_min_units_SDK", 0) / 24.0, f.get("adc_conv_max_units_SDK", 0) / 24.0))
+    return problems
+
+
+
 def case_nowrace(a, work, log):
     """sb_now() never goes back: the slot interrupt's time-keeping forced
     at each point between its reads, just after TIMER0 wraps (main.c,
@@ -3219,6 +3403,7 @@ CASES = [
     ("audio8", case_audio8),
     ("audio9", case_audio9),
     ("audio10", case_audio10),
+    ("audio11", case_audio11),
 ]
 
 
