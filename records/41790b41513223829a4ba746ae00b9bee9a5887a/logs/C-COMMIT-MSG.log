@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range f124a6b47439ff53fbf5185ea974f16069ff03b3..41790b41513223829a4ba746ae00b9bee9a5887a
+OK     774b5ea047c5 firmware: audio12, the sweep, ALGORITHM's cause, the instrument's start, frames (BR-17)
+OK     8fc384aa7978 firmware: audio12b, test screen at power-on, the instrument behind SEL; fwsc checks the link
+OK     546b4a84269b tools: fwsc pack refuses only an app whose ELF shows the raw link (C-UNIT)
+EXEMPT 41790b415132 (merge) Merge pull request #241 from japes98/hw/audio12b
+4 commit(s) checked: PASS
+
+exit status 0

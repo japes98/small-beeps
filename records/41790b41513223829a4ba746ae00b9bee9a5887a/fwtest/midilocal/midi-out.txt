@@ -1,0 +1,15 @@
+205.103 note-on ch 1 key 53 vel 100
+305.199 note-on ch 1 key 53 vel 0
+408.197 control-change ch 1 ctrl 16 value 67
+416.901 control-change ch 1 ctrl 16 value 70
+424.154 control-change ch 1 ctrl 16 value 72
+432.858 control-change ch 1 ctrl 16 value 75
+440.112 control-change ch 1 ctrl 16 value 78
+448.816 control-change ch 1 ctrl 16 value 80
+507.973 program-change ch 1 program 1
+515.226 program-change ch 1 program 2
+523.930 program-change ch 1 program 3
+605.487 note-on ch 1 key 57 vel 100
+705.583 note-on ch 1 key 57 vel 0
+1104.521 note-on ch 1 key 60 vel 100
+1204.614 note-on ch 1 key 60 vel 0
