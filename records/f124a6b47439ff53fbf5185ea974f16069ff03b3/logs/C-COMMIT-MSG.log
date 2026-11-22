@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range c37eb12b1eab47328cd74468da12e56a174eba42..f124a6b47439ff53fbf5185ea974f16069ff03b3
+OK     ded54c7ff7db harness: fwtest 0.14.0, a USB host behind --usb (U1, R-HARN-15)
+EXEMPT f124a6b47439 (merge) Merge pull request #239 from japes98/spec/fwtest-usb
+2 commit(s) checked: PASS
+
+exit status 0
