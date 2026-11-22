@@ -613,7 +613,8 @@ least significant. Register names are the JieLi SDK's.
 - Sources: SDK `WL82.h` lines 723-729 (`JL_ADC`); HARNESS ("pot V");
   E-8: channel 4 read 900, then the script's 300, 0 and 1023, with the
   bits above; channel 3 read 640, the others 512.
-- Standing: confirmed (SDK, E-8)
+- Standing: confirmed (SDK, E-8; fwtest only for the start write: on the unit, with `CON`'s
+  clock and delay fields at 0, readings don't settle, HW-165, HW-167)
 - Needed by: M3
 
 ### HW-41: The SARADC's interrupt, and which knob the pot is
@@ -4658,8 +4659,100 @@ the results; HW-164 says what they settle and what stays open.
     steps and of the clicks; the headphone output's level once the
     format is right; which half, if either, is left.
 - Sources: UNIT (HW-163); HW-141, HW-160, HW-162.
-- Standing: confirmed (UNIT; the difference reading is untested)
+- Standing: confirmed (UNIT; the difference reading is untested; on the
+  headphones it holds and the speaker takes the lower half alone, HW-165)
 - Needed by: M4, BR-17 (Phase B)
+
+## 47. audio10 on the unit: two outputs, two readings of a word; the SARADC's set-up
+
+Read back from the flash log of this repository's build audio10 (hw3t,
+clean's #233) on the owner's unit, and heard by the owner, relayed on
+2026-11-22 (source UNIT, docs/prompts/spec-audio10-unit.md); and read in
+the chip's own SDK and one other JieLi SDK (PROVENANCE P-510). HW-165
+gives the results, HW-166 what they settle, HW-167 the SARADC's set-up
+fields.
+
+### HW-165: audio10: each format on the speaker and the headphones; MASTER's raw values (Q-9, Q-8)
+- Fact: On the owner's unit, started by m-bootloader, with the route up
+  (HW-163):
+  1. **The formats, by ear** (P the sample in both halves, U the upper
+     half alone, L the lower alone, N the sample in the upper half and its
+     negative in the lower, N' the reverse):
+     - speaker (headphones out): U silent; L, N, N' and P heard;
+     - headphones: U, L and N' heard, N slightly louder; P silent.
+     At start-up, in U, the speaker was silent.
+  2. **An 8-key chord** sounded clean with the synth 12 dB below full
+     scale and a soft clip on the sum: at most 8 voices, the longest fill
+     312.2 µs (with 8 voices sounding) of a 2 902 µs half; no sample soft
+     clipped or saturated, no half late, no underrun.
+  3. **`MASTER`'s raw SARADC reading** (channel 4, with `CON` written as
+     the channel, bit 4 and bit 6 alone) took only these values over 993
+     changes: 0, 3, 7, 15, 31, 63, 512, 768, 896, 960, 1008 and 1023
+     (93 jumps; the largest 449). The level still changed in steps by ear.
+  4. **Zero samples** gave silence. The half-second clicks were not
+     checked against the holds; clicks were heard at each change of
+     format.
+  5. PB5 as in HW-163; `DAA_CON7` `0x0000C901`.
+- Sources: UNIT: audio10's flash log (hw3t) and the owner's listening,
+  relayed on 2026-11-22 (docs/prompts/spec-audio10-unit.md); HW-163.
+- Standing: confirmed (UNIT; one unit; the formats by ear)
+- Needed by: M4, M3, BR-17 (Phase B)
+
+### HW-166: What audio10 settles: the speaker takes the lower half, the headphones the difference (Q-9, Q-8)
+- Fact:
+  - **The speaker plays the lower half of each word;** the upper half
+    doesn't reach it.
+  - **The headphones play the difference of the two halves**, the same
+    in both ears (HW-163): the same sample in both is silent, either
+    half alone is heard, and a sample with its negative is the loudest.
+    This settles HW-164's reading for the headphones. Why the outside
+    part or the board does this is not given.
+  - **The output is mono.** N, the sample in the upper half and its
+    negative in the lower, is the one format heard at full level on
+    both: the speaker gets the negative (its polarity can't be heard),
+    the headphones twice the swing of one half. N' is the same with
+    both outputs inverted.
+  - **The SARADC's conversion doesn't settle, as set up so far.** Each
+    raw value is a run of bits equal to the first decision followed by
+    bits all equal to the opposite (below 512: `2^k − 1`; from 512:
+    `1024 − 2^k`), so after the first bit that differs from the most
+    significant, every later bit repeats that bit's value. That is what
+    a successive-approximation converter gives when each step is too
+    short. The build wrote `CON`'s clock and delay fields as 0 (HW-167).
+  - **8 voices fit:** the longest fill is about a ninth of a half.
+  - **Still open:** the half-second clicks (zero samples were silent,
+    so they may come with the samples); the SARADC's fix on the unit.
+- Sources: UNIT (HW-165); HW-163, HW-164, HW-167.
+- Standing: confirmed (UNIT; the cause of the halves' behaviour outside
+  the chip not given)
+- Needed by: M4, M3, BR-17 (Phase B)
+
+### HW-167: The SARADC's clock divider and start delay in JieLi's SDKs (Q-8)
+- Fact:
+  - **The chip's own SDK** sets `JL_ADC->CON` (HW-40) for each
+    conversion as: bits 0-2 = `0b110`, which it names a clock divide by
+    96; bits 12-15 = `0xF`, a start delay of that value times 8 of the
+    converter's clocks; bit 3 set (its meaning not given); bit 5 the
+    interrupt enable; bits 8-11 the channel; then, in separate writes,
+    bit 4 (enable) and bit 6 (start). The other divider codes, and which
+    clock the divider divides, are not given there.
+  - **Its set-up** also writes analogue bias and test-path fields
+    (`WLA_CON0`, `PLL_CON1` bit 16) for its internal channels (the
+    battery and reference voltage); whether a pin's channel needs them
+    is not given.
+  - **Another chip** (the AC63 SDK's br23) sets the same `CON` fields
+    to the same values, with a table of clock limits (128, 96, 72, 48,
+    24, 12, 6 and 1 MHz) beside a divider choice; how codes map to that
+    table is not stated.
+  - **So far this build** has written `CON` as the channel with bits 4
+    and 6, leaving bits 0-3 and 12-15 at 0 (HW-165).
+- Sources: SDK `cpu/wl82/key/adc_api.c` (AC79 SDK commit `5fa84a9b`,
+  blob `5d013827`) lines 246-268 (the `CON` fields and write order) and
+  339-350 (the set-up); SDK63 `cpu/br23/adc_api.c` (blob `25f9c6c0`)
+  lines 32-41 (the table), 245-263 and 328-343; HW-40, HW-165.
+- Standing: confirmed (SDK; SDK63 agrees; the divider's input clock, the
+  other codes and bit 3's meaning open; untried on the unit)
+- Needed by: M3, BR-17 (Phase B)
 
 ## Open questions
 
@@ -4820,6 +4913,10 @@ spec request can turn one into a fact.
   halves of a word nearly cancels while either half alone is loud. Still
   open: the outside part's format, `MASTER`'s coarse steps and the
   half-second clicks.
+  *Session spec-audio10-unit (HW-165 to HW-167):* the speaker plays the
+  lower half of each word, the headphones the difference; N plays on
+  both. The SARADC's readings don't settle with `CON`'s clock and delay
+  fields at 0; the chip's SDK sets a divide by 96 and a start delay.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores

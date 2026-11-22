@@ -3590,6 +3590,25 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing new. No spec entries changed.
 - Disk: about 3 GB free.
 
+### Session spec-audio10-unit (audio10: the two outputs, the SARADC; the audio11 draft)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio10-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  continuing on `spec/audio10-unit`, the round's one PR.
+- The owner's message, saved unedited as docs/prompts/spec-audio10-unit.md.
+- Recorded: HW-165 (UNIT: each format on each output, the chord, `MASTER`'s
+  raw values), HW-166 (the speaker takes the lower half, the headphones the
+  difference; the SARADC doesn't settle), HW-167 (the SARADC's divider and
+  start delay in the chip's SDK); standing notes on HW-40 and HW-164; note
+  on Q-9.
+- Read (PROVENANCE P-510): the AC79 SDK's `cpu/wl82/key/adc_api.c`; AW30N's
+  `adc_api.c` and `adc_api.h` (a different converter, not used); the AC63
+  SDK's `cpu/br23/adc_api.c`. Clean's #233 description (no hardware facts).
+- Wrote the draft clean prompt drop/prompts/clean-br17-audio11.md, outside
+  the repository, marked as awaiting the owner's rulings.
+- Disk: about 3 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
