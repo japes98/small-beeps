@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 2ee49651fc8bd50a6466c1203bce967be1b31f01..123f111c887a139528f2625cd21bfc6fd9f62314
+OK     f2402b084b24 firmware: audio10, the sample formats, the soft clip, MASTER's log, the click holds (BR-17)
+EXEMPT 0199792631c8 (merge) merge: main (#232: audio9 on the unit, HW-163 and HW-164) into audio10
+EXEMPT 123f111c887a (merge) Merge pull request #233 from japes98/hw/audio10
+3 commit(s) checked: PASS
+
+exit status 0
