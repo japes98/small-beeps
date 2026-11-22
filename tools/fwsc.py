@@ -993,14 +993,13 @@ def main():
         # A package's app runs at 0x02000120 (HW-91): the package link,
         # tools/build.sh's app-pkg.bin. The raw image, app.bin, is linked at
         # 0x02000000 and only starts its bands on a unit (clean-br17-audio12
-        # was packed from it). The ELF beside the file says which link it is.
+        # was packed from it). The ELF beside the file, where there is one
+        # (tools/build.sh writes one beside each), says which link it is.
         elf = os.path.splitext(a.app)[0] + ".elf"
-        if not os.path.exists(elf):
-            print("fwsc: %s: no ELF beside it to show its link; pack tools/build.sh's app-pkg.bin" % a.app,
-                  file=sys.stderr)
-            return 2
-        with open(elf, "rb") as f:
-            entry = struct.unpack_from("<I", f.read(0x1C), 0x18)[0]
+        entry = ENTRY
+        if os.path.exists(elf):
+            with open(elf, "rb") as f:
+                entry = struct.unpack_from("<I", f.read(0x1C), 0x18)[0]
         if entry != ENTRY:
             print("fwsc: %s is linked to start at 0x%08X, not 0x%08X where a package's app runs (HW-91): pack "
                   "the package link, app-pkg.bin" % (a.app, entry, ENTRY), file=sys.stderr)
