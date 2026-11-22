@@ -3638,6 +3638,25 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing new. No spec entries changed.
 - Disk: about 3 GB free.
 
+### Session spec-audio11-unit (audio11: the SARADC settles; the audio12 draft)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-fwtest-audio-chip (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  continuing on `spec/audio11-unit`, the round's one PR.
+- The owner's message (with the ruling on #235), saved unedited as
+  docs/prompts/spec-audio11-unit.md.
+- Recorded: HW-169 (UNIT: the SDK's SARADC set-up, N at start-up, no
+  clicks, the fills, the speaker's bass), HW-170 (what it settles);
+  standing note on HW-167; notes on Q-8 and Q-9.
+- Sent the clean session, at the owner's request, the rename its #236
+  needs for C-SEP-TERMS.
+- Wrote the draft clean prompt drop/prompts/clean-br17-audio12.md, outside
+  the repository, marked as awaiting the owner's rulings; set out the USB
+  MIDI plan in the session's report.
+- Read: nothing new.
+- Disk: about 3 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
