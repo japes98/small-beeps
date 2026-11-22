@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range bb0a88159ea5416acf72189b9f11aa4ff175cfbb..5865dcf8329f51268892f09426cb7c20bed9a4da
+OK     ff8940cf40a8 sessions: the owner's rulings for audio11 saved (spec-audio11-rulings)
+OK     92fa22a3023b spec: audio11's log, the SARADC settles, the clicks go (HW-169, HW-170)
+EXEMPT 36964465228e (merge) merge: main (#235, with #234 and #236) into spec/audio11-unit
+EXEMPT 5865dcf8329f (merge) Merge pull request #237 from japes98/spec/audio11-unit
+4 commit(s) checked: PASS
+
+exit status 0

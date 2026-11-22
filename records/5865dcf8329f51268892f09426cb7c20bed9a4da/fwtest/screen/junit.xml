@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="4" failures="0">
+  <testsuite name="boot.screen" tests="4" failures="0">
+    <testcase classname="boot.screen" name="run"/>
+    <testcase classname="boot.screen" name="golden lcd-1500ms.png"/>
+    <testcase classname="boot.screen" name="golden lcd-300ms.png"/>
+    <testcase classname="boot.screen" name="golden lcd-800ms.png"/>
+  </testsuite>
+</testsuites>
