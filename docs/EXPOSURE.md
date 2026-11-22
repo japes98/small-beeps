@@ -4019,6 +4019,29 @@ SR-3 wrote only its barrier-log row.*
   HW-168) once #234 merges.
 - Disk: about 3.0 GB free.
 
+### Session clean-br17-audio12 (BR-17: the sweep, ALGORITHM, the instrument's start, frames)
+- Date: 2026-11-22 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.330, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio11's, continued. The spec side's prompt, relayed by the
+  spec session at the owner's request, saved unedited as
+  docs/prompts/clean-br17-audio12.md.
+- Start: #235, #236, #237, #238 and #239 found merged; main brought in by
+  `tools/clean-update.sh` (lazy fetching off otherwise); a new branch
+  `hw/audio12` from main at `f124a6b4`. Nothing to archive (the last clean
+  session is this one, live); `tools/check-transcripts.py` PASS.
+- Reads: this side's own code; HARDWARE-SPEC sections 47 and 48 (HW-165 to
+  HW-170), HW-117 (m-bootloader's keys at power-on) and HW-173 (recovery),
+  and the notes on Q-8 and Q-9, as on main at `f124a6b4`; the owner's
+  rulings as saved on main (docs/prompts/spec-audio12-rulings.md). HW-169
+  gives audio11's `CON` writes as the build made them (`F44E`, `F45E`,
+  `F45E`), so audio11's pending check against section 47 is closed.
+- Disk: about 2.7 GB free.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

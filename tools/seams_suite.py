@@ -3345,6 +3345,210 @@ def case_audio11(a, work, log):
 
 
 
+A12_DEFINES = A11_DEFINES + ("--define", "SB_HW_AUDIO12")
+HW_ARP_KEY = 10      # fwtest's key of ARP (input.h)
+HW_ALG_ENC = 1       # fwtest's encoder of ALGORITHM (input.h)
+
+
+def runs_between(x, rate, ms, t0, t1):
+    """nonzero_runs of x (a run's audio.wav, which ends at ms) that begin
+    between t0 and t1 ms of the run."""
+    return [(s0, e) for s0, e in nonzero_runs(x) if t0 <= ms - (len(x) - s0) * 1000.0 / rate <= t1]
+
+
+def nonzero_runs(x, gap=32, least=4410):
+    """The runs of x between stretches of at least `gap` exact zeros, as
+    (start, end), those at least `least` samples long."""
+    runs, start, zeros = [], None, 0
+    for i, v in enumerate(x):
+        if v:
+            if start is None:
+                start = i
+            zeros = 0
+        elif start is not None:
+            zeros += 1
+            if zeros >= gap:
+                if i - zeros + 1 - start >= least:
+                    runs.append((start, i - zeros + 1))
+                start, zeros = None, 0
+    if start is not None and len(x) - start >= least:
+        runs.append((start, len(x)))
+    return runs
+
+
+def a12_arp(work, log, b, name):
+    """The instrument's start in build b, ARP on and two keys held 4 s:
+    the steps' times in frames (sb_arp's log), and the record's fields."""
+    fws = fw_suite()
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    path = os.path.join(work, name + ".script")
+    with open(path, "w") as f:
+        f.write("11000 key %d tap 100\n" % HW_ARP_KEY)
+        for k in (HW_KEY1, HW_KEY5):
+            f.write("11500 key %d down\n15500 key %d up\n" % (k, k))
+    out = os.path.join(work, name)
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "16000", "--flash-out", "--script",
+               os.path.relpath(path, ROOT), "--ram", "0x%08x:%d@end" % (sy["sb_arp"], 4 * 48))
+    w = struct.unpack("<48I", ram(out, sy["sb_arp"], 4 * 48))
+    n = w[14]
+    t = [w[16 + i % 32] for i in range(max(0, n - 32), n)]
+    return r, [y - x for x, y in zip(t, t[1:])], w[2]
+
+
+def case_audio12(a, work, log):
+    """audio12 (clean-br17-audio12). D5: with no key held the instrument's
+    own start brings up L2, port C's pins, the route and N with the synth,
+    then the panel (no test screen; the test screen's keys do nothing); its
+    self-undo forced, the instrument still runs and the panel and the log
+    say why; HOME held at power-on gives the test screen. S: LFO plays an
+    8-note chord in each algorithm 1 to 10 (a short chord in the test
+    build), each one's longest fill with 8 voices, no clip or late half,
+    each release ended; the large area shows the sweep; a second sweep
+    stopped by LFO after its chord, every voice released. G: every note
+    on's ALGORITHM read equals the voice's, an ALGORITHM turn taken; the
+    sweep's ten chords differ in audio.wav in Bell (G2's start patch) and
+    are identical in Sine (patch 0, the unit's start patch before). D6:
+    ARP's steps 1/16 apart in frames on fwtest's layout and on the unit's
+    (two engine blocks a half), where the interrupt count gave half."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    glyphs = font_glyphs()
+    b = os.path.join(work, "build")
+    build(b, log, *A12_DEFINES, "--define", "SB_TEST_A12_SHORT")
+    # The test screen: HOME held at power-on; a sweep; ALGORITHM turned and a note; a sweep stopped by LFO.
+    keys = [(0, HW_HOME, 5000), (12000, HW_LFO, 100), (24000, HW_EDIT, 100), (25000, HW_KEY1, 300),
+            (26000, HW_LFO, 100), (26300, HW_LFO, 100), (32000, HW_EDIT, 100)]
+    path = os.path.join(work, "test.script")
+    with open(path, "w") as f:
+        for t, k, d in keys:
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + d, k))
+        f.write("24500 enc %d +1\n" % HW_ALG_ENC)
+    shots = (14000, 21000)
+    out = os.path.join(work, "test")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "33000", "--flash-out", "--wav",
+               "--script", os.path.relpath(path, ROOT), *[x for t in shots for x in ("--lcd", str(t))])
+    with open(os.path.join(out, "flash.bin"), "rb") as f:
+        rs, bad = rd.records(f.read())
+    if r["run"]["outcome"] != "completed":
+        problems.append("audio12 test screen: %s (%s)" % (r["run"]["outcome"], r["run"].get("detail")))
+    if bad or any(x["layout"] != 11 or not x["known"] or x["count"] != len(rd.FIELDS[11]) for x in rs):
+        problems.append("audio12: %d bad records, or one not layout 11 with %d fields" % (len(bad), len(rd.FIELDS[11])))
+    labels = [x["label"] for x in rs if x["label"] != "MASTER still" and not x["label"].startswith("PB5")]
+    want = ["boot", "L2 before", "L2 kept", "R2 before", "R2 set", "Route before", "Route kept", "page", "Synth on",
+            "Sweep start", "Sweep done", "save key", "Sweep start", "Sweep stop asked", "Sweep stopped", "save key"]
+    if labels != want:
+        problems.append("audio12 test screen: records %s, want %s" % (labels, want))
+    done = next((x["fields"] for x in rs if x["label"] == "Sweep done"), {})
+    last = rs[-1]["fields"] if rs else {}
+    g = lambda f, k: f.get(k, 0)
+    fills = [g(done, "as_fill_%d" % k) for k in range(1, 11)]
+    if g(done, "start_mode") != 2 or g(done, "as_state") != 3 or g(done, "as_chords") != 10 \
+            or any(w >> 16 != 8 or not w & 0xFFFF for w in fills) \
+            or any(g(done, "as_%s_%d" % (w, k)) for w in ("soft", "hard", "late") for k in range(1, 11)) \
+            or any(g(done, "as_rel_frames_%d" % k) >> 31 or not g(done, "as_rel_frames_%d" % k) for k in range(1, 11)):
+        problems.append("audio12 sweep: %s" % "; ".join(l for l in rd.derived(done) if l.startswith(("audio12", "  A"))))
+    k = g(last, "as_chords") - 10
+    if g(last, "as_state") != 4 or k not in (1, 2) or g(last, "as_alg") != k or not g(last, "as_stop") \
+            or g(last, "as_rel_frames_%d" % k) >> 31 or not g(last, "as_rel_frames_%d" % k):
+        problems.append("audio12 stop: state %d, chords %d, algorithm %d, release %x" % (
+            g(last, "as_state"), g(last, "as_chords"), g(last, "as_alg"), g(last, "as_rel_frames_%d" % max(k, 1))))
+    # G: each note on's ALGORITHM read and the voice's; the sweep's chords in order; the turn (A10 + 1 = A1) and KEY1.
+    n = g(last, "g_note_n")
+    notes = [g(last, "g_note_%d" % (i % 16)) for i in range(max(0, n - 16), n)]
+    if g(done, "g_note_n") != 80 or n != 80 + 1 + 8 * k or g(last, "g_turns") != 1 or g(last, "g_turns_off") \
+            or g(last, "g_turn_alg") != 1 or any(w >> 8 & 0xFF != w >> 1 & 0x7F or not w & 1 for w in notes) \
+            or (w := notes[-9 if k == 1 else -17]) >> 24 != 53 or w >> 8 & 0xFF != 1:
+        problems.append("audio12 G: %s" % [l for l in rd.derived(last) if l.startswith("  G")])
+    big = {}
+    for t, want_big in zip(shots, (("SWEEP A", "F"), ("DONE A", "F"))):
+        png = os.path.join(out, "lcd-%dms.png" % t)
+        got = read_big(fws, png, glyphs) if os.path.exists(png) else ["(no screen)"] * 3
+        big[t] = got
+        if not got[0].startswith(want_big[0]) or not re.match(r"F\d+US 8V$", got[1]):
+            problems.append("audio12: the large area at %d ms %s" % (t, got))
+    rate, left, right = aa.read_wav(os.path.join(out, "audio.wav"))
+    runs = runs_between(left, rate, 33000, 12000, 24000)
+    first = [tuple(left[s0:s0 + 8000]) for s0, _ in runs]
+    if len(first) != 10 or len(set(first)) != 10:
+        problems.append("audio12 G2: Bell's sweep in audio.wav: %d runs, %d distinct of the first ten" % (
+            len(runs), len(set(first))))
+    # G's check: the same sweep from Sine (patch 0): ten identical chords.
+    zb = os.path.join(work, "build-sine")
+    build(zb, log, *A12_DEFINES, "--define", "SB_TEST_A12_SHORT", "--define", "SB_TEST_A12_SINE")
+    zpath = os.path.join(work, "sine.script")
+    with open(zpath, "w") as f:
+        f.write("0 key %d down\n5000 key %d up\n12000 key %d down\n12100 key %d up\n" % (HW_HOME, HW_HOME, HW_LFO, HW_LFO))
+    zout = os.path.join(work, "sine")
+    zr = fwtest(os.path.join(zb, "app.bin"), zout, log, "--ms", "22000", "--wav", "--script", os.path.relpath(zpath, ROOT))
+    _, zl, _ = aa.read_wav(os.path.join(zout, "audio.wav"))
+    zruns = runs_between(zl, rate, 22000, 12000, 22000)
+    zfirst = [tuple(zl[s0:s0 + 8000]) for s0, _ in zruns]
+    if zr["run"]["outcome"] != "completed" or len(zfirst) != 10 or len(set(zfirst)) != 1:
+        problems.append("audio12 G: Sine's sweep: %d runs, %d distinct of the first ten (want 1)" % (
+            len(zruns), len(set(zfirst))))
+    # D5: the instrument's start: no key at power-on; KEY1 plays; FX and SEQ (the test screen's) do nothing.
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    ipath = os.path.join(work, "inst.script")
+    with open(ipath, "w") as f:
+        for t, key in ((9000, HW_KEY1), (10000, HW_FX), (10500, HW_SEQ), (11000, HW_EDIT)):
+            f.write("%d key %d down\n%d key %d up\n" % (t, key, t + 300, key))
+    iout = os.path.join(work, "inst")
+    ir = fwtest(os.path.join(b, "app.bin"), iout, log, "--ms", "12000", "--flash-out", "--wav", "--lcd", "11900",
+                "--script", os.path.relpath(ipath, ROOT), "--ram", "0x%08x:8@end" % sy["sb_ui"])
+    with open(os.path.join(iout, "flash.bin"), "rb") as f:
+        irs, ibad = rd.records(f.read())
+    ilabels = [x["label"] for x in irs if not x["label"].startswith("PB5")]
+    ib = irs[-1]["fields"] if irs else {}
+    ui_marker, ui_screen = struct.unpack("<2I", ram(iout, sy["sb_ui"], 8))
+    _, il, _ = aa.read_wav(os.path.join(iout, "audio.wav"))
+    played = il[len(il) - int(2.9 * rate):len(il) - int(2.5 * rate)]
+    if ir["run"]["outcome"] != "completed" or ibad or ilabels != ["Synth on", "L2 before", "L2 kept", "R2 before",
+                                                                   "R2 set", "Route before", "Route kept", "boot"] \
+            or g(ib, "start_mode") != 1 or g(ib, "a9_route") != 1 or g(ib, "a9_synth") != 1 \
+            or rd.big_text(ib)[0] != "audio12: sound o" or ui_marker != 0x38495553 or not played \
+            or max(abs(v) for v in played) < 100:
+        problems.append("audio12 D5: %s, records %s, mode %d route %d synth %d, line %s, panel marker %x, KEY1 peak %d"
+                        % (ir["run"]["outcome"], ilabels, g(ib, "start_mode"), g(ib, "a9_route"), g(ib, "a9_synth"),
+                           rd.big_text(ib), ui_marker, max([abs(v) for v in played] or [0])))
+    # D5's self-undo, forced: the route's check fails; the instrument runs, silent, and says why.
+    ub = os.path.join(work, "build-undo")
+    build(ub, log, *A12_DEFINES, "--define", "SB_TEST_A9_CHECK_FAIL")
+    usy = fws.elf_symbols(os.path.join(ub, "app.elf"))
+    uout = os.path.join(work, "undo")
+    ur = fwtest(os.path.join(ub, "app.bin"), uout, log, "--ms", "9000", "--flash-out", "--lcd", "8900",
+                "--ram", "0x%08x:8@end" % usy["sb_ui"])
+    with open(os.path.join(uout, "flash.bin"), "rb") as f:
+        urs, _ = rd.records(f.read())
+    ubf = urs[-1]["fields"] if urs else {}
+    uline = "".join(rd.big_text(ubf))
+    umarker = struct.unpack("<2I", ram(uout, usy["sb_ui"], 8))[0]
+    if ur["run"]["outcome"] != "completed" or not urs or urs[-1]["label"] != "boot" or g(ubf, "a9_route") != 3 \
+            or not uline.startswith("NO SOUND: ") or umarker != 0x38495553:
+        problems.append("audio12 D5 undo: %s, last %s, route %d, line %r, panel marker %x" % (
+            ur["run"]["outcome"], urs[-1]["label"] if urs else None, g(ubf, "a9_route"), uline, umarker))
+    # D6: ARP's steps in frames, fwtest's layout and the unit's.
+    arp = {}
+    for name, bb in (("arp", b), ("arp-pcm16", None)):
+        if bb is None:
+            bb = os.path.join(work, "build-pcm16")
+            build(bb, log, *A12_DEFINES, "--define", "SB_HW_PCM16")
+        ar, diffs, steps = a12_arp(work, log, bb, name)
+        arp[name] = (diffs, steps)
+        if ar["run"]["outcome"] != "completed" or len(diffs) < 8 or any(abs(d - 5514) > 2 for d in diffs):
+            problems.append("audio12 D6 %s: %s, %d steps, frames between %s (5514 +-2)" % (
+                name, ar["run"]["outcome"], steps, diffs[:12]))
+    print("audio12: test screen with HOME held; the sweep in Bell: longest fills (us) %s with 8 voices, releases %s"
+          " frames, no clip or late half; stopped after chord %d of the second; G: %d note ons, read = voice's, a turn"
+          " taken; Bell's ten chords distinct, Sine's identical (%d distinct); the large area %s; D5: the instrument"
+          " (panel, route up, KEY1 peak %d), its self-undo: %r; D6: ARP steps %s frames apart (fwtest's layout), %s"
+          " (the unit's)" % (
+              [(w & 0xFFFF) / 10.0 for w in fills], sorted({g(done, "as_rel_frames_%d" % k) for k in range(1, 11)}),
+              k, g(last, "g_note_n"), len(set(zfirst)), big, max([abs(v) for v in played] or [0]), uline,
+              sorted(set(arp["arp"][0])), sorted(set(arp["arp-pcm16"][0]))))
+    return problems
+
+
 def case_nowrace(a, work, log):
     """sb_now() never goes back: the slot interrupt's time-keeping forced
     at each point between its reads, just after TIMER0 wraps (main.c,
@@ -3404,6 +3608,7 @@ CASES = [
     ("audio9", case_audio9),
     ("audio10", case_audio10),
     ("audio11", case_audio11),
+    ("audio12", case_audio12),
 ]
 
 

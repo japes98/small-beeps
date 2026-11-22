@@ -32,6 +32,9 @@
 #if defined(SB_HW_AUDIO11) && !defined(SB_HW_AUDIO10)
 #error "SB_HW_AUDIO11 builds on audio10: build it with SB_HW_AUDIO10"
 #endif
+#if defined(SB_HW_AUDIO12) && !defined(SB_HW_AUDIO11)
+#error "SB_HW_AUDIO12 builds on audio11: build it with SB_HW_AUDIO11"
+#endif
 #if defined(SB_HW_PCM16) && !defined(SB_HW_AUDIO8)
 #error "SB_HW_PCM16 is audio8's unit tone: build it with SB_HW_AUDIO8"
 #endif
@@ -152,7 +155,9 @@ void hw_rows_start(void);
 #define HW_LOG_REC     4096u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
-#if defined(SB_HW_AUDIO11)
+#if defined(SB_HW_AUDIO12)
+#define HW_LOG_LAYOUT  11u                  /* tools/report_decode.py's FIELDS[11] */
+#elif defined(SB_HW_AUDIO11)
 #define HW_LOG_LAYOUT  10u                  /* tools/report_decode.py's FIELDS[10] */
 #else
 #define HW_LOG_LAYOUT  9u                   /* tools/report_decode.py's FIELDS[9] */
@@ -161,7 +166,7 @@ void hw_rows_start(void);
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
 /* The build's identity in each record: the package's version, which the
  * candidate's pack must match (tools/report-decode.py prints it). */
-#define HW_BUILD_ID    "0.11.0-hw3u"
+#define HW_BUILD_ID    "0.12.0-hw3v"
 struct hw_report {
     u32 scanned;                /* the ring read once */
     u32 found;                  /* valid records found then */
@@ -293,6 +298,29 @@ void hw_finder(void) __attribute__((noreturn));
 #define HW_A11_SET_LOG 8u
 #define HW_A11_JUMPS  8u
 #define HW_A11_ALGS   10u    /* FM_ALGORITHMS */
+/* audio12 (clean-br17-audio12). The start: the instrument's own (sound,
+ * no test screen), or the test screen when HOME is held at power-on (PLAY
+ * and REC are m-bootloader's, HW-117). */
+#define HW_A12_INSTRUMENT 1u
+#define HW_A12_TEST       2u
+/* S: the sweep's states; a chord of HW_A12_NOTES_CHORD notes held
+ * HW_A12_CHORD_FRAMES, then its release waited for, at most
+ * HW_A12_REL_FRAMES (frames at 44.1 kHz). */
+#define HW_A12_SW_IDLE    0u
+#define HW_A12_SW_CHORD   1u
+#define HW_A12_SW_RELEASE 2u
+#define HW_A12_SW_DONE    3u   /* every algorithm played */
+#define HW_A12_SW_STOPPED 4u   /* stopped by the key after a chord */
+#define HW_A12_NOTES_CHORD 8u
+#if defined(SB_TEST_A12_SHORT)
+#define HW_A12_CHORD_FRAMES 13230u   /* the test build: 0.3 s */
+#else
+#define HW_A12_CHORD_FRAMES 66150u   /* 1.5 s */
+#endif
+#define HW_A12_REL_FRAMES   132300u  /* 3 s */
+#define HW_A12_REL_BOUND    0x80000000u /* in sw_rel: the release's wait reached the bound */
+/* G: the note-on log's entries. */
+#define HW_A12_NOTES 16u
 #define HW_A9_LATE_MAX 50u   /* late halves after which the interrupt goes back to the tone */
 #define HW_A9_PB5_SETTLE_MS 50u
 #define HW_A9_DAA7_MS 60000u
@@ -482,6 +510,19 @@ struct hw_audio {
     u32 m_level;                /* the level applied now, of 65536 (MASTER's curve) */
     char big[3][16];            /* E: the large area's three lines */
 #endif
+#if defined(SB_HW_AUDIO12)
+    /* audio12 (clean-br17-audio12). */
+    u32 start_mode;             /* HW_A12_INSTRUMENT or HW_A12_TEST */
+    u32 as_state, as_alg, as_runs, as_stop, as_chords; /* S: HW_A12_SW_*; the algorithm playing (1 to 10); sweeps started; a stop asked; chords played */
+    u32 as_frames;              /* frames into the chord or release now */
+    u32 as_fill[HW_A11_ALGS];   /* each algorithm's longest fill (sb_now units) */
+    u32 as_fill_v[HW_A11_ALGS]; /* the voices sounding then */
+    u32 as_soft[HW_A11_ALGS], as_hard[HW_A11_ALGS], as_late[HW_A11_ALGS]; /* soft-clipped and saturated samples, late halves and underruns, in each algorithm's chord and release */
+    u32 as_rel[HW_A11_ALGS];    /* frames each release took to end (| HW_A12_REL_BOUND if it didn't) */
+    u32 as_soft0, as_hard0, as_late0; /* the counts when the algorithm's chord began */
+    u32 g_note_n, g_note[HW_A12_NOTES]; /* G: note ons; note << 24 | voice << 16 | ALGORITHM read << 8 | the voice's algorithm << 1 | local control, the last HW_A12_NOTES */
+    u32 g_turns, g_turns_off, g_turn_alg; /* ALGORITHM turns the engine took, turns it dropped (local control off), the algorithm after the last */
+#endif
 };
 #define HW_L_NONE    0u
 #define HW_L_KEPT    1u     /* the link moved with the matrix right: the set-up running */
@@ -545,6 +586,10 @@ void hw_a11_setup_key(void);
 int hw_a11_pot_take(u32 *v);
 u32 hw_a11_pot_first(void);
 void hw_a11_big(u32 force);
+void hw_a12_sweep_key(void);
+void hw_a12_instrument(void);
+void hw_a12_test_release(void);
+const char *hw_step_now(void);
 void hw_matrix_check(u32 *idle, u32 *map);
 void hw_port_a(u32 *w);
 void hw_scan_pause(void);

@@ -276,8 +276,32 @@ def _layout10():
     return body + f + l9[len(l9) - health:]
 
 
+A12_MODES = ("?", "the instrument", "the test screen (HOME held at power-on)")
+A12_SWEEP = ("not run", "playing a chord", "waiting for a release", "done (all ten)", "stopped by the key")
+
+
+def _layout11():
+    """Layout 11 (clean-br17-audio12): layout 10 without what audio11
+    settled (the set-up's change list, the old set-up's channels, MASTER's
+    raw ring and jump list, the fill per algorithm), with audio12's after
+    the large area, before layout 4's log health: the start, the sweep
+    (its state, algorithm, runs, stop, chords; per algorithm the longest
+    fill in 0.1 us with the voices then << 16, soft-clipped and saturated
+    samples, late halves, the release's frames), and G's note-on list and
+    ALGORITHM's turns."""
+    l10 = _layout10()
+    health = len(_layout4()) - len(_layout3())
+    body = [n for n in l10[:len(l10) - health]
+            if not n.startswith(("adc_set_t_", "adc_old_", "m_raw_ring_", "m_jump_t_", "fill_alg_"))]
+    f = ["start_mode", "as_state", "as_alg", "as_runs", "as_stop", "as_chords"]
+    for w in ("fill", "soft", "hard", "late", "rel_frames"):
+        f += ["as_%s_%d" % (w, k) for k in range(1, 11)]
+    f += ["g_note_n"] + ["g_note_%d" % k for k in range(16)] + ["g_turns", "g_turns_off", "g_turn_alg"]
+    return body + f + l10[len(l10) - health:]
+
+
 FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7(),
-          8: _layout8(), 9: _layout9(), 10: _layout10()}
+          8: _layout8(), 9: _layout9(), 10: _layout10(), 11: _layout11()}
 HOLDS = ("zero", "LED", "screen", "log", "scan")
 A9_ROUTE = ("not up", "UP", "down (key)", "UNDONE by the firmware", "no L2: not tried")
 A9_S2 = ("both halves", "upper half only", "lower half only")
@@ -357,12 +381,14 @@ def audio11_lines(f):
     us = lambda u: u / 24.0
     out = []
     n = f["adc_set_n"]
-    sets = [f["adc_set_t_%d" % (k % 8)] for k in range(max(0, n - 8), n)]
+    sets = [f["adc_set_t_%d" % (k % 8)] for k in range(max(0, n - 8), n) if "adc_set_t_0" in f]
     out.append("audio11: SARADC set-up %s (%d changes: %s); the slot's longest service %.1f us, %d sweep passes"
                % (A11_SETUPS[min(f["adc_setup"], 1)], n,
                   ", ".join("beat %d %s" % (w >> 1, A11_SETUPS[w & 1]) for w in sets) or "none",
                   us(f["adc_slot_max_units"]), f["adc_passes"]))
     for st in A11_SETUPS:
+        if "adc_%s_ch0_n" % st not in f:
+            continue
         out.append("  %s: CON %04X %04X %04X, read after %04X; %d conversions, %d timed out; start to bit 7 seen"
                    " %.1f to %.1f us (the slot's 83 us steps), by a tight poll %.1f us"
                    % (st, f["sar_con_%s_w1" % st], f["sar_con_%s_w2" % st], f["sar_con_%s_w3" % st],
@@ -379,13 +405,36 @@ def audio11_lines(f):
                 ", ".join("%d x%d" % (v >> 22, v & 0x3FFFFF) for v in vs),
                 ", other values x%d" % f[k + "rest"] if f[k + "rest"] else ""))
     n = f["m_jump_n"]
-    js = [f["m_jump_t_%d" % (k % 8)] for k in range(max(0, n - 8), n)]
+    js = [f["m_jump_t_%d" % (k % 8)] for k in range(max(0, n - 8), n) if "m_jump_t_0" in f]
     out.append("  MASTER's raw jumps (over 32): %d%s" % (n, ": " + ", ".join(
         "beat ~%d (mod 16384) %d->%d" % ((w >> 20) * 4, w >> 10 & 0x3FF, w & 0x3FF) for w in js) if js else ""))
-    fa = [(k, f["fill_alg_%d" % k]) for k in range(1, 11)]
+    fa = [(k, f.get("fill_alg_%d" % k, 0)) for k in range(1, 11)]
     out.append("  fill per algorithm (us, any / with 8 voices): " + ", ".join(
         "A%d %.1f/%.1f" % (k, (w & 0xFFFF) / 10.0, (w >> 16) / 10.0) for k, w in fa if w))
     out.append("  level %.2f%% of full; large area: %s" % (f["m_level"] / 100.0, " | ".join(big_text(f))))
+    if "as_state" in f:
+        out += audio12_lines(f)
+    return out
+
+
+def audio12_lines(f):
+    out = ["audio12: started as %s; sweep %s (algorithm %d, %d runs, %d chords%s)" % (
+        A12_MODES[min(f["start_mode"], 2)], A12_SWEEP[min(f["as_state"], 4)], f["as_alg"], f["as_runs"],
+        f["as_chords"], ", a stop asked" if f["as_stop"] else "")]
+    for k in range(1, 11):
+        w, r = f["as_fill_%d" % k], f["as_rel_frames_%d" % k]
+        if not w and not r:
+            continue
+        out.append("  A%-2d longest fill %.1f us with %d voices; soft clipped %d, saturated %d, late %d; release %d"
+                   " frames%s" % (k, (w & 0xFFFF) / 10.0, w >> 16, f["as_soft_%d" % k], f["as_hard_%d" % k],
+                                  f["as_late_%d" % k], r & 0x7FFFFFFF, " (NOT ENDED: the bound)" if r >> 31 else ""))
+    n = f["g_note_n"]
+    ns = [f["g_note_%d" % (k % 16)] for k in range(max(0, n - 16), n)]
+    out.append("  G: %d note ons; ALGORITHM turns taken %d, dropped (local off) %d, algorithm after the last %d;"
+               " last (note voice read->voice local): %s" % (
+                   n, f["g_turns"], f["g_turns_off"], f["g_turn_alg"],
+                   " ".join("%d v%d A%d->A%d%s" % (w >> 24, w >> 16 & 0xFF, w >> 8 & 0xFF, w >> 1 & 0x7F,
+                                                   "" if w & 1 else " LOCAL OFF") for w in ns)))
     return out
 
 
@@ -533,6 +582,9 @@ DECIMAL = {"a10_fmt_changes", "a10_fill_max_units", "a10_fill_max8_units", "a10_
 DECIMAL |= {n for n in FIELDS[10] if n.startswith(("adc_conv", "adc_passes", "adc_slot", "adc_setup", "adc_set_n",
                                                      "m_jump_n", "m_level"))
             or (n.startswith("adc_") and n.endswith(("_n", "_rest")))}
+DECIMAL |= {n for n in FIELDS[11] if n.startswith(("start_mode", "as_state", "as_alg", "as_runs", "as_stop",
+                                                     "as_chords", "as_soft", "as_hard", "as_late", "as_rel",
+                                                     "g_note_n", "g_turn"))}
 STATES = {"rec_state": ("not taken", "taken", "undone"), "a_state": ("not taken", "taken", "undone"),
           "h_state": ("not taken", "taken", "undone"), "i_state": ("not taken", "taken", "undone"),
           "b_state": ("not taken", "taken", "undone"), "seq_state": ("running", "stopped", "put back")}

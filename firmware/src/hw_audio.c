@@ -89,6 +89,9 @@
 #if defined(SB_HW_AUDIO9)
 #include "fm.h"
 #endif
+#if defined(SB_HW_AUDIO12)
+#include "ui.h"
+#endif
 #include "hw_fm1.h"
 #include "WL82.h"
 
@@ -2290,6 +2293,10 @@ static void a10_tick(void);
 #if defined(SB_HW_AUDIO11)
 static void a11_time_now(void);
 #endif
+#if defined(SB_HW_AUDIO12)
+static void a12_tick(void);
+static u32 a12_big(char (*t)[16]);
+#endif
 #endif
 
 void hw_a9_tick(void)
@@ -2497,6 +2504,9 @@ static void a10_tick(void)
         }
     }
     hw_aud.m_level = hw_aud.m_value * hw_aud.m_value * 100u / 10465u;
+#if defined(SB_HW_AUDIO12)
+    a12_tick();
+#endif
     hw_a11_big(0);
 #endif
 }
@@ -2798,6 +2808,10 @@ void hw_a11_big(u32 force)
             *p++ = '+';
     }
     *p = 0;
+#if defined(SB_HW_AUDIO12)
+    /* S: while the sweep runs (and 10 s after), its two lines. */
+    (void)a12_big(t);
+#endif
     for (i = 0; i < 3u; i++)
         if (force || put_differs(t[i], hw_aud.big[i]))
             break;
@@ -2817,6 +2831,234 @@ void hw_a11_big(u32 force)
     gfx_text(6, A11_BIG_Y + 48u, t[2], h ? RGB565(31, 63, 0) : RGB565(31, 63, 31), RGB565(0, 0, 0), 3);
     lcd_send_rows(A11_BIG_Y, 72);
     lcd_wait();
+}
+#endif
+
+#if defined(SB_HW_AUDIO12)
+/* --- audio12 (the spec side's clean-br17-audio12; the owner's rulings) ---
+ * S: LFO on the test screen (the engine leaves LFO alone) starts a sweep:
+ * for each algorithm 1 to 10, ALGORITHM set, an 8-note chord over three
+ * octaves held HW_A12_CHORD_FRAMES, released, and its release waited for
+ * (every voice idle, at most HW_A12_REL_FRAMES); then the next. LFO during
+ * a sweep stops it after the chord in progress, released. It runs in the
+ * engine's own context (synth_fill, before the engine's blocks), timed in
+ * the frames the synth fills. Each algorithm's longest fill (with the
+ * voices then), soft-clipped and saturated samples and late halves (the
+ * audio layer's underruns) are kept for the log; the large area shows the
+ * algorithm and its longest fill. */
+static const u8 a12_chord[HW_A12_NOTES_CHORD] = { 48, 55, 60, 64, 67, 72, 79, 84 };
+static u32 a12_end_beat, a12_told;
+
+static void a12_notes(u32 on)
+{
+    u32 k;
+
+    for (k = 0; k < HW_A12_NOTES_CHORD; k++) {
+        if (on)
+            fm_note_on(a12_chord[k], FM_KEY_VELOCITY);
+        else
+            fm_note_off(a12_chord[k]);
+    }
+}
+
+/* The algorithm's counts since its chord began. */
+static void a12_counts(u32 a)
+{
+    hw_aud.as_soft[a] = hw_aud.a10_soft - hw_aud.as_soft0;
+    hw_aud.as_hard[a] = hw_aud.a10_hard - hw_aud.as_hard0;
+    hw_aud.as_late[a] = sb_audio.underruns - hw_aud.as_late0;
+}
+
+/* From synth_fill, before the engine's blocks: fr frames this call. */
+static void a12_sweep_step(u32 fr)
+{
+    u32 a = hw_aud.as_alg - 1u;
+
+    if (hw_aud.as_state == HW_A12_SW_CHORD) {
+        if (!hw_aud.as_frames) {
+            fm_a12_algorithm(hw_aud.as_alg);
+            hw_aud.as_soft0 = hw_aud.a10_soft;
+            hw_aud.as_hard0 = hw_aud.a10_hard;
+            hw_aud.as_late0 = sb_audio.underruns;
+            a12_notes(1);
+            hw_aud.as_chords++;
+        }
+        a12_counts(a);
+        hw_aud.as_frames += fr;
+        if (hw_aud.as_frames >= HW_A12_CHORD_FRAMES) {
+            a12_notes(0);
+            hw_aud.as_state = HW_A12_SW_RELEASE;
+            hw_aud.as_frames = 0;
+        }
+    } else if (hw_aud.as_state == HW_A12_SW_RELEASE) {
+        u32 v = sb_fm.voices[0] + sb_fm.voices[1];
+
+        a12_counts(a);
+        hw_aud.as_frames += fr;
+        if (v && hw_aud.as_frames < HW_A12_REL_FRAMES)
+            return;
+        hw_aud.as_rel[a] = hw_aud.as_frames | (v ? HW_A12_REL_BOUND : 0u);
+        hw_aud.as_frames = 0;
+        if (hw_aud.as_stop || hw_aud.as_alg >= HW_A11_ALGS) {
+            hw_aud.as_state = hw_aud.as_stop ? HW_A12_SW_STOPPED : HW_A12_SW_DONE;
+        } else {
+            hw_aud.as_alg++;
+            hw_aud.as_state = HW_A12_SW_CHORD;
+        }
+    }
+}
+
+static u32 a12_running(void)
+{
+    return hw_aud.as_state == HW_A12_SW_CHORD || hw_aud.as_state == HW_A12_SW_RELEASE;
+}
+
+/* LFO, on the test screen: a sweep (the synth on first), or a stop asked. */
+void hw_a12_sweep_key(void)
+{
+    u32 k;
+
+    if (a12_running()) {
+        hw_aud.as_stop = 1;
+        report("Sweep stop asked");
+        hw_step("audio12: SWEEP: stops after this chord");
+        return;
+    }
+    if (!hw_aud.a9_synth)
+        hw_a9_synth_key();
+    for (k = 0; k < HW_A11_ALGS; k++)
+        hw_aud.as_fill[k] = hw_aud.as_fill_v[k] = hw_aud.as_soft[k] = hw_aud.as_hard[k] = hw_aud.as_late[k]
+            = hw_aud.as_rel[k] = 0;
+    hw_aud.as_stop = 0;
+    hw_aud.as_alg = 1;
+    hw_aud.as_frames = 0;
+    hw_aud.as_runs++;
+    a12_told = 0;
+    /* The state last: the audio interrupt starts the chord when it sees it. */
+    __asm__ volatile("" ::: "memory");
+    hw_aud.as_state = HW_A12_SW_CHORD;
+    report("Sweep start");
+    hw_step("audio12: SWEEP: algorithms 1 to 10, hands off");
+}
+
+/* From a10_tick: the sweep's end, recorded once. */
+static void a12_tick(void)
+{
+    if ((hw_aud.as_state == HW_A12_SW_DONE || hw_aud.as_state == HW_A12_SW_STOPPED) && !a12_told) {
+        a12_told = 1;
+        a12_end_beat = sb_beacon.beats ? sb_beacon.beats : 1u;
+        report(hw_aud.as_state == HW_A12_SW_DONE ? "Sweep done" : "Sweep stopped");
+        hw_step(hw_aud.as_state == HW_A12_SW_DONE ? "audio12: SWEEP DONE (all ten)" : "audio12: SWEEP STOPPED");
+    }
+}
+
+/* The large area's first two lines while the sweep runs, and for 10 s
+ * after it ends: the algorithm (the slowest, after) and its longest fill
+ * in us with the voices then. Returns 1 if it wrote them. */
+static u32 a12_big(char (*t)[16])
+{
+    u32 a, k;
+    char *p;
+
+    if (a12_running()) {
+        a = hw_aud.as_alg - 1u;
+        p = put_s(t[0], hw_aud.as_stop ? "STOP A" : "SWEEP A");
+    } else if (a12_told && sb_beacon.beats - a12_end_beat < 10000u) {
+        for (a = 0, k = 1; k < HW_A11_ALGS; k++)
+            if (hw_aud.as_fill[k] > hw_aud.as_fill[a])
+                a = k;
+        p = put_s(t[0], hw_aud.as_state == HW_A12_SW_DONE ? "DONE A" : "STOPD A");
+    } else {
+        return 0;
+    }
+    p = put_dec(p, a + 1u);
+    *p = 0;
+    p = put_s(t[1], "F");
+    p = put_dec(p, hw_aud.as_fill[a] / 24u);
+    p = put_s(p, "US ");
+    p = put_dec(p, hw_aud.as_fill_v[a]);
+    p = put_s(p, "V");
+    *p = 0;
+    return 1;
+}
+
+/* D5 (the owner's ruling): the instrument's own start. The engine, ALNK0
+ * in N, L2, port C's four pins and the route with the matrix check and its
+ * self-undo (audio9's start, unchanged), the synth filling the halves;
+ * then the panel (views.c) in place of the test screen, with a line that
+ * says whether the route came up and, if not, why (the step row's text:
+ * the instrument runs on, silent). The test screen's keys do nothing:
+ * main gives the events to the panel. The boot's record is saved after. */
+void hw_a12_instrument(void)
+{
+    static char t[40];
+    const char *s;
+    char *p;
+
+    hw_step("audio12: the instrument's start");
+    fm_init();
+    /* The synth from the first half (no tone at power-on). */
+    hw_a9_synth_key();
+    hw_audio_start();
+    hw_audio9_boot();
+    if (hw_aud.a9_route == HW_A9_ROUTE_UP) {
+        p = put_s(t, "audio12: sound on");
+    } else {
+        s = hw_step_now();
+        if (s[0] == 'a' && s[1] == 'u' && s[2] == 'd' && s[3] == 'i' && s[4] == 'o' && s[6] == ':' && s[7] == ' ')
+            s += 8;
+        p = put_s(t, "NO SOUND: ");
+        while (*s && p < t + 38)
+            *p++ = *s++;
+    }
+    *p = 0;
+    {
+        /* The line in the log too, in the large area's words (unused here). */
+        u32 k;
+
+        for (k = 0; k < 48u; k++)
+            hw_aud.big[k / 16u][k % 16u] = k < (u32)(p - t) ? t[k] : 0;
+    }
+    report("boot");
+    lcd_wait();
+    view_message(t, 0);
+    /* No more of the start's rows over the panel. */
+    hw_hold_screen = 1;
+}
+
+/* The test screen's start (HOME held at power-on): HOME let go first (the
+ * route's check stops on a key held), at most 10 s, and its events
+ * dropped, so the test screen doesn't take the press as its own. */
+void hw_a12_test_release(void)
+{
+    u32 t0 = sb_beacon.beats;
+    struct input_event e;
+
+    hw_step("audio12: test screen: let go of HOME");
+    while (input_value(INPUT_HOME) && sb_beacon.beats - t0 < 10000u)
+        sb_wait_ms(10);
+    sb_wait_ms(50);
+    while (input_read(&e))
+        ;
+    while (input_read_audio(&e))
+        ;
+}
+
+/* G: the engine's reports (fm.h), from its context. */
+void fm_a12_note_on(u32 note, u32 voice, u32 alg_read, u32 alg_voice, u32 local)
+{
+    hw_aud.g_note[hw_aud.g_note_n % HW_A12_NOTES] = note << 24 | (voice & 0xFFu) << 16 | (alg_read & 0xFFu) << 8
+                                                   | (alg_voice & 0x7Fu) << 1 | (local & 1u);
+    hw_aud.g_note_n++;
+}
+
+void fm_a12_turn(u32 taken, u32 alg)
+{
+    if (taken)
+        hw_aud.g_turns++;
+    else
+        hw_aud.g_turns_off++;
+    hw_aud.g_turn_alg = alg;
 }
 #endif
 
@@ -2956,6 +3198,15 @@ static void synth_fill(s32 *out, u32 frames)
 #if defined(SB_HW_AUDIO10)
     u32 t0 = sb_now(), d, v;
 #endif
+#if defined(SB_HW_AUDIO12)
+    /* S: the sweep's notes and algorithm for this call's blocks (the
+     * unit's half is two of the engine's blocks, fwtest's one). */
+#if defined(SB_HW_PCM16)
+    a12_sweep_step(2u * frames);
+#else
+    a12_sweep_step(frames);
+#endif
+#endif
 #if defined(SB_HW_PCM16)
     u32 h, n;
 
@@ -3011,6 +3262,16 @@ static void synth_fill(s32 *out, u32 frames)
             hw_aud.fill_alg[v] = d;
         if (sb_fm.voices[0] + sb_fm.voices[1] >= 8u && d > hw_aud.fill_alg8[v])
             hw_aud.fill_alg8[v] = d;
+    }
+#endif
+#if defined(SB_HW_AUDIO12)
+    /* S: the sweep's algorithm's longest fill, with the voices then. */
+    if (a12_running()) {
+        v = hw_aud.as_alg - 1u;
+        if (d > hw_aud.as_fill[v]) {
+            hw_aud.as_fill[v] = d;
+            hw_aud.as_fill_v[v] = sb_fm.voices[0] + sb_fm.voices[1];
+        }
     }
 #endif
 #endif
@@ -4378,7 +4639,18 @@ struct guide_step {
     u8 key;
     char what[13];
 };
-#if defined(SB_HW_AUDIO11)
+#if defined(SB_HW_AUDIO12)
+/* audio12's order (the test screen, HOME held at power-on): the sweep
+ * (hands off until "SWEEP DONE"), a save; a second sweep stopped with LFO
+ * during a chord, a save. */
+static const struct guide_step guide[] = {
+    { INPUT_LFO, "sweep" },
+    { INPUT_EDIT, "save" },
+    { INPUT_LFO, "sweep again" },
+    { INPUT_LFO, "stop it" },
+    { INPUT_EDIT, "save" },
+};
+#elif defined(SB_HW_AUDIO11)
 /* audio11's order: in N with MASTER still, about ten seconds with nothing
  * held, then each hold alone (the scan hold ends by itself), the zeros;
  * the old SARADC set-up and back (MASTER turned end to end in each); the
@@ -5029,7 +5301,12 @@ u32 hw_audio_report(u32 *w)
     /* Layout 10: audio11. */
     w[n++] = hw_aud.adc_setup;
     w[n++] = hw_aud.adc_set_n;
+#if !defined(SB_HW_AUDIO12)
+    /* Layout 11 (audio12) leaves out the set-up's change list, the old
+     * set-up's channels, MASTER's raw ring and jump list, and the fill per
+     * algorithm (the sweep's replaces it): audio11 settled them. */
     n = put_words(w, n, hw_aud.adc_set_t, HW_A11_SET_LOG);
+#endif
     n = put_words(w, n, hw_aud.sar_con[0], 4u * HW_A11_SETUPS);
     n = put_words(w, n, hw_aud.adc_conv_n, HW_A11_SETUPS);
     n = put_words(w, n, hw_aud.adc_conv_to, HW_A11_SETUPS);
@@ -5041,7 +5318,11 @@ u32 hw_audio_report(u32 *w)
     {
         u32 st, c;
 
+#if defined(SB_HW_AUDIO12)
+        for (st = 0; st < 1u; st++)
+#else
         for (st = 0; st < HW_A11_SETUPS; st++)
+#endif
             for (c = 0; c < HW_A11_CHANS; c++) {
                 w[n++] = hw_aud.adc_mm[st][c];
                 w[n++] = hw_aud.adc_n[st][c];
@@ -5049,8 +5330,11 @@ u32 hw_audio_report(u32 *w)
                 w[n++] = hw_aud.adc_other[st][c] + a11_rest(hw_aud.adc_v[st][c]);
             }
     }
+#if !defined(SB_HW_AUDIO12)
     n = put_words(w, n, hw_aud.m_raw_ring, HW_A10_MRING / 2u);
+#endif
     w[n++] = hw_aud.m_jump_n;
+#if !defined(SB_HW_AUDIO12)
     n = put_words(w, n, hw_aud.m_jump_t, HW_A11_JUMPS);
     {
         u32 k;
@@ -5059,8 +5343,35 @@ u32 hw_audio_report(u32 *w)
         for (k = 0; k < HW_A11_ALGS; k++)
             w[n++] = (hw_aud.fill_alg8[k] * 10u / 24u) << 16 | (hw_aud.fill_alg[k] * 10u / 24u & 0xFFFFu);
     }
+#endif
     w[n++] = hw_aud.m_level;
     n = put_words(w, n, (const u32 *)(const void *)hw_aud.big, 12);
+#endif
+#if defined(SB_HW_AUDIO12)
+    /* Layout 11: audio12. */
+    w[n++] = hw_aud.start_mode;
+    w[n++] = hw_aud.as_state;
+    w[n++] = hw_aud.as_alg;
+    w[n++] = hw_aud.as_runs;
+    w[n++] = hw_aud.as_stop;
+    w[n++] = hw_aud.as_chords;
+    {
+        u32 k;
+
+        /* Each algorithm's longest fill, 0.1 us units, with the voices
+         * then << 16. */
+        for (k = 0; k < HW_A11_ALGS; k++)
+            w[n++] = hw_aud.as_fill_v[k] << 16 | (hw_aud.as_fill[k] * 10u / 24u & 0xFFFFu);
+    }
+    n = put_words(w, n, hw_aud.as_soft, HW_A11_ALGS);
+    n = put_words(w, n, hw_aud.as_hard, HW_A11_ALGS);
+    n = put_words(w, n, hw_aud.as_late, HW_A11_ALGS);
+    n = put_words(w, n, hw_aud.as_rel, HW_A11_ALGS);
+    w[n++] = hw_aud.g_note_n;
+    n = put_words(w, n, hw_aud.g_note, HW_A12_NOTES);
+    w[n++] = hw_aud.g_turns;
+    w[n++] = hw_aud.g_turns_off;
+    w[n++] = hw_aud.g_turn_alg;
 #endif
     return n;
 }
