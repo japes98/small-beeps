@@ -241,6 +241,13 @@ static void snap(u32 k, u32 when)
 /* A record in the report log (hw_report.c, SB_HW_REPORT), labelled. */
 static void report(const char *label)
 {
+#if defined(SB_HW_AUDIO10)
+    /* audio10's C: while the log is held, records are dropped and counted. */
+    if (hw_aud.holds >> HW_A10_LOG & 1u) {
+        hw_aud.log_dropped++;
+        return;
+    }
+#endif
 #if defined(SB_HW_REPORT)
     hw_report_save(label);
 #else
@@ -2209,7 +2216,22 @@ void hw_a9_synth_key(void)
     if (hw_aud.a9_synth) {
         hw_aud.a9_synth = 0;
         report("Synth off");
+#if defined(SB_HW_AUDIO10)
+        {
+            /* audio10: the synth's longest fill, and with 8 voices (us). */
+            static char t[48];
+            char *p = put_s(t, "audio10: tone, fill ");
+
+            p = put_dec(p, hw_aud.a10_fill_max / 24u);
+            p = put_s(p, "us, 8v ");
+            p = put_dec(p, hw_aud.a10_fill_max8 / 24u);
+            p = put_s(p, "us");
+            *p = 0;
+            hw_step(t);
+        }
+#else
         hw_step("audio9: the tone");
+#endif
         return;
     }
     hw_aud.a9_late0 = sb_audio.underruns;
@@ -2263,6 +2285,10 @@ void hw_a9_pb5_poll(void)
 /* From main, about ten times a second: PB5's settled level (a record when
  * it changes), DAA_CON7 each minute (a record when it changes), the
  * synth's late halves and longest fill, and the fallback's record. */
+#if defined(SB_HW_AUDIO10)
+static void a10_tick(void);
+#endif
+
 void hw_a9_tick(void)
 {
     static u32 daa7_at, fallback_told;
@@ -2296,6 +2322,148 @@ void hw_a9_tick(void)
         fallback_told = hw_aud.a9_fallback;
         report("Synth fallback");
         hw_step("audio9: SYNTH LATE: back to the tone");
+    }
+#if defined(SB_HW_AUDIO10)
+    a10_tick();
+#endif
+}
+#endif
+
+#if defined(SB_HW_AUDIO10)
+/* --- audio10 (the spec side's clean-br17-audio10; the owner's rulings) --- */
+
+static const char fmt_label[HW_A10_FMTS][12] = { "F P", "F U", "F L", "F N", "F N'" };
+static const char *const fmt_word[HW_A10_FMTS] = {
+    "P: both halves", "U: upper half, lower 0", "L: lower half, upper 0", "N: upper +, lower -", "N': upper -, lower +",
+};
+static u32 m_prev_raw, m_last_beat, m_logged;
+
+/* LFO: F's next format, for everything the link plays. */
+void hw_a10_fmt_key(void)
+{
+    static char t[48];
+    char *p;
+
+    hw_aud.a9_s2 = (hw_aud.a9_s2 + 1u) % HW_A10_FMTS;
+    hw_aud.a10_fmt_t[hw_aud.a10_fmt_changes % HW_A10_FMT_LOG] = sb_beacon.beats << 3 | hw_aud.a9_s2;
+    hw_aud.a10_fmt_changes++;
+    report(fmt_label[hw_aud.a9_s2]);
+    p = put_s(t, "audio10: F ");
+    p = put_s(p, fmt_word[hw_aud.a9_s2]);
+    *p = 0;
+    hw_step(t);
+}
+
+static void hold_log(u32 hold, u32 on)
+{
+    hw_aud.hold_t[hw_aud.hold_n % HW_A10_HOLD_LOG] = sb_beacon.beats << 8 | hold << 1 | on;
+    hw_aud.hold_n++;
+}
+
+/* PLAY, HOME, ENV, GLO and REC: the holds. Each toggles, but the scan's:
+ * it ends by itself after HW_A10_SCAN_MS (no key works while it holds). */
+void hw_a10_hold_key(u32 hold)
+{
+    static const char label[5][2][16] = {
+        { "zero off", "ZERO on" }, { "LED blink on", "LED HELD" }, { "screen on", "SCREEN HELD" },
+        { "log on", "LOG HELD" }, { "scan on", "SCAN HELD" },
+    };
+    static const char *const text[5][2] = {
+        { "audio10: the samples back", "audio10: ZERO samples (PLAY again: back)" },
+        { "audio10: the LED blink back", "audio10: LED blink HELD (HOME again)" },
+        { "audio10: the screen back", "audio10: SCREEN HELD (ENV again)" },
+        { "audio10: the log back", "audio10: LOG HELD (GLO again)" },
+        { "audio10: the scan back", "audio10: SCAN HELD 5 s, no key works" },
+    };
+    u32 on = !(hw_aud.holds >> hold & 1u);
+
+    if (hold == HW_A10_SCAN && !on)
+        return;
+    if (hold == HW_A10_LOG && on)
+        report(label[hold][1]);        /* written before the hold begins */
+    if (on)
+        hw_aud.holds |= 1u << hold;
+    else
+        hw_aud.holds &= ~(1u << hold);
+    hold_log(hold, on);
+    if (hold == HW_A10_SCREEN && !on)
+        hw_hold_screen = 0;
+    hw_step(text[hold][on]);
+    if (hold == HW_A10_SCREEN && on)
+        hw_hold_screen = 1;
+    if (hold == HW_A10_SCAN) {
+        hw_aud.scan_until = sb_beacon.beats + HW_A10_SCAN_MS;
+        hw_hold_sweeps = 1;
+        hw_scan_hold();
+    }
+    if (hold != HW_A10_LOG || !on)
+        report(label[hold][on]);
+}
+
+/* From main, each move of MASTER that input.c reports. */
+void hw_a10_master(u32 value)
+{
+    hw_aud.m_value = value;
+    hw_aud.m_raw = sb_input.pot_raw;
+    hw_aud.m_ring[hw_aud.m_ring_n % HW_A10_MRING] = (sb_beacon.beats >> 2 & 0x3FFFFFu) << 10 | (value & 0x3FFu);
+    hw_aud.m_ring_n++;
+    hw_aud.m_changes++;
+    m_last_beat = sb_beacon.beats;
+}
+
+/* From the scan's slot: the pot's raw readings, each step from the one
+ * before; more than 32 counts as a jump. */
+void hw_a10_pot_poll(void)
+{
+    u32 raw = sb_input.pot_raw, d;
+
+    if (raw == m_prev_raw)
+        return;
+    d = raw > m_prev_raw ? raw - m_prev_raw : m_prev_raw - raw;
+    m_prev_raw = raw;
+    if (!hw_aud.m_raw && !hw_aud.m_changes) {
+        hw_aud.m_raw = raw;     /* the first reading: no step */
+        return;
+    }
+    if (d > 32u)
+        hw_aud.m_jumps++;
+    if (d > hw_aud.m_maxdelta)
+        hw_aud.m_maxdelta = d;
+}
+
+/* From hw_a9_tick: the scan hold's end and countdown, MASTER's record
+ * once it has stood still HW_A10_STILL_MS, the levels applied now. */
+static void a10_tick(void)
+{
+    static u32 shown;
+
+    hw_aud.m_tone_gain = hw_aud.gain;
+    hw_aud.m_synth_target = sb_audio.engine[SYNTH_MASTER];
+    if (hw_aud.holds >> HW_A10_SCAN & 1u) {
+        s32 left = (s32)(hw_aud.scan_until - sb_beacon.beats);
+
+        if (left <= 0) {
+            hw_scan_resume();
+            hw_hold_sweeps = 0;
+            hw_aud.holds &= ~(1u << HW_A10_SCAN);
+            hold_log(HW_A10_SCAN, 0);
+            report("scan hold end");
+            hw_step("audio10: the scan back (ended by itself)");
+        } else if ((u32)left / 1000u != shown) {
+            static char t[40];
+            char *p;
+
+            shown = (u32)left / 1000u;
+            p = put_s(t, "audio10: SCAN HELD, ");
+            p = put_dec(p, shown + 1u);
+            p = put_s(p, " s");
+            *p = 0;
+            hw_step(t);
+        }
+    }
+    if (hw_aud.m_changes != m_logged && sb_beacon.beats - m_last_beat >= HW_A10_STILL_MS) {
+        m_logged = hw_aud.m_changes;
+        report("MASTER still");
     }
 }
 #endif
@@ -2355,13 +2523,33 @@ static void storm(void)
  * audio9's S2 in the upper or the lower half alone, the other 0. */
 static u32 pack16(s32 s)
 {
-    u32 u = (u16)s;
+    u32 u;
 
+    /* audio10's M3: saturated at 16-bit full scale, never wrapped (before
+     * audio10 nothing reached it: the tone peaks at 3276, the synth at
+     * 8191 after the engine's own clamp). */
+    if (s > 32767) {
+        s = 32767;
+        hw_aud.a10_hard++;
+    } else if (s < -32768) {
+        s = -32768;
+        hw_aud.a10_hard++;
+    }
+    u = (u16)s;
 #if defined(SB_HW_AUDIO9)
     if (hw_aud.a9_s2 == HW_A9_S2_UPPER)
         return u << 16;
     if (hw_aud.a9_s2 == HW_A9_S2_LOWER)
         return u;
+#endif
+#if defined(SB_HW_AUDIO10)
+    /* N and N': the sample in one half, its negative in the other (the
+     * most negative's negative clamped to the most positive). */
+    if (hw_aud.a9_s2 == HW_A10_N || hw_aud.a9_s2 == HW_A10_N2) {
+        u32 v = (u16)(s == -32768 ? 32767 : -s);
+
+        return hw_aud.a9_s2 == HW_A10_N ? u << 16 | v : v << 16 | u;
+    }
 #endif
     return u << 16 | u;
 }
@@ -2378,8 +2566,44 @@ static s32 syn_tmp[2u * AUDIO_FRAMES];
  * is LEN (128) frames of one word (HW-160): two of the engine's 64-frame
  * blocks, each frame's left sample packed; in fwtest a half is LEN words
  * of its own layout (HW-44), one block of 64 frames as build A plays. */
+#if defined(SB_HW_AUDIO10)
+/* M2: a soft clip on the synth's sum, at 16-bit scale: straight to half
+ * full scale, then K + R t / (t + R) above it (t the excess), whose slope
+ * is 1 where it starts and which never reaches full scale. */
+#define A10_KNEE 16384
+#define A10_ROOM 16383
+static s32 soft16(s32 y)
+{
+    u32 a = (u32)(y < 0 ? -y : y), t;
+
+    if (a <= A10_KNEE)
+        return y;
+    hw_aud.a10_soft++;
+    t = a - A10_KNEE;
+    if (t > 262143u)
+        t = 262143u;            /* R t stays within 32 bits */
+    a = A10_KNEE + A10_ROOM * t / (t + A10_ROOM);
+    return y < 0 ? -(s32)a : (s32)a;
+}
+
+/* The engine's sample at 16-bit scale (12 dB below full scale at the
+ * engine's own full scale), soft clipped. */
+static s32 syn16(s32 x)
+{
+#if defined(SB_TEST_A10_GAIN)
+    /* The test build: 18 dB more, so 8 voices drive the soft clip. */
+    return soft16(x >> (A9_SYN_SHIFT - 3u));
+#else
+    return soft16(x >> A9_SYN_SHIFT);
+#endif
+}
+#endif
+
 static void synth_fill(s32 *out, u32 frames)
 {
+#if defined(SB_HW_AUDIO10)
+    u32 t0 = sb_now(), d, v;
+#endif
 #if defined(SB_HW_PCM16)
     u32 h, n;
 
@@ -2387,12 +2611,46 @@ static void synth_fill(s32 *out, u32 frames)
         fm_block(syn_tmp, frames);
         hw_aud.a9_engine_blocks++;
         for (n = 0; n < frames; n++)
+#if defined(SB_HW_AUDIO10)
+            out[h * frames + n] = (s32)pack16(syn16(syn_tmp[2u * n]));
+#else
             out[h * frames + n] = (s32)pack16(syn_tmp[2u * n] >> A9_SYN_SHIFT);
+#endif
     }
 #else
     (void)syn_tmp;
     fm_block(out, frames);
     hw_aud.a9_engine_blocks++;
+#if defined(SB_HW_AUDIO10)
+    /* fwtest's layout: the unit's 16-bit sample, soft clipped and
+     * saturated, as fwtest's WAV takes it (<< 8, HW-44). */
+    {
+        u32 n;
+
+        for (n = 0; n < frames; n++) {
+            s32 y = syn16(out[2u * n]);
+
+            if (y > 32767) {
+                y = 32767;
+                hw_aud.a10_hard++;
+            } else if (y < -32768) {
+                y = -32768;
+                hw_aud.a10_hard++;
+            }
+            out[2u * n] = out[2u * n + 1u] = y * 256;
+        }
+    }
+#endif
+#endif
+#if defined(SB_HW_AUDIO10)
+    d = sb_now() - t0;
+    v = sb_fm.voices[0] + sb_fm.voices[1];
+    if (d > hw_aud.a10_fill_max)
+        hw_aud.a10_fill_max = d;
+    if (v >= 8u && d > hw_aud.a10_fill_max8)
+        hw_aud.a10_fill_max8 = d;
+    if (v > hw_aud.a10_voices_max)
+        hw_aud.a10_voices_max = v;
 #endif
 }
 
@@ -2402,7 +2660,7 @@ static void a9_capture(const s32 *out)
     u32 i;
 
     for (i = 0; i < 4u; i++)
-        hw_aud.a9_words[hw_aud.a9_s2 < HW_A9_S2_N ? hw_aud.a9_s2 : 0][i] = (u32)out[i];
+        hw_aud.a9_words[hw_aud.a9_s2 < HW_A10_FMTS ? hw_aud.a9_s2 : 0][i] = (u32)out[i];
 }
 #endif
 
@@ -2448,6 +2706,19 @@ static void tone_block(s32 *out, u32 frames)
      * main, the screen and the keys keep running). In the tone, the
      * engine's queue of the panel's events is emptied each block, so the
      * synth starts with none stale. */
+#if defined(SB_HW_AUDIO10)
+    /* audio10's C: the link plays zeros (the engine's queue still
+     * emptied, so no press waits stale). */
+    if (hw_aud.holds >> HW_A10_ZERO & 1u) {
+        struct input_event e;
+
+        for (n = 0; n < (frames == base ? 2u * frames : frames); n++)
+            out[n] = 0;
+        while (input_read_audio(&e))
+            ;
+        return;
+    }
+#endif
     if (hw_aud.a9_synth && sb_audio.underruns - hw_aud.a9_late0 > HW_A9_LATE_MAX) {
         hw_aud.a9_synth = 0;
         hw_aud.a9_fallback = b ? b : 1u;
@@ -2482,6 +2753,12 @@ static void tone_block(s32 *out, u32 frames)
          * halves (which is left isn't given, HW-160); >> 8 keeps the
          * level: -20 dB of 16-bit full scale at the top. */
         s >>= 8;
+#if defined(SB_TEST_A10_CLAMP)
+        /* The test build: each half's first sample the most negative, for
+         * N's clamp. */
+        if (!n)
+            s = -32768;
+#endif
         out[n] = (s32)pack16(s);
 #else
         out[2 * n] = s;
@@ -2499,6 +2776,9 @@ void hw_audio_start(void)
     hw_aud.tone_on = 1;
 #if defined(SB_HW_PCM16)
     hw_aud.a8_pcm16 = 1;
+#endif
+#if defined(SB_HW_AUDIO10)
+    hw_aud.a9_s2 = HW_A10_U;    /* F at start-up: U (the owner's ruling) */
 #endif
     hw_c1_mark(HW_C1_PRE);
     audio_start(tone_block);
@@ -2654,11 +2934,24 @@ void hw_audio_line(void)
      * T taken, U undone, S stopped, R put back, - never pressed. */
 #if defined(SB_HW_AUDIO9)
     p = put_s(t, hw_aud.a9_route == HW_A9_ROUTE_UP ? "rt UP" : "rt DOWN");
+#if defined(SB_HW_AUDIO10)
+    p = put_s(p, " ");
+    p = put_s(p, fmt_label[hw_aud.a9_s2 < HW_A10_FMTS ? hw_aud.a9_s2 : 0]);
+#else
     p = put_s(p, hw_aud.a9_s2 == HW_A9_S2_UPPER ? " S2 hi" : hw_aud.a9_s2 == HW_A9_S2_LOWER ? " S2 lo" : " S2 both");
+#endif
     *p = 0;
     gfx_fill(HW_AUD_BOX_X - 2, HW_AUD_Y, SCREEN_W - HW_AUD_BOX_X - 2, 2 * FONT_H, BLACK);
     gfx_text(HW_AUD_BOX_X, HW_AUD_Y, t, hw_aud.a9_route == HW_A9_ROUTE_UP ? GREEN : RED, BLACK, 1);
+#if defined(SB_HW_AUDIO10)
+    /* MASTER's value and the ADC's raw reading. */
+    p = put_s(t, "M");
+    p = put_dec(p, hw_aud.m_value);
+    p = put_s(p, " r");
+    p = put_dec(p, sb_input.pot_raw);
+#else
     p = put_x10(t, hw_aud.fps10);
+#endif
     *p = 0;
     gfx_text(HW_AUD_BOX_X, HW_AUD_Y + FONT_H, t, WHITE, BLACK, 1);
     lcd_send_rows(HW_AUD_Y, 2 * FONT_H);
@@ -3703,7 +3996,21 @@ struct guide_step {
     u8 key;
     char what[13];
 };
-#if defined(SB_HW_AUDIO9)
+#if defined(SB_HW_AUDIO10)
+/* audio10's order: F from U through L, N, N', P and back to U (listen at
+ * each), the synth (the chord test), the holds each on and off (the scan
+ * hold ends by itself), a save. */
+static const struct guide_step guide[] = {
+    { INPUT_LFO, "F L" }, { INPUT_LFO, "F N" }, { INPUT_LFO, "F N'" }, { INPUT_LFO, "F P" }, { INPUT_LFO, "F U" },
+    { INPUT_FX, "synth" },
+    { INPUT_PLAY, "zero" }, { INPUT_PLAY, "zero off" },
+    { INPUT_HOME, "LED hold" }, { INPUT_HOME, "LED back" },
+    { INPUT_ENV, "screen hold" }, { INPUT_ENV, "screen back" },
+    { INPUT_GLO, "log hold" }, { INPUT_GLO, "log back" },
+    { INPUT_REC, "scan hold 5s" },
+    { INPUT_EDIT, "save" },
+};
+#elif defined(SB_HW_AUDIO9)
 /* audio9's order: the route is up from start-up and the tone plays; S2's
  * three presses (listen on headphones at each), then the synth (play the
  * keys), then a save. SEQ (the route's undo and redo) is out of it. */
@@ -3845,8 +4152,14 @@ void hw_guide_show(void)
 void hw_guide_tick(void)
 {
     const char *what;
-    u32 k = guide_next(&what);
+    u32 k;
 
+#if defined(SB_HW_AUDIO10)
+    /* audio10's C: the blink held, the LEDs left as they stand. */
+    if (hw_aud.holds >> HW_A10_LED & 1u)
+        return;
+#endif
+    k = guide_next(&what);
     if (k)
         input_led(k - 1u, sb_beacon.beats / GUIDE_BLINK_MS & 1u ? 0 : INPUT_LED_FULL);
 }
@@ -3859,6 +4172,18 @@ void hw_guide_tick(void)
  * other key: 0. */
 u32 hw_audio_key_lit(u32 control)
 {
+#if defined(SB_HW_AUDIO10)
+    /* audio10: SEQ the route, FX the synth, PLAY zeros, ENV the screen
+     * hold, GLO the log hold (HOME's LED hold changes no LED). */
+    switch (control) {
+    case INPUT_SEQ:  return hw_aud.a9_route == HW_A9_ROUTE_UP;
+    case INPUT_FX:   return hw_aud.a9_synth;
+    case INPUT_PLAY: return hw_aud.holds >> HW_A10_ZERO & 1u;
+    case INPUT_ENV:  return hw_aud.holds >> HW_A10_SCREEN & 1u;
+    case INPUT_GLO:  return hw_aud.holds >> HW_A10_LOG & 1u;
+    default:         return 0;
+    }
+#endif
 #if defined(SB_HW_AUDIO9)
     /* audio9: the old steps' keys are the engine's now; SEQ lit while the
      * route is up, FX while the synth plays, LFO while S2 isn't both. */
@@ -4240,8 +4565,31 @@ u32 hw_audio_report(u32 *w)
     w[n++] = hw_aud.daa7_last;
     w[n++] = hw_aud.daa7_reads;
     w[n++] = hw_aud.daa7_changes;
-    n = put_words(w, n, hw_aud.a9_words[0], 4u * HW_A9_S2_N);
+    n = put_words(w, n, hw_aud.a9_words[0], 4u * HW_A10_FMTS);
     w[n++] = sb_midi_out.bytes;
+    /* Layout 9: audio10 (0 in a build without it). */
+    w[n++] = hw_aud.a10_fmt_changes;
+    n = put_words(w, n, hw_aud.a10_fmt_t, HW_A10_FMT_LOG);
+    w[n++] = hw_aud.a10_fill_max;
+    w[n++] = hw_aud.a10_fill_max8;
+    w[n++] = hw_aud.a10_voices_max;
+    w[n++] = hw_aud.a10_soft;
+    w[n++] = hw_aud.a10_hard;
+    w[n++] = hw_aud.m_value;
+    w[n++] = hw_aud.m_raw;
+    w[n++] = sb_input.pot_raw;
+    w[n++] = hw_aud.m_tone_gain;
+    w[n++] = hw_aud.m_synth_target;
+    w[n++] = hw_aud.m_changes;
+    w[n++] = hw_aud.m_jumps;
+    w[n++] = hw_aud.m_maxdelta;
+    w[n++] = hw_aud.m_ring_n;
+    n = put_words(w, n, hw_aud.m_ring, HW_A10_MRING);
+    w[n++] = hw_aud.holds;
+    w[n++] = hw_aud.hold_n;
+    n = put_words(w, n, hw_aud.hold_t, HW_A10_HOLD_LOG);
+    w[n++] = hw_aud.log_dropped;
+    w[n++] = hw_aud.scan_until;
     return n;
 }
 #endif

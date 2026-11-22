@@ -274,6 +274,9 @@ void hw_slot(void)
 #if defined(SB_HW_AUDIO9)
     hw_a9_pb5_poll();
 #endif
+#if defined(SB_HW_AUDIO10)
+    hw_a10_pot_poll();
+#endif
     if (++n == HW_SLOTS_TICK) {
         n = 0;
         sb_tick();
@@ -297,6 +300,8 @@ static void hw_show(const struct input_event *e)
     u32 i = 0, c = e->control, k;
     const char *name, *what = e->kind == INPUT_PRESS ? " down" : " up";
 
+    if (hw_hold_screen)
+        return;
     text[i++] = (char)('0' + c / 10);
     text[i++] = (char)('0' + c % 10);
     text[i++] = ' ';
@@ -346,6 +351,8 @@ static void hw_show_turn(u32 control, int d)
     const char *n = names[control - INPUT_SELECT];
     u32 i = 0, lead = input_lead(control);
 
+    if (hw_hold_screen)
+        return;
     while (*n)
         text[i++] = *n++;
     text[i++] = ' ';
@@ -370,6 +377,8 @@ static void hw_show_turn(u32 control, int d)
 /* The test screen and start3's rows, drawn again after the audio page. */
 static void hw_test_screen(void)
 {
+    if (hw_hold_screen)
+        return;
     lcd_wait();
     screen_test();
     lcd_send_rows(0, SCREEN_H);
@@ -397,7 +406,10 @@ static void hw_serve(void)
 
     while (input_read(&e)) {
         if (e.control == INPUT_MASTER && e.kind == INPUT_MOVE) {
-            if (sb_beacon.screen == SB_SCREEN_TEST)
+#if defined(SB_HW_AUDIO10)
+            hw_a10_master((u32)e.value);
+#endif
+            if (sb_beacon.screen == SB_SCREEN_TEST && !hw_hold_screen)
                 hw_show_master(e.value);
             continue;
         }
@@ -429,6 +441,31 @@ static void hw_serve(void)
 #if defined(SB_HW_AUDIO1)
             hw_guide_show();
 #endif
+            continue;
+        }
+#endif
+#if defined(SB_HW_AUDIO10)
+        /* audio10 (the spec side's clean-br17-audio10): LFO cycles F's
+         * format; PLAY zeros, HOME the LED blink, ENV the screen, GLO the
+         * log, each held and back by the same key; REC holds the scan for
+         * 5 s, ending by itself. */
+        if ((e.control == INPUT_LFO || e.control == INPUT_PLAY || e.control == INPUT_HOME || e.control == INPUT_ENV
+                || e.control == INPUT_GLO || e.control == INPUT_REC) && e.kind == INPUT_PRESS
+                && sb_beacon.screen == SB_SCREEN_TEST) {
+            u32 held_screen = hw_hold_screen;
+
+            if (e.control == INPUT_LFO)
+                hw_a10_fmt_key();
+            else
+                hw_a10_hold_key(e.control == INPUT_PLAY ? HW_A10_ZERO : e.control == INPUT_HOME ? HW_A10_LED :
+                                e.control == INPUT_ENV ? HW_A10_SCREEN : e.control == INPUT_GLO ? HW_A10_LOG :
+                                HW_A10_SCAN);
+            if (e.control != INPUT_HOME)
+                hw_audio_leds(e.control);
+            if (held_screen && !hw_hold_screen)
+                hw_test_screen();
+            if (!(hw_aud.holds >> HW_A10_SCAN & 1u))
+                hw_guide_show();
             continue;
         }
 #endif
