@@ -4625,7 +4625,7 @@ the results; HW-164 says what they settle and what stays open.
 - Sources: UNIT: audio9's flash log (hw3s) and the owner's listening,
   relayed on 2026-11-21 (docs/prompts/spec-audio9-unit.md); HW-161,
   HW-162.
-- Standing: confirmed (UNIT; one unit; S2 by ear)
+- Standing: confirmed (UNIT; one unit; S2 by ear, through a four-pole headset in the three-pole jack, so item 6's headphone results are replaced by HW-168)
 - Needed by: M4, BR-17 (Phase B)
 
 ### HW-164: What audio9 settles: the mute, PB5, the halves of a word (Q-9)
@@ -4659,9 +4659,10 @@ the results; HW-164 says what they settle and what stays open.
     steps and of the clicks; the headphone output's level once the
     format is right; which half, if either, is left.
 - Sources: UNIT (HW-163); HW-141, HW-160, HW-162.
-- Standing: confirmed (UNIT; the difference reading is untested; the
-  headphones fit it, its 6 dB not clearly heard, and the speaker takes
-  the lower half alone, HW-165, HW-166)
+- Standing: confirmed (UNIT; the difference reading is untested; it came
+  from a four-pole headset in the three-pole jack: the halves are the two
+  channels, one inverted on the board, and the speaker takes the lower
+  half alone, HW-168)
 - Needed by: M4, BR-17 (Phase B)
 
 ## 47. audio10 on the unit: two outputs, two readings of a word; the SARADC's set-up
@@ -4671,7 +4672,7 @@ clean's #233) on the owner's unit, and heard by the owner, relayed on
 2026-11-22 (source UNIT, docs/prompts/spec-audio10-unit.md); and read in
 the chip's own SDK and one other JieLi SDK (PROVENANCE P-510). HW-165
 gives the results, HW-166 what they settle, HW-167 the SARADC's set-up
-fields.
+fields, HW-168 the format heard again with three-pole headphones.
 
 ### HW-165: audio10: each format on the speaker and the headphones; MASTER's raw values (Q-9, Q-8)
 - Fact: On the owner's unit, started by m-bootloader, with the route up
@@ -4703,16 +4704,11 @@ fields.
 - Fact:
   - **The speaker plays the lower half of each word;** the upper half
     doesn't reach it.
-  - **The headphones fit the difference of the two halves**, the same
-    in both ears (HW-163): the same sample in both is silent, and either
-    half alone is heard. N was heard slightly louder than the others; N'
-    was not compared for loudness, and the about 6 dB more that the
-    difference reading predicts for both was not clearly heard. Why the
-    outside part or the board behaves so is not given.
-  - **N plays on both outputs** with nothing cancelled: the speaker gets
-    the negative of the sample (polarity can't be heard), the headphones
-    both halves working together. U is silent on the speaker and P on
-    the headphones; L and N' are heard on both too.
+  - **The headphone results above were heard through a four-pole
+    headset in the three-pole jack,** which gave both ears the
+    difference of the halves; HW-168 replaces them.
+  - **N plays on both outputs:** the speaker gets the negative of the
+    sample (polarity can't be heard). U is silent on the speaker.
   - **The SARADC's conversion doesn't settle, as set up so far.** Each
     raw value is a run of bits equal to the first decision followed by
     bits all equal to the opposite (below 512: `2^k − 1`; from 512:
@@ -4724,9 +4720,8 @@ fields.
   - **8 voices fit:** the longest fill is about a ninth of a half.
   - **Still open:** the half-second clicks (zero samples were silent,
     so they may come with the samples); the SARADC's fix on the unit.
-- Sources: UNIT (HW-165); HW-163, HW-164, HW-167.
-- Standing: confirmed (UNIT; the cause of the halves' behaviour outside
-  the chip not given)
+- Sources: UNIT (HW-165, HW-168); HW-163, HW-164, HW-167.
+- Standing: confirmed (UNIT; the headphone part replaced by HW-168)
 - Needed by: M4, M3, BR-17 (Phase B)
 
 ### HW-167: The SARADC's clock divider and start delay in JieLi's SDKs (Q-8)
@@ -4758,6 +4753,30 @@ fields.
 - Standing: confirmed (SDK; SDK63 agrees; the divider's input clock, the
   other codes and bit 3's meaning open; untried on the unit)
 - Needed by: M3, BR-17 (Phase B)
+
+### HW-168: The output format, heard with three-pole headphones: two channels, one inverted (Q-9)
+- Fact: On the owner's unit, as in HW-165, heard by the owner:
+  1. **With three-pole headphones,** U (the upper half alone) plays in
+     one ear only and L (the lower half alone) in the other. So the two
+     16-bit halves of each word are the two channels. Which is left is
+     not known (the headphones aren't marked).
+  2. **Holding a low synth note,** N (the sample in the upper half, its
+     negative in the lower) sounds full and centred, and P (the same
+     sample in both) thin and phasey. So the two channels reach the
+     headphones in opposite polarity: one is inverted between the chip
+     and the jack, and N gives an in-phase mono signal.
+  3. **The speaker plays the lower half alone** (HW-165), so the
+     inversion doesn't touch it.
+  4. **The earlier headphone results** (HW-163 item 6, HW-164's
+     difference reading, HW-165's headphone list) were heard through a
+     four-pole headset (with a microphone) in the three-pole jack, which
+     gives both ears the difference of the two channels. They are
+     replaced by this entry.
+- Sources: UNIT: the owner's listening, relayed on 2026-11-22
+  (docs/prompts/spec-audio10-format.md); HW-163, HW-164, HW-165.
+- Standing: confirmed (UNIT; by ear; which channel is left, and where
+  the inversion is, not given)
+- Needed by: M4, BR-17 (Phase B)
 
 ## Open questions
 
@@ -4922,9 +4941,9 @@ spec request can turn one into a fact.
   halves of a word nearly cancels while either half alone is loud. Still
   open: the outside part's format, `MASTER`'s coarse steps and the
   half-second clicks.
-  *Session spec-audio10-unit (HW-165 to HW-167):* the speaker plays the
-  lower half of each word, the headphones the difference; N plays on
-  both. The SARADC's readings don't settle with `CON`'s clock and delay
+  *Session spec-audio10-unit (HW-165 to HW-168):* the speaker plays the
+  lower half of each word; the halves are the headphones' two channels,
+  one inverted on the board, so N is in-phase mono on both. The SARADC's readings don't settle with `CON`'s clock and delay
   fields at 0; the chip's SDK sets a divide by 96 and a start delay.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting

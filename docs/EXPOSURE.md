@@ -3609,6 +3609,21 @@ SR-3 wrote only its barrier-log row.*
   the repository, marked as awaiting the owner's rulings.
 - Disk: about 3 GB free.
 
+### Session spec-audio10-format (the output format heard again)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio10-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  `spec/audio10-unit` (#234, open).
+- The owner's message, saved unedited as docs/prompts/spec-audio10-format.md.
+- Recorded: HW-168 (UNIT: the halves are two channels, one inverted on the
+  board; the earlier headphone results came from a four-pole headset);
+  HW-166's headphone part replaced; standing notes on HW-163 and HW-164.
+- Updated the draft drop/prompts/clean-br17-audio11.md: A as the owner
+  ruled, E the key status in large text; B and D still await rulings.
+- Read: nothing new.
+- Disk: about 3 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
