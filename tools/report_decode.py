@@ -264,7 +264,7 @@ def _layout10():
     health = len(_layout4()) - len(_layout3())
     body = [n for n in l9[:len(l9) - health] if not n.startswith("se_") and not n.startswith("a10_fmt_t_")]
     f = ["adc_setup", "adc_set_n"] + ["adc_set_t_%d" % k for k in range(8)]
-    f += ["adc_con_%s_%s" % (st, w) for st in A11_SETUPS for w in ("w1", "w2", "w3", "read")]
+    f += ["sar_con_%s_%s" % (st, w) for st in A11_SETUPS for w in ("w1", "w2", "w3", "read")]
     for w in ("conv_n", "conv_timeouts", "conv_min_units", "conv_max_units", "conv_tight_units"):
         f += ["adc_%s_%s" % (w, st) for st in A11_SETUPS]
     f += ["adc_slot_max_units", "adc_passes"]
@@ -365,8 +365,8 @@ def audio11_lines(f):
     for st in A11_SETUPS:
         out.append("  %s: CON %04X %04X %04X, read after %04X; %d conversions, %d timed out; start to bit 7 seen"
                    " %.1f to %.1f us (the slot's 83 us steps), by a tight poll %.1f us"
-                   % (st, f["adc_con_%s_w1" % st], f["adc_con_%s_w2" % st], f["adc_con_%s_w3" % st],
-                      f["adc_con_%s_read" % st], f["adc_conv_n_%s" % st], f["adc_conv_timeouts_%s" % st],
+                   % (st, f["sar_con_%s_w1" % st], f["sar_con_%s_w2" % st], f["sar_con_%s_w3" % st],
+                      f["sar_con_%s_read" % st], f["adc_conv_n_%s" % st], f["adc_conv_timeouts_%s" % st],
                       us(f["adc_conv_min_units_%s" % st]), us(f["adc_conv_max_units_%s" % st]),
                       us(f["adc_conv_tight_units_%s" % st])))
         for c in A11_CHANS:

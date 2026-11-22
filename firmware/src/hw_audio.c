@@ -2678,10 +2678,10 @@ static u32 cv_tight(void)
     spins = 0;
     cv_busy = 0;
     cv_start(4);
-    hw_aud.adc_con[set][0] = set == HW_A11_SDK ? b | 1u << 6 : b | 1u << 4 | 1u << 6;
-    hw_aud.adc_con[set][1] = set == HW_A11_SDK ? b | 1u << 6 | 1u << 4 : 0;
-    hw_aud.adc_con[set][2] = hw_aud.adc_con[set][1];
-    hw_aud.adc_con[set][3] = JL_ADC->CON;
+    hw_aud.sar_con[set][0] = set == HW_A11_SDK ? b | 1u << 6 : b | 1u << 4 | 1u << 6;
+    hw_aud.sar_con[set][1] = set == HW_A11_SDK ? b | 1u << 6 | 1u << 4 : 0;
+    hw_aud.sar_con[set][2] = hw_aud.sar_con[set][1];
+    hw_aud.sar_con[set][3] = JL_ADC->CON;
     for (;;) {
         d = sb_now() - cv_t0;
         con = JL_ADC->CON;
@@ -5030,7 +5030,7 @@ u32 hw_audio_report(u32 *w)
     w[n++] = hw_aud.adc_setup;
     w[n++] = hw_aud.adc_set_n;
     n = put_words(w, n, hw_aud.adc_set_t, HW_A11_SET_LOG);
-    n = put_words(w, n, hw_aud.adc_con[0], 4u * HW_A11_SETUPS);
+    n = put_words(w, n, hw_aud.sar_con[0], 4u * HW_A11_SETUPS);
     n = put_words(w, n, hw_aud.adc_conv_n, HW_A11_SETUPS);
     n = put_words(w, n, hw_aud.adc_conv_to, HW_A11_SETUPS);
     n = put_words(w, n, hw_aud.adc_conv_min, HW_A11_SETUPS);
