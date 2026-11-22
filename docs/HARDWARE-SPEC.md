@@ -5087,11 +5087,12 @@ words (`JL_USB_IO`'s `CON0` to `CON2`, here "IO `CON0`" and so on).
 - Fact:
   - **The instrument's start from cold works on the unit,** with no test
     screen first.
-  - **The core isn't idle at a normal start:** from power-off `CON0`
+  - **The core's words aren't zero at a normal start:** from power-off `CON0`
     bit 0 (`PHY_ON`) and bit 15 (`CHKDPO`) read set, and IO `CON0` has
     bits 2, 3, 9, 10 and 11 set (`DPIE`, `DMIE`, `DPDIE`, `DMDIE`,
-    `IO_MODE` by HW-171's names). Something before the app (the ROM or
-    m-bootloader's normal start) leaves them so; which is not given.
+    `IO_MODE` by HW-171's names). Whether these are the words' values
+    after reset or something before the app sets them (the ROM; by
+    HW-173's reading, not m-bootloader's normal start) is not given.
   - **m-bootloader's MIDI mode leaves the core differently:** `PHY_ON`
     clear, IO `CON0` bits 9 to 11 clear, `CON1` `0x8000`. So a U3 start
     can't assume either state, and must set up what it needs itself.
