@@ -3559,6 +3559,23 @@ SR-3 wrote only its barrier-log row.*
 - Read: nothing new. No spec entries changed.
 - Disk: about 3 GB free.
 
+### Session spec-audio9-unit (audio9: the halves of a word; the audio10 draft)
+- Date: 2026-11-21 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio9-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  continuing on `spec/audio9-unit`, the round's one PR.
+- The owner's message, saved unedited as docs/prompts/spec-audio9-unit.md.
+- Recorded: HW-163 (UNIT: the route at start-up, `MASTER`'s coarse steps,
+  the headphone mute in hardware, PB5's levels, S2's halves, the clicks,
+  the synth's fill time), HW-164 (what it settles; the difference reading
+  marked untested); standing note on HW-162; note on Q-9.
+- Read: clean's #231 description (no hardware facts), to merge it.
+- Wrote the draft clean prompt drop/prompts/clean-br17-audio10.md (F the
+  format test, M the headroom, V `MASTER`'s reading, C the clicks),
+  outside the repository, marked as awaiting the owner's rulings.
+- Disk: about 3 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).

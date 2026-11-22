@@ -4586,7 +4586,73 @@ the results; HW-162 says what they settle and what stays open.
 - Sources: UNIT (HW-161); HW-56, HW-141, HW-146, HW-156, HW-157, HW-160.
 - Standing: confirmed (UNIT; the headphone path, the sample order and
   the outside part open; `MASTER` 0 and 1023 were heard in different
-  runs, with `DAA_CON7` differing between them)
+  runs, with `DAA_CON7` differing between them; the mute is in the
+  hardware and the headphones play, HW-163)
+- Needed by: M4, BR-17 (Phase B)
+
+## 46. audio9 on the unit: the route at start-up, headphones and the halves of a word
+
+Read back from the flash log of this repository's build audio9 (hw3s,
+clean's #231) on the owner's unit, and heard by the owner, relayed on
+2026-11-21 (source UNIT, docs/prompts/spec-audio9-unit.md). HW-163 gives
+the results; HW-164 says what they settle and what stays open.
+
+### HW-163: audio9: the route at start-up, the headphone mute, PB5's levels and S2 (Q-9)
+- Fact: On the owner's unit, started by m-bootloader:
+  1. **Start-up:** L2 was kept, the four port C pins set as outputs and
+     the route (`CON0` bits 7 and 8) kept; the tone, with the same
+     sample in both halves of each word, was heard on the speaker.
+  2. **`MASTER`** changed the speaker's level, but in three or four
+     coarse steps, roughly powers of two apart, as heard; the owner saw
+     the value jump from about 63 to about 512, with a noisy state
+     between that a nudge of the knob can reach.
+  3. **Headphones:** the tone is there, very quiet. Plugging them in
+     mutes the speaker, with no pin written by the build.
+  4. **PB5** reads 1 with headphones out and 0 with them in (settled
+     values; contact bounce between; 50 changes logged over the run).
+  5. **`DAA_CON7`** read `0x0000C901` at all ten reads.
+  6. **S2, the halves of a word** (the owner fairly sure): the sample in
+     the upper half alone, the lower 0, was much louder than the same
+     sample in both halves; the lower half alone sounded as loud as the
+     upper alone; both halves again was silent or near silent. Both ears
+     heard every state.
+  7. **Clicks** on the speaker, about every half second.
+  8. **The synth** played, quietly, from core 0 alone (8 voices): no half
+     filled late and no underrun; the longest fill took 297.4 µs of a
+     half of 2 902 µs (128 frames). With the synth 12 dB below its full
+     scale, distortion began with four keys held at once.
+- Sources: UNIT: audio9's flash log (hw3s) and the owner's listening,
+  relayed on 2026-11-21 (docs/prompts/spec-audio9-unit.md); HW-161,
+  HW-162.
+- Standing: confirmed (UNIT; one unit; S2 by ear)
+- Needed by: M4, BR-17 (Phase B)
+
+### HW-164: What audio9 settles: the mute, PB5, the halves of a word (Q-9)
+- Fact:
+  - **The headphone mute is in the hardware** (as the manual says,
+    HW-141), and the headphone output carries the link's sound.
+  - **PB5 is 1 with headphones out, 0 with them in.**
+  - **Both halves of each word reach the output, and they work
+    against each other:** either half alone gives the same level, and
+    the same sample in both gives near silence, on the speaker and in
+    both ears. That fits a part outside the chip whose output is the
+    difference of the two halves (or of one half and the other
+    inverted). The part and its format are not given, so this is a
+    reading of the result, not a fact; a test of the inverted pair
+    decides it (the difference reading predicts the sample in one half
+    and its negative in the other is about 6 dB louder than one half
+    alone).
+  - **Every sound so far used the same sample in both halves,** so the
+    low level on the speaker, in the headphones and from the synth, and
+    perhaps `MASTER`'s coarse steps, may be what is left after the halves
+    cancel. That is a reading too, not yet tested.
+  - **The synth's fill takes about a tenth of a half** on core 0 at 8
+    voices.
+  - **Still open:** the outside part's format; the cause of `MASTER`'s
+    steps and of the clicks; the headphone output's level once the
+    format is right; which half, if either, is left.
+- Sources: UNIT (HW-163); HW-141, HW-160, HW-162.
+- Standing: confirmed (UNIT; the difference reading is untested)
 - Needed by: M4, BR-17 (Phase B)
 
 ## Open questions
@@ -4743,6 +4809,11 @@ spec request can turn one into a fact.
   through port C with `JL_IOMAP->CON5` at 0 and no amplifier enable; PB5
   follows the headphone plug. Still open: the headphone path and mute,
   the left sample's half and the outside part's needs, if any.
+  *Session spec-audio9-unit (HW-163, HW-164):* the headphone mute is in
+  the hardware; PB5 is 0 with headphones in; the same sample in both
+  halves of a word nearly cancels while either half alone is loud. Still
+  open: the outside part's format, `MASTER`'s coarse steps and the
+  half-second clicks.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
   rules and choice among pending sources (HW-22); whether the two cores
