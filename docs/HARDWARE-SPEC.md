@@ -4643,11 +4643,17 @@ the results; HW-164 says what they settle and what stays open.
     and its negative in the other is about 6 dB louder than one half
     alone).
   - **Every sound so far used the same sample in both halves,** so the
-    low level on the speaker, in the headphones and from the synth, and
-    perhaps `MASTER`'s coarse steps, may be what is left after the halves
-    cancel. That is a reading too, not yet tested.
-  - **The synth's fill takes about a tenth of a half** on core 0 at 8
-    voices.
+    low level on the speaker, in the headphones and from the synth may
+    be what is left after the halves cancel. That is a reading too, not
+    yet tested. What is left is itself unexplained: a pure difference
+    would cancel the synth's clipping with the rest, yet four keys
+    distorted audibly.
+  - **`MASTER`'s value on screen jumped** (about 63 to about 512), so its
+    coarse steps lie in the reading or in the build's mapping, not in
+    the outside part.
+  - **The synth's longest fill was about a tenth of a half** on core 0,
+    with the engine's 8 voices; how many were sounding at that fill is
+    not given.
   - **Still open:** the outside part's format; the cause of `MASTER`'s
     steps and of the clicks; the headphone output's level once the
     format is right; which half, if either, is left.
