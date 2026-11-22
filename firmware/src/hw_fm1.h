@@ -466,7 +466,7 @@ struct hw_audio {
 #if defined(SB_HW_AUDIO11)
     /* audio11 (clean-br17-audio11): the SARADC's service (hw_audio.c). */
     u32 adc_setup, adc_set_n, adc_set_t[HW_A11_SET_LOG]; /* HW_A11_*; changes; beats << 1 | set-up */
-    u32 adc_con[HW_A11_SETUPS][4]; /* each set-up's CON writes (up to three) and CON read after the last */
+    u32 sar_con[HW_A11_SETUPS][4]; /* each set-up's CON writes (up to three) and CON read after the last */
     u32 adc_conv_n[HW_A11_SETUPS], adc_conv_to[HW_A11_SETUPS]; /* conversions done; waits ended by the time-out */
     u32 adc_conv_min[HW_A11_SETUPS], adc_conv_max[HW_A11_SETUPS]; /* start to bit 7 seen, sb_now units, by the slot's poll (83 us steps) */
     u32 adc_conv_tight[HW_A11_SETUPS]; /* one conversion timed by a tight poll at each change of set-up (sb_now units) */

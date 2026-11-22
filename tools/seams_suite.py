@@ -3265,13 +3265,13 @@ def case_audio11(a, work, log):
             or g("adc_conv_timeouts_SDK") or g("adc_conv_timeouts_old") \
             or min(g("adc_conv_min_units_SDK"), g("adc_conv_min_units_old")) < 300 * 24 \
             or min(g("adc_conv_tight_units_SDK"), g("adc_conv_tight_units_old")) < 300 * 24 \
-            or tuple(g("adc_con_SDK_w%d" % i) for i in (1, 2, 3)) != sdk_con or g("adc_con_old_w1") != 0x450 \
-            or g("adc_con_old_w2") or g("m_level") != 200 * 200 * 100 // 10465:
+            or tuple(g("sar_con_SDK_w%d" % i) for i in (1, 2, 3)) != sdk_con or g("sar_con_old_w1") != 0x450 \
+            or g("sar_con_old_w2") or g("m_level") != 200 * 200 * 100 // 10465:
         problems.append("audio11: %s" % {k: last.get(k) for k in (
             "a9_s2", "a10_fmt_changes", "adc_setup", "adc_set_n", "holds", "hold_n", "log_dropped", "a10_saturated",
             "a9_late_halves", "adc_conv_timeouts_SDK", "adc_conv_timeouts_old", "adc_conv_min_units_SDK",
-            "adc_conv_min_units_old", "adc_conv_tight_units_SDK", "adc_conv_tight_units_old", "adc_con_SDK_w1",
-            "adc_con_SDK_w2", "adc_con_SDK_w3", "adc_con_old_w1", "adc_con_old_w2", "m_level")})
+            "adc_conv_min_units_old", "adc_conv_tight_units_SDK", "adc_conv_tight_units_old", "sar_con_SDK_w1",
+            "sar_con_SDK_w2", "sar_con_SDK_w3", "sar_con_old_w1", "sar_con_old_w2", "m_level")})
     # The channels: MASTER (4) moved, 3 at fwtest's 640, the others 512; 6 and 7 never (the route up throughout).
     ch = lambda st, c, w: g("adc_%s_ch%d_%s" % (st, c, w))
     chans = []
@@ -3319,8 +3319,8 @@ def case_audio11(a, work, log):
                " held 300 us by the seam: conversions %d and %d, none timed out, %.1f us at least; channels 6 and 7"
                " never read with the route up; MASTER's stills %s; level %d of 10000; the tone's largest second"
                " difference %d with MASTER moving; zeros while held; the large area %s"
-               % (g("adc_con_SDK_w1"), g("adc_con_SDK_w2"), g("adc_con_SDK_w3"), g("adc_con_SDK_read"),
-                  g("adc_con_old_w1"), g("adc_con_old_read"), g("adc_conv_n_SDK"), g("adc_conv_n_old"),
+               % (g("sar_con_SDK_w1"), g("sar_con_SDK_w2"), g("sar_con_SDK_w3"), g("sar_con_SDK_read"),
+                  g("sar_con_old_w1"), g("sar_con_old_read"), g("adc_conv_n_SDK"), g("adc_conv_n_old"),
                   min(g("adc_conv_min_units_SDK"), g("adc_conv_min_units_old")) / 24.0, stills, g("m_level"), d2,
                   big_seen))
     # The 16-bit build: N's words from start-up (the clamp: each half's first sample the most negative), no seam.
