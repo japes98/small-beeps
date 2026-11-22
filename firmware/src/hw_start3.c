@@ -796,6 +796,13 @@ static void draw_step(void)
  * row left showing is the step that didn't finish. One row is one
  * transfer whose end is polled (lcd.c), so it is drawn with interrupts off
  * or stopped too. */
+/* The step row's text now (audio12: the instrument's start shows why the
+ * route didn't come up). */
+const char *hw_step_now(void)
+{
+    return step_text;
+}
+
 void hw_step(const char *text)
 {
     step_n++;

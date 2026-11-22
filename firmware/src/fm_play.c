@@ -130,6 +130,11 @@ volatile u32 fm_saved_seq[FM_USER_SLOTS], fm_saved_reset[FM_USER_SLOTS];
 volatile u32 fm_reset_seq;
 static u32 patch_now, algorithm_now, mono, started;
 static u32 sounding;        /* voices not idle */
+/* Since audio12 (D6): the engine's own time, in frames, advanced by each
+ * block it renders, and that block's number (frames / AUDIO_FRAMES). The
+ * audio interrupts aren't counted: on a unit one half (two of the
+ * engine's blocks, HW-160) is one interrupt, in fwtest one block is. */
+static u32 frames_done, engine_block;
 static int octave, mono_stack[16];
 static u32 mono_held;
 static s32 master;
@@ -539,6 +544,13 @@ static void voice_start(u32 n, int note, u32 velocity, u32 at)
         v->pending = fresh && at ? FM_PENDING_FRESH : FM_PENDING_NONE;
         v->at = at;
     }
+#if defined(SB_HW_AUDIO12)
+    /* G (audio12): ALGORITHM as the engine reads it at this note on,
+     * beside the algorithm the voice takes (its next one while a start
+     * waits within the block; hw_audio.c's log). */
+    fm_a12_note_on((u32)note, n, algorithm_now + 1u, (stage ? v->next_algorithm : v->algorithm) + 1u,
+                   midi_settings.local);
+#endif
     if (fresh) {
         v->fb_now = 0;
         sounding++;
@@ -549,7 +561,7 @@ static void voice_start(u32 n, int note, u32 velocity, u32 at)
     v->state = VOICE_ON;
     sb_fm.notes++;
     if (!sb_audio.engine[SYNTH_NOTES])
-        sb_audio.engine[SYNTH_FIRST_ON] = sb_audio.blocks;
+        sb_audio.engine[SYNTH_FIRST_ON] = engine_block;
     sb_audio.engine[SYNTH_NOTES]++;
 }
 
@@ -987,6 +999,16 @@ static void select_patch(u32 n)
     mono = PATCH_NOW->mono;
     sb_fm.patch = n;
 }
+
+#if defined(SB_HW_AUDIO12)
+/* S (audio12): the sweep sets ALGORITHM (1 to FM_ALGORITHMS), as a turn
+ * would, from the engine's own context (the audio interrupt). */
+void fm_a12_algorithm(u32 a)
+{
+    if (a >= 1u && a <= FM_ALGORITHMS)
+        algorithm_now = a - 1u;
+}
+#endif
 
 static void arp_follow(void);
 
@@ -1490,7 +1512,7 @@ static u32 midi_message(const struct midi_msg *m)
 
     /* MIDI clock and its transport (since ARP): the arpeggiator's. */
     if (m->status >= MIDI_CLOCK && m->status <= MIDI_STOP) {
-        arp_clock(m->status, sb_audio.blocks);
+        arp_clock(m->status, engine_block);
         return m->status != MIDI_CLOCK;
     }
     if (m->status == MIDI_RESET) {
@@ -1687,6 +1709,9 @@ static void events(void)
         } else if (e.kind == INPUT_TURN && e.control == INPUT_ALGORITHM) {
             if (local)
                 algorithm_now = (algorithm_now + FM_ALGORITHMS * 16 + (u32)(int)e.value) % FM_ALGORITHMS;
+#if defined(SB_HW_AUDIO12)
+            fm_a12_turn(local, algorithm_now + 1u);
+#endif
         } else if (e.kind == INPUT_TURN && e.control >= INPUT_KNOB1 && e.control <= INPUT_KNOB4) {
             u32 k = e.control - INPUT_KNOB1;
             if (fm_ui.screen == UI_EDIT) {
@@ -1820,6 +1845,8 @@ void fm_block(s32 *out, u32 frames)
     s32 target, step, m, *w;
     int pot;
 
+    engine_block = frames_done / AUDIO_FRAMES;
+    frames_done += AUDIO_FRAMES;
     /* The voices a fade or a release has finished with. */
     for (n = 0; sounding && n < FM_VOICES; n++) {
         struct fm_voice *v = &voice[n];
@@ -1839,7 +1866,7 @@ void fm_block(s32 *out, u32 frames)
         } else if (v->silent && !v->fade) {
             v->state = VOICE_IDLE;
             sounding--;
-            sb_audio.engine[SYNTH_LAST_OFF] = sb_audio.blocks;
+            sb_audio.engine[SYNTH_LAST_OFF] = engine_block;
         }
     }
     events();
@@ -1851,7 +1878,7 @@ void fm_block(s32 *out, u32 frames)
     /* The arpeggiator's steps within this block, at their frames (ARP),
      * and its notes on the wire at once if it is free. */
     if (arp_busy) {
-        arp_block(sb_audio.blocks);
+        arp_block(engine_block);
         midi_out_poll();
     }
     pot = input_value(INPUT_MASTER);
@@ -1973,7 +2000,7 @@ void fm_block(s32 *out, u32 frames)
                     env = 0;
                     d = 0;
                     tone_state = TONE_OFF;
-                    sb_audio.engine[SYNTH_LAST_OFF] = sb_audio.blocks;
+                    sb_audio.engine[SYNTH_LAST_OFF] = engine_block;
                 }
             }
             s = s > AUDIO_FULL ? AUDIO_FULL : s < -AUDIO_FULL ? -AUDIO_FULL : s;
@@ -1997,6 +2024,14 @@ void fm_init(void)
     for (n = 0; n < FM_VOICES; n++)
         ctl[n].next = -1;
     select_patch(0);
+#if defined(SB_HW_AUDIO12) && !defined(SB_TEST_A12_SINE)
+    /* G2 (audio12, the owner's ruling): the unit starts in Bell (test
+     * patch 4), whose six operators all sound, so the algorithms differ;
+     * patch 0 (Sine) has operators 2 to 6 at level 0 and operator 1 a
+     * carrier in every algorithm, so all ten sound the same in it. */
+    select_patch(FM_A12_PATCH);
+    panel_program = FM_A12_PATCH;
+#endif
     midi_settings_default(&midi_settings);
 #if defined(SB_TEST_MIDI_CHANNEL)
     midi_settings.channel = 10;   /* the channel test build (tools/fw-suite.py) */

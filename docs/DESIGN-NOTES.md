@@ -5620,3 +5620,119 @@ but the SARADC's `CON`.
   second difference with MASTER moving (no step); the holds; zeros in
   `audio.wav`; an 8-key chord and the fill per algorithm; the large area
   read off the screen in each state. The identity is 0.11.0-hw3u.
+### 2026-11-22 clean-br17-audio12: the sweep, ALGORITHM, the instrument's start, frames (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio12.md), with the
+owner's rulings (docs/prompts/spec-audio12-rulings.md): S yes; G yes; G2 only
+if G finds the start-up patch the cause; D5 now; D6 now; D8 later. Behind
+`SB_HW_AUDIO12` (refused without `SB_HW_AUDIO11`), but D6, which is the
+shared engine's. No register or pin beyond audio11's, no port B write, no
+USB register, no store write.
+
+- **G, found before the build.** The unit started in test patch 0, Sine:
+  operator 1 at level 127, operators 2 to 6 at 0 (so `off`), and operator 1
+  is a carrier (`FM_TO_OUT`) in all ten algorithms, so every algorithm gives
+  one carrier and the same sine, bit for bit. fwtest, build A, one note per
+  algorithm with ALGORITHM turned between: Sine's ten notes identical, Bell's
+  (patch 4, all six operators sounding) ten different. A change of
+  algorithm reaches only notes started after it: `voice_start` copies
+  `algorithm_now` into the voice, and the renderer reads the voice's. The
+  turn is also taken only with local control on. So G2: the unit starts in
+  Bell (`FM_A12_PATCH`; Brass was quieter at the low key and sustains less
+  differently); a test flag (`SB_TEST_A12_SINE`) keeps Sine for the check.
+  On the unit the engine logs each note on (the note, its voice, ALGORITHM
+  as read, the voice's algorithm, local control; the last 16) and each turn
+  (taken or dropped, the algorithm after).
+- **S, the sweep.** On the test screen LFO (which the engine ignores)
+  starts it; it runs in the engine's context, from `synth_fill` before the
+  engine's blocks, timed in the frames filled (128 a half on the unit, 64 in
+  fwtest's layout): for algorithm 1 to 10, ALGORITHM set, eight notes (MIDI
+  48, 55, 60, 64, 67, 72, 79, 84) on, 1.5 s, off, then every voice idle
+  waited for (at most 3 s, logged if reached). Per algorithm: the longest
+  fill with the voices then, soft-clipped and saturated samples, late halves
+  (the audio layer's underruns, which count both a half missed and one
+  refilled late). LFO during it stops it after the chord in progress, its
+  release waited for. The large area's first two lines show "SWEEP A<n>" and
+  "F<us>US <v>V" (the algorithm's longest so far), and for 10 s after,
+  "DONE A<n>" (or "STOPD") with the slowest. Records: Sweep start, stop
+  asked, done or stopped. The synth goes on first if it is off.
+- **D5, the instrument's start.** At the point the test screen was drawn,
+  HOME held gives the test screen (PLAY and REC are m-bootloader's at
+  power-on, HW-117): HOME must be let go first (the route's check stops on
+  a key held; at most 10 s), and its events are dropped so the test screen
+  doesn't take the press. Otherwise: the engine, the synth on (so the first
+  half is the synth's, not the tone), ALNK0 in N, L2, port C's four pins and
+  the route with the matrix check and its self-undo (audio9's start, as
+  is), then the panel (`view_message`, views.c's own screens) with "audio12:
+  sound on", or "NO SOUND: " and the step row's reason; main serves the
+  panel instead of the test screen's keys, so they do nothing; the start's
+  rows are held off the panel. The line also goes in the boot record (in the
+  large area's words). The store isn't started or served on the unit
+  (`store_boot`, `serve_store` would write its flash): a save from the panel
+  isn't kept.
+- **D6, frames.** Measured first: ARP's position already moved by each of
+  the engine's blocks, so its steps came at the right frames on the unit
+  (5 514 or 5 515 frames apart at 120 beats a minute, 1/16, on both layouts
+  in fwtest). What counted audio interrupts (`sb_audio.blocks`) were its
+  times: each step's logged frame, the MIDI clock's arrival times (so a
+  followed clock's rate), the clock's loss after `ARP_LOST_BLOCKS`, and the
+  record's first note on and last off. On the unit a half is one interrupt
+  but two blocks, so those were half the frames (the log's steps 2 762
+  frames apart; a followed MIDI clock would have run ARP at twice its tempo,
+  and the loss taken twice as late; MIDI is off on a unit). Now the engine
+  counts its own frames, a block's at its start, and passes the block
+  number (frames / 64) where the interrupt count went; in fwtest's layout
+  that number is the interrupt count, so build A's outputs are unchanged
+  (the ARP suite passes as before). Nothing else in the engine counted
+  interrupts: envelopes, glide, LFO and the arpeggiator's position count
+  blocks already. The views' redraw watches `sb_audio.blocks` only for a
+  change.
+- **fwtest's `--audio-chip` (0.13.0) not adopted:** the fill stays sized
+  per target, and fwtest's own layout runs the unit's 16-bit build at twice
+  its rate; adopting it belongs with D7's harness change.
+- **Layout 11** (audio12's builds only): layout 10 without audio11's
+  settled fields (the set-up's change list, the old set-up's channels,
+  MASTER's raw ring and jump list, the fill per algorithm), with the start,
+  the sweep's fields and G's after the large area: 996 words.
+
+### 2026-11-22 clean-br17-audio12b: audio12's file stopped at the first bands; the instrument's start behind SEL (BR-17, R-HW-1)
+The owner's report (docs/prompts/clean-br17-audio12b.md): audio12's file
+stopped on the unit at the blue and green bands, with or without HOME, no
+record written. The owner's rulings: power-on to the test screen; the
+instrument's start behind a test-screen key, with a record before each
+stage; the hang found; a seams case that would have caught it; S, G, G2 and
+D6 kept.
+
+- **The hang was the file, not the code.** audio12's `.fwsc` was packed
+  from `app.bin`, the raw image linked at `0x02000000` (fwtest's raw
+  path), instead of `app-pkg.bin`, the package link at `0x02000120`, where
+  a package's app runs (HW-91). Every earlier candidate was packed from
+  `app-pkg.bin`: re-packing audio11's gives its file's SHA-256 exactly,
+  and re-packing it from `app.bin` doesn't. With the raw link the start
+  code (in the window, position-independent enough) draws bands 1 and 2,
+  then copies the RAM image from the wrong place (`__data_load` is 0x120
+  short), so main runs garbage: in fwtest's package path that package stops
+  at the two bands with garbled rows, and the same build packed from
+  `app-pkg.bin` runs to the panel. The report's own reading (a hang after
+  core 1's screen) doesn't fit the screen: with HOME held the step row
+  would have asked for HOME to be let go, and before that come band 3, the
+  pattern and the rows.
+- **How fwtest passed it:** every seams case runs `app.bin`, the raw link,
+  through fwtest's raw path, which is right for that link; none ran the
+  file that went to the unit. The pack was a manual step, and `fwsc check`
+  checks the package's structure and key, not the app's link.
+- **What catches it now:** `tools/fwsc.py pack` reads the ELF beside the
+  app and refuses one not linked at `0x02000120` (or with no ELF beside
+  it). Case audio12 builds the unit's own defines (the 16-bit layout, no
+  test seams, the full hold), packs both links and runs them through
+  fwtest's package path for 40 s: the package link must get past the
+  start's blue and green bands (to the audio page, at fwtest's slower
+  slots), and the raw link must still show them (the negative control).
+- **The instrument's start behind SEL** (SEL pressed alone is nothing to
+  the engine, and audio11's set-up comparison is settled, HW-170): a
+  record ("Inst synth", "Inst ALNK0", "Inst L2", "Inst R2", "Inst route",
+  "Inst panel") and a step row before each stage. ALNK0, L2, R2 and the
+  route are up already from the test screen's start, so those stages
+  record it and leave them as they are; the route is tried again only if
+  it is down (SEL let go first: the check stops on a key held). Then the
+  panel, as audio12's. Identity hw3w.
+

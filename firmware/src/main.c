@@ -458,6 +458,15 @@ static void hw_serve(void)
             continue;
         }
 #endif
+#if defined(SB_HW_AUDIO12)
+        /* audio12b (D5, the owner's ruling): SEL runs the instrument's
+         * start; the panel takes over from the test screen. */
+        if (e.control == INPUT_SEL && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_audio_leds(e.control);
+            hw_a12_instrument();
+            return;
+        }
+#endif
 #if defined(SB_HW_AUDIO10)
         /* audio10 (the spec side's clean-br17-audio10): LFO cycles F's
          * format; PLAY zeros, HOME the LED blink, ENV the screen, GLO the
@@ -517,6 +526,16 @@ static void hw_serve(void)
          * HOME shows audio8's and audio9's view. The old steps' keys
          * (ARP, SAVE, ENV, FX, LFO, SEL, GLO, OCT+, OCT-, KEY1 to KEY6) are
          * the engine's alone: main gives them no step. */
+#if defined(SB_HW_AUDIO12)
+        /* audio12 (S): LFO starts the sweep, or stops it after the chord
+         * in progress (the engine does nothing with LFO). */
+        if (e.control == INPUT_LFO && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_a12_sweep_key();
+            hw_audio_leds(e.control);
+            hw_guide_show();
+            continue;
+        }
+#endif
 #if defined(SB_HW_AUDIO11)
 #define HW_A9_LFO 0xFFu      /* LFO is the engine's (audio11) */
 #else
@@ -908,6 +927,11 @@ int main(void)
     sb_wait_ms(20);
     /* start3c: core 1's screen, held (SB_HW_HOLD). */
     hw_core1_screen();
+#if defined(SB_HW_AUDIO12)
+    /* audio12b (the owner's ruling): the test screen, as audio11's; SEL
+     * there runs the instrument's start (hw_audio.c). */
+    hw_aud.start_mode = HW_A12_TEST;
+#endif
     hw_step("test screen: drawing");
 #else
     if (sb_beacon.beats + 1 < TEST_SCREEN_MS)
@@ -979,6 +1003,11 @@ int main(void)
         second = sb_seconds;
         /* What the engine asked of the store before the loop began, and
          * (since M8a) the panel's events from before it: the screens. */
+#if defined(SB_HW_AUDIO12)
+        if (hw_aud.start_mode == HW_A12_INSTRUMENT)
+            view_serve();
+        else
+#endif
 #if defined(SB_HW_FM1)
         hw_serve();
 #elif defined(SB_ENGINE_EXTERNAL)
@@ -994,6 +1023,14 @@ int main(void)
                 seen = sb_work;
                 sb_beacon.wakes = wakes;
                 sb_beacon.wakes_ticks = sb_beacon.tick_count;
+#if defined(SB_HW_AUDIO12)
+                /* Once SEL's start has put the panel up, the panel
+                 * serves the events (the test screen's keys do nothing);
+                 * no store (its flash writes aren't part of audio12). */
+                if (hw_aud.start_mode == HW_A12_INSTRUMENT)
+                    view_serve();
+                else
+#endif
 #if defined(SB_HW_FM1)
                 hw_serve();
 #elif defined(SB_ENGINE_EXTERNAL)
