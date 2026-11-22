@@ -1,0 +1,10 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 41790b41513223829a4ba746ae00b9bee9a5887a..e59f3dca5f16d8c00ea49fcc27668de545e851c3
+OK     e72027c1f815 sessions: the owner's USB rulings saved; R-USB-1, USB off in published builds
+OK     f67bab279aca sessions: the owner's U2 rulings saved (state key, before the audio path, U2-C)
+EXEMPT 2162a3b98fbe (merge) merge: clean's audio12b (#241) into spec/usb-u2
+OK     09cb3836c3b8 spec: audio12b on the unit; the engine fits at 8 voices (HW-174, HW-175)
+OK     10ce57e709d5 spec: HW-174 attributes the stages' skip to clean's report
+EXEMPT e59f3dca5f16 (merge) Merge pull request #242 from japes98/spec/usb-u2
+6 commit(s) checked: PASS
+
+exit status 0
