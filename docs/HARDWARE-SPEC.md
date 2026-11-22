@@ -4751,7 +4751,8 @@ fields, HW-168 the format heard again with three-pole headphones.
   339-350 (the set-up); SDK63 `cpu/br23/adc_api.c` (blob `25f9c6c0`)
   lines 32-41 (the table), 245-263 and 328-343; HW-40, HW-165.
 - Standing: confirmed (SDK; SDK63 agrees; the divider's input clock, the
-  other codes and bit 3's meaning open; untried on the unit)
+  other codes and bit 3's meaning open; on the unit the set-up settles the
+  readings, HW-169)
 - Needed by: M3, BR-17 (Phase B)
 
 ### HW-168: The output format, heard with three-pole headphones: two channels, one inverted (Q-9)
@@ -4777,6 +4778,66 @@ fields, HW-168 the format heard again with three-pole headphones.
 - Standing: confirmed (UNIT; by ear; which channel is left, and where
   the inversion is, not given)
 - Needed by: M4, BR-17 (Phase B)
+
+## 48. audio11 on the unit: the SARADC settles, the clicks go
+
+Read back from the flash log of this repository's build audio11 (hw3u,
+clean's #236) on the owner's unit, and heard by the owner, relayed on
+2026-11-22 (source UNIT, docs/prompts/spec-audio11-unit.md). HW-169 gives
+the results; HW-170 says what they settle.
+
+### HW-169: audio11: the SDK's SARADC set-up on the unit, N at start-up, the fills (Q-8, Q-9)
+- Fact: On the owner's unit, started by m-bootloader:
+  1. **N at start-up** was heard on the speaker and on the headphones.
+  2. **The SARADC in the SDK's set-up (HW-167):** `CON` written `0xF44E`,
+     `0xF45E`, `0xF45E` (channel 4, bits 0-3 `0xE`, bits 12-15 `0xF`;
+     bit 6, then bits 4 and 6), read back `0xF41E` afterwards. Over
+     1 596 248 conversions none timed out; a conversion took about
+     211 µs (timed by polling bit 7). In the old set-up (`CON` `0x0450`) a
+     conversion took about 0.4 µs, none timed out.
+  3. **`MASTER`'s raw reading** in the SDK's set-up moved in small steps
+     (504, 508, 512, 516, …); all 19 jumps of more than 32 fell in the
+     minute of the old set-up. The owner heard `MASTER` change the level
+     smoothly in the SDK's set-up.
+  4. **Channel 0** read mostly 1020 or 1021.
+  5. **No clicks** were heard, with nothing held and with each hold (the
+     LED blink, the screen, the log, the scan, zero samples).
+  6. **The synth:** with 8 voices the longest fill was 318.7 µs (in
+     algorithm 8), none soft clipped or saturated; single-voice fills in
+     algorithms 1 to 10 took 158 to 199 µs. The 8-key chord was held in
+     algorithm 8 only. Turning `ALGORITHM` was heard to change nothing.
+  7. **Low notes** were much quieter than high ones on the speaker and
+     close to even on the headphones (the lows slightly softer).
+- Sources: UNIT: audio11's flash log (hw3u) and the owner's listening,
+  relayed on 2026-11-22 (docs/prompts/spec-audio11-unit.md); HW-167.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: M3, M4, BR-17 (Phase B)
+
+### HW-170: What audio11 settles: the SARADC's set-up, the clicks, the speaker's bass (Q-8, Q-9)
+- Fact:
+  - **The SDK's `CON` fields make the SARADC settle on the unit**
+    (HW-167's divider, start delay and bit 3, in its three writes): the
+    readings step finely and `MASTER` is smooth. Bit 6 reads back clear
+    after a conversion, bit 4 set.
+  - **The conversion time fits the low-speed bus as the divider's
+    input:** 60 MHz / 96 is 625 kHz, and 211 µs is about 132 of those
+    clocks: the start delay's 15 × 8 = 120 and about 12 more. A reading
+    from the times, not given by a source.
+  - **The half-second clicks came with `MASTER`'s unsettled reading:**
+    they are gone with it and no hold changed anything.
+  - **Channel 0 is PA7** (HW-129), a key-matrix row; 1020 fits a row
+    held high. Earlier ADC searches (PRESETS, HW-136 and later) were made
+    with the old set-up, so their readings don't count against a knob on
+    a channel.
+  - **The speaker rolls off the bass;** the headphones don't, so it isn't
+    the engine.
+  - **Still open:** whether `ALGORITHM` reaches the engine on the unit;
+    each algorithm's fill with 8 voices; the divider's input clock (by
+    source).
+- Sources: UNIT (HW-169); HW-129, HW-136, HW-167; HW-161 (the speaker's
+  path).
+- Standing: confirmed (UNIT; the clock reading inferred)
+- Needed by: M3, M4, BR-17 (Phase B)
 
 ## Open questions
 
@@ -4883,6 +4944,9 @@ spec request can turn one into a fact.
   on the unit don't settle with `JL_ADC->CON`'s clock and delay fields at
   0; the chip's SDK sets a divide by 96, a start delay and bit 3. Earlier
   ADC readings here (finder1's included) were taken that way.
+  *Session spec-audio11-unit (HW-169, HW-170):* in the SDK's set-up the
+  SARADC settles and `MASTER` is smooth; channel 0 (PA7) reads near
+  1023. The search for PRESETS on the converter can be made again.
 - **Q-9. Audio on the chip.** How `JL_ALNK0`'s output reaches the DAC or
   codec on real hardware, which bits of each word it uses, its clock set-up
   and true rate, and the analog set-up (FM-1-RE's audio document names DAC
@@ -4943,7 +5007,10 @@ spec request can turn one into a fact.
   half-second clicks.
   *Session spec-audio10-unit (HW-165 to HW-168):* the speaker plays the
   lower half of each word; the halves are the headphones' two channels,
-  one inverted on the board, so N is in-phase mono on both. The SARADC's readings don't settle with `CON`'s clock and delay
+  one inverted on the board, so N is in-phase mono on both.
+  *Session spec-audio11-unit (HW-169, HW-170):* N at start-up on both;
+  the clicks came with `MASTER`'s unsettled reading; the speaker rolls
+  off the bass. Still open: whether `ALGORITHM` reaches the engine. The SARADC's readings don't settle with `CON`'s clock and delay
   fields at 0; the chip's SDK sets a divide by 96 and a start delay.
 - **Q-10. Interrupt details on the chip.** Whether the chip switches
   stacks on an interrupt from user mode exactly as HW-3 says; its nesting
