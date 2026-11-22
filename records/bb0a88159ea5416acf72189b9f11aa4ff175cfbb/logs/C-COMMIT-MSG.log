@@ -1,0 +1,18 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 123f111c887a139528f2625cd21bfc6fd9f62314..bb0a88159ea5416acf72189b9f11aa4ff175cfbb
+OK     18aca8e22ca6 sessions: the owner's rulings for audio10 saved (spec-audio10-rulings)
+EXEMPT 1196d08b44f2 (merge) merge: main (#232 and clean's audio10) into spec/audio10-unit
+OK     bc8b28a0fee6 spec: audio10's log, the two outputs, the SARADC's divider (HW-165 to HW-167)
+OK     d902315b6daa spec: HW-166/167 held to the sources: the headphones' loudness, the write order
+OK     2147da5adfc0 spec: the output format heard again: two channels, one inverted (HW-168)
+OK     f1a9e187450d spec: fwtest 0.13.0, the chip's 16-bit audio layout behind --audio-chip
+EXEMPT 56c84e732e8b (merge) merge: #234 (spec/audio10-unit) into spec/fwtest-alnk16
+OK     0a3cd6cc5918 spec: UPSTREAM.md names the round's item D7; EXPOSURE's lost line back
+OK     59c947a01405 spec: patch 0020's crate test renamed, off C-SEP-TERMS's list
+OK     e6b1b49aef89 firmware: audio11, N fixed, the SARADC set up as the SDK does, MASTER's curve, large status (BR-17)
+EXEMPT 6b231a06ada9 (merge) merge: clean's #236 (audio11) into spec/fwtest-alnk16
+OK     5c8cd27356c4 firmware: audio11, the set-ups' CON record renamed sar_con (C-SEP-TERMS)
+EXEMPT 11e0c2557d96 (merge) merge: clean's #236 rename (sar_con) into spec/fwtest-alnk16
+EXEMPT bb0a88159ea5 (merge) Merge pull request #235 from japes98/spec/fwtest-alnk16
+14 commit(s) checked: PASS
+
+exit status 0
