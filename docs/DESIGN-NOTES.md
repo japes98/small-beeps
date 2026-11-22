@@ -5456,3 +5456,82 @@ it to audio8's defines.
   changes with `SB_TEST_A9_PB5`; `SB_TEST_A9_PA_MOVE` and
   `SB_TEST_A9_CHECK_FAIL` make the route undo itself and R2; the 16-bit
   build's words match each S2 state. The identity is 0.10.0-hw3s.
+
+### 2026-11-21 clean-br17-audio10: the sample format, the mix, MASTER, the clicks (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio10.md; HW-163,
+HW-164), with the owner's rulings: F with U at start-up; the mix M2 with M3 under it, no M1;
+V and C as written. Behind `SB_HW_AUDIO10` (refused without
+`SB_HW_AUDIO9`). Only the samples change; no register is written beyond
+audio9's.
+
+- **F (LFO)** cycles the format of everything the link plays, the tone and
+  the synth: P (the sample in both halves, audio9's), U (the upper half,
+  the lower 0), L (the lower half, the upper 0), N (the sample upper, its
+  negative lower) and N' (the negative upper, the sample lower); the most
+  negative sample's negative is clamped to the most positive. U at
+  start-up. Each change is logged with its beat (the last 8 in every
+  record) and named on the step row and the audio line. It replaces
+  audio9's S2, whose three states are P, U and L.
+- **The packing, before audio10:** a cast to 16 bits, which would wrap,
+  but nothing reached full scale: the tone peaks at 3 276 and the synth
+  at 8 191 (the engine clamps its own sum at its full scale, 24-bit, and
+  the >> 10 puts that 12 dB below 16-bit full scale). So four voices at
+  full level reached the engine's clamp, a hard clip, not a wrap.
+- **M2 and M3.** In audio10's build the engine leaves its sum unclamped
+  (fm_play.c), and hw_audio.c takes it at 16-bit scale (>> 10, so the
+  engine's full scale stays 12 dB below): straight up to half full scale,
+  then a soft clip, K + R t / (t + R) with K 16 384, R 16 383 and t the
+  excess, whose slope is 1 where it starts and which never reaches full
+  scale; then M3, saturation at full scale (a hard clip, never a wrap) in
+  the packing. Under N the output's swing is twice a half's; the headroom
+  is per half. In fwtest's layout the same 16-bit sample goes out << 8,
+  so the WAV shows the unit's sample. Samples bent and saturated are
+  counted.
+- **The fill:** the synth's own fill time (`sb_now()`'s 24 MHz units),
+  longest overall and longest with 8 voices sounding (all of core 0's),
+  and the most voices, in the log (the audio line shows the late halves).
+- **V, MASTER.** input.c reads SARADC channel 4 once a scan cycle (the raw
+  reading), reports the mean of the last 4 when it moves more than 3 from
+  the last reported, or reaches an end (MASTER's value, 0 to 1023). The
+  tone's gain is linear in it (value / 1023 of its top); the synth's level
+  is its square (value² × 16 of 2^24), so near the bottom one step of 4 is
+  several dB: at 12 to 16 about 5 dB for the synth, 2.5 dB for the tone.
+  The audio line shows the value and the raw reading. Each reported change
+  is kept with its beat (the last 40), the raw readings' steps are watched
+  from the scan's slot (steps over 32 counted as jumps, the largest kept),
+  and a record is written once MASTER has stood still for 1 s, so a turn in
+  eight steps leaves a record at each pause.
+- **C, before the build: what happens about twice a second.** The LED
+  guide's blink: the next key's LED changes every 500 ms (the only thing
+  at exactly that period). Also: the test screen's refresh every 100 ms
+  (main's matrix sweep of 16 columns, the SARADC's 12 channels, three rows
+  redrawn over SPI1), and once a second the core 1 row and the audio line;
+  the PB5, `DAA_CON7` and late-half checks every 100 ms, which write a
+  record only on a change; log writes only on events. In fwtest's
+  `audio.wav` the tone shows no step at any period (case audio10: its
+  largest second difference stays near a clean sine's).
+- **C, the holds,** each on and back by its own key, logged with its beat
+  (the last 8) and as a record: PLAY plays zeros (the tone and the synth
+  set aside, the engine's queue still emptied); HOME holds the LED guide's
+  blink (the LEDs left as they stand; the scan still runs and multiplexes
+  them, so this holds the blink alone); ENV holds the screen (no drawing:
+  the step row, the refresh's rows, the audio line and the event line keep
+  what they show; main's sweeps still run); GLO holds the log (records
+  dropped and counted, the count written when it is let go); REC holds
+  the scan: the scan paused with `0xFFFF` latched and the LED lines low,
+  and main's matrix and SARADC sweeps skipped, for 5 s, ending by itself
+  with a countdown on the step row.
+- **Keys:** SEQ (the route), FX (the synth), LFO (F), PLAY, HOME, ENV,
+  GLO and REC (C's holds), EDIT (a save). REC's bit 9 and HOME's page are
+  off in this build. The guide: F through all five and back to U, the
+  synth, each hold on and off, the scan hold, a save.
+- **The log:** layout 9: the sense scan's event list cut from 120 to 32
+  (audio10's fields needed the room), the first words kept for each of
+  F's five formats, and audio10's fields (980 of 1011 words).
+- **fwtest** (case audio10): the formats logged; an 8-key chord with 8
+  voices, the sum never wrapping; with `SB_TEST_A10_GAIN` (18 dB more)
+  the soft clip bending it and nothing saturating; the pot moved by the
+  script and each move logged; the holds on and back, the scan hold
+  ending by itself; zeros in `audio.wav` while held; in the 16-bit build
+  each format's words, with `SB_TEST_A10_CLAMP` forcing each half's first
+  sample to the most negative. The identity is 0.10.0-hw3t.

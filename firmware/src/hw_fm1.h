@@ -26,6 +26,9 @@
 #if defined(SB_HW_AUDIO9) && !defined(SB_HW_AUDIO8)
 #error "SB_HW_AUDIO9 builds on audio8: build it with SB_HW_AUDIO8"
 #endif
+#if defined(SB_HW_AUDIO10) && !defined(SB_HW_AUDIO9)
+#error "SB_HW_AUDIO10 builds on audio9: build it with SB_HW_AUDIO9"
+#endif
 #if defined(SB_HW_PCM16) && !defined(SB_HW_AUDIO8)
 #error "SB_HW_PCM16 is audio8's unit tone: build it with SB_HW_AUDIO8"
 #endif
@@ -108,6 +111,7 @@ extern volatile u32 hw_scan_paused;
 #else
 extern volatile u32 hw_core1_count, hw_core1_flag, hw_scan_paused;
 #endif
+extern volatile u32 hw_hold_screen, hw_hold_sweeps; /* audio10's holds (hw_start3.c); 0 otherwise */
 #define HW_C1_WAIT_MS 100u
 void hw_core1_screen(void);
 void hw_round_trip(void);
@@ -145,12 +149,12 @@ void hw_rows_start(void);
 #define HW_LOG_REC     4096u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
-#define HW_LOG_LAYOUT  8u                   /* tools/report_decode.py's FIELDS[8] */
+#define HW_LOG_LAYOUT  9u                   /* tools/report_decode.py's FIELDS[9] */
 #define HW_LOG_HEAD    12u                  /* header words before the fields */
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
 /* The build's identity in each record: the package's version, which the
  * candidate's pack must match (tools/report-decode.py prints it). */
-#define HW_BUILD_ID    "0.10.0-hw3s"
+#define HW_BUILD_ID    "0.10.0-hw3t"
 struct hw_report {
     u32 scanned;                /* the ring read once */
     u32 found;                  /* valid records found then */
@@ -255,11 +259,28 @@ void hw_finder(void) __attribute__((noreturn));
 #define HW_A9_S2_UPPER 1u    /* the sample in the word's upper half, the lower 0 */
 #define HW_A9_S2_LOWER 2u    /* the lower half, the upper 0 */
 #define HW_A9_S2_N     3u
+/* audio10's F: the sample's format in a word (a9_s2 holds it). */
+#define HW_A10_P   0u        /* the sample in both halves (audio9's) */
+#define HW_A10_U   1u        /* the upper half alone, the lower 0 */
+#define HW_A10_L   2u        /* the lower half alone, the upper 0 */
+#define HW_A10_N   3u        /* the sample upper, its negative lower */
+#define HW_A10_N2  4u        /* the negative upper, the sample lower */
+#define HW_A10_FMTS 5u
+#define HW_A10_FMT_LOG 8u
+#define HW_A10_MRING 40u
+#define HW_A10_HOLD_LOG 8u
+#define HW_A10_SCAN_MS 5000u
+#define HW_A10_STILL_MS 1000u
+#define HW_A10_ZERO   0u     /* the holds, by bit: the link plays zeros */
+#define HW_A10_LED    1u     /* the LED guide's blink held */
+#define HW_A10_SCREEN 2u     /* the screen's redraws held */
+#define HW_A10_LOG    3u     /* the log's writes held (dropped and counted) */
+#define HW_A10_SCAN   4u     /* the matrix scan and main's sweeps held, 0xFFFF latched */
 #define HW_A9_LATE_MAX 50u   /* late halves after which the interrupt goes back to the tone */
 #define HW_A9_PB5_SETTLE_MS 50u
 #define HW_A9_DAA7_MS 60000u
 #define HW_A8_PINS   11u    /* PC0, PC1, PC2, PC6, PA4 to PA10 */
-#define HW_A8_EVENTS 120u
+#define HW_A8_EVENTS 32u     /* 120 before layout 9 (audio10 needed the room) */
 #define HW_A8_EV_PER 12u
 #define HW_A8_SAMPLE_MS 10u
 #define HW_A8_WATCH_MS  100u
@@ -415,7 +436,16 @@ struct hw_audio {
     u32 pb5_now, pb5_raw_changes, pb5_settled, pb5_logged; /* PB5 now; its changes as the scan saw them; the settled level; settled changes written to the log */
     u32 pb5_t[HW_A9_PB5_TIMES]; /* the beats of its last raw changes, newest at (pb5_raw_changes - 1) % HW_A9_PB5_TIMES */
     u32 daa7_boot, daa7_route, daa7_last, daa7_reads, daa7_changes; /* DAA_CON7 at start-up, after the route, last read (each minute); reads; changes seen */
-    u32 a9_words[HW_A9_S2_N][4]; /* the first words of a half filled in each S2 state (the 16-bit build) */
+    u32 a9_words[HW_A10_FMTS][4]; /* the first words of a half filled in each format (S2's three, audio10's five; the 16-bit build) */
+    /* audio10 (clean-br17-audio10), after audio9's; a9_s2 holds F's format. */
+    u32 a10_fmt_changes, a10_fmt_t[HW_A10_FMT_LOG]; /* format changes; their beats << 3 | the format, the last HW_A10_FMT_LOG */
+    u32 a10_fill_max, a10_fill_max8, a10_voices_max; /* the synth's own fill (sb_now units): longest, longest with 8 voices sounding; most voices */
+    u32 a10_soft, a10_hard;     /* samples the soft clip bent; samples saturated at full scale */
+    u32 m_value, m_raw, m_tone_gain, m_synth_target; /* MASTER: its value (the mean input.c reports), the ADC's last reading, the tone's gain and the synth's level now */
+    u32 m_changes, m_jumps, m_maxdelta, m_ring_n; /* value changes; raw readings more than 32 from the one before; the largest such step; ring entries */
+    u32 m_ring[HW_A10_MRING];   /* beats << 10 (the low 22 bits of beats / 4) | value; the last HW_A10_MRING changes */
+    u32 holds, hold_n, hold_t[HW_A10_HOLD_LOG]; /* the holds on now (bits HW_A10_*); changes; beats << 8 | hold << 1 | on */
+    u32 log_dropped, scan_until; /* records not written while the log was held; the beat the scan hold ends */
 };
 #define HW_L_NONE    0u
 #define HW_L_KEPT    1u     /* the link moved with the matrix right: the set-up running */
@@ -470,6 +500,10 @@ void hw_a9_synth_key(void);
 void hw_a9_s2_key(void);
 void hw_a9_pb5_poll(void);
 void hw_a9_tick(void);
+void hw_a10_fmt_key(void);
+void hw_a10_hold_key(u32 hold);
+void hw_a10_master(u32 value);
+void hw_a10_pot_poll(void);
 void hw_matrix_check(u32 *idle, u32 *map);
 void hw_port_a(u32 *w);
 void hw_scan_pause(void);

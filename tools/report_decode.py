@@ -29,7 +29,7 @@ import zlib
 
 MAGIC = 0x4C524253          # "SBRL" (hw_fm1.h, HW_LOG_MAGIC)
 REC = 4096                  # HW_LOG_REC, since layout 6 (audio7); 2048 for layouts 3 to 5, 1024 before
-REC_OF = {1: 1024, 2: 1024, 3: 2048, 4: 2048, 5: 2048, 6: 4096, 7: 4096, 8: 4096}   # a record's size by its layout
+REC_OF = {1: 1024, 2: 1024, 3: 2048, 4: 2048, 5: 2048, 6: 4096, 7: 4096, 8: 4096, 9: 4096}   # a record's size by its layout
 HEAD = 12                   # HW_LOG_HEAD
 LOG_END = 0x94000           # HW_LOG_END
 LOG_SECTORS = 96            # HW_LOG_SECTORS, since audio6 (64 in audio5, 32 before)
@@ -225,8 +225,31 @@ def _layout8():
     return l7[:len(l7) - health] + f + l7[len(l7) - health:]
 
 
+A10_FMTS = ("P", "U", "L", "N", "N'")
+
+
+def _layout9():
+    """Layout 9 (clean-br17-audio10): layout 8 with the sense scan's event
+    list cut from 120 to 32, the first words kept for each of F's five
+    formats (S2's three before), and audio10's fields after MIDI out's
+    bytes, before layout 4's log health."""
+    l8 = _layout8()
+    health = len(_layout4()) - len(_layout3())
+    body = [n for n in l8[:len(l8) - health]
+            if not (n.startswith("se_ev_") and int(n[6:]) >= 32) and not n.startswith("a9_words_")]
+    i = body.index("midi_out_bytes")
+    words = ["a9_words_%s_%d" % (st, k) for st in A10_FMTS for k in range(4)]
+    f = ["a10_fmt_changes"] + ["a10_fmt_t_%d" % k for k in range(8)]
+    f += ["a10_fill_max_units", "a10_fill_max8_units", "a10_voices_max", "a10_soft_clipped", "a10_saturated"]
+    f += ["m_value", "m_raw_at_change", "m_raw_now", "m_tone_gain", "m_synth_level", "m_changes", "m_raw_jumps",
+          "m_raw_max_step", "m_ring_n"] + ["m_ring_%d" % k for k in range(40)]
+    f += ["holds", "hold_n"] + ["hold_t_%d" % k for k in range(8)] + ["log_dropped", "scan_until"]
+    return body[:i] + words + ["midi_out_bytes"] + f + body[i + 1:] + l8[len(l8) - health:]
+
+
 FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7(),
-          8: _layout8()}
+          8: _layout8(), 9: _layout9()}
+HOLDS = ("zero", "LED", "screen", "log", "scan")
 A9_ROUTE = ("not up", "UP", "down (key)", "UNDONE by the firmware", "no L2: not tried")
 A9_S2 = ("both halves", "upper half only", "lower half only")
 A8_OFF = ("on", "not an audio8 build", "L2 not running", "OFF: a check after an undo failed")
@@ -294,11 +317,33 @@ def derived(fields):
     the 24 MHz crystal)."""
     out = []
     f = fields
+    if "a10_fmt_changes" in f and (f.get("daa7_reads") or f.get("m_value")):
+        n = f["a10_fmt_changes"]
+        fl = [f["a10_fmt_t_%d" % (k % 8)] for k in range(max(0, n - 8), n)]
+        out.append("audio10: F %s (%d changes: %s); synth fill longest %.1f us, with 8 voices %.1f us, most voices %d;"
+                   " soft clipped %d, saturated %d" % (
+                       A10_FMTS[min(f["a9_s2"], 4)] if "a9_s2" in f else "?", n,
+                       ", ".join("beat %d %s" % (w >> 3, A10_FMTS[min(w & 7, 4)]) for w in fl),
+                       f["a10_fill_max_units"] / 24.0, f["a10_fill_max8_units"] / 24.0, f["a10_voices_max"],
+                       f["a10_soft_clipped"], f["a10_saturated"]))
+        n = f["m_ring_n"]
+        ring = [f["m_ring_%d" % (k % 40)] for k in range(max(0, n - 40), n)]
+        out.append("MASTER %d (raw %d at the change, %d now); tone gain %d, synth level %d of 16777216; %d changes,"
+                   " raw jumps %d, largest raw step %d; last changes (beat value): %s" % (
+                       f["m_value"], f["m_raw_at_change"], f["m_raw_now"], f["m_tone_gain"], f["m_synth_level"],
+                       f["m_changes"], f["m_raw_jumps"], f["m_raw_max_step"],
+                       " ".join("%d:%d" % ((w >> 10) * 4, w & 0x3FF) for w in ring)))
+        n = f["hold_n"]
+        ht = [f["hold_t_%d" % (k % 8)] for k in range(max(0, n - 8), n)]
+        out.append("holds now: %s; changes: %s; log records dropped %d" % (
+            ", ".join(h for i, h in enumerate(HOLDS) if f["holds"] >> i & 1) or "none",
+            ", ".join("beat %d %s %s" % (w >> 8, HOLDS[min(w >> 1 & 127, 4)], "on" if w & 1 else "off") for w in ht),
+            f["log_dropped"]))
     if "a9_route" in f and (f.get("a9_route") or f.get("daa7_reads")):
         out.append("audio9: route %s (up %d, down %d); %s, S2 %s; late halves %d since the synth came on, longest fill"
                    " %.1f us (a half is 2902 us), fallback %s; engine blocks %d; underruns %d" % (
                        A9_ROUTE[min(f["a9_route"], 4)], f["a9_route_ups"], f["a9_route_downs"],
-                       "SYNTH" if f["a9_synth"] else "tone", A9_S2[min(f["a9_s2"], 2)], f["a9_late_halves"],
+                       "SYNTH" if f["a9_synth"] else "tone", (A10_FMTS[min(f["a9_s2"], 4)] if "a10_fmt_changes" in f else A9_S2[min(f["a9_s2"], 2)]), f["a9_late_halves"],
                        f["a9_fill_max_units"] / 24.0, "at beat %d" % f["a9_fallback_beat"] if f["a9_fallback_beat"]
                        else "no", f["a9_engine_blocks"], f["audio_underruns"]))
         n = f["pb5_raw_changes"]
@@ -387,7 +432,9 @@ def derived(fields):
     return out
 
 # Shown in decimal; every other field in hex.
-DECIMAL = {"a9_route", "a9_route_ups", "a9_route_downs", "a9_synth", "a9_synth_ons", "a9_s2", "a9_underruns_at_synth_on",
+DECIMAL = {"a10_fmt_changes", "a10_fill_max_units", "a10_fill_max8_units", "a10_voices_max", "a10_soft_clipped",
+           "a10_saturated", "m_value", "m_raw_at_change", "m_raw_now", "m_tone_gain", "m_synth_level", "m_changes",
+           "m_raw_jumps", "m_raw_max_step", "m_ring_n", "hold_n", "log_dropped", "a9_route", "a9_route_ups", "a9_route_downs", "a9_synth", "a9_synth_ons", "a9_s2", "a9_underruns_at_synth_on",
            "a9_late_halves", "a9_fill_max_units", "a9_fill_last_units", "a9_fallback_beat", "a9_engine_blocks",
            "audio_underruns", "audio_fill_max_units", "pb5_now", "pb5_raw_changes", "pb5_settled", "pb5_logged",
            "daa7_reads", "daa7_changes", "midi_out_bytes", "a8_off", "rec_watch_b15_flips", "rec_watch_irq", "r2_state", "r2_presses", "s1_state", "s1_runs", "rt_kind",

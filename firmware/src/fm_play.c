@@ -1948,7 +1948,11 @@ void fm_block(s32 *out, u32 frames)
     for (n = 0, w = out; n < frames; n++, w += 2) {
         s32 s = (s32)((s64)mix[0][n] * m >> 24);
         m += step;
+#if !defined(SB_HW_AUDIO10)
         s = s > AUDIO_FULL ? AUDIO_FULL : s < -AUDIO_FULL ? -AUDIO_FULL : s;
+#endif
+        /* audio10 (a unit's build): the sum left whole; hw_audio.c's soft
+         * clip and saturation take it (M2, M3). */
         w[0] = s;
         w[1] = s;
     }
