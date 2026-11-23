@@ -913,7 +913,10 @@ digest, so a firmware test always names the exact runner it used.
 - 0.14.0: a USB host behind `--usb` ("USB"): it enumerates the device on
   the first core, configures it, sends the script's `usbmidi` packets to
   its MIDI streaming interface and logs the device's. Without the flag,
-  outputs are as in 0.13.0.
+  outputs are as in 0.13.0. Published from main at `f124a6b4` (#239's
+  merge, 2026-11-22) as
+  `ghcr.io/japes98/small-beeps@sha256:0c8f53240494b8aa7ba7e0767b432963e4aa0e23fbc3045677530b1ce9cef470`;
+  its pin is the clean side's next pull request that uses `--usb`.
 - 0.13.0: the chip's 16-bit audio layout behind `--audio-chip` ("Audio"):
   `LEN` frames a half, one word a frame, when `CON1` sets data 3 to
   16-bit I2S (HW-160, HW-168). Without the flag, outputs are as in

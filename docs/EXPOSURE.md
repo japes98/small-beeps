@@ -3744,6 +3744,42 @@ SR-3 wrote only its barrier-log row.*
 - Read: #241's description and DESIGN-NOTES' audio12 and audio12b entries
   (this repository's own firmware notes).
 - Disk: about 2.7 GB free.
+
+### Session spec-audio13-rulings (audio13 ruled and sent)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio12-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/audio13-rulings` from main after #242; by the
+  round rules, no PR until the next round's.
+- The owner's rulings for audio13, saved unedited as
+  docs/prompts/spec-audio13-rulings.md. #242's first CI run failed at
+  checkout (the runner couldn't reach the host); the failed jobs were run
+  again, passed, and #242 was merged as the owner asked.
+- audio13 (drop/prompts/clean-br17-audio13.md, outside the repository)
+  marked ruled and sent to the clean session once #242 was on main.
+- Read: nothing new.
+
+### Session spec-audio13-unit (audio13 on the unit; U3 set out)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio13-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on `spec/audio13-rulings`.
+- The owner's message (audio13's results; U3 and the ARP fix to set
+  out), saved unedited as docs/prompts/spec-audio13-unit.md; HARDWARE-SPEC
+  section 51 (HW-176, HW-177) and notes on Q-36; HARNESS.md "Versions"
+  gains 0.14.0's published digest.
+- Merged clean's open branch `hw/audio13` (#243) into this one, with no
+  conflicts.
+- Read: #243's description; for Q-36, JieLi's fw-Bootloader (Apache-2.0)
+  user boot's USB files for the WL82 and fw-AC63_GP_MCU's AC636N
+  `gpio.c` (PROVENANCE P-515): nothing new taken; the set-up writes are in
+  a prebuilt library there too.
+- Drafted drop/prompts/clean-br17-audio14-draft.md outside the repository
+  (the ARP save fix, U3's device in fwtest only), marked as awaiting the
+  owner's ruling.
+- Disk: about 2.6 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
@@ -4095,6 +4131,27 @@ SR-3 wrote only its barrier-log row.*
   `f124a6b4`. The backup the owner names was not opened: it is the owner's
   file, outside this folder.
 - Disk: about 2.8 GB free.
+
+### Session clean-br17-audio13 (BR-17: power-on to the instrument; U2's USB reads; ARP's steps timed)
+- Date: 2026-11-22 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.330, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio12b's, continued. The prompt came from the spec session
+  through the owner's cross-session relay, saved unedited as
+  docs/prompts/clean-br17-audio13.md.
+- Start: branch `hw/audio13` from main at `e59f3dca` (#241 and #242
+  merged), brought in by tools/clean-update.sh. Nothing to archive (the
+  last clean session is this one, live); tools/check-transcripts.py PASS.
+- Reads: this side's own code and builds; HARDWARE-SPEC sections 49 and 50
+  (HW-171 to HW-175, Q-36) and HW-86, HW-91, HW-117 and HW-129, and
+  docs/prompts/spec-usb-u2-rulings.md and spec-usb-u2-rulings2.md, as on
+  main at `e59f3dca`; the vendored SDK header `WL82.h`'s `JL_USB` and
+  `JL_USB_IO` blocks, which HW-171 cites and the build already includes.
+- Disk: about 2.5 GB free.
 
 ## Corrections
 

@@ -35,6 +35,9 @@
 #if defined(SB_HW_AUDIO12) && !defined(SB_HW_AUDIO11)
 #error "SB_HW_AUDIO12 builds on audio11: build it with SB_HW_AUDIO11"
 #endif
+#if defined(SB_HW_AUDIO13) && !defined(SB_HW_AUDIO12)
+#error "SB_HW_AUDIO13 builds on audio12: build it with SB_HW_AUDIO12"
+#endif
 #if defined(SB_HW_PCM16) && !defined(SB_HW_AUDIO8)
 #error "SB_HW_PCM16 is audio8's unit tone: build it with SB_HW_AUDIO8"
 #endif
@@ -155,7 +158,9 @@ void hw_rows_start(void);
 #define HW_LOG_REC     4096u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
-#if defined(SB_HW_AUDIO12)
+#if defined(SB_HW_AUDIO13)
+#define HW_LOG_LAYOUT  12u                  /* tools/report_decode.py's FIELDS[12] */
+#elif defined(SB_HW_AUDIO12)
 #define HW_LOG_LAYOUT  11u                  /* tools/report_decode.py's FIELDS[11] */
 #elif defined(SB_HW_AUDIO11)
 #define HW_LOG_LAYOUT  10u                  /* tools/report_decode.py's FIELDS[10] */
@@ -166,7 +171,11 @@ void hw_rows_start(void);
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
 /* The build's identity in each record: the package's version, which the
  * candidate's pack must match (tools/report-decode.py prints it). */
+#if defined(SB_HW_AUDIO13)
+#define HW_BUILD_ID    "0.13.0-hw3x"
+#else
 #define HW_BUILD_ID    "0.12.1-hw3w"
+#endif
 struct hw_report {
     u32 scanned;                /* the ring read once */
     u32 found;                  /* valid records found then */
@@ -321,6 +330,23 @@ void hw_finder(void) __attribute__((noreturn));
 #define HW_A12_REL_BOUND    0x80000000u /* in sw_rel: the release's wait reached the bound */
 /* G: the note-on log's entries. */
 #define HW_A12_NOTES 16u
+/* audio13 (clean-br17-audio13; the owner's rulings): power-on starts the
+ * instrument (HW_A13_COLD), HOME held then gives the test screen
+ * (HW_A13_HOME). U2: the USB block's five words (the first core's CON0
+ * and CON1, the pins' block's CON0 to CON2, HW-171), read only; the cable
+ * states a to e (HW_A13_STATES); the change log, the state marks and
+ * U2-C's readings; ARP's steps (frames and sb_now units). */
+#define HW_A13_COLD    1u
+#define HW_A13_HOME    2u
+#define HW_A13_WORDS   5u
+#define HW_A13_STATES  5u
+#define HW_A13_RUNS    2u    /* U2-B's runs: U2-C off, then on */
+#define HW_A13_MARKS   16u
+#define HW_A13_CHANGES 24u
+#define HW_A13_C_LOG   32u
+#define HW_A13_C_FIRST 4u
+#define HW_A13_ARP_LOG 48u
+#define HW_A13_GAP_MAX 30000u /* frames: a longer gap is a break (a rest, ARP off), not a step's gap */
 #define HW_A9_LATE_MAX 50u   /* late halves after which the interrupt goes back to the tone */
 #define HW_A9_PB5_SETTLE_MS 50u
 #define HW_A9_DAA7_MS 60000u
@@ -523,6 +549,33 @@ struct hw_audio {
     u32 g_note_n, g_note[HW_A12_NOTES]; /* G: note ons; note << 24 | voice << 16 | ALGORITHM read << 8 | the voice's algorithm << 1 | local control, the last HW_A12_NOTES */
     u32 g_turns, g_turns_off, g_turn_alg; /* ALGORITHM turns the engine took, turns it dropped (local control off), the algorithm after the last */
 #endif
+#if defined(SB_HW_AUDIO13)
+    /* audio13 (clean-br17-audio13). */
+    u32 a13_start;              /* HW_A13_COLD or HW_A13_HOME */
+    u32 u2_boot[HW_A13_WORDS];  /* U2-A: the five words at the app's start (sb_start, before the copy) */
+    u32 u2_late[HW_A13_WORDS];  /* and a second later (before the audio path) */
+    u32 u2_late_beat, u2_late_blocks; /* the beat of that reading, and the audio blocks then (0: before the audio path) */
+    u32 u2_key[HW_A13_WORDS];   /* and at the last press of the re-read key */
+    u32 u2_key_beat, u2_key_n;
+    u32 u2_state, u2_run, u2_polls; /* U2-B: the cable state (0 to 4: a to e); the run (0: U2-C off at its a, 1: on); polls */
+    u32 u2_ref[HW_A13_WORDS];   /* the words when state a was last marked (or at the first poll) */
+    u32 u2_last[HW_A13_WORDS];  /* at the last poll */
+    u32 u2_mark_n, u2_mark[HW_A13_MARKS]; /* state marks: beat << 3 | state, the last HW_A13_MARKS */
+    u32 u2_chg_n, u2_chg[HW_A13_CHANGES][2]; /* changes: beat << 3 | word, then the new value, the last HW_A13_CHANGES */
+    u32 u2_or[HW_A13_RUNS][HW_A13_STATES][HW_A13_WORDS];  /* each word's bits ever set in each run's state */
+    u32 u2_and[HW_A13_RUNS][HW_A13_STATES][HW_A13_WORDS]; /* and always set (all ones before the first poll there) */
+    u32 u2_seen[HW_A13_RUNS];   /* polls in each run, by state: 6 bits each */
+    u32 u2c_on, u2c_toggles;    /* U2-C: channels 12 and 13 in the sweep; key presses */
+    u32 u2c_n[HW_A13_STATES][2], u2c_mm[HW_A13_STATES][2]; /* readings by state and channel; min << 16 | max */
+    u32 u2c_to;                 /* their conversions that timed out */
+    u32 u2c_first[HW_A13_C_FIRST]; /* each turn-on's first readings: ch12 << 16 | ch13 (0xFFFF: none yet) */
+    u32 u2c_log_n, u2c_log[HW_A13_C_LOG]; /* readings: value << 22 | state << 19 | ch13 << 18 | beat / 64 (18 bits) */
+    u32 arp_n, arp_breaks, arp_gaps;  /* ARP: steps seen; chain breaks (a rest or ARP off); gaps measured */
+    u32 arp_gmin_f, arp_gmax_f, arp_gmin_u, arp_gmax_u; /* the shortest and longest gap, frames and sb_now units */
+    u32 arp_last_f, arp_last_u; /* the last gap */
+    u32 arp_best_n, arp_best_f0, arp_best_u0, arp_best_f1, arp_best_u1; /* the longest chain: steps, its first and last step */
+    u32 arp_log[HW_A13_ARP_LOG][2]; /* each step: the engine's frame count, sb_now at its fill; the last HW_A13_ARP_LOG */
+#endif
 };
 #define HW_L_NONE    0u
 #define HW_L_KEPT    1u     /* the link moved with the matrix right: the set-up running */
@@ -587,7 +640,16 @@ int hw_a11_pot_take(u32 *v);
 u32 hw_a11_pot_first(void);
 void hw_a11_big(u32 force);
 void hw_a12_sweep_key(void);
+#if defined(SB_HW_AUDIO13)
+void hw_a12_instrument(u32 cold);
+u32 hw_a13_power_on(void);
+void hw_a13_u2_key(u32 control);
+void hw_a13_u2_poll(void);
+void hw_a13_panel_tick(void);
+extern u32 hw_u2_boot[HW_A13_WORDS];
+#else
 void hw_a12_instrument(void);
+#endif
 const char *hw_step_now(void);
 void hw_matrix_check(u32 *idle, u32 *map);
 void hw_port_a(u32 *w);

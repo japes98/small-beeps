@@ -300,8 +300,50 @@ def _layout11():
     return body + f + l10[len(l10) - health:]
 
 
+A13_STARTS = ("?", "the instrument from power-on", "the test screen (HOME held)")
+A13_WORDS = ("CON0", "CON1", "IO_CON0", "IO_CON1", "IO_CON2")
+A13_STATES = "abcde"
+A13_STATE_NAMES = ("no cable", "a charger", "a computer on", "the computer asleep", "the cable out")
+
+
+def _layout12():
+    """Layout 12 (clean-br17-audio13): layout 11 without the old steps'
+    snapshots and steps H, I, K, J, D, L1 and L2 (audio2 to audio7), with
+    audio13's after audio12's, before layout 4's log health: the start;
+    U2-A's readings of the USB block's five words (the app's start, a
+    second later with its beat and the audio blocks then, the last key's);
+    U2-B (the cable state, the run, the polls, state a's words, the last
+    poll's, the state marks as beat << 3 | state, the changes as beat << 3
+    | word then the value, each run's and state's bits ever and always set,
+    the polls by state); U2-C (on, presses, readings and least << 16 |
+    greatest by state and channel, time-outs, each turn-on's first
+    readings, the log as value << 22 | state << 19 | ch13 << 18 | beat /
+    64); ARP's steps (count, breaks, gaps, the shortest and longest gap in
+    frames and sb_now units, the last, the longest chain's steps and ends,
+    each step's frame count and sb_now)."""
+    l11 = _layout11()
+    health = len(_layout4()) - len(_layout3())
+    a, b = l11.index("rec_before_CON0"), l11.index("a8_boot")
+    body = l11[:a] + l11[b:len(l11) - health]
+    f = ["a13_start"] + ["u2_boot_%s" % w for w in A13_WORDS] + ["u2_late_%s" % w for w in A13_WORDS]
+    f += ["u2_late_beat", "u2_late_blocks"] + ["u2_key_%s" % w for w in A13_WORDS] + ["u2_key_beat", "u2_key_n"]
+    f += ["u2_state", "u2_run", "u2_polls"] + ["u2_ref_%s" % w for w in A13_WORDS] + ["u2_last_%s" % w for w in A13_WORDS]
+    f += ["u2_mark_n"] + ["u2_mark_%d" % k for k in range(16)] + ["u2_chg_n"]
+    f += ["u2_chg_%d_%s" % (k, w) for k in range(24) for w in ("at", "value")]
+    for kind in ("or", "and"):
+        f += ["u2_%s_r%d_%s_%s" % (kind, r, st, w) for r in range(2) for st in A13_STATES for w in A13_WORDS]
+    f += ["u2_seen_r0", "u2_seen_r1", "u2c_on", "u2c_toggles"]
+    f += ["u2c_n_%s_ch%d" % (st, c) for st in A13_STATES for c in (12, 13)]
+    f += ["u2c_mm_%s_ch%d" % (st, c) for st in A13_STATES for c in (12, 13)]
+    f += ["u2c_timeouts"] + ["u2c_first_%d" % k for k in range(4)] + ["u2c_log_n"] + ["u2c_log_%d" % k for k in range(32)]
+    f += ["arp_n", "arp_breaks", "arp_gaps", "arp_gmin_f", "arp_gmax_f", "arp_gmin_units", "arp_gmax_units",
+          "arp_last_f", "arp_last_units", "arp_best_n", "arp_best_f0", "arp_best_u0", "arp_best_f1", "arp_best_u1"]
+    f += ["arp_log_%d_%s" % (k, w) for k in range(48) for w in ("frames", "units")]
+    return body + f + l11[len(l11) - health:]
+
+
 FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7(),
-          8: _layout8(), 9: _layout9(), 10: _layout10(), 11: _layout11()}
+          8: _layout8(), 9: _layout9(), 10: _layout10(), 11: _layout11(), 12: _layout12()}
 HOLDS = ("zero", "LED", "screen", "log", "scan")
 A9_ROUTE = ("not up", "UP", "down (key)", "UNDONE by the firmware", "no L2: not tried")
 A9_S2 = ("both halves", "upper half only", "lower half only")
@@ -414,12 +456,17 @@ def audio11_lines(f):
     out.append("  level %.2f%% of full; large area: %s" % (f["m_level"] / 100.0, " | ".join(big_text(f))))
     if "as_state" in f:
         out += audio12_lines(f)
+    if "a13_start" in f:
+        out += audio13_lines(f)
     return out
 
 
 def audio12_lines(f):
+    mode = A12_MODES[min(f["start_mode"], 2)]
+    if f.get("a13_start") == 1 and f["start_mode"] == 1:
+        mode = "the instrument (from power-on)"
     out = ["audio12: running %s; sweep %s (algorithm %d, %d runs, %d chords%s)" % (
-        A12_MODES[min(f["start_mode"], 2)], A12_SWEEP[min(f["as_state"], 4)], f["as_alg"], f["as_runs"],
+        mode, A12_SWEEP[min(f["as_state"], 4)], f["as_alg"], f["as_runs"],
         f["as_chords"], ", a stop asked" if f["as_stop"] else "")]
     for k in range(1, 11):
         w, r = f["as_fill_%d" % k], f["as_rel_frames_%d" % k]
@@ -435,6 +482,68 @@ def audio12_lines(f):
                    n, f["g_turns"], f["g_turns_off"], f["g_turn_alg"],
                    " ".join("%d v%d A%d->A%d%s" % (w >> 24, w >> 16 & 0xFF, w >> 8 & 0xFF, w >> 1 & 0x7F,
                                                    "" if w & 1 else " LOCAL OFF") for w in ns)))
+    return out
+
+
+def _hexes(f, pre):
+    return " ".join("%s %08X" % (w, f["%s_%s" % (pre, w)]) for w in A13_WORDS)
+
+
+def audio13_lines(f):
+    """audio13's U2-A, U2-B, U2-C and ARP, as the owner's run reads them."""
+    us = lambda u: u / 24.0
+    out = ["audio13: started %s" % A13_STARTS[min(f["a13_start"], 2)],
+           "  U2-A at the app's start: %s" % _hexes(f, "u2_boot"),
+           "  U2-A a second later (beat %d, %d audio blocks then): %s" % (
+               f["u2_late_beat"], f["u2_late_blocks"], _hexes(f, "u2_late"))]
+    if f["u2_key_n"]:
+        out.append("  U2-A on the key (%d presses, the last at beat %d): %s" % (
+            f["u2_key_n"], f["u2_key_beat"], _hexes(f, "u2_key")))
+    if f["u2_polls"] or f["u2_mark_n"]:
+        n = f["u2_mark_n"]
+        marks = [f["u2_mark_%d" % (k % 16)] for k in range(max(0, n - 16), n)]
+        out.append("  U2-B: state %s (%s), run %d, %d polls; marks: %s" % (
+            A13_STATES[min(f["u2_state"], 4)], A13_STATE_NAMES[min(f["u2_state"], 4)], f["u2_run"] + 1, f["u2_polls"],
+            ", ".join("beat %d %s" % (m >> 3, A13_STATES[min(m & 7, 4)]) for m in marks) or "none"))
+        n = f["u2_chg_n"]
+        chg = [(f["u2_chg_%d_at" % (k % 24)], f["u2_chg_%d_value" % (k % 24)]) for k in range(max(0, n - 24), n)]
+        out.append("  U2-B: %d changes%s" % (n, ": " + ", ".join(
+            "beat %d %s=%08X" % (a >> 3, A13_WORDS[min(a & 7, 4)], v) for a, v in chg) if chg else ""))
+        for r in range(2):
+            for i, st in enumerate(A13_STATES):
+                seen = f["u2_seen_r%d" % r] >> (6 * i) & 63
+                if not seen:
+                    continue
+                out.append("    run %d state %s (%d polls%s): %s" % (
+                    r + 1, st, seen, "+" if seen == 63 else "", "; ".join(
+                        "%s set %08X always %08X" % (w, f["u2_or_r%d_%s_%s" % (r, st, w)], f["u2_and_r%d_%s_%s" % (r, st, w)])
+                        for w in A13_WORDS)))
+    if f["u2c_toggles"]:
+        out.append("  U2-C: %s, %d presses, %d timed out; first readings after each turn-on (ch12/ch13): %s" % (
+            "on" if f["u2c_on"] else "off", f["u2c_toggles"], f["u2c_timeouts"], ", ".join(
+                "%s/%s" % tuple("-" if v == 0xFFFF else str(v) for v in (w >> 16, w & 0xFFFF))
+                for w in (f["u2c_first_%d" % k] for k in range(4)) if w != 0xFFFFFFFF) or "none"))
+        for st in A13_STATES:
+            cs = [(c, f["u2c_n_%s_ch%d" % (st, c)], f["u2c_mm_%s_ch%d" % (st, c)]) for c in (12, 13)]
+            if any(n for _, n, _ in cs):
+                out.append("    state %s: %s" % (st, ", ".join(
+                    "ch%d %d readings %d to %d" % (c, n, mm >> 16, mm & 0xFFFF) for c, n, mm in cs if n)))
+        n = f["u2c_log_n"]
+        log = [f["u2c_log_%d" % (k % 32)] for k in range(max(0, n - 32), n)]
+        out.append("    logged (beat~ state ch value): " + ", ".join(
+            "%d %s %d %d" % ((w & 0x3FFFF) * 64, A13_STATES[min(w >> 19 & 7, 4)], 12 + (w >> 18 & 1), w >> 22) for w in log))
+    if f["arp_n"]:
+        span_f, span_u = f["arp_best_f1"] - f["arp_best_f0"], (f["arp_best_u1"] - f["arp_best_u0"]) & 0xFFFFFFFF
+        out.append("  ARP: %d steps, %d gaps, %d breaks; gap %d to %d frames, %.1f to %.1f us; the last %d frames, %.1f us"
+                   % (f["arp_n"], f["arp_gaps"], f["arp_breaks"], f["arp_gmin_f"], f["arp_gmax_f"],
+                      us(f["arp_gmin_units"]), us(f["arp_gmax_units"]), f["arp_last_f"], us(f["arp_last_units"])))
+        if f["arp_best_n"] > 1 and span_u:
+            out.append("    the longest chain: %d steps, %d frames in %.1f us: %.1f frames a second, %.3f ms a step"
+                       % (f["arp_best_n"], span_f, us(span_u), span_f * 24e6 / span_u,
+                          us(span_u) / 1000.0 / (f["arp_best_n"] - 1)))
+        n = f["arp_n"]
+        steps = [(f["arp_log_%d_frames" % (k % 48)], f["arp_log_%d_units" % (k % 48)]) for k in range(max(0, n - 48), n)]
+        out.append("    steps (frames/us): " + " ".join("%d/%.0f" % (a, us(b)) for a, b in steps))
     return out
 
 
@@ -582,6 +691,10 @@ DECIMAL = {"a10_fmt_changes", "a10_fill_max_units", "a10_fill_max8_units", "a10_
 DECIMAL |= {n for n in FIELDS[10] if n.startswith(("adc_conv", "adc_passes", "adc_slot", "adc_setup", "adc_set_n",
                                                      "m_jump_n", "m_level"))
             or (n.startswith("adc_") and n.endswith(("_n", "_rest")))}
+DECIMAL |= {n for n in FIELDS[12] if n.startswith(("a13_start", "u2_late_beat", "u2_late_blocks", "u2_key_beat",
+                                                     "u2_key_n", "u2_state", "u2_run", "u2_polls", "u2_mark_n",
+                                                     "u2_chg_n", "u2c_on", "u2c_toggles", "u2c_n_", "u2c_timeouts",
+                                                     "u2c_log_n", "arp_"))}
 DECIMAL |= {n for n in FIELDS[11] if n.startswith(("start_mode", "as_state", "as_alg", "as_runs", "as_stop",
                                                      "as_chords", "as_soft", "as_hard", "as_late", "as_rel",
                                                      "g_note_n", "g_turn"))}

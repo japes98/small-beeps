@@ -2105,9 +2105,12 @@ def case_audio3(a, work, log):
 
 
 def _build_id():
-    """The hardware build's identity, as hw_fm1.h's HW_BUILD_ID gives it."""
+    """The hardware build's identity, as hw_fm1.h's HW_BUILD_ID gives it to
+    a build without the newest round's define (case report1's): the last
+    of its definitions, the #else of the newest round's (since audio13,
+    whose own identity comes first)."""
     with open(os.path.join(ROOT, "firmware", "src", "hw_fm1.h")) as f:
-        return re.search(r'#define HW_BUILD_ID\s+"([^"]+)"', f.read()).group(1)
+        return re.findall(r'#define HW_BUILD_ID\s+"([^"]+)"', f.read())[-1]
 
 
 BUILD_ID = _build_id()
@@ -3584,6 +3587,223 @@ def case_audio12(a, work, log):
     return problems
 
 
+A13_DEFINES = A12_DEFINES + ("--define", "SB_HW_AUDIO13")
+A13_INST = ["boot", "Inst engine", "Inst synth", "Synth on", "Inst ALNK0", "Inst L2", "L2 before", "L2 kept",
+            "Inst R2", "R2 before", "R2 set", "Inst route", "Route before", "Route kept", "Inst panel"]
+A13_FWTEST_WORDS = (0, 0x8000, 0, 0, 0)   # the five words as fwtest reads them with no --usb: CON1's bit 15 set
+
+
+def a13_labels(rs):
+    return [x["label"] for x in rs if x["label"] != "MASTER still" and not x["label"].startswith("PB5")]
+
+
+def a13_cold(work, log, b, name, sy):
+    """Power-on with nothing held in build b: KEY1, then ARP on and two keys
+    held 10 s, REC (the panel's save), OCT- (the test screen's U2-A key:
+    nothing in the panel). Returns the result, the records and audio.wav's
+    left channel and rate."""
+    rd = report_decoder()
+    path = os.path.join(work, name + ".script")
+    with open(path, "w") as f:
+        for t, k, d in ((12000, HW_KEY1, 300), (13000, HW_ARP_KEY, 100), (24000, HW_REC, 100),
+                        (24500, HW_OCTDOWN, 100)):
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + d, k))
+        for k in (HW_KEY1, HW_KEY5):
+            f.write("13500 key %d down\n23500 key %d up\n" % (k, k))
+    out = os.path.join(work, name)
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "25500", "--flash-out", "--wav", "--script",
+               os.path.relpath(path, ROOT), "--ram", "0x%08x:8@end" % sy["sb_ui"])
+    with open(os.path.join(out, "flash.bin"), "rb") as f:
+        rs, bad = rd.records(f.read())
+    rate, left, _ = aa.read_wav(os.path.join(out, "audio.wav"))
+    return r, rs, bad, left, rate, struct.unpack("<2I", ram(out, sy["sb_ui"], 8))[0]
+
+
+def a13_arp_check(f, name, slow):
+    """ARP's steps in a record: the gaps in frames (5514 +-2), each step's
+    two times, the gap by sb_now (125 ms of the unit's, 50 of fwtest's
+    slower TIMER0's), at least 64 steps in one chain."""
+    n = f.get("arp_n", 0)
+    steps = [(f["arp_log_%d_frames" % (k % 48)], f["arp_log_%d_units" % (k % 48)]) for k in range(max(0, n - 48), n)]
+    df = [y[0] - x[0] for x, y in zip(steps, steps[1:])]
+    du = [(y[1] - x[1]) / 24000.0 for x, y in zip(steps, steps[1:])]
+    want = 125.0 / slow
+    ok = (n >= 64 and f["arp_best_n"] >= 64 and abs(f["arp_gmin_f"] - 5514) <= 2 and abs(f["arp_gmax_f"] - 5514) <= 2
+          and all(abs(d - 5514) <= 2 for d in df) and all(abs(d - want) < 3.5 for d in du)
+          and abs(f["arp_gmin_units"] / 24000.0 - want) < 3.5 and abs(f["arp_gmax_units"] / 24000.0 - want) < 3.5)
+    text = "%s: %d steps (chain %d), gaps %d to %d frames, %.2f to %.2f ms by sb_now (%.0f expected here)" % (
+        name, n, f.get("arp_best_n", 0), f.get("arp_gmin_f", 0), f.get("arp_gmax_f", 0),
+        f.get("arp_gmin_units", 0) / 24000.0, f.get("arp_gmax_units", 0) / 24000.0, want)
+    return ok, text
+
+
+def case_audio13(a, work, log):
+    """audio13 (clean-br17-audio13). D5: with nothing held the instrument's
+    start runs from cold (the engine, the synth, ALNK0, L2, R2, the route,
+    a record before each stage) to the panel with sound, no test screen;
+    its self-undo forced, the panel runs silent and says why; HOME held
+    gives the test screen. U2-A: the USB block's five words read at the
+    app's start and a second later, before the audio path (0 audio blocks),
+    in both starts' boot records, and on OCT- in the test screen only.
+    U2-B: SAVE steps the cable state a to e, each mark and each change of a
+    word logged with its beat (a change made by the test seam), the large
+    area "SAME AS A" or "CHANGED C0". U2-C: off at start-up, OCT+ puts
+    channels 12 and 13 in the SARADC's sweep and takes them out. ARP: on
+    from the panel, its steps 5514 frames apart on both layouts, each
+    step's frame count and sb_now logged, REC's save in the panel. The
+    unit's build, packed from the package link, runs past the start's
+    bands through fwtest's package path; the raw link stops at them."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    glyphs = font_glyphs()
+    g = lambda f, k: f.get(k, 0)
+    words = lambda f, pre: tuple(g(f, "%s_%s" % (pre, w)) for w in rd.A13_WORDS)
+    # D5 and ARP: power-on, fwtest's layout and the unit's.
+    arp = {}
+    for name, extra in (("cold", ()), ("cold-pcm16", ("--define", "SB_HW_PCM16"))):
+        b = os.path.join(work, "build-" + name)
+        build(b, log, *A13_DEFINES, *extra)
+        sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+        r, rs, bad, left, rate, marker = a13_cold(work, log, b, name, sy)
+        labels = a13_labels(rs)
+        boot = rs[0]["fields"] if rs else {}
+        last = rs[-1]["fields"] if rs else {}
+        panel = next((x["fields"] for x in rs if x["label"] == "Inst panel"), {})
+        played = left[len(left) - int(13.5 * rate):len(left) - int(13.2 * rate)]
+        if r["run"]["outcome"] != "completed" or bad or any(x["layout"] != 12 or x["count"] != len(rd.FIELDS[12])
+                                                             for x in rs):
+            problems.append("audio13 %s: %s, %d bad records, layouts %s" % (
+                name, r["run"]["outcome"], len(bad), sorted({(x["layout"], x["count"]) for x in rs})))
+        if labels != A13_INST + ["Panel save"] or g(panel, "a13_start") != 1 or g(panel, "start_mode") != 1 \
+                or g(panel, "a9_route") != 1 or g(panel, "a9_synth") != 1 or rd.big_text(panel)[0] != "audio12: sound o" \
+                or marker != 0x38495553 or not played or max(abs(v) for v in played) < 100:
+            problems.append("audio13 D5 %s: records %s, start %d mode %d route %d synth %d, line %s, panel marker %x,"
+                            " KEY1 peak %d" % (name, labels, g(panel, "a13_start"), g(panel, "start_mode"),
+                                               g(panel, "a9_route"), g(panel, "a9_synth"), rd.big_text(panel), marker,
+                                               max([abs(v) for v in played] or [0])))
+        if words(boot, "u2_boot") != A13_FWTEST_WORDS or words(boot, "u2_late") != A13_FWTEST_WORDS \
+                or g(boot, "u2_late_blocks") or g(boot, "u2_late_beat") < 1000 or g(last, "u2_key_n") \
+                or g(last, "u2_polls") or g(last, "u2c_toggles"):
+            problems.append("audio13 U2-A %s: boot record start %s, later %s at beat %d with %d audio blocks;"
+                            " in the panel key reads %d, polls %d, U2-C presses %d (none)" % (
+                                name, words(boot, "u2_boot"), words(boot, "u2_late"), g(boot, "u2_late_beat"),
+                                g(boot, "u2_late_blocks"), g(last, "u2_key_n"), g(last, "u2_polls"),
+                                g(last, "u2c_toggles")))
+        # By sb_now, fwtest's TIMER0 is 2.5 times slow; and in the 16-bit layout fwtest takes the unit's half (two
+        # engine blocks, 128 frames) in the time of one of its own 64-frame halves, so the audio runs twice as fast.
+        ok, text = a13_arp_check(last, name, HW_RATIO * (2 if extra else 1))
+        arp[name] = text
+        if not ok:
+            problems.append("audio13 ARP " + text)
+    # D5's self-undo, forced: the panel runs, silent, and says why.
+    ub = os.path.join(work, "build-undo")
+    build(ub, log, *A13_DEFINES, "--define", "SB_TEST_A9_CHECK_FAIL")
+    usy = fws.elf_symbols(os.path.join(ub, "app.elf"))
+    uout = os.path.join(work, "undo")
+    ur = fwtest(os.path.join(ub, "app.bin"), uout, log, "--ms", "9000", "--flash-out", "--ram",
+                "0x%08x:8@end" % usy["sb_ui"])
+    with open(os.path.join(uout, "flash.bin"), "rb") as f:
+        urs, _ = rd.records(f.read())
+    ubf = urs[-1]["fields"] if urs else {}
+    uline = "".join(rd.big_text(ubf))
+    umarker = struct.unpack("<2I", ram(uout, usy["sb_ui"], 8))[0]
+    if ur["run"]["outcome"] != "completed" or not urs or urs[-1]["label"] != "Inst panel" or g(ubf, "a9_route") != 3 \
+            or g(ubf, "a13_start") != 1 or not uline.startswith("NO SOUND: ") or umarker != 0x38495553:
+        problems.append("audio13 D5 undo: %s, last %s, route %d, line %r, panel marker %x" % (
+            ur["run"]["outcome"], urs[-1]["label"] if urs else None, g(ubf, "a9_route"), uline, umarker))
+    # HOME held at power-on: the test screen; U2-A's key; U2-B's states (CON0's bit 5 set in b to d by the test
+    # seam); U2-C on and off; a save.
+    hb = os.path.join(work, "build-home")
+    build(hb, log, *A13_DEFINES, "--define", "SB_TEST_A13_U2_CHANGE")
+    keys = [(9000, HW_OCTDOWN), (10000, HW_SAVE), (11000, HW_SAVE), (12000, HW_SAVE), (13000, HW_SAVE),
+            (14000, HW_OCTUP), (17000, HW_OCTUP), (18000, HW_EDIT)]
+    hpath = os.path.join(work, "home.script")
+    with open(hpath, "w") as f:
+        # Held past core 1's screen, where the start reads it (about 3.3 s at fwtest's slower slots).
+        f.write("0 key %d down\n5000 key %d up\n" % (HW_HOME, HW_HOME))
+        for t, k in keys:
+            f.write("%d key %d down\n%d key %d up\n" % (t, k, t + 100, k))
+    shots = (10700, 13700, 16500)   # after the audio page's 10 s
+    hout = os.path.join(work, "home")
+    hr = fwtest(os.path.join(hb, "app.bin"), hout, log, "--ms", "19000", "--flash-out", "--script",
+                os.path.relpath(hpath, ROOT), *[x for t in shots for x in ("--lcd", str(t))])
+    with open(os.path.join(hout, "flash.bin"), "rb") as f:
+        hrs, hbad = rd.records(f.read())
+    hl = a13_labels(hrs)
+    rec = lambda lab: next((x["fields"] for x in hrs if x["label"] == lab), {})
+    hboot, ue, uon, uoff, hlast = rec("boot"), rec("U2 e"), rec("U2-C on"), rec("U2-C off"), rec("save key")
+    want = ["boot", "L2 before", "L2 kept", "R2 before", "R2 set", "Route before", "Route kept", "page", "U2-A key",
+            "U2 b", "U2 c", "U2 d", "U2 e", "U2-C on", "U2-C off", "save key"]
+    if hr["run"]["outcome"] != "completed" or hbad or hl != want or g(hlast, "a13_start") != 2 \
+            or g(hlast, "start_mode") != 2:
+        problems.append("audio13 HOME: %s, %d bad, records %s (want %s), start %d mode %d" % (
+            hr["run"]["outcome"], len(hbad), hl, want, g(hlast, "a13_start"), g(hlast, "start_mode")))
+    if words(hboot, "u2_boot") != A13_FWTEST_WORDS or words(hboot, "u2_late") != A13_FWTEST_WORDS \
+            or g(hboot, "u2_late_blocks") or g(hboot, "u2_late_beat") < 1000 or g(hlast, "u2_key_n") != 1 \
+            or words(hlast, "u2_key") != A13_FWTEST_WORDS:
+        problems.append("audio13 U2-A HOME: boot %s, later %s at beat %d, %d audio blocks; key %d reads %s" % (
+            words(hboot, "u2_boot"), words(hboot, "u2_late"), g(hboot, "u2_late_beat"), g(hboot, "u2_late_blocks"),
+            g(hlast, "u2_key_n"), words(hlast, "u2_key")))
+    n = g(hlast, "u2_mark_n")
+    marks = [g(hlast, "u2_mark_%d" % (k % 16)) & 7 for k in range(max(0, n - 16), n)]
+    n = g(hlast, "u2_chg_n")
+    chg = [(g(hlast, "u2_chg_%d_at" % (k % 24)) & 7, g(hlast, "u2_chg_%d_value" % (k % 24))) for k in range(n)]
+    if marks != [1, 2, 3, 4, 0] or chg != [(0, 0x20), (0, 0)] or not g(hlast, "u2_polls") \
+            or not g(hlast, "u2_or_r0_b_CON0") & 0x20 or g(hlast, "u2_or_r0_a_CON0") & 0x20 \
+            or g(hlast, "u2_and_r0_c_CON0") & 0x20 != 0x20:
+        problems.append("audio13 U2-B: marks %s (b c d e a), changes %s (CON0 to 20, back to 0), %d polls, CON0 set in"
+                        " a %08X b %08X" % (marks, chg, g(hlast, "u2_polls"), g(hlast, "u2_or_r0_a_CON0"),
+                                            g(hlast, "u2_or_r0_b_CON0")))
+    c_n = lambda f: [g(f, "u2c_n_%s_ch%d" % (st, c)) + 0 for st in rd.A13_STATES for c in (12, 13)]
+    if any(c_n(ue)) or g(ue, "u2c_on") or not g(uoff, "u2c_n_a_ch12") + g(uoff, "u2c_timeouts") \
+            or not g(uoff, "u2c_n_a_ch13") + g(uoff, "u2c_timeouts") or c_n(hlast) != c_n(uoff) \
+            or g(uon, "u2c_on") != 1 or g(uoff, "u2c_on") or g(hlast, "u2c_toggles") != 2:
+        problems.append("audio13 U2-C: readings before %s, at off %s (time-outs %d), after %s; on %d/%d, presses %d" % (
+            c_n(ue), c_n(uoff), g(uoff, "u2c_timeouts"), c_n(hlast), g(uon, "u2c_on"), g(uoff, "u2c_on"),
+            g(hlast, "u2c_toggles")))
+    big = {}
+    for t, w0, w2 in zip(shots, ("B CHANGED C0", "E SAME AS A", "A SAME AS A"), ("U2C OFF", "U2C OFF", "U2C ")):
+        png = os.path.join(hout, "lcd-%dms.png" % t)
+        got = read_big(fws, png, glyphs) if os.path.exists(png) else ["(no screen)"] * 3
+        big[t] = got
+        if got[0] != w0 or not re.match(r"(C0|C1|P0|P1|P2) [0-9A-F]{8}$", got[1]) or not got[2].startswith(w2) \
+                or (w2 == "U2C " and not re.match(r"U2C (\d+|-) (\d+|-)$", got[2])):
+            problems.append("audio13: the large area at %d ms %s (want %r, a word, %r)" % (t, got, w0, w2))
+    # The unit's file: the candidate's build, packed from the package link, through fwtest's package path past the
+    # start's bands; the raw link stops at them (audio12b's check, for this start).
+    cb = os.path.join(work, "build-unit")
+    build(cb, log, "--define", "SB_HW_FM1", "--define", "SB_HW_HOLD", "--define", "SB_HW_AUDIO1", "--define",
+          "SB_HW_REPORT", "--define", "SB_HW_AUDIO8", "--define", "SB_HW_PCM16", "--define", "SB_HW_AUDIO9",
+          "--define", "SB_HW_AUDIO10", "--define", "SB_HW_AUDIO11", "--define", "SB_HW_AUDIO12",
+          "--define", "SB_HW_AUDIO13")
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import fwsc
+    pk = {}
+    for link in ("app-pkg", "app"):
+        path = os.path.join(work, "unit-%s.fwsc" % link)
+        with open(path, "wb") as f:
+            f.write(fwsc.pack(read_bytes(os.path.join(cb, link + ".bin")), "FM-1_0.13.0-hw3x"))
+        pout = os.path.join(work, "unit-" + link)
+        pr = fwtest(path, pout, log, "--package", "--ms", "40000", "--lcd", "39900")
+        png = os.path.join(pout, "lcd-39900ms.png")
+        bands = None
+        if os.path.exists(png):
+            _, _, rows = fws.read_png(png)
+            bands = all(rows[72][x][:3] == (0, 0, 255) and rows[96][x][:3] == (0, 255, 0) for x in range(0, 240, 16))
+        pk[link] = (pr["run"]["outcome"], bands)
+    if pk["app-pkg"][0] != "completed" or pk["app-pkg"][1] is not False or pk["app"][1] is not True:
+        problems.append("audio13 unit file: the package link %s, the raw link %s (outcome, still at the two bands)"
+                        % (pk["app-pkg"], pk["app"]))
+    print("audio13: D5 from cold to the panel (records %s), KEY1 sounds; the self-undo forced: %r; HOME: the test"
+          " screen; U2-A in both boot records before the audio path, %s as fwtest reads them; U2-B marks %s, changes"
+          " %s; U2-C readings at off %s; the large area %s; ARP %s; the unit's file: the package link past the bands"
+          " %s, the raw link stopped %s" % (
+              len(A13_INST), uline, ["%X" % v for v in A13_FWTEST_WORDS], marks, chg, c_n(uoff), big,
+              "; ".join(arp.values()), pk["app-pkg"][1] is False, pk["app"][1]))
+    return problems
+
+
 def case_nowrace(a, work, log):
     """sb_now() never goes back: the slot interrupt's time-keeping forced
     at each point between its reads, just after TIMER0 wraps (main.c,
@@ -3644,6 +3864,7 @@ CASES = [
     ("audio10", case_audio10),
     ("audio11", case_audio11),
     ("audio12", case_audio12),
+    ("audio13", case_audio13),
 ]
 
 

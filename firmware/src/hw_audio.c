@@ -92,6 +92,9 @@
 #if defined(SB_HW_AUDIO12)
 #include "ui.h"
 #endif
+#if defined(SB_HW_AUDIO13)
+#include "arp.h"
+#endif
 #include "hw_fm1.h"
 #include "WL82.h"
 
@@ -2297,6 +2300,11 @@ static void a11_time_now(void);
 static void a12_tick(void);
 static u32 a12_big(char (*t)[16]);
 #endif
+#if defined(SB_HW_AUDIO13)
+static void a13_big(char (*t)[16]);
+static void a13_u2c_record(u32 ch, u32 v);
+static void a13_arp_take(u32 t);
+#endif
 #endif
 
 void hw_a9_tick(void)
@@ -2533,7 +2541,9 @@ static void a10_tick(void)
 #else
 #define A11_SEEN(con, d) ((con) & A11_DONE)
 #endif
+#if !defined(SB_HW_AUDIO13)
 static const u8 a11_chan[HW_A11_CHANS] = { 0, 1, 3, 4, 5, 6, 7, 10, 11 };
+#endif
 static const u8 a11_index[12] = { 0, 1, 0xFF, 2, 3, 4, 5, 6, 0xFF, 0xFF, 7, 8 };
 static volatile u32 cv_busy, cv_hold;
 static u32 cv_ch, cv_set, cv_t0, cv_turn, cv_next, cv_pot_new, cv_pot_v, cv_swept;
@@ -2571,8 +2581,17 @@ static void cv_start(u32 ch)
  * count to "other"). */
 static void cv_record(u32 ch, u32 set, u32 v, u32 d)
 {
-    u32 i = a11_index[ch], k, lo = 0xFFFFFFFFu, at = 0, *sl;
+    u32 i, k, lo = 0xFFFFFFFFu, at = 0, *sl;
 
+#if defined(SB_HW_AUDIO13)
+    /* U2-C: the D- and D+ pads (channels 12 and 13), kept apart. */
+    if (ch >= 12u) {
+        hw_aud.adc_conv_n[set]++;
+        a13_u2c_record(ch, v);
+        return;
+    }
+#endif
+    i = a11_index[ch];
     hw_aud.adc_last[ch] = v;
     hw3.adc[ch] = v;
     hw_aud.adc_conv_n[set]++;
@@ -2612,19 +2631,34 @@ static void cv_record(u32 ch, u32 set, u32 v, u32 d)
     sl[at] = v << 22 | 1u;
 }
 
-/* The sweep's next channel: the kept ones but MASTER's, each in turn. */
+/* The sweep's next channel: the kept ones but MASTER's, each in turn;
+ * with audio13's U2-C on, channels 12 and 13 (USB D- and D+, HW-129) as
+ * two more. */
+#if defined(SB_HW_AUDIO13)
+#define A11_SWEEP_N (HW_A11_CHANS + 2u)
+static const u8 a13_chan[A11_SWEEP_N] = { 0, 1, 3, 4, 5, 6, 7, 10, 11, 12, 13 };
+#define A11_SWEEP a13_chan
+#else
+#define A11_SWEEP_N HW_A11_CHANS
+#define A11_SWEEP a11_chan
+#endif
 static u32 cv_sweep_next(void)
 {
     u32 n, ch, down = hw_aud.a9_route == HW_A9_ROUTE_DOWN || hw_aud.a9_route == HW_A9_ROUTE_UNDONE
                       || hw_aud.a9_route == HW_A9_ROUTE_NOL2;
 
-    for (n = 0; n < HW_A11_CHANS; n++) {
-        ch = a11_chan[cv_next];
-        cv_next = (cv_next + 1u) % HW_A11_CHANS;
+    for (n = 0; n < A11_SWEEP_N; n++) {
+        ch = A11_SWEEP[cv_next];
+        cv_next = (cv_next + 1u) % A11_SWEEP_N;
         if (!cv_next)
             hw_aud.adc_passes++;
         if (ch == 4 || ((ch == 6 || ch == 7) && !down))
             continue;
+#if defined(SB_HW_AUDIO13)
+        /* U2-C: channels 12 and 13 only while its key has it on. */
+        if (ch >= 12u && !hw_aud.u2c_on)
+            continue;
+#endif
         return ch;
     }
     return 4;
@@ -2647,6 +2681,10 @@ void hw_a11_adc_poll(void)
             hw_aud.adc_conv_to[cv_set]++;
             if (cv_ch < 12u)
                 hw3.adc[cv_ch] = 0xFFFFu;
+#if defined(SB_HW_AUDIO13)
+            else
+                hw_aud.u2c_to++;
+#endif
         } else {
             cv_record(cv_ch, cv_set, JL_ADC->RES & 0x3FFu, d);
         }
@@ -2808,6 +2846,11 @@ void hw_a11_big(u32 force)
             *p++ = '+';
     }
     *p = 0;
+#if defined(SB_HW_AUDIO13)
+    /* U2: the cable state, the start's words and U2-C, in place of
+     * audio11's lines (the sweep's still take the first two). */
+    a13_big(t);
+#endif
 #if defined(SB_HW_AUDIO12)
     /* S: while the sweep runs (and 10 s after), its two lines. */
     (void)a12_big(t);
@@ -2999,13 +3042,31 @@ static void a12_stage(const char *label, const char *step)
     hw_step(step);
 }
 
+#if defined(SB_HW_AUDIO13)
+void hw_a12_instrument(u32 cold)
+#else
 void hw_a12_instrument(void)
+#endif
 {
     static char t[40];
     const char *s;
     char *p;
 
+#if defined(SB_HW_AUDIO13)
+    /* audio13 (D5, the owner's ruling): from power-on (cold) the engine
+     * first, then every stage as #240's start ran them; from SEL on the
+     * test screen, as audio12b. */
+    if (!cold)
+        a8_release(INPUT_SEL, "audio12: instrument: let go of SEL");
+    a12_stage("Inst engine", cold ? "audio13: instrument: the engine" : "audio13: instrument: engine already started");
+    if (cold) {
+        fm_init();
+        hw_aud.daa7_boot = hw_aud.daa7_last = daa7();
+        hw_aud.daa7_reads = 1;
+    }
+#else
     a8_release(INPUT_SEL, "audio12: instrument: let go of SEL");
+#endif
     a12_stage("Inst synth", "audio12: instrument: the synth");
     if (!hw_aud.a9_synth)
         hw_a9_synth_key();
@@ -3070,6 +3131,358 @@ void fm_a12_turn(u32 taken, u32 alg)
     else
         hw_aud.g_turns_off++;
     hw_aud.g_turn_alg = alg;
+}
+#endif
+
+#if defined(SB_HW_AUDIO13)
+/* --- audio13 (the spec side's clean-br17-audio13; the owner's rulings) ---
+ * D5: power-on starts the instrument (hw_a12_instrument from cold); HOME
+ * held at power-on gives the test screen.
+ * U2: the USB block read, never written: the first core's CON0 and CON1
+ * and the pins' block's CON0 to CON2 (HW-171). No access through CON1's
+ * port (an access there is a write, HW-86); no pin's set-up changed; USB
+ * stays off. U2-A: at the app's start (start.c), a second later, and on
+ * OCT- in the test screen. U2-B: every 100 ms while the test screen shows,
+ * each change logged with its beat; SAVE marks the next cable state (a no
+ * cable, b a charger, c a computer on, d asleep, e the cable out), and
+ * the large area says whether any word differs from state a's. U2-C: OCT+
+ * puts channels 12 and 13 (the D- and D+ pads, HW-129, HW-173) into
+ * audio11's SARADC sweep, or takes them out; off at start-up; turned on,
+ * it marks state a (U2-B's second run). The SARADC's CON is written as
+ * audio11 writes it, for these channels too, and nothing else.
+ * ARP: each step the engine plays (sb_arp's log), its frame count and the
+ * fill's start by sb_now() (TIMER0, the fill times' timer, which the audio
+ * interrupts don't drive); the gaps between steps of one chain (keys held,
+ * ARP on), the shortest and longest, the longest chain's ends; in the
+ * panel, the last gap on its message line; REC there saves the log. */
+static const char a13_name[HW_A13_WORDS][3] = { "C0", "C1", "P0", "P1", "P2" };
+static u32 a13_first_k, a13_c_last[2] = { 0xFFFFu, 0xFFFFu }, a13_c_logged[2], a13_c_beat[2];
+static u32 a13_arp_seen, a13_arp_chain, a13_arp_f, a13_arp_u, a13_arp_f0, a13_arp_u0;
+static u32 a13_shown, a13_shown_beat;
+
+static void u2_read(u32 *w)
+{
+    w[0] = JL_USB->CON0;
+    w[1] = JL_USB->CON1;
+    w[2] = JL_USB_IO->CON0;
+    w[3] = JL_USB_IO->CON1;
+    w[4] = JL_USB_IO->CON2;
+#if defined(SB_TEST_A13_U2_CHANGE)
+    /* The test build: CON0's bit 5 reads set in states b to d, as a cable
+     * might show it (the reading changed, nothing written). */
+    if (hw_aud.u2_state >= 1u && hw_aud.u2_state <= 3u)
+        w[0] |= 1u << 5;
+#endif
+}
+
+/* HOME let go (the route's check stops on a key held), at most 10 s, and
+ * its events dropped, so the test screen doesn't take the press as its
+ * own (#240's test-screen start). */
+static void a13_let_go_home(void)
+{
+    u32 t0 = sb_beacon.beats;
+    struct input_event e;
+
+    hw_step("audio13: test screen: let go of HOME");
+    while (input_value(INPUT_HOME) && sb_beacon.beats - t0 < 10000u)
+        sb_wait_ms(10);
+    sb_wait_ms(50);
+    while (input_read(&e))
+        ;
+    while (input_read_audio(&e))
+        ;
+}
+
+/* A cable state marked (SAVE, or U2-C turned on): state a takes the
+ * words now as the ones the others are compared with. */
+static void a13_mark(u32 st)
+{
+    hw_aud.u2_state = st;
+    hw_aud.u2_mark[hw_aud.u2_mark_n % HW_A13_MARKS] = sb_beacon.beats << 3 | st;
+    hw_aud.u2_mark_n++;
+    if (!st)
+        u2_read(hw_aud.u2_ref);
+}
+
+/* main, after core 1's screen: U2-A's first reading kept, its second a
+ * second after the start (before the audio path in either start); then
+ * HOME read: held, the test screen (returns 0); else the boot's record and
+ * the instrument's start from cold (returns 1: no test screen). */
+u32 hw_a13_power_on(void)
+{
+    u32 i, j, k, home = input_value(INPUT_HOME);
+
+    for (i = 0; i < HW_A13_WORDS; i++)
+        hw_aud.u2_boot[i] = hw_u2_boot[i];
+    for (i = 0; i < HW_A13_RUNS; i++)
+        for (j = 0; j < HW_A13_STATES; j++)
+            for (k = 0; k < HW_A13_WORDS; k++)
+                hw_aud.u2_and[i][j][k] = 0xFFFFFFFFu;
+    for (i = 0; i < HW_A13_C_FIRST; i++)
+        hw_aud.u2c_first[i] = 0xFFFFFFFFu;
+    hw_step("audio13: U2-A: the second reading");
+    while (sb_beacon.beats < 1000u)
+        sb_wait_ms(10);
+    u2_read(hw_aud.u2_late);
+    hw_aud.u2_late_beat = sb_beacon.beats;
+    hw_aud.u2_late_blocks = sb_audio.blocks;
+    for (i = 0; i < HW_A13_WORDS; i++)
+        hw_aud.u2_ref[i] = hw_aud.u2_last[i] = hw_aud.u2_late[i];
+    if (home) {
+        hw_aud.a13_start = HW_A13_HOME;
+        hw_aud.start_mode = HW_A12_TEST;
+        a13_let_go_home();
+        return 0;
+    }
+    hw_aud.a13_start = HW_A13_COLD;
+    report("boot");
+    hw_a12_instrument(1);
+    return 1;
+}
+
+/* The test screen's U2 keys: OCT- reads the words again; OCT+ turns U2-C
+ * on (marking state a) or off; SAVE marks the next cable state. */
+void hw_a13_u2_key(u32 control)
+{
+    static const char *const label[HW_A13_STATES] = { "U2 a", "U2 b", "U2 c", "U2 d", "U2 e" };
+    static const char *const say[HW_A13_STATES] = {
+        "audio13: U2-B: state a, no cable", "audio13: U2-B: state b, a charger",
+        "audio13: U2-B: state c, a computer on", "audio13: U2-B: state d, the computer asleep",
+        "audio13: U2-B: state e, the cable out",
+    };
+
+    if (control == INPUT_OCT_DOWN) {
+        u2_read(hw_aud.u2_key);
+        hw_aud.u2_key_beat = sb_beacon.beats;
+        hw_aud.u2_key_n++;
+        report("U2-A key");
+        hw_step("audio13: U2-A: read again");
+        return;
+    }
+    if (control == INPUT_OCT_UP) {
+        hw_aud.u2c_on ^= 1u;
+        hw_aud.u2c_toggles++;
+        if (hw_aud.u2c_on) {
+            a13_first_k = (hw_aud.u2c_toggles - 1u) / 2u % HW_A13_C_FIRST;
+            hw_aud.u2c_first[a13_first_k] = 0xFFFFFFFFu;
+            a13_c_last[0] = a13_c_last[1] = 0xFFFFu;
+            hw_aud.u2_run = 1;
+            a13_mark(0);
+        }
+        report(hw_aud.u2c_on ? "U2-C on" : "U2-C off");
+        hw_step(hw_aud.u2c_on ? "audio13: U2-C ON: ch12 and ch13 in the sweep; state a"
+                              : "audio13: U2-C off");
+        return;
+    }
+    a13_mark((hw_aud.u2_state + 1u) % HW_A13_STATES);
+    report(label[hw_aud.u2_state]);
+    hw_step(say[hw_aud.u2_state]);
+}
+
+/* U2-B: the words every 100 ms while the test screen shows (main's tick):
+ * each change logged, each word's bits ever set and always set in the
+ * run's state, and the polls there. */
+void hw_a13_u2_poll(void)
+{
+    u32 w[HW_A13_WORDS], i, k, r = hw_aud.u2_run, st = hw_aud.u2_state, sh = 6u * st;
+
+    u2_read(w);
+    hw_aud.u2_polls++;
+    if ((hw_aud.u2_seen[r] >> sh & 63u) < 63u)
+        hw_aud.u2_seen[r] += 1u << sh;
+    for (i = 0; i < HW_A13_WORDS; i++) {
+        hw_aud.u2_or[r][st][i] |= w[i];
+        hw_aud.u2_and[r][st][i] &= w[i];
+        if (w[i] != hw_aud.u2_last[i]) {
+            k = hw_aud.u2_chg_n % HW_A13_CHANGES;
+            hw_aud.u2_chg[k][0] = sb_beacon.beats << 3 | i;
+            hw_aud.u2_chg[k][1] = w[i];
+            hw_aud.u2_chg_n++;
+            hw_aud.u2_last[i] = w[i];
+        }
+    }
+}
+
+/* U2-C: a reading of channel 12 or 13 (the slot's sweep): counted by
+ * state, its least and greatest; each turn-on's first; logged when it
+ * moves by more than 8 from the channel's last logged, or 2 s after it. */
+static void a13_u2c_record(u32 ch, u32 v)
+{
+    u32 c = ch - 12u, st = hw_aud.u2_state, *f = &hw_aud.u2c_first[a13_first_k], b = sb_beacon.beats, d;
+
+    if (!hw_aud.u2c_n[st][c]++) {
+        hw_aud.u2c_mm[st][c] = v << 16 | v;
+    } else {
+        if (v < hw_aud.u2c_mm[st][c] >> 16)
+            hw_aud.u2c_mm[st][c] = v << 16 | (hw_aud.u2c_mm[st][c] & 0xFFFFu);
+        if (v > (hw_aud.u2c_mm[st][c] & 0xFFFFu))
+            hw_aud.u2c_mm[st][c] = (hw_aud.u2c_mm[st][c] & 0xFFFF0000u) | v;
+    }
+    if (!c && *f >> 16 == 0xFFFFu)
+        *f = v << 16 | (*f & 0xFFFFu);
+    if (c && (*f & 0xFFFFu) == 0xFFFFu)
+        *f = (*f & 0xFFFF0000u) | v;
+    d = v > a13_c_logged[c] ? v - a13_c_logged[c] : a13_c_logged[c] - v;
+    if (a13_c_last[c] == 0xFFFFu || d > 8u || b - a13_c_beat[c] >= 2000u) {
+        hw_aud.u2c_log[hw_aud.u2c_log_n % HW_A13_C_LOG] = v << 22 | st << 19 | c << 18 | (b >> 6 & 0x3FFFFu);
+        hw_aud.u2c_log_n++;
+        a13_c_logged[c] = v;
+        a13_c_beat[c] = b;
+    }
+    a13_c_last[c] = v;
+}
+
+/* The large area (the test screen): the cable state and whether a word
+ * differs from state a's ("SAME AS A", or "CHANGED" and which); the
+ * start's five words, one every 2 s; U2-C, off or its last readings. */
+static void a13_big(char (*t)[16])
+{
+    u32 i, n = 0, first = 0, pg = sb_beacon.beats / 2000u % HW_A13_WORDS;
+    char *p = t[0];
+
+    for (i = HW_A13_WORDS; i--;)
+        if (hw_aud.u2_last[i] != hw_aud.u2_ref[i]) {
+            first = i;
+            n++;
+        }
+    *p++ = (char)('A' + hw_aud.u2_state);
+    *p++ = ' ';
+    if (!n) {
+        p = put_s(p, "SAME AS A");
+    } else if (n == 1u) {
+        p = put_s(p, "CHANGED ");
+        p = put_s(p, a13_name[first]);
+    } else if (n <= 3u) {
+        p = put_s(p, "CHG ");
+        for (i = 0; i < HW_A13_WORDS; i++)
+            if (hw_aud.u2_last[i] != hw_aud.u2_ref[i])
+                p = put_s(p, a13_name[i]);
+    } else {
+        p = put_s(p, "CHANGED ");
+        p = put_dec(p, n);
+        *p++ = 'W';
+    }
+    *p = 0;
+    p = put_s(t[1], a13_name[pg]);
+    *p++ = ' ';
+    p = put_hex(p, hw_aud.u2_boot[pg], 8);
+    *p = 0;
+    if (!hw_aud.u2c_on) {
+        p = put_s(t[2], "U2C OFF");
+    } else {
+        p = put_s(t[2], "U2C ");
+        for (i = 0; i < 2u; i++) {
+            if (i)
+                *p++ = ' ';
+            if (a13_c_last[i] == 0xFFFFu)
+                *p++ = '-';
+            else
+                p = put_dec(p, a13_c_last[i]);
+        }
+    }
+    *p = 0;
+}
+
+/* ARP (synth_fill, after the engine's blocks): each new step's frame
+ * count (sb_arp's log) and t, the fill's start. A chain runs while ARP
+ * is on and holds a note; a gap over HW_A13_GAP_MAX frames breaks it. */
+static void a13_arp_take(u32 t)
+{
+    u32 n = sb_arp.log_count, f, g, u, k;
+
+    if (!sb_arp.on || !sb_arp.held) {
+        if (a13_arp_chain)
+            hw_aud.arp_breaks++;
+        a13_arp_chain = 0;
+    }
+    while (a13_arp_seen != n) {
+        f = sb_arp.log_time[a13_arp_seen % ARP_LOG];
+        a13_arp_seen++;
+        k = hw_aud.arp_n % HW_A13_ARP_LOG;
+        hw_aud.arp_log[k][0] = f;
+        hw_aud.arp_log[k][1] = t;
+        hw_aud.arp_n++;
+        g = f - a13_arp_f;
+        u = t - a13_arp_u;
+        if (a13_arp_chain && g <= HW_A13_GAP_MAX) {
+            if (!hw_aud.arp_gaps || g < hw_aud.arp_gmin_f)
+                hw_aud.arp_gmin_f = g;
+            if (g > hw_aud.arp_gmax_f)
+                hw_aud.arp_gmax_f = g;
+            if (!hw_aud.arp_gaps || u < hw_aud.arp_gmin_u)
+                hw_aud.arp_gmin_u = u;
+            if (u > hw_aud.arp_gmax_u)
+                hw_aud.arp_gmax_u = u;
+            hw_aud.arp_gaps++;
+            hw_aud.arp_last_f = g;
+            hw_aud.arp_last_u = u;
+            a13_arp_chain++;
+        } else {
+            if (a13_arp_chain)
+                hw_aud.arp_breaks++;
+            a13_arp_chain = 1;
+            a13_arp_f0 = f;
+            a13_arp_u0 = t;
+        }
+        a13_arp_f = f;
+        a13_arp_u = t;
+        if (a13_arp_chain > hw_aud.arp_best_n) {
+            hw_aud.arp_best_n = a13_arp_chain;
+            hw_aud.arp_best_f0 = a13_arp_f0;
+            hw_aud.arp_best_u0 = a13_arp_u0;
+            hw_aud.arp_best_f1 = f;
+            hw_aud.arp_best_u1 = t;
+        }
+    }
+}
+
+/* The panel (main's loop in the instrument): while ARP runs, its last gap
+ * on the message line, "ARP gap <frames> fr <ms> ms", at most every 0.5 s
+ * (main woken for it). */
+void hw_a13_panel_tick(void)
+{
+    static char t[40];
+    u32 b = sb_beacon.beats, w, ms10;
+    char *p;
+
+    if (!sb_arp.on)
+        return;
+    w = a13_shown_beat + 500u;
+    if (hw_aud.arp_gaps != a13_shown && (int)(b - w) >= 0) {
+        a13_shown = hw_aud.arp_gaps;
+        a13_shown_beat = b;
+        w = b + 500u;
+        ms10 = hw_aud.arp_last_u / 2400u;
+        p = put_s(t, "ARP gap ");
+        p = put_dec(p, hw_aud.arp_last_f);
+        p = put_s(p, " fr ");
+        p = put_dec(p, ms10 / 10u);
+        *p++ = '.';
+        *p++ = (char)('0' + ms10 % 10u);
+        p = put_s(p, " ms");
+        *p = 0;
+        view_message(t, 0);
+    }
+    if ((int)(b - w) >= 0)
+        w = b + 100u;
+    if (!sb_wake_at || (int)(w - sb_wake_at) < 0)
+        sb_wake_at = w;
+}
+
+/* REC in the panel (views.c): the log saved (not the store), and said on
+ * the message line. */
+void hw_a13_panel_save(void)
+{
+    static char t[40];
+    const char *s;
+    char *p;
+
+    report("Panel save");
+    p = put_s(t, "log: ");
+    for (s = hw_step_now(); *s && p < t + sizeof t - 1u; s++)
+        *p++ = *s;
+    *p = 0;
+    view_message(t, 0);
 }
 #endif
 
@@ -3284,6 +3697,10 @@ static void synth_fill(s32 *out, u32 frames)
             hw_aud.as_fill_v[v] = sb_fm.voices[0] + sb_fm.voices[1];
         }
     }
+#endif
+#if defined(SB_HW_AUDIO13)
+    /* ARP: the steps this fill's blocks played, timed by its start. */
+    a13_arp_take(t0);
 #endif
 #endif
 }
@@ -4650,7 +5067,19 @@ struct guide_step {
     u8 key;
     char what[13];
 };
-#if defined(SB_HW_AUDIO12)
+#if defined(SB_HW_AUDIO13)
+/* audio13's order (HOME held at power-on; on the battery, no cable, state
+ * a): U2-B with U2-C off, SAVE at each change of the cable (b to e); U2-C
+ * on (state a again), U2-B again; a save. */
+static const struct guide_step guide[] = {
+    { INPUT_SAVE, "b charger" }, { INPUT_SAVE, "c computer" },
+    { INPUT_SAVE, "d asleep" }, { INPUT_SAVE, "e cable out" },
+    { INPUT_OCT_UP, "U2-C on, a" },
+    { INPUT_SAVE, "b charger" }, { INPUT_SAVE, "c computer" },
+    { INPUT_SAVE, "d asleep" }, { INPUT_SAVE, "e cable out" },
+    { INPUT_EDIT, "save" },
+};
+#elif defined(SB_HW_AUDIO12)
 /* audio12's order: the sweep (hands off until "SWEEP DONE"), a save; a
  * second sweep stopped with LFO during a chord, a save; then SEL, the
  * instrument's start (the panel: the test screen is gone until power-off). */
@@ -5014,6 +5443,9 @@ u32 hw_audio_report(u32 *w)
         w[n++] = hw_aud.c1_count[i];
     read_x2(w + n);
     n += 16;
+#if !defined(SB_HW_AUDIO13)
+    /* Layout 12 (audio13) leaves out the old steps' snapshots and steps H,
+     * I, K, J, D, L1 and L2 (audio2 to audio7, settled), for its own. */
     for (k = 0; k < HW_K_N; k++)
         for (j = 0; j < 2; j++)
             for (i = 0; i < HW_SNAP; i++)
@@ -5188,6 +5620,11 @@ u32 hw_audio_report(u32 *w)
         w[n++] = hw_aud.l_back[i];
     w[n++] = hw_aud.l_clk2_end;
     w[n++] = hw_aud.l_core1_end;
+#else
+    (void)i;
+    (void)j;
+    (void)k;
+#endif
     /* Layout 7: audio8 (0 in a build without it). */
     w[n++] = hw_aud.a8_boot;
     w[n++] = hw_aud.a8_off;
@@ -5384,6 +5821,52 @@ u32 hw_audio_report(u32 *w)
     w[n++] = hw_aud.g_turns;
     w[n++] = hw_aud.g_turns_off;
     w[n++] = hw_aud.g_turn_alg;
+#endif
+#if defined(SB_HW_AUDIO13)
+    /* Layout 12: audio13 (tools/report_decode.py's _layout12). */
+    w[n++] = hw_aud.a13_start;
+    n = put_words(w, n, hw_aud.u2_boot, HW_A13_WORDS);
+    n = put_words(w, n, hw_aud.u2_late, HW_A13_WORDS);
+    w[n++] = hw_aud.u2_late_beat;
+    w[n++] = hw_aud.u2_late_blocks;
+    n = put_words(w, n, hw_aud.u2_key, HW_A13_WORDS);
+    w[n++] = hw_aud.u2_key_beat;
+    w[n++] = hw_aud.u2_key_n;
+    w[n++] = hw_aud.u2_state;
+    w[n++] = hw_aud.u2_run;
+    w[n++] = hw_aud.u2_polls;
+    n = put_words(w, n, hw_aud.u2_ref, HW_A13_WORDS);
+    n = put_words(w, n, hw_aud.u2_last, HW_A13_WORDS);
+    w[n++] = hw_aud.u2_mark_n;
+    n = put_words(w, n, hw_aud.u2_mark, HW_A13_MARKS);
+    w[n++] = hw_aud.u2_chg_n;
+    n = put_words(w, n, hw_aud.u2_chg[0], 2u * HW_A13_CHANGES);
+    n = put_words(w, n, hw_aud.u2_or[0][0], HW_A13_RUNS * HW_A13_STATES * HW_A13_WORDS);
+    n = put_words(w, n, hw_aud.u2_and[0][0], HW_A13_RUNS * HW_A13_STATES * HW_A13_WORDS);
+    n = put_words(w, n, hw_aud.u2_seen, HW_A13_RUNS);
+    w[n++] = hw_aud.u2c_on;
+    w[n++] = hw_aud.u2c_toggles;
+    n = put_words(w, n, hw_aud.u2c_n[0], 2u * HW_A13_STATES);
+    n = put_words(w, n, hw_aud.u2c_mm[0], 2u * HW_A13_STATES);
+    w[n++] = hw_aud.u2c_to;
+    n = put_words(w, n, hw_aud.u2c_first, HW_A13_C_FIRST);
+    w[n++] = hw_aud.u2c_log_n;
+    n = put_words(w, n, hw_aud.u2c_log, HW_A13_C_LOG);
+    w[n++] = hw_aud.arp_n;
+    w[n++] = hw_aud.arp_breaks;
+    w[n++] = hw_aud.arp_gaps;
+    w[n++] = hw_aud.arp_gmin_f;
+    w[n++] = hw_aud.arp_gmax_f;
+    w[n++] = hw_aud.arp_gmin_u;
+    w[n++] = hw_aud.arp_gmax_u;
+    w[n++] = hw_aud.arp_last_f;
+    w[n++] = hw_aud.arp_last_u;
+    w[n++] = hw_aud.arp_best_n;
+    w[n++] = hw_aud.arp_best_f0;
+    w[n++] = hw_aud.arp_best_u0;
+    w[n++] = hw_aud.arp_best_f1;
+    w[n++] = hw_aud.arp_best_u1;
+    n = put_words(w, n, hw_aud.arp_log[0], 2u * HW_A13_ARP_LOG);
 #endif
     return n;
 }

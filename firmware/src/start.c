@@ -11,6 +11,9 @@
 
 #include "sb.h"
 #include "hw_fm1.h"
+#if defined(SB_HW_AUDIO13)
+#include "WL82.h"
+#endif
 
 extern u32 __data_load[], __data_start[], __data_end[];
 extern u32 __bss_start[], __bss_end[];
@@ -38,6 +41,14 @@ void sb_start(void)
      * anything else can go wrong (hw_fm1.c). */
     hw_early();
 #endif
+#if defined(SB_HW_AUDIO13)
+    /* audio13's U2-A (the owner's rulings): the USB block's five words as
+     * the app finds them, read only, before anything of ours but the
+     * panel's first band (a read that hangs leaves band 1 alone on the
+     * screen); kept in registers until the copy and the zeroing are done. */
+    u32 u2_0 = JL_USB->CON0, u2_1 = JL_USB->CON1, u2_2 = JL_USB_IO->CON0, u2_3 = JL_USB_IO->CON1,
+        u2_4 = JL_USB_IO->CON2;
+#endif
     /* Code, constants and initialised data: their bytes sit in the
      * image, after the boot code. */
     for (dst = __data_start; dst < __data_end; dst++)
@@ -50,6 +61,13 @@ void sb_start(void)
 #if defined(SB_HW_FM1)
     hw_boot_block = boot_block;
     hw_boot_key = key;
+#if defined(SB_HW_AUDIO13)
+    hw_u2_boot[0] = u2_0;
+    hw_u2_boot[1] = u2_1;
+    hw_u2_boot[2] = u2_2;
+    hw_u2_boot[3] = u2_3;
+    hw_u2_boot[4] = u2_4;
+#endif
     /* Code just copied to RAM runs after a csync (HW-127). */
     __asm__ volatile("csync" ::: "memory");
 #endif

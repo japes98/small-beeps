@@ -5043,6 +5043,76 @@ the results; HW-175 says what they settle.
 - Standing: confirmed (UNIT; the per-operator reading inferred)
 - Needed by: M3, M4, BR-17 (Phase B)
 
+## 51. audio13 on the unit: the instrument at power-on, the USB block read (U2)
+
+Read back from the flash log of this repository's build audio13 (hw3x,
+clean's #243) on the owner's unit, and heard by the owner, relayed on
+2026-11-22 (source UNIT, docs/prompts/spec-audio13-unit.md). HW-176 gives
+the results; HW-177 says what they settle. The words are named as in
+HW-171: the first core's `CON0` and `CON1`, and the pins' block's three
+words (`JL_USB_IO`'s `CON0` to `CON2`, here "IO `CON0`" and so on).
+
+### HW-176: audio13: the start from cold, ARP by ear, the USB block's words at start and per cable state (Q-36)
+- Fact: On the owner's unit, started by m-bootloader, no USB register
+  written:
+  1. **Power-on to the instrument** (no key held) ran every `Inst` stage
+     in order, with sound.
+  2. **ARP** was heard even and at the right speed. No ARP record reached
+     the log: the panel's save after ARP wrote none.
+  3. **U2-A, from power-off,** no read hung:
+
+     | Word | At the start | A second later |
+     |---|---|---|
+     | `CON0` | `0x00008001` | `0x00038001` |
+     | `CON1` | 0 | 0 |
+     | IO `CON0` | `0x00000E0C` | |
+     | IO `CON1` | 0 | 3 |
+     | IO `CON2` | `0x00000E0C` | |
+
+  4. **U2-A, after m-bootloader's MIDI mode:** `CON0` `0x00008000`,
+     `CON1` `0x00008000`, IO `CON0` `0x0000000C`.
+  5. **U2-B** (the second run; the first run's states were out of order):
+     - `CON0` bits 16 and 17 and IO `CON1` bits 0 and 1 changed from read
+       to read with no cable, with a charger, and with the computer asleep;
+     - they read 0 throughout with a computer that was on;
+     - `CON0` bit 5 never read set; bit 15 always did.
+  6. **U2-C:** channels 12 and 13 read 0 throughout with a computer that
+     was on, and anywhere from 0 to about 940 in the other states.
+- Sources: UNIT: audio13's flash log (hw3x) and the owner's listening,
+  relayed on 2026-11-22 (docs/prompts/spec-audio13-unit.md); HW-171.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: BR-17 (Phase B), USB MIDI (U3)
+
+### HW-177: What audio13 settles: the start from cold; what the USB block holds; a host found by reading (Q-36)
+- Fact:
+  - **The instrument's start from cold works on the unit,** with no test
+    screen first.
+  - **The core's words aren't zero at a normal start:** from power-off `CON0`
+    bit 0 (`PHY_ON`) and bit 15 (`CHKDPO`) read set, and IO `CON0` has
+    bits 2, 3, 9, 10 and 11 set (`DPIE`, `DMIE`, `DPDIE`, `DMDIE`,
+    `IO_MODE` by HW-171's names). Whether these are the words' values
+    after reset or something before the app sets them (the ROM; by
+    HW-173's reading, not m-bootloader's normal start) is not given.
+  - **m-bootloader's MIDI mode leaves the core differently:** `PHY_ON`
+    clear, IO `CON0` bits 9 to 11 clear, `CON1` `0x8000`. So a U3 start
+    can't assume either state, and must set up what it needs itself.
+  - **A computer that is on is found by reading alone:** `CON0` bits 16
+    and 17 (`DM_SE`, `DP_SE`), IO `CON1` bits 0 and 1 and channels 12 and
+    13 all read steadily 0 with it, and wander in every other state. That
+    both lines are held low fits a host's pull-downs on D+ and D−; that
+    reading is not checked against the USB specification here.
+  - **A charger and a sleeping computer read as no cable,** and `VBUS`
+    (bit 5) doesn't show the cable's power with USB as it is at the app's
+    start. Whether it would once the core is set up is not given.
+  - **IO `CON1` bits 0 and 1 follow the lines** as `DM_SE` and `DP_SE`
+    do; which bit is which line is not given. IO `CON2` read the same as
+    IO `CON0` from power-off; whether it mirrors it is not given.
+  - **Still open:** the core's clock and PHY set-up as writes (Q-36);
+    ARP's step timing on the unit (its record).
+- Sources: UNIT (HW-176); HW-171, HW-173.
+- Standing: confirmed (UNIT; the pull-down reading inferred)
+- Needed by: USB MIDI (U3)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -5508,3 +5578,10 @@ spec request can turn one into a fact.
   not opened. U2's read-only checks read what the unit's registers hold
   at the app's start; no clock or PLL is touched without the owner's
   ruling. HW-171, HW-172, HW-173.
+  *Session spec-audio13-unit (HW-176, HW-177):* from power-off the app
+  finds `PHY_ON` set and the pins' inputs enabled; after MIDI mode
+  `PHY_ON` is clear. A computer that is on holds both lines low, readable
+  with no write; `VBUS` doesn't read set. The writes are still not given.
+  JieLi's fw-Bootloader (Apache-2.0) has a WL82 user boot with USB, but
+  its device start makes the same calls as the SDK's, with their bodies
+  in a prebuilt library (PROVENANCE P-515).

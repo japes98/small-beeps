@@ -463,8 +463,25 @@ static void hw_serve(void)
          * start; the panel takes over from the test screen. */
         if (e.control == INPUT_SEL && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
             hw_audio_leds(e.control);
+#if defined(SB_HW_AUDIO13)
+            hw_a12_instrument(0);
+#else
             hw_a12_instrument();
+#endif
             return;
+        }
+#endif
+#if defined(SB_HW_AUDIO13)
+        /* audio13 (U2, the owner's rulings): OCT- reads the USB block's
+         * words again, SAVE marks the next cable state, OCT+ turns U2-C on
+         * or off (hw_audio.c). The engine takes OCT- and OCT+ as well (its
+         * octave), and nothing from SAVE alone. */
+        if ((e.control == INPUT_OCT_DOWN || e.control == INPUT_OCT_UP || e.control == INPUT_SAVE)
+                && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            hw_a13_u2_key(e.control);
+            hw_audio_leds(e.control);
+            hw_guide_show();
+            continue;
         }
 #endif
 #if defined(SB_HW_AUDIO10)
@@ -690,12 +707,28 @@ static void hw_serve(void)
 #if defined(SB_HW_AUDIO9)
             hw_a9_tick();
 #endif
+#if defined(SB_HW_AUDIO13)
+            /* U2-B: the USB block's words every 100 ms (hw_audio.c). */
+            hw_a13_u2_poll();
+#endif
             hw_refresh(sb_seconds != seconds);
             seconds = sb_seconds;
             next = now + 100;
         }
         sb_wake_at = next;
     }
+}
+#endif
+
+#if defined(SB_HW_AUDIO12)
+/* The panel's work once the instrument's start has put it up; audio13's
+ * ARP line after it (hw_audio.c). */
+static void hw_panel_serve(void)
+{
+    view_serve();
+#if defined(SB_HW_AUDIO13)
+    hw_a13_panel_tick();
+#endif
 }
 #endif
 
@@ -927,7 +960,13 @@ int main(void)
     sb_wait_ms(20);
     /* start3c: core 1's screen, held (SB_HW_HOLD). */
     hw_core1_screen();
-#if defined(SB_HW_AUDIO12)
+#if defined(SB_HW_AUDIO13)
+    /* audio13 (D5, the owner's ruling): the instrument's start from cold,
+     * then the panel, unless HOME is held now: then the test screen, as
+     * audio12b's (U2-A's second reading first, hw_audio.c). */
+    if (hw_a13_power_on())
+        goto serve;
+#elif defined(SB_HW_AUDIO12)
     /* audio12b (the owner's ruling): the test screen, as audio11's; SEL
      * there runs the instrument's start (hw_audio.c). */
     hw_aud.start_mode = HW_A12_TEST;
@@ -977,6 +1016,9 @@ int main(void)
 #endif
 #endif
 #endif
+#if defined(SB_HW_AUDIO13)
+serve:
+#endif
 #if defined(SB_TEST_STORE_WIPE)
     sb_test_store_wipe();
 #endif
@@ -1005,7 +1047,7 @@ int main(void)
          * (since M8a) the panel's events from before it: the screens. */
 #if defined(SB_HW_AUDIO12)
         if (hw_aud.start_mode == HW_A12_INSTRUMENT)
-            view_serve();
+            hw_panel_serve();
         else
 #endif
 #if defined(SB_HW_FM1)
@@ -1028,7 +1070,7 @@ int main(void)
                  * serves the events (the test screen's keys do nothing);
                  * no store (its flash writes aren't part of audio12). */
                 if (hw_aud.start_mode == HW_A12_INSTRUMENT)
-                    view_serve();
+                    hw_panel_serve();
                 else
 #endif
 #if defined(SB_HW_FM1)
