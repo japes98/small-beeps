@@ -1,0 +1,5 @@
+300 usbmidi 09 90 3c 64
+1300 usbmidi 08 80 3c 00
+2000 key 14 tap 400
+3000 midi 90 40 64
+3500 midi 80 40 00

@@ -1,0 +1,55 @@
+9000 key 5 down
+9100 key 5 up
+10000 key 5 down
+10100 key 5 up
+11000 key 5 down
+11100 key 5 up
+12000 key 5 down
+12100 key 5 up
+13000 key 5 down
+13100 key 5 up
+14000 key 2 down
+14100 key 2 up
+15000 key 14 down
+18000 key 14 up
+15020 key 16 down
+18020 key 16 up
+15040 key 18 down
+18040 key 18 up
+15060 key 19 down
+18060 key 19 up
+15080 key 21 down
+18080 key 21 up
+15100 key 23 down
+18100 key 23 up
+15120 key 25 down
+18120 key 25 up
+15140 key 26 down
+18140 key 26 up
+19000 key 2 down
+19100 key 2 up
+35000 key 12 down
+35100 key 12 up
+37000 key 12 down
+37100 key 12 up
+38000 key 8 down
+38100 key 8 up
+39000 key 8 down
+39100 key 8 up
+40000 key 4 down
+40100 key 4 up
+41000 key 4 down
+41100 key 4 up
+42000 key 7 down
+42100 key 7 up
+43000 key 7 down
+43100 key 7 up
+44000 key 13 down
+44100 key 13 up
+58000 key 6 down
+58100 key 6 up
+20000 pot 900
+23000 pot 600
+26000 pot 300
+29000 pot 100
+32000 pot 1000

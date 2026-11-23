@@ -1,0 +1,13 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 073cf74b1b180f38280d2b92ed9e04fc70b00ed1..b13ea394dc8d3fa5ec61c2f09710ebf6848f66cc
+OK     e4ecbf92758e sessions: the owner's U3 rulings saved; the SDK licence and m-bootloader's USB provenance
+OK     7429ac98577d spec: the first USB core's set-up as writes, from the SDK's library (HW-178)
+OK     2ff2d2256b58 spec: HW-178 held on the licence finding; R-USB-1's product ID an open question
+OK     94491e017c8a sessions: the owner's second U3 rulings saved; HW-178 says how the library was read
+EXEMPT 41f4136d506c (merge) merge: main (#244) into spec/u3-source
+OK     2c8336cf29cb spec: audio14 on the unit (HW-179, HW-180); the 0x16A00 block reads off at an app's start
+EXEMPT ed9e576127c4 (merge) merge: clean's audio14 (#247) into spec/u3-source
+EXEMPT 4893ca777b71 (merge) merge: main (#247, #248) into spec/u3-source
+EXEMPT b13ea394dc8d (merge) Merge pull request #246 from japes98/spec/u3-source
+9 commit(s) checked: PASS
+
+exit status 0

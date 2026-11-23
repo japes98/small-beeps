@@ -1,0 +1,7 @@
+code 57052
+data 80
+bss 165920
+image 57132
+stack 4096
+irq_stack 2048
+ram_code 56932
