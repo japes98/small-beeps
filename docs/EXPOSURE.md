@@ -3825,6 +3825,20 @@ SR-3 wrote only its barrier-log row.*
 - U3-U drafted outside the repository for the owner's ruling, from
   HW-178 and HW-173, with no write to `0x16A00` or any clock register.
 - Disk: about 3 GB free.
+### Session spec-u3u-rulings (the owner's U3-U rulings)
+- Date: 2026-11-23 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio14-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/u3u-rulings` from `spec/u3-source` (#246, not yet
+  merged); by the round rules, no PR until the next round's.
+- #247 (clean's audio14, replacing #245, closed unmerged): C-SEP-TERMS run
+  on `c48ca71a..fb311628`, PASS; merged into #246.
+- The owner's U3-U rulings, saved unedited as
+  docs/prompts/spec-u3u-rulings.md; the U3-U prompt completed outside the
+  repository, to be sent once #247 and #246 are on main. No new source
+  read.
+- Disk: about 3 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
