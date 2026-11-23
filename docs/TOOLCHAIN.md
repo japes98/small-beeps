@@ -122,6 +122,12 @@ notice; it doesn't grant other terms, and the repository-level Apache-2.0
 grant applies. `WL82.h` and `csfr.h` carry no per-file notice. `REUSE.toml`
 marks `vendor/jieli-sdk/**` as Apache-2.0, copyright JIELI.
 
+The SDK's `README-en.md` says the SDK is open-sourced under the Apache
+License 2.0 and lists the prebuilt libraries (`cpu/wl82/liba/*.a`, `lib/`)
+as part of it; no file in the repository gives them other terms, and the
+licence defines the Work as in Source or Object form (PROVENANCE P-516).
+JieLi states no terms per library.
+
 ### Not used: parts with other or unknown terms
 
 These parts of the SDK are **not used** and never vendored:

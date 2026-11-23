@@ -3780,6 +3780,23 @@ SR-3 wrote only its barrier-log row.*
   (the ARP save fix, U3's device in fwtest only), marked as awaiting the
   owner's ruling.
 - Disk: about 2.6 GB free.
+
+### Session spec-u3-source (U3-S: the licence check; m-bootloader's USB provenance)
+- Date: 2026-11-22 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio13-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/u3-source` from `spec/audio13-rulings` (#244, not
+  yet merged); by the round rules, no PR until the next round's.
+- The owner's rulings on U3 and audio14, saved unedited as
+  docs/prompts/spec-u3-rulings.md. #243 closed unmerged, as ruled.
+- Read: the SDK's `README-en.md` and file list (P-516); m-bootloader's
+  `README.md`, `docs/PROVENANCE.md`, `docs/SPEC.md` §1 and §11.6 and
+  `src/usb_midi.c`'s commit messages, the file itself not opened (P-517);
+  #244's and #243's CI logs (seams case report1 fails on the identity).
+- The SDK's prebuilt libraries not yet fetched: gitee reset the
+  connections.
+- Disk: about 2.6 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
