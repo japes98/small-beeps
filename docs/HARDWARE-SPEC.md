@@ -5113,6 +5113,67 @@ words (`JL_USB_IO`'s `CON0` to `CON2`, here "IO `CON0`" and so on).
 - Standing: confirmed (UNIT; the pull-down reading inferred)
 - Needed by: USB MIDI (U3)
 
+## 52. The first USB core's set-up as writes (U3-S)
+
+Read, by the owner's ruling of 2026-11-22 (docs/prompts/spec-u3-rulings.md,
+1 (a)), from JieLi's prebuilt `cpu/wl82/liba/cpu.a` in the AC79 SDK
+(Apache-2.0, PROVENANCE P-516 and P-518): its members are LLVM bitcode,
+compiled here to machine code with the pinned toolchain and read as
+machine code. Facts only; no code taken. Each fact names the library
+function it comes from. Bits are named as in HW-171; "IO `CON0`" is
+`JL_USB_IO`'s first word (`0x51000`).
+
+### HW-178: The SDK's device start for the first core, as writes, in order (Q-36)
+- Fact:
+  - **The register tables:** the library's tables give the first core's
+    block at `0x11800` and its pins' word at `0x51000` (the tables in
+    `usb.c.o`).
+  - **The SIE's start as a device, first core** (`usb_g_sie_init` with
+    core 0), in order:
+    1. IO `CON0` bit 10 set, then bit 9 (`gpio_set_die` on the two USB
+       pins, numbers 149 and 148, which `usb_set_die` maps to bit
+       `pin − 139`);
+    2. IO `CON0` bit 11 (`IO_MODE`) cleared and bit 12 (`SR`) set;
+    3. `CON0` bits 2, 4, 5 and 14 cleared (`USB_NRST`, `CID`, `VBUS`,
+       `SIE_PND`);
+    4. `CON1` written 0;
+    5. `CON0` bit 0 (`PHY_ON`) set;
+    6. IO `CON0` bits 4 and 5 cleared (both pull-downs), bits 6 and 7
+       cleared (both pull-ups), then bit 6 set (`DPPU`, D+'s pull-up);
+    7. `CON0` bits 2, 3, 4 and 5 set (`USB_NRST`, `TM1`, `CID`, `VBUS`).
+
+    No delay, clock or PLL write is in this path. The second core's path
+    in the same function is different and does write a PLL-like block.
+  - **The device's interrupts** (`usb_slave_init`): `INTRUSBE` written 0,
+    every transmit and receive interrupt enable cleared, then `CON0`
+    bit 11 (`SIEIE`) set (`usb_sie_enable`).
+  - **`POWER`** is written through the access port, with interrupts off
+    (`usb_write_power`).
+  - **The access port** (`musb_write_usb`, `musb_read_usb`): used only
+    while `CON0` bit 2 (`USB_NRST`) reads set. A write puts
+    `index << 8 | byte` in `CON1`; a read puts `index << 8 | 0x4000`;
+    then a sync, and `CON1` bit 15 is polled up to 20 000 times; a read
+    takes the byte from `CON1` bits 0-7. No other spacing between
+    accesses is in the library.
+  - **The PHY's state** for the first core is `CON0` bit 0
+    (`usb_phy_status`).
+  - **A PLL block at `0x16A00`:** the SDK's early clock set-up
+    (`clk_early_init`) calls `usb_pll_init`, which does nothing if word
+    `0x16A00` bit 1 already reads set. Otherwise it writes that block's
+    words 0 and 2 field by field, with three delays (`delay` of 1000,
+    1000 and 100 000 counts). The second core's PHY state is read at
+    `0x16A0C` (`usb_phy_status`). Whether the first core depends on this
+    block is not given.
+- Sources: SDK `cpu/wl82/liba/cpu.a` (P-518): members `usb.c.o`
+  (`usb_g_sie_init`, `usb_sie_enable`, `usb_write_power`,
+  `musb_write_usb`, `musb_read_usb`, `usb_phy_status`, `usb_pll_init`,
+  its two register tables), `usb_phy.c.o` (`usb_slave_init`),
+  `gpio.c.o` (`gpio_set_die`, `usb_set_die`), `clock.c.o`
+  (`clk_early_init`); HW-171, HW-172, HW-86.
+- Standing: confirmed (SDK, as machine code; whether the first core
+  needs the `0x16A00` block not given)
+- Needed by: USB MIDI (U3)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -5585,3 +5646,8 @@ spec request can turn one into a fact.
   JieLi's fw-Bootloader (Apache-2.0) has a WL82 user boot with USB, but
   its device start makes the same calls as the SDK's, with their bodies
   in a prebuilt library (PROVENANCE P-515).
+  *Answered in part by session spec-u3-source (HW-178):* the SDK's
+  prebuilt library, read as machine code, gives the first core's device
+  start as writes, with no clock write in it. Still open: whether the
+  first core needs the PLL block at `0x16A00` that the SDK's early clock
+  set-up brings up, and whether it is up when an app starts.

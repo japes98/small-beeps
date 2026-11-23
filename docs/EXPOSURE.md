@@ -3794,8 +3794,10 @@ SR-3 wrote only its barrier-log row.*
   `README.md`, `docs/PROVENANCE.md`, `docs/SPEC.md` §1 and §11.6 and
   `src/usb_midi.c`'s commit messages, the file itself not opened (P-517);
   #244's and #243's CI logs (seams case report1 fails on the identity).
-- The SDK's prebuilt libraries not yet fetched: gitee reset the
-  connections.
+- U3-S, by the owner's ruling 1 (a): the SDK's prebuilt `cpu.a` fetched
+  and its USB, GPIO and clock members read as machine code, compiled from
+  their bitcode with the pinned toolchain (P-518); HARDWARE-SPEC section
+  52 (HW-178) and a note on Q-36.
 - Disk: about 2.6 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
