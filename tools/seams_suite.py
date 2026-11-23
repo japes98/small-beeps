@@ -3828,7 +3828,7 @@ A14_UNIT = ("--define", "SB_HW_FM1", "--define", "SB_HW_HOLD", "--define", "SB_H
             "SB_HW_AUDIO10", "--define", "SB_HW_AUDIO11", "--define", "SB_HW_AUDIO12", "--define", "SB_HW_AUDIO13",
             "--define", "SB_HW_AUDIO14")
 A14_ID = "0.14.0-hw3y"
-A14_P = ("16A00", "16A04", "16A08", "16A0C")
+A14_P = tuple("%05X" % (0x16A00 + 4 * i) for i in range(4))
 
 
 def case_audio14(a, work, log):

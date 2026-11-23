@@ -342,7 +342,7 @@ def _layout12():
     return body + f + l11[len(l11) - health:]
 
 
-A14_P_ADDRS = (0x16A00, 0x16A04, 0x16A08, 0x16A0C)
+A14_P_ADDRS = tuple(0x16A00 + 4 * i for i in range(4))
 
 
 def _layout13():
@@ -568,10 +568,10 @@ def audio13_lines(f):
 def audio14_lines(f):
     """audio14's P (the block at 0x16A00) and R (the panel's ARP save)."""
     p = lambda when: " ".join("%05X=%08X" % (a, f["p_%s_%05X" % (when, a)]) for a in A14_P_ADDRS)
-    bit1 = lambda when: "set" if f["p_%s_16A00" % when] & 2 else "clear"
+    b1_state = lambda when: "set" if f["p_%s_16A00" % when] & 2 else "clear"
     out = ["audio14: P, the block at 0x16A00, read only",
-           "  at the app's start: %s (0x16A00 bit 1 %s)" % (p("boot"), bit1("boot")),
-           "  a second later: %s (0x16A00 bit 1 %s)" % (p("late"), bit1("late"))]
+           "  at the app's start: %s (0x16A00 bit 1 %s)" % (p("boot"), b1_state("boot")),
+           "  a second later: %s (0x16A00 bit 1 %s)" % (p("late"), b1_state("late"))]
     if f["u2_key_n"]:
         out.append("  on U2-A's key: %s" % p("key"))
     if f["arp_saves"] or f["arp_offs"]:

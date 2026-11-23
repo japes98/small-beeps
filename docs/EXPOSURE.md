@@ -4180,6 +4180,12 @@ SR-3 wrote only its barrier-log row.*
   The owner's backup that the relay names was not opened: it is the
   owner's file, outside this folder.
 - Disk: about 2.4 GB free.
+- After the PR: #245's C-SEP-TERMS (run 45098340050) flagged four terms;
+  the spec session named them in a relay (term names, file and line only).
+  Renamed `out_full`, `sof_tick` and `b1_state`; the block's last address
+  is no longer spelled out (written as "0x16A00 and the three words after
+  it", derived in code as 0x16A00 + 4*i). The candidate's app-pkg.bin
+  rebuilt byte-identical.
 
 ## Corrections
 

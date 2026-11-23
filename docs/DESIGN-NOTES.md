@@ -5828,8 +5828,8 @@ docs/HARNESS.md's "USB".
   with or without REC. Every record already holds ARP's step log
   (audio13's fields: the gaps' extremes in frames and `sb_now()` units,
   the steps, the last 48 steps' frame counts and times).
-- **P** reads the four words at `0x16A00` to `0x16A0C` in `sb_start` just
-  after U2-A's, before the copy (kept in registers until the zeroing), at
+- **P** reads the four words at `0x16A00` and the three words after it in
+  `sb_start` just after U2-A's, before the copy (kept in registers until the zeroing), at
   beat 1000 with U2-A's second reading (before either start's audio
   path), and on OCT- with U2-A's key. Every record holds all three, so
   each start's reading reaches the flash with no save key, as U2-A's

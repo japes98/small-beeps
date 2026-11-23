@@ -36,7 +36,7 @@ struct sb_usb_record {
     u32 rx_dropped;     /* MIDI bytes the in ring had no room for */
     u32 tx_packets;     /* bulk IN packets sent */
     u32 tx_events;      /* event packets in them */
-    u32 tx_dropped;     /* event packets the out ring had no room for */
+    u32 out_full;     /* event packets the out ring had no room for */
     u32 port_timeouts;  /* accesses through CON1's port whose MACK never came (HW-86) */
 };
 

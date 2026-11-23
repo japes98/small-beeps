@@ -357,7 +357,7 @@ void hw_finder(void) __attribute__((noreturn));
 #define HW_A13_ARP_LOG 48u
 #define HW_A13_GAP_MAX 30000u /* frames: a longer gap is a break (a rest, ARP off), not a step's gap */
 /* audio14 (clean-br17-audio14). P: the four words of the block at 0x16A00
- * (0x16A00 to 0x16A0C, the owner's ruling), read only, with U2-A's. */
+ * (0x16A00 and the three words after it, the owner's ruling), read only, with U2-A's. */
 #define HW_A14_P_BASE  0x16A00u
 #define HW_A14_P_WORDS 4u
 #define HW_A9_LATE_MAX 50u   /* late halves after which the interrupt goes back to the tone */
