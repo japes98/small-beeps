@@ -122,6 +122,16 @@ notice; it doesn't grant other terms, and the repository-level Apache-2.0
 grant applies. `WL82.h` and `csfr.h` carry no per-file notice. `REUSE.toml`
 marks `vendor/jieli-sdk/**` as Apache-2.0, copyright JIELI.
 
+The SDK's `README-en.md` says "This SDK is open-sourced under the Apache
+License 2.0". It describes the repository as "the SDK Release source code
+and example projects" that "must be built together with the matching
+platform library files (`*.a`)", and its layout table places the prebuilt
+libraries (`cpu/wl82/liba/`, `lib/`) in the repository. No file there gives
+them other terms; the licence defines the Work as in Source or Object form;
+JieLi states no terms per library (PROVENANCE P-516). Whether the licence
+covers the libraries is a reading; the owner accepted it on 2026-11-22
+(docs/prompts/spec-u3-rulings2.md) for reading `cpu.a`'s USB members.
+
 ### Not used: parts with other or unknown terms
 
 These parts of the SDK are **not used** and never vendored:
