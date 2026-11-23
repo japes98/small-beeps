@@ -1,0 +1,13 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range e59f3dca5f16d8c00ea49fcc27668de545e851c3..c48ca71af396023615859f46b6e812c263379455
+OK     c91c97cb43ca sessions: the owner's audio13 rulings saved
+OK     3138069f14f4 sessions: EXPOSURE entry for spec-audio13-rulings
+OK     98bf978d3ef5 firmware: audio13, power-on to the instrument, the USB block read (U2), ARP's steps timed
+EXEMPT dfdd7a8e556d (merge) merge: clean's audio13 (#243) into spec/audio13-rulings
+OK     1ef6ad8d02ab spec: audio13 on the unit; a host found by reading (HW-176, HW-177)
+OK     972bb8ef05aa spec: HW-177 keeps to what is known of PHY_ON at the start
+OK     ba634aa39258 tools: seams report1 takes the identity of a build without audio13 (C-SEAMS)
+EXEMPT 93970f2d9ead (merge) merge: clean's report1 fix (ba634aa3) into spec/audio13-rulings
+EXEMPT c48ca71af396 (merge) Merge pull request #244 from japes98/spec/audio13-rulings
+9 commit(s) checked: PASS
+
+exit status 0

@@ -1,0 +1,59 @@
+{
+  "fwtest": {
+    "version": "0.12.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "unit-app.fwsc",
+    "bytes": 129852,
+    "sha256": "f7132c2d94faca962eb7c2d9495d0826f0d57ce8c9b67f684760f5750f51958a"
+  },
+  "script_sha256": null,
+  "run": {
+    "package": {
+      "identity": "FM-1_0.13.0-hw3x",
+      "app_area": "0x04000",
+      "entry": "0x02000120"
+    },
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "40000.000",
+    "instructions": {
+      "core0": 9600000002,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00012f00",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "name": "lcd-39900ms.png",
+        "bytes": 173118,
+        "sha256": "9f3095cea68d24ead549c56f5e3d6e04be41b3037a0acf312e917985e0dfb700"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

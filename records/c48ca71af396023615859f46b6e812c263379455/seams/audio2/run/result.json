@@ -1,0 +1,184 @@
+{
+  "fwtest": {
+    "version": "0.12.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 87836,
+    "sha256": "c6c5d5abfa0394f7ba5898cb6e08d6fba65e56fa11fb13a8f1a6f9b5259da64b"
+  },
+  "script_sha256": "efe274c8aaecabb359fd9665e14f1ff3d7fe04bd5d657e9a0a40cbf447e8b214",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "22000.087",
+    "instructions": {
+      "core0": 3951386882,
+      "core1": 4882043900
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00012f00",
+        "access": "read",
+        "count": 4
+      },
+      {
+        "address": "0x00013000",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "write",
+        "count": 8
+      },
+      {
+        "address": "0x00040204",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x00040300",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x01eee200",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee204",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee208",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee20c",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee210",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee214",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee218",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee21c",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee220",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee224",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee228",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee22c",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee230",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee234",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee238",
+        "access": "read",
+        "count": 23
+      },
+      {
+        "address": "0x01eee23c",
+        "access": "read",
+        "count": 23
+      }
+    ],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 3143724,
+        "sha256": "f860a31a160719923f76c1c335040904dbcdb2503f03ede23ae2e3a357fb93f5"
+      },
+      {
+        "name": "lcd-8500ms.png",
+        "bytes": 173118,
+        "sha256": "96b00ebb709e5b44f9f34f66be27efcc8c439f58241de29e051cbc83df29de30"
+      },
+      {
+        "name": "lcd-end.png",
+        "bytes": 173118,
+        "sha256": "d884b3115539e76eb116484725ea1561dbbd7ca5e80517b7c97f29ad2b9e65a9"
+      },
+      {
+        "name": "ram-01c00000-60-end.bin",
+        "bytes": 96,
+        "sha256": "1f20310e08171569fd6491f473ca207bf1dab0f39e23295370a04244b9c73c2f"
+      },
+      {
+        "name": "ram-01c228a0-3b8-end.bin",
+        "bytes": 952,
+        "sha256": "aae65964d077c05537d1018f63367e9e500d9aead392984c71f4b21843462472"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
