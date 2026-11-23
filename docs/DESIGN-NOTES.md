@@ -5801,3 +5801,106 @@ HARDWARE-SPEC HW-171 to HW-175, HW-86, HW-91, HW-117 and HW-129.
   the unit's 128-frame half in the time of one of its own 64-frame halves.
   On the unit both should be 125 ms. The unit's build writes no log in
   fwtest (its window `CON` reads 0 there); its package reaches the panel.
+
+### 2026-11-23 clean-br17-audio14: the panel's ARP save; the block at 0x16A00 read; U3-F, the USB MIDI device in fwtest (BR-17, R-HW-1)
+The spec side's prompt (docs/prompts/clean-br17-audio14.md), with the
+owner's rulings: R (the panel's save writes ARP's record), P (the block at
+`0x16A00` read only, with U2-A's), U3-F (the USB MIDI device, built and
+tested in fwtest only; no serial-number string). Facts from HARDWARE-SPEC
+HW-171 to HW-173, HW-176, HW-177, HW-86 and Q-36, REQUIREMENTS R-USB-1, and
+docs/HARNESS.md's "USB".
+
+- **R: why audio13's save wrote none.** Not found. fwtest writes the
+  record in every order tried: REC with ARP on (case audio13), and the
+  owner's order, the chord released, ARP off, then REC, and ARP off with
+  the chord still held. All code and constants run from RAM (since M7),
+  so the flash take stops nothing; ARP's step counter only counts up; and
+  by count of what the run's later starts and keys write (about 45
+  records), the ring's 96 slots wouldn't have come round to it. What is left is the
+  unit itself: whether REC reached the panel there, and whether the write
+  failed (a failed write is counted only in RAM, and the next record,
+  which would have carried the count, came after a power-off). audio14
+  makes each of those visible. REC's record is labelled "ARP save", counts
+  itself (`arp_saves`), and the panel's message line says "ARP saved #n"
+  or "ARP NOT saved, error e", with the steps; the next record keeps that
+  result (`arp_save_err`, `arp_save_seq`). ARP turning off with steps not
+  yet in a record writes "ARP off" by itself, so the steps reach the flash
+  with or without REC. Every record already holds ARP's step log
+  (audio13's fields: the gaps' extremes in frames and `sb_now()` units,
+  the steps, the last 48 steps' frame counts and times).
+- **P** reads the four words at `0x16A00` to `0x16A0C` in `sb_start` just
+  after U2-A's, before the copy (kept in registers until the zeroing), at
+  beat 1000 with U2-A's second reading (before either start's audio
+  path), and on OCT- with U2-A's key. Every record holds all three, so
+  each start's reading reaches the flash with no save key, as U2-A's
+  does. The large area's second line shows them after U2-A's five, by
+  their addresses' last three digits ("A00 xxxxxxxx", the line's twelve
+  cells), one every 2 s. The decoder says whether bit
+  1 of `0x16A00` reads set at each reading. Nothing is written to the
+  block or to any clock register.
+- **ARP's gaps in fwtest:** 5514 or 5515 frames, but over a long chain a
+  step can come one frame early: a step due in a block's last
+  frame-fraction rounds to frame 64, which `arp.c` clamps to 63, giving one
+  gap of 5513 and the next of 5516. The unit's layout in fwtest (320 steps)
+  showed one such pair; fwtest's own layout (160) none. It is the base's
+  ARP as it has been since ARP, not changed here (its goldens would move).
+  On the unit a 5513 followed by a 5516 means the same, not a wrong
+  frame count.
+- **Layout 13** is layout 12 with P's twelve words and R's four counts
+  before the log's own health: 1003 fields of the record's 1011.
+  Identity hw3y; `hw_fm1.h`'s last `HW_BUILD_ID` stays the identity of a
+  build without audio13, which seams case report1 builds.
+- **U3-F** (`firmware/src/usb_midi.c`, built only with `SB_USB_MIDI`):
+  - **Kept out of the unit's builds:** no build script, candidate or
+    release sets `SB_USB_MIDI`; only seams case usbmidi's test build does.
+    With `SB_HW_FM1` the build stops (`#error`). Without the flag the file
+    holds nothing, and the three hooks (main, midi.c, midi_out.c) are
+    under it too. Case usbmidi checks this from the builds: a unit build
+    with the flag fails with that message, and the candidate's ELF has
+    none of the device's symbols.
+  - **The device:** a MIDI-only device, vendor `0x1209` and product
+    `0x0001` (pid.codes' test PID, with R-USB-1's comment that it is for
+    in-house testing only), the manufacturer and product strings
+    "small-beeps", no serial-number string. Endpoint 0 answers the
+    standard requests (device, configuration and string descriptors, set
+    address, set and get configuration, get status, get and set
+    interface, clear and set feature); any other is stalled. USB MIDI 1.0's
+    audio control interface comes first, then the MIDI streaming
+    interface with a bulk OUT endpoint (1) and a bulk IN endpoint (2), one
+    embedded and one external jack each way. The descriptors' layout and
+    the standard requests are from general knowledge of the published USB
+    specifications, not from HARDWARE-SPEC (PROVENANCE P-99).
+  - **One context:** all the device's work is done in the first core's
+    start-of-frame interrupt (source 8, HW-171), once a frame: the flags
+    (read once, they clear), a bus reset, endpoint 0, then the bulk
+    endpoints by their `CSR` bits. Only that interrupt uses `CON1`'s port
+    and `INDEX`. The host's MIDI goes into a ring of its own that the
+    engine empties into MIDI in's ring once a block (`midi_poll`), so the
+    ring keeps one writer, and plays the engine as the jack's bytes do.
+    The firmware's own channel messages (`midi_out_channel`: the panel's
+    keys, ARP) go to the host through a ring the interrupt empties. MIDI
+    thru calls `midi_out_send` and doesn't go to the host, so the host's
+    notes never come back to it.
+  - **The port:** every access waits until 2 µs (48 units of the 24 MHz
+    time base) have passed since the last one ends (HW-172 gives no
+    figure; it is this side's choice, kept in `USB_PORT_GAP` alone), and
+    every wait for `MACK` is bounded (HW-86), counting time-outs.
+  - **The core's set-up** is `usb_core_setup()` alone: `CON0` bit 0 and
+    `POWER` at `0x60`, the SDK's value with `FUSB_MODE` 0 (HW-172). That
+    is all fwtest's host waits for (HARNESS.md "USB"). U3-U replaces this
+    function once Q-36's writes and the owner's ruling are there.
+  - **The lines before connecting:** `CON0` read 32 times 50 µs apart, the
+    first value, bits 16 and 17 ever set, and the reads with either set
+    logged (`sb_usb`). fwtest doesn't model those bits, so they read 0
+    there: "steadily 0", which on the unit means a computer that is on
+    (HW-177). In fwtest that comes from the model, not from a host.
+  - **`FADDR`** is written as soon as SET_ADDRESS's setup is taken, which
+    is when fwtest's host checks it; when the chip takes it is U3-U's to
+    find.
+  - **Without a host** nothing happens after the start: no frame, so no
+    interrupt. The start's 1.6 ms of line reads put the audio's first
+    interrupt about one block later, so a run without `--usb` gives build
+    A's samples and MIDI bytes, microseconds later.
+- **fwtest 0.14.0** is pinned (`config/fwtest-image`; HARNESS.md
+  "Versions"). It is the one pin for every case: without `--usb` or
+  `--audio-chip`, 0.14.0's outputs are 0.12.0's.

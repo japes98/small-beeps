@@ -11,6 +11,9 @@
 
 #include "midi_out.h"
 #include "WL82.h"
+#if defined(SB_USB_MIDI)
+#include "usb_midi.h"
+#endif
 
 volatile struct sb_midi_out_record sb_midi_out __attribute__((section(".beacon.midiout")));
 
@@ -231,6 +234,11 @@ int midi_out_channel(u32 k, u32 d1, u32 d2)
     m.data[0] = (u8)(d1 & 0x7Fu);
     m.data[1] = (u8)(d2 & 0x7Fu);
     m.length = k == MIDI_PROGRAM || k == MIDI_CHANNEL_AT ? 1 : 2;
+#if defined(SB_USB_MIDI)
+    /* U3-F: the firmware's own channel messages to the USB host too (not
+     * MIDI thru's, which calls midi_out_send). */
+    usb_midi_send(m.status, m.data[0], m.data[1], m.length);
+#endif
     return midi_out_send(&m);
 }
 

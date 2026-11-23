@@ -38,6 +38,9 @@
 #if defined(SB_HW_AUDIO13) && !defined(SB_HW_AUDIO12)
 #error "SB_HW_AUDIO13 builds on audio12: build it with SB_HW_AUDIO12"
 #endif
+#if defined(SB_HW_AUDIO14) && !defined(SB_HW_AUDIO13)
+#error "SB_HW_AUDIO14 builds on audio13: build it with SB_HW_AUDIO13"
+#endif
 #if defined(SB_HW_PCM16) && !defined(SB_HW_AUDIO8)
 #error "SB_HW_PCM16 is audio8's unit tone: build it with SB_HW_AUDIO8"
 #endif
@@ -158,7 +161,9 @@ void hw_rows_start(void);
 #define HW_LOG_REC     4096u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
-#if defined(SB_HW_AUDIO13)
+#if defined(SB_HW_AUDIO14)
+#define HW_LOG_LAYOUT  13u                  /* tools/report_decode.py's FIELDS[13] */
+#elif defined(SB_HW_AUDIO13)
 #define HW_LOG_LAYOUT  12u                  /* tools/report_decode.py's FIELDS[12] */
 #elif defined(SB_HW_AUDIO12)
 #define HW_LOG_LAYOUT  11u                  /* tools/report_decode.py's FIELDS[11] */
@@ -170,8 +175,12 @@ void hw_rows_start(void);
 #define HW_LOG_HEAD    12u                  /* header words before the fields */
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
 /* The build's identity in each record: the package's version, which the
- * candidate's pack must match (tools/report-decode.py prints it). */
-#if defined(SB_HW_AUDIO13)
+ * candidate's pack must match (tools/report-decode.py prints it). The
+ * last definition stays the identity of a build without audio13, which
+ * seams case report1 builds (tools/seams_suite.py's _build_id). */
+#if defined(SB_HW_AUDIO14)
+#define HW_BUILD_ID    "0.14.0-hw3y"
+#elif defined(SB_HW_AUDIO13)
 #define HW_BUILD_ID    "0.13.0-hw3x"
 #else
 #define HW_BUILD_ID    "0.12.1-hw3w"
@@ -347,6 +356,10 @@ void hw_finder(void) __attribute__((noreturn));
 #define HW_A13_C_FIRST 4u
 #define HW_A13_ARP_LOG 48u
 #define HW_A13_GAP_MAX 30000u /* frames: a longer gap is a break (a rest, ARP off), not a step's gap */
+/* audio14 (clean-br17-audio14). P: the four words of the block at 0x16A00
+ * (0x16A00 to 0x16A0C, the owner's ruling), read only, with U2-A's. */
+#define HW_A14_P_BASE  0x16A00u
+#define HW_A14_P_WORDS 4u
 #define HW_A9_LATE_MAX 50u   /* late halves after which the interrupt goes back to the tone */
 #define HW_A9_PB5_SETTLE_MS 50u
 #define HW_A9_DAA7_MS 60000u
@@ -576,6 +589,16 @@ struct hw_audio {
     u32 arp_best_n, arp_best_f0, arp_best_u0, arp_best_f1, arp_best_u1; /* the longest chain: steps, its first and last step */
     u32 arp_log[HW_A13_ARP_LOG][2]; /* each step: the engine's frame count, sb_now at its fill; the last HW_A13_ARP_LOG */
 #endif
+#if defined(SB_HW_AUDIO14)
+    /* audio14 (clean-br17-audio14). */
+    u32 p_boot[HW_A14_P_WORDS]; /* P: the block at 0x16A00 at the app's start (sb_start, with U2-A's) */
+    u32 p_late[HW_A14_P_WORDS]; /* and a second later, with U2-A's (before the audio path) */
+    u32 p_key[HW_A14_P_WORDS];  /* and at the last press of U2-A's key */
+    u32 arp_saves;              /* R: REC's ARP saves in the panel (this record's counted) */
+    u32 arp_save_err;           /* the last save's result before this record: hw_rep.last_err (0: saved) */
+    u32 arp_save_seq;           /* the record number that save was given */
+    u32 arp_offs;               /* records written by ARP turning off with new steps */
+#endif
 };
 #define HW_L_NONE    0u
 #define HW_L_KEPT    1u     /* the link moved with the matrix right: the set-up running */
@@ -647,6 +670,9 @@ void hw_a13_u2_key(u32 control);
 void hw_a13_u2_poll(void);
 void hw_a13_panel_tick(void);
 extern u32 hw_u2_boot[HW_A13_WORDS];
+#if defined(SB_HW_AUDIO14)
+extern u32 hw_p_boot[HW_A14_P_WORDS];
+#endif
 #else
 void hw_a12_instrument(void);
 #endif

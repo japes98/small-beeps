@@ -342,8 +342,24 @@ def _layout12():
     return body + f + l11[len(l11) - health:]
 
 
+A14_P_ADDRS = (0x16A00, 0x16A04, 0x16A08, 0x16A0C)
+
+
+def _layout13():
+    """audio14 (clean-br17-audio14): layout 12, then before the log's own
+    health the block at 0x16A00's four words (P, read only) at the app's
+    start, a second later and on U2-A's key; and R's counts: REC's ARP
+    saves in the panel, the last save's result and number, and the records
+    ARP turning off wrote."""
+    l12 = _layout12()
+    health = len(_layout4()) - len(_layout3())
+    f = ["p_%s_%05X" % (when, a) for when in ("boot", "late", "key") for a in A14_P_ADDRS]
+    f += ["arp_saves", "arp_save_err", "arp_save_seq", "arp_offs"]
+    return l12[:len(l12) - health] + f + l12[len(l12) - health:]
+
+
 FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7(),
-          8: _layout8(), 9: _layout9(), 10: _layout10(), 11: _layout11(), 12: _layout12()}
+          8: _layout8(), 9: _layout9(), 10: _layout10(), 11: _layout11(), 12: _layout12(), 13: _layout13()}
 HOLDS = ("zero", "LED", "screen", "log", "scan")
 A9_ROUTE = ("not up", "UP", "down (key)", "UNDONE by the firmware", "no L2: not tried")
 A9_S2 = ("both halves", "upper half only", "lower half only")
@@ -544,6 +560,28 @@ def audio13_lines(f):
         n = f["arp_n"]
         steps = [(f["arp_log_%d_frames" % (k % 48)], f["arp_log_%d_units" % (k % 48)]) for k in range(max(0, n - 48), n)]
         out.append("    steps (frames/us): " + " ".join("%d/%.0f" % (a, us(b)) for a, b in steps))
+    if "p_boot_16A00" in f:
+        out += audio14_lines(f)
+    return out
+
+
+def audio14_lines(f):
+    """audio14's P (the block at 0x16A00) and R (the panel's ARP save)."""
+    p = lambda when: " ".join("%05X=%08X" % (a, f["p_%s_%05X" % (when, a)]) for a in A14_P_ADDRS)
+    bit1 = lambda when: "set" if f["p_%s_16A00" % when] & 2 else "clear"
+    out = ["audio14: P, the block at 0x16A00, read only",
+           "  at the app's start: %s (0x16A00 bit 1 %s)" % (p("boot"), bit1("boot")),
+           "  a second later: %s (0x16A00 bit 1 %s)" % (p("late"), bit1("late"))]
+    if f["u2_key_n"]:
+        out.append("  on U2-A's key: %s" % p("key"))
+    if f["arp_saves"] or f["arp_offs"]:
+        if not (f["arp_save_seq"] or f["arp_save_err"]):
+            last = "none before this record"
+        elif f["arp_save_err"]:
+            last = "the last NOT saved, %s" % LOG_ERRORS.get(f["arp_save_err"], "error %d" % f["arp_save_err"])
+        else:
+            last = "the last saved as #%d" % f["arp_save_seq"]
+        out.append("  R: %d ARP saves by REC (%s), %d records on ARP off" % (f["arp_saves"], last, f["arp_offs"]))
     return out
 
 
@@ -695,6 +733,7 @@ DECIMAL |= {n for n in FIELDS[12] if n.startswith(("a13_start", "u2_late_beat", 
                                                      "u2_key_n", "u2_state", "u2_run", "u2_polls", "u2_mark_n",
                                                      "u2_chg_n", "u2c_on", "u2c_toggles", "u2c_n_", "u2c_timeouts",
                                                      "u2c_log_n", "arp_"))}
+DECIMAL |= {"arp_saves", "arp_save_err", "arp_save_seq", "arp_offs"}
 DECIMAL |= {n for n in FIELDS[11] if n.startswith(("start_mode", "as_state", "as_alg", "as_runs", "as_stop",
                                                      "as_chords", "as_soft", "as_hard", "as_late", "as_rel",
                                                      "g_note_n", "g_turn"))}
