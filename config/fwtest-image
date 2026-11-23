@@ -4,4 +4,4 @@
 # The fwtest container image tools/fwtest runs, pinned by digest (R-SEP-3).
 # Updated by a pull request after each harness change is published
 # (.github/workflows/fwtest-image.yml prints the digest).
-ghcr.io/japes98/small-beeps@sha256:70f2c78853c3881f43a1d47b51d67c5971b60710d3f8959c0ccc99b280753b3b
+ghcr.io/japes98/small-beeps@sha256:0c8f53240494b8aa7ba7e0767b432963e4aa0e23fbc3045677530b1ce9cef470
