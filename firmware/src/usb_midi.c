@@ -66,7 +66,10 @@ volatile struct sb_usb_record sb_usb;
 /* --- The core (HW-86, HW-171, HW-172, HW-178) ----------------------------- */
 
 #define SRC_USB_CTRL 9u          /* the first core's controller (SIE) interrupt (HW-171) */
-#define PRIO_USB     0u          /* the engine's fill's (0): USB never pre-empts the audio (try 3, the owner) */
+/* The engine's fill's priority (0), not the SDK's 3 (HW-172): this side's
+ * choice in try 3, so USB never pre-empts the audio (the owner asked that
+ * the instrument play on whatever USB does). */
+#define PRIO_USB     0u
 
 /* CON0's bits by HW-171's names. */
 #define C0_PHY_ON   (1u << 0)
