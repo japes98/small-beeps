@@ -1,0 +1,43 @@
+{
+  "fwtest": {
+    "version": "0.14.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 55520,
+    "sha256": "574503b79ed33089de4ec1729b10ce4b276449b973924ada53168c730d6c59ef"
+  },
+  "script_sha256": "60af0b81d60875697d5098f439e0eb3b99f1949bfcf784260b8af99faae212b7",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "4000.357",
+    "instructions": {
+      "core0": 10135921,
+      "core1": 7469701
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 705836,
+        "sha256": "80bc55d0db083c98c31ecda114ba3e718698714650a40c9b3f1ff9ec681c49fa"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 80,
+        "sha256": "03a802dd6e4aeb17e6fea44de3c0f0e427f879d7f0bbe50ea02beefb33cf9e81"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 72,
+        "sha256": "c8ae968a5080acfd2a13b90dd05d88228a4f5a4a47a95338e4953703876f0f36"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

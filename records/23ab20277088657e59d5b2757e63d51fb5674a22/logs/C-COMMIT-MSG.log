@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range c48ca71af396023615859f46b6e812c263379455..23ab20277088657e59d5b2757e63d51fb5674a22
+OK     805aad6513b2 config: fwtest 0.14.0, whose host on the USB cable comes with --usb
+OK     c6e39c29e6b8 firmware: audio14, the panel's ARP save, the block at 0x16A00 read, USB MIDI in fwtest (U3-F)
+OK     fb3116287e3e firmware: audio14's four C-SEP-TERMS hits renamed (out_full, sof_tick, b1_state)
+EXEMPT 23ab20277088 (merge) Merge pull request #247 from japes98/hw/audio14-r
+4 commit(s) checked: PASS
+
+exit status 0
