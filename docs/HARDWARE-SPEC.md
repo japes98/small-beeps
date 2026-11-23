@@ -5163,15 +5163,20 @@ function it comes from. Bits are named as in HW-171; "IO `CON0`" is
     words 0 and 2 field by field, with three delays (`delay` of 1000,
     1000 and 100 000 counts). The second core's PHY state is read at
     `0x16A0C` (`usb_phy_status`). Whether the first core depends on this
-    block is not given.
+    block is not given. `clk_early_init` also writes other clock-control
+    fields around the call (a 48 MHz value is stored there); those are
+    not decoded here.
 - Sources: SDK `cpu/wl82/liba/cpu.a` (P-518): members `usb.c.o`
   (`usb_g_sie_init`, `usb_sie_enable`, `usb_write_power`,
   `musb_write_usb`, `musb_read_usb`, `usb_phy_status`, `usb_pll_init`,
   its two register tables), `usb_phy.c.o` (`usb_slave_init`),
   `gpio.c.o` (`gpio_set_die`, `usb_set_die`), `clock.c.o`
   (`clk_early_init`); HW-171, HW-172, HW-86.
-- Standing: confirmed (SDK, as machine code; whether the first core
-  needs the `0x16A00` block not given)
+- Standing: confirmed (SDK, as machine code), but held: not to be used
+  until the owner accepts the licence finding (P-516: the SDK's
+  Apache-2.0 grant over its prebuilt libraries is a reading, not
+  settled); whether the first core needs the `0x16A00` block, and the
+  other clock writes in `clk_early_init` around the call, not given
 - Needed by: USB MIDI (U3)
 
 ## Open questions
@@ -5650,4 +5655,6 @@ spec request can turn one into a fact.
   prebuilt library, read as machine code, gives the first core's device
   start as writes, with no clock write in it. Still open: whether the
   first core needs the PLL block at `0x16A00` that the SDK's early clock
-  set-up brings up, and whether it is up when an app starts.
+  set-up brings up, and whether it is up when an app starts; the other
+  clock writes in `clk_early_init` near that call are not decoded. HW-178
+  is held until the owner accepts the licence finding.
