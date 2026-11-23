@@ -24,6 +24,9 @@
 #include "ui.h"
 #include "WL82.h"
 #include "hw_fm1.h"
+#if defined(SB_USB_MIDI)
+#include "usb_midi.h"
+#endif
 
 /* HW-25: in fwtest each word written here is appended to the console. The
  * SDK declares DBG_MSG read-only (Q-5), so it is written through our own
@@ -903,6 +906,10 @@ int main(void)
 #endif
 #if defined(SB_TEST_LEDS)
     sb_test_leds();
+#endif
+#if defined(SB_USB_MIDI)
+    /* U3-F (fwtest's builds only, usb_midi.h): the USB MIDI device. */
+    usb_midi_start();
 #endif
 #if !defined(SB_HW_FM1)
     sb_irq_on();

@@ -4198,6 +4198,40 @@ SR-3 wrote only its barrier-log row.*
   `JL_USB_IO` blocks, which HW-171 cites and the build already includes.
 - Disk: about 2.5 GB free.
 
+### Session clean-br17-audio14 (BR-17: the panel's ARP save; the block at 0x16A00 read; U3-F, the USB MIDI device in fwtest)
+- Date: 2026-11-23 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.330, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio13's, continued. The prompt came from the spec session
+  through the owner's cross-session relay, saved unedited as
+  docs/prompts/clean-br17-audio14.md.
+- Start: branch `hw/audio14` from main at `c48ca71a` (#244 merged, which
+  carries #243's commit and the report1 fix). The checkout first stopped
+  on a file of main's that wasn't in the folder yet (lazy fetching off);
+  it was made with lazy fetching allowed for that one checkout, then
+  tools/clean-update.sh ran and passed ("no spec-side files on disk or in
+  .git"). Nothing to archive (the last clean session is this one, live);
+  tools/check-transcripts.py PASS.
+- Reads: this side's own code and builds; HARDWARE-SPEC sections 49 and 51
+  (HW-171 to HW-173, HW-176, HW-177), HW-86, Q-36, REQUIREMENTS R-USB-1,
+  and docs/HARNESS.md ("USB", "The command line", "Input scripts",
+  "Versions"), as on main at `c48ca71a`; docs/prompts/spec-audio13-unit.md
+  and spec-audio13-rulings.md (the owner's relay of audio13 on the unit);
+  the vendored SDK header `WL82.h`'s `JL_USB` block, which HW-171 cites.
+  The owner's backup that the relay names was not opened: it is the
+  owner's file, outside this folder.
+- Disk: about 2.4 GB free.
+- After the PR: #245's C-SEP-TERMS (run 45098340050) flagged four terms;
+  the spec session named them in a relay (term names, file and line only).
+  Renamed `out_full`, `sof_tick` and `b1_state`; the block's last address
+  is no longer spelled out (written as "0x16A00 and the three words after
+  it", derived in code as 0x16A00 + 4*i). The candidate's app-pkg.bin
+  rebuilt byte-identical.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
