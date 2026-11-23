@@ -3159,6 +3159,9 @@ static const char a13_name[HW_A13_WORDS][3] = { "C0", "C1", "P0", "P1", "P2" };
 static u32 a13_first_k, a13_c_last[2] = { 0xFFFFu, 0xFFFFu }, a13_c_logged[2], a13_c_beat[2];
 static u32 a13_arp_seen, a13_arp_chain, a13_arp_f, a13_arp_u, a13_arp_f0, a13_arp_u0;
 static u32 a13_shown, a13_shown_beat;
+#if defined(SB_HW_AUDIO14)
+static u32 a14_arp_was_on, a14_arp_n_saved;
+#endif
 
 static void u2_read(u32 *w)
 {
@@ -3174,6 +3177,18 @@ static void u2_read(u32 *w)
         w[0] |= 1u << 5;
 #endif
 }
+
+#if defined(SB_HW_AUDIO14)
+/* P (the owner's ruling): the block at 0x16A00, its four words, read
+ * only, with U2-A's; nothing is written there or to any clock register. */
+static void p_read(u32 *w)
+{
+    u32 i;
+
+    for (i = 0; i < HW_A14_P_WORDS; i++)
+        w[i] = *(volatile u32 *)(HW_A14_P_BASE + 4u * i);
+}
+#endif
 
 /* HOME let go (the route's check stops on a key held), at most 10 s, and
  * its events dropped, so the test screen doesn't take the press as its
@@ -3214,6 +3229,10 @@ u32 hw_a13_power_on(void)
 
     for (i = 0; i < HW_A13_WORDS; i++)
         hw_aud.u2_boot[i] = hw_u2_boot[i];
+#if defined(SB_HW_AUDIO14)
+    for (i = 0; i < HW_A14_P_WORDS; i++)
+        hw_aud.p_boot[i] = hw_p_boot[i];
+#endif
     for (i = 0; i < HW_A13_RUNS; i++)
         for (j = 0; j < HW_A13_STATES; j++)
             for (k = 0; k < HW_A13_WORDS; k++)
@@ -3224,6 +3243,9 @@ u32 hw_a13_power_on(void)
     while (sb_beacon.beats < 1000u)
         sb_wait_ms(10);
     u2_read(hw_aud.u2_late);
+#if defined(SB_HW_AUDIO14)
+    p_read(hw_aud.p_late);
+#endif
     hw_aud.u2_late_beat = sb_beacon.beats;
     hw_aud.u2_late_blocks = sb_audio.blocks;
     for (i = 0; i < HW_A13_WORDS; i++)
@@ -3253,6 +3275,9 @@ void hw_a13_u2_key(u32 control)
 
     if (control == INPUT_OCT_DOWN) {
         u2_read(hw_aud.u2_key);
+#if defined(SB_HW_AUDIO14)
+        p_read(hw_aud.p_key);
+#endif
         hw_aud.u2_key_beat = sb_beacon.beats;
         hw_aud.u2_key_n++;
         report("U2-A key");
@@ -3337,7 +3362,13 @@ static void a13_u2c_record(u32 ch, u32 v)
  * start's five words, one every 2 s; U2-C, off or its last readings. */
 static void a13_big(char (*t)[16])
 {
+#if defined(SB_HW_AUDIO14)
+    /* audio14: P's four words after U2-A's five, by their addresses' last
+     * three digits ("A00" to "A0C": twelve cells a line). */
+    u32 i, n = 0, first = 0, pg = sb_beacon.beats / 2000u % (HW_A13_WORDS + HW_A14_P_WORDS);
+#else
     u32 i, n = 0, first = 0, pg = sb_beacon.beats / 2000u % HW_A13_WORDS;
+#endif
     char *p = t[0];
 
     for (i = HW_A13_WORDS; i--;)
@@ -3363,10 +3394,20 @@ static void a13_big(char (*t)[16])
         *p++ = 'W';
     }
     *p = 0;
-    p = put_s(t[1], a13_name[pg]);
-    *p++ = ' ';
-    p = put_hex(p, hw_aud.u2_boot[pg], 8);
-    *p = 0;
+#if defined(SB_HW_AUDIO14)
+    if (pg >= HW_A13_WORDS) {
+        p = put_hex(t[1], (HW_A14_P_BASE + 4u * (pg - HW_A13_WORDS)) & 0xFFFu, 3);
+        *p++ = ' ';
+        p = put_hex(p, hw_aud.p_boot[pg - HW_A13_WORDS], 8);
+        *p = 0;
+    } else
+#endif
+    {
+        p = put_s(t[1], a13_name[pg]);
+        *p++ = ' ';
+        p = put_hex(p, hw_aud.u2_boot[pg], 8);
+        *p = 0;
+    }
     if (!hw_aud.u2c_on) {
         p = put_s(t[2], "U2C OFF");
     } else {
@@ -3445,6 +3486,16 @@ void hw_a13_panel_tick(void)
     u32 b = sb_beacon.beats, w, ms10;
     char *p;
 
+#if defined(SB_HW_AUDIO14)
+    /* R: ARP turned off with steps not yet in a record: a record of its
+     * own, so they reach the flash with or without REC. */
+    if (a14_arp_was_on && !sb_arp.on && hw_aud.arp_n != a14_arp_n_saved) {
+        a14_arp_n_saved = hw_aud.arp_n;
+        hw_aud.arp_offs++;
+        report("ARP off");
+    }
+    a14_arp_was_on = sb_arp.on;
+#endif
     if (!sb_arp.on)
         return;
     w = a13_shown_beat + 500u;
@@ -3474,6 +3525,30 @@ void hw_a13_panel_tick(void)
 void hw_a13_panel_save(void)
 {
     static char t[40];
+#if defined(SB_HW_AUDIO14)
+    /* R (audio14): a record labelled "ARP save" holding ARP's step log (the
+     * gaps, the steps, the last steps' frames and times: every record's
+     * audio13 fields), counted in itself; the panel's message line says
+     * whether it was saved, and under which number, or why not. */
+    char *p;
+
+    hw_aud.arp_saves++;
+    a14_arp_n_saved = hw_aud.arp_n;
+    report("ARP save");
+    hw_aud.arp_save_err = hw_rep.last_err;
+    hw_aud.arp_save_seq = hw_rep.seq - (hw_rep.last_err ? 0u : 1u);
+    if (!hw_rep.last_err) {
+        p = put_s(t, "ARP saved #");
+        p = put_dec(p, hw_aud.arp_save_seq);
+    } else {
+        p = put_s(t, "ARP NOT saved, error ");
+        p = put_dec(p, hw_rep.last_err);
+    }
+    p = put_s(p, ", ");
+    p = put_dec(p, hw_aud.arp_n);
+    p = put_s(p, " steps");
+    *p = 0;
+#else
     const char *s;
     char *p;
 
@@ -3482,6 +3557,7 @@ void hw_a13_panel_save(void)
     for (s = hw_step_now(); *s && p < t + sizeof t - 1u; s++)
         *p++ = *s;
     *p = 0;
+#endif
     view_message(t, 0);
 }
 #endif
@@ -5867,6 +5943,16 @@ u32 hw_audio_report(u32 *w)
     w[n++] = hw_aud.arp_best_f1;
     w[n++] = hw_aud.arp_best_u1;
     n = put_words(w, n, hw_aud.arp_log[0], 2u * HW_A13_ARP_LOG);
+#endif
+#if defined(SB_HW_AUDIO14)
+    /* Layout 13: audio14 after layout 12 (tools/report_decode.py's _layout13). */
+    n = put_words(w, n, hw_aud.p_boot, HW_A14_P_WORDS);
+    n = put_words(w, n, hw_aud.p_late, HW_A14_P_WORDS);
+    n = put_words(w, n, hw_aud.p_key, HW_A14_P_WORDS);
+    w[n++] = hw_aud.arp_saves;
+    w[n++] = hw_aud.arp_save_err;
+    w[n++] = hw_aud.arp_save_seq;
+    w[n++] = hw_aud.arp_offs;
 #endif
     return n;
 }

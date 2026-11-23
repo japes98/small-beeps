@@ -330,6 +330,24 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   timeout draws band 5 under bands 1 to 3. Its hardware
   package passes fwsc.py's unit checks; with SB_ENGINE_EXTERNAL or a
   probe it is refused.
+- audio14 (BR-17, clean-br17-audio14): R, the panel's ARP save: from
+  power-on, ARP on, a chord 20 s, released, ARP off and REC twice, in
+  fwtest's layout and the unit's: a record "ARP off", then two "ARP save"
+  records with ARP's steps 5514 or 5515 frames apart, each step's frame
+  count and time, the second saying the first was saved and as which
+  number. P: the block at 0x16A00's four words in the boot record at the
+  start and a second later (before the audio path), and on U2-A's key,
+  as fwtest reads them (0); the test screen's large area shows them by
+  address's last three digits. The unit's file, packed from the package link, runs past the
+  start's bands through fwtest's package path.
+- usbmidi (U3-F, clean-br17-audio14): the USB MIDI device, a test build
+  with SB_USB_MIDI, with fwtest's --usb host: enumerated as 1209:0001,
+  "small-beeps" for the manufacturer and the product, no serial number,
+  no problem listed; the host's notes sound in audio.wav; the panel's
+  notes reach usb-midi-out.csv; CON0's bits 16 and 17 as read before
+  connecting. Without --usb its outputs are build A's. The unit's build
+  carries none of it: SB_USB_MIDI with SB_HW_FM1 stops the build, and
+  the candidate's ELF has none of the device's symbols.
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -3804,6 +3822,215 @@ def case_audio13(a, work, log):
     return problems
 
 
+A14_DEFINES = A13_DEFINES + ("--define", "SB_HW_AUDIO14")
+A14_UNIT = ("--define", "SB_HW_FM1", "--define", "SB_HW_HOLD", "--define", "SB_HW_AUDIO1", "--define", "SB_HW_REPORT",
+            "--define", "SB_HW_AUDIO8", "--define", "SB_HW_PCM16", "--define", "SB_HW_AUDIO9", "--define",
+            "SB_HW_AUDIO10", "--define", "SB_HW_AUDIO11", "--define", "SB_HW_AUDIO12", "--define", "SB_HW_AUDIO13",
+            "--define", "SB_HW_AUDIO14")
+A14_ID = "0.14.0-hw3y"
+A14_P = ("16A00", "16A04", "16A08", "16A0C")
+
+
+def case_audio14(a, work, log):
+    """audio14 (clean-br17-audio14): R, the panel's save of ARP's record, in
+    the owner's order (ARP on, a chord held 20 s and released, ARP off,
+    REC; then REC again), in fwtest's layout and the unit's; P, the block
+    at 0x16A00 read with U2-A's; the unit's file."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    glyphs = font_glyphs()
+    g = lambda f, k: f.get(k, 0)
+    pw = lambda f, when: tuple(g(f, "p_%s_%s" % (when, x)) for x in A14_P)
+    arp = {}
+    for name, extra in (("cold", ()), ("cold-pcm16", ("--define", "SB_HW_PCM16"))):
+        b = os.path.join(work, "build-" + name)
+        build(b, log, *A14_DEFINES, *extra)
+        path = os.path.join(work, name + ".script")
+        with open(path, "w") as f:
+            f.write("12000 key %d tap 300\n13000 key %d tap 100\n" % (HW_KEY1, HW_ARP_KEY))
+            for k in (HW_KEY1, HW_KEY5):
+                f.write("13500 key %d down\n33500 key %d up\n" % (k, k))
+            f.write("34500 key %d tap 100\n36000 key %d tap 100\n37000 key %d tap 100\n" % (
+                HW_ARP_KEY, HW_REC, HW_REC))
+        out = os.path.join(work, name)
+        r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "38500", "--flash-out", "--script",
+                   os.path.relpath(path, ROOT))
+        with open(os.path.join(out, "flash.bin"), "rb") as f:
+            rs, bad = rd.records(f.read())
+        labels = a13_labels(rs)
+        boot = rs[0]["fields"] if rs else {}
+        saves = [x["fields"] for x in rs if x["label"] == "ARP save"]
+        off = next((x for x in rs if x["label"] == "ARP off"), None)
+        if r["run"]["outcome"] != "completed" or bad or any(
+                x["layout"] != 13 or x["count"] != len(rd.FIELDS[13]) or x["build"] != A14_ID for x in rs):
+            problems.append("audio14 %s: %s, %d bad records, layouts %s" % (
+                name, r["run"]["outcome"], len(bad), sorted({(x["layout"], x["count"], x["build"]) for x in rs})))
+        if labels != A13_INST + ["ARP off", "ARP save", "ARP save"] or len(saves) != 2:
+            problems.append("audio14 R %s: records %s (want the start's, ARP off, ARP save twice)" % (name, labels))
+            continue
+        s1, s2 = saves
+        ok, text = a13_arp_check(s1, name, HW_RATIO * (2 if extra else 1))
+        # The last 48 steps 5514 or 5515 frames apart; over the whole chain a step can come one frame early (arp.c
+        # clamps a step due in a block's last frame-fraction to frame 63): 5513 then 5516, as a13_arp_check allows.
+        n1 = g(s1, "arp_n")
+        last = [g(s1, "arp_log_%d_frames" % (k % 48)) for k in range(n1 - 48, n1)]
+        exact = all(y - x in (5514, 5515) for x, y in zip(last, last[1:]))
+        arp[name] = text
+        if not ok or not exact or g(s1, "arp_saves") != 1 or g(s1, "arp_offs") != 1 or g(s2, "arp_saves") != 2 \
+                or g(s2, "arp_save_err") or g(s2, "arp_save_seq") != rs[labels.index("ARP save")]["seq"] \
+                or g(s2, "arp_n") != g(s1, "arp_n") or off is None or off["fields"].get("arp_n") != g(s1, "arp_n"):
+            problems.append("audio14 R %s: %s; saves %d/%d, offs %d, the second save says err %d #%d; steps %d/%d/%s"
+                            % (name, text, g(s1, "arp_saves"), g(s2, "arp_saves"), g(s1, "arp_offs"),
+                               g(s2, "arp_save_err"), g(s2, "arp_save_seq"), g(s1, "arp_n"), g(s2, "arp_n"),
+                               off and off["fields"].get("arp_n")))
+        if pw(boot, "boot") != (0, 0, 0, 0) or pw(boot, "late") != (0, 0, 0, 0) or g(boot, "u2_late_blocks") \
+                or g(boot, "u2_late_beat") < 1000:
+            problems.append("audio14 P %s: boot record start %s, later %s at beat %d with %d audio blocks" % (
+                name, pw(boot, "boot"), pw(boot, "late"), g(boot, "u2_late_beat"), g(boot, "u2_late_blocks")))
+    # HOME held: the test screen; U2-A's key reads P too; the large area shows P's words by address.
+    hb = os.path.join(work, "build-home")
+    build(hb, log, *A14_DEFINES)
+    hpath = os.path.join(work, "home.script")
+    with open(hpath, "w") as f:
+        f.write("0 key %d down\n5000 key %d up\n9000 key %d tap 100\n32000 key %d tap 100\n" % (
+            HW_HOME, HW_HOME, HW_OCTDOWN, HW_EDIT))
+    shots = (26000, 28500, 31000)    # the large area's pages 5 to 8 (beats 10000 to 17999, fwtest's 2.5 slow beats)
+    hout = os.path.join(work, "home")
+    hr = fwtest(os.path.join(hb, "app.bin"), hout, log, "--ms", "33000", "--flash-out", "--script",
+                os.path.relpath(hpath, ROOT), *[x for t in shots for x in ("--lcd", str(t))])
+    with open(os.path.join(hout, "flash.bin"), "rb") as f:
+        hrs, hbad = rd.records(f.read())
+    rec = lambda lab: next((x["fields"] for x in hrs if x["label"] == lab), {})
+    hboot, hkey = rec("boot"), rec("U2-A key")
+    if hr["run"]["outcome"] != "completed" or hbad or not hkey or g(hkey, "u2_key_n") != 1 \
+            or pw(hboot, "boot") != (0, 0, 0, 0) or pw(hboot, "late") != (0, 0, 0, 0) or pw(hkey, "key") != (0, 0, 0, 0) \
+            or g(hboot, "u2_late_blocks") or g(hboot, "a13_start") != 2:
+        problems.append("audio14 P HOME: %s, %d bad, start %d; boot %s later %s (%d audio blocks), key %d reads %s" % (
+            hr["run"]["outcome"], len(hbad), g(hboot, "a13_start"), pw(hboot, "boot"), pw(hboot, "late"),
+            g(hboot, "u2_late_blocks"), g(hkey, "u2_key_n"), pw(hkey, "key")))
+    big = {}
+    for t in shots:
+        png = os.path.join(hout, "lcd-%dms.png" % t)
+        big[t] = read_big(fws, png, glyphs) if os.path.exists(png) else ["(no screen)"] * 3
+    pages = [b[1] for b in big.values() if re.match(r"A0[048C] 00000000$", b[1])]
+    if not pages or any(not re.match(r"(C0|C1|P0|P1|P2|A0[048C]) [0-9A-F]{8}$", b[1]) for b in big.values()):
+        problems.append("audio14 P: the large area %s (want P's words by address on some)" % big)
+    # The unit's file: the candidate's build, packed from the package link, through fwtest's package path.
+    cb = os.path.join(work, "build-unit")
+    build(cb, log, *A14_UNIT)
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import fwsc
+    path = os.path.join(work, "unit.fwsc")
+    with open(path, "wb") as f:
+        f.write(fwsc.pack(read_bytes(os.path.join(cb, "app-pkg.bin")), "FM-1_" + A14_ID))
+    pout = os.path.join(work, "unit")
+    pr = fwtest(path, pout, log, "--package", "--ms", "40000", "--lcd", "39900")
+    png = os.path.join(pout, "lcd-39900ms.png")
+    bands = None
+    if os.path.exists(png):
+        _, _, rows = fws.read_png(png)
+        # Past the start's bands (blue across row 72, green across row 96: where the raw link stops). The unit's
+        # build writes no log in fwtest (its window CON reads 0 there).
+        bands = all(rows[72][x][:3] == (0, 0, 255) and rows[96][x][:3] == (0, 255, 0) for x in range(0, 240, 16))
+    if pr["run"]["outcome"] != "completed" or bands is not False:
+        problems.append("audio14 unit file: %s, still at the two bands %s" % (pr["run"]["outcome"], bands))
+    print("audio14: R: %s; P as fwtest reads it (0) at the start, a second later before the audio path and on the"
+          " key, the large area %s; the unit's file through the package path past the start's bands: %s" % (
+              "; ".join(arp.values()), pages, pr["run"]["outcome"] == "completed" and bands is False))
+    return problems
+
+
+USB_DEVICE_SYMBOLS = ("sb_usb", "usb_midi_start", "usb_midi_take", "usb_midi_send")
+
+
+def case_usbmidi(a, work, log):
+    """U3-F (clean-br17-audio14): the USB MIDI device in a test build
+    (SB_USB_MIDI) with fwtest's --usb host; the same build without it; the
+    unit's build without any of it."""
+    problems = []
+    fws = fw_suite()
+    b = os.path.join(work, "build")
+    build(b, log, "--define", "SB_USB_MIDI")
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    path = os.path.join(work, "usb.script")
+    with open(path, "w") as f:
+        # The host's note (channel 1), then the panel's KEY1; and a note at MIDI in for the run without --usb.
+        f.write("300 usbmidi 09 90 3c 64\n1300 usbmidi 08 80 3c 00\n2000 key %d tap 400\n3000 midi 90 40 64\n"
+                "3500 midi 80 40 00\n" % HW_KEY1)
+    out = os.path.join(work, "usb")
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--usb", "--wav", "--midi-out", "--ms", "4000", "--script",
+               os.path.relpath(path, ROOT), "--ram", "0x%08x:84@end" % sy["sb_usb"])
+    u = r["run"].get("usb") or {}
+    rec = struct.unpack("<21I", ram(out, sy["sb_usb"], 84))
+    lines_first, lines_or, lines_set, lines_reads = rec[1:5]
+    hexv = lambda v: int(str(v), 16) if v is not None else None
+    if r["run"]["outcome"] != "completed" or hexv(u.get("vendor")) != 0x1209 or hexv(u.get("product")) != 0x0001 \
+            or u.get("manufacturer") != "small-beeps" or u.get("product_name") != "small-beeps" or u.get("serial") \
+            or u.get("problems") or u.get("configuration") != 1 or u.get("midi_out_endpoint") is None \
+            or u.get("midi_in_endpoint") is None or rec[0] != 0x4D425355 or rec[20]:
+        problems.append("usbmidi: %s, usb %s, magic %08X, port time-outs %d" % (
+            r["run"]["outcome"], u, rec[0], rec[20]))
+    rate, left, _ = aa.read_wav(os.path.join(out, "audio.wav"))
+    peak = lambda t0, t1: max([abs(v) for v in left[int(t0 * rate):int(t1 * rate)]] or [0])
+    host, quiet = peak(0.5, 1.2), peak(0.0, 0.25)
+    if host < 100 or quiet > 10:
+        problems.append("usbmidi: the host's note in audio.wav peaks %d (0.5 to 1.2 s), before it %d" % (host, quiet))
+    sent = []
+    p = os.path.join(out, "usb-midi-out.csv")
+    if os.path.exists(p):
+        with open(p) as f:
+            for row in csv.DictReader(f):
+                sent.append((float(row["ms"]), int(row["cin"], 0) if str(row["cin"]).startswith("0x")
+                             else int(row["cin"]), row["bytes"].split()))
+    ons = [x for x in sent if x[1] == 9 and len(x[2]) == 3 and int(x[2][2], 16)]
+    offs = [x for x in sent if x[1] == 9 and len(x[2]) == 3 and not int(x[2][2], 16)]
+    if not ons or not offs or not 2000 <= ons[0][0] < 2400 or not ons[0][0] < offs[0][0] \
+            or ons[0][2][1] != offs[0][2][1] or any(1000 <= x[0] < 1900 for x in sent):
+        problems.append("usbmidi: usb-midi-out.csv %s (want the panel's note on and off, nothing echoed)" % sent[:8])
+    if lines_reads != 32 or lines_set or lines_or:
+        problems.append("usbmidi: CON0's lines before connecting: %d reads, %d with a bit set, bits %08X" % (
+            lines_reads, lines_set, lines_or))
+    # Without --usb: as build A, the same script (the host's events ignored): the same samples and MIDI bytes. The
+    # device's 32 reads of the lines before connecting (1.6 ms) start the audio's interrupts about one block later,
+    # so the WAV is that much shorter and MIDI out's bytes go out microseconds later.
+    outs = {}
+    for name, image in (("usb-off", os.path.join(b, "app.bin")), ("build-a", os.path.join(a.build, "app.bin"))):
+        o = os.path.join(work, name)
+        rr = fwtest(image, o, log, "--wav", "--midi-out", "--ms", "4000", "--script", os.path.relpath(path, ROOT))
+        _, wl, wr = aa.read_wav(os.path.join(o, "audio.wav"))
+        with open(os.path.join(o, "midi-out.csv")) as f:
+            mo = [(float(x[0]), x[1]) for x in list(csv.reader(f))[1:]]
+        outs[name] = (rr["run"]["outcome"], wl, wr, mo, rr["run"].get("usb"))
+    (o1, l1, r1, m1, u1), (o2, l2, r2, m2, _) = outs["usb-off"], outs["build-a"]
+    n = min(len(l1), len(l2))
+    same_wav = l1[:n] == l2[:n] and r1[:n] == r2[:n] and abs(len(l1) - len(l2)) <= 128 and max(map(abs, l2)) > 100
+    same_midi = [x[1] for x in m1] == [x[1] for x in m2] and len(m2) >= 6 \
+        and all(abs(x[0] - y[0]) < 2 for x, y in zip(m1, m2))
+    if o1 != "completed" or o2 != "completed" or u1 or not same_wav or not same_midi:
+        problems.append("usbmidi without --usb: %s/%s, usb %s; the samples the same: %s (%d and %d frames); MIDI out"
+                        " the same: %s (%s, build A %s)" % (o1, o2, u1, same_wav, len(l1), len(l2), same_midi,
+                                                             m1[:6], m2[:6]))
+    # The unit's build: SB_USB_MIDI with SB_HW_FM1 stops the build; the candidate's ELF has none of the device.
+    code, text = build(os.path.join(work, "build-unit-usb"), log, *A14_UNIT, "--define", "SB_USB_MIDI", check=False)
+    cb = os.path.join(work, "build-unit")
+    build(cb, log, *A14_UNIT)
+    usy = fws.elf_symbols(os.path.join(cb, "app-pkg.elf"))
+    found = [n for n in USB_DEVICE_SYMBOLS if n in usy]
+    if not code or "SB_USB_MIDI is for fwtest's builds only" not in text or found:
+        problems.append("usbmidi unit: a unit build with SB_USB_MIDI %s; the candidate's device symbols %s" % (
+            "stopped" if code else "built", found))
+    print("usbmidi: enumerated %s:%s, %r / %r, serial %r, address %s, endpoints out %s in %s, %d events received,"
+          " %d sent; the host's note peaks %d; the panel's note %s; CON0 before connecting %08X, bits 16-17 set in"
+          " %d of %d reads (fwtest doesn't model them: 0); without --usb as build A: %s; the unit's build: SB_USB_MIDI"
+          " refused, none of %s in the candidate" % (
+              u.get("vendor"), u.get("product"), u.get("manufacturer"), u.get("product_name"), u.get("serial"),
+              u.get("address"), u.get("midi_out_endpoint"), u.get("midi_in_endpoint"), u.get("events_received", 0),
+              u.get("events_sent", 0), host, ons[:1] + offs[:1], lines_first, lines_set, lines_reads,
+              same_wav and same_midi, ", ".join(USB_DEVICE_SYMBOLS)))
+    return problems
+
+
 def case_nowrace(a, work, log):
     """sb_now() never goes back: the slot interrupt's time-keeping forced
     at each point between its reads, just after TIMER0 wraps (main.c,
@@ -3865,6 +4092,8 @@ CASES = [
     ("audio11", case_audio11),
     ("audio12", case_audio12),
     ("audio13", case_audio13),
+    ("audio14", case_audio14),
+    ("usbmidi", case_usbmidi),
 ]
 
 
