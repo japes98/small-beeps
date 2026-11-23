@@ -1,0 +1,6 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-hardware-spec.py
+177 entries (145 confirmed, 23 emulator-only, 2 other chip, 7 other)
+history: checked against 073cf74b1b18
+hardware spec: PASS
+
+exit status 0

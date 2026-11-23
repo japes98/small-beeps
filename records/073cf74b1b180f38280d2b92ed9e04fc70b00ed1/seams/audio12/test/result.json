@@ -1,0 +1,209 @@
+{
+  "fwtest": {
+    "version": "0.14.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 109388,
+    "sha256": "3ef89e35621553c22f218cfd9cd71cb37af5544783022218c342d0fc81820229"
+  },
+  "script_sha256": "3146bf232331b116113b14388b4e205a1ed34182f6d204b5d3d38dbef40c55c2",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "33000.087",
+    "instructions": {
+      "core0": 2652587664,
+      "core1": 7519252849
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00011100",
+        "access": "read",
+        "count": 16
+      },
+      {
+        "address": "0x00011104",
+        "access": "read",
+        "count": 16
+      },
+      {
+        "address": "0x00012f00",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x00013000",
+        "access": "write",
+        "count": 36
+      },
+      {
+        "address": "0x00015100",
+        "access": "read",
+        "count": 16
+      },
+      {
+        "address": "0x00015104",
+        "access": "read",
+        "count": 16
+      },
+      {
+        "address": "0x00015108",
+        "access": "read",
+        "count": 16
+      },
+      {
+        "address": "0x0001510c",
+        "access": "read",
+        "count": 16
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "write",
+        "count": 72
+      },
+      {
+        "address": "0x00040204",
+        "access": "write",
+        "count": 18
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "write",
+        "count": 18
+      },
+      {
+        "address": "0x00040300",
+        "access": "write",
+        "count": 36
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "write",
+        "count": 18
+      },
+      {
+        "address": "0x01eee200",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee204",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee208",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee20c",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee210",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee214",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee218",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee21c",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee220",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee224",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee228",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee22c",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee230",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee234",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee238",
+        "access": "read",
+        "count": 21
+      },
+      {
+        "address": "0x01eee23c",
+        "access": "read",
+        "count": 21
+      }
+    ],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 5076012,
+        "sha256": "a0ab452a8ab10d8210d4f8b1dd200a3b9295bf8d75903a9c6698ebad481bb001"
+      },
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "4b516cf1236cb3254b774c6cf3ad72b713604e7281f6311913cfbe17fa73d557"
+      },
+      {
+        "name": "lcd-14000ms.png",
+        "bytes": 173118,
+        "sha256": "f7396f2a7282898c93dcd0470c18406a361ab24e9ae9d2522d0268d0db158e4f"
+      },
+      {
+        "name": "lcd-21000ms.png",
+        "bytes": 173118,
+        "sha256": "9328c4bb6c684a18949fca9e31ed316eefc6ad636c38a1888471d950675dd66f"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
