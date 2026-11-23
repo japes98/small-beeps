@@ -234,7 +234,7 @@ void usb_midi_send(u32 status, u32 d1, u32 d2, u32 length)
     if (!sb_usb.configuration)
         return;
     if (h - out_tail >= OUT_RING) {
-        sb_usb.tx_dropped++;
+        sb_usb.out_full++;
         return;
     }
     out_ring[h % OUT_RING] = (status >> 4) | status << 8 | (d1 & 0x7Fu) << 16
@@ -425,9 +425,9 @@ static void bulk_in(void)
 
 /* --- The frame's interrupt -------------------------------------------------- */
 
-static void usb_frame(void) __attribute__((interrupt("")));
+static void sof_tick(void) __attribute__((interrupt("")));
 
-static void usb_frame(void)
+static void sof_tick(void)
 {
     u32 usb, tx;
 
@@ -486,7 +486,7 @@ void usb_midi_start(void)
     JL_USB->EP1_CNT = EP_MAX;
     JL_USB->EP2_TADR = (u32)tx_buf;
     port_last = sb_now();
-    sb_irq_enable(SRC_USB_SOF, usb_frame, PRIO_USB);
+    sb_irq_enable(SRC_USB_SOF, sof_tick, PRIO_USB);
     usb_core_setup();
     ep_setup();
     JL_USB->CON0 = CON0_PHY_ON | CON0_SOFIE;
