@@ -5982,7 +5982,7 @@ leaves open.
   `OverRun` and `DataError` are counted if they ever show, with the
   rings' drops.
 - **Layout 14** is layout 13 without ARP's step log (96 words; R is
-  done), with the device's 71 words before the log's own health.
+  done), with the device's words (71 in try 1, 98 since try 2) before the log's own health.
 - **`FADDR`** (general USB knowledge, PROVENANCE P-99): a MUSB-style core
   takes the address at once, and the status stage of SET_ADDRESS must
   still be answered at address 0, so on the owner's file the address is
@@ -6000,3 +6000,36 @@ leaves open.
   `--usb` the reading shows "a computer" there too and the set-up runs,
   with no host and no bus event after it; the outputs are still build
   A's. On the unit the reading tells the two apart (HW-176, HW-177).
+- **Tries, by the owner's ruling of 2026-11-23:** USB goes on one branch
+  (#249, a draft) with no PR per try; each try runs the USB seams cases
+  (report1 on an identity change), the terms check and packs the owner's
+  file. A value that is a guess is offered several ways behind a
+  test-screen key, logged; a write HW-172 or HW-178 doesn't give stops the
+  work and goes to the owner.
+- **Try 2** (after #249's first commit):
+  - C-SEP-TERMS named two of the first try's identifiers; they are now
+    `usb_halt_writes` and `u3_sie_isr`, and the decoder's stage
+    "stopped".
+  - After a give-up nothing more reaches the USB blocks: the endpoints'
+    DMA words go through `put()`, which writes nothing once the device has
+    given up; the set-up returns after any stage whose port access gave
+    up, and no later stage is marked. Before, a give-up in the set-up's
+    first port access still let it write `EP0_ADR` and the receive
+    addresses, and mark POWER's stage and the rest. The test build
+    `SB_TEST_USB_STOP` makes the first access's bit 15 never come: the log
+    names the stage (the interrupt enables) and the index (11), no stage
+    after it, fwtest's host never sees a device (`POWER` not written), and
+    the instrument plays on (seams case usbmidi).
+  - The port's spacing is the first guess offered: KEY7 on the test
+    screen (HOME held at power-on) takes the next of 2, 10, 50 and 200 us
+    (10 us at power-on), named on the step row and in a record ("USB
+    spacing"). Each bus reset starts an attempt, and the last 8 attempts
+    are logged with the spacing then in use, what they reached (address,
+    configuration, a packet in, a packet out), the reset's beat and their
+    last step's; every attempt's reset and configuration is a record (the
+    first 16 of each). So one flash tries every spacing: unplug, KEY7,
+    plug in again. Layout 14 holds the device's 98 words.
+  - The log end to end in fwtest: audio14's log-writing test build with
+    the owner's device, with `--usb`: "USB cable", "USB step 1" to "6",
+    "USB set up", "USB reset", "USB address", "USB configured", in that
+    order, every record of layout 14's length, no give-up.

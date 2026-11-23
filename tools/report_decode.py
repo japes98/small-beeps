@@ -362,7 +362,7 @@ def _layout13():
 # tools/seams_suite.py reads the same names from it.
 USB_STAGES = ("cable", "step1_pins_ie", "step2_pads", "step3_nrst_clr", "step4_con1", "step5_phy", "step6_pulls",
               "step7_nrst_set", "irqs_off", "power", "ep0_buf", "intrusbe", "ep0_on", "irq", "sieie", "host_reset",
-              "address", "configured", "first_in", "first_out", "give_up")
+              "address", "configured", "first_in", "first_out", "stopped")
 USB_REC = (["usb_magic", "usb_gap_units", "usb_poll_limit", "usb_state"] + ["usb_at_" + n for n in USB_STAGES]
            + ["usb_last_stage", "usb_giveup_stage", "usb_giveup_index", "usb_giveup_why", "usb_giveup_value",
               "usb_lines_first", "usb_lines_or", "usb_lines_set", "usb_lines_reads", "usb_cable", "usb_cable_run",
@@ -371,7 +371,8 @@ USB_REC = (["usb_magic", "usb_gap_units", "usb_poll_limit", "usb_state"] + ["usb
               "usb_resets", "usb_suspends", "usb_setups", "usb_stalls", "usb_last_setup_0", "usb_last_setup_1",
               "usb_address", "usb_configuration", "usb_rx_packets", "usb_rx_events", "usb_rx_dropped",
               "usb_tx_packets", "usb_tx_events", "usb_out_full", "usb_tx_underruns", "usb_rx_overruns",
-              "usb_accesses", "usb_polls_max", "usb_addr_late"])
+              "usb_accesses", "usb_polls_max", "usb_addr_late", "usb_configs", "usb_gap_presses", "usb_attempt_n"]
+           + ["usb_attempt_%d_%s" % (k, w) for k in range(8) for w in ("gap_flags", "reset", "last")])
 USB_STATES = ("waiting for a computer", "setting up", "set up", "GIVEN UP")
 USB_WHYS = {1: "USB_NRST read clear at a port access", 2: "CON1 bit 15 never came", 3: "the interrupt kept coming"}
 
@@ -652,6 +653,17 @@ def u3u_lines(f):
                    f["usb_configuration"], f["usb_rx_packets"], f["usb_rx_events"], f["usb_rx_dropped"],
                    f["usb_tx_packets"], f["usb_tx_events"], f["usb_out_full"], f["usb_tx_underruns"],
                    f["usb_rx_overruns"], f["usb_accesses"], f["usb_polls_max"], f["usb_addr_late"]))
+    n = f["usb_attempt_n"]
+    if n:
+        att = []
+        for k in range(max(1, n - 7), n + 1):
+            w = f["usb_attempt_%d_gap_flags" % (k % 8)]
+            got = [x for b, x in ((1, "address"), (2, "configured"), (4, "in"), (8, "out")) if w & b]
+            att.append("#%d at beat %d, spacing %.0f us: %s (last at %d)" % (
+                k, f["usb_attempt_%d_reset" % (k % 8)], (w >> 8) / 24.0, ", ".join(got) or "reset only",
+                f["usb_attempt_%d_last" % (k % 8)]))
+        out.append("  the host's attempts (%d; spacing key pressed %d times): %s" % (
+            n, f["usb_gap_presses"], "; ".join(att)))
     return out
 
 
@@ -805,7 +817,8 @@ DECIMAL |= {n for n in FIELDS[12] if n.startswith(("a13_start", "u2_late_beat", 
                                                      "u2c_log_n", "arp_"))}
 DECIMAL |= {"arp_saves", "arp_save_err", "arp_save_seq", "arp_offs"}
 DECIMAL |= {n for n in USB_REC if not n.startswith(("usb_magic", "usb_lines_first", "usb_lines_or", "usb_rb_",
-                                                     "usb_last_setup", "usb_giveup_value", "usb_cable_log"))}
+                                                     "usb_last_setup", "usb_giveup_value", "usb_cable_log"))
+            and not n.endswith("_gap_flags")}
 DECIMAL |= {n for n in FIELDS[11] if n.startswith(("start_mode", "as_state", "as_alg", "as_runs", "as_stop",
                                                      "as_chords", "as_soft", "as_hard", "as_late", "as_rel",
                                                      "g_note_n", "g_turn"))}

@@ -4034,6 +4034,61 @@ def case_usbmidi(a, work, log):
         problems.append("usbmidi without --usb: %s/%s, usb %s, resets %d; the samples the same: %s (%d and %d"
                         " frames); MIDI out the same: %s (%s, build A %s)" % (
                             o1, o2, u1, off["usb_resets"], same_wav, len(l1), len(l2), same_midi, m1[:6], m2[:6]))
+    # A give-up (the test build SB_TEST_USB_STOP: the first port access's bit 15 never comes, before POWER): logged
+    # with its stage and index, no stage after it, no USB write after it (so no connection), the instrument on.
+    gb = os.path.join(work, "build-stop")
+    build(gb, log, "--define", "SB_USB_MIDI", "--define", "SB_TEST_USB_STOP")
+    gsy = fws.elf_symbols(os.path.join(gb, "app.elf"))
+    gout = os.path.join(work, "stop")
+    gr = fwtest(os.path.join(gb, "app.bin"), gout, log, "--usb", "--wav", "--ms", "7000", "--script",
+                os.path.relpath(path, ROOT), "--ram", "0x%08x:%d@end" % (gsy["sb_usb"], 4 * nrec))
+    stop = words(ram(gout, gsy["sb_usb"], 4 * nrec), rd.USB_REC)
+    gu = gr["run"].get("usb") or {}
+    g_reached = [n for n in rd.USB_STAGES if stop["usb_at_" + n]]
+    _, gleft, _ = aa.read_wav(os.path.join(gout, "audio.wav"))
+    g_panel = max([abs(v) for v in gleft[int(5.0 * rate):int(5.4 * rate)]] or [0])
+    if gr["run"]["outcome"] != "completed" or stop["usb_state"] != 3 or stop["usb_giveup_why"] != 2 \
+            or rd.USB_STAGES[stop["usb_giveup_stage"]] != "irqs_off" or stop["usb_giveup_index"] != 11 \
+            or g_reached != list(rd.USB_STAGES[:8]) + ["stopped"] or gu.get("vendor") or g_panel < 100:
+        problems.append("usbmidi stop: %s, state %d, why %d at %s index %d, stages %s, usb %s, the panel's note %d" % (
+            gr["run"]["outcome"], stop["usb_state"], stop["usb_giveup_why"], stop["usb_giveup_stage"],
+            stop["usb_giveup_index"], g_reached, gu, g_panel))
+    # The log, end to end: audio14's log-writing test build with the owner's device, with --usb: the instrument's
+    # start, then the USB records in order, layout 14 whole; and HOME held, KEY7 taking the next spacing.
+    lb = os.path.join(work, "build-log")
+    build(lb, log, *A14_DEFINES, "--define", "SB_USB_MIDI", "--define", "SB_HW_U3U")
+    lout = os.path.join(work, "log")
+    lr = fwtest(os.path.join(lb, "app.bin"), lout, log, "--usb", "--ms", "30000", "--flash-out", "--script",
+                os.path.relpath(path, ROOT))
+    with open(os.path.join(lout, "flash.bin"), "rb") as f:
+        lrecs, lbad = rd.records(f.read())
+    usb_labels = [x["label"] for x in lrecs if x["label"].startswith("USB")]
+    want = ["USB cable"] + ["USB step %d" % k for k in range(1, 7)] + ["USB set up", "USB reset", "USB address",
+                                                                        "USB configured"]
+    last = lrecs[-1]["fields"] if lrecs else {}
+    lines = rd.u3u_lines(last) if "usb_magic" in last else []
+    lu = lr["run"].get("usb") or {}
+    if lr["run"]["outcome"] != "completed" or lbad or usb_labels[:len(want)] != want \
+            or any(len(x["fields"]) != len(rd.FIELDS[14]) for x in lrecs if x["label"].startswith("USB")) \
+            or last.get("usb_giveup_why") or not lines or lu.get("problems") != [U3U_FADDR]:
+        problems.append("usbmidi log: %s, %d bad, USB records %s, usb %s, lines %s" % (
+            lr["run"]["outcome"], len(lbad), usb_labels, lu, lines[:2]))
+    step6_to_sieie = last.get("usb_at_sieie", 0) - last.get("usb_at_step6_pulls", 0)
+    kpath = os.path.join(work, "key7.script")
+    with open(kpath, "w") as f:
+        f.write("0 key %d down\n5000 key %d up\n9000 key %d tap 100\n" % (HW_HOME, HW_HOME, HW_KEY1 + 6))
+    kout = os.path.join(work, "key7")
+    kr = fwtest(os.path.join(lb, "app.bin"), kout, log, "--usb", "--ms", "20000", "--flash-out", "--script",
+                os.path.relpath(kpath, ROOT))
+    with open(os.path.join(kout, "flash.bin"), "rb") as f:
+        krecs, kbad = rd.records(f.read())
+    kl = krecs[-1]["fields"] if krecs else {}
+    if kr["run"]["outcome"] != "completed" or kbad or "USB spacing" not in [x["label"] for x in krecs] \
+            or kl.get("usb_gap_presses") != 1 or kl.get("usb_gap_units") != 1200 \
+            or (kr["run"].get("usb") or {}).get("configuration") != 1:
+        problems.append("usbmidi KEY7: %s, %d bad, labels %s, presses %s, spacing %s, usb %s" % (
+            kr["run"]["outcome"], len(kbad), [x["label"] for x in krecs][-8:], kl.get("usb_gap_presses"),
+            kl.get("usb_gap_units"), kr["run"].get("usb")))
     # The owner-only unit file (SB_HW_U3U): through fwtest's package path with --usb, past the start's bands.
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     import fwsc
@@ -4062,6 +4117,12 @@ def case_usbmidi(a, work, log):
         problems.append("usbmidi unit: a unit build with SB_USB_MIDI alone %s; the candidate's device symbols %s" % (
             "stopped" if code else "built", found))
     beats = lambda f: ", ".join("%s %d" % (n, f["usb_at_" + n]) for n in rd.USB_STAGES if f["usb_at_" + n])
+    print("usbmidi: the give-up test: %s at %s index %d, stages %s, no connection: %s, the panel's note %d; the log:"
+          " USB records %s, step 6 to SIEIE %d beats; %s; KEY7: spacing %s units, %s" % (
+              rd.USB_WHYS.get(stop["usb_giveup_why"]), rd.USB_STAGES[stop["usb_giveup_stage"]],
+              stop["usb_giveup_index"], g_reached, not gu.get("vendor"), g_panel, usb_labels, step6_to_sieie,
+              " / ".join(lines[1:2] + lines[-1:]), kl.get("usb_gap_units"),
+              rd.u3u_lines(kl)[-1] if "usb_magic" in kl else "no record"))
     print("usbmidi: enumerated %s:%s, %r / %r, serial %r, address %s (written late %d), endpoints out %s in %s, %d"
           " events received, %d sent; stages (beat) %s; the host's note peaks %d; the panel's note %s; the cable"
           " reading %d checks, bits 16-17 set in %d of %d reads (fwtest doesn't model them: 0); read back CON0"

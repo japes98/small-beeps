@@ -145,6 +145,12 @@ volatile struct sb_usb_record sb_usb;
  * IN; how far apart is enough is not given. 10 us (240 of sb_now()'s
  * 24 MHz units); logged in every record (gap_units). */
 #define USB_PORT_GAP 240u
+/* The spacings the test screen's key offers (U3-U's tries, the owner's
+ * ruling: one flash tries them all): 2, 10, 50 and 200 us; the default is
+ * USB_PORT_GAP. The one in use is in every record (gap_units) and in each
+ * host attempt's log. */
+static const u32 port_gaps[] = { 48u, USB_PORT_GAP, 1200u, 4800u };
+#define USB_GAPS (sizeof port_gaps / sizeof port_gaps[0])
 /* HW-178: bit 15 polled up to 20 000 times. */
 #define USB_PORT_POLLS 20000u
 /* The cable reading: USB_LINE_READS reads USB_LINE_GAP apart (50 us) a
@@ -165,11 +171,24 @@ static volatile u8 ep0_buf[EP_MAX + 4] __attribute__((aligned(64)));
 static volatile u8 rx_buf[EP_MAX + 4] __attribute__((aligned(64)));
 static volatile u8 tx_buf[EP_MAX + 4] __attribute__((aligned(64)));
 
-static u32 port_last, work_stage, spur_run, irq_on;
+static u32 port_last, work_stage, spur_run, irq_on, gap_k = 1u;
 static volatile u32 in_busy, addr_pending, addr_beat;
 
+#define DEAD() (sb_usb.state == USB_STATE_DEAD)
+
+/* A direct write to one of JL_USB's words, unless the device has given up
+ * (the owner's ruling: nothing more written to USB). */
+static void put(volatile u32 *r, u32 v)
+{
+    if (!DEAD())
+        *r = v;
+}
+
+/* A stage reached; after a give-up only the give-up itself. */
 static void stage(u32 k)
 {
+    if (DEAD() && k != USB_ST_GIVE_UP)
+        return;
     if (!sb_usb.stage_beat[k])
         sb_usb.stage_beat[k] = sb_beacon.beats ? sb_beacon.beats : 1u;
     sb_usb.last_stage = k;
@@ -178,7 +197,7 @@ static void stage(u32 k)
 /* No more writes to USB until the next power-on: the controller's
  * interrupt off at the CPU (HW-20; not a USB write), the stage and the
  * index logged (the owner's ruling). */
-static void give_up(u32 why, u32 index, u32 value)
+static void usb_halt_writes(u32 why, u32 index, u32 value)
 {
     if (sb_usb.state == USB_STATE_DEAD)
         return;
@@ -203,10 +222,19 @@ static u32 port(u32 v)
         return 0;
     c0 = JL_USB->CON0;
     if (!(c0 & C0_NRST)) {
-        give_up(USB_WHY_NRST, v >> 8 & 0x3Fu, c0);
+        usb_halt_writes(USB_WHY_NRST, v >> 8 & 0x3Fu, c0);
         return 0;
     }
-    while (sb_now() - port_last < USB_PORT_GAP)
+#if defined(SB_TEST_USB_STOP)
+    /* The test build (seams case usbmidi): the first access's bit 15 never
+     * comes, so the device gives up before POWER. */
+    if (!sb_usb.accesses) {
+        sb_usb.accesses++;
+        usb_halt_writes(USB_WHY_MACK, v >> 8 & 0x3Fu, 0);
+        return 0;
+    }
+#endif
+    while (sb_now() - port_last < port_gaps[gap_k])
         ;
     JL_USB->CON1 = v;
     __asm__ volatile("csync" ::: "memory");
@@ -220,7 +248,7 @@ static u32 port(u32 v)
     if (n > sb_usb.polls_max)
         sb_usb.polls_max = n;
     if (n == USB_PORT_POLLS) {
-        give_up(USB_WHY_MACK, v >> 8 & 0x3Fu, r);
+        usb_halt_writes(USB_WHY_MACK, v >> 8 & 0x3Fu, r);
         return 0;
     }
     return r & 0xFFu;
@@ -345,7 +373,7 @@ static void ep0_send(void)
     ep0_data += n;
     ep0_left -= n;
     ep0_in = ep0_left != 0;
-    JL_USB->EP0_CNT = n;
+    put(&JL_USB->EP0_CNT, n);
     wr(R_CSR0, CSR0_TXPKTRDY | (ep0_in ? 0 : CSR0_DATAEND));
 }
 
@@ -381,7 +409,11 @@ static void addr_write(void)
 
     addr_pending = 0;
     wr(R_FADDR, a);
+    if (DEAD())
+        return;
     sb_usb.address = a;
+    sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][0] |= USB_ATT_ADDRESS;
+    sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][2] = sb_beacon.beats;
     stage(USB_ST_ADDRESS);
     sb_work++;
 }
@@ -399,9 +431,9 @@ static void ep_reset(void)
 /* The configuration: the bulk endpoints' buffers, sizes and interrupts. */
 static void ep_bulk_on(void)
 {
-    JL_USB->EP1_RADR = (u32)rx_buf;
-    JL_USB->EP1_CNT = EP_MAX;
-    JL_USB->EP2_TADR = (u32)tx_buf;
+    put(&JL_USB->EP1_RADR, (u32)rx_buf);
+    put(&JL_USB->EP1_CNT, EP_MAX);
+    put(&JL_USB->EP2_TADR, (u32)tx_buf);
     wr(R_INDEX, EP_OUT);
     wr(R_RXMAXP, EP_MAX);
     wr(R_RXCSR1, RXCSR_CLRDATATOG);
@@ -442,10 +474,17 @@ static void setup(const u8 *s)
         return;
     } else if (type == 0x00 && req == 9 && value <= 1) {  /* SET_CONFIGURATION */
         ep0_done();
+        if (DEAD())
+            return;
         sb_usb.configuration = value;
         if (value) {
             ep_bulk_on();
+            if (DEAD())
+                return;
             stage(USB_ST_CONFIGURED);
+            sb_usb.configs++;
+            sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][0] |= USB_ATT_CONFIGURED;
+            sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][2] = sb_beacon.beats;
             sb_work++;
         }
         return;
@@ -522,6 +561,7 @@ static void bulk_out(void)
             in_put(rx_buf[i + k]);
     }
     sb_usb.rx_packets++;
+    sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][0] |= USB_ATT_IN;
     wr(R_RXCSR1, 0);                     /* the buffer free again */
     if (!sb_usb.stage_beat[USB_ST_FIRST_IN]) {
         stage(USB_ST_FIRST_IN);
@@ -552,7 +592,7 @@ static void bulk_in(void)
         t++;
     }
     out_tail = t;
-    JL_USB->EP2_CNT = n;
+    put(&JL_USB->EP2_CNT, n);
     wr(R_CSR0, TXCSR_TXPKTRDY);
     in_busy = 1;
     sb_usb.tx_packets++;
@@ -561,9 +601,9 @@ static void bulk_in(void)
 
 /* --- The controller's interrupt (source 9, HW-171) ------------------------- */
 
-static void usb_ctrl_irq(void) __attribute__((interrupt("")));
+static void u3_sie_isr(void) __attribute__((interrupt("")));
 
-static void usb_ctrl_irq(void)
+static void u3_sie_isr(void)
 {
     u32 usb, tx, rx;
 
@@ -578,7 +618,7 @@ static void usb_ctrl_irq(void)
     if (!(usb | tx | rx)) {
         sb_usb.spurious++;
         if (++spur_run >= USB_STORM)
-            give_up(USB_WHY_STORM, R_INTRUSB, JL_USB->CON0);
+            usb_halt_writes(USB_WHY_STORM, R_INTRUSB, JL_USB->CON0);
         return;
     }
     spur_run = 0;
@@ -592,6 +632,11 @@ static void usb_ctrl_irq(void)
         ep0_in = 0;
         in_busy = 0;
         ep_reset();
+        sb_usb.attempt_n++;
+        sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][0] = port_gaps[gap_k] << 8;
+        sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][1] = sb_beacon.beats;
+        sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][2] = sb_beacon.beats;
+        sb_work++;
         if (!sb_usb.stage_beat[USB_ST_HOST_RESET]) {
             stage(USB_ST_HOST_RESET);
             sb_work++;
@@ -603,6 +648,7 @@ static void usb_ctrl_irq(void)
         bulk_out();
     if (tx & 1u << EP_IN) {
         in_busy = 0;
+        sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][0] |= USB_ATT_OUT;
         if (!sb_usb.stage_beat[USB_ST_FIRST_OUT]) {
             stage(USB_ST_FIRST_OUT);
             sb_work++;
@@ -664,30 +710,36 @@ static void u3_core_setup(void)
     wr(R_INTRTX2E, 0);
     wr(R_INTRRX1E, 0);                               /* HW-178: every receive enable cleared */
     wr(R_INTRRX2E, 0);
+    if (DEAD())
+        return;
     stage(USB_ST_IRQS_OFF);
     at(USB_ST_POWER, 0, "U3-U: POWER");
     __asm__ volatile("cli" ::: "memory");            /* HW-178: POWER with interrupts off */
     wr(R_POWER, POWER_SDK);                          /* HW-172: 0x60 with FUSB_MODE 0 */
     __asm__ volatile("sti" ::: "memory");
+    if (DEAD())
+        return;
     stage(USB_ST_POWER);
     at(USB_ST_EP0_BUF, 0, "U3-U: endpoint 0's buffer");
-    JL_USB->EP0_ADR = (u32)ep0_buf;                  /* HW-172: one 64-byte buffer for endpoint 0, */
-    JL_USB->EP1_RADR = (u32)ep0_buf;                 /* set as the receive address of endpoints 0 to 4 */
-    JL_USB->EP2_RADR = (u32)ep0_buf;
-    JL_USB->EP3_RADR = (u32)ep0_buf;
-    JL_USB->EP4_RADR = (u32)ep0_buf;
+    put(&JL_USB->EP0_ADR, (u32)ep0_buf);             /* HW-172: one 64-byte buffer for endpoint 0, */
+    put(&JL_USB->EP1_RADR, (u32)ep0_buf);            /* set as the receive address of endpoints 0 to 4 */
+    put(&JL_USB->EP2_RADR, (u32)ep0_buf);
+    put(&JL_USB->EP3_RADR, (u32)ep0_buf);
+    put(&JL_USB->EP4_RADR, (u32)ep0_buf);
     stage(USB_ST_EP0_BUF);
     at(USB_ST_USBE, 0, "U3-U: INTRUSBE");
     wr(R_INTRUSBE, INTRUSB_RESET | INTRUSB_SUSPEND); /* HW-172: reset and suspend */
+    if (DEAD())
+        return;
     stage(USB_ST_USBE);
     at(USB_ST_EP0_ON, 0, "U3-U: endpoint 0's enable");
     wr(R_INTRTX1E, 1u << 0);                         /* HW-172: endpoint 0's set */
-    stage(USB_ST_EP0_ON);
-    if (sb_usb.state == USB_STATE_DEAD)
+    if (DEAD())
         return;
+    stage(USB_ST_EP0_ON);
     at(USB_ST_IRQ, 0, "U3-U: the interrupt");
     __asm__ volatile("cli" ::: "memory");            /* ICFG's word shared with other sources */
-    sb_irq_enable(SRC_USB_CTRL, usb_ctrl_irq, PRIO_USB); /* HW-172: the controller's interrupt registered */
+    sb_irq_enable(SRC_USB_CTRL, u3_sie_isr, PRIO_USB); /* HW-172: the controller's interrupt registered */
     irq_on = 1;
     __asm__ volatile("sti" ::: "memory");
     stage(USB_ST_IRQ);
@@ -727,13 +779,12 @@ static u32 cable_check(void)
     return set ? 2u : 1u;
 }
 
-static u32 last_second, cable_records, lines_last;
+static u32 last_second, cable_records, lines_last, resets_logged, configs_logged;
+#define USB_ATTEMPT_RECORDS 16u
 static u32 logged[(USB_STAGES + 31) / 32];
 
 static const char *const stage_label[USB_STAGES] = {
-    [USB_ST_HOST_RESET] = "USB reset",
     [USB_ST_ADDRESS] = "USB address",
-    [USB_ST_CONFIGURED] = "USB configured",
     [USB_ST_FIRST_IN] = "USB first in",
     [USB_ST_FIRST_OUT] = "USB first out",
     [USB_ST_GIVE_UP] = "USB give-up",
@@ -785,11 +836,47 @@ void usb_midi_poll(void)
         bulk_in();
         __asm__ volatile("sti" ::: "memory");
     }
-    for (k = USB_ST_HOST_RESET; k < USB_STAGES; k++)
-        if (sb_usb.stage_beat[k] && !(logged[k / 32] >> k % 32 & 1u)) {
+    /* Each attempt's reset and configuration, the first 16 of each. */
+    if (sb_usb.resets != resets_logged) {
+        resets_logged = sb_usb.resets;
+        if (resets_logged <= USB_ATTEMPT_RECORDS)
+            usb_midi_note("USB reset", "U3-U: the host reset the bus");
+    }
+    /* The first address before any configuration, as they came. */
+    if (sb_usb.stage_beat[USB_ST_ADDRESS] && !(logged[0] >> USB_ST_ADDRESS & 1u)) {
+        logged[0] |= 1u << USB_ST_ADDRESS;
+        usb_midi_note(stage_label[USB_ST_ADDRESS], stage_label[USB_ST_ADDRESS]);
+    }
+    if (sb_usb.configs != configs_logged) {
+        configs_logged = sb_usb.configs;
+        if (configs_logged <= USB_ATTEMPT_RECORDS)
+            usb_midi_note("USB configured", "U3-U: configured");
+    }
+    for (k = USB_ST_ADDRESS; k < USB_STAGES; k++)
+        if (stage_label[k] && sb_usb.stage_beat[k] && !(logged[k / 32] >> k % 32 & 1u)) {
             logged[k / 32] |= 1u << k % 32;
             usb_midi_note(stage_label[k], stage_label[k]);
         }
+}
+
+u32 usb_midi_gap_key(void)
+{
+    static char t[32] = "U3-U: port spacing ";
+    u32 us, n = 19, d = 1000;
+
+    gap_k = (gap_k + 1u) % USB_GAPS;
+    sb_usb.gap_units = port_gaps[gap_k];
+    sb_usb.gap_presses++;
+    us = port_gaps[gap_k] / 24u;
+    for (; d; d /= 10)
+        if (us >= d || d == 1)
+            t[n++] = (char)('0' + us / d % 10);
+    t[n++] = ' ';
+    t[n++] = 'u';
+    t[n++] = 's';
+    t[n] = 0;
+    usb_midi_note("USB spacing", t);
+    return us;
 }
 
 #if !defined(SB_HW_U3U)

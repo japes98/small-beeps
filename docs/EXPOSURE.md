@@ -4259,6 +4259,10 @@ SR-3 wrote only its barrier-log row.*
   for on the spec side.
 - Docker Desktop stopped answering during the first build; the owner
   restarted it.
+- #249's C-SEP-TERMS failed (run 45260833187). Its log was read as a named
+  file only: the `part-quick` artifact fetched by the API,
+  `logs/C-SEP-TERMS.log` alone extracted with `unzip -p`, the zip deleted
+  at once. The hits were found by hashing the flagged lines' words.
 - Disk: about 4 GB free.
 
 ## Corrections

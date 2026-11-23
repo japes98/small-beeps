@@ -55,6 +55,14 @@ enum usb_stage {
 #define USB_STATE_DEAD   3u   /* given up: nothing more written until the next power-on */
 
 #define USB_CABLE_LOG 8u
+/* The host's attempts (one from each bus reset), the last USB_ATTEMPTS:
+ * the spacing in use << 8 | what it reached, its reset's beat, the beat of
+ * its last step. */
+#define USB_ATTEMPTS 8u
+#define USB_ATT_ADDRESS    1u
+#define USB_ATT_CONFIGURED 2u
+#define USB_ATT_IN         4u
+#define USB_ATT_OUT        8u
 
 /* What the device did, all words: the tests read it by its symbol
  * (tools/seams_suite.py's USB_REC), the unit's records carry it whole
@@ -103,6 +111,10 @@ struct sb_usb_record {
     u32 accesses;           /* accesses through CON1's port */
     u32 polls_max;          /* the most polls of bit 15 one access took */
     u32 addr_late;          /* FADDR written by main's loop, the status stage's interrupt not seen */
+    u32 configs;            /* configurations set (one per attempt that got there) */
+    u32 gap_presses;        /* presses of the test screen's spacing key */
+    u32 attempt_n;          /* the host's attempts (bus resets) */
+    u32 attempt[USB_ATTEMPTS][3];  /* the last attempts, by attempt_n % USB_ATTEMPTS (above) */
 };
 
 #define USB_MIDI_MAGIC 0x4D425355u   /* "USBM" */
@@ -125,6 +137,9 @@ void usb_midi_send(u32 status, u32 d1, u32 d2, u32 length);
  * log (hw_audio.c, SB_HW_U3U); nothing in fwtest's builds. Main's loop
  * only: a record takes the flash. */
 void usb_midi_note(const char *label, const char *step);
+/* The test screen's spacing key (SB_HW_U3U): the next of the offered
+ * spacings, from now on; returns it in us. */
+u32 usb_midi_gap_key(void);
 #endif
 
 #endif
