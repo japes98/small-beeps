@@ -11,6 +11,9 @@
 
 #include "midi.h"
 #include "WL82.h"
+#if defined(SB_USB_MIDI)
+#include "usb_midi.h"
+#endif
 
 volatile struct sb_midi_record sb_midi __attribute__((section(".beacon.midi")));
 
@@ -86,6 +89,10 @@ void midi_poll(void)
         midi_rx_byte(dma_ring[dma_at]);
         dma_at = (dma_at + 1) % MIDI_DMA;
     }
+#if defined(SB_USB_MIDI)
+    /* U3-F: the USB host's MIDI, after the jack's, into the same ring. */
+    usb_midi_take();
+#endif
 }
 
 /* The screen's queue: the engine writes at shead, main reads at stail. */

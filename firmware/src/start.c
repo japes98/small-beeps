@@ -49,6 +49,12 @@ void sb_start(void)
     u32 u2_0 = JL_USB->CON0, u2_1 = JL_USB->CON1, u2_2 = JL_USB_IO->CON0, u2_3 = JL_USB_IO->CON1,
         u2_4 = JL_USB_IO->CON2;
 #endif
+#if defined(SB_HW_AUDIO14)
+    /* audio14's P (the owner's ruling): the block at 0x16A00, four words,
+     * read only, just after U2-A's; nothing is written to it. */
+    u32 p_0 = *(volatile u32 *)(HW_A14_P_BASE + 0u), p_1 = *(volatile u32 *)(HW_A14_P_BASE + 4u),
+        p_2 = *(volatile u32 *)(HW_A14_P_BASE + 8u), p_3 = *(volatile u32 *)(HW_A14_P_BASE + 12u);
+#endif
     /* Code, constants and initialised data: their bytes sit in the
      * image, after the boot code. */
     for (dst = __data_start; dst < __data_end; dst++)
@@ -67,6 +73,12 @@ void sb_start(void)
     hw_u2_boot[2] = u2_2;
     hw_u2_boot[3] = u2_3;
     hw_u2_boot[4] = u2_4;
+#endif
+#if defined(SB_HW_AUDIO14)
+    hw_p_boot[0] = p_0;
+    hw_p_boot[1] = p_1;
+    hw_p_boot[2] = p_2;
+    hw_p_boot[3] = p_3;
 #endif
     /* Code just copied to RAM runs after a csync (HW-127). */
     __asm__ volatile("csync" ::: "memory");
