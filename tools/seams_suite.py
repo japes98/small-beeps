@@ -2105,9 +2105,12 @@ def case_audio3(a, work, log):
 
 
 def _build_id():
-    """The hardware build's identity, as hw_fm1.h's HW_BUILD_ID gives it."""
+    """The hardware build's identity, as hw_fm1.h's HW_BUILD_ID gives it to
+    a build without the newest round's define (case report1's): the last
+    of its definitions, the #else of the newest round's (since audio13,
+    whose own identity comes first)."""
     with open(os.path.join(ROOT, "firmware", "src", "hw_fm1.h")) as f:
-        return re.search(r'#define HW_BUILD_ID\s+"([^"]+)"', f.read()).group(1)
+        return re.findall(r'#define HW_BUILD_ID\s+"([^"]+)"', f.read())[-1]
 
 
 BUILD_ID = _build_id()
