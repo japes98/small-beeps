@@ -5117,9 +5117,12 @@ words (`JL_USB_IO`'s `CON0` to `CON2`, here "IO `CON0`" and so on).
 
 Read, by the owner's ruling of 2026-11-22 (docs/prompts/spec-u3-rulings.md,
 1 (a)), from JieLi's prebuilt `cpu/wl82/liba/cpu.a` in the AC79 SDK
-(Apache-2.0, PROVENANCE P-516 and P-518): its members are LLVM bitcode,
-compiled here to machine code with the pinned toolchain and read as
-machine code. Facts only; no code taken. Each fact names the library
+(Apache-2.0, PROVENANCE P-516 and P-518). The library's members are not
+machine code but LLVM bitcode. Each member read was compiled to machine
+code with the pinned toolchain's `clang` (the firmware's CPU flags) and
+disassembled with its `objdump`; call targets were named from the
+compiled objects' relocations by a script of ours. The bitcode was not
+read as IR. Facts only; no code taken. Each fact names the library
 function it comes from. Bits are named as in HW-171; "IO `CON0`" is
 `JL_USB_IO`'s first word (`0x51000`).
 
@@ -5172,10 +5175,9 @@ function it comes from. Bits are named as in HW-171; "IO `CON0`" is
   its two register tables), `usb_phy.c.o` (`usb_slave_init`),
   `gpio.c.o` (`gpio_set_die`, `usb_set_die`), `clock.c.o`
   (`clk_early_init`); HW-171, HW-172, HW-86.
-- Standing: confirmed (SDK, as machine code), but held: not to be used
-  until the owner accepts the licence finding (P-516: the SDK's
-  Apache-2.0 grant over its prebuilt libraries is a reading, not
-  settled); whether the first core needs the `0x16A00` block, and the
+- Standing: confirmed (SDK, compiled from its bitcode and disassembled;
+  the licence finding accepted by the owner, docs/prompts/spec-u3-rulings2.md);
+  whether the first core needs the `0x16A00` block, and the
   other clock writes in `clk_early_init` around the call, not given
 - Needed by: USB MIDI (U3)
 
@@ -5656,5 +5658,4 @@ spec request can turn one into a fact.
   start as writes, with no clock write in it. Still open: whether the
   first core needs the PLL block at `0x16A00` that the SDK's early clock
   set-up brings up, and whether it is up when an app starts; the other
-  clock writes in `clk_early_init` near that call are not decoded. HW-178
-  is held until the owner accepts the licence finding.
+  clock writes in `clk_early_init` near that call are not decoded.

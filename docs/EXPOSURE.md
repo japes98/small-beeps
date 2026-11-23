@@ -3798,6 +3798,13 @@ SR-3 wrote only its barrier-log row.*
   and its USB, GPIO and clock members read as machine code, compiled from
   their bitcode with the pinned toolchain (P-518); HARDWARE-SPEC section
   52 (HW-178) and a note on Q-36.
+- The owner's second rulings (the licence finding accepted; P in audio14;
+  U3-U its own round; report1 on an identity change), saved unedited as
+  docs/prompts/spec-u3-rulings2.md. HW-178 now says the library's members
+  are bitcode, compiled with the pinned toolchain and disassembled. The
+  owner's process notes: confirm before reading when a ruling says "first",
+  and ask before opening any source not on the allowed list.
+- Merged clean's report1 fix (`ba634aa3`) into #244, as ruled.
 - Disk: about 2.6 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
