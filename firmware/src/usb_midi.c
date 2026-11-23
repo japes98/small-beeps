@@ -170,6 +170,8 @@ static const u32 port_gaps[] = { 48u, USB_PORT_GAP, 1200u, 4800u };
 static volatile u8 ep0_buf[EP_MAX + 4] __attribute__((aligned(64)));
 static volatile u8 rx_buf[EP_MAX + 4] __attribute__((aligned(64)));
 static volatile u8 tx_buf[EP_MAX + 4] __attribute__((aligned(64)));
+static volatile u8 tx_buf2[EP_MAX + 4] __attribute__((aligned(64)));   /* tx_variant 2's second */
+static u32 tx_flip;
 
 static u32 port_last, work_stage, spur_run, irq_on, gap_k = 1u;
 static volatile u32 in_busy, addr_pending, addr_beat;
@@ -541,7 +543,7 @@ static void ep0(void)
 
 static void bulk_out(void)
 {
-    u32 n, i, k, len, csr;
+    u32 n, i, k, len, csr, c1, c2, ev;
 
     wr(R_INDEX, EP_OUT);
     csr = rd(R_RXCSR1);
@@ -549,17 +551,27 @@ static void bulk_out(void)
         sb_usb.rx_overruns++;
     if (!(csr & RXCSR_RXPKTRDY))
         return;
-    n = rd(R_COUNT0) | rd(R_RXCOUNT2) << 8;
-    if (n > EP_MAX)
-        n = EP_MAX;
-    for (i = 0; i + 4 <= n; i += 4) {
+    /* A bulk packet at full speed is at most 64 bytes, so RXCOUNT1 alone
+     * (try 3: on the unit the two counts together gave about 64 bytes for
+     * one 4-byte event); both are logged as read. */
+    c1 = rd(R_COUNT0);
+    c2 = rd(R_RXCOUNT2);
+    n = c1 > EP_MAX ? EP_MAX : c1 & ~3u;
+    for (i = 0, ev = 0; i + 4 <= n; i += 4) {
         len = cin_len[rx_buf[i] & 0x0Fu];
         if (!len)
             continue;
-        sb_usb.rx_events++;
+        ev++;
         for (k = 1; k <= len; k++)
             in_put(rx_buf[i + k]);
     }
+    /* Nothing of this packet can be taken again: its bytes and the 4 past
+     * them cleared (our own buffer). */
+    for (i = 0; i < n + 4u && i < EP_MAX + 4u; i++)
+        rx_buf[i] = 0;
+    sb_usb.rx_events += ev;
+    sb_usb.rx_log[sb_usb.rx_log_n % USB_PKT_LOG] = (c1 & 0xFFu) | (c2 & 0xFFu) << 8 | (ev & 0xFFu) << 16 | (csr & 0xFFu) << 24;
+    sb_usb.rx_log_n++;
     sb_usb.rx_packets++;
     sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][0] |= USB_ATT_IN;
     wr(R_RXCSR1, 0);                     /* the buffer free again */
@@ -573,6 +585,7 @@ static void bulk_out(void)
 static void bulk_in(void)
 {
     u32 n = 0, t = out_tail, w, csr;
+    volatile u8 *b = sb_usb.tx_variant == 2u && tx_flip ? tx_buf2 : tx_buf;
 
     if (t == out_head || in_busy || !sb_usb.configuration)
         return;
@@ -584,14 +597,19 @@ static void bulk_in(void)
         return;
     while (t != out_head && n < EP_MAX) {
         w = out_ring[t % OUT_RING];
-        tx_buf[n] = (u8)w;
-        tx_buf[n + 1] = (u8)(w >> 8);
-        tx_buf[n + 2] = (u8)(w >> 16);
-        tx_buf[n + 3] = (u8)(w >> 24);
+        b[n] = (u8)w;
+        b[n + 1] = (u8)(w >> 8);
+        b[n + 2] = (u8)(w >> 16);
+        b[n + 3] = (u8)(w >> 24);
         n += 4;
         t++;
     }
     out_tail = t;
+    if (sb_usb.tx_variant)
+        put(&JL_USB->EP2_TADR, (u32)b);   /* variants 1 and 2: the address again (HW-171's word) */
+    tx_flip ^= 1u;
+    sb_usb.tx_log[sb_usb.tx_log_n % USB_PKT_LOG] = (csr & 0xFFu) | (n & 0xFFu) << 8 | sb_usb.tx_variant << 16;
+    sb_usb.tx_log_n++;
     put(&JL_USB->EP2_CNT, n);
     wr(R_CSR0, TXCSR_TXPKTRDY);
     in_busy = 1;
@@ -622,8 +640,10 @@ static void u3_sie_isr(void)
         return;
     }
     spur_run = 0;
-    if (usb & INTRUSB_SUSPEND)
+    if (usb & INTRUSB_SUSPEND) {
         sb_usb.suspends++;
+        sb_work++;
+    }
     if (usb & INTRUSB_RESET) {
         sb_usb.resets++;
         sb_usb.address = 0;
@@ -648,6 +668,7 @@ static void u3_sie_isr(void)
         bulk_out();
     if (tx & 1u << EP_IN) {
         in_busy = 0;
+        sb_usb.tx_done++;
         sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][0] |= USB_ATT_OUT;
         if (!sb_usb.stage_beat[USB_ST_FIRST_OUT]) {
             stage(USB_ST_FIRST_OUT);
@@ -779,7 +800,7 @@ static u32 cable_check(void)
     return set ? 2u : 1u;
 }
 
-static u32 last_second, cable_records, lines_last, resets_logged, configs_logged;
+static u32 last_second, cable_records, lines_last, resets_logged, configs_logged, suspends_logged;
 #define USB_ATTEMPT_RECORDS 16u
 static u32 logged[(USB_STAGES + 31) / 32];
 
@@ -847,6 +868,13 @@ void usb_midi_poll(void)
         logged[0] |= 1u << USB_ST_ADDRESS;
         usb_midi_note(stage_label[USB_ST_ADDRESS], stage_label[USB_ST_ADDRESS]);
     }
+    /* Each suspend (unplugged, or the host asleep), the first 16: the
+     * counts reach the log at the end of a run. */
+    if (sb_usb.suspends != suspends_logged) {
+        suspends_logged = sb_usb.suspends;
+        if (suspends_logged <= USB_ATTEMPT_RECORDS)
+            usb_midi_note("USB suspend", "U3-U: suspended");
+    }
     if (sb_usb.configs != configs_logged) {
         configs_logged = sb_usb.configs;
         if (configs_logged <= USB_ATTEMPT_RECORDS)
@@ -877,6 +905,19 @@ u32 usb_midi_gap_key(void)
     t[n] = 0;
     usb_midi_note("USB spacing", t);
     return us;
+}
+
+u32 usb_midi_tx_key(void)
+{
+    static const char *const say[USB_TX_VARIANTS] = {
+        "U3-U: out 0, one buffer", "U3-U: out 1, address each packet", "U3-U: out 2, two buffers" };
+
+    __asm__ volatile("cli" ::: "memory");
+    sb_usb.tx_variant = (sb_usb.tx_variant + 1u) % USB_TX_VARIANTS;
+    tx_flip = 0;
+    __asm__ volatile("sti" ::: "memory");
+    usb_midi_note("USB out way", say[sb_usb.tx_variant]);
+    return sb_usb.tx_variant;
 }
 
 #if !defined(SB_HW_U3U)

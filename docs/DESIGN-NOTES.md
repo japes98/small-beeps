@@ -6033,3 +6033,38 @@ leaves open.
     the owner's device, with `--usb`: "USB cable", "USB step 1" to "6",
     "USB set up", "USB reset", "USB address", "USB configured", in that
     order, every record of layout 14's length, no give-up.
+- **Try 3** (the owner's unit report of try 2,
+  docs/prompts/clean-br17-u3u-try2-unit.md): "small-beeps" enumerated at
+  10 us and notes went both ways, with two bugs.
+  - **The counts in that log were a snapshot.** Records were written only
+    at stages, so the last one was "USB first out", with the counts as
+    they were then ("out 1 packet, 1 event"). Each suspend (unplugging,
+    or the host asleep) is now a record too, the first 16, so a run's
+    counts reach the log when the cable comes out; REC in the panel
+    ("ARP save") writes them as well.
+  - **Bug 2, notes in twice:** 749 events in 54 packets, where the host
+    sent one event a packet, means the count read about 64 bytes. The
+    count was `RXCOUNT1 | RXCOUNT2 << 8`; a bulk packet at full speed is at
+    most 64 bytes, so it is now `RXCOUNT1` alone, and both are logged as
+    read (the last 8 packets: both counts, the events taken, `RXCSR1`).
+    After a packet its bytes and the 4 past them are cleared, so nothing
+    of one packet can be taken again with the next. Which of the two
+    counts read wrong on the unit is the log's to show.
+  - **Bug 1, the releases out as the first packet again:** every second
+    packet the host got was a copy of the very first one. That fits the
+    transmit DMA reading memory the CPU's latest writes hadn't reached
+    (a data cache, HW-152, open for DMA), or a second hardware buffer;
+    no source says which, and a cache flush has no register-level source
+    (HW-152). So the ways a packet goes out are offered behind KEY8 on the
+    test screen, logged: 0 as before, one buffer whose address is set at
+    the configuration; 1 the address (`EP2_TADR`) written again before
+    each packet; 2 two buffers, the address switched each packet. Each
+    packet out logs `TXCSR1` as read before it, its bytes and the way,
+    and the host's taking it is counted (`tx_done`). If none of the three
+    fixes it, the fix needs something HW-172 and HW-178 don't give (a
+    cache flush, or the SDK's own packet write): that goes to the owner.
+  - **Layout 14** leaves U2-C's log out as well (HW-177 settled U2), for
+    the device's 118 words.
+  - **Seams usbmidi:** a packet of two events and two of one each give
+    exactly their own (2, 1, 1); three keys each send one note on and,
+    released, one note off of the same note, and nothing else.

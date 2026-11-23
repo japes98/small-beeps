@@ -5940,8 +5940,11 @@ u32 hw_audio_report(u32 *w)
     n = put_words(w, n, hw_aud.u2c_mm[0], 2u * HW_A13_STATES);
     w[n++] = hw_aud.u2c_to;
     n = put_words(w, n, hw_aud.u2c_first, HW_A13_C_FIRST);
+#if !defined(SB_HW_U3U)
+    /* Layout 14 leaves U2-C's log out (HW-177 settled it). */
     w[n++] = hw_aud.u2c_log_n;
     n = put_words(w, n, hw_aud.u2c_log, HW_A13_C_LOG);
+#endif
     w[n++] = hw_aud.arp_n;
     w[n++] = hw_aud.arp_breaks;
     w[n++] = hw_aud.arp_gaps;

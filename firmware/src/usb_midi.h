@@ -63,6 +63,14 @@ enum usb_stage {
 #define USB_ATT_CONFIGURED 2u
 #define USB_ATT_IN         4u
 #define USB_ATT_OUT        8u
+/* The last packets each way (try 3): in, RXCOUNT1 | RXCOUNT2 << 8 | the
+ * events taken << 16 | RXCSR1 << 24; out, the IN endpoint's TXCSR1 as
+ * read before the packet | its bytes << 8 | the variant << 16. */
+#define USB_PKT_LOG 8u
+/* How a packet goes out (tx_variant; KEY8 on the test screen): 0 the one
+ * buffer as set at the configuration; 1 its address written again before
+ * each packet; 2 two buffers, the address switched each packet. */
+#define USB_TX_VARIANTS 3u
 
 /* What the device did, all words: the tests read it by its symbol
  * (tools/seams_suite.py's USB_REC), the unit's records carry it whole
@@ -115,6 +123,12 @@ struct sb_usb_record {
     u32 gap_presses;        /* presses of the test screen's spacing key */
     u32 attempt_n;          /* the host's attempts (bus resets) */
     u32 attempt[USB_ATTEMPTS][3];  /* the last attempts, by attempt_n % USB_ATTEMPTS (above) */
+    u32 tx_variant;         /* how packets go out (USB_TX_VARIANTS) */
+    u32 tx_done;            /* the IN endpoint's interrupts: a packet the host took */
+    u32 rx_log_n;           /* packets in logged */
+    u32 rx_log[USB_PKT_LOG];
+    u32 tx_log_n;           /* packets out logged */
+    u32 tx_log[USB_PKT_LOG];
 };
 
 #define USB_MIDI_MAGIC 0x4D425355u   /* "USBM" */
@@ -140,6 +154,8 @@ void usb_midi_note(const char *label, const char *step);
 /* The test screen's spacing key (SB_HW_U3U): the next of the offered
  * spacings, from now on; returns it in us. */
 u32 usb_midi_gap_key(void);
+/* KEY8 on the test screen (SB_HW_U3U): the next way packets go out. */
+u32 usb_midi_tx_key(void);
 #endif
 
 #endif

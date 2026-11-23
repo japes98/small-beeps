@@ -4263,6 +4263,8 @@ SR-3 wrote only its barrier-log row.*
   file only: the `part-quick` artifact fetched by the API,
   `logs/C-SEP-TERMS.log` alone extracted with `unzip -p`, the zip deleted
   at once. The hits were found by hashing the flagged lines' words.
+- Try 3 from the owner's unit report of try 2, relayed to this session
+  and saved unedited as docs/prompts/clean-br17-u3u-try2-unit.md.
 - Disk: about 4 GB free.
 
 ## Corrections

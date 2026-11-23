@@ -496,6 +496,11 @@ static void hw_serve(void)
             usb_midi_gap_key();
             continue;
         }
+        /* Try 3: KEY8 takes the next way packets go out (usb_midi.c). */
+        if (e.control == INPUT_KEY(8) && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            usb_midi_tx_key();
+            continue;
+        }
 #endif
 #if defined(SB_HW_AUDIO10)
         /* audio10 (the spec side's clean-br17-audio10): LFO cycles F's
