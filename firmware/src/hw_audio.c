@@ -95,6 +95,9 @@
 #if defined(SB_HW_AUDIO13)
 #include "arp.h"
 #endif
+#if defined(SB_HW_U3U)
+#include "usb_midi.h"
+#endif
 #include "hw_fm1.h"
 #include "WL82.h"
 
@@ -260,6 +263,17 @@ static void report(const char *label)
     (void)label;
 #endif
 }
+
+#if defined(SB_HW_U3U)
+/* U3-U (usb_midi.c): a USB stage on the step row and, with a label, a
+ * record; main's loop only. */
+void usb_midi_note(const char *label, const char *step)
+{
+    hw_step(step);
+    if (label)
+        report(label);
+}
+#endif
 
 /* A step's key refused: said on the step row, counted, nothing written. */
 static void refuse(u32 k, const char *why)
@@ -5942,7 +5956,10 @@ u32 hw_audio_report(u32 *w)
     w[n++] = hw_aud.arp_best_u0;
     w[n++] = hw_aud.arp_best_f1;
     w[n++] = hw_aud.arp_best_u1;
+#if !defined(SB_HW_U3U)
+    /* Layout 14 leaves ARP's step log out: R is done (HW-179). */
     n = put_words(w, n, hw_aud.arp_log[0], 2u * HW_A13_ARP_LOG);
+#endif
 #endif
 #if defined(SB_HW_AUDIO14)
     /* Layout 13: audio14 after layout 12 (tools/report_decode.py's _layout13). */
@@ -5953,6 +5970,10 @@ u32 hw_audio_report(u32 *w)
     w[n++] = hw_aud.arp_save_err;
     w[n++] = hw_aud.arp_save_seq;
     w[n++] = hw_aud.arp_offs;
+#endif
+#if defined(SB_HW_U3U)
+    /* Layout 14: the USB device's record, whole (usb_midi.h). */
+    n = put_words(w, n, (const u32 *)&sb_usb, USB_REC_WORDS);
 #endif
     return n;
 }

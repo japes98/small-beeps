@@ -5904,3 +5904,99 @@ docs/HARNESS.md's "USB".
 - **fwtest 0.14.0** is pinned (`config/fwtest-image`; HARNESS.md
   "Versions"). It is the one pin for every case: without `--usb` or
   `--audio-chip`, 0.14.0's outputs are 0.12.0's.
+
+### 2026-11-23 clean-br17-u3u: U3-U, the USB MIDI device on the unit, for the owner's flash only (BR-17, R-HW-1, R-USB-1)
+The spec side's prompt (docs/prompts/clean-br17-u3u.md), with the owner's
+rulings of 2026-11-23, and the owner's answers to audio14's questions
+(docs/prompts/clean-br17-audio14-answers.md). Facts from HARDWARE-SPEC
+HW-171 to HW-173, HW-176 to HW-180, HW-86 and HW-117, and REQUIREMENTS
+R-USB-1. Q-36 isn't in the clean folder; HW-178 and HW-180 say what it
+leaves open.
+
+- **R is closed** (the owner, 2026-11-23): audio13's log had no "Panel
+  save" record because REC wasn't pressed; on audio14, REC showed "ARP
+  saved", and the log has the "ARP save" and "ARP off" records (HW-179).
+  The panel's save works; its cause above needed no fix.
+- **The owner's file:** `SB_HW_U3U` (with `SB_HW_AUDIO14` and
+  `SB_USB_MIDI`), identity `0.15.0-hw3z`, log layout 14. It differs from
+  the published build (audio14's, hw3y) only by the USB device: its
+  descriptors carry pid.codes' test product ID, so the file goes to the
+  owner's flash alone and its name says so. A unit build with
+  `SB_USB_MIDI` but not `SB_HW_U3U` stops, and the published build's ELF
+  has none of the device's symbols (seams case usbmidi).
+- **When USB starts** (the owner's ruling): nothing is written to the USB
+  blocks until the cable reading, `CON0` bits 16 and 17, reads steadily 0
+  (32 reads 50 us apart, HW-177) in three checks in a row: the first at
+  the app's start (main's loop, after the instrument's start or the test
+  screen), then one each second. So the set-up begins about two seconds
+  after an awake computer is plugged in; on the battery, with a charger or
+  a sleeping computer it never begins. Each change of the reading is a
+  record ("USB cable", the first 16; the rest counted). Once the device is
+  set up the lines carry the bus, so what they read then isn't given:
+  it's counted (`lines_after`), never acted on. USB runs in the test
+  screen too (HOME held at power-on): the poll is main's loop's, not the
+  panel's.
+- **The set-up** (`u3_core_setup`) replaces U3-F's one function, in
+  HW-178's order: IO `CON0` bit 10 then bit 9; `IO_MODE` cleared then `SR`
+  set; `CON0` bits 2, 4, 5 and 14 cleared; `CON1` 0; `PHY_ON`; both
+  pull-downs cleared, both pull-ups cleared, then `DPPU`; `CON0` bits 2 to
+  5 set. Then, in HW-172's order by the owner's ruling: the device's
+  interrupt enables cleared (HW-178: `INTRUSBE` 0, every transmit and
+  receive enable 0) straight after; `POWER` `0x60` with interrupts off;
+  endpoint 0's 64-byte buffer, set as the receive address of endpoints 0
+  to 4; `INTRUSBE` reset and suspend; endpoint 0's enable; the controller's
+  interrupt (source 9) registered; `SIEIE` last. Each write names its HW
+  entry in the code. Every change to `CON0` and IO `CON0` reads the word
+  and changes only its step's bits, so either start state (HW-177) gets
+  every step. Nothing goes to `0x16A00` or to any clock register.
+- **U3-F's `CON0` writes are gone.** U3-F wrote whole words to `CON0`
+  (each frame, and at its start), which on the unit would clear `USB_NRST`
+  and the bits step 7 sets, and `SIEIE`; fwtest doesn't model those bits,
+  so it never showed. The device no longer uses the start-of-frame
+  interrupt (`SOFIE` isn't in HW-178 or HW-172): its work is the
+  controller's interrupt's, at priority 1 (below the tick's 2, above the
+  engine's 0), and main's loop starts packets out with interrupts off
+  (`usb_midi_send` wakes it), so the port and `INDEX` have one user at a
+  time.
+- **The port** (`port()`): only while `USB_NRST` reads set; each access
+  10 us after the last (`USB_PORT_GAP`, 240 units of `sb_now()`, the
+  spacing's one place, logged as `gap_units`); a `csync` after the write;
+  bit 15 polled up to 20 000 times (HW-178). A give-up there (NRST clear,
+  or bit 15 never came), or the interrupt taken 1000 times in a row with
+  no flag up, logs the stage, the index and the word read, turns source 9
+  off at the CPU (HW-20; not a USB write), and nothing more is written to
+  USB until the next power-on; the instrument runs on. There is no stop
+  sequence: none has a source.
+- **The log** (records from main's loop only, never the interrupt): a
+  record before each of HW-178's steps 1 to 6 ("USB step 1" to "USB step
+  6"), so a hang in one of them shows which; from step 6 (D+'s pull-up:
+  the host sees the device) to `SIEIE` nothing waits for the flash, and
+  the step row names each write; "USB set up" after `SIEIE`, with `CON0`,
+  `CON1` and IO `CON0` read back (the cable reading is `CON0`'s bits 16
+  and 17 there). Then one record for each first: the host's reset, the
+  address, the configuration, the first MIDI packet in, the first packet
+  out (when the host took it), a give-up. Every record carries the whole
+  device record (`struct sb_usb_record`): each stage's beat, the cable
+  checks, the counts. Babble isn't visible to a device (HW-172:
+  `INTRUSB` bit 2 is babble only as a host); the endpoints' `UnderRun`,
+  `OverRun` and `DataError` are counted if they ever show, with the
+  rings' drops.
+- **Layout 14** is layout 13 without ARP's step log (96 words; R is
+  done), with the device's 71 words before the log's own health.
+- **`FADDR`** (general USB knowledge, PROVENANCE P-99): a MUSB-style core
+  takes the address at once, and the status stage of SET_ADDRESS must
+  still be answered at address 0, so on the owner's file the address is
+  written at endpoint 0's next interrupt (the status stage's end), or by
+  main's loop 3 ms later if none comes (`addr_late` counts those).
+  fwtest's host checks `FADDR` straight after the request (its own model,
+  HARNESS.md "USB") and lists "FADDR is 0" for that, though it goes on
+  and the file enumerates; so fwtest's test builds write it at once, as
+  U3-F did, and seams case usbmidi expects that one problem on the
+  owner's file alone. If the unit shows the host's reset but no address,
+  this is the first thing to look at.
+- **fwtest:** with `--usb` the test build and the owner's file enumerate
+  as `1209:0001`, "small-beeps" twice, no problems. fwtest doesn't model
+  `CON0` bits 16 and 17: they read 0 with and without `--usb`. So without
+  `--usb` the reading shows "a computer" there too and the set-up runs,
+  with no host and no bus event after it; the outputs are still build
+  A's. On the unit the reading tells the two apart (HW-176, HW-177).

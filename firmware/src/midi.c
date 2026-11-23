@@ -71,6 +71,10 @@ void midi_poll(void)
     u32 n;
 
 #if defined(SB_HW_FM1)
+#if defined(SB_USB_MIDI)
+    /* U3-U's file: the USB host's MIDI, a unit's only MIDI in. */
+    usb_midi_take();
+#endif
     (void)n;
     return;
 #endif

@@ -41,6 +41,12 @@
 #if defined(SB_HW_AUDIO14) && !defined(SB_HW_AUDIO13)
 #error "SB_HW_AUDIO14 builds on audio13: build it with SB_HW_AUDIO13"
 #endif
+/* U3-U (clean-br17-u3u): the USB MIDI device on the unit, for the owner's
+ * flash only (R-USB-1: the test product ID; published builds keep USB
+ * off). Built on audio14, with the device itself (SB_USB_MIDI). */
+#if defined(SB_HW_U3U) && !(defined(SB_HW_AUDIO14) && defined(SB_USB_MIDI))
+#error "SB_HW_U3U builds on audio14 with the USB device: build it with SB_HW_AUDIO14 and SB_USB_MIDI"
+#endif
 #if defined(SB_HW_PCM16) && !defined(SB_HW_AUDIO8)
 #error "SB_HW_PCM16 is audio8's unit tone: build it with SB_HW_AUDIO8"
 #endif
@@ -161,7 +167,9 @@ void hw_rows_start(void);
 #define HW_LOG_REC     4096u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
-#if defined(SB_HW_AUDIO14)
+#if defined(SB_HW_U3U)
+#define HW_LOG_LAYOUT  14u                  /* tools/report_decode.py's FIELDS[14] */
+#elif defined(SB_HW_AUDIO14)
 #define HW_LOG_LAYOUT  13u                  /* tools/report_decode.py's FIELDS[13] */
 #elif defined(SB_HW_AUDIO13)
 #define HW_LOG_LAYOUT  12u                  /* tools/report_decode.py's FIELDS[12] */
@@ -178,7 +186,9 @@ void hw_rows_start(void);
  * candidate's pack must match (tools/report-decode.py prints it). The
  * last definition stays the identity of a build without audio13, which
  * seams case report1 builds (tools/seams_suite.py's _build_id). */
-#if defined(SB_HW_AUDIO14)
+#if defined(SB_HW_U3U)
+#define HW_BUILD_ID    "0.15.0-hw3z"
+#elif defined(SB_HW_AUDIO14)
 #define HW_BUILD_ID    "0.14.0-hw3y"
 #elif defined(SB_HW_AUDIO13)
 #define HW_BUILD_ID    "0.13.0-hw3x"

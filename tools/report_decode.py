@@ -358,8 +358,36 @@ def _layout13():
     return l12[:len(l12) - health] + f + l12[len(l12) - health:]
 
 
+# U3-U (clean-br17-u3u): the USB device's record, firmware/src/usb_midi.h's struct sb_usb_record, word by word;
+# tools/seams_suite.py reads the same names from it.
+USB_STAGES = ("cable", "step1_pins_ie", "step2_pads", "step3_nrst_clr", "step4_con1", "step5_phy", "step6_pulls",
+              "step7_nrst_set", "irqs_off", "power", "ep0_buf", "intrusbe", "ep0_on", "irq", "sieie", "host_reset",
+              "address", "configured", "first_in", "first_out", "give_up")
+USB_REC = (["usb_magic", "usb_gap_units", "usb_poll_limit", "usb_state"] + ["usb_at_" + n for n in USB_STAGES]
+           + ["usb_last_stage", "usb_giveup_stage", "usb_giveup_index", "usb_giveup_why", "usb_giveup_value",
+              "usb_lines_first", "usb_lines_or", "usb_lines_set", "usb_lines_reads", "usb_cable", "usb_cable_run",
+              "usb_cable_checks", "usb_cable_changes"] + ["usb_cable_log_%d" % k for k in range(8)]
+           + ["usb_lines_after", "usb_rb_con0", "usb_rb_con1", "usb_rb_io_con0", "usb_irqs", "usb_spurious",
+              "usb_resets", "usb_suspends", "usb_setups", "usb_stalls", "usb_last_setup_0", "usb_last_setup_1",
+              "usb_address", "usb_configuration", "usb_rx_packets", "usb_rx_events", "usb_rx_dropped",
+              "usb_tx_packets", "usb_tx_events", "usb_out_full", "usb_tx_underruns", "usb_rx_overruns",
+              "usb_accesses", "usb_polls_max", "usb_addr_late"])
+USB_STATES = ("waiting for a computer", "setting up", "set up", "GIVEN UP")
+USB_WHYS = {1: "USB_NRST read clear at a port access", 2: "CON1 bit 15 never came", 3: "the interrupt kept coming"}
+
+
+def _layout14():
+    """U3-U (clean-br17-u3u): layout 13 without ARP's step log (R is
+    done), then before the log's own health the USB device's record."""
+    l13 = _layout13()
+    health = len(_layout4()) - len(_layout3())
+    body = [n for n in l13[:len(l13) - health] if not n.startswith("arp_log_")]
+    return body + USB_REC + l13[len(l13) - health:]
+
+
 FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7(),
-          8: _layout8(), 9: _layout9(), 10: _layout10(), 11: _layout11(), 12: _layout12(), 13: _layout13()}
+          8: _layout8(), 9: _layout9(), 10: _layout10(), 11: _layout11(), 12: _layout12(), 13: _layout13(),
+          14: _layout14()}
 HOLDS = ("zero", "LED", "screen", "log", "scan")
 A9_ROUTE = ("not up", "UP", "down (key)", "UNDONE by the firmware", "no L2: not tried")
 A9_S2 = ("both halves", "upper half only", "lower half only")
@@ -558,10 +586,14 @@ def audio13_lines(f):
                        % (f["arp_best_n"], span_f, us(span_u), span_f * 24e6 / span_u,
                           us(span_u) / 1000.0 / (f["arp_best_n"] - 1)))
         n = f["arp_n"]
-        steps = [(f["arp_log_%d_frames" % (k % 48)], f["arp_log_%d_units" % (k % 48)]) for k in range(max(0, n - 48), n)]
-        out.append("    steps (frames/us): " + " ".join("%d/%.0f" % (a, us(b)) for a, b in steps))
+        if "arp_log_0_frames" in f:   # layout 14 leaves ARP's step log out
+            steps = [(f["arp_log_%d_frames" % (k % 48)], f["arp_log_%d_units" % (k % 48)])
+                     for k in range(max(0, n - 48), n)]
+            out.append("    steps (frames/us): " + " ".join("%d/%.0f" % (a, us(b)) for a, b in steps))
     if "p_boot_16A00" in f:
         out += audio14_lines(f)
+    if "usb_magic" in f:
+        out += u3u_lines(f)
     return out
 
 
@@ -582,6 +614,44 @@ def audio14_lines(f):
         else:
             last = "the last saved as #%d" % f["arp_save_seq"]
         out.append("  R: %d ARP saves by REC (%s), %d records on ARP off" % (f["arp_saves"], last, f["arp_offs"]))
+    return out
+
+
+def u3u_lines(f):
+    """U3-U: the USB device's stages with their beats, the cable reading,
+    the read-back after the set-up, a give-up, the counts."""
+    out = ["U3-U: USB %s; the port's spacing %.1f us, bit 15 polled up to %d times" % (
+        USB_STATES[f["usb_state"]] if f["usb_state"] < len(USB_STATES) else f["usb_state"],
+        f["usb_gap_units"] / 24.0, f["usb_poll_limit"])]
+    at = [(n, f["usb_at_" + n]) for n in USB_STAGES if f["usb_at_" + n]]
+    out.append("  stages (beat): " + (", ".join("%s %d" % x for x in at) if at else "none"))
+    if f["usb_cable_checks"]:
+        log = [f["usb_cable_log_%d" % (k % 8)] for k in range(max(0, f["usb_cable_changes"] - 8),
+                                                                f["usb_cable_changes"])]
+        out.append("  the cable reading: %d checks, the last %s (%d of %d reads with CON0 bit 16 or 17 set, bits"
+                   " %08X, first CON0 %08X), %d in a row steadily 0; changes (beat: reading): %s; once set up %d"
+                   " changes of the lines" % (
+                       f["usb_cable_checks"], {1: "steadily 0: a computer", 2: "not steadily 0"}.get(
+                           f["usb_cable"], "none"), f["usb_lines_set"], f["usb_lines_reads"], f["usb_lines_or"],
+                       f["usb_lines_first"], f["usb_cable_run"],
+                       ", ".join("%d: %s" % (w >> 2, "computer" if w & 3 == 1 else "none") for w in log) or "none",
+                       f["usb_lines_after"]))
+    if f["usb_at_sieie"]:
+        out.append("  read back after the set-up: CON0 %08X (bits 16-17 %d), CON1 %08X, IO CON0 %08X" % (
+            f["usb_rb_con0"], f["usb_rb_con0"] >> 16 & 3, f["usb_rb_con1"], f["usb_rb_io_con0"]))
+    if f["usb_giveup_why"]:
+        out.append("  GAVE UP at stage %s, index %d: %s (read %08X); nothing more written to USB" % (
+            USB_STAGES[f["usb_giveup_stage"]] if f["usb_giveup_stage"] < len(USB_STAGES) else f["usb_giveup_stage"],
+            f["usb_giveup_index"], USB_WHYS.get(f["usb_giveup_why"], f["usb_giveup_why"]), f["usb_giveup_value"]))
+    out.append("  interrupts %d (%d with no flag), resets %d, suspends %d, setups %d (last %08X %08X), stalls %d,"
+               " address %d, configuration %d; in %d packets %d events (%d bytes dropped), out %d packets %d events"
+               " (%d dropped); underruns %d, overruns %d; port accesses %d, most polls %d; address written late %d;"
+               " babble: a device can't see it (HW-172)" % (
+                   f["usb_irqs"], f["usb_spurious"], f["usb_resets"], f["usb_suspends"], f["usb_setups"],
+                   f["usb_last_setup_0"], f["usb_last_setup_1"], f["usb_stalls"], f["usb_address"],
+                   f["usb_configuration"], f["usb_rx_packets"], f["usb_rx_events"], f["usb_rx_dropped"],
+                   f["usb_tx_packets"], f["usb_tx_events"], f["usb_out_full"], f["usb_tx_underruns"],
+                   f["usb_rx_overruns"], f["usb_accesses"], f["usb_polls_max"], f["usb_addr_late"]))
     return out
 
 
@@ -734,6 +804,8 @@ DECIMAL |= {n for n in FIELDS[12] if n.startswith(("a13_start", "u2_late_beat", 
                                                      "u2_chg_n", "u2c_on", "u2c_toggles", "u2c_n_", "u2c_timeouts",
                                                      "u2c_log_n", "arp_"))}
 DECIMAL |= {"arp_saves", "arp_save_err", "arp_save_seq", "arp_offs"}
+DECIMAL |= {n for n in USB_REC if not n.startswith(("usb_magic", "usb_lines_first", "usb_lines_or", "usb_rb_",
+                                                     "usb_last_setup", "usb_giveup_value", "usb_cable_log"))}
 DECIMAL |= {n for n in FIELDS[11] if n.startswith(("start_mode", "as_state", "as_alg", "as_runs", "as_stop",
                                                      "as_chords", "as_soft", "as_hard", "as_late", "as_rel",
                                                      "g_note_n", "g_turn"))}
