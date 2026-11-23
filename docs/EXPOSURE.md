@@ -3806,6 +3806,25 @@ SR-3 wrote only its barrier-log row.*
   and ask before opening any source not on the allowed list.
 - Merged clean's report1 fix (`ba634aa3`) into #244, as ruled.
 - Disk: about 2.6 GB free.
+### Session spec-audio14-unit (audio14 on the unit; U3-U drafted; #245's terms)
+- Date: 2026-11-23 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-u3-source (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  continuing on `spec/u3-source`, which goes up as this round's PR.
+- #245 (clean's audio14) failed C-SEP-TERMS: the check run on
+  `c48ca71a..ba5b7452` in a scratch worktree of clean's commit (nothing
+  pushed to `hw/audio14`), and the hit lines read in clean's files
+  (`firmware/src/usb_midi.c`, `usb_midi.h`, `hw_fm1.h`,
+  `tools/report_decode.py`, `docs/DESIGN-NOTES.md`). Clean was told the
+  four terms to rename.
+- The owner's audio14 results and directions, saved unedited as
+  docs/prompts/spec-audio14-unit.md; HARDWARE-SPEC section 53 (HW-179,
+  HW-180) and a note on Q-36, whose earlier note now says the library was
+  compiled from its bitcode and disassembled. No new source read.
+- U3-U drafted outside the repository for the owner's ruling, from
+  HW-178 and HW-173, with no write to `0x16A00` or any clock register.
+- Disk: about 3 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).

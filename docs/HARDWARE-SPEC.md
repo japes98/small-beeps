@@ -5181,6 +5181,67 @@ function it comes from. Bits are named as in HW-171; "IO `CON0`" is
   other clock writes in `clk_early_init` around the call, not given
 - Needed by: USB MIDI (U3)
 
+## 53. audio14 on the unit: ARP's steps, the block at `0x16A00` read
+
+Read back from the flash log of this repository's build audio14 (clean's
+#245) on the owner's unit, relayed on 2026-11-23 (source UNIT,
+docs/prompts/spec-audio14-unit.md). HW-179 gives the results; HW-180
+says what they settle. Nothing was written to the USB blocks, to
+`0x16A00` or to any clock register.
+
+### HW-179: audio14: ARP's step log, the block at `0x16A00` at the app's start (Q-9, Q-36)
+- Fact: On the owner's unit, started by m-bootloader, on the battery with
+  no USB cable:
+  1. **ARP's record** (the panel's REC save): 123 gaps between steps, each
+     5 514 or 5 515 frames, timed at 124.7 to 127.6 ms. The panel showed
+     "ARP saved", and the record for ARP's stop was written too.
+     audio13's missing record (HW-176, item 2) was REC not being pressed,
+     not a failed save.
+  2. **The four words at `0x16A00`** read, in order of address:
+
+     | Word | Value |
+     |---|---|
+     | `0x16A00` | `0x00000000` |
+     | `0x16A04` | `0x008881C3` |
+     | `0x16A08` | `0x00000000` |
+     | `0x16A0C` | `0x00000000` |
+
+     The same from power-off and after m-bootloader's MIDI mode, at the
+     app's start and a second later. Bit 1 of `0x16A00` reads clear in
+     both starts.
+  3. **U2-A's five words** read as in HW-176 for both starts.
+- Sources: UNIT: audio14's flash log, relayed by the owner on 2026-11-23
+  (docs/prompts/spec-audio14-unit.md); HW-176, HW-178.
+- Standing: confirmed (UNIT; one unit)
+- Needed by: BR-17 (Phase B), USB MIDI (U3)
+
+### HW-180: What audio14 settles: ARP's step on the unit; the `0x16A00` block is off at an app's start (Q-9, Q-36)
+- Fact:
+  - **ARP's step is right on the unit in frames:** 5 514 or 5 515 frames
+    is 125 ms at 120 beats a minute in sixteenths at 44 117.6 frames a
+    second, the FM-1's rate (HW-45, HW-154), as ruled for audio13. The ms
+    times run from 0.3 ms under to 2.6 ms over 125 ms; what they are timed against, and so what the
+    spread means, is not given here.
+  - **The block at `0x16A00` is off when an app starts,** by the SDK's
+    test (HW-178): bit 1 of its first word is clear, so the SDK's early
+    clock set-up would start it. Words 0, 2 and 3 read 0; word 1
+    (`0x16A04`) is not written by `usb_pll_init` in HW-178 and its value
+    is not decoded.
+  - **After MIDI mode it reads the same.** m-bootloader's MIDI mode runs
+    USB on the first core (HW-173), and the block reads off when the app
+    starts after it. Whether MIDI mode starts the block and stops it
+    again before calling the app is not given (`src/usb_midi.c` is not
+    opened). So this is consistent with, but does not show, the first
+    core working with the block off.
+  - **The second core's PHY state word** (`0x16A0C`, HW-178) reads 0.
+  - **Still open:** whether the first core needs the block (Q-36).
+    U3-U tries the first core's start without it, by the owner's
+    direction of 2026-11-23.
+- Sources: UNIT (HW-179); HW-173, HW-176, HW-178.
+- Standing: confirmed (UNIT; one unit; the first core's need for the
+  block not given)
+- Needed by: USB MIDI (U3)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -5654,8 +5715,11 @@ spec request can turn one into a fact.
   its device start makes the same calls as the SDK's, with their bodies
   in a prebuilt library (PROVENANCE P-515).
   *Answered in part by session spec-u3-source (HW-178):* the SDK's
-  prebuilt library, read as machine code, gives the first core's device
+  prebuilt library, compiled from its bitcode and disassembled, gives the first core's device
   start as writes, with no clock write in it. Still open: whether the
   first core needs the PLL block at `0x16A00` that the SDK's early clock
   set-up brings up, and whether it is up when an app starts; the other
   clock writes in `clk_early_init` near that call are not decoded.
+  *Session spec-audio14-unit (HW-179, HW-180):* the block at `0x16A00`
+  reads off at an app's start, from power-off and after MIDI mode. Still
+  open: whether the first core needs it; U3-U tries without it first.
