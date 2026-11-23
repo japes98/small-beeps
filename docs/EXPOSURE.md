@@ -3838,6 +3838,10 @@ SR-3 wrote only its barrier-log row.*
   docs/prompts/spec-u3u-rulings.md; the U3-U prompt completed outside the
   repository, to be sent once #247 and #246 are on main. No new source
   read.
+- Later: #248 (the checks job's limit, 45 to 75 minutes) merged; #246
+  updated from main and merged; clean-br17-u3u sent to clean. The owner's
+  standing ruling for the USB loop saved unedited as
+  docs/prompts/spec-usb-loop-ruling.md.
 - Disk: about 3 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
