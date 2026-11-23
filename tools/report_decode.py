@@ -374,16 +374,30 @@ USB_REC = (["usb_magic", "usb_gap_units", "usb_poll_limit", "usb_state"] + ["usb
               "usb_accesses", "usb_polls_max", "usb_addr_late", "usb_configs", "usb_gap_presses", "usb_attempt_n"]
            + ["usb_attempt_%d_%s" % (k, w) for k in range(8) for w in ("gap_flags", "reset", "last")]
            + ["usb_tx_variant", "usb_tx_done", "usb_rx_log_n"] + ["usb_rx_log_%d" % k for k in range(8)]
-           + ["usb_tx_log_n"] + ["usb_tx_log_%d" % k for k in range(8)])
+           + ["usb_tx_log_n"] + ["usb_tx_log_%d" % k for k in range(8)]
+           + ["usb_frame_last", "usb_gone_n", "usb_back_n", "usb_irq_peak"])
+# Try 2's record (layout 14, the owner's backups of 2026-11-23): the first 98 words.
+USB_REC_TRY2 = USB_REC[:USB_REC.index("usb_tx_variant")]
 USB_TX_WAYS = ("one buffer", "address each packet", "two buffers")
 USB_STATES = ("waiting for a computer", "setting up", "set up", "GIVEN UP")
 USB_WHYS = {1: "USB_NRST read clear at a port access", 2: "CON1 bit 15 never came", 3: "the interrupt kept coming"}
 
 
 def _layout14():
-    """U3-U (clean-br17-u3u): layout 13 without ARP's step log (R is
-    done) and U2-C's log (HW-177), then before the log's own health the
-    USB device's record."""
+    """U3-U's try 2 (clean-br17-u3u, d20756e7): layout 13 without ARP's
+    step log (R is done), then before the log's own health the USB
+    device's record as try 2 kept it (98 words). Try 1's own layout 14
+    (71 words) was never flashed."""
+    l13 = _layout13()
+    health = len(_layout4()) - len(_layout3())
+    body = [n for n in l13[:len(l13) - health] if not n.startswith("arp_log_")]
+    return body + USB_REC_TRY2 + l13[len(l13) - health:]
+
+
+def _layout15():
+    """U3-U's try 3: layout 13 without ARP's step log and U2-C's log
+    (HW-177), then before the log's own health the USB device's record
+    (usb_midi.h)."""
     l13 = _layout13()
     health = len(_layout4()) - len(_layout3())
     body = [n for n in l13[:len(l13) - health] if not n.startswith(("arp_log_", "u2c_log"))]
@@ -392,7 +406,7 @@ def _layout14():
 
 FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7(),
           8: _layout8(), 9: _layout9(), 10: _layout10(), 11: _layout11(), 12: _layout12(), 13: _layout13(),
-          14: _layout14()}
+          14: _layout14(), 15: _layout15()}
 HOLDS = ("zero", "LED", "screen", "log", "scan")
 A9_ROUTE = ("not up", "UP", "down (key)", "UNDONE by the firmware", "no L2: not tried")
 A9_S2 = ("both halves", "upper half only", "lower half only")
@@ -678,6 +692,9 @@ def u3u_lines(f):
         out.append("  out: %s; %d packets taken by the host; the last packets out (TXCSR1 before, bytes, way): %s" % (
             USB_TX_WAYS[f["usb_tx_variant"]] if f["usb_tx_variant"] < 3 else f["usb_tx_variant"], f["usb_tx_done"],
             ", ".join("%02X %d %d" % (w & 0xFF, w >> 8 & 0xFF, w >> 16 & 0xFF) for w in tx) or "none"))
+    if "usb_gone_n" in f:
+        out.append("  the host's frames: stopped %d times, again %d (the last number %d); the most interrupts in one"
+                   " ms %d" % (f["usb_gone_n"], f["usb_back_n"], f["usb_frame_last"], f["usb_irq_peak"]))
     return out
 
 

@@ -3972,10 +3972,12 @@ def case_usbmidi(a, work, log):
     with open(path, "w") as f:
         # The host's note (channel 1) once the device is up (the third cable check, about 2 s), then the panel's
         # KEY1; and a note at MIDI in for the run without --usb.
-        # Try 3: two events in one packet, then one a packet; three keys, each pressed and released.
-        f.write("3000 usbmidi 09 90 3c 64\n3000 usbmidi 09 90 40 64\n4000 usbmidi 08 80 3c 00\n"
-                "4100 usbmidi 08 80 40 00\n5000 key %d tap 200\n5300 key %d tap 200\n5600 key %d tap 200\n"
-                "6000 midi 90 40 64\n6500 midi 80 40 00\n" % (HW_KEY1, HW_KEY1 + 1, HW_KEY1 + 2))
+        # Try 3: two events in one packet, then four packets in a row of one each; then three keys, each pressed
+        # and released, while the host sends notes too (both ways at once).
+        f.write("3000 usbmidi 09 90 3c 64\n3000 usbmidi 09 90 40 64\n3050 usbmidi 08 80 3c 00\n"
+                "3100 usbmidi 08 80 40 00\n3150 usbmidi 09 90 43 64\n3200 usbmidi 08 80 43 00\n"
+                "5000 key %d tap 200\n5100 usbmidi 09 90 48 40\n5300 key %d tap 200\n5400 usbmidi 08 80 48 00\n"
+                "5600 key %d tap 200\n6000 midi 90 40 64\n6500 midi 80 40 00\n" % (HW_KEY1, HW_KEY1 + 1, HW_KEY1 + 2))
     out = os.path.join(work, "usb")
     r = fwtest(os.path.join(b, "app.bin"), out, log, "--usb", "--wav", "--midi-out", "--ms", "7000", "--script",
                os.path.relpath(path, ROOT), "--ram", "0x%08x:%d@end" % (sy["sb_usb"], 4 * nrec))
@@ -3996,9 +3998,9 @@ def case_usbmidi(a, work, log):
             order, rec["usb_gap_units"], rec["usb_poll_limit"]))
     rate, left, _ = aa.read_wav(os.path.join(out, "audio.wav"))
     peak = lambda t0, t1: max([abs(v) for v in left[int(t0 * rate):int(t1 * rate)]] or [0])
-    host, quiet = peak(3.2, 3.9), peak(0.0, 0.25)
+    host, quiet = peak(3.0, 3.4), peak(0.0, 0.25)
     if host < 100 or quiet > 10:
-        problems.append("usbmidi: the host's note in audio.wav peaks %d (3.2 to 3.9 s), before it %d" % (host, quiet))
+        problems.append("usbmidi: the host's notes in audio.wav peak %d (3.0 to 3.4 s), before them %d" % (host, quiet))
     sent = []
     p = os.path.join(out, "usb-midi-out.csv")
     if os.path.exists(p):
@@ -4010,8 +4012,8 @@ def case_usbmidi(a, work, log):
     offs = [x for x in sent if x[1] == 9 and len(x[2]) == 3 and not int(x[2][2], 16)]
     # Each key's press a note on and its release a note off of the same note, nothing else (try 3: on the unit the
     # releases went out as copies of the first packet).
-    pairs = [(x[2][1], int(x[2][2], 16) > 0) for x in sent]
-    want_pairs = [(n, on) for n in [ons[k][2][1] for k in range(min(3, len(ons)))] for on in (True, False)]
+    pairs = [(x[2][1], x[2][2]) for x in sent]
+    want_pairs = [(n, v) for n in [ons[k][2][1] for k in range(min(3, len(ons)))] for v in ("64", "00")]
     if len(ons) != 3 or len(offs) != 3 or not 5000 <= ons[0][0] < 5300 or pairs != want_pairs \
             or len(set(n for n, _ in want_pairs)) != 3 or any(3000 <= x[0] < 4900 for x in sent):
         problems.append("usbmidi: usb-midi-out.csv %s (want three keys' note on and off each, nothing echoed)" % sent[:8])
@@ -4020,10 +4022,11 @@ def case_usbmidi(a, work, log):
     rxl = [rec["usb_rx_log_%d" % (k % 8)] for k in range(max(0, rec["usb_rx_log_n"] - 8), rec["usb_rx_log_n"])]
     rx_pk = [(w & 0xFF, w >> 16 & 0xFF) for w in rxl]
     # fwtest's counts are the host's: events_sent went to the device, events_received came from it.
-    if rx_pk != [(8, 2), (4, 1), (4, 1)] or rec["usb_rx_events"] != 4 or u.get("events_sent") != 4 \
-            or u.get("events_received") != 6:
-        problems.append("usbmidi: packets in (bytes, events) %s, %d events (want (8, 2), (4, 1), (4, 1); 4)" % (
-            rx_pk, rec["usb_rx_events"]))
+    want_pk = [(8, 2)] + [(4, 1)] * 6
+    if rx_pk != want_pk or rec["usb_rx_events"] != 8 or u.get("events_sent") != 8 or u.get("events_received") != 6:
+        problems.append("usbmidi: packets in (bytes, events) %s, %d events, fwtest's sent %s received %s (want %s;"
+                        " 8, 8, 6)" % (rx_pk, rec["usb_rx_events"], u.get("events_sent"), u.get("events_received"),
+                                       want_pk))
     if rec["usb_cable_checks"] < 3 or rec["usb_lines_set"] or rec["usb_lines_or"] or rec["usb_cable"] != 1:
         problems.append("usbmidi: the cable reading: %d checks, the last %d of %d reads with a bit set, bits %08X" % (
             rec["usb_cable_checks"], rec["usb_lines_set"], rec["usb_lines_reads"], rec["usb_lines_or"]))
@@ -4084,7 +4087,7 @@ def case_usbmidi(a, work, log):
     lines = rd.u3u_lines(last) if "usb_magic" in last else []
     lu = lr["run"].get("usb") or {}
     if lr["run"]["outcome"] != "completed" or lbad or usb_labels[:len(want)] != want \
-            or any(len(x["fields"]) != len(rd.FIELDS[14]) for x in lrecs if x["label"].startswith("USB")) \
+            or any(len(x["fields"]) != len(rd.FIELDS[15]) for x in lrecs if x["label"].startswith("USB")) \
             or last.get("usb_giveup_why") or not lines or lu.get("problems") != [U3U_FADDR]:
         problems.append("usbmidi log: %s, %d bad, USB records %s, usb %s, lines %s" % (
             lr["run"]["outcome"], len(lbad), usb_labels, lu, lines[:2]))

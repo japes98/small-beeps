@@ -168,7 +168,7 @@ void hw_rows_start(void);
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
 #if defined(SB_HW_U3U)
-#define HW_LOG_LAYOUT  14u                  /* tools/report_decode.py's FIELDS[14] */
+#define HW_LOG_LAYOUT  15u                  /* tools/report_decode.py's FIELDS[15] (14: U3-U's try 2) */
 #elif defined(SB_HW_AUDIO14)
 #define HW_LOG_LAYOUT  13u                  /* tools/report_decode.py's FIELDS[13] */
 #elif defined(SB_HW_AUDIO13)

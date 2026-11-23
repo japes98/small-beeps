@@ -4264,7 +4264,9 @@ SR-3 wrote only its barrier-log row.*
   `logs/C-SEP-TERMS.log` alone extracted with `unzip -p`, the zip deleted
   at once. The hits were found by hashing the flagged lines' words.
 - Try 3 from the owner's unit report of try 2, relayed to this session
-  and saved unedited as docs/prompts/clean-br17-u3u-try2-unit.md.
+  and saved unedited as docs/prompts/clean-br17-u3u-try2-unit.md. The owner's fuller
+  analysis of try 2 followed, saved unedited as
+  docs/prompts/clean-br17-u3u-try2-owner.md.
 - Disk: about 4 GB free.
 
 ## Corrections

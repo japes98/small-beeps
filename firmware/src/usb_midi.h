@@ -129,6 +129,10 @@ struct sb_usb_record {
     u32 rx_log[USB_PKT_LOG];
     u32 tx_log_n;           /* packets out logged */
     u32 tx_log[USB_PKT_LOG];
+    u32 frame_last;         /* the frame number at main's last look (once a second) */
+    u32 gone_n;             /* the host's frames seen stopped */
+    u32 back_n;             /* and counting again */
+    u32 irq_peak;           /* the most of the controller's interrupts in one beat */
 };
 
 #define USB_MIDI_MAGIC 0x4D425355u   /* "USBM" */

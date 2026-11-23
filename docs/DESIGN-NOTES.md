@@ -6068,3 +6068,41 @@ leaves open.
   - **Seams usbmidi:** a packet of two events and two of one each give
     exactly their own (2, 1, 1); three keys each send one note on and,
     released, one note off of the same note, and nothing else.
+  - **Try 3, finished from the owner's fuller analysis of try 2**
+    (docs/prompts/clean-br17-u3u-try2-owner.md; `a70ad95a` was never
+    flashed):
+    - **Old layouts stay decodable:** layout 14 is try 2's again (98
+      device words, U2-C's log kept), so the owner's backups decode with
+      names; try 3 writes layout 15. Try 1's own layout 14 was never
+      flashed.
+    - **Separate buffers:** they already were: `ep0_buf`, `rx_buf`,
+      `tx_buf` and `tx_buf2` each 128 bytes apart on 64-byte boundaries
+      (the owner's file's ELF). So the bytes that mixed on the unit (a
+      packet out with the key's note and the host's velocity) didn't share
+      memory in our layout; they meet in the chip's DMA or cache, which no
+      source gives. KEY8's ways stay offered for it.
+    - **Both endpoints re-armed after every packet:** the IN endpoint is
+      filled whenever its `TxPktRdy` reads clear, at every interrupt and
+      from main's loop (woken each beat while something waits), no longer
+      only on its interrupt, which on the unit never came after the first
+      packet ("out 1 packet" in every session). After each packet in, the
+      OUT endpoint's buffer address and size (`EP1_RADR`, `EP1_CNT`,
+      HW-171's words, already written at the configuration) are written
+      again before `RxPktRdy` is cleared.
+    - **Unplugging:** the suspend interrupt never came on the unit (0 in
+      every session). Main's loop now reads the frame number (HW-86's
+      indexes 12 and 13) once a second: stopped while configured is
+      "USB gone" (a record, and nothing sent while gone), counting again
+      "USB back".
+    - **The instrument first:** the controller's interrupt is at the
+      engine's priority (0), so it never pre-empts the audio's fill; more
+      than 64 of them in one ms is a give-up (a storm), so a runaway
+      interrupt can't hold the instrument. Once on the unit the keys went
+      silent after unplugging until a power-off; the log will show the
+      most interrupts in one ms (`irq_peak`).
+    - **Seams usbmidi:** one packet of two events and six of one, four of
+      them in a row 50 ms apart and two while the keys play: each gives
+      exactly its own (fwtest's counts agree); three keys each send their
+      note on at 100 and their note off at 0, of their own note, and
+      nothing else. fwtest has no unplugging, so "USB gone" is the unit's
+      to show.

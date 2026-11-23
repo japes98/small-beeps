@@ -66,7 +66,7 @@ volatile struct sb_usb_record sb_usb;
 /* --- The core (HW-86, HW-171, HW-172, HW-178) ----------------------------- */
 
 #define SRC_USB_CTRL 9u          /* the first core's controller (SIE) interrupt (HW-171) */
-#define PRIO_USB     1u          /* below the tick (2), above the engine's fill (0) */
+#define PRIO_USB     0u          /* the engine's fill's (0): USB never pre-empts the audio (try 3, the owner) */
 
 /* CON0's bits by HW-171's names. */
 #define C0_PHY_ON   (1u << 0)
@@ -101,6 +101,8 @@ volatile struct sb_usb_record sb_usb;
 #define R_INTRRX1E  9u
 #define R_INTRRX2E  10u
 #define R_INTRUSBE  11u
+#define R_FRAME1    12u          /* the frame number (HW-86) */
+#define R_FRAME2    13u
 #define R_INDEX     14u
 #define R_TXMAXP    16u
 #define R_CSR0      17u          /* endpoint 0; TXCSR1 for the others */
@@ -164,6 +166,10 @@ static const u32 port_gaps[] = { 48u, USB_PORT_GAP, 1200u, 4800u };
 /* The controller's interrupt taken this many times in a row with no flag
  * up: a give-up (USB_WHY_STORM). */
 #define USB_STORM 1000u
+/* More of the controller's interrupts than this in one beat (ms): a
+ * give-up too (USB_WHY_STORM), so the instrument plays on whatever USB
+ * does. A frame brings a few at most. */
+#define USB_IRQS_PER_MS 64u
 
 /* The DMA buffers: 64-byte aligned, as the SDK keeps its own, each with
  * the 4 bytes past a packet the first core's receive DMA writes (HW-172). */
@@ -173,7 +179,7 @@ static volatile u8 tx_buf[EP_MAX + 4] __attribute__((aligned(64)));
 static volatile u8 tx_buf2[EP_MAX + 4] __attribute__((aligned(64)));   /* tx_variant 2's second */
 static u32 tx_flip;
 
-static u32 port_last, work_stage, spur_run, irq_on, gap_k = 1u;
+static u32 port_last, work_stage, spur_run, irq_on, gap_k = 1u, irq_beat, irq_in_beat;
 static volatile u32 in_busy, addr_pending, addr_beat;
 
 #define DEAD() (sb_usb.state == USB_STATE_DEAD)
@@ -574,7 +580,9 @@ static void bulk_out(void)
     sb_usb.rx_log_n++;
     sb_usb.rx_packets++;
     sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][0] |= USB_ATT_IN;
-    wr(R_RXCSR1, 0);                     /* the buffer free again */
+    put(&JL_USB->EP1_RADR, (u32)rx_buf);  /* re-armed: the buffer and its size again (HW-171's words), */
+    put(&JL_USB->EP1_CNT, EP_MAX);
+    wr(R_RXCSR1, 0);                     /* then the packet taken */
     if (!sb_usb.stage_beat[USB_ST_FIRST_IN]) {
         stage(USB_ST_FIRST_IN);
         sb_work++;
@@ -587,7 +595,7 @@ static void bulk_in(void)
     u32 n = 0, t = out_tail, w, csr;
     volatile u8 *b = sb_usb.tx_variant == 2u && tx_flip ? tx_buf2 : tx_buf;
 
-    if (t == out_head || in_busy || !sb_usb.configuration)
+    if (t == out_head || !sb_usb.configuration)
         return;
     wr(R_INDEX, EP_IN);
     csr = rd(R_CSR0);
@@ -628,6 +636,16 @@ static void u3_sie_isr(void)
     if (sb_usb.state == USB_STATE_DEAD)
         return;
     sb_usb.irqs++;
+    if (sb_beacon.beats != irq_beat) {
+        irq_beat = sb_beacon.beats;
+        irq_in_beat = 0;
+    }
+    if (++irq_in_beat > sb_usb.irq_peak)
+        sb_usb.irq_peak = irq_in_beat;
+    if (irq_in_beat > USB_IRQS_PER_MS) {
+        usb_halt_writes(USB_WHY_STORM, R_INTRUSB, JL_USB->CON0);
+        return;
+    }
     usb = rd(R_INTRUSB);
     tx = rd(R_INTRTX1);
     rx = rd(R_INTRRX1);
@@ -674,8 +692,10 @@ static void u3_sie_isr(void)
             stage(USB_ST_FIRST_OUT);
             sb_work++;
         }
-        bulk_in();
     }
+    /* The endpoint re-armed whenever TxPktRdy reads clear, whether or not
+     * its interrupt came (try 2: it never came after the first packet). */
+    bulk_in();
 }
 
 /* --- The set-up -------------------------------------------------------------- */
@@ -801,6 +821,7 @@ static u32 cable_check(void)
 }
 
 static u32 last_second, cable_records, lines_last, resets_logged, configs_logged, suspends_logged;
+static u32 frame_second, host_gone, gone_logged, back_logged;
 #define USB_ATTEMPT_RECORDS 16u
 static u32 logged[(USB_STAGES + 31) / 32];
 
@@ -847,6 +868,26 @@ void usb_midi_poll(void)
             sb_usb.lines_after++;
         lines_last = c;
     }
+    if (sb_usb.state == USB_STATE_UP && sb_seconds != frame_second) {
+        /* The host there? Its frames count while it is (HW-86's frame
+         * number); a number that stops is the cable out or the host
+         * asleep: logged, and nothing sent until it counts again. */
+        frame_second = sb_seconds;
+        __asm__ volatile("cli" ::: "memory");
+        c = rd(R_FRAME1) | rd(R_FRAME2) << 8;
+        if (sb_usb.configuration && c == sb_usb.frame_last && !host_gone) {
+            host_gone = sb_usb.configuration;
+            sb_usb.configuration = 0;
+            sb_usb.gone_n++;
+        } else if (host_gone && c != sb_usb.frame_last) {
+            if (!sb_usb.configuration)
+                sb_usb.configuration = host_gone;
+            host_gone = 0;
+            sb_usb.back_n++;
+        }
+        sb_usb.frame_last = c;
+        __asm__ volatile("sti" ::: "memory");
+    }
     if (sb_usb.state == USB_STATE_UP) {
         __asm__ volatile("cli" ::: "memory");
         /* The status stage is over within a frame or two (above). */
@@ -856,6 +897,12 @@ void usb_midi_poll(void)
         }
         bulk_in();
         __asm__ volatile("sti" ::: "memory");
+        /* Something still to go: main woken again next beat. */
+        if (out_tail != out_head && sb_usb.configuration) {
+            c = sb_beacon.beats + 1u;
+            if (!sb_wake_at || (int)(c - sb_wake_at) < 0)
+                sb_wake_at = c;
+        }
     }
     /* Each attempt's reset and configuration, the first 16 of each. */
     if (sb_usb.resets != resets_logged) {
@@ -874,6 +921,16 @@ void usb_midi_poll(void)
         suspends_logged = sb_usb.suspends;
         if (suspends_logged <= USB_ATTEMPT_RECORDS)
             usb_midi_note("USB suspend", "U3-U: suspended");
+    }
+    if (sb_usb.gone_n != gone_logged) {
+        gone_logged = sb_usb.gone_n;
+        if (gone_logged <= USB_ATTEMPT_RECORDS)
+            usb_midi_note("USB gone", "U3-U: the host's frames stopped");
+    }
+    if (sb_usb.back_n != back_logged) {
+        back_logged = sb_usb.back_n;
+        if (back_logged <= USB_ATTEMPT_RECORDS)
+            usb_midi_note("USB back", "U3-U: the host's frames again");
     }
     if (sb_usb.configs != configs_logged) {
         configs_logged = sb_usb.configs;
