@@ -1,0 +1,7 @@
+code 117996
+data 76
+bss 182784
+image 118072
+stack 4096
+irq_stack 2048
+ram_code 117200

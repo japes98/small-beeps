@@ -1,0 +1,15 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range b13ea394dc8d3fa5ec61c2f09710ebf6848f66cc..552d97372e8c4e5e843d6119fd563e593d2161af
+OK     e5b7086dac72 firmware: U3-U, the USB MIDI device on the unit for the owner's flash only (SB_HW_U3U)
+OK     d20756e7d421 firmware: U3-U try 2, writes stop after a halt, KEY7's port spacings, attempts logged
+OK     a70ad95a7326 firmware: U3-U try 3, packets in counted by RXCOUNT1, KEY8's ways out, suspend records
+OK     8cf6580b25ea firmware: U3-U try 3 finished, endpoints re-armed each packet, host-gone watch, layout 15
+OK     378f49f0a1fa firmware: usb_midi.c's priority comment says whose choice it is
+OK     9bc1aaf37f2e docs: the owner's answers to U3-U try 3's questions, one identity per try
+OK     8d721ec8d6b2 firmware: U3-U try 4, events read to the first zero one, the way out at each power-on
+OK     a75b2fdd4f71 firmware: U3-U try 5, the SDK's endpoint steps (P-519), way 0 the SDK's send
+OK     1865938e8e45 docs: the owner's answer on U3-U try 5's gaps
+OK     45efdffbed11 firmware: U3-U's final build, way 0 alone, the tries' keys and power-on choice gone
+EXEMPT 552d97372e8c (merge) Merge pull request #249 from japes98/hw/u3u
+11 commit(s) checked: PASS
+
+exit status 0
