@@ -19,9 +19,25 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 This repository also includes three crates of the emulator at
 https://github.com/joakimeriksson/fm1-emu, copyright 2026 Joakim Eriksson,
 licensed under the MIT License. Copies are under vendor/emulator/, with that
-project's LICENSE at vendor/emulator/LICENSE; the pinned commit, the patch
-applied and the tree hash are in vendor/emulator/UPSTREAM.md. Container
-images of the test runner built from them carry the same LICENSE.
+project's LICENSE at vendor/emulator/LICENSE; the pinned commit, the patches
+applied and the tree hash are in vendor/emulator/UPSTREAM.md.
+Container images of the test runner built from them carry the same LICENSE.
+
+The patches are this repository's, under the MIT License, except as
+follows:
+- 0004 (pair heads without a table class), 0007 (peripherals looked up
+  first) and 0008 (RAM blocks checked by write count), with 0008's crate
+  test fix, are fixes to fm1-emu that the owner made for the copy of it in
+  the owner's F-Emulator app. The owner contributes them to this
+  repository under the MIT License (PROVENANCE P-39, P-47, P-520). The
+  F-Emulator app itself is closed source; nothing else of it is here.
+- 0012 (the USB port answers) is this repository's own code, written to
+  behave as described in a note from the F-Emulator app, a note that
+  describes behaviour only (PROVENANCE P-59, P-520).
+
+docs/sources/panel-app-default-labels.png is the owner's screenshot of the
+F-Emulator app's panel, used only for the panel's printed labels; the
+owner licenses it under the MIT License (PROVENANCE P-12).
 
 This repository also includes parts of Mutable Instruments' Plaits and of
 its library stmlib, by Emilie Gillet, from https://github.com/pichenettes/eurorack

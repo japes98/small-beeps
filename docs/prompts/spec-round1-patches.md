@@ -1,0 +1,3 @@
+reads:
+
+…(1) a licence and privacy check: what vendor/emulator/ and harness/upstream/ contain and under what licence, including each of the vendored emulator's patches 0001–0022: none may carry code from the closed F-Emulator; NOTICE/PROVENANCE complete; …

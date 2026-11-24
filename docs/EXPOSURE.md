@@ -85,8 +85,7 @@ training cutoff (see "Model cutoffs" below).
   owner's phone.
 - Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
   knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4).
-- Session: Claude Code session `36860ab8-77fd-4fd6-aa1d-2063c15a5548`,
-  `https://claude.ai/code/session_01CQ8PVaAx6db8cqvV9i53wj`.
+- Session: Claude Code session `36860ab8-77fd-4fd6-aa1d-2063c15a5548`.
 - Where it ran: the owner's Mac (macOS, Apple Silicon), in
   `~/<top>/clean`. The prompt said "~/work/small-beeps/clean
   on the owner's Docker machine"; the owner was told and continued. The
@@ -127,8 +126,7 @@ training cutoff (see "Model cutoffs" below).
   owner's phone.
 - Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
   knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
-- Session: Claude Code session `e74c69f7-ff95-4dcc-bf7a-9a980e62a6f9`,
-  `https://claude.ai/code/session_01RWVcKRtXA4USAZaVZw4ZzA`.
+- Session: Claude Code session `e74c69f7-ff95-4dcc-bf7a-9a980e62a6f9`.
 - Where it ran: the owner's Mac (macOS, Apple Silicon), in
   `~/<top>/spec`. The prompt said "~/work/small-beeps/spec
   on the owner's Docker machine"; as with M0a, the session went on and told
@@ -226,8 +224,7 @@ training cutoff (see "Model cutoffs" below).
   owner's phone.
 - Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
   knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
-- Session: Claude Code session `91e7ef55-b2f6-424a-981d-e85c57733aaa`,
-  `https://claude.ai/code/session_01RWVcKRtXA4USAZaVZw4ZzA`.
+- Session: Claude Code session `91e7ef55-b2f6-424a-981d-e85c57733aaa`.
 - Where it ran: the owner's Mac, in `~/<top>/spec`,
   started by `/clear` after M0b; banner `status: OK`.
 - What it archived: M0b's transcript into `sessions/spec/`, and clean
@@ -304,8 +301,7 @@ training cutoff (see "Model cutoffs" below).
   owner's phone.
 - Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
   knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
-- Session: Claude Code session `fbbe5c07-7ec8-41d0-a3e4-cabd7765042f`,
-  `https://claude.ai/code/session_01RWVcKRtXA4USAZaVZw4ZzA`.
+- Session: Claude Code session `fbbe5c07-7ec8-41d0-a3e4-cabd7765042f`.
 - Where it ran: the owner's Mac, in `~/<top>/spec`, started by `/clear`
   after M0c; banner `status: OK`, and again after `tools/spec-setup.sh`.
 - What it archived: M0c's transcript (and its one subagent) into
@@ -3825,6 +3821,27 @@ SR-3 wrote only its barrier-log row.*
 - U3-U drafted outside the repository for the owner's ruling, from
   HW-178 and HW-173, with no write to `0x16A00` or any clock register.
 - Disk: about 3 GB free.
+### Session spec-round1-licence (round 1: licence and privacy)
+- Date: 2026-11-24 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.331; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio14-unit and spec-u3u-rulings
+  (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on a new branch
+  `spec/round1-licence` from main.
+- The owner's messages saved unedited: the release goal
+  (docs/prompts/spec-release-goal.md), the patch-by-patch wording
+  (spec-round1-patches.md), seams' 120-minute limit (spec-ci-120-ruling.md)
+  and the round 1 rulings (spec-round1-rulings.md).
+- Read for the findings: vendor/emulator/'s patches 0001 to 0021 (their
+  headers) and UPSTREAM.md, harness/upstream/, NOTICE, PROVENANCE, REUSE,
+  the tracked files' home paths and session links (names and counts only),
+  and the similarity audit's report on the records branch (names and
+  scores only; no matched code or target opened, docs/AUDIT.md).
+- Changed: NOTICE (the patches' origins, the screenshot), PROVENANCE
+  P-520, UPSTREAM.md's note, the commit check and its test, .gitmessage,
+  CONTRIBUTING, R-PROC-1 (no session link), the session links removed from
+  EXPOSURE, M0c.md's home path. Transcripts unchanged, by the ruling.
+- Disk: about 6 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).

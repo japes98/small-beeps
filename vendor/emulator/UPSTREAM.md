@@ -30,6 +30,12 @@ SPDX-FileCopyrightText: 2026 japes98
 
 Applied in file-name order by the fetch script, after checkout:
 
+(Origins and licences, per patch: NOTICE and PROVENANCE P-520. 0004, 0007
+and 0008 are the owner's fixes from the F-Emulator app's copy of fm1-emu,
+contributed under MIT; 0012 is our own code written from the app's
+behaviour-only note; the rest are this repository's own. Each patch is
+self-contained, so any of them can be offered upstream on its own.)
+
 - `patches/0001-workspace-members.patch`: the three crates take their
   version, edition and licence from the workspace manifest, which upstream
   lists with seven members. The patch keeps the manifest and lists only the

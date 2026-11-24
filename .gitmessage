@@ -19,6 +19,5 @@ Exposure:
 # A field may continue on the following lines, indented.
 # Agent-written commits also end with these trailers:
 #   Model: <exact model ID>
-#   Claude-Session: <session URL>
 #   Co-Authored-By: <model> <noreply@anthropic.com>
 # Checked by tools/hooks/commit-msg and by CI (tools/check-commit-msg.py).

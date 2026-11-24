@@ -19,7 +19,6 @@ Exposure: firmware side, none
 
 AGENT_TRAILERS = """
 Model: claude-opus-5-5
-Claude-Session: https://claude.ai/code/session_x
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 """
 
@@ -33,7 +32,7 @@ class CommitMessageTest(unittest.TestCase):
     def test_agent_message_needs_trailers(self):
         problems = cm.validate(GOOD, "Claude (claude-opus-5-5) <noreply@anthropic.com>")
         self.assertTrue(any("Model" in p for p in problems))
-        self.assertTrue(any("Claude-Session" in p for p in problems))
+        self.assertFalse(any("Claude-Session" in p for p in problems))
         self.assertEqual(cm.validate(GOOD + AGENT_TRAILERS, "Claude <noreply@anthropic.com>"), [])
 
     def test_each_field_is_required(self):
