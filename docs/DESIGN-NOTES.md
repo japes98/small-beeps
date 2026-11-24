@@ -5904,3 +5904,368 @@ docs/HARNESS.md's "USB".
 - **fwtest 0.14.0** is pinned (`config/fwtest-image`; HARNESS.md
   "Versions"). It is the one pin for every case: without `--usb` or
   `--audio-chip`, 0.14.0's outputs are 0.12.0's.
+
+### 2026-11-23 clean-br17-u3u: U3-U, the USB MIDI device on the unit, for the owner's flash only (BR-17, R-HW-1, R-USB-1)
+The spec side's prompt (docs/prompts/clean-br17-u3u.md), with the owner's
+rulings of 2026-11-23, and the owner's answers to audio14's questions
+(docs/prompts/clean-br17-audio14-answers.md). Facts from HARDWARE-SPEC
+HW-171 to HW-173, HW-176 to HW-180, HW-86 and HW-117, and REQUIREMENTS
+R-USB-1. Q-36 isn't in the clean folder; HW-178 and HW-180 say what it
+leaves open.
+
+- **R is closed** (the owner, 2026-11-23): audio13's log had no "Panel
+  save" record because REC wasn't pressed; on audio14, REC showed "ARP
+  saved", and the log has the "ARP save" and "ARP off" records (HW-179).
+  The panel's save works; its cause above needed no fix.
+- **The owner's file:** `SB_HW_U3U` (with `SB_HW_AUDIO14` and
+  `SB_USB_MIDI`), identity `0.15.0-hw3z`, log layout 14. It differs from
+  the published build (audio14's, hw3y) only by the USB device: its
+  descriptors carry pid.codes' test product ID, so the file goes to the
+  owner's flash alone and its name says so. A unit build with
+  `SB_USB_MIDI` but not `SB_HW_U3U` stops, and the published build's ELF
+  has none of the device's symbols (seams case usbmidi).
+- **When USB starts** (the owner's ruling): nothing is written to the USB
+  blocks until the cable reading, `CON0` bits 16 and 17, reads steadily 0
+  (32 reads 50 us apart, HW-177) in three checks in a row: the first at
+  the app's start (main's loop, after the instrument's start or the test
+  screen), then one each second. So the set-up begins about two seconds
+  after an awake computer is plugged in; on the battery, with a charger or
+  a sleeping computer it never begins. Each change of the reading is a
+  record ("USB cable", the first 16; the rest counted). Once the device is
+  set up the lines carry the bus, so what they read then isn't given:
+  it's counted (`lines_after`), never acted on. USB runs in the test
+  screen too (HOME held at power-on): the poll is main's loop's, not the
+  panel's.
+- **The set-up** (`u3_core_setup`) replaces U3-F's one function, in
+  HW-178's order: IO `CON0` bit 10 then bit 9; `IO_MODE` cleared then `SR`
+  set; `CON0` bits 2, 4, 5 and 14 cleared; `CON1` 0; `PHY_ON`; both
+  pull-downs cleared, both pull-ups cleared, then `DPPU`; `CON0` bits 2 to
+  5 set. Then, in HW-172's order by the owner's ruling: the device's
+  interrupt enables cleared (HW-178: `INTRUSBE` 0, every transmit and
+  receive enable 0) straight after; `POWER` `0x60` with interrupts off;
+  endpoint 0's 64-byte buffer, set as the receive address of endpoints 0
+  to 4; `INTRUSBE` reset and suspend; endpoint 0's enable; the controller's
+  interrupt (source 9) registered; `SIEIE` last. Each write names its HW
+  entry in the code. Every change to `CON0` and IO `CON0` reads the word
+  and changes only its step's bits, so either start state (HW-177) gets
+  every step. Nothing goes to `0x16A00` or to any clock register.
+- **U3-F's `CON0` writes are gone.** U3-F wrote whole words to `CON0`
+  (each frame, and at its start), which on the unit would clear `USB_NRST`
+  and the bits step 7 sets, and `SIEIE`; fwtest doesn't model those bits,
+  so it never showed. The device no longer uses the start-of-frame
+  interrupt (`SOFIE` isn't in HW-178 or HW-172): its work is the
+  controller's interrupt's, at priority 1 (below the tick's 2, above the
+  engine's 0), and main's loop starts packets out with interrupts off
+  (`usb_midi_send` wakes it), so the port and `INDEX` have one user at a
+  time.
+- **The port** (`port()`): only while `USB_NRST` reads set; each access
+  10 us after the last (`USB_PORT_GAP`, 240 units of `sb_now()`, the
+  spacing's one place, logged as `gap_units`); a `csync` after the write;
+  bit 15 polled up to 20 000 times (HW-178). A give-up there (NRST clear,
+  or bit 15 never came), or the interrupt taken 1000 times in a row with
+  no flag up, logs the stage, the index and the word read, turns source 9
+  off at the CPU (HW-20; not a USB write), and nothing more is written to
+  USB until the next power-on; the instrument runs on. There is no stop
+  sequence: none has a source.
+- **The log** (records from main's loop only, never the interrupt): a
+  record before each of HW-178's steps 1 to 6 ("USB step 1" to "USB step
+  6"), so a hang in one of them shows which; from step 6 (D+'s pull-up:
+  the host sees the device) to `SIEIE` nothing waits for the flash, and
+  the step row names each write; "USB set up" after `SIEIE`, with `CON0`,
+  `CON1` and IO `CON0` read back (the cable reading is `CON0`'s bits 16
+  and 17 there). Then one record for each first: the host's reset, the
+  address, the configuration, the first MIDI packet in, the first packet
+  out (when the host took it), a give-up. Every record carries the whole
+  device record (`struct sb_usb_record`): each stage's beat, the cable
+  checks, the counts. Babble isn't visible to a device (HW-172:
+  `INTRUSB` bit 2 is babble only as a host); the endpoints' `UnderRun`,
+  `OverRun` and `DataError` are counted if they ever show, with the
+  rings' drops.
+- **Layout 14** is layout 13 without ARP's step log (96 words; R is
+  done), with the device's words (71 in try 1, 98 since try 2) before the log's own health.
+- **`FADDR`** (general USB knowledge, PROVENANCE P-99): a MUSB-style core
+  takes the address at once, and the status stage of SET_ADDRESS must
+  still be answered at address 0, so on the owner's file the address is
+  written at endpoint 0's next interrupt (the status stage's end), or by
+  main's loop 3 ms later if none comes (`addr_late` counts those).
+  fwtest's host checks `FADDR` straight after the request (its own model,
+  HARNESS.md "USB") and lists "FADDR is 0" for that, though it goes on
+  and the file enumerates; so fwtest's test builds write it at once, as
+  U3-F did, and seams case usbmidi expects that one problem on the
+  owner's file alone. If the unit shows the host's reset but no address,
+  this is the first thing to look at.
+- **fwtest:** with `--usb` the test build and the owner's file enumerate
+  as `1209:0001`, "small-beeps" twice, no problems. fwtest doesn't model
+  `CON0` bits 16 and 17: they read 0 with and without `--usb`. So without
+  `--usb` the reading shows "a computer" there too and the set-up runs,
+  with no host and no bus event after it; the outputs are still build
+  A's. On the unit the reading tells the two apart (HW-176, HW-177).
+- **Tries, by the owner's ruling of 2026-11-23:** USB goes on one branch
+  (#249, a draft) with no PR per try; each try runs the USB seams cases
+  (report1 on an identity change), the terms check and packs the owner's
+  file. A value that is a guess is offered several ways behind a
+  test-screen key, logged; a write HW-172 or HW-178 doesn't give stops the
+  work and goes to the owner.
+- **Try 2** (after #249's first commit):
+  - C-SEP-TERMS named two of the first try's identifiers; they are now
+    `usb_halt_writes` and `u3_sie_isr`, and the decoder's stage
+    "stopped".
+  - After a give-up nothing more reaches the USB blocks: the endpoints'
+    DMA words go through `put()`, which writes nothing once the device has
+    given up; the set-up returns after any stage whose port access gave
+    up, and no later stage is marked. Before, a give-up in the set-up's
+    first port access still let it write `EP0_ADR` and the receive
+    addresses, and mark POWER's stage and the rest. The test build
+    `SB_TEST_USB_STOP` makes the first access's bit 15 never come: the log
+    names the stage (the interrupt enables) and the index (11), no stage
+    after it, fwtest's host never sees a device (`POWER` not written), and
+    the instrument plays on (seams case usbmidi).
+  - The port's spacing is the first guess offered: KEY7 on the test
+    screen (HOME held at power-on) takes the next of 2, 10, 50 and 200 us
+    (10 us at power-on), named on the step row and in a record ("USB
+    spacing"). Each bus reset starts an attempt, and the last 8 attempts
+    are logged with the spacing then in use, what they reached (address,
+    configuration, a packet in, a packet out), the reset's beat and their
+    last step's; every attempt's reset and configuration is a record (the
+    first 16 of each). So one flash tries every spacing: unplug, KEY7,
+    plug in again. Layout 14 holds the device's 98 words.
+  - The log end to end in fwtest: audio14's log-writing test build with
+    the owner's device, with `--usb`: "USB cable", "USB step 1" to "6",
+    "USB set up", "USB reset", "USB address", "USB configured", in that
+    order, every record of layout 14's length, no give-up.
+- **Try 3** (the owner's unit report of try 2,
+  docs/prompts/clean-br17-u3u-try2-unit.md): "small-beeps" enumerated at
+  10 us and notes went both ways, with two bugs.
+  - **The counts in that log were a snapshot.** Records were written only
+    at stages, so the last one was "USB first out", with the counts as
+    they were then ("out 1 packet, 1 event"). Each suspend (unplugging,
+    or the host asleep) is now a record too, the first 16, so a run's
+    counts reach the log when the cable comes out; REC in the panel
+    ("ARP save") writes them as well.
+  - **Bug 2, notes in twice:** 749 events in 54 packets, where the host
+    sent one event a packet, means the count read about 64 bytes. The
+    count was `RXCOUNT1 | RXCOUNT2 << 8`; a bulk packet at full speed is at
+    most 64 bytes, so it is now `RXCOUNT1` alone, and both are logged as
+    read (the last 8 packets: both counts, the events taken, `RXCSR1`).
+    After a packet its bytes and the 4 past them are cleared, so nothing
+    of one packet can be taken again with the next. Which of the two
+    counts read wrong on the unit is the log's to show.
+  - **Bug 1, the releases out as the first packet again:** every second
+    packet the host got was a copy of the very first one. That fits the
+    transmit DMA reading memory the CPU's latest writes hadn't reached
+    (a data cache, HW-152, open for DMA), or a second hardware buffer;
+    no source says which, and a cache flush has no register-level source
+    (HW-152). So the ways a packet goes out are offered behind KEY8 on the
+    test screen, logged: 0 as before, one buffer whose address is set at
+    the configuration; 1 the address (`EP2_TADR`) written again before
+    each packet; 2 two buffers, the address switched each packet. Each
+    packet out logs `TXCSR1` as read before it, its bytes and the way,
+    and the host's taking it is counted (`tx_done`). If none of the three
+    fixes it, the fix needs something HW-172 and HW-178 don't give (a
+    cache flush, or the SDK's own packet write): that goes to the owner.
+  - **Layout 14** leaves U2-C's log out as well (HW-177 settled U2), for
+    the device's 118 words.
+  - **Seams usbmidi:** a packet of two events and two of one each give
+    exactly their own (2, 1, 1); three keys each send one note on and,
+    released, one note off of the same note, and nothing else.
+  - **Try 3, finished from the owner's fuller analysis of try 2**
+    (docs/prompts/clean-br17-u3u-try2-owner.md; `a70ad95a` was never
+    flashed):
+    - **Old layouts stay decodable:** layout 14 is try 2's again (98
+      device words, U2-C's log kept), so the owner's backups decode with
+      names; try 3 writes layout 15. Try 1's own layout 14 was never
+      flashed.
+    - **Separate buffers:** they already were: `ep0_buf`, `rx_buf`,
+      `tx_buf` and `tx_buf2` each 128 bytes apart on 64-byte boundaries
+      (the owner's file's ELF). So the bytes that mixed on the unit (a
+      packet out with the key's note and the host's velocity) didn't share
+      memory in our layout; they meet in the chip's DMA or cache, which no
+      source gives. KEY8's ways stay offered for it.
+    - **Both endpoints re-armed after every packet:** the IN endpoint is
+      filled whenever its `TxPktRdy` reads clear, at every interrupt and
+      from main's loop (woken each beat while something waits), no longer
+      only on its interrupt, which on the unit never came after the first
+      packet ("out 1 packet" in every session). After each packet in, the
+      OUT endpoint's buffer address and size (`EP1_RADR`, `EP1_CNT`,
+      HW-171's words, already written at the configuration) are written
+      again before `RxPktRdy` is cleared.
+    - **Unplugging:** the suspend interrupt never came on the unit (0 in
+      every session). Main's loop now reads the frame number (HW-86's
+      indexes 12 and 13) once a second: stopped while configured is
+      "USB gone" (a record, and nothing sent while gone), counting again
+      "USB back".
+    - **The instrument first:** the controller's interrupt is at the
+      engine's priority (0), so it never pre-empts the audio's fill; more
+      than 64 of them in one ms is a give-up (a storm), so a runaway
+      interrupt can't hold the instrument. Once on the unit the keys went
+      silent after unplugging until a power-off; the log will show the
+      most interrupts in one ms (`irq_peak`).
+    - **Seams usbmidi:** one packet of two events and six of one, four of
+      them in a row 50 ms apart and two while the keys play: each gives
+      exactly its own (fwtest's counts agree); three keys each send their
+      note on at 100 and their note off at 0, of their own note, and
+      nothing else. fwtest has no unplugging, so "USB gone" is the unit's
+      to show.
+  - **The owner's answers to try 3's questions**
+    (docs/prompts/clean-br17-u3u-answers.md):
+    - USB's interrupt stays at priority 0: the owner's ruling, which the
+      spec side records. The source comment will say so with try 4.
+    - fwtest's host should drive `CON0` bits 16 and 17, and check `FADDR`
+      after the status stage. Both are harness changes, so they went to the
+      spec side as a request; this side doesn't change fwtest.
+    - Each try gets its own identity, so the backups name the try. Tries 2
+      and 3 were both `0.15.0-hw3z`; their records still tell them apart by
+      layout (14 for try 2, 15 for try 3). Try 3's file (`ace98173…`) was
+      checked and flashed as it is. From try 4, the identity is
+      `0.15.0-u3u-t<N>`: 13 characters, so `FM-1_` and it fit fwsc's 19
+      and the record's 16. It is set in `hw_fm1.h` and seams' `U3U_ID`.
+  - **Try 4, from the owner's run of try 3, way 0**
+    (docs/prompts/clean-br17-u3u-try3-unit.md, backup fm1-20261123-194712):
+    nothing from the Mac sounded, because `RXCOUNT1` isn't the length. For
+    4-byte packets it read 56, 12, 60, 16, 64, 20, 68, 48.
+    - **In:** `RXCOUNT1` is logged only. Because the buffer is cleared after
+      each packet, the events are read from its start up to the first
+      all-zero one, at most 16.
+      - An event whose code index doesn't match its status byte is dropped
+        and counted (`rx_bad`). For 8 to E the status's high nibble must be
+        the code index; system and SysEx code indexes need their own status
+        bytes; data bytes must be below 0x80.
+      - The whole buffer and the 4 bytes past it are now cleared, not a
+        count's worth.
+      - For each packet, which of the 17 four-byte slots read non-zero is
+        logged beside `rx_log` (`rx_mask`). If the DMA puts the bytes
+        somewhere other than the start, try 5 can see where. This reads our
+        own memory only; there is no new register.
+    - **Out:** every message the Mac took was the first one again, in
+      packets of 64 and 28 bytes. That question is with the spec side, and
+      KEY8's ways stay.
+      - A fit with the facts, not a finding: HW-152 leaves open whether
+        main RAM sits behind a data cache that the DMA doesn't see. A cache
+        not kept in step with the DMA would give both a send that repeats
+        its first packet and a receive that reads the buffer as cleared. No
+        allowed source gives a register-level flush, so nothing here tries
+        one.
+    - **The way out at each power-on:** the owner can't use the test screen.
+      - `usb_midi_power_on`, in `hw_a13_power_on` after U2-A's second
+        reading, runs whether HOME is held or not.
+      - It reads the log ring and takes the flash just as a save does,
+        writing nothing (`hw_report_newest`). It finds the newest valid
+        record of this build whose label starts "USB way ".
+      - The way is the next one after that record's (0, 1, 2, then 0), or
+        0 if there is none. Try 3's and audio14's records are other builds.
+      - It is shown in large text for 2 s, with the build's identity, and
+        logged as a "USB way N" record. That record is the one the next
+        power-on reads, so no store write is needed.
+      - A KEY8 press still changes the way for the rest of the run, under
+        its own label ("USB out way"). The next power-on goes on from the
+        power-on's way, not KEY8's.
+    - **Layout 16** (1006 fields of 1011): the device's record gains
+      `rx_bad`, `rx_mask[8]` and `way_prev`. Layout 15 is try 3's again
+      (`USB_REC_TRY3`), and the decoder now checks that no layout passes
+      `HW_LOG_FIELDS`.
+    - **Identity** `0.15.0-u3u-t4`; USB stays at priority 0, and the source
+      comment now says that is the owner's ruling.
+    - **Seams usbmidi:**
+      - one packet with code index 8 and status 90 is dropped and counted;
+      - the packets' events and non-zero slots are checked;
+      - "USB way 0" is first among the USB records;
+      - three more power-ons from the flash each run before left give the
+        ways 1, 2 and 0. Each is an 8 s run, because starting from a used
+        flash took more than 4 s of fwtest's time;
+      - KEY7's run lets HOME go at 8 s and presses KEY7 at 12 s, after the
+        way's 2 s of large text.
+    - The ring scan's label check is built only with SB_HW_U3U. The
+      published audio14 file packs byte-identical to
+      `small-beeps-audio14-key-980f.fwsc`.
+  - **Try 5, the SDK's steps** (docs/prompts/clean-br17-u3u-try5.md).
+    The owner ruled that the spec side's report P-519 is a source, as
+    HW-172 and HW-178 are. Try 4 wasn't flashed; try 5 is built on it.
+    - **Interrupts off around each endpoint group:** from each `INDEX`
+      write to the last access that goes with it, in main's loop and in
+      the controller's interrupt (`ep_lock`/`ep_unlock`, which nest). The
+      interrupt's reads of `INTRUSB`, `INTRTX1` and `INTRRX1` are a group
+      too, because they share `CON1`'s port.
+    - **In:** `INDEX`, then `RXCSR1`; only with `RxPktRdy` set,
+      `RXCOUNT1`/`RXCOUNT2` give the length. `EP1_RADR` is written again
+      before the copy. The copy takes the smaller of the length and 64,
+      in whole events, with try 4's guards (at most 16, none past an
+      all-zero one, the code index matching the status) and the buffer
+      cleared after. The packet is let go with `RXCSR = (as read & 0xFE9B)
+      | 0x10`. `EP1_CNT` is no longer written per packet, since P-519's
+      receive steps don't write it. The length is logged in `rx_log` as
+      before.
+    - **Out, way 0:**
+      - `TxPktRdy` must read clear;
+      - the events are copied into the endpoint's own buffer, then `csync`;
+      - `EP2_TADR` is written again, then `EP2_CNT` with the byte count;
+      - `TXCSR` (17 and 18) is read and written back with 0x01 set.
+
+      Ways 1 and 2 are try 4's: the address each packet, and two buffers
+      in turn. They now share the `csync` and the `TADR` write; their
+      `TXCSR1` write stays `TxPktRdy` alone. Try 4's way 0, one buffer
+      with no `TADR` write, is gone.
+    - **Set-up:** `TXCSR1` 0x48, `RXCSR1` 0x90, and `TXMAXP`/`RXMAXP`
+      written 1023, which the port carries as 0xFF.
+    - **Gaps, where P-519 can't be followed as written, and what try 5
+      does:**
+      1. Whether the release write comes before or after the copy turns on
+         a flag P-519 doesn't decode. Try 5 writes it after, so the next
+         packet can't land in the buffer while it's read.
+      2. The release is a 16-bit value, but its byte order isn't given.
+         Try 5 writes `RXCSR2` (HW-172's index 21, which carries
+         `IncompRx`) first and `RXCSR1` last.
+      3. The order of `TXCSR`'s two bytes on write-back isn't given either.
+         Try 5 writes 18 first and 17 (`TxPktRdy`) last.
+      4. P-519 doesn't say whether the set-up writes the CSRs' high bytes.
+         `TXCSR2`'s direction stays as tries 1 to 4 wrote it, and `RXCSR2`
+         isn't written.
+      5. The SDK polls until `TxPktRdy` reads clear. Try 5 doesn't wait:
+         while the bit is set nothing is written, and the packet goes at
+         the next interrupt or beat, so the instrument never waits on USB.
+      6. The SDK's branch for `TXCSR`'s `IncompTx` isn't decoded. The bit is
+         only logged (`tx_log`).
+      7. In the handler, whether the chip closes the `sti` gate on entry
+         isn't given (Q-10). If it doesn't, `sti` at a group's end restores
+         the gate as it was. If it does, sources of higher priority can
+         nest sooner, and none of them touch USB.
+    - **Layout 17** (1007 fields) adds `try_n` (5), so the decoder names
+      the ways by try. The identity is `0.15.0-u3u-t5`.
+    - **The owner's run:** a plain power-on, with no keys and no test
+      screen. Way 0 shows in large text. Plug into the Mac, play notes both
+      ways, unplug. Only if way 0 fails, power on again for ways 1 and 2.
+    - **The owner's answer** (docs/prompts/clean-br17-u3u-try5-answer.md):
+      the seven gaps' choices are accepted as they are, to be tested first.
+      If way 0 fails on the unit, the spec side decodes gaps 1 and 2 first.
+      Try 5's file (`e58082c2…`) was checked and flashed.
+    - **Try 5 on the unit** (the owner, 2026-11-24, backup
+      fm1-20261124-065615; docs/prompts/clean-br17-u3u-final.md): way 0,
+      the SDK's steps, works. The Mac's notes play once each at the right
+      pitch, the unit's keys send one note-on and one note-off each, and
+      the instrument plays on after unplugging. The log shows 8 packets in
+      with 18 events (`RXCOUNT1` 4 each, and one of 44 at connect with 11
+      events), and 7 packets out of 4 bytes each. There were no stalls,
+      drops or give-ups, and "USB gone" was logged at unplug. The loop is
+      done.
+- **U3-U's final build** (the owner's direction, same prompt).
+    - Only way 0 is kept. Ways 1 and 2 are gone, with their second buffer.
+      So are the power-on choice of way, its large text, and its log
+      lookup (`hw_report_newest`), which puts hw_report.c back as on main.
+      The tries' test keys are gone too: KEY7 (the port's spacing) and
+      KEY8 (the way out). Nothing else used them, so on the test screen
+      they now do what they did before U3-U.
+    - The port's spacing is fixed at 10 µs (`USB_PORT_GAP`, 240 units),
+      and the list of spacings is gone. Every log record stays.
+    - Layout 17 is unchanged, so the decoder reads the final build as it
+      read try 5. The fields only the tries used stay in the record:
+      `tx_variant` reads 0, `gap_presses` 0, `way_prev` none, and
+      `try_n` 5 (the try whose way the build keeps).
+    - The identity is `0.15.0-u3u`.
+    - The published build is still USB-off (R-USB-1). audio14's packed
+      file is byte-identical to the published one, and seams checks that
+      a unit build with `SB_USB_MIDI` but without `SB_HW_U3U` stops. The
+      owner-only file is still named and marked so.
+    - In seams, the `usbmidi` case no longer runs the three chained
+      power-ons. The log run now checks that there are no way, spacing or
+      out-way records, and that the record reads way 0, spacing 240 and
+      try 5. The key run taps KEY7 and KEY8 on the test screen and checks
+      that USB is unchanged and still configured.

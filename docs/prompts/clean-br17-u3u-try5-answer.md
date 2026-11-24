@@ -1,0 +1,1 @@
+The owner's answer: the seven gaps' choices are accepted as they are; test first. If way 0 fails on the unit, the spec side decodes gaps 1 and 2 first. Try 5 (e58082c2…) was checked and is being flashed.
