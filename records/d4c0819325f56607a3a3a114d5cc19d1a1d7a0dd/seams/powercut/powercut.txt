@@ -1,0 +1,2 @@
+# tools/seams_suite.py, case powercut: the tap that starts the test engine's save.
+300     key 12 tap 60

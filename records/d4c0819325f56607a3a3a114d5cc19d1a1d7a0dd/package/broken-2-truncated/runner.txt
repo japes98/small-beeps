@@ -1,0 +1,3 @@
+image: ghcr.io/japes98/small-beeps@sha256:0c8f53240494b8aa7ba7e0767b432963e4aa0e23fbc3045677530b1ce9cef470
+status: pinned (config/fwtest-image)
+exit: 2

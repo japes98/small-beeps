@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 8b0852b6e3195e81cc28941de2684dcc8ac6db4c..d4c0819325f56607a3a3a114d5cc19d1a1d7a0dd
+OK     931006927b17 harness: fwtest 0.15.0, the USB lines' bits as a cable gives them, FADDR checked later
+EXEMPT 5acb0baf0afb (merge) merge: main (#252, #250) into spec/fwtest-usb-lines
+EXEMPT d4c0819325f5 (merge) Merge pull request #251 from japes98/spec/fwtest-usb-lines
+3 commit(s) checked: PASS
+
+exit status 0
