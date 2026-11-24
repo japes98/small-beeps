@@ -255,6 +255,14 @@ class SelftestVerdictTest(unittest.TestCase):
         r["selftest"]["ours_best"][1] = ["demos/p/b.c", "p00011.c", 198, 0.8, 0.8, "reformatted/demos/p/b.c"]
         self.assertFalse(audit.selftest_verdict(r, CFG)[0])
 
+    def test_a_data_table_is_found_by_the_text_check(self):
+        text = [("src/t.c", "copied/src/t.c", 1.0, True), ("src/t.c", "reformatted/src/t.c", 0.9, False)]
+        ok, detail = audit.selftest_verdict(self.report([("src/a.c", "scored"), ("src/t.c", "data table")], text), CFG)
+        self.assertTrue(ok, detail)
+        self.assertIn("(1 by JPlag, 1 by the text check)", detail)
+        ok, detail = audit.selftest_verdict(self.report([("src/a.c", "scored"), ("src/t.c", "data table")]), CFG)
+        self.assertFalse(ok, detail)
+
     def test_a_file_without_a_match_is_found_by_the_text_check(self):
         text = [("src/b.h", "copied/src/b.h", 1.0, True), ("src/b.h", "reformatted/src/b.h", 0.9, False)]
         ok, detail = audit.selftest_verdict(self.report([("src/a.c", "scored"), ("src/b.h", "no match")], text), CFG)
@@ -490,3 +498,27 @@ class CarryOverTest(unittest.TestCase):
         self.assertEqual(sorted(by), ["kept/repo", "s/seed"])
         self.assertEqual(by["kept/repo"]["tree"], "c" * 40, "an unmoved head keeps its tree")
         self.assertEqual(gh.requests, 2, "one seed lookup and one tree, none for the kept target")
+
+
+class DataTableTest(unittest.TestCase):
+    """Only files that are data tables and nothing else skip JPlag for the
+    text check (docs/AUDIT.md, "Data tables"). Requirements: R-AUDIT-1"""
+
+    def test_tables_alone(self):
+        table = (b'/* a table */\n#include "x.h"\n'
+                 b'const u8 t[2][3] = {\n    /* 0 */ { 0x01, 0x02, 0x03 },\n    { 4, 5, 6 },\n};\n'
+                 b'static const char *const names[] = { "a;b", "c" };\n')
+        self.assertTrue(audit.data_table(table))
+
+    def test_code_or_types_are_not_tables(self):
+        for src in (b"int f(void) { return 1; }\n",
+                    b"const int t[] = { 1, 2 };\nint f(void) { return t[0]; }\n",
+                    b"struct s { int a; };\nconst struct s v = { 1 };\n",
+                    b"#define N 3\nextern int n;\n",
+                    b"int x = 1;\n"):
+            self.assertFalse(audit.data_table(src), src)
+
+    def test_our_patch_bank_is_a_table(self):
+        import os
+        with open(os.path.join(os.path.dirname(__file__), "..", "firmware", "src", "patches.c"), "rb") as f:
+            self.assertTrue(audit.data_table(f.read()))

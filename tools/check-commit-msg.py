@@ -82,9 +82,10 @@ def validate(message, author=""):
              or any("claude" in v.lower()
                     for v in trailers.get("Co-Authored-By", [])))
     if agent:
-        for t in ("Model", "Claude-Session"):
-            if t not in trailers:
-                problems.append("agent-written commit needs a %s: trailer" % t)
+        # Claude-Session: is no longer asked for (the owner's ruling of
+        # 2026-11-24); older commits that carry it still pass
+        if "Model" not in trailers:
+            problems.append("agent-written commit needs a Model: trailer")
     return problems
 
 

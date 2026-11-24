@@ -261,8 +261,9 @@ Exposure: the author's role and exposure (e.g. "firmware side, none")
   `config`, `sessions`, and so on.
 - A field may continue on following lines, indented.
 - Agent-written commits end with the trailers `Model: <exact model ID>` and
-  `Claude-Session: <session URL>` (and `Co-Authored-By:`). Their author is
-  the agent; the owner is the committer.
+  `Co-Authored-By:`. They carry no session link (the owner's ruling of
+  2026-11-24; older commits keep theirs). Their author is the agent; the
+  owner is the committer.
 - Small commits: one idea each.
 - Merge commits are exempt from the template; the pull request they merge
   carries the sections.

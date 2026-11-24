@@ -20,7 +20,7 @@ The four founding requirements (docs/prompts/M0a.md): **history**,
 
 | ID | Requirement | Since | Checked by |
 |----|-------------|-------|------------|
-| R-PROC-1 | Every commit message follows `.gitmessage` (subject `<area>: <summary>`; non-empty What, Why, How, Result, Sources, Exposure). Agent-written commits also carry `Model:` and `Claude-Session:` trailers. Merge commits are exempt; their pull request carries the sections. | M0a | C-COMMIT-MSG, C-UNIT |
+| R-PROC-1 | Every commit message follows `.gitmessage` (subject `<area>: <summary>`; non-empty What, Why, How, Result, Sources, Exposure). Agent-written commits also carry a `Model:` trailer, and no session link (from 2026-11-24). Merge commits are exempt; their pull request carries the sections. | M0a | C-COMMIT-MSG, C-UNIT |
 | R-PROC-2 | main changes only through pull requests that passed CI, merged by the owner with a verified, signed merge commit (GitHub's merge button since 2026-10-22, CONTRIBUTING.md "Merge policy"). Nobody bypasses. No force pushes or deletion on main and `records`; `m*` tags are never moved or deleted. | M0a | rulesets (CONTRIBUTING.md); C-MERGE (records workflow) |
 | R-PROC-3 | Each milestone's prompt is committed unedited in `docs/prompts/` in the commit that starts the milestone. | M0a | review |
 | R-PROC-4 | Every check names the requirements it checks, and every record has a traceability table. | M0a | C-UNIT |

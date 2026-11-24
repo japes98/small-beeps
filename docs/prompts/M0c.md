@@ -1,7 +1,7 @@
 You are the spec-side session for milestone M0c of the small-beeps repository. Read this whole message before starting.
 
 Setup notes for this session:
-- You are in /Users/smallsignals/Development/F-Irmware/spec, set up by M0b with the spec config and banner. The owner drives this from a phone via Remote Control: short questions, one at a time. The owner merges PRs with GitHub's merge button.
+- You are in ~/<top>/spec, set up by M0b with the spec config and banner. The owner drives this from a phone via Remote Control: short questions, one at a time. The owner merges PRs with GitHub's merge button.
 - This prompt deliberately contains no hardware facts, because it is committed to docs/prompts/, which firmware-side sessions read.
 
 # M0c: HARDWARE-SPEC.md (spec side)

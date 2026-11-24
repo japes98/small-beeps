@@ -391,6 +391,29 @@ def normalise(text):
     return re.sub(r"\s+", "", LITERAL_OR_COMMENT.sub(lambda m: m.group(0) if m.group(0)[0] in "\"'" else " ", text))
 
 
+def data_table(data):
+    """True for a file of ours that is only data tables: once comments and
+    literals are set aside, it has at least one aggregate initializer
+    (`= {`), no statement inside braces (no `;` at depth 1 or more) and no
+    function body (no `) {`). JPlag reads such a table as about one token a
+    row and none of its values, so two tables of the same shape match
+    whatever they hold (docs/AUDIT.md, "Data tables"); the text check
+    compares its values instead."""
+    text = LITERAL_OR_COMMENT.sub(" ", data.decode("utf-8", "replace"))
+    text = re.sub(r"(?m)^\s*#.*$", " ", text)
+    if not re.search(r"=\s*\{", text) or re.search(r"\)\s*\{", text):
+        return False
+    depth = 0
+    for ch in text:
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+        elif ch == ";" and depth > 0:
+            return False
+    return depth == 0
+
+
 def grams(text, k):
     """The distinct k-character pieces of text (the whole text if shorter)."""
     return {text[i:i + k] for i in range(len(text) - k + 1)} or ({text} if text else set())
@@ -567,7 +590,8 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
             sub = "g%d" % i
             for d in ("new", "base"):
                 os.makedirs(os.path.join(work, sub, d))
-            for n in list(mine) + list(control):
+            # our data-only tables go to the text check, not to JPlag (data_table)
+            for n in [m for m in mine if not data_table(read_ours(m))] + list(control):
                 shutil.copyfile(os.path.join(work, "new", n), os.path.join(work, sub, "new", n))
             for j, (b, files) in enumerate(tr, 1):
                 for rel, data in files.items():
@@ -613,6 +637,10 @@ def run(cfg, targets_doc, set_name, out, jar=None, selftest=None):
         for f, n in zip(report["ours_files"], sorted(ours)):
             if n in failed:
                 f["not_scorable"] = not_scorable(failed[n], cfg)
+            elif data_table(read_ours(n)):
+                f["state"] = "data table"
+                f["text_check"] = ("only data tables: JPlag reads a table's rows and not its values, "
+                                   "so it is compared by value in the text check instead")
             elif n not in tokens:
                 f["text_check"] = "JPlag matched nothing in it; compared by the text check too"
 
@@ -888,7 +916,7 @@ def selftest_verdict(report, cfg):
             exact.add(o)
         elif c >= cfg["text_check"]["threshold"]:
             near.add(o)
-    by_text = [f["file"] for f in files if ("not_scorable" in f or f["state"] == "no match")
+    by_text = [f["file"] for f in files if ("not_scorable" in f or f["state"] in ("no match", "data table"))
                and f["file"] in exact & near]
     leak_ok = any(c["id"] == "C-AUDIT-LEAK" and c["result"] == "PASS" for c in report.get("checks", []))
     found = len(by_jplag) + len(by_text)
