@@ -487,21 +487,6 @@ static void hw_serve(void)
             continue;
         }
 #endif
-#if defined(SB_HW_U3U)
-        /* U3-U's tries (the owner's ruling of 2026-11-23): KEY7 on the
-         * test screen takes the port's next spacing, from then on, so one
-         * flash tries them all; each record and each host attempt logs the
-         * one in use (usb_midi.c). */
-        if (e.control == INPUT_KEY(7) && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
-            usb_midi_gap_key();
-            continue;
-        }
-        /* Try 3: KEY8 takes the next way packets go out (usb_midi.c). */
-        if (e.control == INPUT_KEY(8) && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
-            usb_midi_tx_key();
-            continue;
-        }
-#endif
 #if defined(SB_HW_AUDIO10)
         /* audio10 (the spec side's clean-br17-audio10): LFO cycles F's
          * format; PLAY zeros, HOME the LED blink, ENV the screen, GLO the

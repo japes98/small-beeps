@@ -168,12 +168,6 @@ volatile struct sb_usb_record sb_usb;
  * IN; how far apart is enough is not given. 10 us (240 of sb_now()'s
  * 24 MHz units); logged in every record (gap_units). */
 #define USB_PORT_GAP 240u
-/* The spacings the test screen's key offers (U3-U's tries, the owner's
- * ruling: one flash tries them all): 2, 10, 50 and 200 us; the default is
- * USB_PORT_GAP. The one in use is in every record (gap_units) and in each
- * host attempt's log. */
-static const u32 port_gaps[] = { 48u, USB_PORT_GAP, 1200u, 4800u };
-#define USB_GAPS (sizeof port_gaps / sizeof port_gaps[0])
 /* HW-178: bit 15 polled up to 20 000 times. */
 #define USB_PORT_POLLS 20000u
 /* The cable reading: USB_LINE_READS reads USB_LINE_GAP apart (50 us) a
@@ -197,10 +191,8 @@ static const u32 port_gaps[] = { 48u, USB_PORT_GAP, 1200u, 4800u };
 static volatile u8 ep0_buf[EP_MAX + 4] __attribute__((aligned(64)));
 static volatile u8 rx_buf[EP_MAX + 4] __attribute__((aligned(64)));
 static volatile u8 tx_buf[EP_MAX + 4] __attribute__((aligned(64)));
-static volatile u8 tx_buf2[EP_MAX + 4] __attribute__((aligned(64)));   /* tx_variant 2's second */
-static u32 tx_flip;
 
-static u32 port_last, work_stage, spur_run, irq_on, gap_k = 1u, irq_beat, irq_in_beat;
+static u32 port_last, work_stage, spur_run, irq_on, irq_beat, irq_in_beat;
 static volatile u32 in_busy, addr_pending, addr_beat;
 
 #define DEAD() (sb_usb.state == USB_STATE_DEAD)
@@ -285,7 +277,7 @@ static u32 port(u32 v)
         return 0;
     }
 #endif
-    while (sb_now() - port_last < port_gaps[gap_k])
+    while (sb_now() - port_last < USB_PORT_GAP)
         ;
     JL_USB->CON1 = v;
     __asm__ volatile("csync" ::: "memory");
@@ -723,22 +715,20 @@ static void bulk_out(void)
 }
 
 /* The next packet out, if the endpoint is free and something waits; one
- * group with interrupts off (try 5, P-519).
- * - Way 0, the SDK's steps (P-519): TxPktRdy read clear (the SDK polls
- *   until it is; here, while it isn't, nothing is written and the packet
- *   waits for the next interrupt or beat, so the instrument never waits
- *   on USB); the events copied into the endpoint's own buffer, csync;
- *   EP2_TADR written again; EP2_CNT the byte count; then TXCSR (indexes
- *   17 and 18) read and written back with 0x01 set. Of its two bytes 18
- *   first, 17 (TxPktRdy) last: their order isn't given. The branch the
- *   SDK takes on TXCSR's IncompTx while polling isn't decoded: its bit is
- *   only logged (tx_log).
- * - Ways 1 and 2, try 4's: its address written again before each packet,
- *   and two buffers taken in turn; TXCSR1 written TxPktRdy alone. */
+ * group with interrupts off. The SDK's steps (P-519; try 5's way 0, which
+ * the owner's unit run of 2026-11-24 found working, the only way kept):
+ * TxPktRdy read clear (the SDK polls until it is; here, while it isn't,
+ * nothing is written and the packet waits for the next interrupt or beat,
+ * so the instrument never waits on USB); the events copied into the
+ * endpoint's own buffer, csync; EP2_TADR written again; EP2_CNT the byte
+ * count; then TXCSR (indexes 17 and 18) read and written back with 0x01
+ * set. Of its two bytes 18 first, 17 (TxPktRdy) last: their order isn't
+ * given. The branch the SDK takes on TXCSR's IncompTx while polling isn't
+ * decoded: its bit is only logged (tx_log). */
 static void bulk_in(void)
 {
     u32 n = 0, t = out_tail, w, csr, c1, c2;
-    volatile u8 *b = sb_usb.tx_variant == 2u && tx_flip ? tx_buf2 : tx_buf;
+    volatile u8 *b = tx_buf;
 
     if (t == out_head || !sb_usb.configuration)
         return;
@@ -763,18 +753,13 @@ static void bulk_in(void)
     out_tail = t;
     __asm__ volatile("csync" ::: "memory");
     put(&JL_USB->EP2_TADR, (u32)b);       /* again each packet (P-519; HW-171's word) */
-    tx_flip ^= 1u;
     sb_usb.tx_log[sb_usb.tx_log_n % USB_PKT_LOG] = (csr & 0xFFu) | (n & 0xFFu) << 8 | sb_usb.tx_variant << 16;
     sb_usb.tx_log_n++;
     put(&JL_USB->EP2_CNT, n);             /* the byte count alone */
-    if (sb_usb.tx_variant == 0u) {
-        c1 = rd(R_CSR0);
-        c2 = rd(R_TXCSR2);
-        wr(R_TXCSR2, c2);
-        wr(R_CSR0, c1 | TXCSR_TXPKTRDY);
-    } else {
-        wr(R_CSR0, TXCSR_TXPKTRDY);
-    }
+    c1 = rd(R_CSR0);
+    c2 = rd(R_TXCSR2);
+    wr(R_TXCSR2, c2);
+    wr(R_CSR0, c1 | TXCSR_TXPKTRDY);
     ep_unlock();
     in_busy = 1;
     sb_usb.tx_packets++;
@@ -829,7 +814,7 @@ static void u3_sie_isr(void)
         in_busy = 0;
         ep_reset();
         sb_usb.attempt_n++;
-        sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][0] = port_gaps[gap_k] << 8;
+        sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][0] = USB_PORT_GAP << 8;
         sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][1] = sb_beacon.beats;
         sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][2] = sb_beacon.beats;
         sb_work++;
@@ -997,6 +982,8 @@ void usb_midi_poll(void)
     if (first) {
         sb_usb.magic = USB_MIDI_MAGIC;
         sb_usb.gap_units = USB_PORT_GAP;
+        sb_usb.try_n = USB_TRY;
+        sb_usb.way_prev = 0xFFFFFFFFu;   /* no power-on choice: always way 0 */
         sb_usb.poll_limit = USB_PORT_POLLS;
         last_second = sb_seconds;
     }
@@ -1102,76 +1089,7 @@ void usb_midi_poll(void)
         }
 }
 
-u32 usb_midi_gap_key(void)
-{
-    static char t[32] = "U3-U: port spacing ";
-    u32 us, n = 19, d = 1000;
-
-    gap_k = (gap_k + 1u) % USB_GAPS;
-    sb_usb.gap_units = port_gaps[gap_k];
-    sb_usb.gap_presses++;
-    us = port_gaps[gap_k] / 24u;
-    for (; d; d /= 10)
-        if (us >= d || d == 1)
-            t[n++] = (char)('0' + us / d % 10);
-    t[n++] = ' ';
-    t[n++] = 'u';
-    t[n++] = 's';
-    t[n] = 0;
-    usb_midi_note("USB spacing", t);
-    return us;
-}
-
-u32 usb_midi_tx_key(void)
-{
-    static const char *const say[USB_TX_VARIANTS] = {
-        "U3-U: out 0, the SDK's steps", "U3-U: out 1, address each packet", "U3-U: out 2, two buffers" };
-
-    __asm__ volatile("cli" ::: "memory");
-    sb_usb.tx_variant = (sb_usb.tx_variant + 1u) % USB_TX_VARIANTS;
-    tx_flip = 0;
-    __asm__ volatile("sti" ::: "memory");
-    usb_midi_note("USB out way", say[sb_usb.tx_variant]);
-    return sb_usb.tx_variant;
-}
-
-#if defined(SB_HW_U3U)
-void usb_midi_power_on(void)
-{
-    static const char *const say[USB_TX_VARIANTS] = {
-        "U3-U: power-on, out 0, the SDK's steps", "U3-U: power-on, out 1, address each packet",
-        "U3-U: power-on, out 2, two buffers" };
-    static const char *const way[USB_TX_VARIANTS] = { "SDK steps", "address each", "two buffers" };
-    char label[17] = "USB way 0", big[10] = "USB OUT 0";
-    u32 prev = 0xFFFFFFFFu;
-
-    /* The log's newest "USB way N" of this build (no store write: the log
-     * is read, HW-110's area untouched); the next way after it, 0 if none. */
-#if defined(SB_HW_REPORT)
-    {
-        char l[16];
-
-        if (hw_report_newest("USB way ", l) && l[8] >= '0' && l[8] < (char)('0' + USB_TX_VARIANTS))
-            prev = (u32)(l[8] - '0');
-    }
-#endif
-    sb_usb.way_prev = prev;
-    sb_usb.try_n = USB_TRY;
-    sb_usb.tx_variant = prev == 0xFFFFFFFFu ? 0u : (prev + 1u) % USB_TX_VARIANTS;
-    tx_flip = 0;
-    label[8] = big[8] = (char)('0' + sb_usb.tx_variant);
-    /* In large text, held 2 s (the owner can't read the step row). */
-    lcd_wait();
-    gfx_fill(0, 0, SCREEN_W, SCREEN_H, RGB565(0, 0, 0));
-    gfx_text(12, 72, big, RGB565(31, 63, 31), RGB565(0, 0, 0), 4u);
-    gfx_text(12, 128, way[sb_usb.tx_variant], RGB565(31, 63, 0), RGB565(0, 0, 0), 2u);
-    gfx_text(12, 160, HW_BUILD_ID, RGB565(16, 32, 16), RGB565(0, 0, 0), 2u);
-    lcd_send_rows(0, SCREEN_H);
-    lcd_wait();
-    usb_midi_note(label, say[sb_usb.tx_variant]);
-    sb_wait_ms(2000);
-}
-#else
+#if !defined(SB_HW_U3U)
 /* fwtest's builds: no step row, no log. */
 void usb_midi_note(const char *label, const char *step)
 {

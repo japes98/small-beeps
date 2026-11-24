@@ -3264,11 +3264,6 @@ u32 hw_a13_power_on(void)
     hw_aud.u2_late_blocks = sb_audio.blocks;
     for (i = 0; i < HW_A13_WORDS; i++)
         hw_aud.u2_ref[i] = hw_aud.u2_last[i] = hw_aud.u2_late[i];
-#if defined(SB_HW_U3U)
-    /* U3-U try 4: the next way out, in large text and logged, at every
-     * power-on (HOME held or not), before USB starts (usb_midi.c). */
-    usb_midi_power_on();
-#endif
     if (home) {
         hw_aud.a13_start = HW_A13_HOME;
         hw_aud.start_mode = HW_A12_TEST;
