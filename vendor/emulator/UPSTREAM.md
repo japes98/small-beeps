@@ -12,9 +12,10 @@ SPDX-FileCopyrightText: 2026 japes98
 - Licence: MIT, copyright 2026 Joakim Eriksson (`LICENSE` here, copied
   unmodified).
 - What: `crates/fm1-isa`, `crates/fm1-core` and `crates/fm1-soc`, at the
-  same paths, unmodified but for the patches below (0002 to 0020: bug
+  same paths, unmodified but for the patches below (0002 to 0022: bug
   fixes, two speed-only changes, MIDI out, the panel's chip select, the
-  flash chip's block protection and the chip's 16-bit audio layout) and the workspace manifest
+  flash chip's block protection, the chip's 16-bit audio layout and
+  fwtest's USB host) and the workspace manifest
   `Cargo.toml` (patched, 0001). docs/EMULATOR-PARITY.md compares them with
   the F-Emulator app's.
   Nothing else from that repository: no other crates, no `fm1-sid/`, no
@@ -215,6 +216,18 @@ Applied in file-name order by the fetch script, after checkout:
   the endpoints' DMA words (HW-86, HW-171 to HW-173; the rest is the
   model's own, docs/HARNESS.md "USB"). The crate tests in `cable.rs`
   fail without it (fwtest 0.14.0).
+- `patches/0022-usb-host-lines-and-address.patch` (the owner's ruling of
+  2026-11-24, from U3-U on the unit): `crates/fm1-soc/src/cable.rs` and
+  `lib.rs`. The first core's `CON0` as read gives bits 16 and 17
+  (`DM_SE`, `DP_SE`) as a cable would: with no host they change from
+  read to read (a fixed cycle of four, never steadily 0; HW-176,
+  HW-177); with the host they read 0 until the device connects, then
+  bit 17 set and bit 16 clear (HW-182's one reading after the set-up).
+  And the host checks `FADDR` two frames after the set-address request's
+  status stage instead of at once. The crate tests
+  `the_lines_wander_with_no_host_and_the_host_holds_them` and
+  `the_address_is_checked_after_the_status_stage` fail without it
+  (fwtest 0.15.0).
 
 0007 and 0008 change no output: the firmware suite, the spec experiments
 and the harness suite gave byte-identical outputs (284 files) from fwtest

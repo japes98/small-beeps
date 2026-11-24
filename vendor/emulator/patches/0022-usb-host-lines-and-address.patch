@@ -1,0 +1,173 @@
+fwtest's USB host, two changes the unit asked for (HARDWARE-SPEC HW-176,
+HW-177, HW-182). The first core's CON0 as read gives the lines' bits 16
+and 17 (DM_SE, DP_SE) as a cable would: with no host they change from
+read to read, in a fixed cycle that is never steadily 0; with the host
+they read 0 until the device connects, then bit 17 set and bit 16 clear.
+And the host checks FADDR two frames after the set-address request's
+status stage, not at once, so a device that takes its address after the
+status stage passes. The crate tests
+`the_lines_wander_with_no_host_and_the_host_holds_them` and
+`the_address_is_checked_after_the_status_stage` fail without it.
+diff --git a/crates/fm1-soc/src/cable.rs b/crates/fm1-soc/src/cable.rs
+--- a/crates/fm1-soc/src/cable.rs
++++ b/crates/fm1-soc/src/cable.rs
+@@ -26,6 +26,14 @@
+ const ANSWER_FRAMES: u32 = 200;
+ /// The address the host gives the device.
+ const GIVEN_ADDRESS: u8 = 1;
++/// From the set-address request's status stage to the host's check of `FADDR`: the device sets
++/// its address once the status stage is done, and the host waits this many frames for it.
++const ADDRESS_FRAMES: u32 = 2;
++/// CON0 bits 16 and 17 (`DM_SE`, `DP_SE`).
++const LINES: u32 = 3 << 16;
++/// With no host the two lines' bits change from read to read (HARDWARE-SPEC HW-176, HW-177);
++/// fwtest steps through these, one a read, so they never read steadily 0.
++const NO_HOST_LINES: [u32; 4] = [1 << 16, 3 << 16, 2 << 16, 0];
+ 
+ /// Endpoint `ep`'s DMA words: (count, transmit address, receive address), as offsets in the
+ /// block. Endpoint 0 has one address for both directions.
+@@ -56,6 +64,9 @@
+     Reset(u32),
+     /// Enumerating: request `i` of the list.
+     Asking(usize),
++    /// Request `i` set the address, its status stage done at frame `n`: `FADDR` is checked
++    /// `ADDRESS_FRAMES` later.
++    Addressing(usize, u32),
+     /// Configured: MIDI moves.
+     Running,
+     /// Enumeration stopped (a stall, no answer, or a descriptor the host can't use).
+@@ -101,6 +112,8 @@
+     /// Indexes 16 to 27 for each of endpoints 0 to 4 (selected by index 14).
+     per_ep: [[u8; 12]; 5],
+     sof_flag: bool,
++    /// CON0's reads with no host, for the lines' bits.
++    no_host_reads: u32,
+     frame: u32,
+     pub next_frame: u64,
+     stage: Option<Stage>,
+@@ -158,9 +171,20 @@
+         self.on && con0 & (1 << 10) != 0 && self.sof_flag
+     }
+ 
+-    /// CON0 as read: the stored word with the two pending bits (13 SOF, 14 the controller).
+-    pub fn con0_read(&self, stored: u32) -> u32 {
+-        let mut v = stored & !((1 << 13) | (1 << 14));
++    /// CON0 as read. With no host, the stored word with the lines' bits (16, 17) changing from
++    /// read to read. With the host, the two pending bits (13 SOF, 14 the controller), and the
++    /// lines' bits as the host holds them: 0 until the device connects, then bit 17 (`DP_SE`)
++    /// set and bit 16 clear (HW-177; HW-182, one reading after the set-up).
++    pub fn con0_read(&mut self, stored: u32) -> u32 {
++        if !self.on {
++            let lines = NO_HOST_LINES[self.no_host_reads as usize % NO_HOST_LINES.len()];
++            self.no_host_reads = self.no_host_reads.wrapping_add(1);
++            return (stored & !LINES) | lines;
++        }
++        let mut v = stored & !((1 << 13) | (1 << 14) | LINES);
++        if self.connected(stored) {
++            v |= 1 << 17;
++        }
+         if self.sof_flag {
+             v |= 1 << 13;
+         }
+@@ -296,6 +320,17 @@
+                 self.start(now, 0, w);
+             }
+             Stage::Asking(i) => self.step(now, i, w),
++            Stage::Addressing(i, at) if self.frame.wrapping_sub(at) & 0x7ff >= ADDRESS_FRAMES => {
++                let what = self.requests[i].what;
++                if self.common[0] & 0x7f != GIVEN_ADDRESS {
++                    self.problem(now, format!("FADDR is {} after {what} {GIVEN_ADDRESS}", self.common[0]));
++                }
++                self.found.address = Some(self.common[0] & 0x7f);
++                self.note(now, format!("address {} checked", self.common[0] & 0x7f));
++                if i + 1 < self.requests.len() {
++                    self.start(now, i + 1, w);
++                }
++            }
+             Stage::Running => self.midi(now, w),
+             _ => {}
+         }
+@@ -374,10 +409,9 @@
+                 self.requests.push(get_descriptor("get the device descriptor", 1, 0, 18));
+             }
+             "set the address" => {
+-                if self.common[0] & 0x7f != GIVEN_ADDRESS {
+-                    self.problem(now, format!("FADDR is {} after set the address {GIVEN_ADDRESS}", self.common[0]));
+-                }
+-                self.found.address = Some(self.common[0] & 0x7f);
++                // the status stage is done: the device takes its address now, checked later
++                self.stage = Some(Stage::Addressing(i, self.frame));
++                return;
+             }
+             "get the device descriptor" => {
+                 if got.len() < 18 {
+@@ -708,7 +742,55 @@
+         assert_eq!(c.port_read(6), 0);
+     }
+ 
++    /// A device that takes its address only once the set-address request's status stage is
++    /// done (the controller's endpoint 0 flag after the request), or never.
++    fn run_addressing(c: &mut Cable, d: &mut Dev, frames: u32, takes_it: bool) {
++        let mut pending = None;
++        for f in 0..frames {
++            c.frame(f as u64, 1, d);
++            if c.port_read(2) & 1 != 0 {
++                if let Some(a) = pending.take() {
++                    c.port_write(0, 0, a);
++                }
++            }
++            c.port_write(0, 14, 0);
++            if c.port_read(17) & 1 != 0 && d.peek(EP0_BUF + 1) == 5 {
++                c.port_write(0, 17, 0x48);
++                if takes_it {
++                    pending = Some(d.peek(EP0_BUF + 2));
++                }
++                continue;
++            }
++            device_ep0(c, d);
++        }
++    }
++
+     #[test]
++    fn the_address_is_checked_after_the_status_stage() {
++        let (mut c, mut d) = plugged();
++        run_addressing(&mut c, &mut d, 200, true);
++        assert!(c.problems.is_empty(), "{:?}", c.problems);
++        assert_eq!(c.found.address, Some(GIVEN_ADDRESS));
++        assert_eq!(c.stage(), Stage::Running);
++        let (mut c, mut d) = plugged();
++        run_addressing(&mut c, &mut d, 200, false);
++        assert_eq!(c.problems, vec![format!("FADDR is 0 after set the address {GIVEN_ADDRESS}")]);
++    }
++
++    #[test]
++    fn the_lines_wander_with_no_host_and_the_host_holds_them() {
++        let mut c = Cable::default();
++        let reads: Vec<u32> = (0..8).map(|_| c.con0_read(0x8001) & LINES).collect();
++        assert!(reads.windows(2).all(|w| w[0] | w[1] != 0), "{reads:x?}");
++        assert!(reads.iter().any(|r| *r != 0));
++        assert_eq!(c.con0_read(0x8001) & !LINES, 0x8001);
++        let mut c = Cable { on: true, ..Default::default() };
++        assert_eq!(c.con0_read(0x8001 | LINES) & LINES, 0, "a host, the device not connected");
++        c.port_write(0, 1, 0x60);
++        assert_eq!(c.con0_read(0x8001) & LINES, 1 << 17, "connected: D+ high");
++    }
++
++    #[test]
+     fn a_device_that_never_answers_is_reported() {
+         let (mut c, mut d) = plugged();
+         for f in 0..400 {
+diff --git a/crates/fm1-soc/src/lib.rs b/crates/fm1-soc/src/lib.rs
+--- a/crates/fm1-soc/src/lib.rs
++++ b/crates/fm1-soc/src/lib.rs
+@@ -778,7 +778,9 @@
+                     v | 0x8000
+                 }
+             }
+-            Region::Usb if addr == 0x11800 && self.cable.on => {
++            // the first core's CON0: the lines' bits (16, 17) as the cable gives them, with or
++            // without the host (cable.rs)
++            Region::Usb if addr == 0x11800 && self.board == Board::Fm1 => {
+                 let v = self.sfr_get(addr);
+                 self.cable.con0_read(v)
+             }

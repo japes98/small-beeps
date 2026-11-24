@@ -3693,6 +3693,25 @@ SR-3 wrote only its barrier-log row.*
   every prompt it writes.
 - Disk: about 3 GB free.
 
+### Session spec-fwtest-usb-lines (fwtest 0.15.0: the lines' bits and the address check)
+- Date: 2026-11-24 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.331; model `claude-opus-5-5`. The same Claude Code
+  session as spec-u3u-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  a new branch `spec/fwtest-usb-lines` from main, as its own PR by the
+  owner's answers of 2026-11-24 (saved unedited as
+  docs/prompts/spec-usb-done-answers.md; they also keep try 5's byte
+  order and set the merge order #249, #250, this PR).
+- Changed: the vendored emulator (patch 0022, `fm1-soc`'s `cable.rs` and
+  `lib.rs`): the first core's `CON0` bits 16 and 17 as a cable gives them,
+  and the host's `FADDR` check after the set-address status stage, as the
+  clean side asked on #249; HARNESS.md ("USB", "Versions"), UPSTREAM.md,
+  the tree hash, R-HARN-15, fwtest 0.15.0.
+- Read: the vendored emulator's USB host and CON0 read path (this
+  session's own patch 0021). Facts from HW-176, HW-177 and HW-182 only;
+  the two-frame wait before the check is fwtest's own. No new source.
+- Disk: about 6 GB free.
+
 ### Session spec-fwtest-usb (fwtest 0.14.0: a USB host, U1)
 - Date: 2026-11-22 (UTC)
 - Role: **spec side (exposed).** Never writes firmware.
