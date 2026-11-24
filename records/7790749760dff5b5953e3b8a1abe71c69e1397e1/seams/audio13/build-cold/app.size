@@ -1,0 +1,7 @@
+code 111932
+data 76
+bss 181152
+image 112008
+stack 4096
+irq_stack 2048
+ram_code 111176

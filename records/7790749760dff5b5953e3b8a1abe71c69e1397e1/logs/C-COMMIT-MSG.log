@@ -1,0 +1,8 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range d4c0819325f56607a3a3a114d5cc19d1a1d7a0dd..7790749760dff5b5953e3b8a1abe71c69e1397e1
+OK     02e1ea434c53 docs: round 1, the emulator patches' origins, no session links, the home path
+OK     708d125ded6f tools: the audit compares data-only tables by value, in the text check
+EXEMPT 848c7f81c457 (merge) merge: main (#252, #250, #251) into spec/round1-licence
+EXEMPT 7790749760df (merge) Merge pull request #253 from japes98/spec/round1-licence
+4 commit(s) checked: PASS
+
+exit status 0
