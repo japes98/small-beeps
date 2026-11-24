@@ -5242,6 +5242,165 @@ says what they settle. Nothing was written to the USB blocks, to
   block not given)
 - Needed by: USB MIDI (U3)
 
+## 54. U3-U on the unit: USB MIDI works (U3)
+
+HW-181 gives the SDK's steps for moving a packet through a device
+endpoint on the first core (P-519). HW-182 gives U3-U's tries 2 to 5 on
+the owner's unit (clean's #249, relayed by the owner on 2026-11-23 and
+2026-11-24, source UNIT). HW-183 says what they settle. Nothing was
+written to `0x16A00` or to any clock register in any try. By the owner's
+standing ruling for the USB loop (docs/prompts/spec-usb-loop-ruling.md),
+these entries come in one batch now that USB works.
+
+### HW-181: The SDK's device packet steps on the first core: receive, send, endpoint set-up (Q-36)
+- Fact:
+  - **Interrupts off around each group:** each of the SDK's endpoint
+    register helpers turns interrupts off, writes `INDEX` (14) with the
+    endpoint, makes its accesses through `CON1`'s port (HW-178), then
+    turns interrupts back on. `INDEX` is never left for a later access
+    to rely on.
+  - **The 16-bit CSRs** are read and written as two bytes: `TXCSR` as
+    index 17 (low) and 18 (high), `RXCSR` as 20 (low) and 21 (high).
+    The SDK writes the low byte first, then the high byte, and reads in
+    the same order.
+  - **A received packet's length:** `INDEX`, then `RXCSR1` (20). If bit 0
+    (`RxPktRdy`) reads clear, the length is 0 and nothing more is read.
+    If set, the length is `RXCOUNT2` (23) as the high byte with `RXCOUNT1`
+    (22) as the low. No `EPn_CNT` word or DMA address is used for it.
+    Endpoint 0's count is `COUNT0` (22) alone.
+  - **Receiving a packet:** with the length non-zero, the SDK reads
+    `RXCSR`, writes the endpoint's own buffer address to `EPn_RADR` again
+    (`0x20 + (n−1)·8`; endpoint 4 at `0x3C`; with two buffers it
+    alternates between them), copies the smaller of the length and the
+    room asked for, and lets the packet go by writing `RXCSR` as
+    (the value read `& 0xFE9B`) `| 0x10`: by HW-172's names, `RxPktRdy`
+    kept as read, `FlushFIFO` set, `OverRun`, `SendStall`, `SentStall`
+    and `IncompRx` cleared. Whether that write comes before or after the
+    copy turns on a flag not decoded.
+  - **Sending a packet:**
+    1. `TXCSR` is read until bit 0 (`TxPktRdy`) reads clear, with a
+       time-out; nothing is written while it is set.
+    2. Up to the endpoint's packet size is copied into the endpoint's
+       own DMA buffer (never the caller's data), then a `csync`.
+    3. That buffer's address is written to `EPn_TADR` again, for every
+       packet (`0x1C + (n−1)·8`; endpoint 4 at `0x38`).
+    4. `EPn_CNT` is written with the byte count alone (`0x08 + n·4`;
+       endpoint 4 at `0x34`).
+    5. `TXCSR` is read and written back with `0x01` (`TxPktRdy`) set.
+
+    Longer data goes as packets of the endpoint's size, each by these
+    steps. The branch taken while waiting if `TXCSR` bit 7 (`IncompTx`)
+    reads set is not decoded.
+  - **No cache call** is made in the send or receive path; the only
+    barriers are the core's `csync` and `ssync`. Whether the SDK's
+    `.usb_fifo` memory (HW-172) is cached is not given.
+  - **Endpoint set-up** (first core): the endpoint's buffer address is
+    written (`EPn_TADR` or `EPn_RADR`); `TXMAXP` (16) or `RXMAXP` (19) is
+    written `1023`, of which the port carries the low byte, so the core
+    gets `0xFF`; then `TXCSR1` `0x48` (`FlushFIFO`, `ClrDataTog`) or
+    `RXCSR1` `0x90` (`ClrDataTog`, `FlushFIFO`). For one value of the
+    endpoint's type argument (1), the CSR is then written `0x4000` (bit
+    14, isochronous by HW-172's names). Last, the endpoint's
+    interrupt enable is set or cleared.
+- Sources: SDK `cpu/wl82/liba/cpu.a` (P-518, P-519), member `usb.c.o`
+  compiled from its bitcode and disassembled: `usb_g_ep_read`,
+  `usb_read_rxcount`, `usb_read_count0`, `usb_get_dma_raddr`,
+  `usb_set_dma_raddr`, `usb_g_ep_write`, `usb_get_dma_taddr`,
+  `usb_set_dma_taddr`, `usb_g_tx_flushfifo`, `usb_write_ep_cnt`,
+  `usb_read_txcsr`, `usb_write_txcsr`, `usb_read_rxcsr`,
+  `usb_write_rxcsr`, `usb_write_txmaxp`, `usb_write_rxmaxp`,
+  `usb_g_ep_config`, `musb_write_usb`; HW-171, HW-172, HW-178; UNIT
+  (HW-182, try 5).
+- Standing: confirmed (SDK, compiled from its bitcode and disassembled;
+  UNIT for the steps try 5 follows; the release's place against the
+  copy, the `IncompTx` branch and whether `.usb_fifo` is cached not
+  given)
+- Needed by: USB MIDI (U3)
+
+### HW-182: U3-U's tries 2 to 5 on the unit (Q-36)
+- Fact: On the owner's unit, each try's file (USB on, R-USB-1's test
+  identity `1209:0001`, for the owner's flash only) started by
+  m-bootloader on a plain power-on, then plugged into a Mac that was on.
+  Each try wrote HW-178's start in its order, with `CON1`'s port spaced
+  10 µs; nothing was written to `0x16A00` or to any clock register.
+  1. **Try 2** (2026-11-23, backups fm1-20261123-162559 and
+     fm1-20261123-180939): "small-beeps" listed in the Mac's MIDI Studio;
+     every session reached the host's reset, the address and the
+     configuration, with no poll give-up, stall or dropped packet;
+     polls at most 3. Read back after the set-up: `CON0` `0x0002883D`,
+     `CON1` `0x00008000`, IO `CON0` `0x0000164C`. One session: 80
+     interrupts, 1 reset, 11 setup packets. Notes went both ways but
+     wrong: the IN endpoint's interrupt came for the first packet only;
+     more events were read per packet than were sent; bytes the Mac had
+     sent appeared in packets going out. On unplugging, no suspend
+     interrupt was logged in any session.
+  2. **Try 3, way 0** (backup fm1-20261123-194712): connected; the bus's
+     frame number (HW-86's indexes 12 and 13), read once a second, stopped
+     at unplugging and ran again at plugging back ("USB gone", "USB
+     back"); the instrument played on. Received 4-byte packets read
+     `RXCOUNT1` as 56, 12, 60, 16, 64, 20, 68, 48 (read before HW-181's
+     receive steps were known). Out (one buffer, its address written to
+     `EP2_TADR` at the configuration only), the Mac received the first
+     message again every time, in packets of 64 and 28 bytes where 4
+     were written.
+  3. **Try 4** was not flashed.
+  4. **Try 5, way 0** (2026-11-24, backup fm1-20261124-065615, identity
+     `0.15.0-u3u-t5`, file SHA-256 `e58082c2…`): HW-181's steps, with
+     interrupts off around each `INDEX` group in main's loop and in the
+     controller's interrupt, and these choices where HW-181 leaves a gap
+     or the try differs:
+     - the receive release written after the copy;
+     - `RXCSR2` (21) written before `RXCSR1` (20) in the release, and
+       `TXCSR2` (18) before `TXCSR1` (17) in the send's write-back: the
+       reverse of the SDK's byte order (HW-181);
+     - no wait for `TxPktRdy`: while it reads set nothing is written,
+       and the packet goes at the next interrupt or main-loop pass;
+     - at set-up, `TXCSR2` as earlier tries wrote it and `RXCSR2` not
+       written;
+     - `IncompTx` logged only.
+
+     Result: notes both ways, one note-on and one note-off for each, with
+     no stall, dropped packet or give-up; "USB gone" at unplugging, and
+     the instrument played on. `RXCOUNT1` read each packet's length: 4,
+     and 44 for one packet at connection (what that packet held is not
+     given).
+- Sources: UNIT: the owner's reports of 2026-11-23 and 2026-11-24
+  (docs/prompts/spec-u3u-try3.md, docs/prompts/spec-u3u-done.md; clean's
+  #249, its docs/prompts/clean-br17-u3u-try2-unit.md,
+  clean-br17-u3u-try2-owner.md, clean-br17-u3u-try3-unit.md and
+  DESIGN-NOTES for each try's writes); HW-86, HW-178, HW-181.
+- Standing: confirmed (UNIT; one unit; one Mac)
+- Needed by: USB MIDI (U3)
+
+### HW-183: What U3-U settles: the first core works as a MIDI device with HW-178's start and HW-181's steps (Q-36)
+- Fact:
+  - **The first core works on the unit** with HW-178's start and HW-181's
+    packet steps, and with no write to `0x16A00` or any clock register:
+    from the state an app finds after m-bootloader's plain power-on, the
+    block at `0x16A00` reading off (HW-180). So, on this unit and in
+    that state, the first core does not need that block brought up.
+    Which clock it runs from is still not given.
+  - **The received length is `RXCOUNT1`/`RXCOUNT2`** when read as HW-181
+    gives it (interrupts off, `INDEX` written, `RxPktRdy` read set first).
+    Read otherwise, `RXCOUNT1` gave values that were not the length
+    (try 3). Which difference mattered is not given.
+  - **A send needs HW-181's steps:** with one buffer whose address was
+    written at the configuration only, the core sent the first message
+    again and packets of the wrong size (try 3); with HW-181's steps,
+    each message went once (try 5). No cache step was needed for that.
+  - **Choices that worked** where HW-181 is silent or differs (try 5):
+    the release after the copy; each CSR's high byte written before its
+    low byte; no wait on `TxPktRdy`. The SDK's own byte order (low
+    first) was not tried on the unit.
+  - **Unplugging gives no suspend interrupt** on the unit (try 2, every
+    session); the frame number stopping shows it (tries 3 and 5).
+  - **`CON1`'s port at 10 µs** between accesses needed at most 3 polls
+    of bit 15 (try 2); closer spacings were not tried on the unit.
+- Sources: UNIT (HW-182); HW-178, HW-180, HW-181.
+- Standing: confirmed (UNIT; one unit; one Mac; the core's clock not
+  given)
+- Needed by: USB MIDI (U3)
+
 ## Open questions
 
 What isn't known, or is known only from material the spec may not use. A
@@ -5723,3 +5882,8 @@ spec request can turn one into a fact.
   *Session spec-audio14-unit (HW-179, HW-180):* the block at `0x16A00`
   reads off at an app's start, from power-off and after MIDI mode. Still
   open: whether the first core needs it; U3-U tries without it first.
+  *Answered for U3 by session spec-u3u-rulings (HW-181 to HW-183):* the
+  first core works on the unit as a MIDI device with HW-178's start and
+  the SDK's packet steps, with nothing written to `0x16A00` or any clock
+  register, from the state an app finds after m-bootloader's plain
+  power-on. Still open: which clock the core runs from.
