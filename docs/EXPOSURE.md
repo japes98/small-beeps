@@ -3857,6 +3857,14 @@ SR-3 wrote only its barrier-log row.*
   USB loop, as HW-172 and HW-178 are, saved unedited as
   docs/prompts/spec-p519-source-ruling.md; the report relayed to clean
   by the owner. No new source read.
+- Later (2026-11-24): the owner's report that USB MIDI works on the unit
+  with try 5, saved unedited as docs/prompts/spec-u3u-done.md. Read for
+  the batch, from clean's #249 (`1865938e`): its docs/prompts files with
+  the owner's unit reports of tries 2 and 3 and the try 5 prompt, and its
+  DESIGN-NOTES on tries 3 to 5 (each try's writes and try 5's gaps).
+  HARDWARE-SPEC section 54 written (HW-181: P-519's findings; HW-182:
+  tries 2 to 5 on the unit; HW-183: what they settle) and Q-36's note.
+  `main` merged in (#248, #246). No new source read.
 - Disk: about 6 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
