@@ -73,36 +73,6 @@ static u32 rec_size(u32 layout)
     return layout <= 2u ? 1024u : layout <= 5u ? 2048u : 4096u;
 }
 
-static void copy16(u32 *w, const char *s);
-
-#if defined(SB_HW_U3U)
-/* hw_report_newest's question to scan(): a label's start, and the newest
- * record of this build with it. */
-static const char *want_prefix;
-static u32 want_found, want_seq;
-static char want_label[16];
-
-static void want_check(const u32 *r)
-{
-    u32 id[4], i;
-    const char *l = (const char *)(r + 8);
-
-    copy16(id, HW_BUILD_ID);
-    for (i = 0; i < 4u; i++)
-        if (r[4 + i] != id[i])
-            return;
-    for (i = 0; want_prefix[i]; i++)
-        if (i >= 16u || l[i] != want_prefix[i])
-            return;
-    if (want_found && (int)(r[2] - want_seq) <= 0)
-        return;
-    want_found = 1;
-    want_seq = r[2];
-    for (i = 0; i < 16u; i++)
-        want_label[i] = l[i];
-}
-#endif
-
 /* The ring read once: the newest valid record of any size, by sequence,
  * looked for at every 1024 bytes; the next record goes in the slot after
  * the one that holds it. */
@@ -120,10 +90,6 @@ static void scan(void)
         store_raw_read(HW_LOG_BASE + off, (u8 *)chk, size);
         if (store_crc32((const u8 *)chk, size - 4u) != chk[size / 4u - 1u])
             continue;
-#if defined(SB_HW_U3U)
-        if (want_prefix)
-            want_check(chk);
-#endif
         if (!n || (int)(chk[2] - seq) > 0) {
             best = off;
             seq = chk[2];
@@ -314,31 +280,6 @@ static u32 write_slot(void)
     }
     return 5;
 }
-
-/* U3-U's try 4 (usb_midi_power_on): the ring read now, flash taken and
- * given back as a save does, nothing written; the label (16 bytes, not
- * ended) of the newest valid record of this build whose label starts with
- * prefix copied out. 1 if there is one. */
-#if defined(SB_HW_U3U)
-int hw_report_newest(const char *prefix, char *label)
-{
-    u32 i;
-
-    want_found = 0;
-    if (hw_flash_take())
-        return 0;
-    if (!store_raw_wait()) {
-        want_prefix = prefix;
-        scan();
-        want_prefix = 0;
-    }
-    hw_flash_give();
-    if (want_found)
-        for (i = 0; i < 16u; i++)
-            label[i] = want_label[i];
-    return (int)want_found;
-}
-#endif
 
 void hw_report_save(const char *label)
 {

@@ -6237,3 +6237,35 @@ leaves open.
       the seven gaps' choices are accepted as they are, to be tested first.
       If way 0 fails on the unit, the spec side decodes gaps 1 and 2 first.
       Try 5's file (`e58082c2…`) was checked and flashed.
+    - **Try 5 on the unit** (the owner, 2026-11-24, backup
+      fm1-20261124-065615; docs/prompts/clean-br17-u3u-final.md): way 0,
+      the SDK's steps, works. The Mac's notes play once each at the right
+      pitch, the unit's keys send one note-on and one note-off each, and
+      the instrument plays on after unplugging. The log shows 8 packets in
+      with 18 events (`RXCOUNT1` 4 each, and one of 44 at connect with 11
+      events), and 7 packets out of 4 bytes each. There were no stalls,
+      drops or give-ups, and "USB gone" was logged at unplug. The loop is
+      done.
+- **U3-U's final build** (the owner's direction, same prompt).
+    - Only way 0 is kept. Ways 1 and 2 are gone, with their second buffer.
+      So are the power-on choice of way, its large text, and its log
+      lookup (`hw_report_newest`), which puts hw_report.c back as on main.
+      The tries' test keys are gone too: KEY7 (the port's spacing) and
+      KEY8 (the way out). Nothing else used them, so on the test screen
+      they now do what they did before U3-U.
+    - The port's spacing is fixed at 10 µs (`USB_PORT_GAP`, 240 units),
+      and the list of spacings is gone. Every log record stays.
+    - Layout 17 is unchanged, so the decoder reads the final build as it
+      read try 5. The fields only the tries used stay in the record:
+      `tx_variant` reads 0, `gap_presses` 0, `way_prev` none, and
+      `try_n` 5 (the try whose way the build keeps).
+    - The identity is `0.15.0-u3u`.
+    - The published build is still USB-off (R-USB-1). audio14's packed
+      file is byte-identical to the published one, and seams checks that
+      a unit build with `SB_USB_MIDI` but without `SB_HW_U3U` stops. The
+      owner-only file is still named and marked so.
+    - In seams, the `usbmidi` case no longer runs the three chained
+      power-ons. The log run now checks that there are no way, spacing or
+      out-way records, and that the record reads way 0, spacing 240 and
+      try 5. The key run taps KEY7 and KEY8 on the test screen and checks
+      that USB is unchanged and still configured.
