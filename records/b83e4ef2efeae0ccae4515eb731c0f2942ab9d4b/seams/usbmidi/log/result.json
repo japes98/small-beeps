@@ -1,0 +1,211 @@
+{
+  "fwtest": {
+    "version": "0.14.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 118072,
+    "sha256": "d8989429c86efd9338a77671863b52c3f259ea5d2320da7b251c1a711ecbe50c"
+  },
+  "script_sha256": "15736ff3cd86e2602f7b3b3b492a8fb7f400afce3ff2e67df1712753ec278038",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "30000.386",
+    "instructions": {
+      "core0": 1798633568,
+      "core1": 6797788609
+    },
+    "midi_bytes_dropped": 6,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00012f00",
+        "access": "read",
+        "count": 28
+      },
+      {
+        "address": "0x00013000",
+        "access": "write",
+        "count": 58
+      },
+      {
+        "address": "0x00016a00",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x00016a04",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x00016a08",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x00016a0c",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "write",
+        "count": 116
+      },
+      {
+        "address": "0x00040204",
+        "access": "write",
+        "count": 29
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "write",
+        "count": 29
+      },
+      {
+        "address": "0x00040300",
+        "access": "write",
+        "count": 58
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "write",
+        "count": 29
+      },
+      {
+        "address": "0x01eee200",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee204",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee208",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee20c",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee210",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee214",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee218",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee21c",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee220",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee224",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee228",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee22c",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee230",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee234",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee238",
+        "access": "read",
+        "count": 29
+      },
+      {
+        "address": "0x01eee23c",
+        "access": "read",
+        "count": 29
+      }
+    ],
+    "outputs": [
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "bd3bf227b56e25a8fbe925a277f37a487a1e1b7813b6a047745d1a841c6bae5e"
+      },
+      {
+        "name": "usb-midi-out.csv",
+        "bytes": 19,
+        "sha256": "05691b1758db2ee983d44b1dcf79fc5700640ddf3c7df8d6d782416c73604165"
+      },
+      {
+        "name": "usb.csv",
+        "bytes": 2207,
+        "sha256": "91f35bb3cb3ab3651cb0ae012b41407a4e949194ee2caef808a4729d9e2e3d35"
+      }
+    ],
+    "usb": {
+      "vendor": "1209",
+      "product": "0001",
+      "manufacturer": "small-beeps",
+      "product_name": "small-beeps",
+      "serial": null,
+      "address": 0,
+      "configuration": 1,
+      "midi_out_endpoint": 1,
+      "midi_in_endpoint": 130,
+      "packets_sent": 1,
+      "events_sent": 9,
+      "events_received": 0,
+      "problems": [
+        "FADDR is 0 after set the address 1"
+      ]
+    }
+  },
+  "golden": [],
+  "exit_code": 0
+}

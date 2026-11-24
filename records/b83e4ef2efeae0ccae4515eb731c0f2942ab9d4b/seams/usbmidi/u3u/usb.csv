@@ -1,0 +1,31 @@
+ms,event
+22917.000,connect
+22927.000,bus reset
+22937.000,setup get the device descriptor, 64 bytes at 0x01c2c400: 80 06 00 01 00 00 40 00
+22939.000,in 18 bytes from 0x01c2c400
+22939.000,done get the device descriptor, 64 bytes: 12 01 00 02 00 00 00 40 09 12 01 00 00 01 01 02 00 01
+22939.000,setup set the address at 0x01c2c400: 00 05 01 00 00 00 00 00
+22940.000,done set the address: 
+22940.000,problem: FADDR is 0 after set the address 1
+22940.000,setup get the device descriptor at 0x01c2c400: 80 06 00 01 00 00 12 00
+22942.000,in 18 bytes from 0x01c2c400
+22942.000,done get the device descriptor: 12 01 00 02 00 00 00 40 09 12 01 00 00 01 01 02 00 01
+22942.000,setup get the configuration, 9 bytes at 0x01c2c400: 80 06 00 02 00 00 09 00
+22944.000,in 9 bytes from 0x01c2c400
+22944.000,done get the configuration, 9 bytes: 09 02 65 00 02 01 00 80 32
+22944.000,setup get the configuration at 0x01c2c400: 80 06 00 02 00 00 65 00
+22946.000,in 64 bytes from 0x01c2c400
+22947.000,in 37 bytes from 0x01c2c400
+22947.000,done get the configuration: 09 02 65 00 02 01 00 80 32 09 04 00 00 00 01 01 00 00 09 24 01 00 01 09 00 01 01 09 04 01 00 02 01 03 00 00 07 24 01 00 01 41 00 06 24 02 01 01 00 06 24 02 02 02 00 09 24 03 01 03 01 02 01 00 09 24 03 02 04 01 01 01 00 09 05 01 02 40 00 00 00 00 05 25 01 01 01 09 05 82 02 40 00 00 00 00 05 25 01 01 03
+22947.000,setup get string 0 at 0x01c2c400: 80 06 00 03 00 00 ff 00
+22949.000,in 4 bytes from 0x01c2c400
+22949.000,done get string 0: 04 03 09 04
+22949.000,setup get the manufacturer at 0x01c2c400: 80 06 01 03 09 04 ff 00
+22951.000,in 24 bytes from 0x01c2c400
+22951.000,done get the manufacturer: 18 03 73 00 6d 00 61 00 6c 00 6c 00 2d 00 62 00 65 00 65 00 70 00 73 00
+22951.000,setup get the product at 0x01c2c400: 80 06 02 03 09 04 ff 00
+22953.000,in 24 bytes from 0x01c2c400
+22953.000,done get the product: 18 03 73 00 6d 00 61 00 6c 00 6c 00 2d 00 62 00 65 00 65 00 70 00 73 00
+22953.000,setup set the configuration at 0x01c2c400: 00 09 01 00 00 00 00 00
+22954.000,done set the configuration: 
+22954.000,configured
