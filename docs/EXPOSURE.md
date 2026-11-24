@@ -4274,6 +4274,8 @@ SR-3 wrote only its barrier-log row.*
 - Try 5, the owner's ruling with the spec side's report P-519, relayed and
   saved unedited as docs/prompts/clean-br17-u3u-try5.md. P-519 was read
   only as relayed; nothing of the spec side's was opened.
+- The owner's answer on try 5's gaps, relayed and saved unedited as
+  docs/prompts/clean-br17-u3u-try5-answer.md.
 - Disk: about 4 GB free; about 6 GB at the answers and at tries 4 and 5.
 
 ## Corrections

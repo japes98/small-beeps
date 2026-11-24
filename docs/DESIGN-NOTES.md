@@ -6233,3 +6233,7 @@ leaves open.
     - **The owner's run:** a plain power-on, with no keys and no test
       screen. Way 0 shows in large text. Plug into the Mac, play notes both
       ways, unplug. Only if way 0 fails, power on again for ways 1 and 2.
+    - **The owner's answer** (docs/prompts/clean-br17-u3u-try5-answer.md):
+      the seven gaps' choices are accepted as they are, to be tested first.
+      If way 0 fails on the unit, the spec side decodes gaps 1 and 2 first.
+      Try 5's file (`e58082c2…`) was checked and flashed.
