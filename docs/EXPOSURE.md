@@ -3842,7 +3842,12 @@ SR-3 wrote only its barrier-log row.*
   updated from main and merged; clean-br17-u3u sent to clean. The owner's
   standing ruling for the USB loop saved unedited as
   docs/prompts/spec-usb-loop-ruling.md.
-- Disk: about 3 GB free.
+- Later: #249 at `378f49f0` (clean's corrected comment on USB's interrupt
+  priority): C-SEP-TERMS run on `origin/main..378f49f0`, PASS. The owner's
+  ruling on that priority (0, the engine's level; 3 next if the unit shows
+  lag or dropped notes) saved unedited as
+  docs/prompts/spec-usb-priority-ruling.md. No new source read.
+- Disk: about 6 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).
