@@ -778,7 +778,9 @@ impl Soc {
                     v | 0x8000
                 }
             }
-            Region::Usb if addr == 0x11800 && self.cable.on => {
+            // the first core's CON0: the lines' bits (16, 17) as the cable gives them, with or
+            // without the host (cable.rs)
+            Region::Usb if addr == 0x11800 && self.board == Board::Fm1 => {
                 let v = self.sfr_get(addr);
                 self.cable.con0_read(v)
             }

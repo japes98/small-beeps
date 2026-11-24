@@ -3689,6 +3689,25 @@ SR-3 wrote only its barrier-log row.*
   every prompt it writes.
 - Disk: about 3 GB free.
 
+### Session spec-fwtest-usb-lines (fwtest 0.15.0: the lines' bits and the address check)
+- Date: 2026-11-24 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.331; model `claude-opus-5-5`. The same Claude Code
+  session as spec-u3u-rulings (`3554477d-915e-4869-a94a-6a2ff3efe04a`), on
+  a new branch `spec/fwtest-usb-lines` from main, as its own PR by the
+  owner's answers of 2026-11-24 (saved unedited as
+  docs/prompts/spec-usb-done-answers.md; they also keep try 5's byte
+  order and set the merge order #249, #250, this PR).
+- Changed: the vendored emulator (patch 0022, `fm1-soc`'s `cable.rs` and
+  `lib.rs`): the first core's `CON0` bits 16 and 17 as a cable gives them,
+  and the host's `FADDR` check after the set-address status stage, as the
+  clean side asked on #249; HARNESS.md ("USB", "Versions"), UPSTREAM.md,
+  the tree hash, R-HARN-15, fwtest 0.15.0.
+- Read: the vendored emulator's USB host and CON0 read path (this
+  session's own patch 0021). Facts from HW-176, HW-177 and HW-182 only;
+  the two-frame wait before the check is fwtest's own. No new source.
+- Disk: about 6 GB free.
+
 ### Session spec-fwtest-usb (fwtest 0.14.0: a USB host, U1)
 - Date: 2026-11-22 (UTC)
 - Role: **spec side (exposed).** Never writes firmware.
@@ -3821,6 +3840,48 @@ SR-3 wrote only its barrier-log row.*
 - U3-U drafted outside the repository for the owner's ruling, from
   HW-178 and HW-173, with no write to `0x16A00` or any clock register.
 - Disk: about 3 GB free.
+### Session spec-u3u-rulings (the owner's U3-U rulings)
+- Date: 2026-11-23 (UTC)
+- Role: **spec side (exposed).** Never writes firmware.
+- Tool: Claude Code 2.1.330; model `claude-opus-5-5`. The same Claude Code
+  session as spec-audio14-unit (`3554477d-915e-4869-a94a-6a2ff3efe04a`),
+  on a new branch `spec/u3u-rulings` from `spec/u3-source` (#246, not yet
+  merged); by the round rules, no PR until the next round's.
+- #247 (clean's audio14, replacing #245, closed unmerged): C-SEP-TERMS run
+  on `c48ca71a..fb311628`, PASS; merged into #246.
+- The owner's U3-U rulings, saved unedited as
+  docs/prompts/spec-u3u-rulings.md; the U3-U prompt completed outside the
+  repository, to be sent once #247 and #246 are on main. No new source
+  read.
+- Later: #248 (the checks job's limit, 45 to 75 minutes) merged; #246
+  updated from main and merged; clean-br17-u3u sent to clean. The owner's
+  standing ruling for the USB loop saved unedited as
+  docs/prompts/spec-usb-loop-ruling.md.
+- Later: #249 at `378f49f0` (clean's corrected comment on USB's interrupt
+  priority): C-SEP-TERMS run on `origin/main..378f49f0`, PASS. The owner's
+  ruling on that priority (0, the engine's level; 3 next if the unit shows
+  lag or dropped notes) saved unedited as
+  docs/prompts/spec-usb-priority-ruling.md. No new source read.
+- Later: U3-U's try 3 on the unit (connects; "USB gone" and "USB back"
+  work; the instrument plays on) and the owner's two questions for the
+  SDK. Read further in the scratch copy of the library already compiled
+  and disassembled for P-518 (nothing fetched): its device read and write
+  paths (P-519). Findings to the owner first, no HARDWARE-SPEC entry yet.
+  The owner's message saved unedited as docs/prompts/spec-u3u-try3.md.
+- Later: the owner's ruling that P-519's findings are a source for the
+  USB loop, as HW-172 and HW-178 are, saved unedited as
+  docs/prompts/spec-p519-source-ruling.md; the report relayed to clean
+  by the owner. No new source read.
+- Later (2026-11-24): the owner's report that USB MIDI works on the unit
+  with try 5, saved unedited as docs/prompts/spec-u3u-done.md. Read for
+  the batch, from clean's #249 (`1865938e`): its docs/prompts files with
+  the owner's unit reports of tries 2 and 3 and the try 5 prompt, and its
+  DESIGN-NOTES on tries 3 to 5 (each try's writes and try 5's gaps).
+  HARDWARE-SPEC section 54 written (HW-181: P-519's findings; HW-182:
+  tries 2 to 5 on the unit; HW-183: what they settle) and Q-36's note.
+  `main` merged in (#248, #246). No new source read.
+- Disk: about 6 GB free.
+
 ### Session spec-round1-licence (round 1: licence and privacy)
 - Date: 2026-11-24 (UTC)
 - Role: **spec side (exposed).** Never writes firmware.
@@ -3847,6 +3908,7 @@ SR-3 wrote only its barrier-log row.*
   from any target; then data-only tables sent to the text check
   (`tools/audit.py`, its tests, docs/AUDIT.md "Data tables").
 - Disk: about 4.5 GB free.
+
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).

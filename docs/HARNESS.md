@@ -520,6 +520,16 @@ gets through the setup, and one that waits for a bus event waits forever,
 as on a unit with no cable. (From fwtest 0.7.0; before it, bit 15 never
 set, so every access waited out the firmware's own poll limit.)
 
+The lines' bits, `CON0` bits 16 and 17 (`DM_SE`, `DP_SE`), read as a
+cable gives them (from 0.15.0; before it they read as last written, 0 in
+practice). With no host they change from read to read, as on a unit with
+no cable, a charger or a sleeping computer (HW-176, HW-177): fwtest steps
+through 1, 3, 2, 0 (in bits 16 and 17), one a read, so they never read
+steadily 0. The cycle is fwtest's own. With `--usb` the host holds both at
+0, as a computer that is on does, until the device connects; then bit 17
+reads set and bit 16 clear (HW-182: one reading on the unit, after the
+set-up, with a Mac). Only the first core's `CON0` on the FM-1 board.
+
 With `--usb` (since 0.14.0) a host is on the first USB core's cable, the
 FM-1's port (HW-173). It is a model for testing a USB MIDI device's
 firmware, not a copy of the chip: what the sources give it keeps to, and
@@ -562,7 +572,9 @@ still has to be tried on a unit.
   taken. A write with bit 5 is a stall: the host sets bit 2 and stops.
   `CSR0` bit 7 clears bit 4.
 - **Enumeration, in order:** the device descriptor (64 bytes asked), the
-  address (1; the host checks `FADDR` afterwards), the device descriptor,
+  address (1; the host checks `FADDR` 2 frames after the request's status
+  stage, so the device may take the address once the status stage is
+  done; from 0.15.0, before it at once), the device descriptor,
   the configuration descriptor's 9 bytes and then all of it, string 0,
   the manufacturer, product and serial strings the device descriptor
   names, and the configuration. The host then looks for an interface of
@@ -910,6 +922,13 @@ pushing Docker compresses the layers; the image ID does not.
 harness changes, a pull request moves `config/fwtest-image` to the new
 digest, so a firmware test always names the exact runner it used.
 
+- 0.15.0: the lines' bits and the address check ("USB"): the first
+  core's `CON0` bits 16 and 17 change from read to read with no host and
+  read 0 with `--usb`'s host until the device connects (then bit 17); the
+  host checks `FADDR` 2 frames after the set-address status stage. Without
+  `--usb`, outputs are as in 0.14.0 except where a firmware reads `CON0`
+  bits 16 and 17. Its pin is the clean side's next pull request that
+  uses it.
 - 0.14.0: a USB host behind `--usb` ("USB"): it enumerates the device on
   the first core, configures it, sends the script's `usbmidi` packets to
   its MIDI streaming interface and logs the device's. Without the flag,
