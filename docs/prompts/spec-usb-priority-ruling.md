@@ -1,0 +1,1 @@
+The owner's ruling (2026-11-23): USB's interrupt stays at priority 0, the engine's level, not the SDK's 3, so USB never pre-empts the audio. If the unit shows lag or dropped notes, priority 3 is the next thing to try. Save this with spec/u3u-rulings. The file (ace98173…) is checked and being flashed.

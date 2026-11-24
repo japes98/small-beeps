@@ -907,10 +907,6 @@ int main(void)
 #if defined(SB_TEST_LEDS)
     sb_test_leds();
 #endif
-#if defined(SB_USB_MIDI)
-    /* U3-F (fwtest's builds only, usb_midi.h): the USB MIDI device. */
-    usb_midi_start();
-#endif
 #if !defined(SB_HW_FM1)
     sb_irq_on();
 #endif
@@ -1050,6 +1046,11 @@ serve:
         sb_beacon.loop_ticks = sb_beacon.tick_count;
         seen = sb_work;
         second = sb_seconds;
+#if defined(SB_USB_MIDI)
+        /* U3-U (usb_midi.h): the cable reading at the app's start, then
+         * from each wake with work (about once a second at least). */
+        usb_midi_poll();
+#endif
         /* What the engine asked of the store before the loop began, and
          * (since M8a) the panel's events from before it: the screens. */
 #if defined(SB_HW_AUDIO12)
@@ -1072,6 +1073,9 @@ serve:
                 seen = sb_work;
                 sb_beacon.wakes = wakes;
                 sb_beacon.wakes_ticks = sb_beacon.tick_count;
+#if defined(SB_USB_MIDI)
+                usb_midi_poll();
+#endif
 #if defined(SB_HW_AUDIO12)
                 /* Once SEL's start has put the panel up, the panel
                  * serves the events (the test screen's keys do nothing);
