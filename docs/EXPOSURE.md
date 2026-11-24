@@ -3853,6 +3853,10 @@ SR-3 wrote only its barrier-log row.*
   and disassembled for P-518 (nothing fetched): its device read and write
   paths (P-519). Findings to the owner first, no HARDWARE-SPEC entry yet.
   The owner's message saved unedited as docs/prompts/spec-u3u-try3.md.
+- Later: the owner's ruling that P-519's findings are a source for the
+  USB loop, as HW-172 and HW-178 are, saved unedited as
+  docs/prompts/spec-p519-source-ruling.md; the report relayed to clean
+  by the owner. No new source read.
 - Disk: about 6 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
