@@ -131,13 +131,28 @@ volatile struct sb_usb_record sb_usb;
 #define CSR0_CLRSETUPEND 0x80u
 
 #define TXCSR_TXPKTRDY   0x01u   /* HW-172, a transmit endpoint as a device */
+#define TXCSR_FLUSHFIFO  0x08u
 #define TXCSR_UNDERRUN   0x04u
 #define TXCSR_CLRDATATOG 0x40u
 #define TXCSR2_MODE_TX   0x20u   /* TXCSR's bit 13, the direction, in its high byte */
 #define RXCSR_RXPKTRDY   0x01u   /* HW-172, a receive endpoint as a device */
 #define RXCSR_OVERRUN    0x04u
 #define RXCSR_DATAERROR  0x08u
+#define RXCSR_FLUSHFIFO  0x10u
 #define RXCSR_CLRDATATOG 0x80u
+#define R_RXCSR2    21u          /* HW-172 */
+
+/* Try 5, the SDK's steps (PROVENANCE P-519, the owner's ruling of
+ * 2026-11-23: a source as HW-172 and HW-178 are). At the configuration
+ * TXCSR 0x48 (FlushFIFO, ClrDataTog) and RXCSR 0x90 (ClrDataTog,
+ * FlushFIFO); TXMAXP and RXMAXP written 1023, of which the port carries
+ * the low byte, so the core gets 0xFF. A packet in is let go with RXCSR =
+ * (as read & 0xFE9B) | 0x10: RxPktRdy kept as read, FlushFIFO set,
+ * OverRun, SendStall, SentStall and IncompRx cleared. */
+#define TXCSR_SDK_SETUP  (TXCSR_FLUSHFIFO | TXCSR_CLRDATATOG)
+#define RXCSR_SDK_SETUP  (RXCSR_CLRDATATOG | RXCSR_FLUSHFIFO)
+#define MAXP_SDK         1023u
+#define RXCSR_SDK_KEEP   0xFE9Bu
 
 /* `POWER` as the SDK writes it with `FUSB_MODE` 0, the SDK's setting
  * (HW-172). What its bits mean is not given. */
@@ -189,6 +204,28 @@ static u32 port_last, work_stage, spur_run, irq_on, gap_k = 1u, irq_beat, irq_in
 static volatile u32 in_busy, addr_pending, addr_beat;
 
 #define DEAD() (sb_usb.state == USB_STATE_DEAD)
+
+/* Try 5 (P-519): the SDK turns interrupts off from each INDEX write to the
+ * last access that goes with it. Main's loop and the controller's
+ * interrupt both use INDEX and CON1's port, so every such group, in
+ * either, runs between ep_lock and ep_unlock. They nest (main's pump
+ * holds the lock around calls that take it too); interrupts go back on
+ * when the outermost lets go. The interrupt is taken only with them on
+ * and main never holds the lock across a return, so the count is 0 at
+ * the handler's entry. */
+static u32 ep_depth;
+
+static void ep_lock(void)
+{
+    __asm__ volatile("cli" ::: "memory");
+    ep_depth++;
+}
+
+static void ep_unlock(void)
+{
+    if (!--ep_depth)
+        __asm__ volatile("sti" ::: "memory");
+}
 
 /* A direct write to one of JL_USB's words, unless the device has given up
  * (the owner's ruling: nothing more written to USB). */
@@ -475,28 +512,41 @@ static void addr_write(void)
  * alone (HW-172's device start). */
 static void ep_reset(void)
 {
+    ep_lock();
     wr(R_INDEX, 0);
     wr(R_INTRUSBE, INTRUSB_RESET | INTRUSB_SUSPEND);
     wr(R_INTRTX1E, 1u << 0);
     wr(R_INTRRX1E, 0);
+    ep_unlock();
 }
 
-/* The configuration: the bulk endpoints' buffers, sizes and interrupts. */
+/* The configuration: the bulk endpoints' buffers, sizes and interrupts.
+ * Try 5: MAXP and the two CSRs as the SDK writes them (P-519, above).
+ * P-519 gives TXCSR's and RXCSR's set-up values, not whether their high
+ * bytes are written then: TXCSR2's direction stays as tries 1 to 4 wrote
+ * it (HW-172's bit 13), RXCSR2 isn't written. EP1_CNT stays as HW-171's
+ * words give it, at the configuration only. */
 static void ep_bulk_on(void)
 {
+    ep_lock();
     put(&JL_USB->EP1_RADR, (u32)rx_buf);
     put(&JL_USB->EP1_CNT, EP_MAX);
     put(&JL_USB->EP2_TADR, (u32)tx_buf);
     wr(R_INDEX, EP_OUT);
-    wr(R_RXMAXP, EP_MAX);
-    wr(R_RXCSR1, RXCSR_CLRDATATOG);
+    wr(R_RXMAXP, MAXP_SDK);              /* the port carries 0xFF (P-519) */
+    wr(R_RXCSR1, RXCSR_SDK_SETUP);
+    ep_unlock();
+    ep_lock();
     wr(R_INDEX, EP_IN);
-    wr(R_TXMAXP, EP_MAX);
+    wr(R_TXMAXP, MAXP_SDK);
     wr(R_TXCSR2, TXCSR2_MODE_TX);
-    wr(R_CSR0, TXCSR_CLRDATATOG);
+    wr(R_CSR0, TXCSR_SDK_SETUP);
+    ep_unlock();
+    ep_lock();
     wr(R_INDEX, 0);
     wr(R_INTRTX1E, 1u << 0 | 1u << EP_IN);
     wr(R_INTRRX1E, 1u << EP_OUT);
+    ep_unlock();
     in_busy = 0;
 }
 
@@ -561,7 +611,18 @@ static void setup(const u8 *s)
     ep0_stall();
 }
 
+static void ep0_group(void);
+
 static void ep0(void)
+{
+    ep_lock();
+    ep0_group();
+    ep_unlock();
+}
+
+/* Endpoint 0's interrupt: INDEX 0 to the last access of the request's
+ * answer, one group (try 5, P-519). */
+static void ep0_group(void)
 {
     u8 s[8];
     u32 csr, i;
@@ -594,28 +655,37 @@ static void ep0(void)
 
 static void bulk_out(void)
 {
-    u32 i, k, len, csr, c1, c2, ev, mask = 0;
+    u32 i, k, m, len, csr, csr2, c1, c2, n, ev, mask = 0, rel;
     volatile u8 *e;
 
+    /* Try 5, the SDK's steps (P-519), one group with interrupts off:
+     * INDEX, RXCSR1; only with RxPktRdy set the length from RXCOUNT1 and
+     * RXCOUNT2; EP1_RADR written again before the copy; the packet let go
+     * with the SDK's RXCSR write. */
+    ep_lock();
     wr(R_INDEX, EP_OUT);
     csr = rd(R_RXCSR1);
     if (csr & (RXCSR_OVERRUN | RXCSR_DATAERROR))
         sb_usb.rx_overruns++;
-    if (!(csr & RXCSR_RXPKTRDY))
+    if (!(csr & RXCSR_RXPKTRDY)) {
+        ep_unlock();
         return;
-    /* Try 4 (the owner's ruling): RXCOUNT1 isn't the length (on the unit
-     * it read 56, 12, 60, 16, 64, 20, 68, 48 for 4-byte packets), so it is
-     * only logged. The buffer is cleared after each packet, so the events
-     * are read from its start up to the first all-zero one, at most 16;
-     * one whose code index doesn't match its status byte is dropped. */
+    }
     c1 = rd(R_COUNT0);
     c2 = rd(R_RXCOUNT2);
+    csr2 = rd(R_RXCSR2);
+    put(&JL_USB->EP1_RADR, (u32)rx_buf);
+    /* The smaller of the length and what we take (P-519), whole events
+     * only. Try 4's guards stay: at most 16 events, none past the first
+     * all-zero one, the code index matching the status. */
+    len = c1 | c2 << 8;
+    n = len < EP_MAX ? len : EP_MAX;
     for (i = 0; i < USB_RX_SLOTS + 1u; i++) {
         e = rx_buf + 4u * i;
         if (e[0] | e[1] | e[2] | e[3])
             mask |= 1u << i;
     }
-    for (i = 0, ev = 0; i < USB_RX_SLOTS; i++) {
+    for (i = 0, ev = 0; i < USB_RX_SLOTS && 4u * i + 4u <= n; i++) {
         e = rx_buf + 4u * i;
         if (!(e[0] | e[1] | e[2] | e[3]))
             break;
@@ -623,44 +693,64 @@ static void bulk_out(void)
             sb_usb.rx_bad++;
             continue;
         }
-        len = cin_len[e[0] & 0x0Fu];
+        m = cin_len[e[0] & 0x0Fu];
         ev++;
-        for (k = 1; k <= len; k++)
+        for (k = 1; k <= m; k++)
             in_put(e[k]);
     }
-    /* Nothing of this packet can be taken again: the whole buffer and the
-     * 4 bytes past it cleared (our own memory). */
     for (i = 0; i < EP_MAX + 4u; i++)
         rx_buf[i] = 0;
+    /* Let go: RXCSR = (as read & 0xFE9B) | 0x10 (P-519). The SDK's own
+     * order of this write and the copy turns on a flag P-519 doesn't
+     * decode; here it comes after, so the next packet can't land in the
+     * buffer while it is read. Of its two bytes, RXCSR2 (HW-172's index
+     * 21, IncompRx cleared) first, RXCSR1 (FlushFIFO) last: their order
+     * isn't given either. */
+    rel = ((csr | csr2 << 8) & RXCSR_SDK_KEEP) | RXCSR_FLUSHFIFO;
+    wr(R_RXCSR2, rel >> 8);
+    wr(R_RXCSR1, rel & 0xFFu);
+    ep_unlock();
     sb_usb.rx_mask[sb_usb.rx_log_n % USB_PKT_LOG] = mask;
     sb_usb.rx_events += ev;
     sb_usb.rx_log[sb_usb.rx_log_n % USB_PKT_LOG] = (c1 & 0xFFu) | (c2 & 0xFFu) << 8 | (ev & 0xFFu) << 16 | (csr & 0xFFu) << 24;
     sb_usb.rx_log_n++;
     sb_usb.rx_packets++;
     sb_usb.attempt[sb_usb.attempt_n % USB_ATTEMPTS][0] |= USB_ATT_IN;
-    put(&JL_USB->EP1_RADR, (u32)rx_buf);  /* re-armed: the buffer and its size again (HW-171's words), */
-    put(&JL_USB->EP1_CNT, EP_MAX);
-    wr(R_RXCSR1, 0);                     /* then the packet taken */
     if (!sb_usb.stage_beat[USB_ST_FIRST_IN]) {
         stage(USB_ST_FIRST_IN);
         sb_work++;
     }
 }
 
-/* The next packet out, if the endpoint is free and something waits. */
+/* The next packet out, if the endpoint is free and something waits; one
+ * group with interrupts off (try 5, P-519).
+ * - Way 0, the SDK's steps (P-519): TxPktRdy read clear (the SDK polls
+ *   until it is; here, while it isn't, nothing is written and the packet
+ *   waits for the next interrupt or beat, so the instrument never waits
+ *   on USB); the events copied into the endpoint's own buffer, csync;
+ *   EP2_TADR written again; EP2_CNT the byte count; then TXCSR (indexes
+ *   17 and 18) read and written back with 0x01 set. Of its two bytes 18
+ *   first, 17 (TxPktRdy) last: their order isn't given. The branch the
+ *   SDK takes on TXCSR's IncompTx while polling isn't decoded: its bit is
+ *   only logged (tx_log).
+ * - Ways 1 and 2, try 4's: its address written again before each packet,
+ *   and two buffers taken in turn; TXCSR1 written TxPktRdy alone. */
 static void bulk_in(void)
 {
-    u32 n = 0, t = out_tail, w, csr;
+    u32 n = 0, t = out_tail, w, csr, c1, c2;
     volatile u8 *b = sb_usb.tx_variant == 2u && tx_flip ? tx_buf2 : tx_buf;
 
     if (t == out_head || !sb_usb.configuration)
         return;
+    ep_lock();
     wr(R_INDEX, EP_IN);
     csr = rd(R_CSR0);
     if (csr & TXCSR_UNDERRUN)
         sb_usb.tx_underruns++;
-    if (csr & TXCSR_TXPKTRDY)
+    if (DEAD() || (csr & TXCSR_TXPKTRDY)) {
+        ep_unlock();
         return;
+    }
     while (t != out_head && n < EP_MAX) {
         w = out_ring[t % OUT_RING];
         b[n] = (u8)w;
@@ -671,13 +761,21 @@ static void bulk_in(void)
         t++;
     }
     out_tail = t;
-    if (sb_usb.tx_variant)
-        put(&JL_USB->EP2_TADR, (u32)b);   /* variants 1 and 2: the address again (HW-171's word) */
+    __asm__ volatile("csync" ::: "memory");
+    put(&JL_USB->EP2_TADR, (u32)b);       /* again each packet (P-519; HW-171's word) */
     tx_flip ^= 1u;
     sb_usb.tx_log[sb_usb.tx_log_n % USB_PKT_LOG] = (csr & 0xFFu) | (n & 0xFFu) << 8 | sb_usb.tx_variant << 16;
     sb_usb.tx_log_n++;
-    put(&JL_USB->EP2_CNT, n);
-    wr(R_CSR0, TXCSR_TXPKTRDY);
+    put(&JL_USB->EP2_CNT, n);             /* the byte count alone */
+    if (sb_usb.tx_variant == 0u) {
+        c1 = rd(R_CSR0);
+        c2 = rd(R_TXCSR2);
+        wr(R_TXCSR2, c2);
+        wr(R_CSR0, c1 | TXCSR_TXPKTRDY);
+    } else {
+        wr(R_CSR0, TXCSR_TXPKTRDY);
+    }
+    ep_unlock();
     in_busy = 1;
     sb_usb.tx_packets++;
     sb_usb.tx_events += n / 4;
@@ -704,9 +802,11 @@ static void u3_sie_isr(void)
         usb_halt_writes(USB_WHY_STORM, R_INTRUSB, JL_USB->CON0);
         return;
     }
+    ep_lock();
     usb = rd(R_INTRUSB);
     tx = rd(R_INTRTX1);
     rx = rd(R_INTRRX1);
+    ep_unlock();
     if (sb_usb.state == USB_STATE_DEAD)
         return;
     if (!(usb | tx | rx)) {
@@ -931,7 +1031,7 @@ void usb_midi_poll(void)
          * number); a number that stops is the cable out or the host
          * asleep: logged, and nothing sent until it counts again. */
         frame_second = sb_seconds;
-        __asm__ volatile("cli" ::: "memory");
+        ep_lock();
         c = rd(R_FRAME1) | rd(R_FRAME2) << 8;
         if (sb_usb.configuration && c == sb_usb.frame_last && !host_gone) {
             host_gone = sb_usb.configuration;
@@ -944,17 +1044,17 @@ void usb_midi_poll(void)
             sb_usb.back_n++;
         }
         sb_usb.frame_last = c;
-        __asm__ volatile("sti" ::: "memory");
+        ep_unlock();
     }
     if (sb_usb.state == USB_STATE_UP) {
-        __asm__ volatile("cli" ::: "memory");
+        ep_lock();
         /* The status stage is over within a frame or two (above). */
         if (addr_pending && sb_beacon.beats - addr_beat >= 3u) {
             sb_usb.addr_late++;
             addr_write();
         }
         bulk_in();
-        __asm__ volatile("sti" ::: "memory");
+        ep_unlock();
         /* Something still to go: main woken again next beat. */
         if (out_tail != out_head && sb_usb.configuration) {
             c = sb_beacon.beats + 1u;
@@ -1025,7 +1125,7 @@ u32 usb_midi_gap_key(void)
 u32 usb_midi_tx_key(void)
 {
     static const char *const say[USB_TX_VARIANTS] = {
-        "U3-U: out 0, one buffer", "U3-U: out 1, address each packet", "U3-U: out 2, two buffers" };
+        "U3-U: out 0, the SDK's steps", "U3-U: out 1, address each packet", "U3-U: out 2, two buffers" };
 
     __asm__ volatile("cli" ::: "memory");
     sb_usb.tx_variant = (sb_usb.tx_variant + 1u) % USB_TX_VARIANTS;
@@ -1039,9 +1139,9 @@ u32 usb_midi_tx_key(void)
 void usb_midi_power_on(void)
 {
     static const char *const say[USB_TX_VARIANTS] = {
-        "U3-U: power-on, out 0, one buffer", "U3-U: power-on, out 1, address each packet",
+        "U3-U: power-on, out 0, the SDK's steps", "U3-U: power-on, out 1, address each packet",
         "U3-U: power-on, out 2, two buffers" };
-    static const char *const way[USB_TX_VARIANTS] = { "one buffer", "address each", "two buffers" };
+    static const char *const way[USB_TX_VARIANTS] = { "SDK steps", "address each", "two buffers" };
     char label[17] = "USB way 0", big[10] = "USB OUT 0";
     u32 prev = 0xFFFFFFFFu;
 
@@ -1056,6 +1156,7 @@ void usb_midi_power_on(void)
     }
 #endif
     sb_usb.way_prev = prev;
+    sb_usb.try_n = USB_TRY;
     sb_usb.tx_variant = prev == 0xFFFFFFFFu ? 0u : (prev + 1u) % USB_TX_VARIANTS;
     tx_flip = 0;
     label[8] = big[8] = (char)('0' + sb_usb.tx_variant);

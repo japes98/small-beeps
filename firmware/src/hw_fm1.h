@@ -168,7 +168,7 @@ void hw_rows_start(void);
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
 #if defined(SB_HW_U3U)
-#define HW_LOG_LAYOUT  16u                  /* tools/report_decode.py's FIELDS[16] (U3-U try 4; 15: try 3, 14: try 2) */
+#define HW_LOG_LAYOUT  17u                  /* tools/report_decode.py's FIELDS[17] (U3-U try 5; 16: try 4, 15: try 3, 14: try 2) */
 #elif defined(SB_HW_AUDIO14)
 #define HW_LOG_LAYOUT  13u                  /* tools/report_decode.py's FIELDS[13] */
 #elif defined(SB_HW_AUDIO13)
@@ -187,7 +187,7 @@ void hw_rows_start(void);
  * last definition stays the identity of a build without audio13, which
  * seams case report1 builds (tools/seams_suite.py's _build_id). */
 #if defined(SB_HW_U3U)
-#define HW_BUILD_ID    "0.15.0-u3u-t4"     /* U3-U: each try its own (t<N>); try 2 and 3 were 0.15.0-hw3z */
+#define HW_BUILD_ID    "0.15.0-u3u-t5"     /* U3-U: each try its own (t<N>); try 2 and 3 were 0.15.0-hw3z */
 #elif defined(SB_HW_AUDIO14)
 #define HW_BUILD_ID    "0.14.0-hw3y"
 #elif defined(SB_HW_AUDIO13)

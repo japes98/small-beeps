@@ -6177,3 +6177,59 @@ leaves open.
     - The ring scan's label check is built only with SB_HW_U3U. The
       published audio14 file packs byte-identical to
       `small-beeps-audio14-key-980f.fwsc`.
+  - **Try 5, the SDK's steps** (docs/prompts/clean-br17-u3u-try5.md).
+    The owner ruled that the spec side's report P-519 is a source, as
+    HW-172 and HW-178 are. Try 4 wasn't flashed; try 5 is built on it.
+    - **Interrupts off around each endpoint group:** from each `INDEX`
+      write to the last access that goes with it, in main's loop and in
+      the controller's interrupt (`ep_lock`/`ep_unlock`, which nest). The
+      interrupt's reads of `INTRUSB`, `INTRTX1` and `INTRRX1` are a group
+      too, because they share `CON1`'s port.
+    - **In:** `INDEX`, then `RXCSR1`; only with `RxPktRdy` set,
+      `RXCOUNT1`/`RXCOUNT2` give the length. `EP1_RADR` is written again
+      before the copy. The copy takes the smaller of the length and 64,
+      in whole events, with try 4's guards (at most 16, none past an
+      all-zero one, the code index matching the status) and the buffer
+      cleared after. The packet is let go with `RXCSR = (as read & 0xFE9B)
+      | 0x10`. `EP1_CNT` is no longer written per packet, since P-519's
+      receive steps don't write it. The length is logged in `rx_log` as
+      before.
+    - **Out, way 0:**
+      - `TxPktRdy` must read clear;
+      - the events are copied into the endpoint's own buffer, then `csync`;
+      - `EP2_TADR` is written again, then `EP2_CNT` with the byte count;
+      - `TXCSR` (17 and 18) is read and written back with 0x01 set.
+
+      Ways 1 and 2 are try 4's: the address each packet, and two buffers
+      in turn. They now share the `csync` and the `TADR` write; their
+      `TXCSR1` write stays `TxPktRdy` alone. Try 4's way 0, one buffer
+      with no `TADR` write, is gone.
+    - **Set-up:** `TXCSR1` 0x48, `RXCSR1` 0x90, and `TXMAXP`/`RXMAXP`
+      written 1023, which the port carries as 0xFF.
+    - **Gaps, where P-519 can't be followed as written, and what try 5
+      does:**
+      1. Whether the release write comes before or after the copy turns on
+         a flag P-519 doesn't decode. Try 5 writes it after, so the next
+         packet can't land in the buffer while it's read.
+      2. The release is a 16-bit value, but its byte order isn't given.
+         Try 5 writes `RXCSR2` (HW-172's index 21, which carries
+         `IncompRx`) first and `RXCSR1` last.
+      3. The order of `TXCSR`'s two bytes on write-back isn't given either.
+         Try 5 writes 18 first and 17 (`TxPktRdy`) last.
+      4. P-519 doesn't say whether the set-up writes the CSRs' high bytes.
+         `TXCSR2`'s direction stays as tries 1 to 4 wrote it, and `RXCSR2`
+         isn't written.
+      5. The SDK polls until `TxPktRdy` reads clear. Try 5 doesn't wait:
+         while the bit is set nothing is written, and the packet goes at
+         the next interrupt or beat, so the instrument never waits on USB.
+      6. The SDK's branch for `TXCSR`'s `IncompTx` isn't decoded. The bit is
+         only logged (`tx_log`).
+      7. In the handler, whether the chip closes the `sti` gate on entry
+         isn't given (Q-10). If it doesn't, `sti` at a group's end restores
+         the gate as it was. If it does, sources of higher priority can
+         nest sooner, and none of them touch USB.
+    - **Layout 17** (1007 fields) adds `try_n` (5), so the decoder names
+      the ways by try. The identity is `0.15.0-u3u-t5`.
+    - **The owner's run:** a plain power-on, with no keys and no test
+      screen. Way 0 shows in large text. Plug into the Mac, play notes both
+      ways, unplug. Only if way 0 fails, power on again for ways 1 and 2.

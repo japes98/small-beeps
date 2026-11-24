@@ -377,12 +377,16 @@ USB_REC = (["usb_magic", "usb_gap_units", "usb_poll_limit", "usb_state"] + ["usb
            + ["usb_tx_log_n"] + ["usb_tx_log_%d" % k for k in range(8)]
            + ["usb_frame_last", "usb_gone_n", "usb_back_n", "usb_irq_peak"]
            # Try 4 (layout 16).
-           + ["usb_rx_bad"] + ["usb_rx_mask_%d" % k for k in range(8)] + ["usb_way_prev"])
+           + ["usb_rx_bad"] + ["usb_rx_mask_%d" % k for k in range(8)] + ["usb_way_prev"]
+           # Try 5 (layout 17).
+           + ["usb_try_n"])
 # Try 2's record (layout 14, the owner's backups of 2026-11-23): the first 98 words; try 3's (layout 15, the
 # backup fm1-20261123-194712): the first 122.
 USB_REC_TRY2 = USB_REC[:USB_REC.index("usb_tx_variant")]
 USB_REC_TRY3 = USB_REC[:USB_REC.index("usb_rx_bad")]
+USB_REC_TRY4 = USB_REC[:USB_REC.index("usb_try_n")]
 USB_TX_WAYS = ("one buffer", "address each packet", "two buffers")
+USB_TX_WAYS_T5 = ("the SDK's steps", "address each packet", "two buffers")
 USB_STATES = ("waiting for a computer", "setting up", "set up", "GIVEN UP")
 USB_WHYS = {1: "USB_NRST read clear at a port access", 2: "CON1 bit 15 never came", 3: "the interrupt kept coming"}
 
@@ -408,18 +412,24 @@ def _layout15():
     return body + USB_REC_TRY3 + l13[len(l13) - health:]
 
 
-def _layout16():
+def _layout16(rec=None):
     """U3-U's try 4: layout 15 with the device's record grown (packets in
     read to the first zero event; the way out chosen at power-on)."""
     l13 = _layout13()
     health = len(_layout4()) - len(_layout3())
     body = [n for n in l13[:len(l13) - health] if not n.startswith(("arp_log_", "u2c_log"))]
-    return body + USB_REC + l13[len(l13) - health:]
+    return body + (rec or USB_REC_TRY4) + l13[len(l13) - health:]
+
+
+def _layout17():
+    """U3-U's try 5: layout 16 and the try's number (the ways out are the
+    SDK's steps, then try 4's 1 and 2)."""
+    return _layout16(USB_REC)
 
 
 FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7(),
           8: _layout8(), 9: _layout9(), 10: _layout10(), 11: _layout11(), 12: _layout12(), 13: _layout13(),
-          14: _layout14(), 15: _layout15(), 16: _layout16()}
+          14: _layout14(), 15: _layout15(), 16: _layout16(), 17: _layout17()}
 # hw_fm1.h's HW_LOG_FIELDS: a 4096-byte record less its 12 header words and its CRC.
 assert all(len(v) <= 1011 for v in FIELDS.values()), "a layout past HW_LOG_FIELDS (1011)"
 HOLDS = ("zero", "LED", "screen", "log", "scan")
@@ -717,8 +727,9 @@ def u3u_lines(f):
                 "%d/%d: %d, %02X" % (w & 0xFF, w >> 8 & 0xFF, w >> 16 & 0xFF, w >> 24) for w in rx) or "none"))
         n = f["usb_tx_log_n"]
         tx = [f["usb_tx_log_%d" % (k % 8)] for k in range(max(0, n - 8), n)]
+        ways = USB_TX_WAYS_T5 if f.get("usb_try_n", 0) >= 5 else USB_TX_WAYS
         out.append("  out: %s; %d packets taken by the host; the last packets out (TXCSR1 before, bytes, way): %s" % (
-            USB_TX_WAYS[f["usb_tx_variant"]] if f["usb_tx_variant"] < 3 else f["usb_tx_variant"], f["usb_tx_done"],
+            ways[f["usb_tx_variant"]] if f["usb_tx_variant"] < 3 else f["usb_tx_variant"], f["usb_tx_done"],
             ", ".join("%02X %d %d" % (w & 0xFF, w >> 8 & 0xFF, w >> 16 & 0xFF) for w in tx) or "none"))
     if "usb_gone_n" in f:
         out.append("  the host's frames: stopped %d times, again %d (the last number %d); the most interrupts in one"
@@ -879,6 +890,7 @@ DECIMAL |= {n for n in USB_REC if not n.startswith(("usb_magic", "usb_lines_firs
                                                      "usb_last_setup", "usb_giveup_value", "usb_cable_log"))
             and not n.endswith("_gap_flags") and not n.startswith(("usb_rx_log_", "usb_tx_log_", "usb_rx_mask_",
                                                                      "usb_way_prev"))}
+DECIMAL |= {"usb_try_n"}
 DECIMAL |= {"usb_rx_log_n", "usb_tx_log_n"}
 DECIMAL |= {n for n in FIELDS[11] if n.startswith(("start_mode", "as_state", "as_alg", "as_runs", "as_stop",
                                                      "as_chords", "as_soft", "as_hard", "as_late", "as_rel",

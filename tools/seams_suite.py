@@ -3836,7 +3836,7 @@ A14_UNIT = ("--define", "SB_HW_FM1", "--define", "SB_HW_HOLD", "--define", "SB_H
             "--define", "SB_HW_AUDIO14")
 A14_ID = "0.14.0-hw3y"
 U3U_UNIT = A14_UNIT + ("--define", "SB_USB_MIDI", "--define", "SB_HW_U3U")
-U3U_ID = "0.15.0-u3u-t4"
+U3U_ID = "0.15.0-u3u-t5"
 U3U_FADDR = "FADDR is 0 after set the address 1"
 A14_P = tuple("%05X" % (0x16A00 + 4 * i) for i in range(4))
 
@@ -4094,7 +4094,7 @@ def case_usbmidi(a, work, log):
     lines = rd.u3u_lines(last) if "usb_magic" in last else []
     lu = lr["run"].get("usb") or {}
     if lr["run"]["outcome"] != "completed" or lbad or usb_labels[:len(want)] != want \
-            or any(len(x["fields"]) != len(rd.FIELDS[16]) for x in lrecs if x["label"].startswith("USB")) \
+            or any(len(x["fields"]) != len(rd.FIELDS[17]) for x in lrecs if x["label"].startswith("USB")) \
             or last.get("usb_giveup_why") or not lines or lu.get("problems") != [U3U_FADDR]:
         problems.append("usbmidi log: %s, %d bad, USB records %s, usb %s, lines %s" % (
             lr["run"]["outcome"], len(lbad), usb_labels, lu, lines[:2]))

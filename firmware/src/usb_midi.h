@@ -68,10 +68,11 @@ enum usb_stage {
  * length; rx_mask beside it); out, the IN endpoint's TXCSR1 as
  * read before the packet | its bytes << 8 | the variant << 16. */
 #define USB_PKT_LOG 8u
-/* How a packet goes out (tx_variant): 0 the one buffer as set at the
- * configuration; 1 its address written again before each packet; 2 two
- * buffers, the address switched each packet. Try 4: the next at each
- * power-on (usb_midi_power_on); KEY8 on the test screen still changes it. */
+/* How a packet goes out (tx_variant). Try 5: 0 the SDK's steps (P-519);
+ * 1 its address written again before each packet; 2 two buffers, the
+ * address switched each packet (try 4's 1 and 2; try 4's 0, the one
+ * buffer as set at the configuration, is gone). The next at each power-on
+ * (usb_midi_power_on); KEY8 on the test screen still changes it. */
 #define USB_TX_VARIANTS 3u
 
 /* The events a packet in can hold (64 bytes, 4 each). */
@@ -79,8 +80,8 @@ enum usb_stage {
 
 /* What the device did, all words: the tests read it by its symbol
  * (tools/seams_suite.py's USB_REC), the unit's records carry it whole
- * (layout 16, tools/report_decode.py's _layout16; 15 and 14 are tries 3
- * and 2). Keep the three in step. */
+ * (layout 17, tools/report_decode.py's _layout17; 16, 15 and 14 are tries
+ * 4, 3 and 2). Keep the three in step. */
 struct sb_usb_record {
     u32 magic;              /* USB_MIDI_MAGIC from the first poll */
     u32 gap_units;          /* the port's spacing, in sb_now() units (24 MHz) */
@@ -143,7 +144,12 @@ struct sb_usb_record {
     u32 rx_bad;             /* events in dropped: the code index not matching the status byte */
     u32 rx_mask[USB_PKT_LOG];  /* beside rx_log: bit k set if the buffer's bytes 4k..4k+3 read non-zero (k 0..16) */
     u32 way_prev;           /* the way the newest "USB way" record of this build named (0xFFFFFFFF: none) */
+    /* Try 5 (layout 17). */
+    u32 try_n;              /* USB_TRY: which try's ways tx_variant names */
 };
+
+/* The try this build is (the identity's t<N>), in the record. */
+#define USB_TRY 5u
 
 #define USB_MIDI_MAGIC 0x4D425355u   /* "USBM" */
 #define USB_REC_WORDS (sizeof(struct sb_usb_record) / 4u)
