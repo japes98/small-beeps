@@ -1,0 +1,199 @@
+{
+  "fwtest": {
+    "version": "0.14.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 112616,
+    "sha256": "b7727ff28e80d1a75e55599be8556d29e3a2af649638fbae713f25abda9fae86"
+  },
+  "script_sha256": "2efd89a56881826afdd40c4b60ebfc8e7c6e3ca6fdba4defd40a199e6aafb003",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "33000.570",
+    "instructions": {
+      "core0": 2222212879,
+      "core1": 7518799773
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00012f00",
+        "access": "read",
+        "count": 12
+      },
+      {
+        "address": "0x00013000",
+        "access": "write",
+        "count": 24
+      },
+      {
+        "address": "0x00016a00",
+        "access": "read",
+        "count": 3
+      },
+      {
+        "address": "0x00016a04",
+        "access": "read",
+        "count": 3
+      },
+      {
+        "address": "0x00016a08",
+        "access": "read",
+        "count": 3
+      },
+      {
+        "address": "0x00016a0c",
+        "access": "read",
+        "count": 3
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "write",
+        "count": 48
+      },
+      {
+        "address": "0x00040204",
+        "access": "write",
+        "count": 12
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "write",
+        "count": 12
+      },
+      {
+        "address": "0x00040300",
+        "access": "write",
+        "count": 24
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "write",
+        "count": 12
+      },
+      {
+        "address": "0x01eee200",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee204",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee208",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee20c",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee210",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee214",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee218",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee21c",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee220",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee224",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee228",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee22c",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee230",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee234",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee238",
+        "access": "read",
+        "count": 15
+      },
+      {
+        "address": "0x01eee23c",
+        "access": "read",
+        "count": 15
+      }
+    ],
+    "outputs": [
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "f6f098fbab5db6a7860099093f412032fe8894984cc94864ab707bd59bafd63d"
+      },
+      {
+        "name": "lcd-26000ms.png",
+        "bytes": 173118,
+        "sha256": "9af151233b403fb2d48f463eca63b3df8651589c652bc9fd7613604ff9f23afc"
+      },
+      {
+        "name": "lcd-28500ms.png",
+        "bytes": 173118,
+        "sha256": "55fc0e2dadd4b937b9fede7ba447315a4850d5ad09c0b1c38ca210db1c0c9a5f"
+      },
+      {
+        "name": "lcd-31000ms.png",
+        "bytes": 173118,
+        "sha256": "530aab4d559d50176cc38c634aa63dd4b5a9671de87ab0c316091e7dd0267160"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
