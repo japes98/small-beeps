@@ -13,11 +13,11 @@ b9daccefc591a2e18e607b0b0be2d280ef07eec87790adefe752cd5230b77850  crates/fm1-cor
 42f5a32abc5223916387e31a90402a21b23d4a02ff288321251f499bbf5b2a3e  crates/fm1-isa/src/generated_isa.rs
 c4ef36b4939e67d67e3dd9d0445ff40f80b83c7e0113d0552f4d547436bd9ffc  crates/fm1-isa/src/lib.rs
 f28133c7c313de7d6c6132c14734810c08e1a3aac36bce70c2c38a7ac5446a55  crates/fm1-soc/Cargo.toml
-a27d97457fe4a95232b325d056c17d98991daa5ace4077a8181387864641e209  crates/fm1-soc/src/cable.rs
+776a9cb88a370a14067d3eca5eb2809db3186a6373cc25fd39596878f13094e8  crates/fm1-soc/src/cable.rs
 b54841a9de92bf1cc1ab9e73bd89a7689778a18908bd0e429743caa191b0a7d3  crates/fm1-soc/src/flaky.rs
 091c4189809ad24936572dfd2ae30ba305c856663f95f126410e214e52bb2302  crates/fm1-soc/src/fwsc.rs
 f50418d6a45da15da8cc0f5b514ee35889f65b780062f3d8deba6f0f5859521d  crates/fm1-soc/src/lcd.rs
-c036cb3dabb27e434da86257eecb0fa97c421e8d658057256f822458b8f4ffbc  crates/fm1-soc/src/lib.rs
+7eb37e0e9c2830b70e4183854437b05d5b9ab5215469de470c4fd6aad13b1475  crates/fm1-soc/src/lib.rs
 881962867e6217afb03c354e19745b5916f5acfac66437e41ebe69b8eb5985fe  crates/fm1-soc/src/machine.rs
 87a8a619261966c8386df9e7c97599f9c18b40a1f4a0d4229be8be30b8ed3d5a  crates/fm1-soc/src/p33.rs
 1decde9b83b6cade4682b7f56a853cd5989c7c5df1c462501536e8916ec9c97b  crates/fm1-soc/src/periph.rs
@@ -46,3 +46,4 @@ d3d4e6056b254d5aacbb5e4292f41a680728a3397fd26d33cf61355e1f9485ab  patches/0018-l
 05a6e3018f611dcf78335d8c22718fe05177915fd80950e76ed4958f1847606e  patches/0019-flash-block-protection.patch
 849113f526262ad7e5908ec0d3f60bdab84792123f4f6c84d5a2cd520d58af7b  patches/0020-audio-chip16.patch
 bf7dc34dd9ede8c0166d9c46a9adbf1a7dc8c319485dffe06e5e8ff22768026c  patches/0021-usb-host.patch
+b73a5949feda561e8e61bba028ec39031854d763b9d2aa41f7ad6e9425c8eccb  patches/0022-usb-host-lines-and-address.patch
