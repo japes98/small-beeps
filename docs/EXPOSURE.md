@@ -3841,7 +3841,12 @@ SR-3 wrote only its barrier-log row.*
   P-520, UPSTREAM.md's note, the commit check and its test, .gitmessage,
   CONTRIBUTING, R-PROC-1 (no session link), the session links removed from
   EXPOSURE, M0c.md's home path. Transcripts unchanged, by the ruling.
-- Disk: about 6 GB free.
+- The audit, by the owner's ruling (docs/prompts/spec-audit-ruling.md):
+  the pinned JPlag run locally on our own `src/patches.c` and `src/fm.c`
+  against tables of random bytes generated in a scratch folder, nothing
+  from any target; then data-only tables sent to the text check
+  (`tools/audit.py`, its tests, docs/AUDIT.md "Data tables").
+- Disk: about 4.5 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
 - Role: firmware side (clean).

@@ -271,7 +271,7 @@ the report marks it so; "The second self-test gap" below.)
   more. Like the gate, it fails whatever the target's licence, and only
   an auditor looks at a flagged pair.
 
-Only files JPlag dropped go to the text check. A file JPlag scored that
+Only files JPlag dropped, and data tables (below), go to the text check. A file JPlag scored that
 matched nothing (`no match`) was compared by the gate; it is not sent
 here. Which files go is decided by each run's JPlag output, so a new file
 that JPlag cannot score is covered without a change here. Its rows hold
@@ -322,6 +322,43 @@ Its limits:
 - **No acceptance yet.** `audit/accepted.json` accepts gate pairs only. If
   the text check ever flags a pair, the pull request with the auditor's
   finding also adds acceptance for it.
+
+### Data tables
+
+A file of ours that holds **only data tables** skips JPlag and goes to the
+text check, which compares its values (`data_table` in `tools/audit.py`;
+the owner's ruling of 2026-11-24). Such a file has at least one aggregate
+initializer (`= {`), no statement inside braces and no function body, once
+comments, literals and preprocessor lines are set aside. Today that is
+`src/patches.c` (the patch bank, which `tools/fm_patch.py` writes) and
+`src/font.c` (which JPlag already dropped). The report marks each as
+**data table**; the self-test must find it by the text check, as an exact
+and as a reformatted copy.
+
+**Why.** JPlag's C front end reads a table as about one token a row and
+none of the values in it, so any two tables of the same shape share long
+runs, whatever they hold. Since at least 2026-10-31 the gate flagged `src/patches.c`
+against many targets on every run. The spec side never opened those
+pairs. Instead, on 2026-11-24, it ran the pinned JPlag on our own
+`src/patches.c` (729 lines, which JPlag makes 167 tokens) against tables of
+random bytes it generated, with nothing from any target:
+
+| Made-up target | Its tokens | Longest match with `src/patches.c` |
+|---|---|---|
+| 64 rows of 32 random bytes, hex | 136 | **130** |
+| 40 rows of 112 random bytes, decimal | 87 | **82** |
+| one flat table of 4,096 random bytes | 6 | (too small to score) |
+
+Both row tables pass the gate's threshold (about 59 tokens) by far, with
+no byte in common with ours. Our `src/fm.c`, which is code, matched
+neither. So for a table the gate's score measures the shape, not a copy.
+The text check compares the values, and still finds a copied table. This
+rule was set after the gate had failed on these files, but from that
+experiment alone, without opening any match or target.
+
+Files with code in them, `src/hw_audio.c` among them, stay with JPlag.
+Their flagged pairs wait for an auditor session after the clean-up round
+(the owner's ruling of 2026-11-24).
 
 ### What the gate cannot see
 
