@@ -6106,3 +6106,16 @@ leaves open.
       note on at 100 and their note off at 0, of their own note, and
       nothing else. fwtest has no unplugging, so "USB gone" is the unit's
       to show.
+  - **The owner's answers to try 3's questions**
+    (docs/prompts/clean-br17-u3u-answers.md):
+    - USB's interrupt stays at priority 0: the owner's ruling, which the
+      spec side records. The source comment will say so with try 4.
+    - fwtest's host should drive `CON0` bits 16 and 17, and check `FADDR`
+      after the status stage. Both are harness changes, so they went to the
+      spec side as a request; this side doesn't change fwtest.
+    - Each try gets its own identity, so the backups name the try. Tries 2
+      and 3 were both `0.15.0-hw3z`; their records still tell them apart by
+      layout (14 for try 2, 15 for try 3). Try 3's file (`ace98173…`) was
+      checked and flashed as it is. From try 4, the identity is
+      `0.15.0-u3u-t<N>`: 13 characters, so `FM-1_` and it fit fwsc's 19
+      and the record's 16. It is set in `hw_fm1.h` and seams' `U3U_ID`.
