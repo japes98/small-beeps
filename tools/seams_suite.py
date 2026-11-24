@@ -3836,7 +3836,7 @@ A14_UNIT = ("--define", "SB_HW_FM1", "--define", "SB_HW_HOLD", "--define", "SB_H
             "--define", "SB_HW_AUDIO14")
 A14_ID = "0.14.0-hw3y"
 U3U_UNIT = A14_UNIT + ("--define", "SB_USB_MIDI", "--define", "SB_HW_U3U")
-U3U_ID = "0.15.0-hw3z"
+U3U_ID = "0.15.0-u3u-t4"
 U3U_FADDR = "FADDR is 0 after set the address 1"
 A14_P = tuple("%05X" % (0x16A00 + 4 * i) for i in range(4))
 
@@ -3973,9 +3973,11 @@ def case_usbmidi(a, work, log):
         # The host's note (channel 1) once the device is up (the third cable check, about 2 s), then the panel's
         # KEY1; and a note at MIDI in for the run without --usb.
         # Try 3: two events in one packet, then four packets in a row of one each; then three keys, each pressed
-        # and released, while the host sends notes too (both ways at once).
+        # and released, while the host sends notes too (both ways at once). Try 4: one packet whose code index (8)
+        # doesn't match its status (90), dropped.
         f.write("3000 usbmidi 09 90 3c 64\n3000 usbmidi 09 90 40 64\n3050 usbmidi 08 80 3c 00\n"
                 "3100 usbmidi 08 80 40 00\n3150 usbmidi 09 90 43 64\n3200 usbmidi 08 80 43 00\n"
+                "3250 usbmidi 08 90 45 64\n"
                 "5000 key %d tap 200\n5100 usbmidi 09 90 48 40\n5300 key %d tap 200\n5400 usbmidi 08 80 48 00\n"
                 "5600 key %d tap 200\n6000 midi 90 40 64\n6500 midi 80 40 00\n" % (HW_KEY1, HW_KEY1 + 1, HW_KEY1 + 2))
     out = os.path.join(work, "usb")
@@ -4022,11 +4024,16 @@ def case_usbmidi(a, work, log):
     rxl = [rec["usb_rx_log_%d" % (k % 8)] for k in range(max(0, rec["usb_rx_log_n"] - 8), rec["usb_rx_log_n"])]
     rx_pk = [(w & 0xFF, w >> 16 & 0xFF) for w in rxl]
     # fwtest's counts are the host's: events_sent went to the device, events_received came from it.
-    want_pk = [(8, 2)] + [(4, 1)] * 6
-    if rx_pk != want_pk or rec["usb_rx_events"] != 8 or u.get("events_sent") != 8 or u.get("events_received") != 6:
-        problems.append("usbmidi: packets in (bytes, events) %s, %d events, fwtest's sent %s received %s (want %s;"
-                        " 8, 8, 6)" % (rx_pk, rec["usb_rx_events"], u.get("events_sent"), u.get("events_received"),
-                                       want_pk))
+    # Try 4: the events are read to the first zero one (RXCOUNT1 only logged; fwtest's is right), the mismatched
+    # one dropped and counted; each packet's non-zero 4-byte slots logged beside it.
+    want_pk = [(8, 2)] + [(4, 1)] * 4 + [(4, 0)] + [(4, 1)] * 2
+    masks = [rec["usb_rx_mask_%d" % (k % 8)] for k in range(max(0, rec["usb_rx_log_n"] - 8), rec["usb_rx_log_n"])]
+    if rx_pk != want_pk or rec["usb_rx_events"] != 8 or rec["usb_rx_bad"] != 1 or masks != [3] + [1] * 7 \
+            or u.get("events_sent") != 9 or u.get("events_received") != 6:
+        problems.append("usbmidi: packets in (bytes, events) %s, %d events, %d dropped, slots %s, fwtest's sent %s"
+                        " received %s (want %s; 8, 1, [3, 1 x7], 9, 6)" % (
+                            rx_pk, rec["usb_rx_events"], rec["usb_rx_bad"], masks, u.get("events_sent"),
+                            u.get("events_received"), want_pk))
     if rec["usb_cable_checks"] < 3 or rec["usb_lines_set"] or rec["usb_lines_or"] or rec["usb_cable"] != 1:
         problems.append("usbmidi: the cable reading: %d checks, the last %d of %d reads with a bit set, bits %08X" % (
             rec["usb_cable_checks"], rec["usb_lines_set"], rec["usb_lines_reads"], rec["usb_lines_or"]))
@@ -4081,20 +4088,39 @@ def case_usbmidi(a, work, log):
     with open(os.path.join(lout, "flash.bin"), "rb") as f:
         lrecs, lbad = rd.records(f.read())
     usb_labels = [x["label"] for x in lrecs if x["label"].startswith("USB")]
-    want = ["USB cable"] + ["USB step %d" % k for k in range(1, 7)] + ["USB set up", "USB reset", "USB address",
+    want = ["USB way 0", "USB cable"] + ["USB step %d" % k for k in range(1, 7)] + ["USB set up", "USB reset", "USB address",
                                                                         "USB configured"]
     last = lrecs[-1]["fields"] if lrecs else {}
     lines = rd.u3u_lines(last) if "usb_magic" in last else []
     lu = lr["run"].get("usb") or {}
     if lr["run"]["outcome"] != "completed" or lbad or usb_labels[:len(want)] != want \
-            or any(len(x["fields"]) != len(rd.FIELDS[15]) for x in lrecs if x["label"].startswith("USB")) \
+            or any(len(x["fields"]) != len(rd.FIELDS[16]) for x in lrecs if x["label"].startswith("USB")) \
             or last.get("usb_giveup_why") or not lines or lu.get("problems") != [U3U_FADDR]:
         problems.append("usbmidi log: %s, %d bad, USB records %s, usb %s, lines %s" % (
             lr["run"]["outcome"], len(lbad), usb_labels, lu, lines[:2]))
     step6_to_sieie = last.get("usb_at_sieie", 0) - last.get("usb_at_step6_pulls", 0)
+    # Try 4: the way out, the next at each power-on (0, 1, 2, then 0), read from the log's newest "USB way" record:
+    # three more power-ons from the flash the run before left.
+    ways, prev_flash = [], os.path.join(lout, "flash.bin")
+    for k in range(3):
+        wout = os.path.join(work, "way%d" % (k + 1))
+        # 8 s: from a used flash the start takes longer than 4 s of fwtest's time.
+        wr_ = fwtest(os.path.join(lb, "app.bin"), wout, log, "--ms", "8000", "--flash",
+                     os.path.relpath(prev_flash, ROOT), "--flash-out")
+        prev_flash = os.path.join(wout, "flash.bin")
+        with open(prev_flash, "rb") as f:
+            wrecs, wbad = rd.records(f.read())
+        wl = [x for x in wrecs if x["label"].startswith("USB way ")]
+        newest = max(wl, key=lambda x: x["seq"]) if wl else None
+        ways.append((wr_["run"]["outcome"], len(wbad), newest["label"] if newest else None,
+                     newest["fields"].get("usb_tx_variant") if newest else None,
+                     newest["fields"].get("usb_way_prev") if newest else None))
+    if ways != [("completed", 0, "USB way %d" % w, w, p) for w, p in ((1, 0), (2, 1), (0, 2))]:
+        problems.append("usbmidi ways at power-on (outcome, bad, label, way, previous): %s (want 1, 2, 0)" % ways)
     kpath = os.path.join(work, "key7.script")
     with open(kpath, "w") as f:
-        f.write("0 key %d down\n5000 key %d up\n9000 key %d tap 100\n" % (HW_HOME, HW_HOME, HW_KEY1 + 6))
+        # Try 4: HOME let go and KEY7 pressed later, past the way's 2 s in large text.
+        f.write("0 key %d down\n8000 key %d up\n12000 key %d tap 100\n" % (HW_HOME, HW_HOME, HW_KEY1 + 6))
     kout = os.path.join(work, "key7")
     kr = fwtest(os.path.join(lb, "app.bin"), kout, log, "--usb", "--ms", "20000", "--flash-out", "--script",
                 os.path.relpath(kpath, ROOT))

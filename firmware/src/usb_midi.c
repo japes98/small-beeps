@@ -49,6 +49,9 @@
 
 #include "midi.h"
 #include "WL82.h"
+#if defined(SB_HW_U3U)
+#include "hw_fm1.h"
+#endif
 
 volatile struct sb_usb_record sb_usb;
 
@@ -66,9 +69,9 @@ volatile struct sb_usb_record sb_usb;
 /* --- The core (HW-86, HW-171, HW-172, HW-178) ----------------------------- */
 
 #define SRC_USB_CTRL 9u          /* the first core's controller (SIE) interrupt (HW-171) */
-/* The engine's fill's priority (0), not the SDK's 3 (HW-172): this side's
- * choice in try 3, so USB never pre-empts the audio (the owner asked that
- * the instrument play on whatever USB does). */
+/* The engine's fill's priority (0), not the SDK's 3 (HW-172): the owner's
+ * ruling after try 3 (docs/prompts/clean-br17-u3u-answers.md), so USB never
+ * pre-empts the audio and the instrument plays on whatever USB does. */
 #define PRIO_USB     0u
 
 /* CON0's bits by HW-171's names. */
@@ -330,6 +333,45 @@ static volatile u32 out_head, out_tail;
 /* The bytes each code index carries (USB MIDI 1.0); 0: none. */
 static const u8 cin_len[16] = { 0, 0, 2, 3, 3, 1, 2, 3, 3, 3, 3, 3, 2, 2, 3, 1 };
 
+/* Whether an event's code index matches its status byte (try 4): a
+ * channel message's (8 to E) its status's high nibble; system common's
+ * (2, 3, 5) and a single byte's (F) a system status; SysEx's (4, 6, 7)
+ * F0, data or F7 where they belong. Code indexes 0 and 1 carry nothing
+ * the engine takes. Data bytes must be below 0x80. */
+static int cin_fits(const volatile u8 *e)
+{
+    u32 cin = e[0] & 0x0Fu, st = e[1], len = cin_len[cin], k;
+
+    if (!len)
+        return 0;
+    if (cin >= 0x8u && cin <= 0xEu) {
+        if (st >> 4 != cin)
+            return 0;
+    } else if (cin == 0x2u) {
+        if (st != 0xF1u && st != 0xF3u)
+            return 0;
+    } else if (cin == 0x3u) {
+        if (st != 0xF2u)
+            return 0;
+    } else if (cin == 0x5u) {
+        if (st != 0xF6u && st != 0xF7u)
+            return 0;
+    } else if (cin == 0xFu) {
+        if (st < 0xF8u)
+            return 0;
+    } else if (cin == 0x4u) {
+        if (st != 0xF0u && st >= 0x80u)
+            return 0;
+    } else if (e[len] != 0xF7u) {    /* 6 and 7: SysEx's end, last */
+        return 0;
+    }
+    /* Past the status: data, except SysEx's own F0 and F7. */
+    for (k = 2; k <= len; k++)
+        if (e[k] >= 0x80u && !((cin == 0x6u || cin == 0x7u) && k == len))
+            return 0;
+    return 1;
+}
+
 static void in_put(u8 b)
 {
     u32 h = in_head;
@@ -552,7 +594,8 @@ static void ep0(void)
 
 static void bulk_out(void)
 {
-    u32 n, i, k, len, csr, c1, c2, ev;
+    u32 i, k, len, csr, c1, c2, ev, mask = 0;
+    volatile u8 *e;
 
     wr(R_INDEX, EP_OUT);
     csr = rd(R_RXCSR1);
@@ -560,24 +603,36 @@ static void bulk_out(void)
         sb_usb.rx_overruns++;
     if (!(csr & RXCSR_RXPKTRDY))
         return;
-    /* A bulk packet at full speed is at most 64 bytes, so RXCOUNT1 alone
-     * (try 3: on the unit the two counts together gave about 64 bytes for
-     * one 4-byte event); both are logged as read. */
+    /* Try 4 (the owner's ruling): RXCOUNT1 isn't the length (on the unit
+     * it read 56, 12, 60, 16, 64, 20, 68, 48 for 4-byte packets), so it is
+     * only logged. The buffer is cleared after each packet, so the events
+     * are read from its start up to the first all-zero one, at most 16;
+     * one whose code index doesn't match its status byte is dropped. */
     c1 = rd(R_COUNT0);
     c2 = rd(R_RXCOUNT2);
-    n = c1 > EP_MAX ? EP_MAX : c1 & ~3u;
-    for (i = 0, ev = 0; i + 4 <= n; i += 4) {
-        len = cin_len[rx_buf[i] & 0x0Fu];
-        if (!len)
+    for (i = 0; i < USB_RX_SLOTS + 1u; i++) {
+        e = rx_buf + 4u * i;
+        if (e[0] | e[1] | e[2] | e[3])
+            mask |= 1u << i;
+    }
+    for (i = 0, ev = 0; i < USB_RX_SLOTS; i++) {
+        e = rx_buf + 4u * i;
+        if (!(e[0] | e[1] | e[2] | e[3]))
+            break;
+        if (!cin_fits(e)) {
+            sb_usb.rx_bad++;
             continue;
+        }
+        len = cin_len[e[0] & 0x0Fu];
         ev++;
         for (k = 1; k <= len; k++)
-            in_put(rx_buf[i + k]);
+            in_put(e[k]);
     }
-    /* Nothing of this packet can be taken again: its bytes and the 4 past
-     * them cleared (our own buffer). */
-    for (i = 0; i < n + 4u && i < EP_MAX + 4u; i++)
+    /* Nothing of this packet can be taken again: the whole buffer and the
+     * 4 bytes past it cleared (our own memory). */
+    for (i = 0; i < EP_MAX + 4u; i++)
         rx_buf[i] = 0;
+    sb_usb.rx_mask[sb_usb.rx_log_n % USB_PKT_LOG] = mask;
     sb_usb.rx_events += ev;
     sb_usb.rx_log[sb_usb.rx_log_n % USB_PKT_LOG] = (c1 & 0xFFu) | (c2 & 0xFFu) << 8 | (ev & 0xFFu) << 16 | (csr & 0xFFu) << 24;
     sb_usb.rx_log_n++;
@@ -980,7 +1035,42 @@ u32 usb_midi_tx_key(void)
     return sb_usb.tx_variant;
 }
 
-#if !defined(SB_HW_U3U)
+#if defined(SB_HW_U3U)
+void usb_midi_power_on(void)
+{
+    static const char *const say[USB_TX_VARIANTS] = {
+        "U3-U: power-on, out 0, one buffer", "U3-U: power-on, out 1, address each packet",
+        "U3-U: power-on, out 2, two buffers" };
+    static const char *const way[USB_TX_VARIANTS] = { "one buffer", "address each", "two buffers" };
+    char label[17] = "USB way 0", big[10] = "USB OUT 0";
+    u32 prev = 0xFFFFFFFFu;
+
+    /* The log's newest "USB way N" of this build (no store write: the log
+     * is read, HW-110's area untouched); the next way after it, 0 if none. */
+#if defined(SB_HW_REPORT)
+    {
+        char l[16];
+
+        if (hw_report_newest("USB way ", l) && l[8] >= '0' && l[8] < (char)('0' + USB_TX_VARIANTS))
+            prev = (u32)(l[8] - '0');
+    }
+#endif
+    sb_usb.way_prev = prev;
+    sb_usb.tx_variant = prev == 0xFFFFFFFFu ? 0u : (prev + 1u) % USB_TX_VARIANTS;
+    tx_flip = 0;
+    label[8] = big[8] = (char)('0' + sb_usb.tx_variant);
+    /* In large text, held 2 s (the owner can't read the step row). */
+    lcd_wait();
+    gfx_fill(0, 0, SCREEN_W, SCREEN_H, RGB565(0, 0, 0));
+    gfx_text(12, 72, big, RGB565(31, 63, 31), RGB565(0, 0, 0), 4u);
+    gfx_text(12, 128, way[sb_usb.tx_variant], RGB565(31, 63, 0), RGB565(0, 0, 0), 2u);
+    gfx_text(12, 160, HW_BUILD_ID, RGB565(16, 32, 16), RGB565(0, 0, 0), 2u);
+    lcd_send_rows(0, SCREEN_H);
+    lcd_wait();
+    usb_midi_note(label, say[sb_usb.tx_variant]);
+    sb_wait_ms(2000);
+}
+#else
 /* fwtest's builds: no step row, no log. */
 void usb_midi_note(const char *label, const char *step)
 {

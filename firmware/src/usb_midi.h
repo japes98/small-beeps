@@ -64,17 +64,23 @@ enum usb_stage {
 #define USB_ATT_IN         4u
 #define USB_ATT_OUT        8u
 /* The last packets each way (try 3): in, RXCOUNT1 | RXCOUNT2 << 8 | the
- * events taken << 16 | RXCSR1 << 24; out, the IN endpoint's TXCSR1 as
+ * events taken << 16 | RXCSR1 << 24 (try 4: RXCOUNT1 logged only, not the
+ * length; rx_mask beside it); out, the IN endpoint's TXCSR1 as
  * read before the packet | its bytes << 8 | the variant << 16. */
 #define USB_PKT_LOG 8u
-/* How a packet goes out (tx_variant; KEY8 on the test screen): 0 the one
- * buffer as set at the configuration; 1 its address written again before
- * each packet; 2 two buffers, the address switched each packet. */
+/* How a packet goes out (tx_variant): 0 the one buffer as set at the
+ * configuration; 1 its address written again before each packet; 2 two
+ * buffers, the address switched each packet. Try 4: the next at each
+ * power-on (usb_midi_power_on); KEY8 on the test screen still changes it. */
 #define USB_TX_VARIANTS 3u
+
+/* The events a packet in can hold (64 bytes, 4 each). */
+#define USB_RX_SLOTS 16u
 
 /* What the device did, all words: the tests read it by its symbol
  * (tools/seams_suite.py's USB_REC), the unit's records carry it whole
- * (layout 14, tools/report_decode.py's _layout14). Keep the three in step. */
+ * (layout 16, tools/report_decode.py's _layout16; 15 and 14 are tries 3
+ * and 2). Keep the three in step. */
 struct sb_usb_record {
     u32 magic;              /* USB_MIDI_MAGIC from the first poll */
     u32 gap_units;          /* the port's spacing, in sb_now() units (24 MHz) */
@@ -133,6 +139,10 @@ struct sb_usb_record {
     u32 gone_n;             /* the host's frames seen stopped */
     u32 back_n;             /* and counting again */
     u32 irq_peak;           /* the most of the controller's interrupts in one beat */
+    /* Try 4 (layout 16). */
+    u32 rx_bad;             /* events in dropped: the code index not matching the status byte */
+    u32 rx_mask[USB_PKT_LOG];  /* beside rx_log: bit k set if the buffer's bytes 4k..4k+3 read non-zero (k 0..16) */
+    u32 way_prev;           /* the way the newest "USB way" record of this build named (0xFFFFFFFF: none) */
 };
 
 #define USB_MIDI_MAGIC 0x4D425355u   /* "USBM" */
@@ -155,6 +165,10 @@ void usb_midi_send(u32 status, u32 d1, u32 d2, u32 length);
  * log (hw_audio.c, SB_HW_U3U); nothing in fwtest's builds. Main's loop
  * only: a record takes the flash. */
 void usb_midi_note(const char *label, const char *step);
+/* hw_a13_power_on, once at each power-on before the instrument or the
+ * test screen (SB_HW_U3U): the next way out after the one the log's
+ * newest "USB way" record names, shown in large text and logged. */
+void usb_midi_power_on(void);
 /* The test screen's spacing key (SB_HW_U3U): the next of the offered
  * spacings, from now on; returns it in us. */
 u32 usb_midi_gap_key(void);

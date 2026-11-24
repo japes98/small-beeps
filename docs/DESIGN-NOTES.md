@@ -6119,3 +6119,61 @@ leaves open.
       checked and flashed as it is. From try 4, the identity is
       `0.15.0-u3u-t<N>`: 13 characters, so `FM-1_` and it fit fwsc's 19
       and the record's 16. It is set in `hw_fm1.h` and seams' `U3U_ID`.
+  - **Try 4, from the owner's run of try 3, way 0**
+    (docs/prompts/clean-br17-u3u-try3-unit.md, backup fm1-20261123-194712):
+    nothing from the Mac sounded, because `RXCOUNT1` isn't the length. For
+    4-byte packets it read 56, 12, 60, 16, 64, 20, 68, 48.
+    - **In:** `RXCOUNT1` is logged only. Because the buffer is cleared after
+      each packet, the events are read from its start up to the first
+      all-zero one, at most 16.
+      - An event whose code index doesn't match its status byte is dropped
+        and counted (`rx_bad`). For 8 to E the status's high nibble must be
+        the code index; system and SysEx code indexes need their own status
+        bytes; data bytes must be below 0x80.
+      - The whole buffer and the 4 bytes past it are now cleared, not a
+        count's worth.
+      - For each packet, which of the 17 four-byte slots read non-zero is
+        logged beside `rx_log` (`rx_mask`). If the DMA puts the bytes
+        somewhere other than the start, try 5 can see where. This reads our
+        own memory only; there is no new register.
+    - **Out:** every message the Mac took was the first one again, in
+      packets of 64 and 28 bytes. That question is with the spec side, and
+      KEY8's ways stay.
+      - A fit with the facts, not a finding: HW-152 leaves open whether
+        main RAM sits behind a data cache that the DMA doesn't see. A cache
+        not kept in step with the DMA would give both a send that repeats
+        its first packet and a receive that reads the buffer as cleared. No
+        allowed source gives a register-level flush, so nothing here tries
+        one.
+    - **The way out at each power-on:** the owner can't use the test screen.
+      - `usb_midi_power_on`, in `hw_a13_power_on` after U2-A's second
+        reading, runs whether HOME is held or not.
+      - It reads the log ring and takes the flash just as a save does,
+        writing nothing (`hw_report_newest`). It finds the newest valid
+        record of this build whose label starts "USB way ".
+      - The way is the next one after that record's (0, 1, 2, then 0), or
+        0 if there is none. Try 3's and audio14's records are other builds.
+      - It is shown in large text for 2 s, with the build's identity, and
+        logged as a "USB way N" record. That record is the one the next
+        power-on reads, so no store write is needed.
+      - A KEY8 press still changes the way for the rest of the run, under
+        its own label ("USB out way"). The next power-on goes on from the
+        power-on's way, not KEY8's.
+    - **Layout 16** (1006 fields of 1011): the device's record gains
+      `rx_bad`, `rx_mask[8]` and `way_prev`. Layout 15 is try 3's again
+      (`USB_REC_TRY3`), and the decoder now checks that no layout passes
+      `HW_LOG_FIELDS`.
+    - **Identity** `0.15.0-u3u-t4`; USB stays at priority 0, and the source
+      comment now says that is the owner's ruling.
+    - **Seams usbmidi:**
+      - one packet with code index 8 and status 90 is dropped and counted;
+      - the packets' events and non-zero slots are checked;
+      - "USB way 0" is first among the USB records;
+      - three more power-ons from the flash each run before left give the
+        ways 1, 2 and 0. Each is an 8 s run, because starting from a used
+        flash took more than 4 s of fwtest's time;
+      - KEY7's run lets HOME go at 8 s and presses KEY7 at 12 s, after the
+        way's 2 s of large text.
+    - The ring scan's label check is built only with SB_HW_U3U. The
+      published audio14 file packs byte-identical to
+      `small-beeps-audio14-key-980f.fwsc`.

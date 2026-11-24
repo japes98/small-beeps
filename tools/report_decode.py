@@ -375,9 +375,13 @@ USB_REC = (["usb_magic", "usb_gap_units", "usb_poll_limit", "usb_state"] + ["usb
            + ["usb_attempt_%d_%s" % (k, w) for k in range(8) for w in ("gap_flags", "reset", "last")]
            + ["usb_tx_variant", "usb_tx_done", "usb_rx_log_n"] + ["usb_rx_log_%d" % k for k in range(8)]
            + ["usb_tx_log_n"] + ["usb_tx_log_%d" % k for k in range(8)]
-           + ["usb_frame_last", "usb_gone_n", "usb_back_n", "usb_irq_peak"])
-# Try 2's record (layout 14, the owner's backups of 2026-11-23): the first 98 words.
+           + ["usb_frame_last", "usb_gone_n", "usb_back_n", "usb_irq_peak"]
+           # Try 4 (layout 16).
+           + ["usb_rx_bad"] + ["usb_rx_mask_%d" % k for k in range(8)] + ["usb_way_prev"])
+# Try 2's record (layout 14, the owner's backups of 2026-11-23): the first 98 words; try 3's (layout 15, the
+# backup fm1-20261123-194712): the first 122.
 USB_REC_TRY2 = USB_REC[:USB_REC.index("usb_tx_variant")]
+USB_REC_TRY3 = USB_REC[:USB_REC.index("usb_rx_bad")]
 USB_TX_WAYS = ("one buffer", "address each packet", "two buffers")
 USB_STATES = ("waiting for a computer", "setting up", "set up", "GIVEN UP")
 USB_WHYS = {1: "USB_NRST read clear at a port access", 2: "CON1 bit 15 never came", 3: "the interrupt kept coming"}
@@ -401,12 +405,23 @@ def _layout15():
     l13 = _layout13()
     health = len(_layout4()) - len(_layout3())
     body = [n for n in l13[:len(l13) - health] if not n.startswith(("arp_log_", "u2c_log"))]
+    return body + USB_REC_TRY3 + l13[len(l13) - health:]
+
+
+def _layout16():
+    """U3-U's try 4: layout 15 with the device's record grown (packets in
+    read to the first zero event; the way out chosen at power-on)."""
+    l13 = _layout13()
+    health = len(_layout4()) - len(_layout3())
+    body = [n for n in l13[:len(l13) - health] if not n.startswith(("arp_log_", "u2c_log"))]
     return body + USB_REC + l13[len(l13) - health:]
 
 
 FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7(),
           8: _layout8(), 9: _layout9(), 10: _layout10(), 11: _layout11(), 12: _layout12(), 13: _layout13(),
-          14: _layout14(), 15: _layout15()}
+          14: _layout14(), 15: _layout15(), 16: _layout16()}
+# hw_fm1.h's HW_LOG_FIELDS: a 4096-byte record less its 12 header words and its CRC.
+assert all(len(v) <= 1011 for v in FIELDS.values()), "a layout past HW_LOG_FIELDS (1011)"
 HOLDS = ("zero", "LED", "screen", "log", "scan")
 A9_ROUTE = ("not up", "UP", "down (key)", "UNDONE by the firmware", "no L2: not tried")
 A9_S2 = ("both halves", "upper half only", "lower half only")
@@ -685,8 +700,21 @@ def u3u_lines(f):
     if "usb_tx_variant" in f:
         n = f["usb_rx_log_n"]
         rx = [f["usb_rx_log_%d" % (k % 8)] for k in range(max(0, n - 8), n)]
-        out.append("  the last packets in (RXCOUNT1/RXCOUNT2: events, RXCSR1): " + (", ".join(
-            "%d/%d: %d, %02X" % (w & 0xFF, w >> 8 & 0xFF, w >> 16 & 0xFF, w >> 24) for w in rx) or "none"))
+        if "usb_rx_bad" in f:
+            # Try 4: RXCOUNT1 only logged; the events read to the first zero one; the non-zero 4-byte slots.
+            mk = [f["usb_rx_mask_%d" % (k % 8)] for k in range(max(0, n - 8), n)]
+            out.append("  the last packets in (RXCOUNT1/RXCOUNT2: events taken, RXCSR1, the non-zero 4-byte slots): "
+                       + (", ".join("%d/%d: %d, %02X, %s" % (
+                           w & 0xFF, w >> 8 & 0xFF, w >> 16 & 0xFF, w >> 24,
+                           "+".join(str(b) for b in range(17) if m >> b & 1) or "none") for w, m in zip(rx, mk))
+                          or "none"))
+            out.append("  events dropped, the code index not matching the status: %d; the way out %s, after %s at"
+                       " the last power-on" % (
+                           f["usb_rx_bad"], f["usb_tx_variant"],
+                           "none" if f["usb_way_prev"] == 0xFFFFFFFF else f["usb_way_prev"]))
+        else:
+            out.append("  the last packets in (RXCOUNT1/RXCOUNT2: events, RXCSR1): " + (", ".join(
+                "%d/%d: %d, %02X" % (w & 0xFF, w >> 8 & 0xFF, w >> 16 & 0xFF, w >> 24) for w in rx) or "none"))
         n = f["usb_tx_log_n"]
         tx = [f["usb_tx_log_%d" % (k % 8)] for k in range(max(0, n - 8), n)]
         out.append("  out: %s; %d packets taken by the host; the last packets out (TXCSR1 before, bytes, way): %s" % (
@@ -849,7 +877,8 @@ DECIMAL |= {n for n in FIELDS[12] if n.startswith(("a13_start", "u2_late_beat", 
 DECIMAL |= {"arp_saves", "arp_save_err", "arp_save_seq", "arp_offs"}
 DECIMAL |= {n for n in USB_REC if not n.startswith(("usb_magic", "usb_lines_first", "usb_lines_or", "usb_rb_",
                                                      "usb_last_setup", "usb_giveup_value", "usb_cable_log"))
-            and not n.endswith("_gap_flags") and not n.startswith(("usb_rx_log_", "usb_tx_log_"))}
+            and not n.endswith("_gap_flags") and not n.startswith(("usb_rx_log_", "usb_tx_log_", "usb_rx_mask_",
+                                                                     "usb_way_prev"))}
 DECIMAL |= {"usb_rx_log_n", "usb_tx_log_n"}
 DECIMAL |= {n for n in FIELDS[11] if n.startswith(("start_mode", "as_state", "as_alg", "as_runs", "as_stop",
                                                      "as_chords", "as_soft", "as_hard", "as_late", "as_rel",

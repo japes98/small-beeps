@@ -4269,7 +4269,9 @@ SR-3 wrote only its barrier-log row.*
   docs/prompts/clean-br17-u3u-try2-owner.md.
 - The owner's answers to try 3's questions, relayed and saved unedited as
   docs/prompts/clean-br17-u3u-answers.md.
-- Disk: about 4 GB free; about 6 GB at the answers.
+- Try 4 from the owner's run of try 3, relayed and saved unedited as
+  docs/prompts/clean-br17-u3u-try3-unit.md.
+- Disk: about 4 GB free; about 6 GB at the answers and at try 4.
 
 ## Corrections
 
