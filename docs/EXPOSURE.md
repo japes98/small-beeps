@@ -3847,6 +3847,12 @@ SR-3 wrote only its barrier-log row.*
   ruling on that priority (0, the engine's level; 3 next if the unit shows
   lag or dropped notes) saved unedited as
   docs/prompts/spec-usb-priority-ruling.md. No new source read.
+- Later: U3-U's try 3 on the unit (connects; "USB gone" and "USB back"
+  work; the instrument plays on) and the owner's two questions for the
+  SDK. Read further in the scratch copy of the library already compiled
+  and disassembled for P-518 (nothing fetched): its device read and write
+  paths (P-519). Findings to the owner first, no HARDWARE-SPEC entry yet.
+  The owner's message saved unedited as docs/prompts/spec-u3u-try3.md.
 - Disk: about 6 GB free.
 ### Session clean-br17-presets (BR-17: PRESETS at PB7, columns 11 and 12)
 - Date: 2026-11-19 (UTC)
