@@ -1,0 +1,1 @@
+The owner's answers: 1, priority 0 is ruled (spec is saving it). 2 and 3, both yes; they're harness changes and went to the spec side as a request, so don't change fwtest yourself. Also: give each try its own identity (try 3 and try 2 are both 0.15.0-hw3z), so backups name the try. Your try 3 file (ace98173…) was checked and is being flashed now.

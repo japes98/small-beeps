@@ -4272,6 +4272,52 @@ SR-3 wrote only its barrier-log row.*
   is no longer spelled out (written as "0x16A00 and the three words after
   it", derived in code as 0x16A00 + 4*i). The candidate's app-pkg.bin
   rebuilt byte-identical.
+- After #245: the owner ruled a new branch and PR from `c48ca71a` with the
+  same files and the one commit message reworded, #245 closed unmerged,
+  no force-push: #247 (`hw/audio14-r`), its tree #245's.
+
+### Session clean-br17-u3u (BR-17: U3-U, the USB MIDI device on the unit, for the owner's flash only)
+- Date: 2026-11-23 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.330, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-audio14's, continued. The prompt came from the spec session
+  through the owner's cross-session relay, saved unedited as
+  docs/prompts/clean-br17-u3u.md; the owner's answers to audio14's
+  questions as docs/prompts/clean-br17-audio14-answers.md.
+- Start: branch `hw/u3u` from main at `b13ea394` (#247 and #246 merged),
+  after tools/clean-update.sh passed ("no spec-side files on disk or in
+  .git"). Nothing to archive (the last clean session is this one, live);
+  tools/check-transcripts.py PASS.
+- Reads: this side's own code and builds; HARDWARE-SPEC sections 49, 51,
+  52 and 53 (HW-171 to HW-173, HW-176 to HW-180), HW-86 and HW-117, and
+  REQUIREMENTS R-USB-1, as on main at `b13ea394`; docs/HARNESS.md's "USB";
+  the vendored SDK header `WL82.h`'s `JL_USB` and `JL_USB_IO` blocks
+  (HW-171 cites them). Q-36 is not in the clean folder and was not looked
+  for on the spec side.
+- Docker Desktop stopped answering during the first build; the owner
+  restarted it.
+- #249's C-SEP-TERMS failed (run 45260833187). Its log was read as a named
+  file only: the `part-quick` artifact fetched by the API,
+  `logs/C-SEP-TERMS.log` alone extracted with `unzip -p`, the zip deleted
+  at once. The hits were found by hashing the flagged lines' words.
+- Try 3 from the owner's unit report of try 2, relayed to this session
+  and saved unedited as docs/prompts/clean-br17-u3u-try2-unit.md. The owner's fuller
+  analysis of try 2 followed, saved unedited as
+  docs/prompts/clean-br17-u3u-try2-owner.md.
+- The owner's answers to try 3's questions, relayed and saved unedited as
+  docs/prompts/clean-br17-u3u-answers.md.
+- Try 4 from the owner's run of try 3, relayed and saved unedited as
+  docs/prompts/clean-br17-u3u-try3-unit.md.
+- Try 5, the owner's ruling with the spec side's report P-519, relayed and
+  saved unedited as docs/prompts/clean-br17-u3u-try5.md. P-519 was read
+  only as relayed; nothing of the spec side's was opened.
+- The owner's answer on try 5's gaps, relayed and saved unedited as
+  docs/prompts/clean-br17-u3u-try5-answer.md.
+- Disk: about 4 GB free; about 6 GB at the answers and at tries 4 and 5.
 
 ## Corrections
 

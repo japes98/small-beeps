@@ -487,6 +487,21 @@ static void hw_serve(void)
             continue;
         }
 #endif
+#if defined(SB_HW_U3U)
+        /* U3-U's tries (the owner's ruling of 2026-11-23): KEY7 on the
+         * test screen takes the port's next spacing, from then on, so one
+         * flash tries them all; each record and each host attempt logs the
+         * one in use (usb_midi.c). */
+        if (e.control == INPUT_KEY(7) && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            usb_midi_gap_key();
+            continue;
+        }
+        /* Try 3: KEY8 takes the next way packets go out (usb_midi.c). */
+        if (e.control == INPUT_KEY(8) && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
+            usb_midi_tx_key();
+            continue;
+        }
+#endif
 #if defined(SB_HW_AUDIO10)
         /* audio10 (the spec side's clean-br17-audio10): LFO cycles F's
          * format; PLAY zeros, HOME the LED blink, ENV the screen, GLO the
@@ -907,10 +922,6 @@ int main(void)
 #if defined(SB_TEST_LEDS)
     sb_test_leds();
 #endif
-#if defined(SB_USB_MIDI)
-    /* U3-F (fwtest's builds only, usb_midi.h): the USB MIDI device. */
-    usb_midi_start();
-#endif
 #if !defined(SB_HW_FM1)
     sb_irq_on();
 #endif
@@ -1050,6 +1061,11 @@ serve:
         sb_beacon.loop_ticks = sb_beacon.tick_count;
         seen = sb_work;
         second = sb_seconds;
+#if defined(SB_USB_MIDI)
+        /* U3-U (usb_midi.h): the cable reading at the app's start, then
+         * from each wake with work (about once a second at least). */
+        usb_midi_poll();
+#endif
         /* What the engine asked of the store before the loop began, and
          * (since M8a) the panel's events from before it: the screens. */
 #if defined(SB_HW_AUDIO12)
@@ -1072,6 +1088,9 @@ serve:
                 seen = sb_work;
                 sb_beacon.wakes = wakes;
                 sb_beacon.wakes_ticks = sb_beacon.tick_count;
+#if defined(SB_USB_MIDI)
+                usb_midi_poll();
+#endif
 #if defined(SB_HW_AUDIO12)
                 /* Once SEL's start has put the panel up, the panel
                  * serves the events (the test screen's keys do nothing);
