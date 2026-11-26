@@ -16,10 +16,13 @@
       and DIR/SHA256SUMS (of all of those). Exit status 1 if any check failed.
       Before hashing, C-RECORD-PRIVATE withholds any file holding a private
       term, listing it in DIR/WITHHELD.json with the original's SHA-256.
-  record.py part --out DIR --only C-A,C-B [--stop-on-fail]
+  record.py part --out DIR --only C-A,C-B [--stop-on-fail] [--shard K/N]
       One CI job's share (.github/workflows/ci.yml): runs those checks in
       CHECKS order and writes DIR/part.json, their logs and outputs, but no
-      report; with --stop-on-fail it stops at the first that fails.
+      report; with --stop-on-fail it stops at the first that fails. With
+      --shard, a check that can be split (C-SEAMS) runs its part K of N
+      only, logged as logs/<check>.K-of-N.log; assemble joins the N parts
+      into one result, which fails unless all N ran and passed.
   record.py assemble --out DIR [--with-merge] PART...
       Joins the parts into one record exactly as run writes it: the checks
       in CHECKS order, any check no part ran marked SKIP (never PASS), then
@@ -178,8 +181,10 @@ CHECKS = [
     {"id": "C-SEAMS", "title": "Seams for firmwares built on small-beeps: the build's write-back store check, outside sources, per-folder flags, the engine seam, the platform alone, core 1's start, the runtime, the SysEx tap, raw MIDI out, the store's firmware kinds, saves cut by a power cut, starting without the bring-up screens (tools/seams_suite.py)",
      "reqs": ["R-BUILD-3", "R-BUILD-4", "R-BUILD-5", "R-ENG-1", "R-ENG-2", "R-PROBE-1", "R-PROBE-2", "R-PROBE-3", "R-HW-1", "R-PLAT-1", "R-CORE-1", "R-RT-1", "R-MIDI-8",
               "R-MIDIOUT-9", "R-STORE-10", "R-STORE-11", "R-STORE-13"],
+     "shardable": True,
      "cmd": lambda: [PY, "-I", "tools/seams_suite.py", "--build", os.path.join(OUT, "build-a"),
-                     "--out", os.path.join(OUT, "seams")]},
+                     "--out", os.path.join(OUT, "seams", "part-" + SHARD.replace("/", "-of-")) if SHARD
+                     else os.path.join(OUT, "seams")] + (["--shard", SHARD] if SHARD else [])},
     # M9's app release: made twice from build A, the same bytes, verified.
     {"id": "C-RELEASE", "title": "The app release from build A, made twice: byte for byte the same; release.json format 1.0; the .fm1img passes the app's checks in order (tools/release.py selftest)",
      "reqs": ["R-REL-1", "R-REL-2"],
@@ -233,6 +238,7 @@ CHECKS = [
 
 OUT = ""
 FIRMWARE_SIZE = {}
+SHARD = None   # "K/N" for record.py part --shard: the split checks' part
 
 
 def git(*args):
@@ -641,12 +647,16 @@ def run_checks(only, skip, with_merge, stop_on_fail=False):
             code, log = run_cmd(argv)
         secs = time.time() - start
         result = "PASS" if code == 0 else "FAIL"
-        with open(os.path.join(OUT, "logs", c["id"] + ".log"), "w", encoding="utf-8") as f:
+        part = SHARD if SHARD and c.get("shardable") else None
+        logname = c["id"] + ("." + part.replace("/", "-of-") if part else "") + ".log"
+        with open(os.path.join(OUT, "logs", logname), "w", encoding="utf-8") as f:
             f.write("$ %s\n%s\nexit status %d\n" % (" ".join(argv), log, code))
         print("%-14s %-4s %6.1fs  %s" % (c["id"], result, secs, c["title"]), flush=True)
         results.append({"id": c["id"], "title": c["title"], "reqs": c["reqs"],
                         "command": " ".join(argv), "result": result, "exit_status": code,
-                        "seconds": round(secs, 1), "log": "logs/%s.log" % c["id"]})
+                        "seconds": round(secs, 1), "log": "logs/" + logname})
+        if part:
+            results[-1]["shard"] = part
         if stop_on_fail and result == "FAIL":
             print("stopping: %s failed" % c["id"], flush=True)
             break
@@ -666,9 +676,15 @@ def cmd_run(a):
 def cmd_part(a):
     """One CI job's share of the checks: their results in DIR/part.json,
     their logs and outputs beside it, for assemble."""
-    global OUT
+    global OUT, SHARD
     OUT = os.path.abspath(a.out)
     os.makedirs(os.path.join(OUT, "logs"), exist_ok=True)
+    if a.shard:
+        k, n = (int(x) for x in a.shard.split("/"))
+        if not 1 <= k <= n:
+            print("--shard K/N wants 1 <= K <= N")
+            return 2
+        SHARD = "%d/%d" % (k, n)
     only = set(a.only.split(","))
     unknown = only - {c["id"] for c in CHECKS}
     if unknown:
@@ -688,7 +704,7 @@ def cmd_assemble(a):
     global OUT
     OUT = os.path.abspath(a.out)
     os.makedirs(os.path.join(OUT, "logs"), exist_ok=True)
-    got, builds = {}, {}
+    got, builds, shards = {}, {}, {}
     for part in a.parts:
         pj = os.path.join(part, "part.json")
         if not os.path.exists(pj):
@@ -710,8 +726,33 @@ def cmd_assemble(a):
             else:
                 shutil.copyfile(src, dst)
         for r in data["results"]:
-            got[r["id"]] = r
+            if r.get("shard"):
+                shards.setdefault(r["id"], []).append(r)
+            else:
+                got[r["id"]] = r
         FIRMWARE_SIZE.update(data.get("firmware_size") or {})
+    # A split check (record.py part --shard): one result from its N parts, which passes only if parts 1 to N
+    # all ran and passed; its log is theirs in order, each part's time and result listed first.
+    for cid, rs in shards.items():
+        rs.sort(key=lambda r: int(r["shard"].split("/")[0]))
+        n = int(rs[0]["shard"].split("/")[1])
+        have = [int(r["shard"].split("/")[0]) for r in rs]
+        whole = have == list(range(1, n + 1)) and all(int(r["shard"].split("/")[1]) == n for r in rs)
+        ok = whole and all(r["result"] == "PASS" for r in rs)
+        logname = "logs/%s.log" % cid
+        with open(os.path.join(OUT, logname), "w", encoding="utf-8") as f:
+            f.write("%s in %d parts%s\n" % (cid, n, "" if whole else ": parts %s of 1 to %d ran, so it fails" % (have, n)))
+            for r in rs:
+                f.write("part %s: %s, %.1fs\n" % (r["shard"], r["result"], r["seconds"]))
+            for r in rs:
+                f.write("\n=== part %s ===\n" % r["shard"])
+                with open(os.path.join(OUT, r["log"]), encoding="utf-8", errors="replace") as g:
+                    f.write(g.read())
+        got[cid] = {"id": cid, "title": rs[0]["title"], "reqs": rs[0]["reqs"],
+                    "command": " ; ".join(r["command"] for r in rs), "result": "PASS" if ok else "FAIL",
+                    "exit_status": 0 if ok else 1, "seconds": max(r["seconds"] for r in rs),
+                    "parts": [{"shard": r["shard"], "result": r["result"], "seconds": r["seconds"]} for r in rs],
+                    "log": logname}
     # Every job that built its own build A must have built build A's bytes.
     recorded = read_sums(os.path.join(OUT, "build-a", "SHA256SUMS")) if os.path.exists(
         os.path.join(OUT, "build-a", "SHA256SUMS")) else None
@@ -855,6 +896,7 @@ def main():
     p.add_argument("--out", required=True)
     p.add_argument("--only", required=True)
     p.add_argument("--stop-on-fail", action="store_true")
+    p.add_argument("--shard", help="K/N: the split checks' (C-SEAMS) part K of N")
     s = sub.add_parser("assemble")
     s.add_argument("--out", required=True)
     s.add_argument("--with-merge", action="store_true")
