@@ -759,6 +759,14 @@ def derived(fields):
     the 24 MHz crystal)."""
     out = []
     f = fields
+    if "inst_at_ready_us" in f:
+        # Round 2's release: its start, stage by stage (us from TIMER0's start; the span before it isn't counted).
+        out.append("the release's start: ready %.1f ms after TIMER0's start (%s); problems %d (%d more not written);"
+                   " underruns %d; stacks' unused bytes: main %d, interrupts %d" % (
+                       f["inst_at_ready_us"] / 1000.0,
+                       ", ".join("%s %.1f" % (n, f["inst_at_%s_us" % n] / 1000.0) for n in INST_STAGES),
+                       f["inst_problems"], f["inst_dropped"], f["audio_underruns"], f["stack_free_main"],
+                       f["stack_free_irq"]))
     if "adc_setup" in f:
         out += audio11_lines(f)
     if "a10_fmt_changes" in f and (f.get("daa7_reads") or f.get("m_value")):
@@ -897,6 +905,7 @@ DECIMAL = {"a10_fmt_changes", "a10_fill_max_units", "a10_fill_max8_units", "a10_
 DECIMAL |= {n for n in FIELDS[10] if n.startswith(("adc_conv", "adc_passes", "adc_slot", "adc_setup", "adc_set_n",
                                                      "m_jump_n", "m_level"))
             or (n.startswith("adc_") and n.endswith(("_n", "_rest")))}
+DECIMAL |= set(INST_REC)
 DECIMAL |= {n for n in FIELDS[12] if n.startswith(("a13_start", "u2_late_beat", "u2_late_blocks", "u2_key_beat",
                                                      "u2_key_n", "u2_state", "u2_run", "u2_polls", "u2_mark_n",
                                                      "u2_chg_n", "u2c_on", "u2c_toggles", "u2c_n_", "u2c_timeouts",

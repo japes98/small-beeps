@@ -11,7 +11,7 @@
  * starts with (HW-10 is fwtest's).
  */
 
-#if defined(SB_HW_FM1)
+#if defined(SB_HW_FM1) && defined(SB_HW_TEST)
 	.text
 	.globl	hw_core1_loop
 	.type	hw_core1_loop,@function
