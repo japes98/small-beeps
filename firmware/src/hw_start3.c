@@ -302,6 +302,23 @@ void hw_flash_give(void)
     flash_give(1);
 }
 
+/* Round 2's release: the window's registers read as the round trip reads
+ * them, for the log's take and give-back (which write that CON back), and
+ * nothing else: no take, no ID read, no LED marks. HW-133 settles the
+ * round trip (the flash taken and given back, the app running on). */
+void hw_window_keep(void)
+{
+    hw3.win_con = WIN_CON;
+    hw3.win_base = WIN_BASE;
+    hw3.win_key = WIN_KEY;
+#if defined(SB_TEST_HW_WINDOW)
+    /* fwtest's window CON reads 0 (as in hw_round_trip). */
+    if (!hw3.win_con)
+        hw3.win_con = (0x00280381u & ~0x00F00000u) | 9u << 20;
+#endif
+    hw3.back = hw3.win_con != 0;
+}
+
 /* (c) step 1, before interrupts are on: the window's registers as
  * m-bootloader left them, shown before anything is changed; then, if its
  * CON reads back, the read-only round trip with its two LEDs. */
@@ -570,7 +587,7 @@ void hw_core1_start(void)
  * core 1's counter sampled again; with SB_HW_CORE1_SYSDIV, core 1's screen. */
 void hw_core1_screen(void)
 {
-#if defined(SB_HW_HOLD)
+#if defined(SB_HW_TEST)
     u32 i;
 
     while (sb_beacon.beats - hw3.c1_at < 1000u)
@@ -735,7 +752,7 @@ static void draw_tick(u32 stopped)
  * then TIMER0 stopped and its flag cleared for main to start it. */
 void hw_hold(void)
 {
-#if defined(SB_HW_HOLD)
+#if defined(SB_HW_TEST)
     u32 slots = 0, last, c;
 
     hw_step("holding the rows");
@@ -851,8 +868,10 @@ void hw_refresh(u32 second)
     draw_adc();
     if (second) {
         draw_core1();
+#if defined(SB_HW_TEST)
         if (hw_aud.started)
             hw_audio_line();
+#endif
     }
 }
 

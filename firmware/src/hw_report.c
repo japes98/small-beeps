@@ -146,6 +146,10 @@ static u32 fields(u32 *w)
 {
     u32 n = 0;
 
+#if !defined(SB_HW_TEST)
+    /* The release (layout 18): its own summary, then the log's health. */
+    n += hw_inst_report(w + n);
+#else
     w[n++] = hw_core1_count;
     w[n++] = C1_CON;
     w[n++] = hw3.count;
@@ -157,6 +161,7 @@ static u32 fields(u32 *w)
     w[n++] = hw_rep.found;
     w[n++] = hw_rep.fails;
     n += hw_audio_report(w + n);
+#endif
     /* Layout 4: the log's own health, last (since the build after audio5). */
     w[n++] = hw_rep.last_err;
     w[n++] = hw_rep.busy_waits;

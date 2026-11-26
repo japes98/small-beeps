@@ -274,15 +274,20 @@ void hw_slot(void)
     /* Not while main sweeps the matrix (hw_start3.c). */
     if (!hw_scan_paused)
         input_scan();
+#if defined(SB_HW_TEST)
     hw_a9_pb5_poll();
+#endif
     hw_a11_adc_poll();
+#if defined(SB_HW_TEST)
     hw_a10_pot_poll();
+#endif
     if (++n == HW_SLOTS_TICK) {
         n = 0;
         sb_tick();
     }
 }
 
+#if defined(SB_HW_TEST)
 /* The hardware build's panel work in place of the instrument's screens:
  * each button or key pressed or released is named on the test screen
  * (inside its box, rows HW_EVENT_Y to + 15), and its LED follows it, so a
@@ -560,6 +565,7 @@ static void hw_serve(void)
     }
 }
 #endif
+#endif
 
 #if defined(SB_HW_FM1)
 /* The panel's work once the instrument's start has put it up; audio13's
@@ -567,7 +573,12 @@ static void hw_serve(void)
 static void hw_panel_serve(void)
 {
     view_serve();
+#if defined(SB_HW_TEST)
     hw_a13_panel_tick();
+#else
+    /* The release: the summary once, then any problem (hw_audio.c). */
+    hw_inst_serve();
+#endif
 }
 #endif
 
@@ -601,7 +612,7 @@ int main(void)
     static const char hello[16] = "small-beeps M5 \n";
 
     sb_beacon.period = TICKS_PER_MS;
-#if defined(SB_HW_FM1)
+#if defined(SB_HW_TEST)
     /* audio1: the audio registers as m-bootloader's call left them, before
      * anything of main's (hw_audio.c). */
     hw_audio_boot();
@@ -655,10 +666,15 @@ int main(void)
 #if defined(SB_HW_FM1)
     /* start3 (c) step 1: the flash's read-only round trip, from RAM with
      * interrupts off, before the vector table is written (hw_start3.c). */
+#if defined(SB_HW_TEST)
     hw_round_trip();
     /* start3b: the rows and the round trip's LED marks held on the unit
      * (SB_HW_HOLD), before the scan takes the LEDs. */
     hw_hold();
+#else
+    /* The release: the window's registers for the log alone (hw_start3.c). */
+    hw_window_keep();
+#endif
     hw_step("interrupts: setting up");
 #endif
     sb_irq_init();
@@ -686,10 +702,13 @@ int main(void)
     now_race_test();
 #endif
     hw_band(3);
+#if !defined(SB_HW_TEST)
+    hw_inst_at[HW_INST_IRQ] = sb_now();
+#else
     /* start3 (c) step 2: the store's start-up counter, if step 1 came
      * back (hw_start3.c). */
     hw_store_counter();
-#if defined(SB_HW_HOLD)
+#if defined(SB_HW_TEST)
     /* start3b: is the tick still running after the store's step? */
     hw_step("tick after the store");
     hw_watch(HW_WATCH_MS);
@@ -700,9 +719,10 @@ int main(void)
     hw_core1_start();
     /* audio3: core 1's count just after its release (hw_audio.c). */
     hw_c1_mark(HW_C1_REL);
-#if defined(SB_HW_HOLD)
+#if defined(SB_HW_TEST)
     hw_step("tick after core 1");
     hw_watch(HW_WATCH_MS);
+#endif
 #endif
 #else
     sb_irq_enable(SRC_TIMER0, sb_tick, PRIO_TICK);
@@ -771,6 +791,15 @@ int main(void)
     lcd_command(LCD_DISPON, 0, 0);
     sb_beacon.screen = SB_SCREEN_BLANK;
 #else
+#if defined(SB_HW_FM1) && !defined(SB_HW_TEST)
+    /* Round 2's release: no pattern, no test screen's wait and no core 1:
+     * a black frame, the display on, then the instrument (hw_audio.c). */
+    gfx_fill(0, 0, SCREEN_W, SCREEN_H, 0);
+    lcd_send_rows(0, SCREEN_H);
+    lcd_wait();
+    lcd_command(LCD_DISPON, 0, 0);
+    hw_inst_start();
+#else
 #if defined(SB_HW_FM1)
     hw_step("pattern: sending");
 #endif
@@ -836,7 +865,8 @@ int main(void)
     hw_guide_show();
 #endif
 #endif
-#if defined(SB_HW_FM1)
+#endif
+#if defined(SB_HW_FM1) && defined(SB_HW_TEST)
 serve:
 #endif
 #if defined(SB_TEST_STORE_WIPE)
@@ -870,12 +900,12 @@ serve:
 #endif
         /* What the engine asked of the store before the loop began, and
          * (since M8a) the panel's events from before it: the screens. */
-#if defined(SB_HW_FM1)
+#if defined(SB_HW_FM1) && !defined(SB_HW_TEST)
+        hw_panel_serve();
+#elif defined(SB_HW_FM1)
         if (hw_aud.start_mode == HW_A12_INSTRUMENT)
             hw_panel_serve();
         else
-#endif
-#if defined(SB_HW_FM1)
         hw_serve();
 #elif defined(SB_ENGINE_EXTERNAL)
         sb_engine_serve();
@@ -893,15 +923,15 @@ serve:
 #if defined(SB_USB_MIDI)
                 usb_midi_poll();
 #endif
-#if defined(SB_HW_FM1)
+#if defined(SB_HW_FM1) && !defined(SB_HW_TEST)
+                hw_panel_serve();
+#elif defined(SB_HW_FM1)
                 /* Once SEL's start has put the panel up, the panel
                  * serves the events (the test screen's keys do nothing);
                  * no store (its flash writes aren't part of audio12). */
                 if (hw_aud.start_mode == HW_A12_INSTRUMENT)
                     hw_panel_serve();
                 else
-#endif
-#if defined(SB_HW_FM1)
                 hw_serve();
 #elif defined(SB_ENGINE_EXTERNAL)
                 sb_engine_serve();

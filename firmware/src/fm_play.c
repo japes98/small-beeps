@@ -544,7 +544,7 @@ static void voice_start(u32 n, int note, u32 velocity, u32 at)
         v->pending = fresh && at ? FM_PENDING_FRESH : FM_PENDING_NONE;
         v->at = at;
     }
-#if defined(SB_HW_FM1)
+#if defined(SB_HW_FM1) && defined(SB_HW_TEST)
     /* G (audio12): ALGORITHM as the engine reads it at this note on,
      * beside the algorithm the voice takes (its next one while a start
      * waits within the block; hw_audio.c's log). */
@@ -1000,7 +1000,7 @@ static void select_patch(u32 n)
     sb_fm.patch = n;
 }
 
-#if defined(SB_HW_FM1)
+#if defined(SB_HW_FM1) && defined(SB_HW_TEST)
 /* S (audio12): the sweep sets ALGORITHM (1 to FM_ALGORITHMS), as a turn
  * would, from the engine's own context (the audio interrupt). */
 void fm_a12_algorithm(u32 a)
@@ -1709,7 +1709,7 @@ static void events(void)
         } else if (e.kind == INPUT_TURN && e.control == INPUT_ALGORITHM) {
             if (local)
                 algorithm_now = (algorithm_now + FM_ALGORITHMS * 16 + (u32)(int)e.value) % FM_ALGORITHMS;
-#if defined(SB_HW_FM1)
+#if defined(SB_HW_FM1) && defined(SB_HW_TEST)
             fm_a12_turn(local, algorithm_now + 1u);
 #endif
         } else if (e.kind == INPUT_TURN && e.control >= INPUT_KNOB1 && e.control <= INPUT_KNOB4) {

@@ -20,9 +20,16 @@
 #if defined(SB_PROBE_RETURN) || defined(SB_PROBE_LIGHT) || defined(SB_PROBE_PANEL)
 #error "SB_HW_FM1 is not a probe: build it without SB_PROBE_*"
 #endif
-/* U3-U (clean-br17-u3u): the USB MIDI device on the unit, for the owner's
- * flash only (R-USB-1: the test product ID; published builds keep USB
- * off). Built on audio14, with the device itself (SB_USB_MIDI). */
+/* Round 2's two builds (docs/DESIGN-NOTES.md, clean-r2-cleanup):
+ * - the release, SB_HW_FM1 alone: the instrument and the log, published
+ *   with USB off (R-USB-1); with SB_USB_MIDI, the owner-only release, the
+ *   same with the USB MIDI device and its test product ID;
+ * - the test build, SB_HW_FM1 with SB_USB_MIDI and SB_HW_TEST: the release
+ *   with the bring-up code (the test screen, the sweeps, the probe, U2's
+ *   readings, every start-up check and record). Owner-only, never published. */
+#if defined(SB_HW_TEST) && !defined(SB_USB_MIDI)
+#error "SB_HW_TEST is the owner-only test build: build it with SB_USB_MIDI"
+#endif
 
 void hw_early(void);
 /* The block r0 pointed at when m-bootloader called the entry, and the
@@ -118,6 +125,7 @@ extern struct hw_now_test hw_now_test;
 #endif
 void hw_step(const char *text);
 void hw_hold(void);
+void hw_window_keep(void);
 void hw_watch(u32 ms);
 void hw_rows_start(void);
 /* The report log (hw_report.c, clean-br17-report1): fixed records of
@@ -135,10 +143,10 @@ void hw_rows_start(void);
 #define HW_LOG_REC     4096u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
-#if defined(SB_USB_MIDI)
-#define HW_LOG_LAYOUT  17u                  /* tools/report_decode.py's FIELDS[17] (U3-U try 5 and the final build; 16: try 4, 15: try 3, 14: try 2) */
+#if defined(SB_HW_TEST)
+#define HW_LOG_LAYOUT  17u                  /* tools/report_decode.py's FIELDS[17]: U3-U's record (16: try 4, 15: try 3, 14: try 2) */
 #else
-#define HW_LOG_LAYOUT  13u                  /* tools/report_decode.py's FIELDS[13] */
+#define HW_LOG_LAYOUT  18u                  /* tools/report_decode.py's _layout18: the release's summary and problems */
 #endif
 #define HW_LOG_HEAD    12u                  /* header words before the fields */
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
@@ -146,10 +154,12 @@ void hw_rows_start(void);
  * candidate's pack must match (tools/report-decode.py prints it). The
  * last definition stays the identity of a build without audio13, which
  * seams case report1 builds (tools/seams_suite.py's _build_id). */
-#if defined(SB_USB_MIDI)
-#define HW_BUILD_ID    "0.15.0-u3u"        /* U3-U's final build; the tries were 0.15.0-u3u-t<N> (2 and 3: 0.15.0-hw3z) */
+#if defined(SB_HW_TEST)
+#define HW_BUILD_ID    "0.16.0-r2t"        /* round 2's test build (owner-only) */
+#elif defined(SB_USB_MIDI)
+#define HW_BUILD_ID    "0.16.0-r2u"        /* round 2's owner-only release (USB on); U3-U's final build was 0.15.0-u3u */
 #else
-#define HW_BUILD_ID    "0.14.0-hw3y"
+#define HW_BUILD_ID    "0.16.0-r2"         /* round 2's published release (USB off); audio14 was 0.14.0-hw3y */
 #endif
 struct hw_report {
     u32 scanned;                /* the ring read once */
@@ -172,6 +182,24 @@ int hw_flash_take(void);
 void hw_flash_give(void);
 void hw_report_save(const char *label);
 u32 hw_audio_report(u32 *w);
+/* The release's start (hw_audio.c, round 2): the stages' times, sb_now()
+ * units (24 MHz) from TIMER0's start (the span before it, sb_start's copy
+ * and hw_early's panel, isn't counted: no counter runs that early). */
+#define HW_INST_IRQ     0u   /* interrupts on, TIMER0 running */
+#define HW_INST_ENGINE  1u   /* the engine's start */
+#define HW_INST_AUDIO   2u   /* ALNK0 started, the synth filling */
+#define HW_INST_L2      3u   /* L2: the link on the PLL's audio clock */
+#define HW_INST_R2      4u   /* R2: port C's four pins */
+#define HW_INST_ROUTE   5u   /* the route: CON0 bits 7 and 8 */
+#define HW_INST_PANEL   6u   /* the panel's first frame asked */
+#define HW_INST_READY   7u   /* the instrument ready: sound, panel, keys */
+#define HW_INST_STAGES  8u
+#define HW_INST_PROBLEMS 16u /* problem records a power-on, at most */
+extern u32 hw_inst_at[HW_INST_STAGES];
+void hw_inst_start(void);
+void hw_inst_serve(void);
+void hw_inst_problem(const char *label);
+u32 hw_inst_report(u32 *w);
 /* audio1 (hw_audio.c, clean-br17-audio1): the audio probe. Its line on the
  * test screen (scale 2), between core 1's row and the window's; the page's
  * hold; how long the tone runs before the "tone on" registers are read. */
