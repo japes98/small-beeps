@@ -17,6 +17,7 @@
 #include "usb_midi.h"
 #include "hw_fm1.h"
 #include "WL82.h"
+#include "store.h"
 #include "hw_audio_int.h"
 
 #if defined(SB_HW_FM1) && defined(SB_HW_TEST)
@@ -2640,6 +2641,13 @@ void hw_a12_instrument(u32 cold)
         fm_init();
         hw_aud.daa7_boot = hw_aud.daa7_last = daa7();
         hw_aud.daa7_reads = 1;
+    }
+    /* Round 3: the store, as the release starts it (saving.c), once. */
+    if (!store_up) {
+        a12_stage("Inst store", "round 3: instrument: the store");
+        store_boot();
+        /* Slot 16 after the soak, first (hw_test_store.c). */
+        hw_soak_verdict();
     }
     a12_stage("Inst synth", "audio12: instrument: the synth");
     if (!hw_aud.a9_synth)

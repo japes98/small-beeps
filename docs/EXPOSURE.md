@@ -4435,6 +4435,29 @@ SR-3 wrote only its barrier-log row.*
 - Reads: this side's own code and docs; #255's CI as `gh pr checks` and
   job logs (the "seams case" lines). No HARDWARE-SPEC entry was opened.
 
+### Session clean-r3-store (round 3: the store and editing on the unit, the soak, the red screen)
+- Date: 2026-11-26 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.332, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  continued. The prompt came from the spec session through the owner's
+  cross-session relay, saved unedited as docs/prompts/clean-r3-store.md.
+- Start: tools/clean-update.sh passed at `a5fc994f` ("no spec-side files
+  on disk or in .git"); branch `clean/r3-store` from there.
+- Archive: nothing new to archive. The last clean session is this one,
+  still live, and every earlier clean transcript is in sessions/clean/.
+  tools/check-transcripts.py PASS (27 transcripts).
+- Reads, on main at `a5fc994f`: REQUIREMENTS R-STORE-1 to R-STORE-13 and
+  R-UI-1 to R-UI-14; HARDWARE-SPEC HW-80, HW-110, HW-115 to HW-118,
+  HW-120 to HW-124, HW-131 and HW-133; docs/STORE-FORMAT.md and
+  docs/PATCH-FORMAT.md. The ranges printed also showed HW-111, HW-119,
+  HW-135, HW-136, HW-137 and the start of HW-138 (whole entries, read as
+  printed); nothing here rests on them. docs/HARNESS.md's flash, power-cut
+  and instruction notes, for fwtest's options. This side's own code.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence

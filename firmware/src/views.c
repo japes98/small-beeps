@@ -34,16 +34,59 @@ volatile struct sb_ui_record sb_ui __attribute__((section(".beacon.engine1")));
 #define GREY    RGB565(12, 24, 12)
 #define YELLOW  RGB565(31, 63, 0)
 #define CYAN    RGB565(0, 63, 31)
+#if defined(SB_HW_FM1)
+#define ORANGE  RGB565(31, 40, 0)
+#endif
 
 /* The frame (rows). */
+#if defined(SB_HW_FM1)
+/* Round 3 (clean-r3-store, section 2): the unit's screens in large text.
+ * Every word and number at scale 2 (10 x 16, 20 characters a line) or
+ * more; the title and the value being edited at scale 3 (15 x 24, 13
+ * characters). The title (the program's name on the patch view, the
+ * screen and operator on the others), the body, two lines naming the
+ * panel keys the screen uses, the event line (scale 3: the store's
+ * results, the value a knob just changed, MIDI's notes) and the strip.
+ * fwtest's builds keep M8a's layout below and its goldens. */
+#define HEAD_Y   0u
+#define HEAD_H   26u    /* the title (scale 3) at 1, a line at 25 */
+#define BODY_Y   26u
+#define BODY_H   116u
+#define KEYS_Y   142u   /* two lines at scale 2 */
+#define KEYS_H   34u
+#define MSG_Y    176u
+#define MSG_H    26u    /* text (scale 3) at 177 */
+#define LINE_Y   KEYS_Y /* the keys and the event line: one part */
+#define LINE_H   (KEYS_H + MSG_H)
+#define MSG_CHARS 13u
+#define STRIP_Y  202u
+#define STRIP_H  38u    /* a line at 203, names (scale 2) at 205, values (scale 2) at 222 */
+#define STRIP_NAME_DY  3u
+#define STRIP_NAME_SCALE 2u
+#define STRIP_VALUE_DY 20u
+#define STRIP_CHARS 5u
+/* Five characters fill a column: alternate columns in other colours. */
+#define STRIP_NAME_FG(k)  ((k) & 1u ? CYAN : WHITE)
+#define STRIP_VALUE_FG(k) ((k) & 1u ? ORANGE : YELLOW)
+#else
 #define HEAD_Y   0u
 #define HEAD_H   26u    /* text at 4, a line at 24 */
 #define BODY_Y   26u
 #define BODY_H   164u
 #define MSG_Y    190u
 #define MSG_H    12u    /* text at 192 */
+#define LINE_Y   MSG_Y
+#define LINE_H   MSG_H
+#define MSG_CHARS 38u
 #define STRIP_Y  202u
 #define STRIP_H  38u    /* a line at 203, names at 207, values (scale 2) at 220 */
+#define STRIP_NAME_DY  5u
+#define STRIP_NAME_SCALE 1u
+#define STRIP_VALUE_DY 18u
+#define STRIP_CHARS 10u
+#define STRIP_NAME_FG(k)  WHITE
+#define STRIP_VALUE_FG(k) YELLOW
+#endif
 #define COLUMN_W 60u
 #define SETTING_ROWS 8u   /* the settings screen's rows (fm_play.c's ROW_*) */
 
@@ -151,6 +194,72 @@ static void take(void)
  * octave ("O+1"). */
 static char head_text[3][17], head_drawn[3][17];
 
+#if defined(SB_HW_FM1)
+/* The title, at most MSG_CHARS characters at scale 3: the program's name
+ * on the patch view; the screen, the operator and the page elsewhere. */
+static void head_work(void)
+{
+    char *b = head_text[0];
+    u32 n = 0, i;
+
+    switch (ui.screen) {
+    case UI_EDIT:
+        n = put(b, 0, "EDIT OP");
+        n = decimal(b, n, ui.op + 1, 0);
+        n = put(b, n, "  ");
+        n = decimal(b, n, ui.page + 1, 0);
+        n = put(b, n, "/3");
+        break;
+    case UI_ENV:
+        if (ui.env == 2) {
+            n = put(b, 0, "GLIDE");
+            break;
+        }
+        if (ui.env == 1) {
+            n = put(b, 0, "PITCH ");
+        } else {
+            n = put(b, 0, "ENV OP");
+            n = decimal(b, n, ui.op + 1, 0);
+            b[n++] = ' ';
+        }
+        n = put(b, n, ui.page ? "LEVEL" : "RATE");
+        break;
+    case UI_SETTINGS:
+        n = put(b, 0, "SETTINGS");
+        break;
+    case UI_ARP:
+        n = put(b, 0, arp_running ? "ARP ON  " : "ARP OFF ");
+        n = decimal(b, n, ui.page + 1, 0);
+        n = put(b, n, "/2");
+        break;
+    default:
+        for (i = 0; i < 12 && prog[FMP_NAME + i]; i++)
+            b[n++] = (char)prog[FMP_NAME + i];
+        break;
+    }
+    pad(b, n, MSG_CHARS);
+    head_text[1][0] = head_text[2][0] = 0;
+}
+
+/* The patch view's program line: "U01 POLY" ("001", "P01"), as the
+ * header's number was. */
+static u32 program_text(char *b, u32 n)
+{
+    u32 p = program, u = p - FM_PATCHES + 1u;
+
+    if (p < FM_PATCHES) {
+        n = put(b, n, "00");
+        b[n++] = (char)('1' + p);
+    } else {
+        if (p >= FM_PRESET0)
+            u = p - FM_PRESET0 + 1u;
+        b[n++] = p >= FM_PRESET0 ? 'P' : 'U';
+        b[n++] = (char)('0' + u / 10);
+        b[n++] = (char)('0' + u % 10);
+    }
+    return put(b, n, mono ? " MONO" : " POLY");
+}
+#else
 static void head_work(void)
 {
     u32 n = 0, i, p = program, u = p - FM_PATCHES + 1u;
@@ -177,25 +286,47 @@ static void head_work(void)
     n = decimal(head_text[2], n, (int)(s32)octave, 1);
     pad(head_text[2], n, 3);
 }
+#endif
 
 /* The bottom strip: four names and four values. */
 static char strip_name[4][11], strip_value[4][6];
 static char strip_name_drawn[4][11], strip_value_drawn[4][6];
 
+#if defined(SB_HW_FM1)
+/* The strip's names in five characters (scale 2 in a 60-pixel column). */
+static const char *short_name(const char *name)
+{
+    static const char *const names[][2] = {
+        { "FREQ Hz", "FREQ" }, { "DETUNE", "DETUN" }, { "COARSE", "COARS" }, { "D1 LEVEL", "D1LVL" },
+        { "OUT CH", "OUTCH" }, { "ATTACK", "ATTCK" }, { "DECAY1", "DCAY1" }, { "DECAY2", "DCAY2" },
+        { "RELEASE", "RELSE" }, { "OCTAVES", "OCTS" }, { "GATE %", "GATE%" }, { "SWING %", "SWNG%" },
+        { "MIDI OUT", "MIDI" }, { "BRIGHT", "BRITE" }, { "MOTION", "MOTN" },
+    };
+    u32 i;
+
+    for (i = 0; i < sizeof names / sizeof names[0]; i++)
+        if (same(name, names[i][0]))
+            return names[i][1];
+    return name;
+}
+#else
+#define short_name(name) (name)
+#endif
+
 static void strip_set(u32 k, const char *name, int v, int sign)
 {
-    u32 n = put(strip_name[k], 0, name);
+    u32 n = put(strip_name[k], 0, short_name(name));
 
-    pad(strip_name[k], n, 10);
+    pad(strip_name[k], n, STRIP_CHARS);
     n = decimal(strip_value[k], 0, v, sign);
     pad(strip_value[k], n, 5);
 }
 
 static void strip_text(u32 k, const char *name, const char *value)
 {
-    u32 n = put(strip_name[k], 0, name);
+    u32 n = put(strip_name[k], 0, short_name(name));
 
-    pad(strip_name[k], n, 10);
+    pad(strip_name[k], n, STRIP_CHARS);
     n = put(strip_value[k], 0, value);
     pad(strip_value[k], n, 5);
 }
@@ -387,6 +518,15 @@ static u32 body_work(void)
      * on its info line and strip, so an edit redraws only those. */
     if (ui.screen == UI_PATCH)
         h = mix(h, prog[FMP_FEEDBACK]);
+#if defined(SB_HW_FM1)
+    /* The large patch view's body holds the program's number, the mode
+     * and the octave (the title only the name). */
+    if (ui.screen == UI_PATCH) {
+        h = mix(h, program);
+        h = mix(h, mono);
+        h = mix(h, octave);
+    }
+#endif
     /* The ARP screen's body shows the arpeggiator's settings (ARP). */
     if (ui.screen == UI_ARP) {
         h = mix(h, prog[FMP_ARP]);
@@ -424,6 +564,14 @@ static void draw_head(void)
 {
     u32 i;
 
+#if defined(SB_HW_FM1)
+    gfx_fill(0, HEAD_Y, SCREEN_W, HEAD_H, BLACK);
+    text(3, 1, head_text[0], WHITE, 3);
+    gfx_fill(0, HEAD_Y + 25, SCREEN_W, 1, GREY);
+    for (i = 0; i < 3; i++)
+        copy_text(head_drawn[i], head_text[i]);
+    return;
+#endif
     gfx_fill(0, HEAD_Y, SCREEN_W, HEAD_H, BLACK);
     text(4, 4, head_text[0], WHITE, 2);
     text(SCREEN_W - 4 - 4 * FONT_CELL, 4, head_text[1], CYAN, 1);
@@ -445,14 +593,15 @@ static void draw_strip(void)
         gfx_fill(0, STRIP_Y, SCREEN_W, STRIP_H, BLACK);
         gfx_fill(0, STRIP_Y + 1, SCREEN_W, 1, GREY);
     } else {
-        y = STRIP_Y + 18;
+        y = STRIP_Y + STRIP_VALUE_DY;
         h = 2 * FONT_H;
     }
     for (k = 0; k < 4; k++) {
         if (names)
-            text(k * COLUMN_W + 2, STRIP_Y + 5, strip_name[k], WHITE, 1);
+            text(k * COLUMN_W + (STRIP_NAME_SCALE == 1 ? 2 : 0), STRIP_Y + STRIP_NAME_DY, strip_name[k],
+                 STRIP_NAME_FG(k), STRIP_NAME_SCALE);
         if (names || !same(strip_value[k], strip_value_drawn[k]))
-            text(k * COLUMN_W, STRIP_Y + 18, strip_value[k], YELLOW, 2);
+            text(k * COLUMN_W, STRIP_Y + STRIP_VALUE_DY, strip_value[k], STRIP_VALUE_FG(k), 2);
         copy_text(strip_name_drawn[k], strip_name[k]);
         copy_text(strip_value_drawn[k], strip_value[k]);
     }
@@ -462,11 +611,62 @@ static void draw_strip(void)
 /* The event line: the last message, padded. */
 static char line[41];
 
+#if defined(SB_HW_FM1)
+/* The keys the screen uses, by their names on the panel, in two lines of
+ * at most 20 characters at scale 2; while SAVE is held, how to save. */
+static char keys_text[2][21], keys_drawn[2][21];
+
+static void keys_work(void)
+{
+    const char *a, *b;
+
+    if (input_value(INPUT_SAVE)) {
+        a = "HOLD SAVE, PRESS";
+        b = "KEY 1-16 TO SAVE";
+    } else {
+        switch (ui.screen) {
+        case UI_EDIT:
+            a = "SEL+OP1-6: OPERATOR";
+            b = "SELECT: PAGE  HOME";
+            break;
+        case UI_ENV:
+            a = "SEL+OP1-6, SEL+PIT,";
+            b = ui.env == 2 ? "SEL+GLO  HOME" : ui.page ? "SEL+GLO SELECT: RATE" : "SEL+GLO SELECT:LEVEL";
+            break;
+        case UI_SETTINGS:
+            a = ui.confirm ? "RESET ALL? SAVE: YES" : "SELECT: ROW";
+            b = ui.confirm ? "HOME: NO" : "KNOB1: CHANGE  HOME";
+            break;
+        case UI_ARP:
+            a = "ARP: ON/OFF";
+            b = "SELECT: PAGE  HOME";
+            break;
+        default:
+            a = "PRESETS EDIT ENV ARP";
+            b = "GLO  SAVE+KEY 1-16";
+            break;
+        }
+    }
+    pad(keys_text[0], put(keys_text[0], 0, a), 20);
+    pad(keys_text[1], put(keys_text[1], 0, b), 20);
+}
+
+static void draw_line(void)
+{
+    gfx_fill(0, LINE_Y, SCREEN_W, LINE_H, BLACK);
+    text(0, KEYS_Y + 1, keys_text[0], CYAN, 2);
+    text(0, KEYS_Y + 17, keys_text[1], CYAN, 2);
+    text(3, MSG_Y + 1, line, WHITE, 3);
+    copy_text(keys_drawn[0], keys_text[0]);
+    copy_text(keys_drawn[1], keys_text[1]);
+}
+#else
 static void draw_line(void)
 {
     gfx_fill(0, MSG_Y, SCREEN_W, MSG_H, BLACK);
     text(4, MSG_Y + 2, line, WHITE, 1);
 }
+#endif
 
 /* --- The algorithm, drawn as boxes and lines -------------------------- */
 
@@ -530,8 +730,14 @@ static void draw_algorithm(u32 alg, u32 x, u32 y, u32 w, u32 h, u32 sel)
         cw = 40;
     if (ch > 30)
         ch = 30;
+#if defined(SB_HW_FM1)
+    /* Room for a scale-2 number in each box (a 12 x 16 cell). */
+    bw = cw - 5;
+    bh = ch - 2;
+#else
     bw = cw - 8;
     bh = ch - 10 < 12 ? ch - 4 : ch - 10;
+#endif
     box_w = bw;
     box_h = bh;
     for (i = 0; i < FM_OPS; i++) {
@@ -551,8 +757,17 @@ static void draw_algorithm(u32 alg, u32 x, u32 y, u32 w, u32 h, u32 sel)
         gfx_frame(bx[i], by[i], bw, bh, on ? YELLOW : GREY);
         if (on)
             gfx_frame(bx[i] + 1, by[i] + 1, bw - 2, bh - 2, YELLOW);
+#if defined(SB_HW_FM1)
+        if (bw >= 2 * FONT_CELL + 1 && bh >= 2 * FONT_H) {
+            gfx_glyph(bx[i] + 1 + (bw - 2 * FONT_CELL - 1) / 2, by[i] + 1, '1' + i, fg, bg, 2);
+            gfx_frame(bx[i], by[i], bw, bh, on ? YELLOW : GREY);
+            if (on)
+                gfx_frame(bx[i] + 1, by[i] + 1, bw - 2, bh - 2, YELLOW);
+        }
+#else
         if (bh >= FONT_H + 2)
             gfx_glyph(bx[i] + (bw - FONT_CELL) / 2, by[i] + (bh - FONT_H - 3) / 2, '1' + i, fg, bg, 1);
+#endif
         box_x[i] = bx[i];
         box_y[i] = by[i];
         if (i == a->feedback_op) {
@@ -576,6 +791,26 @@ static u32 meter_width(s32 g, u32 w)
     return x >= 128 ? 0 : (128 - x) * w / 128;
 }
 
+#if defined(SB_HW_FM1)
+/* The large boxes hold their number: the meter stands at the box's right,
+ * inside it, rising from the bottom. */
+#define METER_LEN (box_h - 4u)
+#define METER_X(i) (box_x[i] + box_w - 4u)
+#define METER_Y(i) (box_y[i] + 2u)
+#define METER_W 2u
+#define METER_H METER_LEN
+static void draw_meter(u32 i, u32 width)
+{
+    gfx_fill(METER_X(i), METER_Y(i), METER_W, METER_LEN, DARK);
+    gfx_fill(METER_X(i), METER_Y(i) + METER_LEN - width, METER_W, width, CYAN);
+    meter_drawn[i] = width;
+}
+#else
+#define METER_LEN (box_w - 6u)
+#define METER_X(i) (box_x[i] + 3)
+#define METER_Y(i) (box_y[i] + box_h - 5)
+#define METER_W (box_w - 6)
+#define METER_H 3
 static void draw_meter(u32 i, u32 width)
 {
     u32 x = box_x[i] + 3, y = box_y[i] + box_h - 5, w = box_w - 6;
@@ -584,6 +819,7 @@ static void draw_meter(u32 i, u32 width)
     gfx_fill(x, y, width, 3, CYAN);
     meter_drawn[i] = width;
 }
+#endif
 
 /* --- The envelope view (M8a part 4) -------------------------------------
  * The envelope drawn to scale: each stage's width is its time code (a
@@ -593,9 +829,14 @@ static void draw_meter(u32 i, u32 width)
  * the pixels under it are kept, so moving it redraws and sends two small
  * rectangles, never the graph. */
 #define GRAPH_X 8u
+#if defined(SB_HW_FM1)
+#define GRAPH_Y (BODY_Y + 18u)   /* the stage's name above it at scale 2 */
+#define GRAPH_H 96u
+#else
 #define GRAPH_Y (BODY_Y + 24u)
-#define GRAPH_W 224u
 #define GRAPH_H 112u
+#endif
+#define GRAPH_W 224u
 #define HOLD_W  36u
 #define DOT     5u
 
@@ -700,10 +941,18 @@ static void draw_graph(u32 clear)
         gfx_line((int)gx[i], (int)gy[i], (int)gx[i + 1], (int)gy[i + 1], CYAN);
     if (ui.env == 2) {
         char b[24];
+#if defined(SB_HW_FM1)
+        u32 n = put(b, 0, "GLIDE ");
+#else
         u32 n = put(b, 0, "glide ");
+#endif
         n = decimal(b, n, prog[FMP_GLIDE], 0);
         b[n] = 0;
+#if defined(SB_HW_FM1)
+        text(GRAPH_X + GRAPH_W - 9 * 2 * FONT_CELL, GRAPH_Y + GRAPH_H - 20, b, GREY, 2);
+#else
         text(GRAPH_X + GRAPH_W - 16 * FONT_CELL, GRAPH_Y + GRAPH_H - 20, b, GREY, 1);
+#endif
     }
     dot_on = 0;
     graph_sig_marked = graph_sig;
@@ -801,18 +1050,37 @@ static void dot_move(void)
     }
     if (!same(stage_text, stage_drawn)) {
         char b[12];
+#if defined(SB_HW_FM1)
+        u32 n = put(b, 0, stage_text[0] ? "STAGE " : "");
+#else
         u32 n = put(b, 0, stage_text[0] ? "stage " : "");
+#endif
         n = put(b, n, stage_text);
         pad(b, n, 10);
+#if defined(SB_HW_FM1)
+        text(4, BODY_Y + 1, b, YELLOW, 2);
+        lcd_send_rect(4, BODY_Y + 1, 20 * FONT_CELL, 2 * FONT_H);
+#else
         text(SCREEN_W - 4 - 10 * FONT_CELL, BODY_Y + 4, b, YELLOW, 1);
         lcd_send_rect(SCREEN_W - 4 - 10 * FONT_CELL, BODY_Y + 4, 10 * FONT_CELL, FONT_H);
+#endif
         copy_text(stage_drawn, stage_text);
     }
 }
 
 /* --- The patch view's spectrum (M8a part 5; spectrum.c) -------------- */
+#if defined(SB_HW_FM1)
+/* Beside the algorithm, under the program's lines: two pixels a bar. */
+#define SPEC_X  124u
+#define SPEC_Y  (BODY_Y + 74u)
+#define SPEC_STEP 2u
+#define SPEC_BAR  2u
+#else
 #define SPEC_X  8u
 #define SPEC_Y  (BODY_Y + 124u)
+#define SPEC_STEP 4u
+#define SPEC_BAR  3u
+#endif
 #define SPEC_H  40u
 #define SPEC_MS 33u    /* about 30 transforms a second, at most */
 static u8 bars_new[SPEC_BARS], bars_drawn[SPEC_BARS];
@@ -824,15 +1092,15 @@ static void draw_spectrum(u32 all)
     u32 j;
 
     if (all) {
-        gfx_fill(SPEC_X, SPEC_Y, SPEC_BARS * 4u, SPEC_H, BLACK);
-        gfx_fill(SPEC_X, SPEC_Y + SPEC_H - 1u, SPEC_BARS * 4u, 1, DARK);
+        gfx_fill(SPEC_X, SPEC_Y, SPEC_BARS * SPEC_STEP, SPEC_H, BLACK);
+        gfx_fill(SPEC_X, SPEC_Y + SPEC_H - 1u, SPEC_BARS * SPEC_STEP, 1, DARK);
     }
     for (j = 0; j < SPEC_BARS; j++) {
-        u32 n = bars_new[j], d = all ? 0 : bars_drawn[j], x = SPEC_X + 4u * j;
+        u32 n = bars_new[j], d = all ? 0 : bars_drawn[j], x = SPEC_X + SPEC_STEP * j;
         if (n > d)
-            gfx_fill(x, SPEC_Y + SPEC_H - n, 3, n - d, CYAN);
+            gfx_fill(x, SPEC_Y + SPEC_H - n, SPEC_BAR, n - d, CYAN);
         else if (n < d)
-            gfx_fill(x, SPEC_Y + SPEC_H - d, 3, d - n, BLACK);
+            gfx_fill(x, SPEC_Y + SPEC_H - d, SPEC_BAR, d - n, BLACK);
         bars_drawn[j] = (u8)n;
     }
 }
@@ -871,6 +1139,26 @@ static void body_patch(void)
     char b[24];
     u32 n;
 
+#if defined(SB_HW_FM1)
+    draw_algorithm(algorithm - 1u, 2, BODY_Y + 1, 116, 114, FM_OPS);
+    n = program_text(b, 0);
+    b[n] = 0;
+    text(124, BODY_Y + 2, b, WHITE, 2);
+    n = put(b, 0, "ALG ");
+    n = decimal(b, n, (int)algorithm, 0);
+    b[n] = 0;
+    text(124, BODY_Y + 20, b, WHITE, 2);
+    n = put(b, 0, "FB ");
+    n = decimal(b, n, prog[FMP_FEEDBACK], 0);
+    n = put(b, n, (s32)octave ? " O" : " O+");
+    n = decimal(b, n, (int)(s32)octave, 1);
+    b[n] = 0;
+    text(124, BODY_Y + 38, b, GREY, 2);
+    if (!midi_settings.local)
+        text(124, BODY_Y + 56, "LOCAL OFF", YELLOW, 2);
+    draw_spectrum(1);
+    return;
+#endif
     draw_algorithm(algorithm - 1u, 4, BODY_Y + 6, 120, 110, FM_OPS);
     n = put(b, 0, "ALG ");
     n = decimal(b, n, (int)algorithm, 0);
@@ -892,6 +1180,17 @@ static void body_edit(void)
     char b[41];
     u32 n;
 
+#if defined(SB_HW_FM1)
+    /* The title names the operator and the page; the strip and the event
+     * line its values. */
+    (void)b;
+    (void)n;
+    draw_algorithm(algorithm - 1u, 4, BODY_Y + 1, 232, 114, ui.op);
+    for (n = 0; n < FM_OPS; n++)
+        draw_meter(n, meter_width(fm_op_level[n], METER_LEN));
+    (void)o;
+    return;
+#endif
     n = put(b, 0, "ALG ");
     n = decimal(b, n, (int)algorithm, 0);
     n = put(b, n, "   OP");
@@ -905,7 +1204,7 @@ static void body_edit(void)
     {
         u32 i;
         for (i = 0; i < FM_OPS; i++)
-            draw_meter(i, meter_width(fm_op_level[i], box_w - 6));
+            draw_meter(i, meter_width(fm_op_level[i], METER_LEN));
     }
     (void)o;
 }
@@ -918,22 +1217,44 @@ static void arp_info(char *b)
     u32 t = sb_arp.tempo_x10, n;
     int note = arp_last_note();
 
+#if defined(SB_HW_FM1)
+    n = put(b, 0, sb_arp.clock ? "MIDI " : "INT ");
+#else
     n = put(b, 0, sb_arp.clock ? "clock MIDI " : "clock internal ");
+#endif
     n = decimal(b, n, (int)(t / 10u), 0);
     b[n++] = '.';
     b[n++] = (char)('0' + t % 10u);
+#if defined(SB_HW_FM1)
+    n = put(b, n, " BPM");
+#else
     n = put(b, n, " bpm");
+#endif
     if (note >= 0 && arp_running) {
+#if defined(SB_HW_FM1)
+        b[n++] = ' ';
+#else
         n = put(b, n, "   note ");
+#endif
         n = put(b, n, names[note % 12]);
         n = decimal(b, n, note / 12 - 1, 0);
     }
+#if defined(SB_HW_FM1)
+    pad(b, n, 20);
+#else
     pad(b, n, 38);
+#endif
 }
 
 /* The operator view's info line (its own part): the selected operator's
  * values on every page. */
+#if defined(SB_HW_FM1)
+#define INFO_Y (BODY_Y + 92)    /* the ARP screen's live line; no operator line */
+#define INFO_SCALE 2u
+#else
 #define INFO_Y (BODY_Y + 144)
+#define INFO_SCALE 1u
+#endif
 static char info_text[41], info_drawn[41];
 
 static void info_work(void)
@@ -951,6 +1272,12 @@ static void info_work(void)
         arp_info(b);
         return;
     }
+#if defined(SB_HW_FM1)
+    if (ui.screen == UI_EDIT) {
+        b[0] = 0;
+        return;
+    }
+#endif
     if (ui.screen != UI_EDIT) {
         b[0] = 0;
         return;
@@ -967,20 +1294,35 @@ static void info_work(void)
 }
 
 static void settings_rows(u32 first, u32 last);
+#if defined(SB_HW_FM1)
+/* Seven of the eight rows at scale 2: from the second once the last is
+ * selected. */
+#define SETTINGS_SHOWN 7u
+#define SETTINGS_FIRST (ui.row >= SETTINGS_SHOWN ? 1u : 0u)
+#define SETTINGS_Y(r) (BODY_Y + 2u + 16u * ((r) - SETTINGS_FIRST))
+#else
+#define SETTINGS_SHOWN SETTING_ROWS
+#define SETTINGS_FIRST 0u
 #define SETTINGS_Y(r) (BODY_Y + 20u + 12u * (r))
+#endif
 
 static void draw_info(void)
 {
     if (ui.screen == UI_SETTINGS) {
         /* Only ever after the body, whose bands cleared these rows: a
          * setting's change redraws the body. */
+#if defined(SB_HW_FM1)
+        u32 y = SETTINGS_Y(SETTINGS_FIRST + 4u), h = SETTINGS_Y(SETTINGS_FIRST + SETTINGS_SHOWN) - y;
+        settings_rows(SETTINGS_FIRST + 4u, SETTINGS_FIRST + SETTINGS_SHOWN);
+#else
         u32 y = SETTINGS_Y(SETTING_ROWS / 2), h = SETTINGS_Y(SETTING_ROWS) + 4 + FONT_H - y;
         settings_rows(SETTING_ROWS / 2, SETTING_ROWS);
+#endif
         send(y, h);
     } else {
-        gfx_fill(0, INFO_Y, SCREEN_W, FONT_H, BLACK);
-        text(4, INFO_Y, info_text, GREY, 1);
-        send(INFO_Y, FONT_H);
+        gfx_fill(0, INFO_Y, SCREEN_W, FONT_H * INFO_SCALE, BLACK);
+        text(4, INFO_Y, info_text, GREY, INFO_SCALE);
+        send(INFO_Y, FONT_H * INFO_SCALE);
     }
     copy_text(info_drawn, info_text);
 }
@@ -990,6 +1332,15 @@ static void body_env(void)
     char b[24];
     u32 n;
 
+#if defined(SB_HW_FM1)
+    /* The title says which envelope and page; the stage's name goes where
+     * this line was (dot_move). */
+    (void)b;
+    (void)n;
+    draw_graph(0);
+    stage_drawn[0] = 0;
+    return;
+#endif
     if (ui.env == 0) {
         n = put(b, 0, "ENV  OP");
         n = decimal(b, n, ui.op + 1, 0);
@@ -1008,6 +1359,16 @@ static void body_env(void)
 
 static void setting_row(u32 r, char *b)
 {
+#if defined(SB_HW_FM1)
+    static const char *const names[SETTING_ROWS] = {
+        "MIDI IN", "MIDI OUT", "THRU", "LOCAL", "BEND", "KNOBS", "STORE", "RESET",
+    };
+    u32 n = put(b, 0, r == ui.row ? ">" : " "), u, k;
+
+    n = put(b, n, names[r]);
+    while (n < 10)
+        b[n++] = ' ';
+#else
     static const char *const names[SETTING_ROWS] = {
         "MIDI in channel", "MIDI out channel", "Thru", "Local control", "Bend range", "Knobs", "Store",
         "Factory reset",
@@ -1017,6 +1378,7 @@ static void setting_row(u32 r, char *b)
     n = put(b, n, names[r]);
     while (n < 22)
         b[n++] = ' ';
+#endif
     switch (r) {
     case 0:
         n = midi_settings.channel == MIDI_OMNI ? put(b, n, "omni") : decimal(b, n, midi_settings.channel, 0);
@@ -1040,10 +1402,18 @@ static void setting_row(u32 r, char *b)
         for (u = user_used, k = 0; u; u &= u - 1)
             k++;
         n = decimal(b, n, (int)k, 0);
+#if defined(SB_HW_FM1)
+        n = put(b, n, "/16");
+#else
         n = put(b, n, "/16 used");
+#endif
         break;
     default:
+#if defined(SB_HW_FM1)
+        n = put(b, n, ui.confirm ? "SAVE?" : "KNOB1");
+#else
         n = put(b, n, ui.confirm ? "SAVE: yes" : "KNOB1");
+#endif
         break;
     }
     b[n] = 0;
@@ -1058,6 +1428,13 @@ static void settings_rows(u32 first, u32 last)
     char b[41];
     u32 r;
 
+#if defined(SB_HW_FM1)
+    for (r = first; r < last; r++) {
+        setting_row(r, b);
+        text(0, SETTINGS_Y(r), b, r == ui.row ? YELLOW : WHITE, 2);
+    }
+    return;
+#endif
     for (r = first; r < last; r++) {
         setting_row(r, b);
         text(4, SETTINGS_Y(r), b, r == ui.row ? YELLOW : WHITE, 1);
@@ -1069,8 +1446,12 @@ static void settings_rows(u32 first, u32 last)
 
 static void body_settings(void)
 {
+#if defined(SB_HW_FM1)
+    settings_rows(SETTINGS_FIRST, SETTINGS_FIRST + 4u);
+#else
     text(4, BODY_Y + 4, "SETTINGS", WHITE, 1);
     settings_rows(0, SETTING_ROWS / 2);
+#endif
 }
 
 /* The ARP screen (since ARP): on or off, the settings in words, and
@@ -1080,6 +1461,32 @@ static void body_arp(void)
     char b[41];
     u32 n;
 
+#if defined(SB_HW_FM1)
+    /* The title says on or off and the page; four lines at scale 2. */
+    n = put(b, 0, arp_mode_names[arp.mode < ARP_MODES ? arp.mode : 0]);
+    b[n++] = ' ';
+    n = put(b, n, arp_rate_names[arp.rate < ARP_RATES ? arp.rate : 0]);
+    b[n++] = ' ';
+    n = decimal(b, n, arp.octaves, 0);
+    n = put(b, n, " OCT");
+    b[n] = 0;
+    text(0, BODY_Y + 2, b, WHITE, 2);
+    n = put(b, 0, "GATE ");
+    n = decimal(b, n, arp.gate, 0);
+    n = put(b, n, "% SWING ");
+    n = decimal(b, n, arp.swing, 0);
+    b[n++] = '%';
+    b[n] = 0;
+    text(0, BODY_Y + 20, b, WHITE, 2);
+    n = put(b, 0, arp.latch ? "LATCH ON  TEMPO " : "LATCH OFF TEMPO ");
+    n = decimal(b, n, midi_settings.tempo, 0);
+    b[n] = 0;
+    text(0, BODY_Y + 38, b, WHITE, 2);
+    text(0, BODY_Y + 56, midi_settings.arp_out ? "MIDI OUT: THE KEYS" : "MIDI OUT: ITS NOTES", GREY, 2);
+    if (!midi_settings.local)
+        text(0, BODY_Y + 74, "LOCAL OFF", YELLOW, 2);
+    return;
+#endif
     n = put(b, 0, "ARP ");
     n = put(b, n, arp_running ? "on" : "off");
     b[n] = 0;
@@ -1188,8 +1595,8 @@ static void draw_live(void)
         for (i = 0; i < FM_OPS; i++)
         if (live_width[i] != meter_drawn[i]) {
             draw_meter(i, live_width[i]);
-            lcd_send_rect(box_x[i] + 3, box_y[i] + box_h - 5, box_w - 6, 3);
-            sb_ui.rows_sent += 3;
+            lcd_send_rect(METER_X(i), METER_Y(i), METER_W, METER_H);
+            sb_ui.rows_sent += METER_H;
         }
     t = sb_now() - t;
     sb_ui.live++;
@@ -1254,7 +1661,7 @@ static void draw_item(u32 bit)
         send(BODY_Y + (bit - ITEM_SEND0) * BAND_H, BAND_H);
     } else if (bit == 10) {
         draw_line();
-        send(MSG_Y, MSG_H);
+        send(LINE_Y, LINE_H);
     } else if (bit == 11) {
         draw_strip();
     } else if (bit == 12) {
@@ -1432,6 +1839,36 @@ static void work(void)
         if (!same(head_text[k], head_drawn[k]))
             dirty |= ITEM_HEAD;
     strip_work();
+#if defined(SB_HW_FM1)
+    /* The value a knob just changed, large in the event line: one value
+     * moved under the same names (not a new screen or page). */
+    {
+        static char name_seen[4][11], value_seen[4][6];
+        u32 names = 1, moved = 0, which = 0;
+        for (k = 0; k < 4; k++)
+            names &= same(strip_name[k], name_seen[k]);
+        for (k = 0; names && k < 4; k++)
+            if (!same(strip_value[k], value_seen[k])) {
+                moved++;
+                which = k;
+            }
+        if (names && moved == 1 && strip_name[which][0] != ' ') {
+            char b[16];
+            u32 n = put(b, 0, strip_name[which]), i;
+            while (n && b[n - 1] == ' ')
+                n--;
+            b[n++] = ' ';
+            for (i = 0; strip_value[which][i] && strip_value[which][i] != ' '; i++)
+                b[n++] = strip_value[which][i];
+            b[n] = 0;
+            message(b, 0);
+        }
+        for (k = 0; k < 4; k++) {
+            copy_text(name_seen[k], strip_name[k]);
+            copy_text(value_seen[k], strip_value[k]);
+        }
+    }
+#endif
     for (k = 0; k < 4; k++)
         if (!same(strip_name[k], strip_name_drawn[k]) || !same(strip_value[k], strip_value_drawn[k]))
             dirty |= ITEM_STRIP;
@@ -1475,7 +1912,7 @@ static void message(const char *t, u32 number)
 
     if (number)
         n = decimal(line, n, (int)number, 0);
-    pad(line, n, 38);
+    pad(line, n, MSG_CHARS);
     sb_ui.messages++;
     dirty |= ITEM_LINE;
 }
@@ -1494,6 +1931,14 @@ static void midi_line(u32 m)
     char b[41];
     u32 n = put(b, 0, "MIDI "), velocity = m & 0x7Fu;
 
+#if defined(SB_HW_FM1)
+    /* "MIDI 60 ON" in the large event line. */
+    n = decimal(b, n, (int)(m >> 8 & 0x7Fu), 0);
+    n = put(b, n, velocity ? " ON" : " OFF");
+    b[n] = 0;
+    message(b, 0);
+    return;
+#endif
     n = decimal(b, n, (int)(m >> 16 & 15u) + 1, 0);
     n = put(b, n, " note ");
     n = decimal(b, n, (int)(m >> 8 & 0x7Fu), 0);
@@ -1578,7 +2023,7 @@ static void live_work(void)
         return;
     }
     for (i = 0; i < FM_OPS; i++) {
-        live_width[i] = meter_width(fm_op_level[i], box_w - 6);
+        live_width[i] = meter_width(fm_op_level[i], METER_LEN);
         any |= live_width[i] != meter_drawn[i];
     }
     if (any)
@@ -1640,10 +2085,14 @@ void view_serve(void)
         /* The buttons later milestones take (docs/M8-PROPOSAL.md). */
         if (e.kind == INPUT_PRESS && (e.control == INPUT_FX || e.control == INPUT_LFO
                                       || e.control == INPUT_SEQ || e.control == INPUT_REC)) {
+#if defined(SB_HW_FM1)
+            static const char *const later[4] = { "FX: NOT YET", "LFO: NOT YET", "SEQ: NOT YET", "REC: NOT YET" };
+#else
             static const char *const later[4] = {
                 "FX: in a later milestone", "LFO: in a later milestone",
                 "SEQ: in a later milestone", "REC: in a later milestone",
             };
+#endif
             u32 k = e.control == INPUT_FX ? 0 : e.control == INPUT_LFO ? 1 : e.control == INPUT_SEQ ? 2 : 3;
             message(later[k], 0);
         }
@@ -1658,6 +2107,11 @@ void view_serve(void)
     if (!shown)
         return;
     work();
+#if defined(SB_HW_FM1)
+    keys_work();
+    if (!same(keys_text[0], keys_drawn[0]) || !same(keys_text[1], keys_drawn[1]))
+        dirty |= ITEM_LINE;
+#endif
     live_work();
     if (dirty)
         draw_frame();

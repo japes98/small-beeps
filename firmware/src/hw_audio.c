@@ -89,6 +89,7 @@
 #include "fm.h"
 #include "ui.h"
 #include "arp.h"
+#include "store.h"
 #if defined(SB_USB_MIDI)
 #include "usb_midi.h"
 #endif
@@ -567,7 +568,7 @@ u32 put_words(u32 *w, u32 n, const u32 *v, u32 k)
  * HW-177 settle the path and the start from cold. */
 u32 hw_inst_at[HW_INST_STAGES];
 static u32 inst_problems, inst_dropped, inst_summary, inst_seen_under, inst_seen_stall, inst_seen_drop;
-static u32 inst_seen_of, inst_stack_low;
+static u32 inst_seen_of, inst_stack_low, inst_store_said, inst_seen_store;
 
 static void inst_at(u32 k)
 {
@@ -604,6 +605,10 @@ void hw_inst_start(void)
 
     inst_at(HW_INST_ENGINE);
     fm_init();
+    /* Round 3: the store's user slots, selection and settings, before the
+     * audio starts (saving.c; the flash taken and given back there). */
+    inst_at(HW_INST_STORE);
+    store_boot();
     hw_aud.a9_late0 = sb_audio.underruns;
     hw_aud.a9_synth_ons = 1;
     hw_aud.a9_synth = 1;
@@ -638,7 +643,7 @@ void hw_inst_start(void)
     inst_at(HW_INST_PANEL);
     hw_aud.start_mode = HW_A12_INSTRUMENT;
     lcd_wait();
-    view_message(hw_aud.a9_route == HW_A9_ROUTE_UP ? "small-beeps" : "NO SOUND: CLK_CON2 bit 9", 0);
+    view_message(hw_aud.a9_route == HW_A9_ROUTE_UP ? "small-beeps" : "NO SOUND: L2", 0);
     hw_hold_screen = 1;
     inst_at(HW_INST_READY);
 }
@@ -672,6 +677,23 @@ void hw_inst_serve(void)
     if (sb_audio.underruns != inst_seen_under) {
         inst_seen_under = sb_audio.underruns;
         hw_inst_problem("Underrun");
+    }
+    /* Round 3: the store as start-up found it, once; then each write that
+     * didn't happen, named by why (saving.c). */
+    if (!inst_store_said) {
+        inst_store_said = 1;
+        if (!store_up)
+            hw_inst_problem("Store not read");
+        else if (store_write_check() == STORE_ERR_PART)
+            hw_inst_problem("Store unknown flash");
+        else if (store_write_check() == STORE_ERR_PROTECT)
+            hw_inst_problem("Store locked");
+    }
+    if (store_write_fails != inst_seen_store) {
+        inst_seen_store = store_write_fails;
+        hw_inst_problem(store_write_err == STORE_ERR_PROTECT ? "Store locked" : store_write_err == STORE_ERR_PART
+                        ? "Store unknown flash" : store_write_err == STORE_ERR_FULL ? "Store full"
+                        : store_write_err == STORE_ERR_TAKE ? "Store no flash" : "Store write failed");
     }
 #if defined(SB_USB_MIDI)
     if (sb_usb.stalls != inst_seen_stall) {
@@ -724,6 +746,12 @@ u32 hw_inst_report(u32 *w)
     w[n++] = hw_aud.a9_route;
     w[n++] = stack_free(__irq_stack_top, __stack_top);
     w[n++] = stack_free(__stack_limit, __irq_stack_top);
+    /* Round 3 (layout 19): the store's state and counts, its record whole,
+     * then saving.c's. */
+    w[n++] = store_up;
+    w[n++] = store_write_fails;
+    w[n++] = (u32)store_write_err;
+    n = put_words(w, n, (const u32 *)&sb_store, sizeof sb_store / 4u);
 #if defined(SB_USB_MIDI)
     n = put_words(w, n, (const u32 *)&sb_usb, USB_REC_WORDS);
 #endif

@@ -258,6 +258,19 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   end to end, with the USB records; the owner-only release's unit file
   enumerates through fwtest's package path with --usb; the published
   release has none of the device's symbols.
+- screens (round 3, clean-r3-store): the published release's screens in
+  large text against golden images (tests/seams/screens), the title and
+  the event line at scale 3, every other word and number at 2.
+- storerel (round 3): the release starts the store: an erased region, a
+  save read back at the next start, a full region (every slot, start3b's
+  counter writes, the ring gone round) read within the start's time; no
+  write without the code window's registers.
+- soak (round 3): the test file's save soak, its power cut at points
+  across its erases and programs, slot 16 then A or B, never broken.
+- fault (round 3): the red screen's cause and address in large text, from
+  the test file's trap and from a fault while a save has the flash.
+- stack (round 3): the owner-only release's stacks with notes, USB traffic
+  and saves: 512 bytes or more unused on each, no underrun.
 
 Prints what each case saw, and exits 1 if any failed.
 """
@@ -1477,9 +1490,13 @@ def case_hw(a, work, log):
                "--ram", "0x%08x:%d@end" % (BEACON_ADDR, fws.BEACON_LEN))
     _, _, rows = fws.read_png(os.path.join(fout, "lcd-end.png"))
     bc = fws.beacon(ram(fout, BEACON_ADDR, fws.BEACON_LEN))
-    # SB_TEST_FAULT overruns main's stack: the tick's guard check halts (SB_HALT_STACK).
-    if r["run"]["outcome"] != "halt" or bc["halt_reason"] != 3 or any(p != (255, 0, 0) for row in rows for p in row):
-        problems.append("hw with SB_TEST_FAULT: %s, halt reason %d, the screen not all red" % (r["run"]["outcome"], bc["halt_reason"]))
+    # SB_TEST_FAULT overruns main's stack: the tick's guard check halts (SB_HALT_STACK). Since round 3 the red
+    # screen carries its cause and address in white (case fault checks the text): red and white only.
+    if r["run"]["outcome"] != "halt" or bc["halt_reason"] != 3 \
+            or any(p[:3] not in ((255, 0, 0), (255, 255, 255)) for row in rows for p in row) \
+            or sum(1 for row in rows for p in row if p[:3] == (255, 0, 0)) < 40000:
+        problems.append("hw with SB_TEST_FAULT: %s, halt reason %d, the screen not red with white text" % (
+            r["run"]["outcome"], bc["halt_reason"]))
     nb = os.path.join(work, "no-irq")
     build(nb, log, *R_PUB, "--define", "SB_TEST_SPI_NO_IRQ")
     nout = os.path.join(work, "run-no-irq")
@@ -1661,7 +1678,7 @@ def case_report1(a, work, log):
     if got != [(1, "Summary", rd.LOG_BASE)] or bad or (rep["saved"], rep["fails"], rep["found"]) != (1, 0, 0):
         problems.append("report1 first: records %s, %d with a bad CRC, saved/failed/found %s (one Summary, #1 in the"
                         " first slot; 1, 0, 0)" % (got, len(bad), (rep["saved"], rep["fails"], rep["found"])))
-    if any(not r["known"] or r["build"] != BUILD_ID or r["layout"] != 18 for r in rs):
+    if any(not r["known"] or r["build"] != BUILD_ID or r["layout"] != R_LAYOUT for r in rs):
         problems.append("report1 first: a record of an unknown layout or another build: %s"
                         % [(r["layout"], r["count"], r["build"]) for r in rs])
     used = (rd.REC + 4095) // 4096 * 4096
@@ -1863,7 +1880,7 @@ def a12_arp(work, log, b, name):
     return r, [y - x for x, y in zip(t, t[1:])], w[2]
 
 
-A13_INST = ["boot", "Inst engine", "Inst synth", "Synth on", "Inst ALNK0", "Inst L2", "L2 before", "L2 kept",
+A13_INST = ["boot", "Inst engine", "Inst store", "Slot16 empty", "Inst synth", "Synth on", "Inst ALNK0", "Inst L2", "L2 before", "L2 kept",
             "Inst R2", "R2 before", "R2 set", "Inst route", "Route before", "Route kept", "Inst panel"]
 A13_FWTEST_WORDS = (0, 0x8000, 0, 0, 0)   # the five words as fwtest reads them with no --usb: CON1's bit 15 set
 
@@ -1916,7 +1933,12 @@ def a13_arp_check(f, name, slow):
 R_PUB = ("--define", "SB_HW_FM1")
 R_OWN = R_PUB + ("--define", "SB_USB_MIDI")
 T_UNIT = R_OWN + ("--define", "SB_HW_TEST")
-R_PUB_ID, R_OWN_ID, T_ID = "0.16.0-r2", "0.16.0-r2u", "0.16.0-r2t"
+# The three identities as hw_fm1.h gives them (test, owner-only, published, in that order), so a try's new
+# identity needs no change here.
+T_ID, R_OWN_ID, R_PUB_ID = re.findall(r'#define HW_BUILD_ID\s+"([^"]+)"', read(os.path.join(ROOT, "firmware", "src",
+                                                                                          "hw_fm1.h")))[-3:]
+# The release's log layout (hw_fm1.h's HW_LOG_LAYOUT without SB_HW_TEST): 19 since round 3.
+R_LAYOUT = 19
 # fwtest's window CON reads 0, so a build that logs there takes SB_TEST_HW_WINDOW; the test build's holds short.
 FW_WINDOW = ("--define", "SB_TEST_HW_WINDOW")
 T_DEFINES = T_UNIT + FW_WINDOW + ("--define", "SB_TEST_SHORT_HOLD")
@@ -1980,10 +2002,10 @@ def case_release(a, work, log):
         at = [f0.get("inst_at_%s_us" % n, 0) for n in rd.INST_STAGES]
         seen[name] = (at[-1], peak, [x["label"] for x in rs])
         if r["run"]["outcome"] != "completed" or bad or [x["label"] for x in rs] != ["Summary"] \
-                or not rs[0]["known"] or rs[0]["build"] != want_id or rs[0]["layout"] != 18:
-            problems.append("release %s: %s, %d bad, records %s (want one Summary of %s, layout 18)" % (
+                or not rs[0]["known"] or rs[0]["build"] != want_id or rs[0]["layout"] != R_LAYOUT:
+            problems.append("release %s: %s, %d bad, records %s (want one Summary of %s, layout %d)" % (
                 name, r["run"]["outcome"], len(bad), [(x["label"], x["build"], x["layout"], x["count"]) for x in rs],
-                want_id))
+                want_id, R_LAYOUT))
         if at != sorted(at) or not 0 < at[-1] < R_READY_US_MAX or f0.get("inst_problems") or f0.get("route") != 1:
             problems.append("release %s: stages %s us (in order, ready under %d), problems %s, route %s" % (
                 name, at, R_READY_US_MAX, f0.get("inst_problems"), f0.get("route")))
@@ -2339,6 +2361,372 @@ def read_bytes(path):
         return f.read()
 
 
+# --- Round 3 (clean-r3-store) -------------------------------------------------------------------------------------
+
+R3_ENC_SELECT, R3_ENC_KNOB2 = 0, 3          # fwtest's encoders of SELECT and KNOB2 (input.c's table)
+R3_KEY = {"oct-": 0, "oct+": 1, "sel": 3, "env": 4, "edit": 6, "glo": 7, "home": 8, "save": 9, "arp": 10,
+          "key1": 14, "key16": 29, "pit": 29, "glide": 31}   # fwtest's key numbers (input.h); KEY16 is also PIT
+R3_GOLDEN = os.path.join(ROOT, "tests", "seams", "screens")
+R3_HOLD_FW = 300                    # hw_test_store.c's HOLD_MS with SB_TEST_SHORT_HOLD (beats)
+R3_STACK_FLOOR = 512                # section 5's floor, bytes unused on each stack
+
+
+def store_tools():
+    spec = importlib.util.spec_from_file_location("store_py", os.path.join(ROOT, "tools", "store.py"))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    spec = importlib.util.spec_from_file_location("fm_patch", os.path.join(ROOT, "tools", "fm_patch.py"))
+    f = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(f)
+    return m, f
+
+
+def r3_full_region():
+    """A store region as full as the base's records make it, and as the owner's unit may hold it: every user slot
+    (the test patches, renamed), 40 writes of start3b's power-on counter (kind 0xF0, HW-133), then the selection
+    written until the ring has gone round more than once."""
+    st, fp = store_tools()
+    pats = [fp.encode(p) for p in fp.TEST_PATCHES]
+    s = st.Store()
+    for n in range(16):
+        b = bytearray(pats[n % len(pats)])
+        b[4:16] = (b"USER %02d" % (n + 1)).ljust(12, b"\0")
+        b[110:112] = struct.pack("<H", fp.fletcher16(bytes(b[:110])))
+        s.put(st.PATCH, n, 2, bytes(b))
+    for n in range(40):
+        s.put_fw(0xF0, 0, 1, struct.pack("<I", n + 1))
+    for n in range(400):
+        s.put(st.SELECTION, 0, 1, bytes([n % 9, 0, 0, 0]))
+    img = st.Image(s.chip())
+    return s.chip(), sum(1 for k in img.keys if k), st
+
+
+def strokes(rows, box, scale):
+    """Pixels in box (x0, y0, x1, y1) that aren't black and whose run of the same colour, across or down, is
+    shorter than scale: text drawn smaller than scale shows as such runs."""
+    x0, y0, x1, y1 = box
+    bad = 0
+    for y in range(y0, y1):
+        for x in range(x0, x1):
+            c = rows[y][x][:3]
+            if c == (0, 0, 0):
+                continue
+            a = b = x
+            while a > x0 and rows[y][a - 1][:3] == c:
+                a -= 1
+            while b + 1 < x1 and rows[y][b + 1][:3] == c:
+                b += 1
+            u = v = y
+            while u > y0 and rows[u - 1][x][:3] == c:
+                u -= 1
+            while v + 1 < y1 and rows[v + 1][x][:3] == c:
+                v += 1
+            if b - a + 1 < scale or v - u + 1 < scale:
+                bad += 1
+    return bad
+
+
+# The release's screens (views.c's large layout): where text is, and its least scale.
+R3_TITLE, R3_KEYS, R3_MSG, R3_STRIP = (0, 0, 240, 25), (0, 142, 240, 176), (0, 176, 240, 202), (0, 204, 240, 240)
+R3_SCREENS = [   # (name, ms, the body's text boxes at scale 2)
+    ("patch", 1500, [(124, 26, 240, 99)]),
+    ("edit", 2600, []),
+    ("edit-level", 3300, []),
+    ("edit-page2", 4000, []),
+    ("env", 4700, [(0, 26, 240, 43)]),
+    ("pitch", 5600, [(0, 26, 240, 43)]),
+    ("glide", 6500, [(0, 26, 240, 43)]),
+    ("settings", 7200, [(0, 26, 240, 142)]),
+    ("arp", 9300, [(0, 26, 240, 142)]),
+    ("save-held", 10200, []),
+    ("saved", 11000, []),
+]
+
+
+def r3_tour_script(path):
+    k = R3_KEY
+    with open(path, "w") as f:
+        f.write("200 key %d tap 80\n" % k["key1"])
+        f.write("2000 key %d tap 80\n2700 enc %d -3\n3400 enc %d +1\n" % (k["edit"], R3_ENC_KNOB2, R3_ENC_SELECT))
+        f.write("4100 key %d tap 80\n" % k["env"])
+        f.write("4800 key %d down\n4850 key %d tap 80\n5000 key %d up\n" % (k["sel"], k["pit"], k["sel"]))
+        f.write("5700 key %d down\n5750 key %d tap 80\n5900 key %d up\n" % (k["sel"], k["glide"], k["sel"]))
+        f.write("6600 key %d tap 80\n7300 key %d tap 1600\n" % (k["glo"], k["arp"]))
+        f.write("9400 key %d tap 80\n9800 key %d down\n10300 key %d tap 80\n10500 key %d up\n" % (
+            k["home"], k["save"], k["key1"], k["save"]))
+
+
+def case_screens(a, work, log):
+    """screens (round 3, clean-r3-store, section 2): the published release's screens in large text, each against
+    its golden image (tests/seams/screens; SEAMS_REGOLD=1 writes them): the patch view, the operator view's pages
+    and a level turned (the value large in the event line), the envelope, pitch and glide views, the settings, the
+    ARP screen, SAVE held (how to save) and "SAVED 1". On each: the title at scale 3 or more, the keys' lines and
+    the strip at 2 or more, the event line at 3, and the body's text at 2 (no run of a colour shorter than the
+    scale)."""
+    problems = []
+    fws = fw_suite()
+    b = os.path.join(work, "build")
+    build(b, log, *(R_PUB + FW_WINDOW))
+    script = os.path.join(work, "tour.script")
+    r3_tour_script(script)
+    out = os.path.join(work, "tour")
+    lcd = []
+    for _, ms, _ in R3_SCREENS:
+        lcd += ["--lcd", str(ms)]
+    r = fwtest(os.path.join(b, "app.bin"), out, log, "--ms", "11500", "--script", os.path.relpath(script, ROOT),
+               *lcd)
+    if r["run"]["outcome"] != "completed":
+        return ["screens: %s" % r["run"]["outcome"]]
+    regold = os.environ.get("SEAMS_REGOLD") == "1"
+    os.makedirs(R3_GOLDEN, exist_ok=True)
+    for name, ms, body in R3_SCREENS:
+        png = os.path.join(out, "lcd-%dms.png" % ms)
+        gold = os.path.join(R3_GOLDEN, name + ".png")
+        _, _, rows = fws.read_png(png)
+        if regold or not os.path.exists(gold):
+            shutil.copy(png, gold)
+            if not regold:
+                problems.append("screens %s: no golden image; written to %s, check it" % (name, gold))
+        else:
+            _, _, want = fws.read_png(gold)
+            diff = sum(1 for y in range(240) for x in range(240) if rows[y][x][:3] != want[y][x][:3])
+            if diff:
+                shutil.copy(png, os.path.join(work, name + "-got.png"))
+                problems.append("screens %s: %d pixels differ from its golden image" % (name, diff))
+        for box, scale in [(R3_TITLE, 3), (R3_KEYS, 2), (R3_MSG, 3), (R3_STRIP, 2)] + [(x, 2) for x in body]:
+            n = strokes(rows, box, scale)
+            if n:
+                problems.append("screens %s: %d pixels in %s drawn smaller than scale %d" % (name, n, box, scale))
+        if not any(rows[y][x][:3] != (0, 0, 0) for y in range(142, 176) for x in range(240)):
+            problems.append("screens %s: no keys named" % name)
+    print("screens: %d screens of the published release against their goldens; title and event line at scale 3,"
+          " every other word and number at 2" % len(R3_SCREENS))
+    return problems
+
+
+def r3_summary(rd, flash):
+    rs, bad = rd.records(flash)
+    s = [x for x in rs if x["label"] == "Summary"]
+    return rs, bad, (s[-1]["fields"] if s else {})
+
+
+def case_store_release(a, work, log):
+    """storerel (round 3, clean-r3-store, section 1): the release starts the store. From an erased region: read,
+    nothing loaded, no problem. SAVE with KEY1: "SAVED 1"; at the next start slot 1 is loaded. From a full region
+    (every slot, start3b's counter writes, the selection round the ring): all 16 slots loaded, the store's stage
+    in the summary, ready well under a second (R_READY_US_MAX on fwtest's clock). With the code window's
+    registers not kept (no SB_TEST_HW_WINDOW: the take refused), the store isn't read: "Store not read" in the
+    log and "NO FLASH" for a save."""
+    problems = []
+    rd = report_decoder()
+    b = os.path.join(work, "build")
+    build(b, log, *(R_OWN + FW_WINDOW))
+    k = R3_KEY
+    path = os.path.join(work, "save.script")
+    with open(path, "w") as f:
+        f.write("200 key %d tap 80\n1000 key %d down\n1300 key %d tap 80\n1600 key %d up\n" % (
+            k["key1"], k["save"], k["key1"], k["save"]))
+    o1 = os.path.join(work, "save")
+    r1 = fwtest(os.path.join(b, "app.bin"), o1, log, "--ms", "3500", "--flash-out", "--script",
+                os.path.relpath(path, ROOT))
+    _, bad1, f1 = r3_summary(rd, read_bytes(os.path.join(o1, "flash.bin")))
+    o2 = os.path.join(work, "again")
+    r2 = fwtest(os.path.join(b, "app.bin"), o2, log, "--ms", "2500", "--flash-out", "--flash",
+                os.path.relpath(os.path.join(o1, "flash.bin"), ROOT))
+    rs2, bad2, f2 = r3_summary(rd, read_bytes(os.path.join(o2, "flash.bin")))
+    if r1["run"]["outcome"] != "completed" or bad1 or f1.get("store_up") != 1 or f1.get("inst_problems") \
+            or f1.get("store_loaded", 0) >> 8:
+        problems.append("storerel erased: %s, %d bad, store_up %s, problems %s, loaded %s" % (
+            r1["run"]["outcome"], len(bad1), f1.get("store_up"), f1.get("inst_problems"), f1.get("store_loaded")))
+    if r2["run"]["outcome"] != "completed" or bad2 or not f2.get("store_loaded", 0) >> 8 & 1 \
+            or f2.get("store_saves"):
+        problems.append("storerel read-back: %s, %d bad, loaded %s (want slot 1)" % (
+            r2["run"]["outcome"], len(bad2), f2.get("store_loaded")))
+    chip, live, st = r3_full_region()
+    full = os.path.join(work, "full.bin")
+    with open(full, "wb") as f:
+        f.write(chip)
+    o3 = os.path.join(work, "full")
+    r3 = fwtest(os.path.join(b, "app.bin"), o3, log, "--ms", "2500", "--flash-out", "--flash",
+                os.path.relpath(full, ROOT))
+    _, bad3, f3 = r3_summary(rd, read_bytes(os.path.join(o3, "flash.bin")))
+    ready = f3.get("inst_at_ready_us", 0)
+    stage = f3.get("inst_at_audio_us", 0) - f3.get("inst_at_store_us", 0)
+    if r3["run"]["outcome"] != "completed" or bad3 or f3.get("store_loaded", 0) >> 8 != 0xFFFF \
+            or f3.get("store_valid_sectors") != st.SECTORS or not 0 < ready < R_READY_US_MAX or f3.get("inst_problems"):
+        problems.append("storerel full: %s, %d bad, loaded %s, sectors %s, ready %d us, store stage %d us, problems %s"
+                        % (r3["run"]["outcome"], len(bad3), f3.get("store_loaded"), f3.get("store_valid_sectors"),
+                           ready, stage, f3.get("inst_problems")))
+    nb = os.path.join(work, "build-nowin")
+    build(nb, log, *R_PUB)
+    o4 = os.path.join(work, "nowin")
+    r4 = fwtest(os.path.join(nb, "app.bin"), o4, log, "--ms", "3500", "--flash-out", "--script",
+                os.path.relpath(path, ROOT), "--lcd", "3400")
+    rs4, _, f4 = r3_summary(rd, read_bytes(os.path.join(o4, "flash.bin")))
+    # Without the window's registers the log can't write either (its take is the same): read the store's state from
+    # the beacon-free side, the screen's event line.
+    labels4 = [x["label"] for x in rs4]
+    if r4["run"]["outcome"] != "completed" or labels4:
+        problems.append("storerel no window: %s, records %s (none: neither the store nor the log takes the flash)"
+                        % (r4["run"]["outcome"], labels4))
+    print("storerel: erased region read, nothing loaded; slot 1 saved and loaded at the next start; a full region"
+          " (%d live records, %d sectors) read in %d us of fwtest's clock, ready at %d us; without the window's"
+          " registers nothing is written" % (live, f3.get("store_valid_sectors", 0), stage, ready))
+    return problems
+
+
+def r3_verdict(rd, flash):
+    rs, _ = rd.records(flash)
+    v = [x["label"] for x in rs if x["label"].startswith("Slot16")]
+    return v[-1] if v else None
+
+
+R3_SOAK_CUTS = 6
+
+
+def case_soak(a, work, log):
+    """soak (round 3, clean-r3-store, section 3): the test file's save soak. SAVE and KEY16 held (the hold a tenth
+    as long in fwtest's build) save slot 16 again and again, A and B in turn; the power is cut in the soak at
+    points spread over its erases and programs (just after one starts, halfway, just before it ends, between two),
+    and each next start shows slot 16 as A or B, never broken; the first start shows it empty."""
+    problems = []
+    rd = report_decoder()
+    b = os.path.join(work, "build")
+    build(b, log, *T_DEFINES)
+    k = R3_KEY
+    path = os.path.join(work, "soak.script")
+    hold_at = 13000
+    with open(path, "w") as f:
+        f.write("%d key %d down\n%d key %d down\n" % (hold_at, k["save"], hold_at + 100, k["key16"]))
+    o = os.path.join(work, "log")
+    r = fwtest(os.path.join(b, "app.bin"), o, log, "--power-cut", "16000", "--flash-out", "--flash-log", "--script",
+               os.path.relpath(path, ROOT))
+    first = r3_verdict(rd, read_bytes(os.path.join(o, "flash.bin")))
+    ops = []
+    with open(os.path.join(o, "flash-ops.csv")) as f:
+        for row in csv.DictReader(f):
+            if int(row["offset"], 16) >= 0xFC000 and float(row["start_ms"]) > hold_at + 1000:
+                ops.append((float(row["start_ms"]), float(row["end_ms"]), row["command"]))
+    if not ops or first != "Slot16 empty":
+        return ["soak: %d store commands in the soak, first verdict %s" % (len(ops), first)]
+    erases = [x for x in ops if x[2] == "20"]
+    picks = []
+    if erases:
+        e = erases[0]
+        picks += [e[0] + 0.001, (e[0] + e[1]) / 2]
+    p = ops[len(ops) // 2]
+    picks += [p[0] + 0.001, (p[0] + p[1]) / 2, p[1] - 0.001]
+    nxt = ops[ops.index(p) + 1] if ops.index(p) + 1 < len(ops) else None
+    if nxt:
+        picks.append((p[1] + nxt[0]) / 2)
+    seen = []
+    for i, t in enumerate(sorted(picks)[:R3_SOAK_CUTS]):
+        oc = os.path.join(work, "cut%d" % i)
+        rc = fwtest(os.path.join(b, "app.bin"), oc, log, "--power-cut", "%.3f" % t, "--flash-out", "--script",
+                    os.path.relpath(path, ROOT))
+        on = os.path.join(work, "next%d" % i)
+        rn = fwtest(os.path.join(b, "app.bin"), on, log, "--ms", "8000", "--flash-out", "--flash",
+                    os.path.relpath(os.path.join(oc, "flash.bin"), ROOT))
+        v = r3_verdict(rd, read_bytes(os.path.join(on, "flash.bin")))
+        seen.append((round(t, 3), rc["run"].get("detail", ""), v))
+        if rc["run"]["outcome"] != "power-cut" or rn["run"]["outcome"] != "completed" or v not in ("Slot16 A",
+                                                                                                    "Slot16 B"):
+            problems.append("soak cut at %.3f ms (%s): next start %s, verdict %s" % (
+                t, rc["run"].get("detail"), rn["run"]["outcome"], v))
+    print("soak: %d store commands in 3 s of soak (%d erases); cuts and verdicts: %s" % (
+        len(ops), len(erases), "; ".join("%s ms %s" % (t, v) for t, _, v in seen)))
+    return problems
+
+
+def case_fault(a, work, log):
+    """fault (round 3, clean-r3-store, section 4): the red screen with its cause and address in large text. The
+    test file's trap (OCT- and OCT+ held, the hold a tenth as long in fwtest's build): a halt, the screen red, its
+    text at scale 3 ("STRAY IRQ", the source, the address) and 2. A release built to fault while a save has the
+    flash taken (SB_TEST_FAULT_TAKEN, the code window off): the same red screen, drawn from RAM."""
+    problems = []
+    fws = fw_suite()
+    k = R3_KEY
+    path = os.path.join(work, "trap.script")
+    with open(path, "w") as f:
+        f.write("13000 key %d down\n13050 key %d down\n" % (k["oct-"], k["oct+"]))
+    b = os.path.join(work, "build-test")
+    build(b, log, *T_DEFINES)
+    spath = os.path.join(work, "save.script")
+    with open(spath, "w") as f:
+        f.write("200 key %d tap 80\n1000 key %d down\n1300 key %d tap 80\n1600 key %d up\n" % (
+            k["key1"], k["save"], k["key1"], k["save"]))
+    rb = os.path.join(work, "build-taken")
+    build(rb, log, *(R_PUB + FW_WINDOW + ("--define", "SB_TEST_FAULT_TAKEN")))
+    for name, img, script, ms in (("trap", b, path, 15000), ("taken", rb, spath, 4000)):
+        out = os.path.join(work, name)
+        r = fwtest(os.path.join(img, "app.bin"), out, log, "--ms", str(ms), "--script", os.path.relpath(script, ROOT),
+                   "--lcd", "end")
+        _, _, rows = fws.read_png(os.path.join(out, "lcd-end.png"))
+        red = sum(1 for y in range(240) for x in range(240) if rows[y][x][:3] == (255, 0, 0))
+        white = sum(1 for y in range(0, 150) for x in range(240) if rows[y][x][:3] == (255, 255, 255))
+        small = sum(strokes([[(0, 0, 0) if p[:3] == (255, 0, 0) else p for p in row] for row in rows], box, s)
+                    for box, s in (((0, 0, 240, 150), 3), ((0, 150, 240, 240), 2)))
+        if r["run"]["outcome"] != "halt" or red < 40000 or white < 1500 or small:
+            problems.append("fault %s: %s, %d red pixels, %d white in the large text, %d drawn small" % (
+                name, r["run"]["outcome"], red, white, small))
+        shutil.copy(os.path.join(out, "lcd-end.png"), os.path.join(work, name + ".png"))
+    print("fault: the trap and a fault with the flash taken each end on the red screen, its cause and address at"
+          " scale 3")
+    return problems
+
+
+def case_stack(a, work, log):
+    """stack (round 3, clean-r3-store, section 5): the owner-only release's stacks at their worst in fwtest: notes
+    from the panel and from the host over USB while a save is written, then another. Each stack keeps at least
+    512 bytes unused (R3_STACK_FLOOR), and the log holds the summary alone (no underrun from the saves' give-backs,
+    whose cache clear runs with interrupts off); the same run without the saves says what the store takes from
+    each."""
+    problems = []
+    fws = fw_suite()
+    rd = report_decoder()
+    b = os.path.join(work, "build")
+    build(b, log, *(R_OWN + FW_WINDOW))
+    sy = fws.elf_symbols(os.path.join(b, "app.elf"))
+    lo, mid, hi = sy["__stack_limit"], sy["__irq_stack_top"], sy["__stack_top"]
+    k = R3_KEY
+    got = {}
+    for name, saves in (("plain", False), ("saves", True)):
+        path = os.path.join(work, name + ".script")
+        with open(path, "w") as f:
+            f.write("3000 usbmidi 09 90 3c 64\n3000 usbmidi 09 90 40 64\n3000 usbmidi 09 90 43 64\n")
+            f.write("3100 key %d down\n3120 key %d down\n3140 key %d down\n" % (k["key1"] + 2, k["key1"] + 4,
+                                                                               k["key1"] + 7))
+            for i in range(20):
+                f.write("%d usbmidi 09 90 %02x 50\n%d usbmidi 08 80 %02x 00\n" % (3200 + 50 * i, 0x30 + i,
+                                                                                  3225 + 50 * i, 0x30 + i))
+            if saves:
+                f.write("3300 key %d down\n3400 key %d tap 80\n3700 key %d up\n" % (k["save"], k["key1"], k["save"]))
+                f.write("3800 key %d down\n3900 key %d tap 80\n4200 key %d up\n" % (k["save"], k["key1"] + 1,
+                                                                                   k["save"]))
+            f.write("4600 key %d up\n4620 key %d up\n4640 key %d up\n" % (k["key1"] + 2, k["key1"] + 4,
+                                                                         k["key1"] + 7))
+        out = os.path.join(work, name)
+        r = fwtest(os.path.join(b, "app.bin"), out, log, "--usb", "--ms", "5500", "--flash-out", "--script",
+                   os.path.relpath(path, ROOT), "--ram", "0x%08x:%d@end" % (lo, hi - lo))
+        # The saves' give-backs (interrupts off while the cache is cleared) make no underrun, and nothing else is
+        # wrong: the summary alone in the log.
+        labels = [x["label"] for x in rd.records(read_bytes(os.path.join(out, "flash.bin")))[0]]
+        if labels != ["Summary"]:
+            problems.append("stack %s: records %s (want the summary alone)" % (name, labels))
+        data = ram(out, lo, hi - lo)
+        w = struct.unpack("<%dI" % ((hi - lo) // 4), data)
+        irq = next((i for i, v in enumerate(w[:(mid - lo) // 4]) if v != 0x4B415453), (mid - lo) // 4) * 4
+        main = next((i for i, v in enumerate(w[(mid - lo) // 4:]) if v != 0x4B415453), (hi - mid) // 4) * 4
+        got[name] = (main, irq)
+        if r["run"]["outcome"] != "completed" or main < R3_STACK_FLOOR or irq < R3_STACK_FLOOR:
+            problems.append("stack %s: %s, unused main %d, irq %d (floor %d)" % (
+                name, r["run"]["outcome"], main, irq, R3_STACK_FLOOR))
+    took = (got["plain"][0] - got["saves"][0], got["plain"][1] - got["saves"][1])
+    print("stack: unused bytes, main %d and interrupts %d with the saves (%d and %d without): the store took %d"
+          " from main's stack and %d from the interrupts'" % (got["saves"] + got["plain"] + took))
+    return problems
+
+
 CASES = [
     ("ownbase", case_ownbase),
     ("outside", case_outside),
@@ -2361,6 +2749,11 @@ CASES = [
     ("release", case_release),
     ("test", case_test),
     ("usbmidi", case_usbmidi),
+    ("screens", case_screens),
+    ("storerel", case_store_release),
+    ("soak", case_soak),
+    ("fault", case_fault),
+    ("stack", case_stack),
 ]
 
 
@@ -2368,8 +2761,10 @@ CASES = [
 # out in turn (shard_cases), so the parts take about as long. A case not listed counts as CASE_SECONDS_DEFAULT. Measured from the
 # "seams case" lines a run prints; update them when a case's time changes much.
 # Measured on CI (#254, run 45751696587, fwtest 0.14.0); round 2's release, test and report1 estimated from local
-# runs (about three times CI's) until their CI times are in.
+# runs (about three times CI's) until their CI times are in; round 3's soak, fault, storerel, screens and stack
+# likewise.
 CASE_SECONDS = {
+    "soak": 300, "fault": 50, "storerel": 30, "screens": 15, "stack": 15,
     "powercut": 194, "usbmidi": 119, "test": 90, "release": 50, "report1": 30, "hw": 20, "panel": 19, "light":
     18, "flags": 14, "ownbase": 9, "outside": 8, "region": 8, "nostart": 6, "nowrace": 5, "engine": 5, "store":
     5, "parts": 4, "platform": 3, "sysex": 3, "rawout": 3, "probe": 2,

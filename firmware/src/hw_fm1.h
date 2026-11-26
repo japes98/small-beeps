@@ -37,7 +37,7 @@ void hw_early(void);
 extern u32 hw_boot_block, hw_boot_key;
 void hw_fill(u32 x, u32 y, u32 w, u32 h, u32 colour);
 void hw_band(u32 n);
-void hw_halt_screen(void);
+void hw_fault_screen(u32 reason, u32 source, u32 reti);
 void hw_rt_led_window(void);
 
 /* TIMER0, the build's one timer: CON 0x1 counts up from CNT to PRD,
@@ -109,7 +109,6 @@ extern volatile u32 hw_hold_screen, hw_hold_sweeps; /* audio10's holds (hw_start
 #define HW_C1_WAIT_MS 100u
 void hw_core1_screen(void);
 void hw_round_trip(void);
-void hw_store_counter(void);
 void hw_adc_start(void);
 void hw_core1_start(void);
 void hw_rows_all(void);
@@ -122,6 +121,18 @@ struct hw_now_test {
     u32 backs[5];               /* by the point the slot's time-keeping came at (1 to 4) */
 };
 extern struct hw_now_test hw_now_test;
+#endif
+#if defined(SB_HW_TEST)
+/* Round 3's test file (hw_test_store.c): the save soak, its verdict, the
+ * trap on purpose. */
+struct hw_soak {
+    u32 verdict;                /* slot 16 at start-up: 0 empty, 1 A, 2 B, 3 another whole patch, 4 broken */
+    u32 on, since, n, fails;    /* the soak: running; SAVE and KEY16 held since; saves made; failed */
+    u32 oct_since;              /* OCT- and OCT+ held since */
+};
+extern struct hw_soak hw_soak;
+void hw_soak_verdict(void);
+void hw_soak_serve(void);
 #endif
 void hw_step(const char *text);
 void hw_hold(void);
@@ -146,7 +157,7 @@ void hw_rows_start(void);
 #if defined(SB_HW_TEST)
 #define HW_LOG_LAYOUT  17u                  /* tools/report_decode.py's FIELDS[17]: U3-U's record (16: try 4, 15: try 3, 14: try 2) */
 #else
-#define HW_LOG_LAYOUT  18u                  /* tools/report_decode.py's _layout18: the release's summary and problems */
+#define HW_LOG_LAYOUT  19u                  /* tools/report_decode.py's _layout19: round 3's summary (the store's stage and record); 18 was round 2's */
 #endif
 #define HW_LOG_HEAD    12u                  /* header words before the fields */
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
@@ -155,11 +166,11 @@ void hw_rows_start(void);
  * last definition stays the identity of a build without audio13, which
  * seams case report1 builds (tools/seams_suite.py's _build_id). */
 #if defined(SB_HW_TEST)
-#define HW_BUILD_ID    "0.16.0-r2t"        /* round 2's test build (owner-only) */
+#define HW_BUILD_ID    "0.17.0-r3at"       /* round 3's try a, the test build (owner-only); round 2's was 0.16.0-r2t */
 #elif defined(SB_USB_MIDI)
-#define HW_BUILD_ID    "0.16.0-r2u"        /* round 2's owner-only release (USB on); U3-U's final build was 0.15.0-u3u */
+#define HW_BUILD_ID    "0.17.0-r3au"       /* round 3's try a, the owner-only release (USB on); round 2's was 0.16.0-r2u */
 #else
-#define HW_BUILD_ID    "0.16.0-r2"         /* round 2's published release (USB off); audio14 was 0.14.0-hw3y */
+#define HW_BUILD_ID    "0.17.0-r3a"        /* round 3's try a, the published release (USB off); round 2's was 0.16.0-r2 */
 #endif
 struct hw_report {
     u32 scanned;                /* the ring read once */
@@ -187,13 +198,14 @@ u32 hw_audio_report(u32 *w);
  * and hw_early's panel, isn't counted: no counter runs that early). */
 #define HW_INST_IRQ     0u   /* interrupts on, TIMER0 running */
 #define HW_INST_ENGINE  1u   /* the engine's start */
-#define HW_INST_AUDIO   2u   /* ALNK0 started, the synth filling */
-#define HW_INST_L2      3u   /* L2: the link on the PLL's audio clock */
-#define HW_INST_R2      4u   /* R2: port C's four pins */
-#define HW_INST_ROUTE   5u   /* the route: CON0 bits 7 and 8 */
-#define HW_INST_PANEL   6u   /* the panel's first frame asked */
-#define HW_INST_READY   7u   /* the instrument ready: sound, panel, keys */
-#define HW_INST_STAGES  8u
+#define HW_INST_STORE   2u   /* the store's start-up read (round 3) */
+#define HW_INST_AUDIO   3u   /* ALNK0 started, the synth filling */
+#define HW_INST_L2      4u   /* L2: the link on the PLL's audio clock */
+#define HW_INST_R2      5u   /* R2: port C's four pins */
+#define HW_INST_ROUTE   6u   /* the route: CON0 bits 7 and 8 */
+#define HW_INST_PANEL   7u   /* the panel's first frame asked */
+#define HW_INST_READY   8u   /* the instrument ready: sound, panel, keys */
+#define HW_INST_STAGES  9u
 #define HW_INST_PROBLEMS 16u /* problem records a power-on, at most */
 extern u32 hw_inst_at[HW_INST_STAGES];
 void hw_inst_start(void);

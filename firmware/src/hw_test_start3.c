@@ -139,42 +139,6 @@ void hw_round_trip(void)
     draw_flash();
 }
 
-/* (c) step 2, with interrupts on, only if step 1 came back: the store's
- * start-up and its counter, between one take and one give-back. */
-void hw_store_counter(void)
-{
-    u8 b[4];
-    u32 version, n = 0;
-    int len;
-
-    if (!hw3.back) {
-        hw_step("store: no round trip, not tried");
-        return;
-    }
-    hw_step("store: taking the flash");
-    flash_take();
-    hw_step("store: store_init");
-    store_init();
-    hw_step("store: reading the counter");
-    len = store_get(COUNTER_KIND, 0, b, sizeof b, &version);
-    if (len == 4)
-        n = b[0] | (u32)b[1] << 8 | (u32)b[2] << 16 | (u32)b[3] << 24;
-    hw3.get_result = len;
-    n++;
-    b[0] = (u8)n;
-    b[1] = (u8)(n >> 8);
-    b[2] = (u8)(n >> 16);
-    b[3] = (u8)(n >> 24);
-    hw_step("store: writing the counter (0xFC000 on)");
-    hw3.put_result = store_put(COUNTER_KIND, 0, 1, b, 4);
-    hw3.count = hw3.put_result == STORE_OK ? n : n - 1;
-    hw3.stored = 1;
-    hw_step("store: giving the flash back");
-    flash_give(1);
-    draw_store();
-    hw_step("store: back");
-}
-
 __attribute__((unused))   /* audio11: the SARADC's service and the large area instead */
 static void adc_all(void)
 {

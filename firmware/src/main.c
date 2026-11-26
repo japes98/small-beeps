@@ -568,12 +568,27 @@ static void hw_serve(void)
 #endif
 
 #if defined(SB_HW_FM1)
+/* Round 3 (clean-r3-store): the store's work on a unit, as serve_store's
+ * below for fwtest's builds: what the panel saved or reset, then the
+ * selection and settings once they settle (saving.c takes the flash for
+ * each write). */
+static void hw_store_serve(void)
+{
+    const char *said = store_serve();
+
+    if (said)
+        view_message(said, store_message_slot);
+}
+
 /* The panel's work once the instrument's start has put it up; audio13's
  * ARP line after it (hw_audio.c). */
 static void hw_panel_serve(void)
 {
+    hw_store_serve();
     view_serve();
 #if defined(SB_HW_TEST)
+    /* Round 3's soak and trap (hw_test_store.c). */
+    hw_soak_serve();
     hw_a13_panel_tick();
 #else
     /* The release: the summary once, then any problem (hw_audio.c). */
@@ -705,9 +720,8 @@ int main(void)
 #if !defined(SB_HW_TEST)
     hw_inst_at[HW_INST_IRQ] = sb_now();
 #else
-    /* start3 (c) step 2: the store's start-up counter, if step 1 came
-     * back (hw_start3.c). */
-    hw_store_counter();
+    /* Round 3: start3 (c) step 2's store counter is gone; the store starts
+     * with the instrument (hw_a12_instrument), as in the release. */
 #if defined(SB_HW_TEST)
     /* start3b: is the tick still running after the store's step? */
     hw_step("tick after the store");

@@ -6396,3 +6396,80 @@ new is written on the unit: no new register, no clock or `0x16A00` write, no sto
     - **b7ed6c1a's grown copy** is archived beside the old one, under the date it was last written (2026-11-12),
       since the archive names must stay `<date>-<role>-<id>`. It has two more lines than the first archive, both
       Claude Code's closing metadata.
+
+### 2026-11-26 clean-r3-store: round 3, the store and editing on the unit in large text, the soak, the red screen (R-HW-1, R-STORE-1, R-UI-1)
+
+Round 3 of the owner's plan (docs/prompts/clean-r3-store.md): the store and editing on the unit. Tried on one
+branch, `clean/r3-store`, with owner-only files for each try (the fast loop); one PR once the owner's run passes.
+Nothing new is written on the unit: no new register, no clock or `0x16A00` write, no status register write, and the
+flash only by HW-124's commands as R-STORE-13 has them (store.c, unchanged), in the store's region. The log stays
+where earlier rounds put it (the app area's end, HW-80, HW-110).
+
+- **The store in the release** (section 1).
+  - **Start:** `hw_inst_start` reads the store after the engine's start and before the audio's (`store_boot`, M7's,
+    unchanged), with the flash taken from the code window and given back around it as the log does (HW-128,
+    hw_start3.c). Its own stage in the summary, between the engine's and the audio's.
+  - **Writes:** each save, reset, selection and setting is one take, one `store_put`, one give-back
+    (saving.c's `store_put_kept`). A take that is refused (fwtest without its window's registers) leaves the store
+    unread: nothing is written, the screen says "NO FLASH" for a save.
+  - **What the screen says** (scale 3): "SAVED 1" to "SAVED 16"; or why not: "STORE LOCKED" (block protection,
+    R-STORE-13: no save, never a status register write), "UNKNOWN FLASH" (a part not in `STORE_PARTS`), "STORE FULL",
+    "SAVE FAILED" (a read-back that differed), "NO FLASH". A factory reset: "FACTORY RESET".
+  - **Problem records** (once each, the 16 a power-on as before): "Store not read", "Store unknown flash" and
+    "Store locked" from what start-up read; then each write that didn't happen, by why ("Store locked", "Store
+    full", "Store write failed", "Store no flash").
+  - **The log, layout 19:** layout 18 with the store's stage, then `store_up`, the writes that didn't happen and the
+    last one's error, and the store's record whole (`sb_store`, 0xF0 bytes); the USB record (owner-only) and the
+    log's health after it. tools/report_decode.py reads 18 and 19 in both forms and prints a line for the store.
+  - **start3b's counter** (kind 0xF0, HW-133) stays on the owner's unit as a firmware kind's payload: the store
+    keeps it live and copies it forward like any other; it is never loaded as a selection or settings. The test
+    build no longer writes it: its store starts with the instrument, as the release's.
+  - **REC** is as it was ("REC: NOT YET", shortened to fit the event line).
+- **EDIT, ENV and SAVE in large text** (section 2), under `SB_HW_FM1` only: fwtest's builds keep M8a's layout and
+  goldens (build A unchanged).
+  - **The frame:** the title at scale 3 (13 characters: the program's name on the patch view; "EDIT OP3  1/3",
+    "ENV OP3 RATE", "PITCH LEVEL", "GLIDE", "SETTINGS", "ARP ON  1/2"); the body; two lines at scale 2 naming the
+    panel keys the screen uses; the event line at scale 3; the strip at scale 2 (names in five characters,
+    alternate columns in other colours).
+  - **The value being edited:** a knob's change shows large in the event line ("LEVEL 124", "ATTCK 6").
+  - **Bodies:** the patch view's algorithm beside the program's lines and the spectrum (two pixels a bar); the
+    operator view's algorithm across the body, each box's number at scale 2 and its meter standing at its right;
+    the envelope views' graph under the stage's name; the settings seven rows at a time; ARP's settings in four
+    lines and its live line.
+  - **Keys:** "PRESETS EDIT ENV ARP" / "GLO  SAVE+KEY 1-16" on the patch view; "SEL+OP1-6: OPERATOR" on EDIT;
+    "SEL+OP1-6, SEL+PIT," / "SEL+GLO SELECT: RATE" on ENV; and while SAVE is held, "HOLD SAVE, PRESS" / "KEY 1-16
+    TO SAVE". The names are R-UI's and R-STORE-9's (HW-115 to HW-118 name only PLAY, REC, OCT- and OCT+).
+  - **Seams:** case screens has a golden image of each of 11 screens (tests/seams/screens; `SEAMS_REGOLD=1` writes
+    them) and checks that no text there is drawn smaller than its scale (no run of one colour, across or down,
+    shorter than the scale); case storerel saves slot 1 and finds it at the next start.
+- **The soak, for the unit** (section 3; the test file only, `hw_test_store.c`).
+  - SAVE and KEY16 held for 3 s save slot 16 again and again, test patch 1 (A) and test patch 2 (B) in turn,
+    "SAVING n" large, until power-off; each save one take, one `store_put`, one give-back.
+  - At the next power-on, once the store is read, the test file shows slot 16 large for 3 s: "A", "B", "BROKEN"
+    (no whole patch, or one not valid), "OTHER" (a whole patch that is neither: the slot before the soak's first
+    save) or "EMPTY", with the store's counts; then a log record ("Slot16 A" and so on) and the usual start.
+  - Case soak cuts the power at six points across the soak's erases and programs (just after an erase starts,
+    halfway through it, just after a program starts, halfway, just before it ends, between two commands); every
+    next start shows A or B. The store's own power-cut cases (R-STORE-11; store suite and seams powercut) are
+    unchanged: store.c isn't.
+- **Faults** (section 4).
+  - **The red screen** (`hw_fault_screen`, hw_fm1.c) is drawn from RAM, sent polled byte by byte with interrupts
+    off: "FAULT", "STACK FULL" or "STRAY IRQ" at scale 3; the cause (the CPU's source, the stack, or the interrupt's
+    source) at 3; "AT" and the address the interrupt came in at (`reti`) at 3; "POWER OFF TO RESTART" and the
+    build's identity at 2. It stays until power-off: no flash write, no mark, no reset. Round 2's red screen was in
+    `.boot.text`, read through the code window, which a fault during a save or a log write would have found off.
+  - **The trap on purpose** (the test file only): OCT- and OCT+ held for 3 s put TIMER0's handler back to its stub
+    (`sb_irq_unhandle`, the vector table in RAM: no register), so its next tick halts as an interrupt nothing
+    handles. A CPU exception can't be made on purpose in fwtest (it ends a run at `bkpt` and treats an undecodable
+    instruction as its own fault), so seams couldn't check that path's screen; the stray interrupt reaches the same
+    screen with a cause and an address.
+  - **Case fault:** the trap, and a release built to fault while a save has the flash
+    (`SB_TEST_FAULT_TAKEN`), each end on the red screen with its large text.
+- **Stacks** (section 5). The release's floor for a "Stack low" record is now 512 bytes (256 in round 2). Case stack
+  runs the owner-only release with three keys held, the host's notes over USB and two saves: 1 508 bytes of main's
+  stack unused and 1 460 of the interrupts' (1 596 and 1 488 without the saves), so the store took 88 bytes from
+  main's stack and 28 from the interrupts'; and the log holds the summary alone (no underrun from the saves'
+  give-backs).
+- **Start-up** (section 1): in fwtest an erased region is read in about 0.1 ms; the full region of case storerel
+  (every slot, start3b's 40 counter writes, the selection round the ring: 17 live records in 3 sectors) in 1.3 ms
+  of fwtest's clock, the release ready at 4.1 ms. The unit's number is the owner's run's.

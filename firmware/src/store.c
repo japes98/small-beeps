@@ -995,6 +995,19 @@ static int put(u32 kind, u32 id, u32 version, const u8 *payload, u32 len)
     return put_record(k, kind, id, version, 0, 0, 0, payload, len);
 }
 
+#if defined(SB_HW_FM1)
+/* Round 3: whether a write would be refused for the part or its block
+ * protection, as put checks it, from what start-up read: nothing sent. */
+int store_write_check(void)
+{
+    if (!known_part())
+        return STORE_ERR_PART;
+    if ((sb_store.status & STORE_STATUS1_PROTECT) || (sb_store.status >> 8 & STORE_STATUS2_PROTECT))
+        return STORE_ERR_PROTECT;
+    return STORE_OK;
+}
+#endif
+
 int store_put(u32 kind, u32 id, u32 version, const u8 *payload, u32 len)
 {
     u32 t = sb_now(), d;

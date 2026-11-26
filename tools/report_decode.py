@@ -429,10 +429,19 @@ def _layout17():
 
 # Round 2's release (hw_audio.c's hw_inst_report): the start's stages in us from TIMER0's start, the counts and the
 # stacks' unused bytes; then, in the owner-only release, the USB device's record; then the log's own health.
-INST_STAGES = ["irq", "engine", "audio", "l2", "r2", "route", "panel", "ready"]
-INST_REC = (["inst_at_%s_us" % n for n in INST_STAGES]
-            + ["inst_problems", "inst_dropped", "inst_beats", "audio_blocks", "audio_underruns", "audio_fill_max",
-               "storm", "route", "stack_free_main", "stack_free_irq"])
+INST_STAGES_R2 = ["irq", "engine", "audio", "l2", "r2", "route", "panel", "ready"]
+INST_COUNTS = ["inst_problems", "inst_dropped", "inst_beats", "audio_blocks", "audio_underruns", "audio_fill_max",
+               "storm", "route", "stack_free_main", "stack_free_irq"]
+INST_REC_R2 = ["inst_at_%s_us" % n for n in INST_STAGES_R2] + INST_COUNTS
+# Round 3 (clean-r3-store): the store's start-up read is a stage of its own, after the engine's.
+INST_STAGES = ["irq", "engine", "store", "audio", "l2", "r2", "route", "panel", "ready"]
+INST_REC = ["inst_at_%s_us" % n for n in INST_STAGES] + INST_COUNTS
+# store.h's struct sb_store_record, whole (0xF0 bytes), as layout 19 carries it.
+STORE_REC = ["store_" + n for n in (
+    "marker", "part", "status", "valid_sectors", "head", "head_seq", "append", "next_seq", "live", "init_ticks",
+    "crc_bad", "skipped", "unknown", "voided", "records", "copies", "erases", "programs", "verify_fail", "refused",
+    "last_result", "put_max", "commands", "saves", "save_fail", "resets", "auto_writes", "loaded", "trace_count")] \
+    + ["store_trace%d" % i for i in range(31)]
 
 
 def _layout18(usb=True):
@@ -440,12 +449,21 @@ def _layout18(usb=True):
     these fields. The published release has no USB device, so its records are the shorter form (the field count
     tells them apart)."""
     health = _layout4()[len(_layout3()):]
-    return INST_REC + (USB_REC if usb else []) + health
+    return INST_REC_R2 + (USB_REC if usb else []) + health
+
+
+def _layout19(usb=True):
+    """Round 3's release (0.17.0-r3*): layout 18 with the store's stage, then the store's state (read at start-up,
+    the writes that didn't happen, the last one's error) and its record whole, before the USB record. Two forms,
+    as layout 18's."""
+    health = _layout4()[len(_layout3()):]
+    return (INST_REC + ["store_up", "store_write_fails", "store_write_err"] + STORE_REC + (USB_REC if usb else [])
+            + health)
 
 
 FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7(),
           8: _layout8(), 9: _layout9(), 10: _layout10(), 11: _layout11(), 12: _layout12(), 13: _layout13(),
-          14: _layout14(), 15: _layout15(), 16: _layout16(), 17: _layout17(), 18: _layout18()}
+          14: _layout14(), 15: _layout15(), 16: _layout16(), 17: _layout17(), 18: _layout18(), 19: _layout19()}
 # hw_fm1.h's HW_LOG_FIELDS: a 4096-byte record less its 12 header words and its CRC.
 assert all(len(v) <= 1011 for v in FIELDS.values()), "a layout past HW_LOG_FIELDS (1011)"
 HOLDS = ("zero", "LED", "screen", "log", "scan")
@@ -761,12 +779,25 @@ def derived(fields):
     f = fields
     if "inst_at_ready_us" in f:
         # Round 2's release: its start, stage by stage (us from TIMER0's start; the span before it isn't counted).
+        # Round 3's has the store's stage too.
         out.append("the release's start: ready %.1f ms after TIMER0's start (%s); problems %d (%d more not written);"
                    " underruns %d; stacks' unused bytes: main %d, interrupts %d" % (
                        f["inst_at_ready_us"] / 1000.0,
-                       ", ".join("%s %.1f" % (n, f["inst_at_%s_us" % n] / 1000.0) for n in INST_STAGES),
+                       ", ".join("%s %.1f" % (n, f["inst_at_%s_us" % n] / 1000.0) for n in INST_STAGES
+                                 if "inst_at_%s_us" % n in f),
                        f["inst_problems"], f["inst_dropped"], f["audio_underruns"], f["stack_free_main"],
                        f["stack_free_irq"]))
+    if "store_up" in f:
+        # Round 3's release: the store as start-up read it, and its writes since.
+        err = f["store_write_err"] - (1 << 32) if f["store_write_err"] >= 1 << 31 else f["store_write_err"]
+        out.append("the store: %s; part %06X, status %04X; %d slots loaded, settings %s, selection %s; read in %.1f"
+                   " ms; %d live records in %d sectors; saves %d (%d failed), resets %d, writes that didn't happen %d"
+                   " (last error %d)" % (
+                       "read at start-up" if f["store_up"] else "NOT read", f["store_part"], f["store_status"],
+                       bin(f["store_loaded"] >> 8 & 0xFFFF).count("1"), "yes" if f["store_loaded"] & 2 else "no",
+                       "yes" if f["store_loaded"] & 1 else "no", f["store_init_ticks"] / 24000.0, f["store_live"],
+                       f["store_valid_sectors"], f["store_saves"], f["store_save_fail"], f["store_resets"],
+                       f["store_write_fails"], err))
     if "adc_setup" in f:
         out += audio11_lines(f)
     if "a10_fmt_changes" in f and (f.get("daa7_reads") or f.get("m_value")):
@@ -905,7 +936,11 @@ DECIMAL = {"a10_fmt_changes", "a10_fill_max_units", "a10_fill_max8_units", "a10_
 DECIMAL |= {n for n in FIELDS[10] if n.startswith(("adc_conv", "adc_passes", "adc_slot", "adc_setup", "adc_set_n",
                                                      "m_jump_n", "m_level"))
             or (n.startswith("adc_") and n.endswith(("_n", "_rest")))}
-DECIMAL |= set(INST_REC)
+DECIMAL |= set(INST_REC) | set(INST_REC_R2)
+DECIMAL |= {"store_up", "store_write_fails"} | {"store_" + n for n in (
+    "valid_sectors", "head_seq", "next_seq", "live", "init_ticks", "crc_bad", "skipped", "unknown", "voided",
+    "records", "copies", "erases", "programs", "verify_fail", "refused", "put_max", "commands", "saves", "save_fail",
+    "resets", "auto_writes", "trace_count")}
 DECIMAL |= {n for n in FIELDS[12] if n.startswith(("a13_start", "u2_late_beat", "u2_late_blocks", "u2_key_beat",
                                                      "u2_key_n", "u2_state", "u2_run", "u2_polls", "u2_mark_n",
                                                      "u2_chg_n", "u2c_on", "u2c_toggles", "u2c_n_", "u2c_timeouts",
@@ -958,6 +993,8 @@ def records(image):
         names = FIELDS.get(layout, [])
         if layout == 18 and n == len(_layout18(False)):
             names = _layout18(False)
+        if layout == 19 and n == len(_layout19(False)):
+            names = _layout19(False)
         vals = w[HEAD:HEAD + n]
         fields = {(names[i] if i < len(names) else "field_%d" % i): v for i, v in enumerate(vals)}
         found.append({"offset": off, "seq": w[2], "beat": w[3], "build": _text(r[16:32]),

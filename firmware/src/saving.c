@@ -36,6 +36,73 @@ static u8 buf[STORE_MAX_PAYLOAD];
 static struct midi_settings s;
 u32 store_message_slot;
 
+#if defined(SB_HW_FM1)
+#include "hw_fm1.h"
+/* Round 3 (clean-r3-store): on a unit the store reaches the flash only
+ * between a take from the code window and the give-back (hw_start3.c,
+ * HW-128), as the report log does: around the whole start-up read, and
+ * around each write. The take is refused when the window's registers
+ * weren't kept (fwtest without its window), and the store then stays
+ * unread: nothing is written, and the screen and the log say so. */
+u32 store_up;                   /* 1 once store_boot has read the store */
+u32 store_write_fails;          /* writes refused or failed since start-up */
+s32 store_write_err;            /* the last one's STORE_ERR_*, or STORE_ERR_TAKE */
+
+int store_put_kept(u32 kind, u32 id, u32 version, const u8 *payload, u32 len)
+{
+    int r = STORE_ERR_TAKE;
+
+    if (store_up && !hw_flash_take()) {
+#if defined(SB_TEST_FAULT_TAKEN)
+        /* The fault test build (seams case fault): TIMER0's next tick
+         * halts while the flash is taken, the code window off. */
+        {
+            void sb_irq_unhandle(u32 source);
+            volatile u32 n;
+
+            sb_irq_unhandle(4u);
+            for (n = 0; n < 2000000u; n++)
+                ;
+        }
+#endif
+        r = store_put(kind, id, version, payload, len);
+        hw_flash_give();
+    }
+    if (r != STORE_OK) {
+        store_write_fails++;
+        store_write_err = r;
+    }
+    return r;
+}
+
+#define put_kept store_put_kept
+
+static int reset_kept(void)
+{
+    int r = STORE_ERR_TAKE;
+
+    if (store_up && !hw_flash_take()) {
+        r = store_reset();
+        hw_flash_give();
+    }
+    if (r != STORE_OK) {
+        store_write_fails++;
+        store_write_err = r;
+    }
+    return r;
+}
+
+/* What the screen says when a write didn't happen, in large text. */
+static const char *why(int r)
+{
+    return r == STORE_ERR_PROTECT ? "STORE LOCKED" : r == STORE_ERR_PART ? "UNKNOWN FLASH"
+         : r == STORE_ERR_FULL ? "STORE FULL" : r == STORE_ERR_TAKE ? "NO FLASH" : "SAVE FAILED";
+}
+#else
+#define put_kept store_put
+#define reset_kept store_reset
+#endif
+
 static int same(const void *a, const void *b, u32 n)
 {
     const u8 *x = a, *y = b;
@@ -105,6 +172,10 @@ void store_boot(void)
     u32 slot, version;
     int n;
 
+#if defined(SB_HW_FM1)
+    if (hw_flash_take())
+        return;
+#endif
     store_init();
     for (slot = 0; slot < STORE_SLOTS; slot++) {
         n = store_get(STORE_PATCH, slot, buf, sizeof buf, &version);
@@ -119,6 +190,10 @@ void store_boot(void)
     if (n == (int)sizeof(struct store_selection) && version == STORE_SELECTION_VERSION
         && fm_program_set(buf[0]))
         sb_store.loaded |= 1u;
+#if defined(SB_HW_FM1)
+    hw_flash_give();
+    store_up = 1;
+#endif
     copy(&settings_kept, &midi_settings, sizeof settings_kept);
     selection_kept = sb_fm.patch;
     for (slot = 0; slot < STORE_SLOTS; slot++)
@@ -138,7 +213,14 @@ const char *store_serve(void)
     if (fm_reset_seq != reset_seen) {
         reset_seen = fm_reset_seq;
         sb_store.resets++;
+#if defined(SB_HW_FM1)
+        {
+            int r = reset_kept();
+            said = r == STORE_OK ? "FACTORY RESET" : why(r);
+        }
+#else
         said = store_reset() == STORE_OK ? "factory defaults" : "RESET FAILED";
+#endif
         store_message_slot = 0;
         copy(&settings_kept, &midi_settings, sizeof settings_kept);
         selection_kept = sb_fm.patch;
@@ -159,13 +241,25 @@ const char *store_serve(void)
         save_seen[slot] = seq;
         if (epoch != reset_seen)
             continue;
-        r = store_put(STORE_PATCH, slot, FM_PATCH_VERSION, buf, FM_PATCH_BYTES);
+        r = put_kept(STORE_PATCH, slot, FM_PATCH_VERSION, buf, FM_PATCH_BYTES);
         sb_store.saves++;
         if (r != STORE_OK)
             sb_store.save_fail++;
+#if defined(SB_HW_FM1)
+        /* "SAVED 1" to "SAVED 16", or why not (round 3). */
+        said = r == STORE_OK ? "SAVED " : why(r);
+        store_message_slot = r == STORE_OK ? slot + 1 : 0;
+#else
         said = r == STORE_OK ? "saved to slot " : "SAVE FAILED, slot ";
         store_message_slot = slot + 1;
+#endif
     }
+#if defined(SB_HW_FM1)
+    /* A store that wasn't read takes no selection or setting: a save says
+     * why on the screen, once a press. */
+    if (!store_up)
+        return said;
+#endif
     if (now == second_seen)
         return said;
     second_seen = now;
@@ -175,7 +269,7 @@ const char *store_serve(void)
         selection_since = now;
     } else if (now - selection_since >= STORE_SETTLE_S) {
         struct store_selection sel = { (u8)sb_fm.patch, { 0, 0, 0 } };
-        if (store_put(STORE_SELECTION, 0, STORE_SELECTION_VERSION, (const u8 *)&sel, sizeof sel) == STORE_OK)
+        if (put_kept(STORE_SELECTION, 0, STORE_SELECTION_VERSION, (const u8 *)&sel, sizeof sel) == STORE_OK)
             selection_kept = sel.program;
         sb_store.auto_writes++;
         selection_since = now;
@@ -184,8 +278,8 @@ const char *store_serve(void)
         settings_since = now;
     } else if (now - settings_since >= STORE_SETTLE_S) {
         copy(&s, &midi_settings, sizeof s);
-        if (settings_ok(&s) && store_put(STORE_SETTINGS, 0, MIDI_SETTINGS_VERSION, (const u8 *)&s,
-                                         sizeof s) == STORE_OK)
+        if (settings_ok(&s) && put_kept(STORE_SETTINGS, 0, MIDI_SETTINGS_VERSION, (const u8 *)&s,
+                                        sizeof s) == STORE_OK)
             copy(&settings_kept, &s, sizeof s);
         sb_store.auto_writes++;
         settings_since = now;

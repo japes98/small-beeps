@@ -198,16 +198,98 @@ void HW_BOOT hw_rt_led_window(void)
     __asm__ volatile("csync" ::: "memory");
 }
 
-/* sb_halt's screen: solid red, polled, once any transfer on its way has
- * ended (or after HW_POLLS polls). Interrupts are already off. */
-void HW_BOOT hw_halt_screen(void)
+/* --- Round 3 (clean-r3-store, section 4): the red screen with its cause
+ * and address in large text. From RAM (.text and .rodata, copied by
+ * sb_start), never the window: a fault may come while the store or the
+ * log has the flash, the window off. Interrupts are already off; the
+ * panel is sent polled, a byte at a time, as hw_fill does, once any DMA
+ * transfer on its way has ended (or after HW_POLLS polls). It stays until
+ * power-off: no flash write, no mark, no reset. */
+static void ram_byte(u32 b)
 {
+    HW_SPI1_BUF = b;
+    while (!(HW_SPI1_CON & HW_SPI_DONE))
+        ;
+    HW_SPI1_CON = HW_SPI_ON | HW_SPI_CLEAR;
+}
+
+static void ram_cmd(u32 c, u32 a, u32 b)
+{
+    HW_REG(HW_PORTC + HW_OUT) &= ~HW_CS;
+    HW_REG(HW_PORTC + HW_OUT) &= ~HW_DC;
+    ram_byte(c);
+    HW_REG(HW_PORTC + HW_OUT) |= HW_DC;
+    if (c != 0x2C) {
+        ram_byte(a >> 8);
+        ram_byte(a & 0xFF);
+        ram_byte(b >> 8);
+        ram_byte(b & 0xFF);
+        HW_REG(HW_PORTC + HW_OUT) |= HW_CS;
+    }
+}
+
+static char *ram_hex(char *p, u32 v, u32 digits)
+{
+    static const char hex[] = "0123456789ABCDEF";
+
+    while (digits--)
+        *p++ = hex[v >> 4 * digits & 15u];
+    *p = 0;
+    return p;
+}
+
+#define FAULT_RED   0xF800u
+#define FAULT_WHITE 0xFFFFu
+void hw_fault_screen(u32 reason, u32 source, u32 reti)
+{
+    static const char *const causes[3] = { "DEBUG", "EXCEPTION", "SYSCALL" };
+    char t[24], *p;
+    const u8 *px;
     u32 n;
+
     for (n = 0; n < HW_POLLS && !(HW_SPI1_CON & HW_SPI_DONE); n++)
         ;
     HW_SPI1_CON = HW_SPI_ON | HW_SPI_CLEAR;
     HW_REG(HW_PORTC + HW_OUT) |= HW_CS;
-    hw_fill(0, 0, 240, 240, 0xF800);
+    gfx_fill(0, 0, SCREEN_W, SCREEN_H, FAULT_RED);
+    gfx_text(6, 8, reason == SB_HALT_FAULT ? "FAULT" : reason == SB_HALT_STACK ? "STACK FULL" : "STRAY IRQ",
+             FAULT_WHITE, FAULT_RED, 3);
+    /* The cause: the CPU's source (HW-19), the stack whose guard went, or
+     * the interrupt with no handler. */
+    if (reason == SB_HALT_FAULT && source < 3) {
+        gfx_text(6, 44, causes[source], FAULT_WHITE, FAULT_RED, 3);
+    } else if (reason == SB_HALT_STACK) {
+        gfx_text(6, 44, source == 1 ? "MAIN STACK" : "IRQ STACK", FAULT_WHITE, FAULT_RED, 3);
+    } else {
+        p = t;
+        *p++ = 'S';
+        *p++ = 'O';
+        *p++ = 'U';
+        *p++ = 'R';
+        *p++ = 'C';
+        *p++ = 'E';
+        *p++ = ' ';
+        ram_hex(p, source, 2);
+        gfx_text(6, 44, t, FAULT_WHITE, FAULT_RED, 3);
+    }
+    /* The address it came in at (reti), if any. */
+    gfx_text(6, 88, "AT", FAULT_WHITE, FAULT_RED, 3);
+    if (reti) {
+        ram_hex(t, reti, 8);
+    } else {
+        t[0] = t[1] = '-';
+        t[2] = 0;
+    }
+    gfx_text(6, 116, t, FAULT_WHITE, FAULT_RED, 3);
+    gfx_text(0, 170, "POWER OFF TO RESTART", FAULT_WHITE, FAULT_RED, 2);
+    gfx_text(6, 200, HW_BUILD_ID, FAULT_WHITE, FAULT_RED, 2);
+    ram_cmd(0x2A, 0, SCREEN_W - 1);
+    ram_cmd(0x2B, 0, SCREEN_H - 1);
+    ram_cmd(0x2C, 0, 0);
+    px = (const u8 *)sb_fb;
+    for (n = 0; n < SCREEN_W * SCREEN_H * 2u; n++)
+        ram_byte(px[n]);
+    HW_REG(HW_PORTC + HW_OUT) |= HW_CS;
 }
 
 #endif

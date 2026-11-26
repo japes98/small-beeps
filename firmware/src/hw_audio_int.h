@@ -150,7 +150,7 @@
 #define PAGE_REGS_Y 56u
 #define GUIDE_N (sizeof guide / sizeof guide[0])
 #define GUIDE_BLINK_MS 500u
-#define INST_STACK_LOW 256u     /* bytes left: a warning */
+#define INST_STACK_LOW 512u     /* bytes left: round 3's floor (clean-r3-store, section 5); 256 in round 2 */
 
 void report(const char *label);
 u32 a11_fields(u32 ch, u32 set);

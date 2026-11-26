@@ -74,6 +74,16 @@ void sb_irq_disable(u32 source)
 }
 #endif
 
+#if defined(SB_HW_TEST) || defined(SB_TEST_FAULT_TAKEN)
+/* Round 3's test file (hw_test_store.c): source's handler put back to its
+ * stub, so its next interrupt halts as one nothing handles. Only the
+ * vector table in RAM is written. */
+void sb_irq_unhandle(u32 source)
+{
+    __vectors[source] = (u32)&sb_irq_stubs[source];
+}
+#endif
+
 /* HW-21: both gates, icfg's bit 8 and sti. */
 void sb_irq_on(void)
 {
@@ -112,9 +122,10 @@ void sb_halt(u32 reason, u32 source, u32 reti)
     line[12] = hex[source >> 4 & 0xF];
     line[13] = hex[source & 0xF];
 #if defined(SB_HW_FM1)
-    /* On a unit there is no console to read (Q-5): the screen goes red. */
+    /* On a unit there is no console to read (Q-5): the screen goes red,
+     * with the cause and the address in large text (round 3). */
     (void)line;
-    hw_halt_screen();
+    hw_fault_screen(reason, source, reti);
 #else
     sb_console_write(line, sizeof line / 4);
 #endif

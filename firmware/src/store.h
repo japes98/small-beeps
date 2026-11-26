@@ -135,6 +135,9 @@ struct store_selection {
 #define STORE_ERR_VERIFY -3   /* what was read back differed, twice */
 #define STORE_ERR_PART   -4   /* the chip is neither part the store knows (STORE_PARTS): never written */
 #define STORE_ERR_PROTECT -5  /* the chip's block protection is set (HW-124 item 5): never written */
+#if defined(SB_HW_FM1)
+#define STORE_ERR_TAKE   -6   /* saving.c on a unit: the flash couldn't be taken from the code window, or the store wasn't read */
+#endif
 
 /* The parts the store writes to: one entry each, its JEDEC ID (read by
  * 0x9F) and its name (HW-120, HW-124 item 1). For the commands the store
@@ -182,6 +185,12 @@ int store_reset(void);
 void store_boot(void);
 const char *store_serve(void);
 extern u32 store_message_slot;
+#if defined(SB_HW_FM1)
+int store_put_kept(u32 kind, u32 id, u32 version, const u8 *payload, u32 len);   /* store_put, the flash taken around it */
+int store_write_check(void);        /* STORE_OK, or STORE_ERR_PART or _PROTECT as a write would get */
+extern u32 store_up, store_write_fails;
+extern s32 store_write_err;
+#endif
 
 /* The store's record, after MIDI out's (firmware/app.ld), for the tests
  * (tools/fw-suite.py reads this layout). Times in time base ticks. */
