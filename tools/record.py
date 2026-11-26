@@ -679,7 +679,7 @@ def cmd_part(a):
     global OUT, SHARD
     OUT = os.path.abspath(a.out)
     os.makedirs(os.path.join(OUT, "logs"), exist_ok=True)
-    if a.shard:
+    if getattr(a, "shard", None):
         k, n = (int(x) for x in a.shard.split("/"))
         if not 1 <= k <= n:
             print("--shard K/N wants 1 <= K <= N")
