@@ -35,21 +35,19 @@
  *   HW-171), and the packets out are started from main's loop with
  *   interrupts off, so one context at a time uses the port and INDEX.
  *
- * Built only with SB_USB_MIDI: fwtest's test builds and, with SB_HW_U3U,
- * the unit file for the owner's flash only (R-USB-1, the test product
- * ID). A unit build without SB_HW_U3U stops.
+ * Built only with SB_USB_MIDI: fwtest's test builds and, on a unit, the
+ * owner-only release and test build (round 2; R-USB-1, the test product
+ * ID). The published release doesn't set it, so none of this is in it
+ * (seams case release checks the images).
  */
 
 #include "usb_midi.h"
 
 #if defined(SB_USB_MIDI)
-#if defined(SB_HW_FM1) && !defined(SB_HW_U3U)
-#error "SB_USB_MIDI on a unit is U3-U's file for the owner's flash only: build it with SB_HW_U3U (R-USB-1)"
-#endif
 
 #include "midi.h"
 #include "WL82.h"
-#if defined(SB_HW_U3U)
+#if defined(SB_HW_FM1)
 #include "hw_fm1.h"
 #endif
 
@@ -479,7 +477,7 @@ static void ep0_stall(void)
     wr(R_CSR0, CSR0_CLRRXPKTRDY | CSR0_SENDSTALL);
 }
 
-/* The address the host set. On the unit (SB_HW_U3U) written once its
+/* The address the host set. On the unit (SB_HW_FM1) written once its
  * status stage is over: at endpoint 0's next interrupt, or from main's
  * loop if none comes (a MUSB-style core takes FADDR at once, and the
  * status stage's reply must still go from address 0: general USB
@@ -563,7 +561,7 @@ static void setup(const u8 *s)
         ep0_done();
         addr_pending = 0x80u | (value & 0x7F);
         addr_beat = sb_beacon.beats;
-#if !defined(SB_HW_U3U)
+#if !defined(SB_HW_FM1)
         addr_write();
 #endif
         return;
@@ -1089,7 +1087,7 @@ void usb_midi_poll(void)
         }
 }
 
-#if !defined(SB_HW_U3U)
+#if !defined(SB_HW_FM1)
 /* fwtest's builds: no step row, no log. */
 void usb_midi_note(const char *label, const char *step)
 {

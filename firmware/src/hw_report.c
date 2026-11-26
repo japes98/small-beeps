@@ -30,15 +30,12 @@
  *   first ("report: writing #n"), and then says "saved #n" or what failed.
  */
 
-#if defined(SB_HW_REPORT) && !defined(SB_HW_FM1)
-#error "SB_HW_REPORT is the hardware build's report log: build it with SB_HW_FM1"
-#endif
 
 #include "sb.h"
 #include "store.h"
 #include "hw_fm1.h"
 
-#if defined(SB_HW_FM1) && defined(SB_HW_REPORT)
+#if defined(SB_HW_FM1)
 
 #define REG(a) (*(volatile u32 *)(a))
 #define C1_CON REG(0x01EEE004u)               /* HW-9 */
@@ -149,6 +146,10 @@ static u32 fields(u32 *w)
 {
     u32 n = 0;
 
+#if !defined(SB_HW_TEST)
+    /* The release (layout 18): its own summary, then the log's health. */
+    n += hw_inst_report(w + n);
+#else
     w[n++] = hw_core1_count;
     w[n++] = C1_CON;
     w[n++] = hw3.count;
@@ -159,7 +160,6 @@ static u32 fields(u32 *w)
     w[n++] = hw3.status2;
     w[n++] = hw_rep.found;
     w[n++] = hw_rep.fails;
-#if defined(SB_HW_AUDIO1)
     n += hw_audio_report(w + n);
 #endif
     /* Layout 4: the log's own health, last (since the build after audio5). */

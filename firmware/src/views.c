@@ -1627,7 +1627,7 @@ void view_serve(void)
             arp_toggles++;
         if (e.control < INPUT_LEDS)
             led_update(e.control);
-#if defined(SB_HW_AUDIO13)
+#if defined(SB_HW_FM1) && defined(SB_HW_TEST)
         /* audio13 on a unit: REC saves the report log (hw_audio.c), not
          * the store, so ARP's steps reach the flash before power-off. */
         if (e.kind == INPUT_PRESS && e.control == INPUT_REC) {

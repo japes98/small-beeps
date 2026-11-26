@@ -6,7 +6,7 @@
     report_decode.py IMAGE [--all] [--json]
 
 IMAGE is a whole flash read back from a unit (1 MiB) or fwtest's flash.bin.
-The log (firmware/src/hw_report.c, SB_HW_REPORT; clean-br17-report1) is a
+The log (firmware/src/hw_report.c, every unit build since round 2; clean-br17-report1) is a
 ring of 96 sectors ending at 0x93FFF (since clean-br17-audio6; 64 in
 audio5), of 2048-byte records (since layout 3, clean-br17-audio5);
 layouts 1 and 2 were 1024-byte records in 32 sectors, and are still read. Every 4-byte
@@ -427,9 +427,25 @@ def _layout17():
     return _layout16(USB_REC)
 
 
+# Round 2's release (hw_audio.c's hw_inst_report): the start's stages in us from TIMER0's start, the counts and the
+# stacks' unused bytes; then, in the owner-only release, the USB device's record; then the log's own health.
+INST_STAGES = ["irq", "engine", "audio", "l2", "r2", "route", "panel", "ready"]
+INST_REC = (["inst_at_%s_us" % n for n in INST_STAGES]
+            + ["inst_problems", "inst_dropped", "inst_beats", "audio_blocks", "audio_underruns", "audio_fill_max",
+               "storm", "route", "stack_free_main", "stack_free_irq"])
+
+
+def _layout18(usb=True):
+    """Round 2's release (0.16.0-r2, -r2u): one summary record a power-on and a record for each problem, all with
+    these fields. The published release has no USB device, so its records are the shorter form (the field count
+    tells them apart)."""
+    health = _layout4()[len(_layout3()):]
+    return INST_REC + (USB_REC if usb else []) + health
+
+
 FIELDS = {1: _layout1(), 2: _layout2(), 3: _layout3(), 4: _layout4(), 5: _layout5(), 6: _layout6(), 7: _layout7(),
           8: _layout8(), 9: _layout9(), 10: _layout10(), 11: _layout11(), 12: _layout12(), 13: _layout13(),
-          14: _layout14(), 15: _layout15(), 16: _layout16(), 17: _layout17()}
+          14: _layout14(), 15: _layout15(), 16: _layout16(), 17: _layout17(), 18: _layout18()}
 # hw_fm1.h's HW_LOG_FIELDS: a 4096-byte record less its 12 header words and its CRC.
 assert all(len(v) <= 1011 for v in FIELDS.values()), "a layout past HW_LOG_FIELDS (1011)"
 HOLDS = ("zero", "LED", "screen", "log", "scan")
@@ -743,6 +759,14 @@ def derived(fields):
     the 24 MHz crystal)."""
     out = []
     f = fields
+    if "inst_at_ready_us" in f:
+        # Round 2's release: its start, stage by stage (us from TIMER0's start; the span before it isn't counted).
+        out.append("the release's start: ready %.1f ms after TIMER0's start (%s); problems %d (%d more not written);"
+                   " underruns %d; stacks' unused bytes: main %d, interrupts %d" % (
+                       f["inst_at_ready_us"] / 1000.0,
+                       ", ".join("%s %.1f" % (n, f["inst_at_%s_us" % n] / 1000.0) for n in INST_STAGES),
+                       f["inst_problems"], f["inst_dropped"], f["audio_underruns"], f["stack_free_main"],
+                       f["stack_free_irq"]))
     if "adc_setup" in f:
         out += audio11_lines(f)
     if "a10_fmt_changes" in f and (f.get("daa7_reads") or f.get("m_value")):
@@ -881,6 +905,7 @@ DECIMAL = {"a10_fmt_changes", "a10_fill_max_units", "a10_fill_max8_units", "a10_
 DECIMAL |= {n for n in FIELDS[10] if n.startswith(("adc_conv", "adc_passes", "adc_slot", "adc_setup", "adc_set_n",
                                                      "m_jump_n", "m_level"))
             or (n.startswith("adc_") and n.endswith(("_n", "_rest")))}
+DECIMAL |= set(INST_REC)
 DECIMAL |= {n for n in FIELDS[12] if n.startswith(("a13_start", "u2_late_beat", "u2_late_blocks", "u2_key_beat",
                                                      "u2_key_n", "u2_state", "u2_run", "u2_polls", "u2_mark_n",
                                                      "u2_chg_n", "u2c_on", "u2c_toggles", "u2c_n_", "u2c_timeouts",
@@ -931,6 +956,8 @@ def records(image):
         w = struct.unpack("<%dI" % (size // 4), r)
         layout, n = w[1] & 0xFFFF, w[1] >> 16
         names = FIELDS.get(layout, [])
+        if layout == 18 and n == len(_layout18(False)):
+            names = _layout18(False)
         vals = w[HEAD:HEAD + n]
         fields = {(names[i] if i < len(names) else "field_%d" % i): v for i, v in enumerate(vals)}
         found.append({"offset": off, "seq": w[2], "beat": w[3], "build": _text(r[16:32]),

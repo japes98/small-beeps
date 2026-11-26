@@ -227,7 +227,7 @@ extern volatile struct sb_store_record sb_store;
 extern volatile u32 sb_store_erase_fail;
 #endif
 
-#if defined(SB_HW_REPORT)
+#if defined(SB_HW_FM1)
 /* The report log (hw_report.c, clean-br17-report1): the store's own flash
  * commands by chip offset, for a region that is not the store's; the
  * caller has taken the flash from the code window. store_raw_erase erases

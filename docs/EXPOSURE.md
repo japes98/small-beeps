@@ -4401,6 +4401,14 @@ SR-3 wrote only its barrier-log row.*
   REQUIREMENTS R-USB-1 and R-HW-1; docs/HARNESS.md's "USB" and
   "Versions"; docs/AUDIT.md's "Data tables", all as on main at `77907497`.
   The audit's matched code and targets were not opened.
+- More reads, for the release's start: HW-133, HW-137, HW-157, HW-158,
+  HW-160, HW-162 to HW-164, HW-169, HW-170 and HW-174, on main at
+  `77907497`; this side's own code. #254's first CI run was read as job
+  logs (the PASS, FAIL and error lines) and as named log files from its
+  artifacts: each artifact fetched through the API, the one log extracted
+  with `unzip -p`, and the zip deleted at once.
+- A subagent mapped the bring-up flags (read-only: firmware/, the seams
+  and decoder tools, build.sh, HARDWARE-SPEC and DESIGN-NOTES).
 
 ## Corrections
 

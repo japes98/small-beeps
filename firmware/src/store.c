@@ -370,7 +370,7 @@ static int program_verify(u32 addr, const u8 *data, u32 n)
     return STORE_OK;
 }
 
-#if defined(SB_HW_REPORT)
+#if defined(SB_HW_FM1)
 /* The report log's way to the flash (store.h). */
 void store_raw_read(u32 addr, u8 *buf, u32 n)
 {

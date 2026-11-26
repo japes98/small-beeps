@@ -6269,3 +6269,111 @@ leaves open.
       out-way records, and that the record reads way 0, spacing 240 and
       try 5. The key run taps KEY7 and KEY8 on the test screen and checks
       that USB is unchanged and still configured.
+
+### 2026-11-25 clean-r2-cleanup: round 2, two builds, a start in milliseconds, a quiet log (R-HW-1, R-USB-1)
+
+Round 2 of the owner's plan to finish small-beeps (docs/prompts/clean-r2-cleanup.md): clean-up and speed. Nothing
+new is written on the unit: no new register, no clock or `0x16A00` write, no store format change.
+
+- **Two builds** (section 1). The bring-up flags are gone; `hw_fm1.h` says which build is which.
+  - **The release**, `SB_HW_FM1`: the instrument and the log. Published with USB off (R-USB-1: the device isn't
+    compiled in and no product ID is in the image), identity `0.16.0-r2`. With `SB_USB_MIDI` it is the owner-only
+    release, identity `0.16.0-r2u`.
+  - **The test build**, `SB_HW_FM1`, `SB_USB_MIDI` and `SB_HW_TEST`: the release with the bring-up code, identity
+    `0.16.0-r2t`. It is owner-only and never published. `SB_HW_TEST` without `SB_USB_MIDI` is refused.
+  - **Where each flag's code went:**
+
+    | Flag | Now |
+    |---|---|
+    | `SB_HW_AUDIO1`, `SB_HW_AUDIO8` to `SB_HW_AUDIO14`, `SB_HW_REPORT`, `SB_HW_PCM16` | folded into `SB_HW_FM1` (every unit build set them). Code only the test build runs is in `hw_test_audio.c` and `hw_test_start3.c`, or under `SB_HW_TEST` where it sits inside a release function |
+    | `SB_HW_U3U` | `SB_HW_FM1` with `SB_USB_MIDI` |
+    | `SB_HW_HOLD` | `SB_HW_TEST` |
+    | `SB_HW_FINDER`, `SB_HW_CORE1_SYSDIV` | deleted with their code (HW-136, HW-138, HW-139; HW-137: the `SYS_DIV` step isn't needed) |
+
+    The mechanical part (cf40f1f5) changed no image: the published audio14 build, U3-U's owner-only build and build
+    A came out byte for byte as before. fwtest's `SB_TEST_*` hooks stay.
+  - **USB alone between the published and owner-only files**, checked from the build (seams case release):
+    - every symbol only the owner-only image has is `usb_midi.c`'s, and none is only in the published one;
+    - the published image has neither 1209:0001's bytes nor "small-beeps" in UTF-16.
+- **The release's start** (section 2), from TIMER0's start to ready, timed by the app with `sb_now()` (24 MHz
+  units). The span before TIMER0 (`sb_start`'s copy and `hw_early`'s panel bring-up) isn't counted, since no counter
+  runs that early without a new register.
+  - **In fwtest:** ready 2.7 ms on fwtest's clock. Its TIMER0 counts 24 MHz where the chip counts 60, so that is
+    about 6.8 ms of fwtest's time. Only the unit's number counts: fill times differed by about 7 times (HW-175).
+  - **What the release does:** bands 1 to 3, the window's registers read for the log, interrupts and TIMER0, a
+    black frame and the display on. Then the engine; the synth on and ALNK0 started; L2's writes; R2's; the route's;
+    the panel's message. The test build's cold-start writes are kept in their order.
+  - **Removed from the release** (kept in the test build), with the wait each took in the code:
+
+    | Check | Settled by | Wait it took |
+    |---|---|---|
+    | The round trip and its LED marks | HW-133 (item 2) | a flash take and give-back, interrupts off |
+    | The 5 s hold of the start-up rows | HW-133 | 5 000 ms |
+    | The store's power-on counter | HW-133 (item 3) | a flash take, a store write and a give-back |
+    | Two watched spins of the tick | HW-133 | 2 × 300 ms |
+    | Core 1's release, its marks and its screen | HW-137, HW-175 (the engine fits on core 0) | ≤ 100 ms, then to 1 s after the release |
+    | The pattern and the wait for the test screen | HW-176, HW-177 (the start from cold works) | to beat 500, then 20 ms |
+    | U2's readings, and the wait for the second | HW-177 | to beat 1 000 |
+    | The `0x16A00` read | HW-180, HW-183 | reads only |
+    | HOME's test-screen start | HW-176, HW-177 | none (a read) |
+    | L2's link watch, with the matrix check before and after | HW-160 | 1 000 ms |
+    | ALNK0's and each key stage's core 1 marks | HW-175 (as a check) | 100 ms each, at ALNK0, L2 and R2 |
+    | R2's control sample | HW-162 | 10 ms |
+    | The route's sample and its matrix checks | HW-162, HW-164 | 100 ms; refused with a key held |
+    | 15 records on every power-on | HW-176, HW-177 | a flash erase and program each |
+    | ARP's step record | HW-179, HW-180 | the panel's REC (the release's REC does nothing) |
+    | The tone fallback after late halves | HW-175 | none (the release keeps the synth and logs each underrun) |
+
+    The route's check refused the route while a key was held. That would leave the owner's run (keys tapped from
+    power-on) silent, and HW-162 and HW-164 settle the route itself. The one check kept is a read: `CLK_CON2` bit 9
+    set stops the link (HW-160), so the release then writes a problem record ("L2 bit 9") and says NO SOUND.
+  - **Kept:** the USB cable check, as U3-U has it.
+  - **What no entry settles:** every start on the unit so far had at least 100 ms between ALNK0's start and L2's
+    writes (core 1's marks), and the release has microseconds there. HW-175 settles the marks as a check, not that
+    gap. No delay is added. If the release is silent on the unit, this gap is the first suspect.
+  - **The problem records follow counts taken again after every record,** so a record's own flash write (which
+    may hold the audio off on the unit) never reports itself. The out ring's drops count only while the host's
+    frames run: after an unplug the device stays configured (HW-183) and the ring fills.
+- **The release's log** (section 3), layout 18: one summary record a power-on, "Summary", written once the start is
+  done, and a record for each problem, at most 16 a power-on.
+  - **The summary's fields:** each stage's time in µs (interrupts on, engine, ALNK0, L2, R2, the route, the panel,
+    ready), the problems written and not written, the beat, the audio's blocks, underruns and longest fill, the
+    storm guard, the route, both stacks' unused bytes, and in the owner-only release the USB device's record whole.
+    The log's own health comes last.
+  - **Problem records:** "Underrun" when the count rises; "USB give-up"; "USB stall"; "USB drop" (MIDI in's ring
+    full, or the out ring); "Stack low main" or "Stack low irq" under 256 bytes; "L2 bit 9".
+  - **Not written:** a fault or trap halts with the screen red and no record, because writing the flash from a trap
+    isn't safe. A store error can't happen: the release, like U3-U, doesn't boot the store on the unit (a question
+    for the owner).
+  - **The test build** keeps today's records (layout 17).
+  - **The decoder** reads layout 18 in both forms (the field count tells them apart) and prints the start's stages.
+    tests/test_report_decode.py makes a record of every layout from 6 on, and checks that each reads back named and
+    whole, since no seams case writes the older layouts any more.
+- **hw_audio.c** (section 4). It was 5 985 lines; it is now 711.
+  - **What the release keeps there:** the output path (`tone_block`, `synth_fill`, `pack16`, the soft clip, MASTER's
+    gain ramp, the storm guard), the SARADC service for MASTER (converting channel 4 alone in the release, as the test
+    build does while the scan is held: HW-169, HW-170), `report`, `usb_midi_note`, and the release's start, summary
+    and problems.
+  - **`hw_test_audio.c`** (4 775 lines, built only with `SB_HW_TEST`) has the rest: the steps and pages, L, D, H, I,
+    K, J, the sweeps, R2's and the route's checked forms, U2, ARP's step log, the guide and the test screen's keys.
+  - **hw_start3.c** is split the same way: the release keeps the step row, the bands' helpers, the flash take and
+    give-back, the window read and the ADC pins (219 lines). `hw_test_start3.c` has the round trip, the store
+    counter, core 1, the holds and the test screen's rows and sweeps. Core 1's loop (`hw_core1.S`) and start.c's U2
+    and P reads are test-only too.
+  - **How the split was made:** by reachability from the release's entry points, reading each item as the release
+    sees it (`unifdef -USB_HW_TEST`). `hw_audio_int.h` and `hw_start3_int.h` hold each pair's shared macros and names.
+  - **Kept as it was:** the Bell start and ARP's preset (UP, 1/16, 2 octaves) stay in the release. They are
+    starting state, not checks, and the owner's ARP step needs them.
+  - **Images:** the published release is 59 392 bytes (audio14's was 112 744), the owner-only 64 996, the test
+    118 372.
+  - The audit's matched code and targets weren't opened. The audit is re-run after this round.
+- **fwtest 0.15.0** (section 5): pinned here, not in #254, whose first run failed seams case audio13 on it (U2's
+  readings expect the lines to hold still). This PR removes that case. usbmidi expects no problem, and expects USB
+  not to start without `--usb`.
+- **Seams** (section 6, with #254's four parts):
+  - **Cases removed:** finder, hw3, core1, audio1 to audio14. Their builds are gone, and the test build covers what
+    is left of their code in case test.
+  - **hw** is the release's start.
+  - **report1** is the release's log: one Summary a power-on, the next numbered on, the ring's wrap, a failed write
+    retried.
+  - **release** and **test** are new; nowrace and usbmidi use round 2's builds.
