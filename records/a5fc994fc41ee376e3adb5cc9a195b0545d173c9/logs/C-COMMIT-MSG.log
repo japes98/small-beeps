@@ -1,0 +1,7 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 33fe08e187b2e7855369734369056ab08fba3662..a5fc994fc41ee376e3adb5cc9a195b0545d173c9
+OK     84f4da1712f9 docs: round 2's unit run, the backtest from main and the owner's answers; b7ed6c1a's grown copy
+OK     750fc85b5145 docs: the fault display goes into round 3 with the store; the owner's message saved
+EXEMPT a5fc994fc41e (merge) Merge pull request #256 from japes98/clean/r2-after-unit
+3 commit(s) checked: PASS
+
+exit status 0

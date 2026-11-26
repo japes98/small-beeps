@@ -1,0 +1,63 @@
+{
+  "fwtest": {
+    "version": "0.15.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 59872,
+    "sha256": "94d8724a6d95083827378033971fad2327d3b1fb3d1e6114249aee408fdea15f"
+  },
+  "script_sha256": "15736ff3cd86e2602f7b3b3b492a8fb7f400afce3ff2e67df1712753ec278038",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "7000.243",
+    "instructions": {
+      "core0": 15391598,
+      "core1": 11400259
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 1235244,
+        "sha256": "887c1fe6f89a24b24ef0b45f7cd0885be8f0e17318b35ed2588ea0cc489ad76c"
+      },
+      {
+        "name": "ram-01c28000-214-end.bin",
+        "bytes": 532,
+        "sha256": "cdc70fe0480e9074ec89d19a6647722ed24eef934f7ccdc1120903ea46576051"
+      },
+      {
+        "name": "usb-midi-out.csv",
+        "bytes": 19,
+        "sha256": "05691b1758db2ee983d44b1dcf79fc5700640ddf3c7df8d6d782416c73604165"
+      },
+      {
+        "name": "usb.csv",
+        "bytes": 9,
+        "sha256": "9aae31ad868483cbb1d4b916054b67a6f87a8fabb9b4ec29f38567941216643a"
+      }
+    ],
+    "usb": {
+      "vendor": null,
+      "product": null,
+      "manufacturer": null,
+      "product_name": null,
+      "serial": null,
+      "address": null,
+      "configuration": null,
+      "midi_out_endpoint": null,
+      "midi_in_endpoint": null,
+      "packets_sent": 0,
+      "events_sent": 0,
+      "events_received": 0,
+      "problems": []
+    }
+  },
+  "golden": [],
+  "exit_code": 0
+}

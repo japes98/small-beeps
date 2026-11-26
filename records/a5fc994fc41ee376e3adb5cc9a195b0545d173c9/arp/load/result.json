@@ -1,0 +1,68 @@
+{
+  "fwtest": {
+    "version": "0.15.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 55520,
+    "sha256": "574503b79ed33089de4ec1729b10ce4b276449b973924ada53168c730d6c59ef"
+  },
+  "script_sha256": "256c325784e4372785eaa35426f97a06d1358cc5539cb50efd7ee74920f06f39",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "10998.900",
+    "instructions": {
+      "core0": 809522617,
+      "core1": 605290673
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 1940780,
+        "sha256": "ff8bcfec8d8db813224c87e6ee6b439b7940911105851339f03af98afc0d6971"
+      },
+      {
+        "name": "console.txt",
+        "bytes": 16,
+        "sha256": "8718b854dcde28924270089f94df922545bfb17451493c43593f115eb407ab75"
+      },
+      {
+        "name": "ipb.csv",
+        "bytes": 199148,
+        "sha256": "f409a3fd639e5fffe0586cfbfe12f4f7456548628b8fbe938fcb24601565a123"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 348605,
+        "sha256": "69c599f884620f81317050d7e5e4142c0cb950f361e9531541e89d5f2e9d9681"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 740198,
+        "sha256": "fdad2d13669535530d90877092a758b916fa3e77207bd4780574a5103ea2abf2"
+      },
+      {
+        "name": "ram-01c00550-40-end.bin",
+        "bytes": 64,
+        "sha256": "55a7754f2df4d20e512886b0d60f87114fd9fe5d912bd58a0a40d0638ec61a89"
+      },
+      {
+        "name": "ram-01c00590-40-end.bin",
+        "bytes": 64,
+        "sha256": "2013350ae805515dbe9c13a5939ea11be741450711a3678df14f35ded0210c8f"
+      },
+      {
+        "name": "ram-01c008d0-e0-end.bin",
+        "bytes": 224,
+        "sha256": "5504139b7bbb554f8dd41180affceac04f212034e051c596210d5271b5c3d298"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}
