@@ -350,9 +350,9 @@ needs with tools/build.sh into OUT/<case>/ and runs it in fwtest
   the candidate's ELF has none of the device's symbols. Since U3-U
   (clean-br17-u3u): the set-up is HW-178's, started once the cable
   reading (CON0 bits 16 and 17) reads steadily 0 three checks in a row;
-  every stage reached, nothing given up; without --usb the reading is 0
-  too in fwtest (not modelled), so the set-up runs there with no host and
-  the outputs are still build A's. The owner-only unit file (SB_HW_U3U)
+  every stage reached, nothing given up. Without --usb (fwtest 0.15.0)
+  the lines change from read to read as with no cable, so USB doesn't
+  start: nothing past the cable reading, and the outputs are build A's. The owner-only unit file (SB_HW_U3U)
   builds, enumerates through fwtest's package path with --usb, and a unit
   build with SB_USB_MIDI but not SB_HW_U3U stops.
 
@@ -369,6 +369,7 @@ import re
 import shutil
 import struct
 import subprocess
+import time
 import zlib
 import sys
 
@@ -3837,7 +3838,6 @@ A14_UNIT = ("--define", "SB_HW_FM1", "--define", "SB_HW_HOLD", "--define", "SB_H
 A14_ID = "0.14.0-hw3y"
 U3U_UNIT = A14_UNIT + ("--define", "SB_USB_MIDI", "--define", "SB_HW_U3U")
 U3U_ID = "0.15.0-u3u"
-U3U_FADDR = "FADDR is 0 after set the address 1"
 A14_P = tuple("%05X" % (0x16A00 + 4 * i) for i in range(4))
 
 
@@ -4037,8 +4037,8 @@ def case_usbmidi(a, work, log):
     if rec["usb_cable_checks"] < 3 or rec["usb_lines_set"] or rec["usb_lines_or"] or rec["usb_cable"] != 1:
         problems.append("usbmidi: the cable reading: %d checks, the last %d of %d reads with a bit set, bits %08X" % (
             rec["usb_cable_checks"], rec["usb_lines_set"], rec["usb_lines_reads"], rec["usb_lines_or"]))
-    # Without --usb: fwtest's lines read 0 there too (not modelled), so the set-up runs with no host; the outputs
-    # are still build A's: the same samples and MIDI bytes.
+    # Without --usb (fwtest 0.15.0): the lines change from read to read as with no cable, so USB doesn't start:
+    # still waiting, no stage past the cable reading; the outputs are build A's: the same samples and MIDI bytes.
     outs = {}
     for name, image in (("usb-off", os.path.join(b, "app.bin")), ("build-a", os.path.join(a.build, "app.bin"))):
         o = os.path.join(work, name)
@@ -4055,10 +4055,13 @@ def case_usbmidi(a, work, log):
     same_wav = l1[:n] == l2[:n] and r1[:n] == r2[:n] and abs(len(l1) - len(l2)) <= 128 and max(map(abs, l2)) > 100
     same_midi = [x[1] for x in m1] == [x[1] for x in m2] and len(m2) >= 6 \
         and all(abs(x[0] - y[0]) < 2 for x, y in zip(m1, m2))
-    if o1 != "completed" or o2 != "completed" or u1 or not same_wav or not same_midi or off["usb_resets"]:
-        problems.append("usbmidi without --usb: %s/%s, usb %s, resets %d; the samples the same: %s (%d and %d"
-                        " frames); MIDI out the same: %s (%s, build A %s)" % (
-                            o1, o2, u1, off["usb_resets"], same_wav, len(l1), len(l2), same_midi, m1[:6], m2[:6]))
+    if o1 != "completed" or o2 != "completed" or u1 or not same_wav or not same_midi or off["usb_resets"] \
+            or off["usb_state"] != 0 or off["usb_cable"] != 2 or any(off["usb_at_" + n] for n in rd.USB_STAGES[1:]):
+        problems.append("usbmidi without --usb: %s/%s, usb %s, resets %d, state %d, cable %d, stages %s; the samples"
+                        " the same: %s (%d and %d frames); MIDI out the same: %s (%s, build A %s)" % (
+                            o1, o2, u1, off["usb_resets"], off["usb_state"], off["usb_cable"],
+                            [n for n in rd.USB_STAGES if off["usb_at_" + n]], same_wav, len(l1), len(l2), same_midi,
+                            m1[:6], m2[:6]))
     # A give-up (the test build SB_TEST_USB_STOP: the first port access's bit 15 never comes, before POWER): logged
     # with its stage and index, no stage after it, no USB write after it (so no connection), the instrument on.
     gb = os.path.join(work, "build-stop")
@@ -4096,7 +4099,7 @@ def case_usbmidi(a, work, log):
     lu = lr["run"].get("usb") or {}
     if lr["run"]["outcome"] != "completed" or lbad or usb_labels[:len(want)] != want \
             or any(len(x["fields"]) != len(rd.FIELDS[17]) for x in lrecs if x["label"].startswith("USB")) \
-            or last.get("usb_giveup_why") or not lines or lu.get("problems") != [U3U_FADDR] \
+            or last.get("usb_giveup_why") or not lines or lu.get("problems") \
             or [x for x in usb_labels if x.startswith(("USB way", "USB spacing", "USB out way"))] \
             or (last.get("usb_tx_variant"), last.get("usb_way_prev"), last.get("usb_try_n"), last.get("usb_gap_units")) \
             != (0, 0xFFFFFFFF, 5, 240):
@@ -4133,10 +4136,10 @@ def case_usbmidi(a, work, log):
     uout = os.path.join(work, "u3u")
     ur = fwtest(upath, uout, log, "--package", "--usb", "--ms", "40000", "--lcd", "39900")
     uu = ur["run"].get("usb") or {}
-    # The owner's file writes FADDR after SET_ADDRESS's status stage (usb_midi.c), which fwtest's host, checking it
-    # straight after the request, lists: that problem alone is expected there.
+    # The owner's file writes FADDR after SET_ADDRESS's status stage (usb_midi.c); fwtest 0.15.0's host checks it
+    # after that stage, so no problem is expected.
     if ur["run"]["outcome"] != "completed" or hexv(uu.get("vendor")) != 0x1209 or uu.get("configuration") != 1 \
-            or uu.get("problems") != [U3U_FADDR] or not all(n in usy3 for n in USB_DEVICE_SYMBOLS):
+            or uu.get("problems") or not all(n in usy3 for n in USB_DEVICE_SYMBOLS):
         problems.append("usbmidi u3u: the owner-only unit file %s, usb %s, its device symbols %s" % (
             ur["run"]["outcome"], uu, [n for n in USB_DEVICE_SYMBOLS if n in usy3]))
     # A unit build with the device but not the owner's flag stops; the published candidate has none of it.
@@ -4158,8 +4161,8 @@ def case_usbmidi(a, work, log):
               rd.u3u_lines(kl)[-1] if "usb_magic" in kl else "no record"))
     print("usbmidi: enumerated %s:%s, %r / %r, serial %r, address %s (written late %d), endpoints out %s in %s, %d"
           " events received, %d sent; stages (beat) %s; the host's note peaks %d; the panel's note %s; the cable"
-          " reading %d checks, bits 16-17 set in %d of %d reads (fwtest doesn't model them: 0); read back CON0"
-          " %08X CON1 %08X IO CON0 %08X; port accesses %d, most polls %d; without --usb: the set-up ran (state %d,"
+          " reading %d checks, bits 16-17 set in %d of %d reads (with --usb's host: 0); read back CON0"
+          " %08X CON1 %08X IO CON0 %08X; port accesses %d, most polls %d; without --usb: USB not started (state %d,"
           " %d resets), outputs as build A: %s; the owner-only unit file: %s, enumerated %s:%s configuration %s, problems %s;"
           " the published unit build: SB_USB_MIDI alone refused, none of %s in the candidate" % (
               u.get("vendor"), u.get("product"), u.get("manufacturer"), u.get("product_name"), u.get("serial"),
@@ -4238,12 +4241,33 @@ CASES = [
 ]
 
 
+# Each case's measured time in seconds, for --shard (CI's seams parts): the cases are taken longest first and dealt
+# out in turn, so the parts take about as long. A case not listed counts as CASE_SECONDS_DEFAULT. Measured from the
+# "seams case" lines a run prints; update them when a case's time changes much.
+CASE_SECONDS = {}
+CASE_SECONDS_DEFAULT = 60
+
+
+def shard_cases(k, n):
+    """The case names part k of n runs: every n-th case from the k-th, longest first by CASE_SECONDS."""
+    names = [name for name, _ in CASES]
+    ranked = sorted(names, key=lambda x: (-CASE_SECONDS.get(x, CASE_SECONDS_DEFAULT), names.index(x)))
+    return set(ranked[k - 1::n])
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--build", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--only", nargs="*")
+    ap.add_argument("--shard", help="k/n: run part k of n (CI's seams parts), every n-th case by measured time")
     a = ap.parse_args()
+    shard = None
+    if a.shard:
+        k, n = (int(x) for x in a.shard.split("/"))
+        if not 1 <= k <= n:
+            ap.error("--shard k/n wants 1 <= k <= n")
+        shard = shard_cases(k, n)
     a.build = os.path.abspath(a.build)
     out = os.path.abspath(a.out)
     shutil.rmtree(out, ignore_errors=True)
@@ -4252,18 +4276,23 @@ def main():
     for name, fn in CASES:
         if a.only and name not in a.only:
             continue
+        if shard is not None and name not in shard:
+            continue
         work = os.path.join(out, name)
         os.makedirs(work)
         log = os.path.join(work, "log.txt")
+        t0 = time.time()
         try:
             problems = fn(a, work, log)
         except RuntimeError as e:
             problems = [str(e)]
+        print("seams case %s: %.0fs" % (name, time.time() - t0), flush=True)
         for p in problems:
             print("  FAIL %s: %s" % (name, p))
         if problems:
             failed.append(name)
-    print("seams suite: %s" % ("FAIL (%s)" % ", ".join(failed) if failed else "PASS"))
+    print("seams suite%s: %s" % (" part " + a.shard if a.shard else "",
+                                  "FAIL (%s)" % ", ".join(failed) if failed else "PASS"))
     return 1 if failed else 0
 
 
