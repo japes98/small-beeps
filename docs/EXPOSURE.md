@@ -4410,6 +4410,31 @@ SR-3 wrote only its barrier-log row.*
 - A subagent mapped the bring-up flags (read-only: firmware/, the seams
   and decoder tools, build.sh, HARDWARE-SPEC and DESIGN-NOTES).
 
+### Session clean-r2-unit-run (round 2's unit run: the merges, the backtest, b7ed6c1a's grown copy)
+- Date: 2026-11-26 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.332, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-r2-cleanup's, continued. The owner's message is saved unedited as
+  docs/prompts/clean-r2-unit-run.md, and the owner's next message
+  (merge #256; the fault display goes into round 3) as
+  docs/prompts/clean-r2-after-unit-merge.md.
+- Merged #254 and then #255, both green. tools/clean-update.sh then
+  passed at `33fe08e1` ("no spec-side files on disk or in .git"). Branch
+  `clean/r2-after-unit` from there.
+- Archive: b7ed6c1a's grown transcript was archived with
+  tools/archive-session.py into the scratchpad and placed beside the
+  first archive as `2026-11-12-clean-b7ed6c1a-…`. The first archive is
+  unchanged and is the first 1 198 lines of the new one. Only the two new
+  lines (Claude Code's closing metadata) were read.
+  tools/check-transcripts.py PASS (27 transcripts), and check-private ran
+  on the staged files before the commit.
+- Reads: this side's own code and docs; #255's CI as `gh pr checks` and
+  job logs (the "seams case" lines). No HARDWARE-SPEC entry was opened.
+
 ## Corrections
 
 ### 2026-10-23: which hardware layer, under which licence
