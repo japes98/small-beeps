@@ -20,36 +20,9 @@
 #if defined(SB_PROBE_RETURN) || defined(SB_PROBE_LIGHT) || defined(SB_PROBE_PANEL)
 #error "SB_HW_FM1 is not a probe: build it without SB_PROBE_*"
 #endif
-#if defined(SB_HW_AUDIO8) && !defined(SB_HW_AUDIO1)
-#error "SB_HW_AUDIO8 builds on audio1's probe: build it with SB_HW_AUDIO1"
-#endif
-#if defined(SB_HW_AUDIO9) && !defined(SB_HW_AUDIO8)
-#error "SB_HW_AUDIO9 builds on audio8: build it with SB_HW_AUDIO8"
-#endif
-#if defined(SB_HW_AUDIO10) && !defined(SB_HW_AUDIO9)
-#error "SB_HW_AUDIO10 builds on audio9: build it with SB_HW_AUDIO9"
-#endif
-#if defined(SB_HW_AUDIO11) && !defined(SB_HW_AUDIO10)
-#error "SB_HW_AUDIO11 builds on audio10: build it with SB_HW_AUDIO10"
-#endif
-#if defined(SB_HW_AUDIO12) && !defined(SB_HW_AUDIO11)
-#error "SB_HW_AUDIO12 builds on audio11: build it with SB_HW_AUDIO11"
-#endif
-#if defined(SB_HW_AUDIO13) && !defined(SB_HW_AUDIO12)
-#error "SB_HW_AUDIO13 builds on audio12: build it with SB_HW_AUDIO12"
-#endif
-#if defined(SB_HW_AUDIO14) && !defined(SB_HW_AUDIO13)
-#error "SB_HW_AUDIO14 builds on audio13: build it with SB_HW_AUDIO13"
-#endif
 /* U3-U (clean-br17-u3u): the USB MIDI device on the unit, for the owner's
  * flash only (R-USB-1: the test product ID; published builds keep USB
  * off). Built on audio14, with the device itself (SB_USB_MIDI). */
-#if defined(SB_HW_U3U) && !(defined(SB_HW_AUDIO14) && defined(SB_USB_MIDI))
-#error "SB_HW_U3U builds on audio14 with the USB device: build it with SB_HW_AUDIO14 and SB_USB_MIDI"
-#endif
-#if defined(SB_HW_PCM16) && !defined(SB_HW_AUDIO8)
-#error "SB_HW_PCM16 is audio8's unit tone: build it with SB_HW_AUDIO8"
-#endif
 
 void hw_early(void);
 /* The block r0 pointed at when m-bootloader called the entry, and the
@@ -115,7 +88,6 @@ struct hw_start3 {
     u32 count1;                       /* hw_core1_count a second after */
 };
 extern struct hw_start3 hw3;
-#if defined(SB_HW_AUDIO1)
 /* audio3 (clean-br17-audio3): core 1's flag and count in a block of their
  * own, 64 bytes on a 64-byte boundary, so no store of core 0's shares a
  * cache line with them (Q-18); hw_core1.S writes them by the block. */
@@ -126,9 +98,6 @@ extern struct hw_core1_blk hw_core1_blk;
 #define hw_core1_flag  (hw_core1_blk.flag)
 #define hw_core1_count (hw_core1_blk.count)
 extern volatile u32 hw_scan_paused;
-#else
-extern volatile u32 hw_core1_count, hw_core1_flag, hw_scan_paused;
-#endif
 extern volatile u32 hw_hold_screen, hw_hold_sweeps; /* audio10's holds (hw_start3.c); 0 otherwise */
 #define HW_C1_WAIT_MS 100u
 void hw_core1_screen(void);
@@ -151,7 +120,6 @@ void hw_step(const char *text);
 void hw_hold(void);
 void hw_watch(u32 ms);
 void hw_rows_start(void);
-#if defined(SB_HW_REPORT)
 /* The report log (hw_report.c, clean-br17-report1): fixed records of
  * HW_LOG_REC bytes in a ring of HW_LOG_SECTORS sectors ending at the app
  * area's end, 0x93FFF (HW-80), past the image, so an install never writes
@@ -167,18 +135,10 @@ void hw_rows_start(void);
 #define HW_LOG_REC     4096u
 #define HW_LOG_SLOTS   (HW_LOG_SECTORS * 4096u / HW_LOG_REC)
 #define HW_LOG_MAGIC   0x4C524253u          /* "SBRL" */
-#if defined(SB_HW_U3U)
+#if defined(SB_USB_MIDI)
 #define HW_LOG_LAYOUT  17u                  /* tools/report_decode.py's FIELDS[17] (U3-U try 5 and the final build; 16: try 4, 15: try 3, 14: try 2) */
-#elif defined(SB_HW_AUDIO14)
-#define HW_LOG_LAYOUT  13u                  /* tools/report_decode.py's FIELDS[13] */
-#elif defined(SB_HW_AUDIO13)
-#define HW_LOG_LAYOUT  12u                  /* tools/report_decode.py's FIELDS[12] */
-#elif defined(SB_HW_AUDIO12)
-#define HW_LOG_LAYOUT  11u                  /* tools/report_decode.py's FIELDS[11] */
-#elif defined(SB_HW_AUDIO11)
-#define HW_LOG_LAYOUT  10u                  /* tools/report_decode.py's FIELDS[10] */
 #else
-#define HW_LOG_LAYOUT  9u                   /* tools/report_decode.py's FIELDS[9] */
+#define HW_LOG_LAYOUT  13u                  /* tools/report_decode.py's FIELDS[13] */
 #endif
 #define HW_LOG_HEAD    12u                  /* header words before the fields */
 #define HW_LOG_FIELDS  (HW_LOG_REC / 4u - HW_LOG_HEAD - 1u)
@@ -186,14 +146,10 @@ void hw_rows_start(void);
  * candidate's pack must match (tools/report-decode.py prints it). The
  * last definition stays the identity of a build without audio13, which
  * seams case report1 builds (tools/seams_suite.py's _build_id). */
-#if defined(SB_HW_U3U)
+#if defined(SB_USB_MIDI)
 #define HW_BUILD_ID    "0.15.0-u3u"        /* U3-U's final build; the tries were 0.15.0-u3u-t<N> (2 and 3: 0.15.0-hw3z) */
-#elif defined(SB_HW_AUDIO14)
-#define HW_BUILD_ID    "0.14.0-hw3y"
-#elif defined(SB_HW_AUDIO13)
-#define HW_BUILD_ID    "0.13.0-hw3x"
 #else
-#define HW_BUILD_ID    "0.12.1-hw3w"
+#define HW_BUILD_ID    "0.14.0-hw3y"
 #endif
 struct hw_report {
     u32 scanned;                /* the ring read once */
@@ -215,14 +171,7 @@ extern struct hw_report hw_rep;
 int hw_flash_take(void);
 void hw_flash_give(void);
 void hw_report_save(const char *label);
-#if defined(SB_HW_AUDIO1)
 u32 hw_audio_report(u32 *w);
-#endif
-#endif
-#if defined(SB_HW_FINDER)
-void hw_finder(void) __attribute__((noreturn));
-#endif
-#if defined(SB_HW_AUDIO1)
 /* audio1 (hw_audio.c, clean-br17-audio1): the audio probe. Its line on the
  * test screen (scale 2), between core 1's row and the window's; the page's
  * hold; how long the tone runs before the "tone on" registers are read. */
@@ -540,7 +489,6 @@ struct hw_audio {
     u32 m_ring[HW_A10_MRING];   /* beats << 10 (the low 22 bits of beats / 4) | value; the last HW_A10_MRING changes */
     u32 holds, hold_n, hold_t[HW_A10_HOLD_LOG]; /* the holds on now (bits HW_A10_*); changes; beats << 8 | hold << 1 | on */
     u32 log_dropped, scan_until; /* records not written while the log was held; the beat the scan hold ends */
-#if defined(SB_HW_AUDIO11)
     /* audio11 (clean-br17-audio11): the SARADC's service (hw_audio.c). */
     u32 adc_setup, adc_set_n, adc_set_t[HW_A11_SET_LOG]; /* HW_A11_*; changes; beats << 1 | set-up */
     u32 sar_con[HW_A11_SETUPS][4]; /* each set-up's CON writes (up to three) and CON read after the last */
@@ -558,8 +506,6 @@ struct hw_audio {
     u32 fill_alg[HW_A11_ALGS], fill_alg8[HW_A11_ALGS]; /* the synth's longest fill per algorithm, and with 8 voices (sb_now units) */
     u32 m_level;                /* the level applied now, of 65536 (MASTER's curve) */
     char big[3][16];            /* E: the large area's three lines */
-#endif
-#if defined(SB_HW_AUDIO12)
     /* audio12 (clean-br17-audio12). */
     u32 start_mode;             /* HW_A12_TEST from power-on; HW_A12_INSTRUMENT once SEL's start has put the panel up */
     u32 as_state, as_alg, as_runs, as_stop, as_chords; /* S: HW_A12_SW_*; the algorithm playing (1 to 10); sweeps started; a stop asked; chords played */
@@ -571,8 +517,6 @@ struct hw_audio {
     u32 as_soft0, as_hard0, as_late0; /* the counts when the algorithm's chord began */
     u32 g_note_n, g_note[HW_A12_NOTES]; /* G: note ons; note << 24 | voice << 16 | ALGORITHM read << 8 | the voice's algorithm << 1 | local control, the last HW_A12_NOTES */
     u32 g_turns, g_turns_off, g_turn_alg; /* ALGORITHM turns the engine took, turns it dropped (local control off), the algorithm after the last */
-#endif
-#if defined(SB_HW_AUDIO13)
     /* audio13 (clean-br17-audio13). */
     u32 a13_start;              /* HW_A13_COLD or HW_A13_HOME */
     u32 u2_boot[HW_A13_WORDS];  /* U2-A: the five words at the app's start (sb_start, before the copy) */
@@ -598,8 +542,6 @@ struct hw_audio {
     u32 arp_last_f, arp_last_u; /* the last gap */
     u32 arp_best_n, arp_best_f0, arp_best_u0, arp_best_f1, arp_best_u1; /* the longest chain: steps, its first and last step */
     u32 arp_log[HW_A13_ARP_LOG][2]; /* each step: the engine's frame count, sb_now at its fill; the last HW_A13_ARP_LOG */
-#endif
-#if defined(SB_HW_AUDIO14)
     /* audio14 (clean-br17-audio14). */
     u32 p_boot[HW_A14_P_WORDS]; /* P: the block at 0x16A00 at the app's start (sb_start, with U2-A's) */
     u32 p_late[HW_A14_P_WORDS]; /* and a second later, with U2-A's (before the audio path) */
@@ -608,7 +550,6 @@ struct hw_audio {
     u32 arp_save_err;           /* the last save's result before this record: hw_rep.last_err (0: saved) */
     u32 arp_save_seq;           /* the record number that save was given */
     u32 arp_offs;               /* records written by ARP turning off with new steps */
-#endif
 };
 #define HW_L_NONE    0u
 #define HW_L_KEPT    1u     /* the link moved with the matrix right: the set-up running */
@@ -673,19 +614,13 @@ int hw_a11_pot_take(u32 *v);
 u32 hw_a11_pot_first(void);
 void hw_a11_big(u32 force);
 void hw_a12_sweep_key(void);
-#if defined(SB_HW_AUDIO13)
 void hw_a12_instrument(u32 cold);
 u32 hw_a13_power_on(void);
 void hw_a13_u2_key(u32 control);
 void hw_a13_u2_poll(void);
 void hw_a13_panel_tick(void);
 extern u32 hw_u2_boot[HW_A13_WORDS];
-#if defined(SB_HW_AUDIO14)
 extern u32 hw_p_boot[HW_A14_P_WORDS];
-#endif
-#else
-void hw_a12_instrument(void);
-#endif
 const char *hw_step_now(void);
 void hw_matrix_check(u32 *idle, u32 *map);
 void hw_port_a(u32 *w);
@@ -712,7 +647,6 @@ void hw_audio_start(void);
 void hw_audio_toggle(void);
 void hw_audio_line(void);
 void hw_audio_page(void);
-#endif
 #endif
 
 #endif

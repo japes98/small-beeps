@@ -43,13 +43,10 @@
 #include "usb_midi.h"
 
 #if defined(SB_USB_MIDI)
-#if defined(SB_HW_FM1) && !defined(SB_HW_U3U)
-#error "SB_USB_MIDI on a unit is U3-U's file for the owner's flash only: build it with SB_HW_U3U (R-USB-1)"
-#endif
 
 #include "midi.h"
 #include "WL82.h"
-#if defined(SB_HW_U3U)
+#if defined(SB_HW_FM1)
 #include "hw_fm1.h"
 #endif
 
@@ -563,7 +560,7 @@ static void setup(const u8 *s)
         ep0_done();
         addr_pending = 0x80u | (value & 0x7F);
         addr_beat = sb_beacon.beats;
-#if !defined(SB_HW_U3U)
+#if !defined(SB_HW_FM1)
         addr_write();
 #endif
         return;
@@ -1089,7 +1086,7 @@ void usb_midi_poll(void)
         }
 }
 
-#if !defined(SB_HW_U3U)
+#if !defined(SB_HW_FM1)
 /* fwtest's builds: no step row, no log. */
 void usb_midi_note(const char *label, const char *step)
 {

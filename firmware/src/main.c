@@ -274,15 +274,9 @@ void hw_slot(void)
     /* Not while main sweeps the matrix (hw_start3.c). */
     if (!hw_scan_paused)
         input_scan();
-#if defined(SB_HW_AUDIO9)
     hw_a9_pb5_poll();
-#endif
-#if defined(SB_HW_AUDIO11)
     hw_a11_adc_poll();
-#endif
-#if defined(SB_HW_AUDIO10)
     hw_a10_pot_poll();
-#endif
     if (++n == HW_SLOTS_TICK) {
         n = 0;
         sb_tick();
@@ -296,12 +290,8 @@ void hw_slot(void)
 #define HW_EVENT_X 26u
 #define HW_EVENT_Y 104u
 #define HW_EVENT_W 188u
-#if defined(SB_HW_AUDIO11)
 /* audio11's E: the large area (hw_audio.c) covers the event box's rows. */
 #define HW_NO_EVENT_BOX 1
-#else
-#define HW_NO_EVENT_BOX 0
-#endif
 static void hw_show(const struct input_event *e)
 {
     static const char names[14][5] = {
@@ -387,7 +377,6 @@ static void hw_show_turn(u32 control, int d)
     lcd_send_rect(HW_EVENT_X, HW_EVENT_Y, HW_EVENT_W, 16);
 }
 
-#if defined(SB_HW_AUDIO1)
 /* The test screen and start3's rows, drawn again after the audio page. */
 static void hw_test_screen(void)
 {
@@ -398,11 +387,8 @@ static void hw_test_screen(void)
     lcd_send_rows(0, SCREEN_H);
     lcd_wait();
     hw_rows_all();
-#if defined(SB_HW_AUDIO11)
     hw_a11_big(1);
-#endif
 }
-#endif
 
 /* A key's LED level (leds1): lit while it is held; with the audio probe,
  * a step key's also while its step is taken (hw_audio_key_lit). */
@@ -410,11 +396,7 @@ static u32 hw_led_level(const struct input_event *e)
 {
     if (e->kind == INPUT_PRESS)
         return INPUT_LED_FULL;
-#if defined(SB_HW_AUDIO1)
     return hw_audio_key_lit(e->control) ? INPUT_LED_FULL : 0;
-#else
-    return 0;
-#endif
 }
 
 static void hw_serve(void)
@@ -423,9 +405,7 @@ static void hw_serve(void)
 
     while (input_read(&e)) {
         if (e.control == INPUT_MASTER && e.kind == INPUT_MOVE) {
-#if defined(SB_HW_AUDIO10)
             hw_a10_master((u32)e.value);
-#endif
             if (sb_beacon.screen == SB_SCREEN_TEST && !hw_hold_screen)
                 hw_show_master(e.value);
             continue;
@@ -440,41 +420,23 @@ static void hw_serve(void)
          * too. */
         if (e.control < INPUT_LEDS && (e.kind == INPUT_PRESS || e.kind == INPUT_RELEASE))
             input_led(e.control, hw_led_level(&e));
-#if defined(SB_HW_AUDIO1)
         /* The next key: a press of it on the test screen moves the guide on. */
         if (e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST)
             hw_guide_key(e.control);
-#endif
-#if defined(SB_HW_FINDER)
-        /* HOME opens the knob finder, for good (hw_start3.c). */
-        if (e.control == INPUT_HOME && e.kind == INPUT_PRESS)
-            hw_finder();
-#endif
-#if defined(SB_HW_REPORT)
         /* report1: EDIT saves a report (hw_report.c); "saved #n" on the
          * step row. */
         if (e.control == INPUT_EDIT && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
             hw_report_save("save key");
-#if defined(SB_HW_AUDIO1)
             hw_guide_show();
-#endif
             continue;
         }
-#endif
-#if defined(SB_HW_AUDIO12)
         /* audio12b (D5, the owner's ruling): SEL runs the instrument's
          * start; the panel takes over from the test screen. */
         if (e.control == INPUT_SEL && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
             hw_audio_leds(e.control);
-#if defined(SB_HW_AUDIO13)
             hw_a12_instrument(0);
-#else
-            hw_a12_instrument();
-#endif
             return;
         }
-#endif
-#if defined(SB_HW_AUDIO13)
         /* audio13 (U2, the owner's rulings): OCT- reads the USB block's
          * words again, SAVE marks the next cable state, OCT+ turns U2-C on
          * or off (hw_audio.c). The engine takes OCT- and OCT+ as well (its
@@ -486,32 +448,21 @@ static void hw_serve(void)
             hw_guide_show();
             continue;
         }
-#endif
-#if defined(SB_HW_AUDIO10)
         /* audio10 (the spec side's clean-br17-audio10): LFO cycles F's
          * format; PLAY zeros, HOME the LED blink, ENV the screen, GLO the
          * log, each held and back by the same key; REC holds the scan for
          * 5 s, ending by itself. */
-#if defined(SB_HW_AUDIO11)
         /* audio11 (the spec side's clean-br17-audio11): N is the only
          * format, so LFO is the engine's again (main gives it nothing);
          * SEL cycles the SARADC's set-up, the SDK's and the old. */
 #define HW_A10_KEY1 INPUT_SEL
-#else
-#define HW_A10_KEY1 INPUT_LFO
-#endif
         if ((e.control == HW_A10_KEY1 || e.control == INPUT_PLAY || e.control == INPUT_HOME || e.control == INPUT_ENV
                 || e.control == INPUT_GLO || e.control == INPUT_REC) && e.kind == INPUT_PRESS
                 && sb_beacon.screen == SB_SCREEN_TEST) {
             u32 held_screen = hw_hold_screen;
 
-#if defined(SB_HW_AUDIO11)
             if (e.control == INPUT_SEL)
                 hw_a11_setup_key();
-#else
-            if (e.control == INPUT_LFO)
-                hw_a10_fmt_key();
-#endif
             else
                 hw_a10_hold_key(e.control == INPUT_PLAY ? HW_A10_ZERO : e.control == INPUT_HOME ? HW_A10_LED :
                                 e.control == INPUT_ENV ? HW_A10_SCREEN : e.control == INPUT_GLO ? HW_A10_LOG :
@@ -524,8 +475,6 @@ static void hw_serve(void)
                 hw_guide_show();
             continue;
         }
-#endif
-#if defined(SB_HW_AUDIO1)
         /* audio1 (hw_audio.c): PLAY stops and starts the tone; HOME shows
          * the audio page again, then the test screen. */
         if (e.control == INPUT_PLAY && e.kind == INPUT_PRESS)
@@ -540,13 +489,11 @@ static void hw_serve(void)
             hw_guide_show();
             continue;
         }
-#if defined(SB_HW_AUDIO9)
         /* audio9 (the spec side's clean-br17-audio9): SEQ takes the route
          * down or up, FX switches the tone and the synth, LFO steps S2;
          * HOME shows audio8's and audio9's view. The old steps' keys
          * (ARP, SAVE, ENV, FX, LFO, SEL, GLO, OCT+, OCT-, KEY1 to KEY6) are
          * the engine's alone: main gives them no step. */
-#if defined(SB_HW_AUDIO12)
         /* audio12 (S): LFO starts the sweep, or stops it after the chord
          * in progress (the engine does nothing with LFO). */
         if (e.control == INPUT_LFO && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
@@ -555,12 +502,7 @@ static void hw_serve(void)
             hw_guide_show();
             continue;
         }
-#endif
-#if defined(SB_HW_AUDIO11)
 #define HW_A9_LFO 0xFFu      /* LFO is the engine's (audio11) */
-#else
-#define HW_A9_LFO INPUT_LFO
-#endif
         if ((e.control == INPUT_SEQ || e.control == INPUT_FX || e.control == HW_A9_LFO || e.control == INPUT_HOME)
                 && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
             if (e.control == INPUT_SEQ)
@@ -577,103 +519,6 @@ static void hw_serve(void)
             hw_guide_show();
             continue;
         }
-#else
-        /* audio3 (the spec side's clean-br17-audio3): ARP takes step A
-         * (CON0 bit 11 cleared and set again, with bit 9 set), SAVE step B
-         * (CLK_CON2 bit 8, with bit 9 set); a second press undoes each. */
-        if ((e.control == INPUT_ARP || e.control == INPUT_SAVE) && e.kind == INPUT_PRESS
-                && sb_beacon.screen == SB_SCREEN_TEST) {
-            if (e.control == INPUT_ARP)
-                hw_audio_a();
-            else
-                hw_audio_b();
-            hw_audio_leds(e.control);
-            hw_audio_keypage();
-            hw_test_screen();
-            hw_guide_show();
-            continue;
-        }
-        /* audio4 (the spec side's clean-br17-audio4): ENV takes step H
-         * (the audio clock measured), FX measures again; LFO takes step I
-         * (ALNK1 with CLK_CON2 bit 11), SEL adds bit 10; a second ENV or
-         * LFO undoes. */
-        if ((e.control == INPUT_ENV || e.control == INPUT_FX || e.control == INPUT_LFO || e.control == INPUT_SEL)
-                && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
-            if (e.control == INPUT_ENV)
-                hw_audio_h();
-            else if (e.control == INPUT_FX)
-                hw_audio_h_again();
-            else if (e.control == INPUT_LFO)
-                hw_audio_i();
-            else
-                hw_audio_i10();
-            hw_audio_leds(e.control);
-            hw_audio_keypage_hi();
-            hw_test_screen();
-            hw_guide_show();
-            continue;
-        }
-        /* audio5 (the spec side's clean-br17-audio5): GLO takes step K
-         * (every measurement of input 5 from one press), OCT+ runs J's
-         * sweep of ALNK0's CON1 and CON3 (a press while it runs aborts
-         * it; a press with a bit left set puts it back); a second GLO
-         * undoes K. */
-        if ((e.control == INPUT_GLO || e.control == INPUT_OCT_UP) && e.kind == INPUT_PRESS
-                && sb_beacon.screen == SB_SCREEN_TEST) {
-            if (e.control == INPUT_GLO)
-                hw_audio_k();
-            else
-                hw_audio_j();
-            hw_audio_leds(e.control);
-            hw_audio_keypage_kj();
-            hw_test_screen();
-            hw_guide_show();
-            continue;
-        }
-        /* audio6 (the spec side's clean-br17-audio6): OCT- runs step D's
-         * sweep of JL_IOMAP->CON5 (a press while it runs stops it; a press
-         * with a bit kept puts CON5 back). */
-        if (e.control == INPUT_OCT_DOWN && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
-            hw_audio_d();
-            hw_audio_leds(e.control);
-            hw_audio_keypage_d();
-            hw_test_screen();
-            hw_guide_show();
-            continue;
-        }
-        /* audio7 (the spec side's clean-br17-audio7): KEY1 takes set-up L1,
-         * KEY2 set-up L2; a kept set-up is put back by either. */
-        if ((e.control == INPUT_KEY(1) || e.control == INPUT_KEY(2)) && e.kind == INPUT_PRESS
-                && sb_beacon.screen == SB_SCREEN_TEST) {
-            hw_audio_l(e.control == INPUT_KEY(1) ? 1u : 2u);
-            hw_audio_leds(e.control);
-            hw_audio_keypage_l();
-            hw_test_screen();
-            hw_guide_show();
-            continue;
-        }
-#if defined(SB_HW_AUDIO8)
-        /* audio8 (the spec side's clean-br17-audio8): KEY3 R2 (port C's
-         * four pins), KEY4 step 1, KEY5 the CON5 sweep, KEY6 the sense
-         * scan; a second KEY3, KEY4 or KEY5 undoes its own. */
-        if (e.control >= INPUT_KEY(3) && e.control <= INPUT_KEY(6) && e.kind == INPUT_PRESS
-                && sb_beacon.screen == SB_SCREEN_TEST) {
-            if (e.control == INPUT_KEY(3))
-                hw_a8_r2();
-            else if (e.control == INPUT_KEY(4))
-                hw_a8_step1();
-            else if (e.control == INPUT_KEY(5))
-                hw_a8_sweep();
-            else
-                hw_a8_sense();
-            hw_audio_leds(e.control);
-            hw_audio_keypage_a8();
-            hw_test_screen();
-            hw_guide_show();
-            continue;
-        }
-#endif
-#endif
         /* audio3: SEQ stops ALNK0 (CON0 bit 11 cleared alone), or puts
          * back the CON0 read before; then the page, then the test screen. */
         if (e.control == INPUT_SEQ && e.kind == INPUT_PRESS && sb_beacon.screen == SB_SCREEN_TEST) {
@@ -690,7 +535,6 @@ static void hw_serve(void)
             hw_guide_show();
             continue;
         }
-#endif
         if (e.control >= INPUT_LEDS || (e.kind != INPUT_PRESS && e.kind != INPUT_RELEASE))
             continue;
         input_led(e.control, hw_led_level(&e));
@@ -704,16 +548,10 @@ static void hw_serve(void)
         u32 now = sb_beacon.beats;
 
         if ((int)(now - next) >= 0) {
-#if defined(SB_HW_AUDIO1)
             hw_guide_tick();
-#endif
-#if defined(SB_HW_AUDIO9)
             hw_a9_tick();
-#endif
-#if defined(SB_HW_AUDIO13)
             /* U2-B: the USB block's words every 100 ms (hw_audio.c). */
             hw_a13_u2_poll();
-#endif
             hw_refresh(sb_seconds != seconds);
             seconds = sb_seconds;
             next = now + 100;
@@ -723,15 +561,13 @@ static void hw_serve(void)
 }
 #endif
 
-#if defined(SB_HW_AUDIO12)
+#if defined(SB_HW_FM1)
 /* The panel's work once the instrument's start has put it up; audio13's
  * ARP line after it (hw_audio.c). */
 static void hw_panel_serve(void)
 {
     view_serve();
-#if defined(SB_HW_AUDIO13)
     hw_a13_panel_tick();
-#endif
 }
 #endif
 
@@ -765,7 +601,7 @@ int main(void)
     static const char hello[16] = "small-beeps M5 \n";
 
     sb_beacon.period = TICKS_PER_MS;
-#if defined(SB_HW_AUDIO1)
+#if defined(SB_HW_FM1)
     /* audio1: the audio registers as m-bootloader's call left them, before
      * anything of main's (hw_audio.c). */
     hw_audio_boot();
@@ -862,10 +698,8 @@ int main(void)
      * engine, audio or MIDI on a unit yet (HW-130). Since start3b after
      * the store's step, so a hang tells them apart. */
     hw_core1_start();
-#if defined(SB_HW_AUDIO1)
     /* audio3: core 1's count just after its release (hw_audio.c). */
     hw_c1_mark(HW_C1_REL);
-#endif
 #if defined(SB_HW_HOLD)
     hw_step("tick after core 1");
     hw_watch(HW_WATCH_MS);
@@ -963,17 +797,11 @@ int main(void)
     sb_wait_ms(20);
     /* start3c: core 1's screen, held (SB_HW_HOLD). */
     hw_core1_screen();
-#if defined(SB_HW_AUDIO13)
     /* audio13 (D5, the owner's ruling): the instrument's start from cold,
      * then the panel, unless HOME is held now: then the test screen, as
      * audio12b's (U2-A's second reading first, hw_audio.c). */
     if (hw_a13_power_on())
         goto serve;
-#elif defined(SB_HW_AUDIO12)
-    /* audio12b (the owner's ruling): the test screen, as audio11's; SEL
-     * there runs the instrument's start (hw_audio.c). */
-    hw_aud.start_mode = HW_A12_TEST;
-#endif
     hw_step("test screen: drawing");
 #else
     if (sb_beacon.beats + 1 < TEST_SCREEN_MS)
@@ -990,36 +818,25 @@ int main(void)
     /* start3's rows on the test screen (hw_start3.c). */
     lcd_wait();
     hw_rows_all();
-#if defined(SB_HW_REPORT)
     /* report1: the end of boot, the test screen up (hw_report.c). */
     hw_report_save("boot");
-#endif
-#if defined(SB_HW_AUDIO1)
     /* audio1: the tone, once the test screen is up; its page, then the
      * test screen again (hw_audio.c). */
-#if defined(SB_HW_AUDIO9)
     /* audio9 (S1): the FM engine, core 0 alone and MIDI off on a unit
      * (fm_play.c, midi.c); it fills nothing until FX turns the synth on. */
     hw_step("audio9: the engine's start");
     fm_init();
-#endif
     hw_step("audio: starting ALNK0");
     hw_audio_start();
-#if defined(SB_HW_AUDIO9)
     /* audio9 (S0): L2, R2 and the route, once the test screen is up. */
     hw_audio9_boot();
-#elif defined(SB_HW_AUDIO8)
-    /* audio8 (R0): L2, the running state, once the test screen is up. */
-    hw_audio_boot_l2();
-#endif
     hw_step("audio: page");
     hw_audio_page();
     hw_test_screen();
     hw_guide_show();
 #endif
 #endif
-#endif
-#if defined(SB_HW_AUDIO13)
+#if defined(SB_HW_FM1)
 serve:
 #endif
 #if defined(SB_TEST_STORE_WIPE)
@@ -1053,7 +870,7 @@ serve:
 #endif
         /* What the engine asked of the store before the loop began, and
          * (since M8a) the panel's events from before it: the screens. */
-#if defined(SB_HW_AUDIO12)
+#if defined(SB_HW_FM1)
         if (hw_aud.start_mode == HW_A12_INSTRUMENT)
             hw_panel_serve();
         else
@@ -1076,7 +893,7 @@ serve:
 #if defined(SB_USB_MIDI)
                 usb_midi_poll();
 #endif
-#if defined(SB_HW_AUDIO12)
+#if defined(SB_HW_FM1)
                 /* Once SEL's start has put the panel up, the panel
                  * serves the events (the test screen's keys do nothing);
                  * no store (its flash writes aren't part of audio12). */

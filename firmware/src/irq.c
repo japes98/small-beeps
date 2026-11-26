@@ -61,7 +61,7 @@ void sb_irq_enable(u32 source, void (*handler)(void), u32 priority)
     icfg[source / 8] = (icfg[source / 8] & ~(0xFu << 4 * (source % 8))) | ICFG_BITS(source, priority);
 }
 
-#if defined(SB_HW_AUDIO1) || defined(SB_USB_MIDI)
+#if defined(SB_HW_FM1) || defined(SB_USB_MIDI)
 /* HW-20: source's enable bit (and priority) cleared, its handler kept.
  * Only audio1's guard (hw_audio.c) and the USB device's give-up
  * (usb_midi.c) use it, so only their builds have it and every other image

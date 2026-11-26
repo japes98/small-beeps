@@ -544,7 +544,7 @@ static void voice_start(u32 n, int note, u32 velocity, u32 at)
         v->pending = fresh && at ? FM_PENDING_FRESH : FM_PENDING_NONE;
         v->at = at;
     }
-#if defined(SB_HW_AUDIO12)
+#if defined(SB_HW_FM1)
     /* G (audio12): ALGORITHM as the engine reads it at this note on,
      * beside the algorithm the voice takes (its next one while a start
      * waits within the block; hw_audio.c's log). */
@@ -1000,7 +1000,7 @@ static void select_patch(u32 n)
     sb_fm.patch = n;
 }
 
-#if defined(SB_HW_AUDIO12)
+#if defined(SB_HW_FM1)
 /* S (audio12): the sweep sets ALGORITHM (1 to FM_ALGORITHMS), as a turn
  * would, from the engine's own context (the audio interrupt). */
 void fm_a12_algorithm(u32 a)
@@ -1709,7 +1709,7 @@ static void events(void)
         } else if (e.kind == INPUT_TURN && e.control == INPUT_ALGORITHM) {
             if (local)
                 algorithm_now = (algorithm_now + FM_ALGORITHMS * 16 + (u32)(int)e.value) % FM_ALGORITHMS;
-#if defined(SB_HW_AUDIO12)
+#if defined(SB_HW_FM1)
             fm_a12_turn(local, algorithm_now + 1u);
 #endif
         } else if (e.kind == INPUT_TURN && e.control >= INPUT_KNOB1 && e.control <= INPUT_KNOB4) {
@@ -1975,7 +1975,7 @@ void fm_block(s32 *out, u32 frames)
     for (n = 0, w = out; n < frames; n++, w += 2) {
         s32 s = (s32)((s64)mix[0][n] * m >> 24);
         m += step;
-#if !defined(SB_HW_AUDIO10)
+#if !defined(SB_HW_FM1)
         s = s > AUDIO_FULL ? AUDIO_FULL : s < -AUDIO_FULL ? -AUDIO_FULL : s;
 #endif
         /* audio10 (a unit's build): the sum left whole; hw_audio.c's soft
@@ -2024,14 +2024,14 @@ void fm_init(void)
     for (n = 0; n < FM_VOICES; n++)
         ctl[n].next = -1;
     select_patch(0);
-#if defined(SB_HW_AUDIO12) && !defined(SB_TEST_A12_SINE)
+#if defined(SB_HW_FM1) && !defined(SB_TEST_A12_SINE)
     /* G2 (audio12, the owner's ruling): the unit starts in Bell (test
      * patch 4), whose six operators all sound, so the algorithms differ;
      * patch 0 (Sine) has operators 2 to 6 at level 0 and operator 1 a
      * carrier in every algorithm, so all ten sound the same in it. */
     select_patch(FM_A12_PATCH);
     panel_program = FM_A12_PATCH;
-#if defined(SB_HW_AUDIO13)
+#if defined(SB_HW_FM1)
     /* audio13: ARP as fwtest's ARP suite runs it (UP, 1/16, 2 octaves,
      * gate 50 %, at the settings' 120 beats a minute); Bell gives all but
      * the octaves. Off until ARP is pressed. */

@@ -17,7 +17,7 @@
 #include "input.h"
 #include "audio.h"
 #include "WL82.h"
-#if defined(SB_HW_AUDIO11)
+#if defined(SB_HW_FM1)
 #include "hw_fm1.h"
 #endif
 
@@ -273,7 +273,7 @@ static inline __attribute__((always_inline)) void turns(u32 c, u32 a_rows, u32 b
  * and the next one started. */
 static void pot(void)
 {
-#if defined(SB_HW_AUDIO11)
+#if defined(SB_HW_FM1)
     /* audio11: the SARADC's service (hw_audio.c) starts every conversion;
      * the newest of MASTER's readings, if one came since. */
     u32 v;
@@ -297,7 +297,7 @@ static void pot(void)
             emit(INPUT_MASTER, INPUT_MOVE, (int)mean);
         }
     }
-#if !defined(SB_HW_AUDIO11)
+#if !defined(SB_HW_FM1)
     JL_ADC->CON = ADC_START;
 #endif
 }
@@ -544,7 +544,7 @@ void input_start(void)
 
     /* The pot's first reading, waited for, so input_value() has it from
      * the start. */
-#if defined(SB_HW_AUDIO11)
+#if defined(SB_HW_FM1)
     v = hw_a11_pot_first();
 #else
     JL_ADC->CON = ADC_START;
@@ -557,7 +557,7 @@ void input_start(void)
     pot_sum = 4 * v;
     pot_shown = v;
     sb_input.values[INPUT_MASTER] = (int)v;
-#if !defined(SB_HW_AUDIO11)
+#if !defined(SB_HW_FM1)
     JL_ADC->CON = ADC_START;
 #endif
 

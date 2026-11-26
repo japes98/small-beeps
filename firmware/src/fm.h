@@ -230,7 +230,7 @@ void fm_note_off(int note);
  * n / 32 (since M6a; written by the engine, read by the screen). */
 extern volatile u32 fm_midi_notes[4];
 
-#if defined(SB_HW_AUDIO12)
+#if defined(SB_HW_FM1)
 /* audio12 (a unit's build, hw_audio.c): the patch the unit starts in (G2:
  * Bell, test patch 4); the sweep's ALGORITHM (fm_play.c); and the
  * engine's reports to the log: each note on (the note, its voice,

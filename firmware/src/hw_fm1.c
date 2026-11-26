@@ -154,14 +154,10 @@ void HW_BOOT hw_early(void)
 }
 
 u32 hw_boot_block, hw_boot_key;
-#if defined(SB_HW_AUDIO13)
 /* U2-A's first reading (start.c), for hw_audio.c. */
 u32 hw_u2_boot[HW_A13_WORDS];
-#endif
-#if defined(SB_HW_AUDIO14)
 /* P's first reading (start.c), for hw_audio.c. */
 u32 hw_p_boot[HW_A14_P_WORDS];
-#endif
 
 /* The round trip's last LED mark (R-HW-1, start3b), from the window: OCT-'s
  * and OCT+'s columns both selected (0xF7FE & 0xEFFD, HW-118) with PH9 high,
