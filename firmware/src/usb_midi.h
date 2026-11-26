@@ -5,8 +5,8 @@
  * USB MIDI, the device side (U3-F, clean-br17-audio14; U3-U,
  * clean-br17-u3u): a MIDI-only device on the first USB core (HW-171,
  * HW-172, HW-178, HW-86, HW-173), built only with SB_USB_MIDI: fwtest's
- * test builds (tools/seams_suite.py, case usbmidi) and, with SB_HW_U3U,
- * the unit file for the owner's flash only. No published build sets it:
+ * test builds (tools/seams_suite.py, case usbmidi) and, on a unit, the
+ * owner-only release and test build (round 2). No published build sets it:
  * USB stays off there until the project has its own product ID (R-USB-1).
  */
 
@@ -166,7 +166,8 @@ void usb_midi_take(void);
  * the host (the panel's notes; never MIDI thru's). */
 void usb_midi_send(u32 status, u32 d1, u32 d2, u32 length);
 /* A stage said on the unit's step row and, with a label, written to the
- * log (hw_audio.c, SB_HW_U3U); nothing in fwtest's builds. Main's loop
+ * log (hw_audio.c, SB_HW_FM1: the test build every stage, the release its
+ * give-up alone); nothing in fwtest's builds. Main's loop
  * only: a record takes the flash. */
 void usb_midi_note(const char *label, const char *step);
 #endif

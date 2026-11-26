@@ -6,7 +6,7 @@
     report_decode.py IMAGE [--all] [--json]
 
 IMAGE is a whole flash read back from a unit (1 MiB) or fwtest's flash.bin.
-The log (firmware/src/hw_report.c, SB_HW_REPORT; clean-br17-report1) is a
+The log (firmware/src/hw_report.c, every unit build since round 2; clean-br17-report1) is a
 ring of 96 sectors ending at 0x93FFF (since clean-br17-audio6; 64 in
 audio5), of 2048-byte records (since layout 3, clean-br17-audio5);
 layouts 1 and 2 were 1024-byte records in 32 sectors, and are still read. Every 4-byte

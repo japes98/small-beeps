@@ -6317,7 +6317,7 @@ new is written on the unit: no new register, no clock or `0x16A00` write, no sto
     | The `0x16A00` read | HW-180, HW-183 | reads only |
     | HOME's test-screen start | HW-176, HW-177 | none (a read) |
     | L2's link watch, with the matrix check before and after | HW-160 | 1 000 ms |
-    | ALNK0's and each key stage's core 1 marks | HW-175 | 100 ms each, at ALNK0, L2 and R2 |
+    | ALNK0's and each key stage's core 1 marks | HW-175 (as a check) | 100 ms each, at ALNK0, L2 and R2 |
     | R2's control sample | HW-162 | 10 ms |
     | The route's sample and its matrix checks | HW-162, HW-164 | 100 ms; refused with a key held |
     | 15 records on every power-on | HW-176, HW-177 | a flash erase and program each |
@@ -6328,7 +6328,12 @@ new is written on the unit: no new register, no clock or `0x16A00` write, no sto
     power-on) silent, and HW-162 and HW-164 settle the route itself. The one check kept is a read: `CLK_CON2` bit 9
     set stops the link (HW-160), so the release then writes a problem record ("L2 bit 9") and says NO SOUND.
   - **Kept:** the USB cable check, as U3-U has it.
-  - **No check was kept for lack of an entry.**
+  - **What no entry settles:** every start on the unit so far had at least 100 ms between ALNK0's start and L2's
+    writes (core 1's marks), and the release has microseconds there. HW-175 settles the marks as a check, not that
+    gap. No delay is added. If the release is silent on the unit, this gap is the first suspect.
+  - **The problem records follow counts taken again after every record,** so a record's own flash write (which
+    may hold the audio off on the unit) never reports itself. The out ring's drops count only while the host's
+    frames run: after an unplug the device stays configured (HW-183) and the ring fills.
 - **The release's log** (section 3), layout 18: one summary record a power-on, "Summary", written once the start is
   done, and a record for each problem, at most 16 a power-on.
   - **The summary's fields:** each stage's time in µs (interrupts on, engine, ALNK0, L2, R2, the route, the panel,

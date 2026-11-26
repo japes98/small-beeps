@@ -567,11 +567,24 @@ u32 put_words(u32 *w, u32 n, const u32 *v, u32 k)
  * HW-177 settle the path and the start from cold. */
 u32 hw_inst_at[HW_INST_STAGES];
 static u32 inst_problems, inst_dropped, inst_summary, inst_seen_under, inst_seen_stall, inst_seen_drop;
-static u32 inst_stack_low;
+static u32 inst_seen_of, inst_stack_low;
 
 static void inst_at(u32 k)
 {
     hw_inst_at[k] = sb_now();
+}
+
+/* The counts the problem records follow, taken again: after each record,
+ * so a record's own flash write (which may hold the audio off on the
+ * unit) never reports itself as the next problem. */
+static void inst_seen_now(void)
+{
+    inst_seen_under = sb_audio.underruns;
+#if defined(SB_USB_MIDI)
+    inst_seen_stall = sb_usb.stalls;
+    inst_seen_drop = sb_usb.rx_dropped;
+    inst_seen_of = sb_usb.out_full;
+#endif
 }
 
 void hw_inst_problem(const char *label)
@@ -582,6 +595,7 @@ void hw_inst_problem(const char *label)
     }
     inst_problems++;
     report(label);
+    inst_seen_now();
 }
 
 void hw_inst_start(void)
@@ -651,8 +665,8 @@ void hw_inst_serve(void)
 
     if (!inst_summary) {
         inst_summary = 1;
-        inst_seen_under = sb_audio.underruns;
         report("Summary");
+        inst_seen_now();
         return;
     }
     if (sb_audio.underruns != inst_seen_under) {
@@ -664,13 +678,20 @@ void hw_inst_serve(void)
         inst_seen_stall = sb_usb.stalls;
         hw_inst_problem("USB stall");
     }
-    if (sb_usb.rx_dropped + sb_usb.out_full != inst_seen_drop) {
-        inst_seen_drop = sb_usb.rx_dropped + sb_usb.out_full;
+    /* The out ring fills once the host has gone (unplugged: no suspend on
+     * the unit, HW-183, so the device stays configured): a drop only while
+     * the host's frames run (usb_midi.c's watch, once a second). */
+    if (sb_usb.gone_n != sb_usb.back_n)
+        inst_seen_of = sb_usb.out_full;
+    if (sb_usb.rx_dropped != inst_seen_drop || sb_usb.out_full != inst_seen_of) {
+        inst_seen_drop = sb_usb.rx_dropped;
+        inst_seen_of = sb_usb.out_full;
         hw_inst_problem("USB drop");
     }
 #else
     (void)inst_seen_stall;
     (void)inst_seen_drop;
+    (void)inst_seen_of;
 #endif
     m = stack_free(__irq_stack_top, __stack_top);
     i = stack_free(__stack_limit, __irq_stack_top);
