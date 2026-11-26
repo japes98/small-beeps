@@ -6391,7 +6391,8 @@ new is written on the unit: no new register, no clock or `0x16A00` write, no sto
       does nothing.
     - **Faults:** no flash write from a trap. The red screen is to show the cause and the address in large text,
       and a RAM mark is to be left for the next start to log if it survives a warm reset. Not built yet: a
-      firmware change for the unit, after this round.
+      firmware change for the unit. The owner put it in round 3, with the store, since round 3 has a unit run
+      (docs/prompts/clean-r2-after-unit-merge.md).
     - **b7ed6c1a's grown copy** is archived beside the old one, under the date it was last written (2026-11-12),
       since the archive names must stay `<date>-<role>-<id>`. It has two more lines than the first archive, both
       Claude Code's closing metadata.

@@ -4419,7 +4419,9 @@ SR-3 wrote only its barrier-log row.*
   knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
 - Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
   clean-r2-cleanup's, continued. The owner's message is saved unedited as
-  docs/prompts/clean-r2-unit-run.md.
+  docs/prompts/clean-r2-unit-run.md, and the owner's next message
+  (merge #256; the fault display goes into round 3) as
+  docs/prompts/clean-r2-after-unit-merge.md.
 - Merged #254 and then #255, both green. tools/clean-update.sh then
   passed at `33fe08e1` ("no spec-side files on disk or in .git"). Branch
   `clean/r2-after-unit` from there.
