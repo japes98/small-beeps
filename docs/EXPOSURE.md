@@ -4362,7 +4362,45 @@ SR-3 wrote only its barrier-log row.*
   docs/prompts/clean-br17-u3u-try5-answer.md.
 - The owner's unit report of try 5 and the direction for the final build,
   relayed and saved unedited as docs/prompts/clean-br17-u3u-final.md.
+- The owner's backtest of the final build, with the direction to merge
+  #249, #250 and the harness PR, relayed and saved unedited as
+  docs/prompts/clean-br17-u3u-backtest.md; the follow-up (no action on
+  #250) as docs/prompts/clean-br17-u3u-after-merge.md. #249 was merged
+  after its CI passed. #250's failed checks were read from its job log
+  through the API, as the PASS and error lines only; its branch wasn't
+  opened.
 - Disk: about 4 GB free; about 6 GB at the answers, at tries 4 and 5 and at the final build.
+
+### Session clean-r2-cleanup (round 2: two builds, start-up under 1 s, the log, hw_audio.c, fwtest 0.15.0, seams in parallel)
+- Date: 2026-11-25 (UTC)
+- Role: firmware side (clean).
+- Exposure: none.
+- Tool: Claude Code 2.1.331, a background session.
+- Model ID: `claude-opus-5-5` (Claude Opus 5.5). Published cutoffs: reliable
+  knowledge Jun 2026, training data Jun 2026 (PROVENANCE P-4). Flag: none.
+- Session: Claude Code session `1b5c2df5-2a51-41e1-99ea-bac60455e6a2`,
+  clean-br17-u3u's, continued. The prompt came from the spec session
+  through the owner's cross-session relay, saved unedited as
+  docs/prompts/clean-r2-cleanup.md.
+- The folder: the first tools/clean-update.sh of this round stopped with
+  spec-side blobs in `.git`. The owner traced them to the owner's
+  assistant: a repo-wide sweep and log decoding run in this folder had
+  lazily fetched them, and none reached the disk as files. This session
+  didn't list or open them. The owner re-made the folder with
+  tools/setup-folder.sh clean at `77907497` and copied back the two U3-U
+  prompts, `out/` and tools/private-terms.local. tools/clean-update.sh
+  then passed ("no spec-side files on disk or in .git").
+- Start: branch `clean/r2-cleanup` from main at `77907497` (#253).
+- Archive: there was nothing new to archive. The last clean session is
+  this one, still live, and every earlier clean transcript is already in
+  sessions/clean/. b7ed6c1a's original has grown since it was archived,
+  and tools/archive-session.py refuses to overwrite, so it was left as it
+  is (a question for the owner). tools/check-transcripts.py PASS (26
+  transcripts).
+- Reads: HARDWARE-SPEC HW-175 to HW-177 and HW-179 to HW-183;
+  REQUIREMENTS R-USB-1 and R-HW-1; docs/HARNESS.md's "USB" and
+  "Versions"; docs/AUDIT.md's "Data tables", all as on main at `77907497`.
+  The audit's matched code and targets were not opened.
 
 ## Corrections
 

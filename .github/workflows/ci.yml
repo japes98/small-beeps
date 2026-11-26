@@ -78,9 +78,23 @@ jobs:
           - part: firmware
             prebuild: false
             only: C-IMAGE,C-BUILD-A,C-BUILD-B,C-DETERMINISM,C-FW-SIZE,C-FW-SUITE,C-PACKAGE,C-RELEASE,C-PERF,C-PERF-PROBES,C-PLAITS-BENCH
-          - part: seams
+          # C-SEAMS in four parts (tools/seams_suite.py --shard), assembled as one check
+          - part: seams-1
             prebuild: true
             only: C-SEAMS
+            shard: 1/4
+          - part: seams-2
+            prebuild: true
+            only: C-SEAMS
+            shard: 2/4
+          - part: seams-3
+            prebuild: true
+            only: C-SEAMS
+            shard: 3/4
+          - part: seams-4
+            prebuild: true
+            only: C-SEAMS
+            shard: 4/4
           - part: suites
             prebuild: true
             only: C-UNIT,C-PRESETS,C-ARP
@@ -118,7 +132,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
-        run: python tools/record.py part --out out/part --only ${{ matrix.only }}
+        run: python tools/record.py part --out out/part --only ${{ matrix.only }} ${{ matrix.shard && format('--shard {0}', matrix.shard) || '' }}
 
       - name: Upload part
         if: always()
@@ -159,7 +173,7 @@ jobs:
       - name: Assemble the record
         env:
           PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
-        run: python tools/record.py assemble --out out/record out/parts/part-quick out/parts/part-firmware out/parts/part-seams out/parts/part-suites out/parts/part-harness out/parts/part-isa
+        run: python tools/record.py assemble --out out/record out/parts/part-quick out/parts/part-firmware out/parts/part-seams-1 out/parts/part-seams-2 out/parts/part-seams-3 out/parts/part-seams-4 out/parts/part-suites out/parts/part-harness out/parts/part-isa
 
       # The performance verdict, improvements included, on the pull
       # request's checks page (R-PERF-2).

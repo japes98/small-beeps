@@ -369,6 +369,7 @@ import re
 import shutil
 import struct
 import subprocess
+import time
 import zlib
 import sys
 
@@ -4238,12 +4239,46 @@ CASES = [
 ]
 
 
+# Each case's measured time in seconds, for --shard (CI's seams parts): the cases are taken longest first and dealt
+# out in turn (shard_cases), so the parts take about as long. A case not listed counts as CASE_SECONDS_DEFAULT. Measured from the
+# "seams case" lines a run prints; update them when a case's time changes much.
+# Measured on CI (#254, run 45751696587, fwtest 0.14.0).
+CASE_SECONDS = {
+    "audio12": 436, "audio13": 342, "audio8": 234, "audio14": 201, "powercut": 194, "audio6": 139, "audio10":
+    137, "audio9": 134, "usbmidi": 119, "audio5": 97, "audio7": 92, "audio11": 91, "report1": 85, "audio4": 59,
+    "audio2": 46, "hw3": 34, "audio3": 34, "audio1": 33, "hw": 20, "panel": 19, "light": 18, "finder": 15,
+    "core1": 15, "flags": 14, "ownbase": 9, "outside": 8, "region": 8, "nostart": 6, "nowrace": 5, "engine": 5,
+    "store": 5, "parts": 4, "platform": 3, "sysex": 3, "rawout": 3, "probe": 2,
+}
+CASE_SECONDS_DEFAULT = 60
+
+
+def shard_cases(k, n):
+    """The case names part k of n runs: the cases longest first by CASE_SECONDS, each given to the part with the
+    least time so far (the first such part on a tie), so the parts take about as long."""
+    names = [name for name, _ in CASES]
+    ranked = sorted(names, key=lambda x: (-CASE_SECONDS.get(x, CASE_SECONDS_DEFAULT), names.index(x)))
+    load, part = [0] * n, {}
+    for x in ranked:
+        p = load.index(min(load))
+        part[x] = p
+        load[p] += CASE_SECONDS.get(x, CASE_SECONDS_DEFAULT)
+    return {x for x, p in part.items() if p == k - 1}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--build", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--only", nargs="*")
+    ap.add_argument("--shard", help="k/n: run part k of n (CI's seams parts), the cases spread by their measured times")
     a = ap.parse_args()
+    shard = None
+    if a.shard:
+        k, n = (int(x) for x in a.shard.split("/"))
+        if not 1 <= k <= n:
+            ap.error("--shard k/n wants 1 <= k <= n")
+        shard = shard_cases(k, n)
     a.build = os.path.abspath(a.build)
     out = os.path.abspath(a.out)
     shutil.rmtree(out, ignore_errors=True)
@@ -4252,18 +4287,23 @@ def main():
     for name, fn in CASES:
         if a.only and name not in a.only:
             continue
+        if shard is not None and name not in shard:
+            continue
         work = os.path.join(out, name)
         os.makedirs(work)
         log = os.path.join(work, "log.txt")
+        t0 = time.time()
         try:
             problems = fn(a, work, log)
         except RuntimeError as e:
             problems = [str(e)]
+        print("seams case %s: %.0fs" % (name, time.time() - t0), flush=True)
         for p in problems:
             print("  FAIL %s: %s" % (name, p))
         if problems:
             failed.append(name)
-    print("seams suite: %s" % ("FAIL (%s)" % ", ".join(failed) if failed else "PASS"))
+    print("seams suite%s: %s" % (" part " + a.shard if a.shard else "",
+                                  "FAIL (%s)" % ", ".join(failed) if failed else "PASS"))
     return 1 if failed else 0
 
 
