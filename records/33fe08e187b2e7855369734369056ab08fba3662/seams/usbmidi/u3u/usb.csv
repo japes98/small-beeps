@@ -1,0 +1,31 @@
+ms,event
+5416.000,connect
+5426.000,bus reset
+5436.000,setup get the device descriptor, 64 bytes at 0x01c2bd40: 80 06 00 01 00 00 40 00
+5438.000,in 18 bytes from 0x01c2bd40
+5438.000,done get the device descriptor, 64 bytes: 12 01 00 02 00 00 00 40 09 12 01 00 00 01 01 02 00 01
+5438.000,setup set the address at 0x01c2bd40: 00 05 01 00 00 00 00 00
+5439.000,done set the address: 
+5441.000,address 1 checked
+5441.000,setup get the device descriptor at 0x01c2bd40: 80 06 00 01 00 00 12 00
+5443.000,in 18 bytes from 0x01c2bd40
+5443.000,done get the device descriptor: 12 01 00 02 00 00 00 40 09 12 01 00 00 01 01 02 00 01
+5443.000,setup get the configuration, 9 bytes at 0x01c2bd40: 80 06 00 02 00 00 09 00
+5445.000,in 9 bytes from 0x01c2bd40
+5445.000,done get the configuration, 9 bytes: 09 02 65 00 02 01 00 80 32
+5445.000,setup get the configuration at 0x01c2bd40: 80 06 00 02 00 00 65 00
+5447.000,in 64 bytes from 0x01c2bd40
+5448.000,in 37 bytes from 0x01c2bd40
+5448.000,done get the configuration: 09 02 65 00 02 01 00 80 32 09 04 00 00 00 01 01 00 00 09 24 01 00 01 09 00 01 01 09 04 01 00 02 01 03 00 00 07 24 01 00 01 41 00 06 24 02 01 01 00 06 24 02 02 02 00 09 24 03 01 03 01 02 01 00 09 24 03 02 04 01 01 01 00 09 05 01 02 40 00 00 00 00 05 25 01 01 01 09 05 82 02 40 00 00 00 00 05 25 01 01 03
+5448.000,setup get string 0 at 0x01c2bd40: 80 06 00 03 00 00 ff 00
+5450.000,in 4 bytes from 0x01c2bd40
+5450.000,done get string 0: 04 03 09 04
+5450.000,setup get the manufacturer at 0x01c2bd40: 80 06 01 03 09 04 ff 00
+5452.000,in 24 bytes from 0x01c2bd40
+5452.000,done get the manufacturer: 18 03 73 00 6d 00 61 00 6c 00 6c 00 2d 00 62 00 65 00 65 00 70 00 73 00
+5452.000,setup get the product at 0x01c2bd40: 80 06 02 03 09 04 ff 00
+5454.000,in 24 bytes from 0x01c2bd40
+5454.000,done get the product: 18 03 73 00 6d 00 61 00 6c 00 6c 00 2d 00 62 00 65 00 65 00 70 00 73 00
+5454.000,setup set the configuration at 0x01c2bd40: 00 09 01 00 00 00 00 00
+5455.000,done set the configuration: 
+5455.000,configured

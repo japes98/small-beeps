@@ -1,0 +1,89 @@
+{
+  "fwtest": {
+    "version": "0.15.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 59416,
+    "sha256": "8da43727b7152f53791a92bac05c2f9d4de8f4573d7dad6bbc753a3c847ee132"
+  },
+  "script_sha256": "4c3428faae63a2302bd3ee4c9547a487308ca6420b2f9c4daf1f2fe88c29d095",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "6000.192",
+    "instructions": {
+      "core0": 144315431,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00013000",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "write",
+        "count": 4
+      },
+      {
+        "address": "0x00040204",
+        "access": "write",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "write",
+        "count": 1
+      },
+      {
+        "address": "0x00040300",
+        "access": "write",
+        "count": 2
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "write",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 985132,
+        "sha256": "6f57b1acf67cd2e21ae5f3899251695d04d926391dce5ff6050d3a7ab250e39b"
+      },
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "1531e8cfb7204850fc380ce53bd01aeaefce51adec62214e84bdbd7968ab5f67"
+      },
+      {
+        "name": "lcd-end.png",
+        "bytes": 173118,
+        "sha256": "067a79de30d6cbab6893830a6ea34f0e7109456f800c80a22e0c238ab437bf43"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

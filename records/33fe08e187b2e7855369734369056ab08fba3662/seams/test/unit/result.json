@@ -1,0 +1,159 @@
+{
+  "fwtest": {
+    "version": "0.15.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "unit.fwsc",
+    "bytes": 136152,
+    "sha256": "4f3a3169907c09c6265d4c5df4e5812ea13b9ce298b359e95e3cba8dd5e40117"
+  },
+  "script_sha256": null,
+  "run": {
+    "package": {
+      "identity": "FM-1_0.16.0-r2t",
+      "app_area": "0x04000",
+      "entry": "0x02000120"
+    },
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "20000.007",
+    "instructions": {
+      "core0": 4717017697,
+      "core1": 1522464023
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00012f00",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00016a00",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x00016a04",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x00016a08",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x00016a0c",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x01eee200",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee204",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee208",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee20c",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee210",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee214",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee218",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee21c",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee220",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee224",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee228",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee22c",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee230",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee234",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee238",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x01eee23c",
+        "access": "read",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "name": "lcd-19900ms.png",
+        "bytes": 173118,
+        "sha256": "9768ff78196ccc6e6433afde967c4cfd53692f3d8e8e07940fbcf2c8fecba891"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

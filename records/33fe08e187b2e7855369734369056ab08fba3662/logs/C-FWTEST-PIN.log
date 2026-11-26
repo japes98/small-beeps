@@ -1,0 +1,5 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-fwtest-pin.py
+config/fwtest-image: ghcr.io/japes98/small-beeps@sha256:81fd8b40d4e68973a361d7f2a58e7dabbfc2bbd367b668873f12dfec7ffb2fc1
+fwtest pin: PASS
+
+exit status 0

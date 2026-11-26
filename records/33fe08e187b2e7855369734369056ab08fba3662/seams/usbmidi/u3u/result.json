@@ -1,0 +1,79 @@
+{
+  "fwtest": {
+    "version": "0.15.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "u3u.fwsc",
+    "bytes": 82780,
+    "sha256": "b9148f4f9b68c90ff12354a42c86ef288a72540c6fb93cc2d5db562ea2695d02"
+  },
+  "script_sha256": null,
+  "run": {
+    "package": {
+      "identity": "FM-1_0.16.0-r2u",
+      "app_area": "0x04000",
+      "entry": "0x02000120"
+    },
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "40000.522",
+    "instructions": {
+      "core0": 307002074,
+      "core1": 0
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "name": "lcd-39900ms.png",
+        "bytes": 173118,
+        "sha256": "2e96a37fca8b591e90369fda103a7defd2a58e8ee86d5d4e0e2ccce0d97bc216"
+      },
+      {
+        "name": "usb-midi-out.csv",
+        "bytes": 19,
+        "sha256": "05691b1758db2ee983d44b1dcf79fc5700640ddf3c7df8d6d782416c73604165"
+      },
+      {
+        "name": "usb.csv",
+        "bytes": 2009,
+        "sha256": "1e6783f7fb4bb390e2abd23234ccb8dcd2be59338503138507d7ba5296e73758"
+      }
+    ],
+    "usb": {
+      "vendor": "1209",
+      "product": "0001",
+      "manufacturer": "small-beeps",
+      "product_name": "small-beeps",
+      "serial": null,
+      "address": 1,
+      "configuration": 1,
+      "midi_out_endpoint": 1,
+      "midi_in_endpoint": 130,
+      "packets_sent": 0,
+      "events_sent": 0,
+      "events_received": 0,
+      "problems": []
+    }
+  },
+  "golden": [],
+  "exit_code": 0
+}

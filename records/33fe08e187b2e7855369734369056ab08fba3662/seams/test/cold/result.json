@@ -1,0 +1,189 @@
+{
+  "fwtest": {
+    "version": "0.15.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 118452,
+    "sha256": "7cdbff2870ac83737562609699a0edc9f1c96cb29111365832e4719d70cafeb3"
+  },
+  "script_sha256": "961a2732c395ad47063f9d52bfe008bd23acb3e6f23a637d3a1046d8c4f3ff70",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "14000.249",
+    "instructions": {
+      "core0": 1640075192,
+      "core1": 2957639489
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [
+      {
+        "address": "0x00012f00",
+        "access": "read",
+        "count": 17
+      },
+      {
+        "address": "0x00013000",
+        "access": "write",
+        "count": 36
+      },
+      {
+        "address": "0x00016a00",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x00016a04",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x00016a08",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x00016a0c",
+        "access": "read",
+        "count": 2
+      },
+      {
+        "address": "0x00040200",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040200",
+        "access": "write",
+        "count": 72
+      },
+      {
+        "address": "0x00040204",
+        "access": "write",
+        "count": 18
+      },
+      {
+        "address": "0x0004020c",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x0004020c",
+        "access": "write",
+        "count": 18
+      },
+      {
+        "address": "0x00040300",
+        "access": "write",
+        "count": 36
+      },
+      {
+        "address": "0x00040304",
+        "access": "read",
+        "count": 1
+      },
+      {
+        "address": "0x00040304",
+        "access": "write",
+        "count": 18
+      },
+      {
+        "address": "0x01eee200",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee204",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee208",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee20c",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee210",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee214",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee218",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee21c",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee220",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee224",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee228",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee22c",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee230",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee234",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee238",
+        "access": "read",
+        "count": 18
+      },
+      {
+        "address": "0x01eee23c",
+        "access": "read",
+        "count": 18
+      }
+    ],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 1688364,
+        "sha256": "1168aaf2d7e65b8a92d3cc24427bb0945705d8037ab8b4f3c6a6dc571bc2ef23"
+      },
+      {
+        "name": "flash.bin",
+        "bytes": 1048576,
+        "sha256": "d353f4ad46a4913e174b0656d320fd5987d613178e515ba1d6dfa5e10059f12f"
+      }
+    ]
+  },
+  "golden": [],
+  "exit_code": 0
+}

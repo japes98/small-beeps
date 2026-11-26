@@ -1,0 +1,49 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/seams_suite.py --build /home/runner/work/small-beeps/small-beeps/out/33fe08e187b2e7855369734369056ab08fba3662/build-a --out /home/runner/work/small-beeps/small-beeps/out/33fe08e187b2e7855369734369056ab08fba3662/seams
+ownbase: the test build refused; build A passed the check; the float-heavy object read as compiled (passed), its real store src1_float_heavy.o: sb_test_float_ownbase+0x6 (.text): [++r1=4] = r1
+seams case ownbase: 14s
+outside: 5 symbols from the folder; three places, the same bytes; probe.c left out, build A's image
+seams case outside: 11s
+flags: 4 symbols from the folder; each file with its folders' flags after the base's, the base's files with the base's only; without them it stops on the folder's files; three places, the same bytes; 12 refused; the SDK's CPU and float, or none, taken; another CPU, double precision and SIMD refused
+seams case flags: 21s
+engine: init once before the ticks and the audio; 1585 blocks of 64 frames; 7 serves (seconds 2); 2 presses; core 1 did 1585 jobs, none wrong, its vector word restored; the square wave at 2048; the instrument never ran
+seams case engine: 4s
+platform: linked without the instrument (15460 bytes of code), its records in place
+platform: init once before the ticks and the audio; 1585 blocks of 64 frames; 7 serves (seconds 2); 2 presses; core 1 did 1585 jobs, none wrong, its vector word restored; the square wave at 2048; the instrument never ran
+seams case platform: 3s
+sysex: 4104 data bytes in order through the tap (a clock byte inside handed on as a message); the work in the serve; a second message cut by 0x90
+seams case sysex: 3s
+rawout: 600 bytes in order with 198 clocks inside; then 19 notes, the first with its status; 300 clocks in all, none dropped
+seams case rawout: 3s
+store: 4 096 bytes written, read at start-up; a rewrite refused as full, nothing written, the old one kept; a reset voids both; 5 000 bytes alone, 5904 refused as full; tools/store.py agrees
+seams case store: 7s
+powercut: large: 27 commands (1 erases), 108 cuts, old 106, new 2; several: 65 commands (2 erases), 260 cuts, old 258, new 2; mid: 47 commands (2 erases, 7 old parts copied), 188 cuts, old 186, new 2; small: 41 commands (1 erases), 164 cuts, old 162, new 2; patch: 41 commands (1 erases), 164 cuts, old 161, new 3; never neither, never a mix; tools/store.py agrees
+seams case powercut: 329s
+region: the test engine built in today's region and in 5 and 16 sectors from 0x20000; refused, each saying why and where it would fit: over-image, across-end, user-patch, unaligned, too-small
+seams case region: 12s
+nostart: the first serve at 500 ms by default (screen 2, 2 frames), at 127 ms with SB_NO_START_SCREENS (screen 4, 1 frame), 373 ms sooner; the option without an external engine refused
+seams case nostart: 9s
+parts: 4 096 bytes written at 0x80000 and read at the next start-up with 0x856014 and with 0xB36014; refused with an unknown part, 0x006014 (result -4), nothing written
+seams case parts: 6s
+probe: the first instruction returns: from the raw image and the package fwtest faults at once outside the code (build A runs on); its hardware package passes the unit's checks
+seams case probe: 4s
+light: LED 12 lit for the 7500 ms hold and no other, then the return, from the raw image and the package; no port access unmodelled; its hardware package passes the unit's checks; both probes at once refused
+seams case light: 25s
+panel: the bars and the square on the screen at 3 s and at the end, then the return after the 7905 ms of waits, from the raw image and the package; no port or SPI1 access unmodelled; its hardware package passes the unit's checks; two probes at once refused
+seams case panel: 27s
+hw: the release's start to its panel, no halt; a fault halts on red; band 5 for a frame whose interrupt never came; its hardware package passes the unit's checks; an external engine, a probe, and the test build without USB refused
+seams case hw: 17s
+report1: from older data the power-on's Summary in the first slot, the sectors past it untouched; a second power-on numbered on; from a full ring the oldest sector erased, 96 records kept; a failed write found, logged and written again in the next slot
+seams case report1: 12s
+nowrace: the slot's time-keeping forced at each of sb_now()'s four points, 200 runs: 0 readings went back
+seams case nowrace: 4s
+release: ready in fwtest (us on its clock, 2.5 times slow) published 2715, owner-only 2715; the first 0.5 s peaks 891 and 891; records ['Summary'] and ['Summary']; the owner-only build adds 57 symbols, all usb_midi.c's; the published image has no USB identity; images 59408 and 65064 bytes
+seams case release: 15s
+test: from cold 16 records (the instrument's 15, then ['USB cable']), KEY1's peak 891; HOME: the test screen; the unit file past the start's bands
+seams case test: 111s
+usbmidi: packets in (bytes, events) [(8, 2), (4, 1), (4, 1), (4, 1), (4, 1), (4, 0), (4, 1), (4, 1)]; out [('35', '64'), ('35', '00'), ('36', '64'), ('36', '00'), ('37', '64'), ('37', '00')]
+usbmidi: the give-up test: CON1 bit 15 never came at irqs_off index 11, stages ['cable', 'step1_pins_ie', 'step2_pads', 'step3_nrst_clr', 'step4_con1', 'step5_phy', 'step6_pulls', 'step7_nrst_set', 'stopped'], no connection: True, the panel's note 6329; the log: USB records ['USB cable', 'USB step 1', 'USB step 2', 'USB step 3', 'USB step 4', 'USB step 5', 'USB step 6', 'USB set up', 'USB reset', 'USB address', 'USB configured', 'USB first in'], step 6 to SIEIE 0 beats;   stages (beat): cable 4001, step1_pins_ie 4021, step2_pads 4040, step3_nrst_clr 4060, step4_con1 4079, step5_phy 4099, step6_pulls 4119, step7_nrst_set 4119, irqs_off 4119, power 4119, ep0_buf 4119, intrusbe 4119, ep0_on 4119, irq 4119, sieie 4119, host_reset 4123, address 4128, configured 4134, first_in 4135 /   the host's frames: stopped 0 times, again 0 (the last number 48); the most interrupts in one ms 2; KEY7 and KEY8: spacing 240 units,   the host's frames: stopped 0 times, again 0 (the last number 48); the most interrupts in one ms 2
+usbmidi: enumerated 1209:0001, 'small-beeps' / 'small-beeps', serial None, address 1 (written late 0), endpoints out 1 in 130, 6 events received, 9 sent; stages (beat) cable 2002, step1_pins_ie 2002, step2_pads 2002, step3_nrst_clr 2002, step4_con1 2002, step5_phy 2002, step6_pulls 2002, step7_nrst_set 2002, irqs_off 2002, power 2002, ep0_buf 2002, intrusbe 2002, ep0_on 2002, irq 2002, sieie 2002, host_reset 2013, address 2025, configured 2041, first_in 2999, first_out 5004; the host's note peaks 12646; the panel's note [(5005.0, 9, ['90', '35', '64']), (5205.0, 9, ['90', '35', '00'])]; the cable reading 3 checks, bits 16-17 set in 0 of 32 reads (with --usb's host: 0); read back CON0 0002083D CON1 00008701 IO CON0 00001640; port accesses 256, most polls 0; without --usb: USB not started (state 0, 0 resets), outputs as build A: True; the owner-only release's unit file: completed, enumerated 1209:0001 configuration 1, problems []; the published release: none of sb_usb, usb_midi_poll, usb_midi_take, usb_midi_send
+seams case usbmidi: 130s
+seams suite: PASS
+
+exit status 0

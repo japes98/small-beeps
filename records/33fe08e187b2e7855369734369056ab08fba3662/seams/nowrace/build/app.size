@@ -1,0 +1,7 @@
+code 59512
+data 68
+bss 180016
+image 59580
+stack 4096
+irq_stack 2048
+ram_code 58800

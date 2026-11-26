@@ -1,0 +1,434 @@
+$ sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/33fe08e187b2e7855369734369056ab08fba3662/seams/release/build-published --define SB_HW_FM1 --define SB_TEST_HW_WINDOW
+clang version 4.0.1 () ()
+GNU ld (GNU Binutils) 2.26.51.20160621
+SOURCE_DATE_EPOCH=1767225600
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/arp.c -o /tmp/small-beeps-obj/arp.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/audio.c -o /tmp/small-beeps-obj/audio.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/core1.c -o /tmp/small-beeps-obj/core1.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -nostdinc -Werror -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/core1_entry.S -o /tmp/small-beeps-obj/core1_entry.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -nostdinc -Werror -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/crt0.S -o /tmp/small-beeps-obj/crt0.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/fm.c -o /tmp/small-beeps-obj/fm.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/fm_play.c -o /tmp/small-beeps-obj/fm_play.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/font.c -o /tmp/small-beeps-obj/font.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/gfx.c -o /tmp/small-beeps-obj/gfx.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/hw_audio.c -o /tmp/small-beeps-obj/hw_audio.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -nostdinc -Werror -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/hw_core1.S -o /tmp/small-beeps-obj/hw_core1.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/hw_fm1.c -o /tmp/small-beeps-obj/hw_fm1.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/hw_report.c -o /tmp/small-beeps-obj/hw_report.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/hw_start3.c -o /tmp/small-beeps-obj/hw_start3.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/hw_test_audio.c -o /tmp/small-beeps-obj/hw_test_audio.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/hw_test_start3.c -o /tmp/small-beeps-obj/hw_test_start3.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/input.c -o /tmp/small-beeps-obj/input.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/irq.c -o /tmp/small-beeps-obj/irq.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/lcd.c -o /tmp/small-beeps-obj/lcd.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/main.c -o /tmp/small-beeps-obj/main.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/midi.c -o /tmp/small-beeps-obj/midi.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/midi_out.c -o /tmp/small-beeps-obj/midi_out.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/patches.c -o /tmp/small-beeps-obj/patches.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/probe.c -o /tmp/small-beeps-obj/probe.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/saving.c -o /tmp/small-beeps-obj/saving.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/screen.c -o /tmp/small-beeps-obj/screen.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/spectrum.c -o /tmp/small-beeps-obj/spectrum.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/start.c -o /tmp/small-beeps-obj/start.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/store.c -o /tmp/small-beeps-obj/store.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/usb_midi.c -o /tmp/small-beeps-obj/usb_midi.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/src/views.c -o /tmp/small-beeps-obj/views.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -x c++ -std=c++14 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -fno-exceptions -fno-rtti -fno-threadsafe-statics -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ifirmware/runtime/include -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/runtime/cxx.cc -o /tmp/small-beeps-obj/runtime_cxx.o
++ set +x
++ echo -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g
+            -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=.
+            -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW
++ sed s/ -mcpu=r3 -mfprev1//
++ clang -target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/runtime/mem.c -o /tmp/small-beeps-obj/runtime_mem.o
++ set +x
++ echo -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g
+            -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=.
+            -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW
++ sed s/ -mcpu=r3 -mfprev1//
++ clang -target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_TEST_HW_WINDOW -c firmware/runtime/softfloat.c -o /tmp/small-beeps-obj/runtime_softfloat.o
++ set +x
+ownbase check: 32 objects disassembled with -mcpu=r3 -mattr=+fprev1
+ownbase check: 2 objects disassembled with no CPU options
++ ld -nostdlib --no-undefined --orphan-handling=error -L firmware -L firmware -T firmware/app.ld -o /out/app.elf /tmp/small-beeps-obj/arp.o /tmp/small-beeps-obj/audio.o /tmp/small-beeps-obj/core1.o /tmp/small-beeps-obj/core1_entry.o /tmp/small-beeps-obj/crt0.o /tmp/small-beeps-obj/fm.o /tmp/small-beeps-obj/fm_play.o /tmp/small-beeps-obj/font.o /tmp/small-beeps-obj/gfx.o /tmp/small-beeps-obj/hw_audio.o /tmp/small-beeps-obj/hw_core1.o /tmp/small-beeps-obj/hw_fm1.o /tmp/small-beeps-obj/hw_report.o /tmp/small-beeps-obj/hw_start3.o /tmp/small-beeps-obj/hw_test_audio.o /tmp/small-beeps-obj/hw_test_start3.o /tmp/small-beeps-obj/input.o /tmp/small-beeps-obj/irq.o /tmp/small-beeps-obj/lcd.o /tmp/small-beeps-obj/main.o /tmp/small-beeps-obj/midi.o /tmp/small-beeps-obj/midi_out.o /tmp/small-beeps-obj/patches.o /tmp/small-beeps-obj/probe.o /tmp/small-beeps-obj/saving.o /tmp/small-beeps-obj/screen.o /tmp/small-beeps-obj/spectrum.o /tmp/small-beeps-obj/start.o /tmp/small-beeps-obj/store.o /tmp/small-beeps-obj/usb_midi.o /tmp/small-beeps-obj/views.o /tmp/small-beeps-obj/libsb_runtime.a
++ objcopy -O binary -j .text /out/app.elf /tmp/small-beeps-obj/text.bin
++ objcopy -O binary -j .data /out/app.elf /tmp/small-beeps-obj/data.bin
++ cat /tmp/small-beeps-obj/text.bin /tmp/small-beeps-obj/data.bin
++ [ -z  ]
++ ld -nostdlib --no-undefined --orphan-handling=error --defsym=IMAGE_ORIGIN=0x02000120 -L firmware -L firmware -T firmware/app.ld -o /out/app-pkg.elf /tmp/small-beeps-obj/arp.o /tmp/small-beeps-obj/audio.o /tmp/small-beeps-obj/core1.o /tmp/small-beeps-obj/core1_entry.o /tmp/small-beeps-obj/crt0.o /tmp/small-beeps-obj/fm.o /tmp/small-beeps-obj/fm_play.o /tmp/small-beeps-obj/font.o /tmp/small-beeps-obj/gfx.o /tmp/small-beeps-obj/hw_audio.o /tmp/small-beeps-obj/hw_core1.o /tmp/small-beeps-obj/hw_fm1.o /tmp/small-beeps-obj/hw_report.o /tmp/small-beeps-obj/hw_start3.o /tmp/small-beeps-obj/hw_test_audio.o /tmp/small-beeps-obj/hw_test_start3.o /tmp/small-beeps-obj/input.o /tmp/small-beeps-obj/irq.o /tmp/small-beeps-obj/lcd.o /tmp/small-beeps-obj/main.o /tmp/small-beeps-obj/midi.o /tmp/small-beeps-obj/midi_out.o /tmp/small-beeps-obj/patches.o /tmp/small-beeps-obj/probe.o /tmp/small-beeps-obj/saving.o /tmp/small-beeps-obj/screen.o /tmp/small-beeps-obj/spectrum.o /tmp/small-beeps-obj/start.o /tmp/small-beeps-obj/store.o /tmp/small-beeps-obj/usb_midi.o /tmp/small-beeps-obj/views.o /tmp/small-beeps-obj/libsb_runtime.a
++ objcopy -O binary -j .text /out/app-pkg.elf /tmp/small-beeps-obj/pkg-text.bin
++ objcopy -O binary -j .data /out/app-pkg.elf /tmp/small-beeps-obj/pkg-data.bin
++ cat /tmp/small-beeps-obj/pkg-text.bin /tmp/small-beeps-obj/pkg-data.bin
++ set +x
+app.elf: store region 0xFC000 to 0xFEFFF, 3 sectors (the image ends at 0x12817)
+app-pkg.elf: store region 0xFC000 to 0xFEFFF, 3 sectors (the image ends at 0x12937)
+code 59348
+data 68
+bss 179984
+image 59416
+stack 4096
+irq_stack 2048
+ram_code 58636
+eb2ae88929f4e9516892f088d0a0ac789f500b0a5bec04e81f0cad1efb024e10  app-pkg.bin
+93d3af9109bed9b2f32f377229afb8def6036717fcb547247aefd12f7e540258  app-pkg.elf
+8da43727b7152f53791a92bac05c2f9d4de8f4573d7dad6bbc753a3c847ee132  app.bin
+e5c708409e241e2329d0f8c51d1b560f23f18fa1c988d124045b897480a9f657  app.elf
+d8cb5ead13f4c23b7f71209c1b9f223138e8193bf6a8346741c22b2604f2afb8  app.size
+
+$ sh tools/fwtest run out/33fe08e187b2e7855369734369056ab08fba3662/seams/release/build-published/app.bin --out out/33fe08e187b2e7855369734369056ab08fba3662/seams/release/published --ms 6000 --wav --audio-chip --flash-out --lcd end --script out/33fe08e187b2e7855369734369056ab08fba3662/seams/release/taps.script
+fwtest: completed (exit 0)
+
+$ sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/33fe08e187b2e7855369734369056ab08fba3662/seams/release/build-owner-only --define SB_HW_FM1 --define SB_USB_MIDI --define SB_TEST_HW_WINDOW
+clang version 4.0.1 () ()
+GNU ld (GNU Binutils) 2.26.51.20160621
+SOURCE_DATE_EPOCH=1767225600
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/arp.c -o /tmp/small-beeps-obj/arp.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/audio.c -o /tmp/small-beeps-obj/audio.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/core1.c -o /tmp/small-beeps-obj/core1.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -nostdinc -Werror -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/core1_entry.S -o /tmp/small-beeps-obj/core1_entry.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -nostdinc -Werror -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/crt0.S -o /tmp/small-beeps-obj/crt0.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/fm.c -o /tmp/small-beeps-obj/fm.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/fm_play.c -o /tmp/small-beeps-obj/fm_play.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/font.c -o /tmp/small-beeps-obj/font.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/gfx.c -o /tmp/small-beeps-obj/gfx.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/hw_audio.c -o /tmp/small-beeps-obj/hw_audio.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -nostdinc -Werror -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/hw_core1.S -o /tmp/small-beeps-obj/hw_core1.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/hw_fm1.c -o /tmp/small-beeps-obj/hw_fm1.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/hw_report.c -o /tmp/small-beeps-obj/hw_report.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/hw_start3.c -o /tmp/small-beeps-obj/hw_start3.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/hw_test_audio.c -o /tmp/small-beeps-obj/hw_test_audio.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/hw_test_start3.c -o /tmp/small-beeps-obj/hw_test_start3.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/input.c -o /tmp/small-beeps-obj/input.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/irq.c -o /tmp/small-beeps-obj/irq.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/lcd.c -o /tmp/small-beeps-obj/lcd.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/main.c -o /tmp/small-beeps-obj/main.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/midi.c -o /tmp/small-beeps-obj/midi.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/midi_out.c -o /tmp/small-beeps-obj/midi_out.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/patches.c -o /tmp/small-beeps-obj/patches.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/probe.c -o /tmp/small-beeps-obj/probe.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/saving.c -o /tmp/small-beeps-obj/saving.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/screen.c -o /tmp/small-beeps-obj/screen.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/spectrum.c -o /tmp/small-beeps-obj/spectrum.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/start.c -o /tmp/small-beeps-obj/start.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/store.c -o /tmp/small-beeps-obj/store.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/usb_midi.c -o /tmp/small-beeps-obj/usb_midi.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/src/views.c -o /tmp/small-beeps-obj/views.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -x c++ -std=c++14 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -fno-exceptions -fno-rtti -fno-threadsafe-statics -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ifirmware/runtime/include -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/runtime/cxx.cc -o /tmp/small-beeps-obj/runtime_cxx.o
++ set +x
++ echo -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g
+            -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=.
+            -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW
++ sed s/ -mcpu=r3 -mfprev1//
++ clang -target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/runtime/mem.c -o /tmp/small-beeps-obj/runtime_mem.o
++ set +x
++ echo -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g
+            -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=.
+            -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW
++ sed s/ -mcpu=r3 -mfprev1//
++ clang -target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -DSB_TEST_HW_WINDOW -c firmware/runtime/softfloat.c -o /tmp/small-beeps-obj/runtime_softfloat.o
++ set +x
+ownbase check: 32 objects disassembled with -mcpu=r3 -mattr=+fprev1
+ownbase check: 2 objects disassembled with no CPU options
++ ld -nostdlib --no-undefined --orphan-handling=error -L firmware -L firmware -T firmware/app.ld -o /out/app.elf /tmp/small-beeps-obj/arp.o /tmp/small-beeps-obj/audio.o /tmp/small-beeps-obj/core1.o /tmp/small-beeps-obj/core1_entry.o /tmp/small-beeps-obj/crt0.o /tmp/small-beeps-obj/fm.o /tmp/small-beeps-obj/fm_play.o /tmp/small-beeps-obj/font.o /tmp/small-beeps-obj/gfx.o /tmp/small-beeps-obj/hw_audio.o /tmp/small-beeps-obj/hw_core1.o /tmp/small-beeps-obj/hw_fm1.o /tmp/small-beeps-obj/hw_report.o /tmp/small-beeps-obj/hw_start3.o /tmp/small-beeps-obj/hw_test_audio.o /tmp/small-beeps-obj/hw_test_start3.o /tmp/small-beeps-obj/input.o /tmp/small-beeps-obj/irq.o /tmp/small-beeps-obj/lcd.o /tmp/small-beeps-obj/main.o /tmp/small-beeps-obj/midi.o /tmp/small-beeps-obj/midi_out.o /tmp/small-beeps-obj/patches.o /tmp/small-beeps-obj/probe.o /tmp/small-beeps-obj/saving.o /tmp/small-beeps-obj/screen.o /tmp/small-beeps-obj/spectrum.o /tmp/small-beeps-obj/start.o /tmp/small-beeps-obj/store.o /tmp/small-beeps-obj/usb_midi.o /tmp/small-beeps-obj/views.o /tmp/small-beeps-obj/libsb_runtime.a
++ objcopy -O binary -j .text /out/app.elf /tmp/small-beeps-obj/text.bin
++ objcopy -O binary -j .data /out/app.elf /tmp/small-beeps-obj/data.bin
++ cat /tmp/small-beeps-obj/text.bin /tmp/small-beeps-obj/data.bin
++ [ -z  ]
++ ld -nostdlib --no-undefined --orphan-handling=error --defsym=IMAGE_ORIGIN=0x02000120 -L firmware -L firmware -T firmware/app.ld -o /out/app-pkg.elf /tmp/small-beeps-obj/arp.o /tmp/small-beeps-obj/audio.o /tmp/small-beeps-obj/core1.o /tmp/small-beeps-obj/core1_entry.o /tmp/small-beeps-obj/crt0.o /tmp/small-beeps-obj/fm.o /tmp/small-beeps-obj/fm_play.o /tmp/small-beeps-obj/font.o /tmp/small-beeps-obj/gfx.o /tmp/small-beeps-obj/hw_audio.o /tmp/small-beeps-obj/hw_core1.o /tmp/small-beeps-obj/hw_fm1.o /tmp/small-beeps-obj/hw_report.o /tmp/small-beeps-obj/hw_start3.o /tmp/small-beeps-obj/hw_test_audio.o /tmp/small-beeps-obj/hw_test_start3.o /tmp/small-beeps-obj/input.o /tmp/small-beeps-obj/irq.o /tmp/small-beeps-obj/lcd.o /tmp/small-beeps-obj/main.o /tmp/small-beeps-obj/midi.o /tmp/small-beeps-obj/midi_out.o /tmp/small-beeps-obj/patches.o /tmp/small-beeps-obj/probe.o /tmp/small-beeps-obj/saving.o /tmp/small-beeps-obj/screen.o /tmp/small-beeps-obj/spectrum.o /tmp/small-beeps-obj/start.o /tmp/small-beeps-obj/store.o /tmp/small-beeps-obj/usb_midi.o /tmp/small-beeps-obj/views.o /tmp/small-beeps-obj/libsb_runtime.a
++ objcopy -O binary -j .text /out/app-pkg.elf /tmp/small-beeps-obj/pkg-text.bin
++ objcopy -O binary -j .data /out/app-pkg.elf /tmp/small-beeps-obj/pkg-data.bin
++ cat /tmp/small-beeps-obj/pkg-text.bin /tmp/small-beeps-obj/pkg-data.bin
++ set +x
+app.elf: store region 0xFC000 to 0xFEFFF, 3 sectors (the image ends at 0x13E33)
+app-pkg.elf: store region 0xFC000 to 0xFEFFF, 3 sectors (the image ends at 0x13F53)
+code 65008
+data 68
+bss 181568
+image 65076
+stack 4096
+irq_stack 2048
+ram_code 64296
+2c094b1074c665746b87b48d057482d559d2914e57671a31d60c093c88e93459  app-pkg.bin
+e347fec27547bd9736f67c5894c8fb73848fd5e9d29ddd52c09491bf4303f305  app-pkg.elf
+cc2d42c804f63c5bab7180228e110fbf076bd24e9232a53a9acce4262efc52c9  app.bin
+a2b275f0fa9378c54a3bf12e655b0af76c5d7985e4fb584a2fdce0a6cbedac15  app.elf
+9c7546f23e2941058b2728b54812bc6348736290281163248c24a473c806afd6  app.size
+
+$ sh tools/fwtest run out/33fe08e187b2e7855369734369056ab08fba3662/seams/release/build-owner-only/app.bin --out out/33fe08e187b2e7855369734369056ab08fba3662/seams/release/owner-only --ms 6000 --wav --audio-chip --flash-out --lcd end --script out/33fe08e187b2e7855369734369056ab08fba3662/seams/release/taps.script --usb
+fwtest: completed (exit 0)
+
+$ sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/33fe08e187b2e7855369734369056ab08fba3662/seams/release/unit-published --define SB_HW_FM1
+clang version 4.0.1 () ()
+GNU ld (GNU Binutils) 2.26.51.20160621
+SOURCE_DATE_EPOCH=1767225600
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/arp.c -o /tmp/small-beeps-obj/arp.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/audio.c -o /tmp/small-beeps-obj/audio.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/core1.c -o /tmp/small-beeps-obj/core1.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -nostdinc -Werror -DSB_HW_FM1 -c firmware/src/core1_entry.S -o /tmp/small-beeps-obj/core1_entry.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -nostdinc -Werror -DSB_HW_FM1 -c firmware/src/crt0.S -o /tmp/small-beeps-obj/crt0.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/fm.c -o /tmp/small-beeps-obj/fm.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/fm_play.c -o /tmp/small-beeps-obj/fm_play.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/font.c -o /tmp/small-beeps-obj/font.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/gfx.c -o /tmp/small-beeps-obj/gfx.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/hw_audio.c -o /tmp/small-beeps-obj/hw_audio.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -nostdinc -Werror -DSB_HW_FM1 -c firmware/src/hw_core1.S -o /tmp/small-beeps-obj/hw_core1.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/hw_fm1.c -o /tmp/small-beeps-obj/hw_fm1.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/hw_report.c -o /tmp/small-beeps-obj/hw_report.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/hw_start3.c -o /tmp/small-beeps-obj/hw_start3.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/hw_test_audio.c -o /tmp/small-beeps-obj/hw_test_audio.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/hw_test_start3.c -o /tmp/small-beeps-obj/hw_test_start3.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/input.c -o /tmp/small-beeps-obj/input.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/irq.c -o /tmp/small-beeps-obj/irq.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/lcd.c -o /tmp/small-beeps-obj/lcd.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/main.c -o /tmp/small-beeps-obj/main.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/midi.c -o /tmp/small-beeps-obj/midi.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/midi_out.c -o /tmp/small-beeps-obj/midi_out.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/patches.c -o /tmp/small-beeps-obj/patches.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/probe.c -o /tmp/small-beeps-obj/probe.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/saving.c -o /tmp/small-beeps-obj/saving.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/screen.c -o /tmp/small-beeps-obj/screen.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/spectrum.c -o /tmp/small-beeps-obj/spectrum.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/start.c -o /tmp/small-beeps-obj/start.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/store.c -o /tmp/small-beeps-obj/store.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/usb_midi.c -o /tmp/small-beeps-obj/usb_midi.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/src/views.c -o /tmp/small-beeps-obj/views.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -x c++ -std=c++14 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -fno-exceptions -fno-rtti -fno-threadsafe-statics -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ifirmware/runtime/include -DSB_HW_FM1 -c firmware/runtime/cxx.cc -o /tmp/small-beeps-obj/runtime_cxx.o
++ set +x
++ echo -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g
+            -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=.
+            -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1
++ sed s/ -mcpu=r3 -mfprev1//
++ clang -target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/runtime/mem.c -o /tmp/small-beeps-obj/runtime_mem.o
++ set +x
++ echo -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g
+            -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=.
+            -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1
++ sed s/ -mcpu=r3 -mfprev1//
++ clang -target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -c firmware/runtime/softfloat.c -o /tmp/small-beeps-obj/runtime_softfloat.o
++ set +x
+ownbase check: 32 objects disassembled with -mcpu=r3 -mattr=+fprev1
+ownbase check: 2 objects disassembled with no CPU options
++ ld -nostdlib --no-undefined --orphan-handling=error -L firmware -L firmware -T firmware/app.ld -o /out/app.elf /tmp/small-beeps-obj/arp.o /tmp/small-beeps-obj/audio.o /tmp/small-beeps-obj/core1.o /tmp/small-beeps-obj/core1_entry.o /tmp/small-beeps-obj/crt0.o /tmp/small-beeps-obj/fm.o /tmp/small-beeps-obj/fm_play.o /tmp/small-beeps-obj/font.o /tmp/small-beeps-obj/gfx.o /tmp/small-beeps-obj/hw_audio.o /tmp/small-beeps-obj/hw_core1.o /tmp/small-beeps-obj/hw_fm1.o /tmp/small-beeps-obj/hw_report.o /tmp/small-beeps-obj/hw_start3.o /tmp/small-beeps-obj/hw_test_audio.o /tmp/small-beeps-obj/hw_test_start3.o /tmp/small-beeps-obj/input.o /tmp/small-beeps-obj/irq.o /tmp/small-beeps-obj/lcd.o /tmp/small-beeps-obj/main.o /tmp/small-beeps-obj/midi.o /tmp/small-beeps-obj/midi_out.o /tmp/small-beeps-obj/patches.o /tmp/small-beeps-obj/probe.o /tmp/small-beeps-obj/saving.o /tmp/small-beeps-obj/screen.o /tmp/small-beeps-obj/spectrum.o /tmp/small-beeps-obj/start.o /tmp/small-beeps-obj/store.o /tmp/small-beeps-obj/usb_midi.o /tmp/small-beeps-obj/views.o /tmp/small-beeps-obj/libsb_runtime.a
++ objcopy -O binary -j .text /out/app.elf /tmp/small-beeps-obj/text.bin
++ objcopy -O binary -j .data /out/app.elf /tmp/small-beeps-obj/data.bin
++ cat /tmp/small-beeps-obj/text.bin /tmp/small-beeps-obj/data.bin
++ [ -z  ]
++ ld -nostdlib --no-undefined --orphan-handling=error --defsym=IMAGE_ORIGIN=0x02000120 -L firmware -L firmware -T firmware/app.ld -o /out/app-pkg.elf /tmp/small-beeps-obj/arp.o /tmp/small-beeps-obj/audio.o /tmp/small-beeps-obj/core1.o /tmp/small-beeps-obj/core1_entry.o /tmp/small-beeps-obj/crt0.o /tmp/small-beeps-obj/fm.o /tmp/small-beeps-obj/fm_play.o /tmp/small-beeps-obj/font.o /tmp/small-beeps-obj/gfx.o /tmp/small-beeps-obj/hw_audio.o /tmp/small-beeps-obj/hw_core1.o /tmp/small-beeps-obj/hw_fm1.o /tmp/small-beeps-obj/hw_report.o /tmp/small-beeps-obj/hw_start3.o /tmp/small-beeps-obj/hw_test_audio.o /tmp/small-beeps-obj/hw_test_start3.o /tmp/small-beeps-obj/input.o /tmp/small-beeps-obj/irq.o /tmp/small-beeps-obj/lcd.o /tmp/small-beeps-obj/main.o /tmp/small-beeps-obj/midi.o /tmp/small-beeps-obj/midi_out.o /tmp/small-beeps-obj/patches.o /tmp/small-beeps-obj/probe.o /tmp/small-beeps-obj/saving.o /tmp/small-beeps-obj/screen.o /tmp/small-beeps-obj/spectrum.o /tmp/small-beeps-obj/start.o /tmp/small-beeps-obj/store.o /tmp/small-beeps-obj/usb_midi.o /tmp/small-beeps-obj/views.o /tmp/small-beeps-obj/libsb_runtime.a
++ objcopy -O binary -j .text /out/app-pkg.elf /tmp/small-beeps-obj/pkg-text.bin
++ objcopy -O binary -j .data /out/app-pkg.elf /tmp/small-beeps-obj/pkg-data.bin
++ cat /tmp/small-beeps-obj/pkg-text.bin /tmp/small-beeps-obj/pkg-data.bin
++ set +x
+app.elf: store region 0xFC000 to 0xFEFFF, 3 sectors (the image ends at 0x1280F)
+app-pkg.elf: store region 0xFC000 to 0xFEFFF, 3 sectors (the image ends at 0x1292F)
+code 59340
+data 68
+bss 179984
+image 59408
+stack 4096
+irq_stack 2048
+ram_code 58628
+830d29243165041abf4e21dfe266856d65d84690daf2b7a100683118aa973e25  app-pkg.bin
+4ace64b28c04aac19af79a2c874e6d220f290f565febf338ede55838ee54cc0c  app-pkg.elf
+efa00d3f0abecac5bbe1dee27cf40b339d1dc15e7a38f0ef2f02ad75440a8efd  app.bin
+f22075fe8a3c433b0ab61aa285911aa6d052c6047d06cfcab8b139a3db3ea57e  app.elf
+e04df8f098161cd38b649bb8576e4263fcdaf990633e3f15b91a44f01f77f24d  app.size
+
+$ sh tools/build.sh build --out /home/runner/work/small-beeps/small-beeps/out/33fe08e187b2e7855369734369056ab08fba3662/seams/release/unit-owner-only --define SB_HW_FM1 --define SB_USB_MIDI
+clang version 4.0.1 () ()
+GNU ld (GNU Binutils) 2.26.51.20160621
+SOURCE_DATE_EPOCH=1767225600
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/arp.c -o /tmp/small-beeps-obj/arp.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/audio.c -o /tmp/small-beeps-obj/audio.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/core1.c -o /tmp/small-beeps-obj/core1.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -nostdinc -Werror -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/core1_entry.S -o /tmp/small-beeps-obj/core1_entry.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -nostdinc -Werror -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/crt0.S -o /tmp/small-beeps-obj/crt0.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/fm.c -o /tmp/small-beeps-obj/fm.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/fm_play.c -o /tmp/small-beeps-obj/fm_play.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/font.c -o /tmp/small-beeps-obj/font.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/gfx.c -o /tmp/small-beeps-obj/gfx.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/hw_audio.c -o /tmp/small-beeps-obj/hw_audio.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -nostdinc -Werror -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/hw_core1.S -o /tmp/small-beeps-obj/hw_core1.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/hw_fm1.c -o /tmp/small-beeps-obj/hw_fm1.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/hw_report.c -o /tmp/small-beeps-obj/hw_report.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/hw_start3.c -o /tmp/small-beeps-obj/hw_start3.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/hw_test_audio.c -o /tmp/small-beeps-obj/hw_test_audio.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/hw_test_start3.c -o /tmp/small-beeps-obj/hw_test_start3.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/input.c -o /tmp/small-beeps-obj/input.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/irq.c -o /tmp/small-beeps-obj/irq.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/lcd.c -o /tmp/small-beeps-obj/lcd.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/main.c -o /tmp/small-beeps-obj/main.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/midi.c -o /tmp/small-beeps-obj/midi.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/midi_out.c -o /tmp/small-beeps-obj/midi_out.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/patches.c -o /tmp/small-beeps-obj/patches.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/probe.c -o /tmp/small-beeps-obj/probe.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/saving.c -o /tmp/small-beeps-obj/saving.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/screen.c -o /tmp/small-beeps-obj/screen.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/spectrum.c -o /tmp/small-beeps-obj/spectrum.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/start.c -o /tmp/small-beeps-obj/start.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/store.c -o /tmp/small-beeps-obj/store.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/usb_midi.c -o /tmp/small-beeps-obj/usb_midi.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/src/views.c -o /tmp/small-beeps-obj/views.o
++ set +x
++ clang -target pi32v2 -mcpu=r3 -mfprev1 -x c++ -std=c++14 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -fno-exceptions -fno-rtti -fno-threadsafe-statics -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ifirmware/runtime/include -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/runtime/cxx.cc -o /tmp/small-beeps-obj/runtime_cxx.o
++ set +x
++ echo -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g
+            -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=.
+            -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI
++ sed s/ -mcpu=r3 -mfprev1//
++ clang -target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/runtime/mem.c -o /tmp/small-beeps-obj/runtime_mem.o
++ set +x
++ echo -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g
+            -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=.
+            -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI
++ sed s/ -mcpu=r3 -mfprev1//
++ clang -target pi32v2 -std=c11 -ffreestanding -nostdlib -nostdinc -Os -g -fno-common -Wall -Wextra -Werror -fdebug-prefix-map=/mnt/small-beeps-src=. -Ifirmware/src -Ivendor/jieli-sdk/include_lib/driver/cpu/wl82/asm -DSB_HW_FM1 -DSB_USB_MIDI -c firmware/runtime/softfloat.c -o /tmp/small-beeps-obj/runtime_softfloat.o
++ set +x
+ownbase check: 32 objects disassembled with -mcpu=r3 -mattr=+fprev1
+ownbase check: 2 objects disassembled with no CPU options
++ ld -nostdlib --no-undefined --orphan-handling=error -L firmware -L firmware -T firmware/app.ld -o /out/app.elf /tmp/small-beeps-obj/arp.o /tmp/small-beeps-obj/audio.o /tmp/small-beeps-obj/core1.o /tmp/small-beeps-obj/core1_entry.o /tmp/small-beeps-obj/crt0.o /tmp/small-beeps-obj/fm.o /tmp/small-beeps-obj/fm_play.o /tmp/small-beeps-obj/font.o /tmp/small-beeps-obj/gfx.o /tmp/small-beeps-obj/hw_audio.o /tmp/small-beeps-obj/hw_core1.o /tmp/small-beeps-obj/hw_fm1.o /tmp/small-beeps-obj/hw_report.o /tmp/small-beeps-obj/hw_start3.o /tmp/small-beeps-obj/hw_test_audio.o /tmp/small-beeps-obj/hw_test_start3.o /tmp/small-beeps-obj/input.o /tmp/small-beeps-obj/irq.o /tmp/small-beeps-obj/lcd.o /tmp/small-beeps-obj/main.o /tmp/small-beeps-obj/midi.o /tmp/small-beeps-obj/midi_out.o /tmp/small-beeps-obj/patches.o /tmp/small-beeps-obj/probe.o /tmp/small-beeps-obj/saving.o /tmp/small-beeps-obj/screen.o /tmp/small-beeps-obj/spectrum.o /tmp/small-beeps-obj/start.o /tmp/small-beeps-obj/store.o /tmp/small-beeps-obj/usb_midi.o /tmp/small-beeps-obj/views.o /tmp/small-beeps-obj/libsb_runtime.a
++ objcopy -O binary -j .text /out/app.elf /tmp/small-beeps-obj/text.bin
++ objcopy -O binary -j .data /out/app.elf /tmp/small-beeps-obj/data.bin
++ cat /tmp/small-beeps-obj/text.bin /tmp/small-beeps-obj/data.bin
++ [ -z  ]
++ ld -nostdlib --no-undefined --orphan-handling=error --defsym=IMAGE_ORIGIN=0x02000120 -L firmware -L firmware -T firmware/app.ld -o /out/app-pkg.elf /tmp/small-beeps-obj/arp.o /tmp/small-beeps-obj/audio.o /tmp/small-beeps-obj/core1.o /tmp/small-beeps-obj/core1_entry.o /tmp/small-beeps-obj/crt0.o /tmp/small-beeps-obj/fm.o /tmp/small-beeps-obj/fm_play.o /tmp/small-beeps-obj/font.o /tmp/small-beeps-obj/gfx.o /tmp/small-beeps-obj/hw_audio.o /tmp/small-beeps-obj/hw_core1.o /tmp/small-beeps-obj/hw_fm1.o /tmp/small-beeps-obj/hw_report.o /tmp/small-beeps-obj/hw_start3.o /tmp/small-beeps-obj/hw_test_audio.o /tmp/small-beeps-obj/hw_test_start3.o /tmp/small-beeps-obj/input.o /tmp/small-beeps-obj/irq.o /tmp/small-beeps-obj/lcd.o /tmp/small-beeps-obj/main.o /tmp/small-beeps-obj/midi.o /tmp/small-beeps-obj/midi_out.o /tmp/small-beeps-obj/patches.o /tmp/small-beeps-obj/probe.o /tmp/small-beeps-obj/saving.o /tmp/small-beeps-obj/screen.o /tmp/small-beeps-obj/spectrum.o /tmp/small-beeps-obj/start.o /tmp/small-beeps-obj/store.o /tmp/small-beeps-obj/usb_midi.o /tmp/small-beeps-obj/views.o /tmp/small-beeps-obj/libsb_runtime.a
++ objcopy -O binary -j .text /out/app-pkg.elf /tmp/small-beeps-obj/pkg-text.bin
++ objcopy -O binary -j .data /out/app-pkg.elf /tmp/small-beeps-obj/pkg-data.bin
++ cat /tmp/small-beeps-obj/pkg-text.bin /tmp/small-beeps-obj/pkg-data.bin
++ set +x
+app.elf: store region 0xFC000 to 0xFEFFF, 3 sectors (the image ends at 0x13E27)
+app-pkg.elf: store region 0xFC000 to 0xFEFFF, 3 sectors (the image ends at 0x13F47)
+code 64996
+data 68
+bss 181568
+image 65064
+stack 4096
+irq_stack 2048
+ram_code 64284
+c007ea7c5fe9f123706a47116bfe1c5690bffb8cede6ce3d269e8ef3f6b9399b  app-pkg.bin
+29412b31a2ecaa60a9adfbecd93b021d7de74d8955ef1414020dd10e4d0f624f  app-pkg.elf
+365b2397668ec9c3cd928027a1fdb59bebaa356e8d0accb79e2ba57da71f66fd  app.bin
+bbbea915b25a53319597e0900c7c1f706ea78677a3e871c98b9707d8c763feea  app.elf
+eacce17a34e39ed825b817e77ba5f7fb3bf9e1419568872d9c6a83127330c0ca  app.size
+

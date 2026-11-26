@@ -1,0 +1,11 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range ca1a658440b792c9ac9dbbb995e44701a91b71b2..33fe08e187b2e7855369734369056ab08fba3662
+OK     cf40f1f55a6a firmware: the audio flags folded into SB_HW_FM1, the dead branches gone
+OK     93fac3ea6f53 firmware: the release and the test build; the release starts at once and logs a summary and problems
+EXEMPT 965b5806bcfd (merge) merge: #254's branch (the parts balanced, the pin back to 0.14.0) into round 2's firmware branch
+OK     7faf86b45fca harness: pin fwtest 0.15.0 with round 2's firmware; seams usbmidi's 0.15.0 expectations
+OK     8a0cf5e0706a firmware: start3 split for the release, the test build's reads; seams for round 2's builds; the docs
+OK     91f46ce60ab1 firmware: the release's problem counts taken after each record; drops only while the host runs
+EXEMPT 33fe08e187b2 (merge) Merge pull request #255 from japes98/clean/r2-builds
+7 commit(s) checked: PASS
+
+exit status 0

@@ -1,0 +1,73 @@
+{
+  "fwtest": {
+    "version": "0.15.0",
+    "emulator_commit": "43ed5580064885e93bc8d20be931ae950d10cd4f"
+  },
+  "image": {
+    "name": "app.bin",
+    "bytes": 59844,
+    "sha256": "c6549771bd5cee7c47a4214c50b8164a55abf02df6945e5762993f07483a72aa"
+  },
+  "script_sha256": "15736ff3cd86e2602f7b3b3b492a8fb7f400afce3ff2e67df1712753ec278038",
+  "run": {
+    "outcome": "completed",
+    "detail": "ran for the whole time asked",
+    "emulated_ms": "7000.238",
+    "instructions": {
+      "core0": 17322783,
+      "core1": 5243347
+    },
+    "midi_bytes_dropped": 0,
+    "midi_out_bytes_dropped": 0,
+    "unmodelled_accesses": [],
+    "outputs": [
+      {
+        "name": "audio.wav",
+        "bytes": 1235244,
+        "sha256": "6cdfcee98712106905ac52eec238a7f74a9e26aed026eb49ccc81dbbd84462cb"
+      },
+      {
+        "name": "midi-out.csv",
+        "bytes": 224,
+        "sha256": "f7eec57e74a9748c1aff4595fa2ab710732b2b3dec507c1c01a03781cc7530a9"
+      },
+      {
+        "name": "midi-out.txt",
+        "bytes": 216,
+        "sha256": "3236ff13b0149a8e0fa1687d6bb1fc76ebf0f0166ce09be2dd8f43168976c975"
+      },
+      {
+        "name": "ram-01c28000-214-end.bin",
+        "bytes": 532,
+        "sha256": "0a1b8ce22b1e8c8df608b50a83357da36922bdde32f9ce097cd2526637c186f4"
+      },
+      {
+        "name": "usb-midi-out.csv",
+        "bytes": 151,
+        "sha256": "9c23d463b67f7bf614815eb1360567ab2ae59e13837101ed7ae2b0eaddc73ec6"
+      },
+      {
+        "name": "usb.csv",
+        "bytes": 2561,
+        "sha256": "d7a7cff85de82727973a1f5dc105608462b789058ad47d09cea656783628d315"
+      }
+    ],
+    "usb": {
+      "vendor": "1209",
+      "product": "0001",
+      "manufacturer": "small-beeps",
+      "product_name": "small-beeps",
+      "serial": null,
+      "address": 1,
+      "configuration": 1,
+      "midi_out_endpoint": 1,
+      "midi_in_endpoint": 130,
+      "packets_sent": 8,
+      "events_sent": 9,
+      "events_received": 6,
+      "problems": []
+    }
+  },
+  "golden": [],
+  "exit_code": 0
+}

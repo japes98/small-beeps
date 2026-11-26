@@ -1,0 +1,6 @@
+5005.070 note-on ch 1 key 53 vel 100
+5205.259 note-on ch 1 key 53 vel 0
+5305.358 note-on ch 1 key 54 vel 100
+5505.547 note-on ch 1 key 54 vel 0
+5605.646 note-on ch 1 key 55 vel 100
+5805.835 note-on ch 1 key 55 vel 0
