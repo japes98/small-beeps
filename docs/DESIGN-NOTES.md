@@ -6364,8 +6364,8 @@ new is written on the unit: no new register, no clock or `0x16A00` write, no sto
     sees it (`unifdef -USB_HW_TEST`). `hw_audio_int.h` and `hw_start3_int.h` hold each pair's shared macros and names.
   - **Kept as it was:** the Bell start and ARP's preset (UP, 1/16, 2 octaves) stay in the release. They are
     starting state, not checks, and the owner's ARP step needs them.
-  - **Images:** the published release is 59 392 bytes (audio14's was 112 744), the owner-only 64 996, the test
-    118 372.
+  - **Images:** the published release is 59 408 bytes (audio14's was 112 744), the owner-only 65 064, the test
+    118 436 (as merged in #255; #255's body gave the test build as 118 372, from before its last commit).
   - The audit's matched code and targets weren't opened. The audit is re-run after this round.
 - **fwtest 0.15.0** (section 5): pinned here, not in #254, whose first run failed seams case audio13 on it (U2's
   readings expect the lines to hold still). This PR removes that case. usbmidi expects no problem, and expects USB
@@ -6377,3 +6377,21 @@ new is written on the unit: no new register, no clock or `0x16A00` write, no sto
   - **report1** is the release's log: one Summary a power-on, the next numbered on, the ring's wrap, a failed write
     retried.
   - **release** and **test** are new; nowrace and usbmidi use round 2's builds.
+- **After the unit run** (docs/prompts/clean-r2-unit-run.md):
+  - **The owner's run of the owner-only release** (`88831c74…`) passed every step: sound at power-on within a
+    second; keys, chords and ARP fine; "small-beeps" on the Mac; notes both ways, once each; it kept playing after
+    the unplug. The log (backup fm1-20261126-083047) holds three 0.16.0-r2u Summary records, #986 to #988: ready
+    92.9 ms after TIMER0 each time (the engine's stage at 91.5 ms), problems 0, underruns 0, 1 524 bytes of the
+    main stack unused and 1 488 to 1 632 of the irq stack's. The microsecond gap between ALNK0's start and L2's
+    writes caused no trouble.
+  - **The backtest:** the three files rebuilt from main after #254 and #255 merged (`33fe08e1`) are byte for byte
+    the ones tested (`88831c74…`, `9feae518…`, `c59c4f24…`), so no reflash.
+  - **The owner's answers:**
+    - **The store** comes in round 3, with EDIT, ENV and SAVE and the power-cut test. Until then the release's REC
+      does nothing.
+    - **Faults:** no flash write from a trap. The red screen is to show the cause and the address in large text,
+      and a RAM mark is to be left for the next start to log if it survives a warm reset. Not built yet: a
+      firmware change for the unit, after this round.
+    - **b7ed6c1a's grown copy** is archived beside the old one, under the date it was last written (2026-11-12),
+      since the archive names must stay `<date>-<role>-<id>`. It has two more lines than the first archive, both
+      Claude Code's closing metadata.

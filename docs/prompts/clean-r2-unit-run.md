@@ -1,0 +1,6 @@
+Round 2 passed on the unit with the owner-only release (88831c74…): sound at power-on within a second; keys, chords and ARP fine; "small-beeps" appeared on the Mac; notes went both ways once each; it kept playing after unplugging. Backup fm1-20261126-083047: three 0.16.0-r2u Summary records (#986–#988), ready 92.9 ms after TIMER0 each time (engine 91.5), problems 0, underruns 0, unused stack main 1524 / irq 1488–1632. The ALNK0-to-L2 gap caused no trouble. Add these results to #255's outcomes table, then merge #254 and then #255. After merging, rebuild the three files from main and confirm each is byte-identical to the file tested (88831c74 / 9feae518 / c59c4f24). If they are, that's the backtest and no reflash is needed. If not, send the new owner-only file to be checked and flashed.
+
+Answers to the round 2 questions:
+1. Store: round 3, together with EDIT/ENV/SAVE and the power-cut test. REC doing nothing until then is fine.
+2. Faults: no flash write from a trap. Instead, show the cause and address in large text on the red screen, and leave a RAM mark that the next start logs if it survived a warm reset.
+3. b7ed6c1a: archive the grown copy beside the old one under a new name, without overwriting, and run the private-terms check before committing.
