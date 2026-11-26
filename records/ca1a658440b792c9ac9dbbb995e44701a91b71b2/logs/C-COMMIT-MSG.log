@@ -1,0 +1,9 @@
+$ /opt/hostedtoolcache/Python/3.12.16/x64/bin/python -I tools/check-commit-msg.py --range 7790749760dff5b5953e3b8a1abe71c69e1397e1..ca1a658440b792c9ac9dbbb995e44701a91b71b2
+OK     6981d3b5683f docs: round 2's prompt, U3-U's backtest prompts, the session's EXPOSURE entry
+OK     05b79a83b6c8 harness: pin fwtest 0.15.0; seams usbmidi expects no FADDR problem, no USB start without a host
+OK     6788e0a9b767 ci: C-SEAMS in four parts, seams --shard k/n by measured case times
+OK     6e708dfb0644 ci: seams' parts balanced by measured times; the fwtest pin waits for the firmware PR
+EXEMPT ca1a658440b7 (merge) Merge pull request #254 from japes98/clean/r2-cleanup
+5 commit(s) checked: PASS
+
+exit status 0

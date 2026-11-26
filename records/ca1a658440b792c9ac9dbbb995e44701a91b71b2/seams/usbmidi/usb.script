@@ -1,0 +1,14 @@
+3000 usbmidi 09 90 3c 64
+3000 usbmidi 09 90 40 64
+3050 usbmidi 08 80 3c 00
+3100 usbmidi 08 80 40 00
+3150 usbmidi 09 90 43 64
+3200 usbmidi 08 80 43 00
+3250 usbmidi 08 90 45 64
+5000 key 14 tap 200
+5100 usbmidi 09 90 48 40
+5300 key 15 tap 200
+5400 usbmidi 08 80 48 00
+5600 key 16 tap 200
+6000 midi 90 40 64
+6500 midi 80 40 00
